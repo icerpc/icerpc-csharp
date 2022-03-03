@@ -16,47 +16,46 @@ namespace IceRpc.Slice.Internal
             this PipeReader reader,
             CancellationToken cancel)
         {
-            ReadResult readResult = await reader.ReadAsync(cancel).ConfigureAwait(false);
-
-            if (readResult.IsCanceled)
+            while (true)
             {
-                return (-1, true, false);
-            }
-
-            if (readResult.Buffer.IsEmpty)
-            {
-                Debug.Assert(readResult.IsCompleted);
-                reader.AdvanceTo(readResult.Buffer.End);
-                return (0, false, true);
-            }
-
-            int sizeLength = Slice20Encoding.DecodeSizeLength(readResult.Buffer.FirstSpan[0]);
-            if (sizeLength > readResult.Buffer.Length)
-            {
-                reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                readResult = await reader.ReadAtLeastAsync(sizeLength, cancel).ConfigureAwait(false);
+                ReadResult readResult = await reader.ReadAsync(cancel).ConfigureAwait(false);
 
                 if (readResult.IsCanceled)
                 {
                     return (-1, true, false);
                 }
 
-                if (readResult.Buffer.Length < sizeLength)
+                if (readResult.Buffer.IsEmpty)
                 {
-                    throw new InvalidDataException("too few bytes in segment size");
+                    Debug.Assert(readResult.IsCompleted);
+                    reader.AdvanceTo(readResult.Buffer.End);
+                    return (0, false, true);
+                }
+
+                if (TryDecodeSize(readResult.Buffer, out int size, out long consumed))
+                {
+                    reader.AdvanceTo(readResult.Buffer.GetPosition(consumed));
+                    return (size, false, readResult.IsCompleted && readResult.Buffer.Length == consumed);
+                }
+                else
+                {
+                    reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
                 }
             }
 
-            ReadOnlySequence<byte> buffer = readResult.Buffer.Slice(readResult.Buffer.Start, sizeLength);
-            int size = DecodeSizeFromSequence(buffer);
-            bool isCompleted = readResult.IsCompleted && readResult.Buffer.Length == sizeLength;
-            reader.AdvanceTo(buffer.End);
-            return (size, false, isCompleted);
-
-            int DecodeSizeFromSequence(ReadOnlySequence<byte> buffer)
+            static bool TryDecodeSize(ReadOnlySequence<byte> buffer, out int size, out long consumed)
             {
                 var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                return decoder.DecodeSize();
+                if (decoder.TryDecodeSize(out size))
+                {
+                    consumed = decoder.Consumed;
+                    return true;
+                }
+                else
+                {
+                    consumed = 0;
+                    return false;
+                }
             }
         }
 

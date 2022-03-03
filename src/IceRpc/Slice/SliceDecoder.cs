@@ -158,40 +158,7 @@ namespace IceRpc.Slice
 
         /// <summary>Decodes a size encoded on a variable number of bytes.</summary>
         /// <returns>The size decoded by this decoder.</returns>
-        public int DecodeSize()
-        {
-            // The implementation does not use any internal or private property and therefore DecodeSize could be an
-            // extension method. It's an instance method because it's considered fundamental.
-
-            if (Encoding == IceRpc.Encoding.Slice11)
-            {
-                byte firstByte = DecodeByte();
-                if (firstByte < 255)
-                {
-                    return firstByte;
-                }
-                else
-                {
-                    int size = DecodeInt();
-                    if (size < 0)
-                    {
-                        throw new InvalidDataException($"decoded invalid size: {size}");
-                    }
-                    return size;
-                }
-            }
-            else
-            {
-                try
-                {
-                    return checked((int)DecodeVarULong());
-                }
-                catch (OverflowException ex)
-                {
-                    throw new InvalidDataException("cannot decode size larger than int.MaxValue", ex);
-                }
-            }
-        }
+        public int DecodeSize() => TryDecodeSize(out int value) ? value : throw new EndOfBufferException();
 
         /// <summary>Decodes a string.</summary>
         /// <returns>The string decoded by this decoder.</returns>
@@ -239,7 +206,7 @@ namespace IceRpc.Slice
         public ushort DecodeUShort() =>
             SequenceMarshal.TryRead(ref _reader, out ushort value) ? value : throw new EndOfBufferException();
 
-        /// <summary>Decodes an int. This int is encoded using Ice's variable-size integer encoding.
+        /// <summary>Decodes an int. This int is encoded using Slice's variable-size integer encoding.
         /// </summary>
         /// <returns>The int decoded by this decoder.</returns>
         public int DecodeVarInt()
@@ -254,7 +221,7 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Decodes a long. This long is encoded using Ice's variable-size integer encoding.
+        /// <summary>Decodes a long. This long is encoded using Slice's variable-size integer encoding.
         /// </summary>
         /// <returns>The long decoded by this decoder.</returns>
         public long DecodeVarLong() =>
@@ -266,7 +233,7 @@ namespace IceRpc.Slice
                 _ => DecodeLong() >> 2
             };
 
-        /// <summary>Decodes a uint. This uint is encoded using Ice's variable-size integer encoding.
+        /// <summary>Decodes a uint. This uint is encoded using Slice's variable-size integer encoding.
         /// </summary>
         /// <returns>The uint decoded by this decoder.</returns>
         public uint DecodeVarUInt()
@@ -281,17 +248,10 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Decodes a ulong. This ulong is encoded using Ice's variable-size integer encoding.
+        /// <summary>Decodes a ulong. This ulong is encoded using Slice's variable-size integer encoding.
         /// </summary>
         /// <returns>The ulong decoded by this decoder.</returns>
-        public ulong DecodeVarULong() =>
-            (PeekByte() & 0x03) switch
-            {
-                0 => (uint)DecodeByte() >> 2,   // cast to uint to use operator >> for uint instead of int, which is
-                1 => (uint)DecodeUShort() >> 2, // later implicitly converted to ulong
-                2 => DecodeUInt() >> 2,
-                _ => DecodeULong() >> 2
-            };
+        public ulong DecodeVarULong() => TryDecodeVarULong(out ulong value) ? value : throw new EndOfBufferException();
 
         // Decode methods for constructed types
 
@@ -527,19 +487,6 @@ namespace IceRpc.Slice
         // Applies to all var type: varlong, varulong etc.
         internal static int DecodeVarLongLength(byte from) => 1 << (from & 0x03);
 
-        internal static (ulong Value, int ValueLength) DecodeVarULong(ReadOnlySpan<byte> from)
-        {
-            ulong value = (from[0] & 0x03) switch
-            {
-                0 => (uint)from[0] >> 2,
-                1 => (uint)BitConverter.ToUInt16(from) >> 2,
-                2 => BitConverter.ToUInt32(from) >> 2,
-                _ => BitConverter.ToUInt64(from) >> 2
-            };
-
-            return (value, DecodeVarLongLength(from[0]));
-        }
-
         /// <summary>Verifies the Slice decoder has reached the end of its underlying buffer.</summary>
         /// <param name="skipTaggedParams">When true, first skips all remaining tagged parameters in the current
         /// buffer.</param>
@@ -662,6 +609,124 @@ namespace IceRpc.Slice
             {
                 Skip(DecodeVarLongLength(PeekByte()));
             }
+        }
+
+        /// <summary>Tries to decode a byte.</summary>
+        /// <param name="value">When this method returns <c>true</c>, this value is set to the decoded byte. Otherwise,
+        /// this value is set to its default value.</param>
+        /// <returns><c>true</c> if the decoder is not at the end of the buffer and the decode operation succeeded;
+        /// <c>false</c> otherwise.</returns>
+        internal bool TryDecodeByte(out byte value) => _reader.TryRead(out value);
+
+        /// <summary>Tries to decode an int.</summary>
+        /// <param name="value">When this method returns <c>true</c>, this value is set to the decoded int. Otherwise,
+        /// this value is set to its default value.</param>
+        /// <returns><c>true</c> if the decoder is not at the end of the buffer and the decode operation succeeded;
+        /// <c>false</c> otherwise.</returns>
+        internal bool TryDecodeInt(out int value) => SequenceMarshal.TryRead(ref _reader, out value);
+
+        /// <summary>Tries to decode a size encoded on a variable number of bytes.</summary>
+        /// <param name="size">When this method returns <c>true</c>, this value is set to the decoded size. Otherwise,
+        /// this value is set to its default value.</param>
+        /// <returns><c>true</c> if the decoder is not at the end of the buffer and the decode operation succeeded;
+        /// <c>false</c> otherwise.</returns>
+        internal bool TryDecodeSize(out int size)
+        {
+            if (Encoding == IceRpc.Encoding.Slice11)
+            {
+                if (TryDecodeByte(out byte firstByte))
+                {
+                    if (firstByte < 255)
+                    {
+                        size = firstByte;
+                        return true;
+                    }
+                    else if (TryDecodeInt(out size))
+                    {
+                        if (size < 0)
+                        {
+                            throw new InvalidDataException($"decoded invalid size: {size}");
+                        }
+                        return true;
+                    }
+                }
+                size = 0;
+                return false;
+            }
+            else
+            {
+                if (TryDecodeVarULong(out ulong v))
+                {
+                    try
+                    {
+                        size = checked((int)v);
+                        return true;
+                    }
+                    catch (OverflowException ex)
+                    {
+                        throw new InvalidDataException("cannot decode size larger than int.MaxValue", ex);
+                    }
+                }
+                else
+                {
+                    size = 0;
+                    return false;
+                }
+            }
+        }
+
+        /// <summary>Tries to decode a ulong. This ulong is encoded using Slice's variable-size integer encoding.
+        /// </summary>
+        /// <param name="value">When this method returns <c>true</c>, this value is set to the decoded ulong. Otherwise,
+        /// this value is set to its default value.</param>
+        /// <returns><c>true</c> if the decoder is not at the end of the buffer and the decode operation succeeded;
+        /// <c>false</c> otherwise.</returns>
+        internal bool TryDecodeVarULong(out ulong value)
+        {
+            if (_reader.TryPeek(out byte b))
+            {
+                switch (b & 0x03)
+                {
+                    case 0:
+                    {
+                        if (_reader.TryRead(out byte byteValue))
+                        {
+                            value = (uint)byteValue >> 2;
+                            return true;
+                        }
+                        break;
+                    }
+                    case 1:
+                    {
+                        if (SequenceMarshal.TryRead(ref _reader, out ushort ushortValue))
+                        {
+                            value = (uint)ushortValue >> 2;
+                            return true;
+                        }
+                        break;
+                    }
+                    case 2:
+                    {
+                        if (SequenceMarshal.TryRead(ref _reader, out uint uintValue))
+                        {
+                            value = uintValue >> 2;
+                            return true;
+                        }
+                        break;
+                    }
+                    default:
+                    {
+                        if (SequenceMarshal.TryRead(ref _reader, out ulong ulongValue))
+                        {
+                            value = ulongValue >> 2;
+                            return true;
+                        }
+                        break;
+                    }
+                }
+            }
+            value = 0;
+            return false;
         }
 
         /// <summary>Decodes an endpoint (Slice 1.1).</summary>

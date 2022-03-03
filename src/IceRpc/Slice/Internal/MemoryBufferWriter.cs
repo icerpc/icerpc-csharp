@@ -19,6 +19,10 @@ namespace IceRpc.Slice.Internal
         /// <inheritdoc/>
         public void Advance(int count)
         {
+            if (count < 0)
+            {
+                throw new ArgumentException($"{nameof(count)} can't be negative", nameof(count));
+            }
             if (count > _available.Length)
             {
                 throw new InvalidOperationException($"can't advance past the end of the underlying buffer");
