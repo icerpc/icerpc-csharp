@@ -506,7 +506,7 @@ catch (RemoteException remoteException)
 }}",
     check_and_decode = check_and_decode,
     dispatch_and_return = dispatch_and_return.indent()
-).into()
+    ).into()
 }
 
 fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
