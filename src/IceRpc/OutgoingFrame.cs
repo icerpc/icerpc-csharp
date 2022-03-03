@@ -56,7 +56,7 @@ namespace IceRpc
             Protocol = protocol;
         }
 
-        /// <summary>Completes the frame payload pipe readers and the sink pipe writer.</summary>
+        /// <summary>Completes the frame payload pipe readers.</summary>
         internal virtual async ValueTask CompleteAsync(Exception? exception = null)
         {
             await PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
