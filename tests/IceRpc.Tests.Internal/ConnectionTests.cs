@@ -372,10 +372,10 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        // [TestCase(false, "ice")]
-        // [TestCase(true, "ice")]
+        [TestCase(false, "ice")]
+        [TestCase(true, "ice")]
         [TestCase(false, "icerpc")]
-        // [TestCase(true, "icerpc")]
+        [TestCase(true, "icerpc")]
         public async Task Connection_ShutdownCancellationAsync(bool closeClientSide, string protocol)
         {
             using var waitForDispatchSemaphore = new SemaphoreSlim(0);
