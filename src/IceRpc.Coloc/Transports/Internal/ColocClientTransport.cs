@@ -11,6 +11,9 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IClientTransport{ISimpleNetworkConnection}"/> for the coloc transport.</summary>
     internal class ColocClientTransport : IClientTransport<ISimpleNetworkConnection>
     {
+        /// <inheritdoc/>
+        public string Name => ColocTransport.Name;
+
         private readonly ConcurrentDictionary<Endpoint, ColocListener> _listeners;
 
         /// <inheritdoc/>
@@ -24,7 +27,7 @@ namespace IceRpc.Transports
                 throw new NotSupportedException("cannot create a secure Coloc connection");
             }
 
-            remoteEndpoint = remoteEndpoint.WithTransport(ColocTransport.Name);
+            remoteEndpoint = remoteEndpoint.WithTransport(Name);
 
             if (remoteEndpoint.Params.Count > 1)
             {

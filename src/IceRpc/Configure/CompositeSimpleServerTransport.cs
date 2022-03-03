@@ -29,7 +29,7 @@ namespace IceRpc.Configure
             TcpServerTransportOptions options)
         {
             var transport = new TcpServerTransport(options);
-            return serverTransport.Add(TransportNames.Tcp, transport).Add(TransportNames.Ssl, transport);
+            return serverTransport.Add(transport).Add(TransportNames.Ssl, transport);
         }
 
         /// <summary>Adds the udp server transport to this composite server transport.</summary>
@@ -46,6 +46,6 @@ namespace IceRpc.Configure
         public static CompositeServerTransport<ISimpleNetworkConnection> UseUdp(
             this CompositeServerTransport<ISimpleNetworkConnection> serverTransport,
             UdpServerTransportOptions options) =>
-            serverTransport.Add(TransportNames.Udp, new UdpServerTransport(options));
+            serverTransport.Add(new UdpServerTransport(options));
     }
 }

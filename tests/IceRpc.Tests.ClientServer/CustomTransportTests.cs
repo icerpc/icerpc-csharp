@@ -11,6 +11,8 @@ namespace IceRpc.Tests.ClientServer
 {
     public class CustomClientTransport : IClientTransport<IMultiplexedNetworkConnection>
     {
+        public string Name => "custom";
+
         private readonly IClientTransport<IMultiplexedNetworkConnection> _transport =
             new SlicClientTransport(new TcpClientTransport());
 
@@ -40,6 +42,8 @@ namespace IceRpc.Tests.ClientServer
 
     public class CustomServerTransport : IServerTransport<IMultiplexedNetworkConnection>
     {
+        public string Name => "custom";
+
         private readonly IServerTransport<IMultiplexedNetworkConnection> _transport =
             new SlicServerTransport(new TcpServerTransport());
 

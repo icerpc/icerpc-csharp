@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
-using IceRpc.Transports.Internal;
 
 namespace IceRpc.Configure
 {
@@ -15,10 +14,18 @@ namespace IceRpc.Configure
     public static class CompositeMultiplexedServerTransportExtensions
     {
         /// <summary>Adds the Slic over TCP server transport to this composite server transport.</summary>
-        /// <param name="serverTransport">The transport being configured.</param>
-        /// <returns>The transport being configured.</returns>
+        /// <param name="serverTransport">The composite transport being configured.</param>
+        /// <returns>The composite transport being configured.</returns>
         public static CompositeServerTransport<IMultiplexedNetworkConnection> UseSlicOverTcp(
             this CompositeServerTransport<IMultiplexedNetworkConnection> serverTransport) =>
-            serverTransport.Add(TransportNames.Tcp, new SlicServerTransport(new TcpServerTransport()));
+            serverTransport.Add(new SlicServerTransport(new TcpServerTransport()));
+
+        /// <summary>Adds a Slic server transport to this composite server transport.</summary>
+        /// <param name="serverTransport">The composite transport being configured.</param>
+        /// <param name="options">The Slic server transport options.</param>
+        /// <returns>The composite transport being configured.</returns>
+        public static CompositeServerTransport<IMultiplexedNetworkConnection> UseSlic(
+            this CompositeServerTransport<IMultiplexedNetworkConnection> serverTransport,
+            SlicServerTransportOptions options) => serverTransport.Add(new SlicServerTransport(options));
     }
 }

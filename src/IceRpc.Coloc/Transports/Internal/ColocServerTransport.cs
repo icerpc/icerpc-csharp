@@ -10,6 +10,9 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IServerTransport{ISimpleNetworkConnection}"/> for the coloc transport.</summary>
     internal class ColocServerTransport : IServerTransport<ISimpleNetworkConnection>
     {
+        /// <inheritdoc/>
+        public string Name => ColocTransport.Name;
+
         private readonly ConcurrentDictionary<Endpoint, ColocListener> _listeners;
 
         /// <inheritdoc/>
@@ -23,7 +26,7 @@ namespace IceRpc.Transports
                 throw new NotSupportedException("cannot create secure Coloc server");
             }
 
-            var listener = new ColocListener(endpoint);
+            var listener = new ColocListener(endpoint.WithTransport(Name));
             if (!_listeners.TryAdd(listener.Endpoint, listener))
             {
                 throw new TransportException($"endpoint '{listener.Endpoint}' is already in use");
