@@ -6,7 +6,7 @@ using System.Buffers;
 namespace IceRpc.Configure
 {
     /// <summary>The base options class for Slic.</summary>
-    public record class SlicOptions
+    public record class SlicTransportOptions
     {
         /// <summary>Configures the bidirectional stream maximum count to limit the number of concurrent
         /// bidirectional streams opened on a connection. When this limit is reached, trying to open a new
@@ -97,14 +97,14 @@ namespace IceRpc.Configure
     }
 
     /// <summary>An options class for configuring a <see cref="SlicClientTransport"/>.</summary>
-    public sealed record class SlicClientTransportOptions : SlicOptions
+    public sealed record class SlicClientTransportOptions : SlicTransportOptions
     {
         /// <summary>Gets or initializes the underlying simple client transport.</summary>
         public IClientTransport<ISimpleNetworkConnection>? SimpleClientTransport { get; init; }
     }
 
     /// <summary>An options class for configuring a <see cref="SlicServerTransport"/>.</summary>
-    public sealed record class SlicServerTransportOptions : SlicOptions
+    public sealed record class SlicServerTransportOptions : SlicTransportOptions
     {
         /// <summary>Gets or initializes the underlying simple server transport.</summary>
         public IServerTransport<ISimpleNetworkConnection>? SimpleServerTransport { get; init; }

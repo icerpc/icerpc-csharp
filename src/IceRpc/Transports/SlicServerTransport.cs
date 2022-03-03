@@ -16,7 +16,7 @@ namespace IceRpc.Transports
         private static readonly Func<ISlicFrameWriter, ISlicFrameWriter> _defaultSlicFrameWriterDecorator =
             writer => writer;
         private readonly IServerTransport<ISimpleNetworkConnection> _simpleServerTransport;
-        private readonly SlicOptions _slicOptions;
+        private readonly SlicTransportOptions _slicOptions;
 
         /// <summary>Constructs a Slic server transport.</summary>
         public SlicServerTransport(SlicServerTransportOptions options)

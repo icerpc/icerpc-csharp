@@ -6,7 +6,7 @@ using System.Net;
 namespace IceRpc.Configure
 {
     /// <summary>The base options class for TCP transports.</summary>
-    public record class TcpOptions
+    public record class TcpTransportOptions
     {
         /// <summary>Gets or initializes the idle timeout. This timeout is used to monitor the network connection. If
         /// the connection is idle within this timeout period, the connection is gracefully closed.</summary>
@@ -25,8 +25,8 @@ namespace IceRpc.Configure
         public bool IsIPv6Only { get; init; }
 
         /// <summary>Gets or initializes the socket receive buffer size in bytes.</summary>
-        /// <value>The receive buffer size in bytes. It can't be less than 1KB. <c>null</c> means use the OS default.
-        /// </value>
+        /// <value>The receive buffer size in bytes. It can't be less than 1KB. <c>null</c> means use the operating
+        /// system default.</value>
         public int? ReceiveBufferSize
         {
             get => _receiveBufferSize;
@@ -50,7 +50,7 @@ namespace IceRpc.Configure
     }
 
     /// <summary>The options class for configuring <see cref="TcpClientTransport"/>.</summary>
-    public sealed record class TcpClientTransportOptions : TcpOptions
+    public sealed record class TcpClientTransportOptions : TcpTransportOptions
     {
         /// <summary>Gets or initializes the address and port represented by a .NET IPEndPoint to use for a client
         /// socket. If specified the client socket will bind to this address and port before connection establishment.
@@ -60,7 +60,7 @@ namespace IceRpc.Configure
     }
 
     /// <summary>The options class for configuring <see cref="TcpServerTransport"/>.</summary>
-    public sealed record class TcpServerTransportOptions : TcpOptions
+    public sealed record class TcpServerTransportOptions : TcpTransportOptions
     {
         /// <summary>Gets or initializes the length of the server socket queue for accepting new connections. If a new
         /// connection request arrives and the queue is full, the client connection establishment will fail with a

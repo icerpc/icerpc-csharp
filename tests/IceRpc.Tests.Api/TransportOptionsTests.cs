@@ -72,7 +72,7 @@ namespace IceRpc.Tests.Api
         [Test]
         public void TransportOptions_SlicOptions()
         {
-            var options = new SlicOptions();
+            var options = new SlicTransportOptions();
             Assert.That(options.UnidirectionalStreamMaxCount, Is.EqualTo(100));
             Assert.That(options.BidirectionalStreamMaxCount, Is.EqualTo(100));
             Assert.That(options.PacketMaxSize, Is.EqualTo(16 * 1024));
@@ -80,13 +80,13 @@ namespace IceRpc.Tests.Api
             Assert.That(options.ResumeWriterThreshold, Is.EqualTo(32 * 1024));
 
             // Can't be less than 1
-            Assert.Throws<ArgumentException>(() => new SlicOptions() { BidirectionalStreamMaxCount = 0 });
-            Assert.Throws<ArgumentException>(() => new SlicOptions() { UnidirectionalStreamMaxCount = 0 });
+            Assert.Throws<ArgumentException>(() => new SlicTransportOptions() { BidirectionalStreamMaxCount = 0 });
+            Assert.Throws<ArgumentException>(() => new SlicTransportOptions() { UnidirectionalStreamMaxCount = 0 });
 
             // Can't be less than 1Kb
-            Assert.Throws<ArgumentException>(() => new SlicOptions() { PacketMaxSize = 1 });
-            Assert.Throws<ArgumentException>(() => new SlicOptions() { PauseWriterThreshold = 1 });
-            Assert.Throws<ArgumentException>(() => new SlicOptions() { ResumeWriterThreshold = 1 });
+            Assert.Throws<ArgumentException>(() => new SlicTransportOptions() { PacketMaxSize = 1 });
+            Assert.Throws<ArgumentException>(() => new SlicTransportOptions() { PauseWriterThreshold = 1 });
+            Assert.Throws<ArgumentException>(() => new SlicTransportOptions() { ResumeWriterThreshold = 1 });
         }
     }
 }

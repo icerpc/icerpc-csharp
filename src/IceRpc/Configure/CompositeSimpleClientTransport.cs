@@ -22,7 +22,7 @@ namespace IceRpc.Configure
 
         /// <summary>Adds the tcp and ssl client transports to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
-        /// <param name="options">The TCP client options.</param>
+        /// <param name="options">The tcp client options.</param>
         /// <returns>The transport being configured.</returns>
         public static CompositeClientTransport<ISimpleNetworkConnection> UseTcp(
             this CompositeClientTransport<ISimpleNetworkConnection> clientTransport,

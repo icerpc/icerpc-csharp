@@ -5,13 +5,13 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IceRpc.Configure
 {
-    /// <summary>An options class for configuring a Locator interceptor.</summary>
+    /// <summary>An options class for configuring a <see cref="LocatorInterceptor"/>.</summary>
     public sealed record class LocatorOptions
     {
         /// <summary>Gets or initializes the background configuration.</summary>
         /// <value>When <c>true</c>, if the lookup finds a stale cache entry, it returns the stale entry's endpoint(s)
         /// and executes a call "in the background" to refresh this entry. The default is <c>false</c>, meaning the
-        /// lookupdoes not return stale values.</value>
+        /// lookup does not return stale values.</value>
         public bool Background { get; init; }
 
         /// <summary>Gets or initializes the maximum size of the cache.</summary>
@@ -34,7 +34,8 @@ namespace IceRpc.Configure
         /// <summary>Gets or initializes the logger factory used to create the IceRpc logger.</summary>
         public ILoggerFactory LoggerFactory { get; init; } = NullLoggerFactory.Instance;
 
-        /// <summary>Gets or initializes the time-to-live. After ttl, a cache entry is considered stale.</summary>
+        /// <summary>Gets or initializes the time-to-live. This is the time period after which a cache entry is
+        /// considered stale.</summary>
         /// <value>The time to live. The default is InfiniteTimeSpan, meaning the cache entries never become stale.
         /// </value>
         public TimeSpan Ttl { get; init; } = Timeout.InfiniteTimeSpan;

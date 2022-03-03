@@ -9,7 +9,7 @@ namespace IceRpc.Transports.Internal
         private readonly IListener<ISimpleNetworkConnection> _simpleListener;
         private readonly Func<ISlicFrameReader, ISlicFrameReader> _slicFrameReaderDecorator;
         private readonly Func<ISlicFrameWriter, ISlicFrameWriter> _slicFrameWriterDecorator;
-        private readonly SlicOptions _slicOptions;
+        private readonly SlicTransportOptions _slicOptions;
 
         public Endpoint Endpoint => _simpleListener.Endpoint;
 
@@ -27,7 +27,7 @@ namespace IceRpc.Transports.Internal
             IListener<ISimpleNetworkConnection> simpleListener,
             Func<ISlicFrameReader, ISlicFrameReader> slicFrameReaderDecorator,
             Func<ISlicFrameWriter, ISlicFrameWriter> slicFrameWriterDecorator,
-            SlicOptions slicOptions)
+            SlicTransportOptions slicOptions)
         {
             _simpleListener = simpleListener;
             _slicFrameReaderDecorator = slicFrameReaderDecorator;
