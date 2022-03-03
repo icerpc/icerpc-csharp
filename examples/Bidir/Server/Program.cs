@@ -3,24 +3,14 @@
 using Demo;
 using IceRpc;
 
-try
+await using var server = new Server(new AlertSystem());
+
+// Destroy the server on Ctrl+C or Ctrl+Break
+Console.CancelKeyPress += (sender, eventArgs) =>
 {
-    await using var server = new Server(new AlertSystem());
+    eventArgs.Cancel = true;
+    _ = server.ShutdownAsync();
+};
 
-    // Destroy the server on Ctrl+C or Ctrl+Break
-    Console.CancelKeyPress += (sender, eventArgs) =>
-    {
-        eventArgs.Cancel = true;
-        _ = server.ShutdownAsync();
-    };
-
-    server.Listen();
-    await server.ShutdownComplete;
-}
-catch (Exception ex)
-{
-    Console.Error.WriteLine(ex);
-    return 1;
-}
-
-return 0;
+server.Listen();
+await server.ShutdownComplete;
