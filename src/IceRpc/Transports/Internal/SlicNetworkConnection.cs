@@ -15,7 +15,6 @@ namespace IceRpc.Transports.Internal
     /// top of a <see cref="ISimpleNetworkConnection"/>.</summary>
     internal class SlicNetworkConnection : IMultiplexedNetworkConnection
     {
-        public bool IsSecure => _simpleNetworkConnection.IsSecure;
         public TimeSpan LastActivity => _simpleNetworkConnection.LastActivity;
 
         internal TimeSpan IdleTimeout { get; set; }
@@ -244,7 +243,7 @@ namespace IceRpc.Transports.Internal
             bool isServer,
             Func<ISlicFrameReader, ISlicFrameReader> slicFrameReaderDecorator,
             Func<ISlicFrameWriter, ISlicFrameWriter> slicFrameWriterDecorator,
-            SlicOptions slicOptions)
+            SlicTransportOptions slicOptions)
         {
             IsServer = isServer;
             PauseWriterThreshold = slicOptions.PauseWriterThreshold;

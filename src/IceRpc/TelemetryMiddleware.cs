@@ -69,7 +69,7 @@ namespace IceRpc
 
         private static void RestoreActivityContext(IncomingRequest request, Activity activity)
         {
-            if (request.Fields.TryGetValue((int)FieldKey.TraceContext, out ReadOnlyMemory<byte> buffer))
+            if (request.Fields.TryGetValue((int)FieldKey.TraceContext, out ReadOnlySequence<byte> buffer))
             {
                 var decoder = new SliceDecoder(buffer, Encoding.Slice20);
 

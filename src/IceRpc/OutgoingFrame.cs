@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
+using System.Buffers;
 using System.Collections.Immutable;
 using System.IO.Pipelines;
 
@@ -12,8 +13,8 @@ namespace IceRpc
     {
         /// <summary>Gets or sets the fields of this outgoing frame. The full fields are a combination of these fields
         /// plus <see cref="FieldsOverrides"/>.</summary>
-        public IDictionary<int, ReadOnlyMemory<byte>> Fields { get; set; } =
-            ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
+        public IDictionary<int, ReadOnlySequence<byte>> Fields { get; set; } =
+            ImmutableDictionary<int, ReadOnlySequence<byte>>.Empty;
 
         /// <summary>Gets or sets the fields overrides of this outgoing frame. The full fields are a combination of
         /// <see cref="Fields"/> plus these overrides.</summary>

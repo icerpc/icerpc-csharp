@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.IO.Pipelines;
@@ -72,7 +73,7 @@ namespace IceRpc.Slice
         public static async ValueTask<T> ReadValueAsync<T>(
             this IncomingFrame frame,
             SliceEncoding encoding,
-            DecodePayloadOptions decodePayloadOptions,
+            SliceDecodePayloadOptions decodePayloadOptions,
             IActivator defaultActivator,
             DecodeFunc<T> decodeFunc,
             bool hasStream,
@@ -136,7 +137,7 @@ namespace IceRpc.Slice
         public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this IncomingFrame frame,
             SliceEncoding encoding,
-            DecodePayloadOptions decodePayloadOptions,
+            SliceDecodePayloadOptions decodePayloadOptions,
             IActivator defaultActivator,
             DecodeFunc<T> decodeFunc)
         {

@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice.Internal;
+using System.Buffers;
 using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 
@@ -66,7 +67,7 @@ namespace IceRpc.Slice
         public static void EncodeFieldDictionary(
             this ref SliceEncoder encoder,
             IDictionary<int, EncodeAction> fieldsOverrides,
-            IDictionary<int, ReadOnlyMemory<byte>> fields)
+            IDictionary<int, ReadOnlySequence<byte>> fields)
         {
             // can be larger than necessary, which is fine
             int sizeLength = encoder.GetSizeLength(fields.Count + fieldsOverrides.Count);
@@ -87,13 +88,25 @@ namespace IceRpc.Slice
                 count++;
             }
 
-            foreach ((int key, ReadOnlyMemory<byte> value) in fields)
+            foreach ((int key, ReadOnlySequence<byte> value) in fields)
             {
                 if (!fieldsOverrides.ContainsKey(key))
                 {
                     encoder.EncodeVarInt(key);
-                    encoder.EncodeSize(value.Length);
-                    encoder.WriteByteSpan(value.Span);
+                    encoder.EncodeSize(checked((int)value.Length));
+
+                    if (value.IsSingleSegment)
+                    {
+                        encoder.WriteByteSpan(value.FirstSpan);
+                    }
+                    else
+                    {
+                        // TODO: for now the fields are backed by a single byte[] so this can't happen.
+                        foreach (ReadOnlyMemory<byte> buffer in value)
+                        {
+                            encoder.WriteByteSpan(buffer.Span);
+                        }
+                    }
                     count++;
                 }
             }

@@ -43,8 +43,9 @@ namespace ClientApp
                             IConfiguration configuration = hostContext.Configuration.GetSection("Transport");
 
                             // TODO: bogus code
-                            TcpClientOptions tcpOptions = configuration.GetValue<TcpClientOptions>("Tcp") ?? new();
-                            return new SlicClientTransport(new TcpClientTransport(tcpOptions));
+                            TcpClientTransportOptions clientTransportOptions =
+                                configuration.GetValue<TcpClientTransportOptions>("Tcp") ?? new();
+                            return new SlicClientTransport(new TcpClientTransport(clientTransportOptions));
                         });
 
                     // Add an IInvoker singleton service. The DI container will inject it in services that require an

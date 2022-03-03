@@ -5,11 +5,6 @@ namespace IceRpc.Transports
     /// <summary>A network connection represents a transport-level connection used to exchange data as bytes.</summary>
     public interface INetworkConnection : IAsyncDisposable
     {
-        /// <summary>Indicates whether or not this network connection is secure.</summary>
-        /// <value><c>true</c> means the network connection is secure. <c>false</c> means the network connection is not
-        /// secure. If the connection is not established, secure is always <c>false</c>.</value>
-        bool IsSecure { get; }
-
         /// <summary>The time elapsed since the last activity of the connection.</summary>
         TimeSpan LastActivity { get; }
 

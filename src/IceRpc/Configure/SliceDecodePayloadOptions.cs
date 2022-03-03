@@ -1,12 +1,14 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc.Slice
+using IceRpc.Slice;
+
+namespace IceRpc.Configure
 {
-    /// <summary>An option class to customize the decoding of a request or response payloads.</summary>
-    public record class DecodePayloadOptions
+    /// <summary>An option class to customize the decoding of a Slice-encoded request or response payload.</summary>
+    public sealed record class SliceDecodePayloadOptions
     {
         /// <summary>The default decode payload options.</summary>
-        public static DecodePayloadOptions Default { get; } = new();
+        public static SliceDecodePayloadOptions Default { get; } = new();
 
         /// <summary>The activator to use when decoding Slice classes, exceptions and traits. When <c>null</c>, the
         /// decoding of a request or response payload uses the activator injected by the Slice generated code.</summary>
@@ -27,7 +29,7 @@ namespace IceRpc.Slice
         public IInvoker? ProxyInvoker { get; init; }
 
         /// <summary>The options for decoding a Slice stream.</summary>
-        public StreamDecoderOptions StreamDecoderOptions { get; init; } = StreamDecoderOptions.Default;
+        public SliceStreamDecoderOptions StreamDecoderOptions { get; init; } = SliceStreamDecoderOptions.Default;
 
         private int _maxDepth = -1;
     }

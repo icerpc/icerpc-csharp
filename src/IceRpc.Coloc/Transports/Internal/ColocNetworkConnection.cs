@@ -8,8 +8,6 @@ namespace IceRpc.Transports.Internal
     /// copies the send buffer into the receive buffer.</summary>
     internal class ColocNetworkConnection : ISimpleNetworkConnection
     {
-        bool INetworkConnection.IsSecure => true;
-
         TimeSpan INetworkConnection.LastActivity => TimeSpan.Zero;
 
         private readonly Endpoint _endpoint;

@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace IceRpc.Configure
 {
     /// <summary>Options class to configure <see cref="RetryInterceptor"/>.</summary>
-    public sealed class RetryOptions
+    public sealed record class RetryOptions
     {
         /// <summary>The maximum amount of memory in bytes used to hold all retryable requests. Once this limit is
         /// reached new requests are not retried and their memory is released after being sent. The default value is

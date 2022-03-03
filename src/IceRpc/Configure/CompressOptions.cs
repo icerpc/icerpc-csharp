@@ -6,7 +6,7 @@ namespace IceRpc.Configure
 {
     /// <summary>Options class to configure the <see cref="CompressorInterceptor"/> and
     /// <see cref="CompressorMiddleware"/>.</summary>
-    public sealed class CompressOptions
+    public sealed record class CompressOptions
     {
         /// <summary>The compression level for the compress operation, the default value is
         /// <see cref="CompressionLevel.Fastest"/>.</summary>

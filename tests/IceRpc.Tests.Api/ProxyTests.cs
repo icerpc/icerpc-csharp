@@ -467,7 +467,7 @@ namespace IceRpc.Tests.Api
                 {
                     var router = new Router();
                     router.Map<IProxyTest>(service);
-                    router.UseFeature(new DecodePayloadOptions { ProxyInvoker = pipeline });
+                    router.UseFeature(new SliceDecodePayloadOptions { ProxyInvoker = pipeline });
                     return router;
                 })
                 .BuildServiceProvider();

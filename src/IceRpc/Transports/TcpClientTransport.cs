@@ -11,17 +11,17 @@ namespace IceRpc.Transports
     /// </summary>
     public class TcpClientTransport : IClientTransport<ISimpleNetworkConnection>
     {
-        private readonly TcpClientOptions _options;
+        private readonly TcpClientTransportOptions _options;
 
         /// <summary>Constructs a <see cref="TcpClientTransport"/>.</summary>
-        public TcpClientTransport() :
-            this(options: new())
+        public TcpClientTransport()
+            : this(new())
         {
         }
 
         /// <summary>Constructs a <see cref="TcpClientTransport"/>.</summary>
         /// <param name="options">The transport options.</param>
-        public TcpClientTransport(TcpClientOptions options) => _options = options;
+        public TcpClientTransport(TcpClientTransportOptions options) => _options = options;
 
         /// <inheritdoc/>
         ISimpleNetworkConnection IClientTransport<ISimpleNetworkConnection>.CreateConnection(

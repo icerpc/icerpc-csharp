@@ -65,11 +65,6 @@ namespace IceRpc
             remove => _closed -= value;
         }
 
-        /// <summary><c>true</c> if the connection uses a secure transport, <c>false</c> otherwise.</summary>
-        /// <remarks><c>false</c> can mean the connection is not yet connected and its security will be determined
-        /// during connection establishment.</remarks>
-        public bool IsSecure => _networkConnection?.IsSecure ?? false;
-
         /// <summary><c>true</c> for a connection accepted by a server and <c>false</c> for a connection created by a
         /// client.</summary>
         public bool IsServer => _options == null;

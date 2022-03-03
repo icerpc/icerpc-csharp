@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Slice.Internal;
 
 namespace IceRpc.Slice
@@ -86,7 +87,7 @@ namespace IceRpc.Slice
             CancellationToken cancel) =>
             request.ReadValueAsync(
                 request.GetSliceEncoding(),
-                request.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default,
+                request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
                 defaultActivator,
                 decodeFunc,
                 hasStream,
@@ -102,7 +103,7 @@ namespace IceRpc.Slice
             DecodeFunc<T> decodeFunc) =>
             request.ToAsyncEnumerable(
                 request.GetSliceEncoding(),
-                request.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default,
+                request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
                 defaultActivator,
                 decodeFunc);
     }

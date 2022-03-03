@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.Diagnostics;
@@ -36,7 +37,7 @@ namespace IceRpc.Slice
             else
             {
                 throw await response.ToRemoteExceptionAsync(
-                    response.Request.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default,
+                    response.Request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
                     defaultActivator,
                     cancel).ConfigureAwait(false);
             }
@@ -52,7 +53,7 @@ namespace IceRpc.Slice
             DecodeFunc<T> decodeFunc) =>
             response.ToAsyncEnumerable(
                 (SliceEncoding)response.Request.PayloadEncoding,
-                response.Request.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default,
+                response.Request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
                 defaultActivator,
                 decodeFunc);
 
@@ -79,7 +80,7 @@ namespace IceRpc.Slice
             {
                 return await response.ReadValueAsync(
                     (SliceEncoding)response.Request.PayloadEncoding,
-                    response.Request.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default,
+                    response.Request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
                     defaultActivator,
                     decodeFunc,
                     hasStream,
@@ -88,7 +89,7 @@ namespace IceRpc.Slice
             else
             {
                 throw await response.ToRemoteExceptionAsync(
-                    response.Request.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default,
+                    response.Request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
                     defaultActivator,
                     cancel).ConfigureAwait(false);
             }
@@ -96,7 +97,7 @@ namespace IceRpc.Slice
 
         private static async ValueTask<RemoteException> ToRemoteExceptionAsync(
             this IncomingResponse response,
-            DecodePayloadOptions decodePayloadOptions,
+            SliceDecodePayloadOptions decodePayloadOptions,
             IActivator defaultActivator,
             CancellationToken cancel)
         {
