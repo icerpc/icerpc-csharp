@@ -88,16 +88,9 @@ namespace IceRpc.Slice
         public ValueTask IcePingAsync(Dispatch dispatch, CancellationToken cancel) => default;
 
         /// <inheritdoc/>
-        public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
-        {
-            if (_dispatchMethods.TryGetValue(request.Operation, out DispatchMethod? dispatchMethod))
-            {
-                return dispatchMethod(this, request, cancel);
-            }
-            else
-            {
+        public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel) =>
+            _dispatchMethods.TryGetValue(request.Operation, out DispatchMethod? dispatchMethod) ?
+                dispatchMethod(this, request, cancel) :
                 throw new DispatchException(DispatchErrorCode.OperationNotFound);
-            }
-        }
     }
 }
