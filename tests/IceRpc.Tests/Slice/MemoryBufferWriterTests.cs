@@ -56,6 +56,7 @@ public class MemoryBufferWriterTests
         var writer = new MemoryBufferWriter(new byte[10]);
 
         Assert.Throws<InvalidOperationException>(() => writer.Advance(11));
+        Assert.Throws<ArgumentException>(() => writer.Advance(-1));
     }
 
     [Test]
