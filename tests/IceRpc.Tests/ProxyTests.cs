@@ -8,35 +8,63 @@ namespace IceRpc.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class ProxyTests
 {
-    /// <summary>Provides test case data for <see cref="Parse_a_proxy_string_using_ice_format(string, string, string)"/>
+    /// <summary>Provides test case data for <see cref="Equal_proxies_produce_the_same_hash_code(string, IProxyFormat)"/>
     /// test.</summary>
-    public static IEnumerable<TestCaseData> ParseIceFormatProxySource
+    private static IEnumerable<TestCaseData> ProxyHashCodeSource
+    {
+        get
+        {
+            foreach ((string Str, string _, string _) in _validIceFormatProxies)
+            {
+                yield return new TestCaseData(Str, IceProxyFormat.Default);
+            }
+
+            foreach ((string Str, string _, string _) in _validUriFormatProxies)
+            {
+                yield return new TestCaseData(Str, UriProxyFormat.Instance);
+            }
+        }
+    }
+
+    /// <summary>Provides test case data for <see cref="Parse_an_invalid_proxy(string, IProxyFormat)"/>
+    /// test.</summary>
+    private static IEnumerable<TestCaseData> ProxyParseInvalidSource
+    {
+        get
+        {
+            foreach (string str in _invalidIceFormatProxies)
+            {
+                yield return new TestCaseData(str, IceProxyFormat.Default);
+            }
+
+            foreach (string str in _invalidUriFormatProxies)
+            {
+                yield return new TestCaseData(str, UriProxyFormat.Instance);
+            }
+        }
+    }
+
+    /// <summary>Provides test case data for <see cref="Parse_a_proxy_string(string, IProxyFormat, string, string)"/>
+    /// test.</summary>
+    private static IEnumerable<TestCaseData> ProxyParseSource
     {
         get
         {
             foreach ((string Str, string Path, string Fragment) in _validIceFormatProxies)
             {
-                yield return new TestCaseData(Str, Path, Fragment);
+                yield return new TestCaseData(Str, IceProxyFormat.Default, Path, Fragment);
             }
-        }
-    }
 
-    /// <summary>Provides test case data for <see cref="Parse_a_proxy_string_using_uri_format(string, string, string)"/>
-    /// test.</summary>
-    public static IEnumerable<TestCaseData> ParseUriFormatProxySource
-    {
-        get
-        {
             foreach ((string Str, string Path, string Fragment) in _validUriFormatProxies)
             {
-                yield return new TestCaseData(Str, Path, Fragment);
+                yield return new TestCaseData(Str, UriProxyFormat.Instance, Path, Fragment);
             }
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Convert_a_proxy_to_a_string(string, IceProxyFormat)"/>
-    /// test.</summary>
-    public static IEnumerable<TestCaseData> ToStringIceFormatProxySource
+    /// <summary>Provides test case data for <see cref="Convert_a_proxy_to_a_string(string, IceProxyFormat)"/> test.
+    /// </summary>
+    private static IEnumerable<TestCaseData> ProxyToStringSource
     {
         get
         {
@@ -54,26 +82,48 @@ public class ProxyTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Equal_proxies_produce_the_same_hash_code(string, IProxyFormat)"/>
-    /// test.</summary>
-    public static IEnumerable<TestCaseData> HashCodeEqualProxiesSource
-    {
-        get
+    /// <summary>A collection of proxy strings that are invalid for the Ice proxy format.</summary>
+    private static readonly string[] _invalidIceFormatProxies = new string[]
         {
-            foreach ((string Str, string _, string _) in _validIceFormatProxies)
-            {
-                yield return new TestCaseData(Str, IceProxyFormat.Default);
-            }
+            "ice + tcp://host.zeroc.com:foo", // missing host
+            "",
+            "\"\"",
+            "\"\" test", // invalid trailing characters
+            "id@server test",
+            "id -e A.0:tcp -h foobar",
+            "id -f \"facet x",
+            "id -f \'facet x",
+            "test -f facet@test @test",
+            "test -p 2.0",
+            "xx\01FooBar", // Illegal character < 32
+            "xx\\ud911", // Illegal surrogate
+            "test/foo/bar",
+            "cat//test"
+        };
 
-            foreach ((string Str, string _, string _) in _validUriFormatProxies)
-            {
-                yield return new TestCaseData(Str, UriProxyFormat.Instance);
-            }
-        }
-    }
+    /// <summary>A collection of proxy strings that are invalid for the the URI proxy format.</summary>
+    private static readonly string[] _invalidUriFormatProxies = new string[]
+        {
+            "", 
+            "\"\"",
+            "icerpc://host/path?alt-endpoint=", // alt-endpoint authority cannot be empty
+            "icerpc://host/path?alt-endpoint=/foo", // alt-endpoint cannot have a path
+            "icerpc://host/path?alt-endpoint=icerpc://host", // alt-endpoint cannot have a scheme
+            "icerpc:path",                  // bad path
+            "icerpc:/host/path#fragment",   // bad fragment
+            "icerpc:/path#fragment",        // bad fragment
+            "icerpc://user@host/path",      // bad user info
+            "ice://host/s1/s2/s3",          // too many slashes in path
+            "ice://host/cat/",              // empty identity name
+            "ice://host/",                  // empty identity name
+            "ice://host//",                 // empty identity name
+            "ice:/path?alt-endpoint=foo",   // alt-endpoint proxy parameter
+            "ice:/path?adapter-id",         // empty adapter-id
+            "ice:/path?adapter-id=foo&foo", // extra parameter
+        };
 
-    /// <summary>A collection of valid proxy strings using the Ice proxy format, with its expected Path and Fragment.
-    /// </summary>
+    /// <summary>A collection of proxy strings that are valid for the Ice proxy format, with its expected path and
+    /// fragment.</summary>
     private static readonly (string Str, string Path, string Fragment)[] _validIceFormatProxies = new (string, string, string)[]
         {
             ("ice -t:tcp -h localhost -p 10000", "/ice", ""),
@@ -89,8 +139,8 @@ public class ProxyTests
             ("foo", "/foo", "")
         };
 
-    /// <summary>A collection of valid proxy strings using the URI proxy format, with its expected Path and Fragment.
-    /// </summary>
+    /// <summary>A collection of proxy strings that are valid for the URI proxy format, with its expected path and
+    /// fragment.</summary>
     private static readonly (string Str, string Path, string Fragment)[] _validUriFormatProxies = new (string, string, string)[]
         {
             ("icerpc://host.zeroc.com/path?encoding=foo", "/path", ""),
@@ -152,7 +202,7 @@ public class ProxyTests
     /// <summary>Checks that a proxy can be converted into a string using any of the supported formats.</summary>
     /// <param name="str">The string used to create the source proxy.</param>
     /// <param name="format">The proxy format for the string conversion.</param>
-    [Test, TestCaseSource(nameof(ToStringIceFormatProxySource))]
+    [Test, TestCaseSource(nameof(ProxyToStringSource))]
     public void Convert_a_proxy_to_a_string(string str, IProxyFormat format)
     {
         // Arrange
@@ -168,20 +218,70 @@ public class ProxyTests
     /// <summary>Checks that two equal proxies always produce the same hash code.</summary>
     /// <param name="str">The string proxy to test.</param>
     /// <param name="format">The proxy format used by <paramref name="str"/>.</param>
-    [Test, TestCaseSource(nameof(ToStringIceFormatProxySource))]
+    [Test, TestCaseSource(nameof(ProxyHashCodeSource))]
     public void Equal_proxies_produce_the_same_hash_code(string str, IProxyFormat format)
     {
         // Arrange
         var proxy1 = Proxy.Parse(str, format: format);
-        var proxy2 = Proxy.Parse(proxy1.ToString());
+        var proxy2 = Proxy.Parse(proxy1.ToString(format), format: format);
 
         // Act
         var hashCode1 = proxy1.GetHashCode();
 
         // Assert
+        Assert.That(proxy1, Is.EqualTo(proxy2));
         Assert.That(hashCode1, Is.EqualTo(proxy1.GetHashCode()));
         Assert.That(hashCode1, Is.EqualTo(proxy2.GetHashCode()));
-        Assert.That(proxy1, Is.EqualTo(proxy2));
+    }
+
+    /// <summary>Checks that a string can be correctly parsed as a proxy.</summary>
+    /// <param name="str">The string to parse as a proxy.</param>
+    /// <param name="format">The format of <paramref name="str"/> string.</param>
+    /// <param name="path">The expected path for the parsed proxy.</param>
+    /// <param name="fragment">The expected fragment for the parsed proxy.</param>
+    [Test, TestCaseSource(nameof(ProxyParseSource))]
+    public void Parse_a_proxy_string(string str, IProxyFormat format, string path, string fragment)
+    {
+        // Act
+        var proxy = Proxy.Parse(str, format: format);
+
+        // Assert
+        Assert.That(proxy.Path, Is.EqualTo(path));
+        Assert.That(proxy.Fragment, Is.EqualTo(fragment));
+    }
+
+    /// <summary>Check that parsing a string that is not valid according the given <paramref name="format"/> throws 
+    /// <see cref="FormatException"/>.</summary>
+    /// <param name="str">The string to parse as a proxy.</param>
+    /// <param name="format">The format use to parse the string as a proxy.</param>
+    [Test, TestCaseSource(nameof(ProxyParseInvalidSource))]
+    public void Parse_an_invalid_proxy(string str, IProxyFormat format)
+    {
+        // Act
+        var act = () => Proxy.Parse(str, format: format);
+
+        // Assert
+        Assert.Throws(Is.InstanceOf<FormatException>(), () => act());
+    }
+
+    /// <summary>Test that setting the alt endpoints containing endpoints that uses a protocol different than the proxy
+    /// protocol throws <see cref="ArgumentException"/>.
+    [Test]
+    public void Set_the_alt_endpoints_using_a_diferent_protocol_fails()
+    {
+        // Arrange
+        var prx = Proxy.Parse("hello:tcp -h localhost -p 10000", format: IceProxyFormat.Default);
+        var endpoint1 = Proxy.Parse("hello:tcp -h localhost -p 10000", format: IceProxyFormat.Default).Endpoint!.Value;
+        var endpoint2 = Proxy.Parse("icerpc://host.zeroc.com/hello").Endpoint!.Value;
+        var altEndpoints = new Endpoint[] { endpoint1, endpoint2 }.ToImmutableList();
+
+        // Act
+        var act = () => prx.AltEndpoints = altEndpoints;
+
+        // Assert
+        Assert.Throws<ArgumentException>(() => act());
+        Assert.That(prx.Protocol, Is.EqualTo(endpoint1!.Protocol));
+        Assert.That(prx.Protocol, Is.Not.EqualTo(endpoint2!.Protocol));
     }
 
     /// <summary>Test that setting an endpoint that uses a protocol different than the proxy protocol
@@ -199,97 +299,5 @@ public class ProxyTests
         // Assert
         Assert.Throws<ArgumentException>(() => act());
         Assert.That(prx.Protocol, Is.Not.EqualTo(endpoint!.Protocol));
-    }
-
-    /// <summary>Test that setting alt endpoints containing endpoints that uses a protocol different than the proxy
-    /// protocol throws <see cref="ArgumentException"/>.
-    [Test]
-    public void Set_the_alt_endpoints_using_a_diferent_protocol_fails()
-    {
-        // Arrange
-        var prx = Proxy.Parse("hello:tcp -h localhost -p 10000", format: IceProxyFormat.Default);
-        var endpoint1 = Proxy.Parse("hello:tcp -h localhost -p 10000", format: IceProxyFormat.Default).Endpoint!.Value;
-        var endpoint2 = Proxy.Parse("icerpc://host.zeroc.com/hello").Endpoint!.Value;
-        var altEndpoints = new Endpoint[] {endpoint1, endpoint2}.ToImmutableList();
-
-        // Act
-        var act = () => prx.AltEndpoints = altEndpoints;
-
-        // Assert
-        Assert.Throws<ArgumentException>(() => act());
-        Assert.That(prx.Protocol, Is.EqualTo(endpoint1!.Protocol));
-        Assert.That(prx.Protocol, Is.Not.EqualTo(endpoint2!.Protocol));
-    }
-
-    /// <summary>Tests that parsing an invalid proxy fails with <see cref="FormatException"/>.</summary>
-    /// <param name="str">The string to parse as a proxy.</param>
-    [TestCase("ice + tcp://host.zeroc.com:foo")] // missing host
-    [TestCase("")]
-    [TestCase("\"\"")]
-    [TestCase("\"\" test")] // invalid trailing characters
-    [TestCase("id@server test")]
-    [TestCase("id -e A.0:tcp -h foobar")]
-    [TestCase("id -f \"facet x")]
-    [TestCase("id -f \'facet x")]
-    [TestCase("test -f facet@test @test")]
-    [TestCase("test -p 2.0")]
-    [TestCase("xx\01FooBar")] // Illegal character < 32
-    [TestCase("xx\\ud911")] // Illegal surrogate
-    [TestCase("test/foo/bar")]
-    [TestCase("cat//test")]
-    [TestCase("cat/")] // Empty name
-    public void Parse_an_invalid_proxy_string_using_ice_format(string str) =>
-        Assert.Throws<FormatException>(() => Proxy.Parse(str, format: IceProxyFormat.Default));
-
-    /// <summary>Tests that parsing an invalid proxy fails with <see cref="FormatException"/>.</summary>
-    /// <param name="str">The string to parse as a proxy.</param>
-    [TestCase("")]
-    [TestCase("\"\"")]
-    [TestCase("icerpc://host/path?alt-endpoint=")] // alt-endpoint authority cannot be empty
-    [TestCase("icerpc://host/path?alt-endpoint=/foo")] // alt-endpoint cannot have a path
-    [TestCase("icerpc://host/path?alt-endpoint=icerpc://host")] // alt-endpoint cannot have a scheme
-    [TestCase("icerpc:path")]                  // bad path
-    [TestCase("icerpc:/host/path#fragment")]   // bad fragment
-    [TestCase("icerpc:/path#fragment")]        // bad fragment
-    [TestCase("icerpc://user@host/path")]      // bad user info
-    [TestCase("ice://host/s1/s2/s3")]          // too many slashes in path
-    [TestCase("ice://host/cat/")]              // empty identity name
-    [TestCase("ice://host/")]                  // empty identity name
-    [TestCase("ice://host//")]                 // empty identity name
-    [TestCase("ice:/path?alt-endpoint=foo")]   // alt-endpoint proxy parameter
-    [TestCase("ice:/path?adapter-id")]         // empty adapter-id
-    [TestCase("ice:/path?adapter-id=foo&foo")] // extra parameter
-    public void Parse_an_invalid_proxy_string_using_uri_format(string str) =>
-        Assert.Catch<FormatException>(() => Proxy.Parse(str));
-
-    /// <summary>Checks that a string using the Ice proxy format can be correctly parsed as a proxy.</summary>
-    /// <param name="str">The string to parse as a proxy.</param>
-    /// <param name="path">The expected path.</param>
-    /// <param name="fragment">The expected fragment.</param>
-    [Test, TestCaseSource(nameof(ParseIceFormatProxySource))]
-    public void Parse_a_proxy_string_using_ice_format(string str, string path, string fragment)
-    {
-        // Act
-        var proxy = Proxy.Parse(str, format: IceProxyFormat.Default);
-
-        // Assert
-        Assert.That(proxy.Protocol, Is.EqualTo(Protocol.Ice));
-        Assert.That(proxy.Path, Is.EqualTo(path));
-        Assert.That(proxy.Fragment, Is.EqualTo(fragment));
-    }
-
-    /// <summary>Checks that a string using the URI proxy format can be correctly parsed as a proxy.</summary>
-    /// <param name="str">The string to parse.</param>
-    /// <param name="path">The expected <see cref="Proxy.Path"/> for the proxy or null.</param>
-    /// <param name="fragment">The expected <see cref="Proxy.Fragment"/> for the proxy or null.</param>
-    [Test, TestCaseSource(nameof(ParseUriFormatProxySource))]
-    public void Parse_a_proxy_string_using_uri_format(string str, string path, string fragment)
-    {
-        // Act
-        var proxy = Proxy.Parse(str);
-
-        // Assert
-        Assert.That(proxy.Path, Is.EqualTo(path));
-        Assert.That(proxy.Fragment, Is.EqualTo(fragment));
     }
 }
