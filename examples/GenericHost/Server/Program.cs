@@ -43,8 +43,9 @@ namespace ServerApp
                             IConfiguration configuration = hostContext.Configuration.GetSection("Transport");
 
                             // TODO: bogus code
-                            TcpServerOptions tcpOptions = configuration.GetValue<TcpServerOptions>("Tcp") ?? new();
-                            return new SlicServerTransport(new TcpServerTransport(tcpOptions));
+                            TcpServerTransportOptions serverTransportOptions =
+                                configuration.GetValue<TcpServerTransportOptions>("Tcp") ?? new();
+                            return new SlicServerTransport(new TcpServerTransport(serverTransportOptions));
                         });
 
                     // Add an IDispatcher singleton service. The DI container will inject it in services that require an

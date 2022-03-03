@@ -18,15 +18,15 @@ namespace IceRpc.Configure
         /// <returns>The transport being configured.</returns>
         public static CompositeServerTransport<ISimpleNetworkConnection> UseTcp(
             this CompositeServerTransport<ISimpleNetworkConnection> serverTransport) =>
-            serverTransport.UseTcp(new TcpServerOptions());
+            serverTransport.UseTcp(new TcpServerTransportOptions());
 
         /// <summary>Adds the tcp and ssl server transports to this composite server transport.</summary>
         /// <param name="serverTransport">The transport being configured.</param>
-        /// <param name="options">The TCP server options.</param>
+        /// <param name="options">The tcp server options.</param>
         /// <returns>The transport being configured.</returns>
         public static CompositeServerTransport<ISimpleNetworkConnection> UseTcp(
             this CompositeServerTransport<ISimpleNetworkConnection> serverTransport,
-            TcpServerOptions options)
+            TcpServerTransportOptions options)
         {
             var transport = new TcpServerTransport(options);
             return serverTransport.Add(TransportNames.Tcp, transport).Add(TransportNames.Ssl, transport);
@@ -37,14 +37,15 @@ namespace IceRpc.Configure
         /// <returns>The server transport being configured.</returns>
         public static CompositeServerTransport<ISimpleNetworkConnection> UseUdp(
             this CompositeServerTransport<ISimpleNetworkConnection> serverTransport) =>
-            serverTransport.UseUdp(new UdpServerOptions());
+            serverTransport.UseUdp(new UdpServerTransportOptions());
 
         /// <summary>Adds the udp server transport to this composite server transport.</summary>
         /// <param name="serverTransport">The composite server transport being configured.</param>
         /// <param name="options">The transport options.</param>
         /// <returns>The server transport being configured.</returns>
         public static CompositeServerTransport<ISimpleNetworkConnection> UseUdp(
-            this CompositeServerTransport<ISimpleNetworkConnection> serverTransport, UdpServerOptions options) =>
+            this CompositeServerTransport<ISimpleNetworkConnection> serverTransport,
+            UdpServerTransportOptions options) =>
             serverTransport.Add(TransportNames.Udp, new UdpServerTransport(options));
     }
 }

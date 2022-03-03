@@ -19,18 +19,6 @@ namespace IceRpc.Configure
         /// <returns>The transport being configured.</returns>
         public static CompositeServerTransport<IMultiplexedNetworkConnection> UseSlicOverTcp(
             this CompositeServerTransport<IMultiplexedNetworkConnection> serverTransport) =>
-            serverTransport.UseSlicOverTcp(new TcpServerOptions(), new SlicOptions());
-
-        /// <summary>Adds the Slic over TCP server transport to this composite server transport.</summary>
-        /// <param name="serverTransport">The transport being configured.</param>
-        /// <param name="tcpOptions">The TCP server options.</param>
-        /// <param name="slicOptions">The Slic transport options.</param>
-        /// <returns>The transport being configured.</returns>
-        public static CompositeServerTransport<IMultiplexedNetworkConnection> UseSlicOverTcp(
-            this CompositeServerTransport<IMultiplexedNetworkConnection> serverTransport,
-            TcpServerOptions tcpOptions,
-            SlicOptions slicOptions) =>
-            serverTransport.Add(TransportNames.Tcp,
-                                new SlicServerTransport(new TcpServerTransport(tcpOptions), slicOptions));
+            serverTransport.Add(TransportNames.Tcp, new SlicServerTransport(new TcpServerTransport()));
     }
 }

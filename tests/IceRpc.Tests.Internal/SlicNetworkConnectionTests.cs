@@ -13,14 +13,18 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task SlicNetworkConnectionTests_Options()
         {
-            var clientOptions = new SlicOptions
+             var colocTransport = new ColocTransport();
+
+            var clientOptions = new SlicClientTransportOptions
             {
+                SimpleClientTransport = colocTransport.ClientTransport,
                 PauseWriterThreshold = 2405,
                 ResumeWriterThreshold = 2000,
                 PacketMaxSize = 4567
             };
-            var serverOptions = new SlicOptions
+            var serverOptions = new SlicServerTransportOptions
             {
+                SimpleServerTransport = colocTransport.ServerTransport,
                 PauseWriterThreshold = 6893,
                 ResumeWriterThreshold = 2000,
                 PacketMaxSize = 2098
@@ -43,21 +47,19 @@ namespace IceRpc.Tests.Internal
         }
 
         private static async Task<(SlicNetworkConnection, SlicNetworkConnection)> CreateSlicClientServerConnectionsAsync(
-            SlicOptions clientOptions,
-            SlicOptions serverOptions)
+            SlicClientTransportOptions clientTransportOptions,
+            SlicServerTransportOptions serverTransportOptions)
         {
-            var colocTransport = new ColocTransport();
-
-            IServerTransport<IMultiplexedNetworkConnection> serverTransport =
-                new SlicServerTransport(colocTransport.ServerTransport, serverOptions);
+            IServerTransport<IMultiplexedNetworkConnection> serverTransport = new SlicServerTransport(
+                serverTransportOptions);
             await using IListener<IMultiplexedNetworkConnection> listener =
                 serverTransport.Listen(
                     "icerpc://127.0.0.1?transport=coloc",
                     authenticationOptions: null,
                     LogAttributeLoggerFactory.Instance.Logger);
 
-            IClientTransport<IMultiplexedNetworkConnection> clientTransport =
-                new SlicClientTransport(colocTransport.ClientTransport, clientOptions);
+            IClientTransport<IMultiplexedNetworkConnection> clientTransport = new SlicClientTransport(
+                clientTransportOptions);
             IMultiplexedNetworkConnection clientConnection = clientTransport.CreateConnection(
                 "icerpc://127.0.0.1?transport=coloc",
                 authenticationOptions: null,
