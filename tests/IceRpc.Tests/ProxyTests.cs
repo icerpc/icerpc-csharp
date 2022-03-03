@@ -7,7 +7,8 @@ namespace IceRpc.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class ProxyTests
 {
-    /// <summary>Provides test case data for <see cref="Parse_a_proxy_string_with_ice_format"/> test.</summary>
+    /// <summary>Provides test case data for <see cref="Parse_a_proxy_string_with_ice_format(string, string, string)"/>
+    /// test.</summary>
     public static IEnumerable<TestCaseData> ParseIceFormatProxySource
     {
         get
@@ -19,7 +20,8 @@ public class ProxyTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Parse_a_proxy_string_with_ice_format"/> test.</summary>
+    /// <summary>Provides test case data for <see cref="Parse_a_proxy_string_with_uri_format(string, string, string)"/>
+    /// test.</summary>
     public static IEnumerable<TestCaseData> ParseUriFormatProxySource
     {
         get
@@ -31,7 +33,8 @@ public class ProxyTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Convert_a_proxy_using_ice_format_to_a_string(string, IceProxyFormat)"/> test.</summary>
+    /// <summary>Provides test case data for <see cref="Convert_a_proxy_using_ice_format_to_a_string(string, IceProxyFormat)"/>
+    /// test.</summary>
     public static IEnumerable<TestCaseData> ToStringIceFormatProxySource
     {
         get
@@ -45,7 +48,8 @@ public class ProxyTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Convert_a_proxy_using_uri_format_to_a_string(string, IceProxyFormat)"/> test.</summary>
+    /// <summary>Provides test case data for <see cref="Convert_a_proxy_using_uri_format_to_a_string(string)"/> test.
+    /// </summary>
     public static IEnumerable<TestCaseData> ToStringUriFormatProxySource
     {
         get
@@ -57,8 +61,8 @@ public class ProxyTests
         }
     }
 
-    /// <summary>A collection of valid proxy strings using the default Ice proxy format, with its expected Path
-    /// and Fragment.</summary>
+    /// <summary>A collection of valid proxy strings using the Ice proxy format, with its expected Path and Fragment.
+    /// </summary>
     private static readonly (string Str, string Path, string Fragment)[] _validIceFormatProxies = new (string, string, string)[]
         {
             ("ice -t:tcp -h localhost -p 10000", "/ice", ""),
@@ -74,7 +78,8 @@ public class ProxyTests
             ("foo", "/foo", "")
         };
 
-    /// <summary>A collection of valid proxy strings using the URI proxy format, with its expected Path and Fragment.</summary>
+    /// <summary>A collection of valid proxy strings using the URI proxy format, with its expected Path and Fragment.
+    /// </summary>
     private static readonly (string Str, string Path, string Fragment)[] _validUriFormatProxies = new (string, string, string)[]
         {
             ("icerpc://host.zeroc.com/path?encoding=foo", "/path", ""),
@@ -133,8 +138,8 @@ public class ProxyTests
             ("foobar:path#fragment", "path", "fragment"),
         };
 
-    /// <summary>Check that a proxy using Ice format can be converted into a string.</summary>
-    /// <param name="str">The string used to create the proxy.</param>
+    /// <summary>Check that a proxy can be converted into a string using any of the Ice proxy formats.</summary>
+    /// <param name="str">The string used to create the source proxy.</param>
     /// <param name="format">The proxy format for the string conversion.</param>
     [Test, TestCaseSource(nameof(ToStringIceFormatProxySource))]
     public void Convert_a_proxy_using_ice_format_to_a_string(string str, IceProxyFormat format)
@@ -149,9 +154,8 @@ public class ProxyTests
         Assert.That(Proxy.Parse(str2, format: IceProxyFormat.Default), Is.EqualTo(proxy));
     }
 
-    /// <summary>Check that a proxy using Ice format can be converted into a string.</summary>
-    /// <param name="str">The string used to create the proxy.</param>
-    /// <param name="format">The proxy format for the string conversion.</param>
+    /// <summary>Check that a proxy can be converted into a string using the string URI format.</summary>
+    /// <param name="str">The string used to create the source proxy.</param>
     [Test, TestCaseSource(nameof(ToStringUriFormatProxySource))]
     public void Convert_a_proxy_using_uri_format_to_a_string(string str)
     {
