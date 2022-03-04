@@ -8,8 +8,8 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The LogSlicFrameWriterDecorator is a decorator to log Slic frames written to the decorated
-    /// Slic frame writer.</summary>
+    /// <summary>The LogSlicFrameWriterDecorator is a decorator to log Slic frames written to the decorated Slic frame
+    /// writer.</summary>
     internal sealed class LogSlicFrameWriterDecorator : ISlicFrameWriter
     {
         private readonly ISlicFrameWriter _decoratee;

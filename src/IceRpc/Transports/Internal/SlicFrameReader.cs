@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice;
-using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.IO.Pipelines;
 
@@ -17,7 +16,6 @@ namespace IceRpc.Transports.Internal
         public void Dispose() => _reader.Complete(new ConnectionLostException());
 
         public ValueTask ReadFrameDataAsync(Memory<byte> buffer, CancellationToken cancel) =>
-            // TODO: should buffer actually be a pipe writer to write into?
             _reader.ReadAsync(buffer, cancel);
 
         public async ValueTask<(FrameType FrameType, int FrameSize, long? StreamId)> ReadFrameHeaderAsync(
@@ -32,9 +30,9 @@ namespace IceRpc.Transports.Internal
                 }
 
                 if (TryDecodeHeader(
-                        readResult.Buffer,
-                        out (FrameType FrameType, int FrameSize, long? StreamId) header,
-                        out int consumed))
+                    readResult.Buffer,
+                    out (FrameType FrameType, int FrameSize, long? StreamId) header,
+                    out int consumed))
                 {
                     _reader.AdvanceTo(readResult.Buffer.GetPosition(consumed));
                     return header;
