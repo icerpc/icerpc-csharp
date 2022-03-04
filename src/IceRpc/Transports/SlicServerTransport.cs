@@ -11,12 +11,15 @@ namespace IceRpc.Transports
     /// server transport.</summary>
     public class SlicServerTransport : IServerTransport<IMultiplexedNetworkConnection>
     {
+        /// <inheritdoc/>
+        public string Name => _simpleServerTransport.Name;
+
         private static readonly Func<ISlicFrameReader, ISlicFrameReader> _defaultSlicFrameReaderDecorator =
             reader => reader;
         private static readonly Func<ISlicFrameWriter, ISlicFrameWriter> _defaultSlicFrameWriterDecorator =
             writer => writer;
         private readonly IServerTransport<ISimpleNetworkConnection> _simpleServerTransport;
-        private readonly SlicTransportOptions _slicOptions;
+        private readonly SlicTransportOptions _slicTransportOptions;
 
         /// <summary>Constructs a Slic server transport.</summary>
         public SlicServerTransport(SlicServerTransportOptions options)
@@ -24,7 +27,7 @@ namespace IceRpc.Transports
             _simpleServerTransport = options.SimpleServerTransport ?? throw new ArgumentException(
                 $"{nameof(options.SimpleServerTransport)} is null",
                 nameof(options));
-            _slicOptions = options;
+            _slicTransportOptions = options;
         }
 
         /// <summary>Constructs a Slic server transport.</summary>
@@ -59,7 +62,7 @@ namespace IceRpc.Transports
                 slicFrameWriterDecorator = writer => new LogSlicFrameWriterDecorator(writer, logger);
             }
 
-            return new SlicListener(simpleListener, slicFrameReaderDecorator, slicFrameWriterDecorator, _slicOptions);
+            return new SlicListener(simpleListener, slicFrameReaderDecorator, slicFrameWriterDecorator, _slicTransportOptions);
         }
     }
 }

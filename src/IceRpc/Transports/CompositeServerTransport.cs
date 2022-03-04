@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System.Net.Security;
 
@@ -8,14 +9,17 @@ namespace IceRpc.Transports
     /// <summary>A composite server transport.</summary>
     public class CompositeServerTransport<T> : IServerTransport<T> where T : INetworkConnection
     {
+        /// <inheritdoc/>
+        public string Name => TransportNames.Composite;
+
         private readonly Dictionary<string, IServerTransport<T>> _builder = new();
         private string? _defaultTransport; // the name of the first transport added to _transports
         private IReadOnlyDictionary<string, IServerTransport<T>>? _transports;
 
-        /// <summary>Adds a new server transport to this composite server transport.</summary>
+        /// <summary>Adds a new server transport to this composite server transport with the specifed name.</summary>
         /// <param name="name">The transport name.</param>
         /// <param name="transport">The transport instance.</param>
-        /// <returns>This transport.</returns>
+        /// <returns>This composite transport.</returns>
         public CompositeServerTransport<T> Add(string name, IServerTransport<T> transport)
         {
             if (_transports != null)
@@ -29,6 +33,11 @@ namespace IceRpc.Transports
             return this;
         }
 
+        /// <summary>Adds a new server transport to this composite server transport.</summary>
+        /// <param name="transport">The transport instance.</param>
+        /// <returns>This composite transport.</returns>
+        public CompositeServerTransport<T> Add(IServerTransport<T> transport) => Add(transport.Name, transport);
+
         IListener<T> IServerTransport<T>.Listen(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
@@ -41,14 +50,9 @@ namespace IceRpc.Transports
                 endpointTransport = _defaultTransport ?? throw new InvalidOperationException("no transport configured");
             }
 
-            if (_transports.TryGetValue(endpointTransport, out IServerTransport<T>? serverTransport))
-            {
-                return serverTransport.Listen(endpoint, authenticationOptions, logger);
-            }
-            else
-            {
+            return _transports.TryGetValue(endpointTransport, out IServerTransport<T>? serverTransport) ?
+                serverTransport.Listen(endpoint, authenticationOptions, logger) :
                 throw new UnknownTransportException(endpointTransport);
-            }
         }
     }
 }

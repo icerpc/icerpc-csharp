@@ -8,6 +8,9 @@ namespace IceRpc.Transports
     /// <summary>Gives Connection the ability to create outgoing transport connections.</summary>
     public interface IClientTransport<T> where T : INetworkConnection
     {
+        /// <summary>Returns the transport's name.</summary>
+        string Name { get; }
+
         /// <summary>Creates a new network connection to the remote endpoint.</summary>
         /// <param name="remoteEndpoint">The remote endpoint.</param>
         /// <param name="authenticationOptions">The SSL client authentication options.</param>

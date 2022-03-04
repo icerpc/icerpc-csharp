@@ -10,6 +10,9 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IServerTransport{ISimpleNetworkConnection}"/> for the udp transport.</summary>
     public class UdpServerTransport : IServerTransport<ISimpleNetworkConnection>
     {
+        /// <inheritdoc/>
+        public string Name => TransportNames.Udp;
+
         private readonly UdpServerTransportOptions _options;
 
         /// <summary>Constructs a <see cref="UdpServerTransport"/> with the default <see cref="UdpServerTransportOptions"/>.
@@ -36,7 +39,7 @@ namespace IceRpc.Transports
             // This is the composition root of the tcp server transport, where we install log decorators when logging
             // is enabled.
 #pragma warning disable CA2000 // the caller will Dispose the connection
-            var udpServerConnection = new UdpServerNetworkConnection(endpoint, _options);
+            var udpServerConnection = new UdpServerNetworkConnection(endpoint.WithTransport(Name), _options);
 
             ISimpleNetworkConnection serverConnection =
                 logger.IsEnabled(UdpLoggerExtensions.MaxLogLevel) ?
