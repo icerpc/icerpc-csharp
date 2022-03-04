@@ -9,19 +9,20 @@ namespace IceRpc.Slice
 {
     /// <summary>Extension methods to decode the payload of an incoming frame when this payload is encoded with the
     /// Slice encoding.</summary>
-    public static class IncomingFrameExtensions
+    internal static class IncomingFrameExtensions
     {
-        /// <summary>Reads/decodes a value from a pipe reader.</summary>
+        /// <summary>Decodes arguments or a response value from a pipe reader.</summary>
         /// <param name="frame">The incoming frame.</param>
         /// <param name="encoding">The Slice encoding version.</param>
         /// <param name="decodePayloadOptions">The decode payload options.</param>
         /// <param name="defaultActivator">The default activator.</param>
         /// <param name="defaultInvoker">The default invoker.</param>
-        /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
-        /// <param name="hasStream">When true, T is or includes a stream.</param>
+        /// <param name="decodeFunc">The decode function for the payload arguments or return value.</param>
+        /// <param name="hasStream"><c>true</c> if this void value is followed by a stream parameter; otherwise,
+        /// <c>false</c>.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The decode value.</returns>
-        public static async ValueTask<T> ReadValueAsync<T>(
+        internal static async ValueTask<T> DecodeValueAsync<T>(
             this IncomingFrame frame,
             SliceEncoding encoding,
             SliceDecodePayloadOptions decodePayloadOptions,
@@ -86,7 +87,7 @@ namespace IceRpc.Slice
         /// <param name="hasStream"><c>true</c> if this void value is followed by a stream parameter; otherwise,
         /// <c>false</c>.</param>
         /// <param name="cancel">The cancellation token.</param>
-        public static async ValueTask ReadVoidAsync(
+        internal static async ValueTask DecodeVoidAsync(
             this IncomingFrame frame,
             SliceEncoding encoding,
             bool hasStream,
@@ -128,14 +129,15 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Creates an async enumerable over a pipe reader.</summary>
+        /// <summary>Creates an async enumerable over a pipe reader to decode streamed members.</summary>
         /// <param name="frame">The incoming frame.</param>
         /// <param name="encoding">The Slice encoding version.</param>
         /// <param name="decodePayloadOptions">The decode payload options.</param>
         /// <param name="defaultInvoker">The default invoker.</param>
         /// <param name="defaultActivator">The default activator.</param>
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
-        public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
+        /// <returns>The async enumerable to decode and return the streamed members.</returns>
+        internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this IncomingFrame frame,
             SliceEncoding encoding,
             SliceDecodePayloadOptions decodePayloadOptions,

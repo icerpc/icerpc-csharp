@@ -19,7 +19,7 @@ namespace IceRpc.Slice
             this IncomingRequest request,
             bool hasStream,
             CancellationToken cancel) =>
-            request.ReadVoidAsync(request.GetSliceEncoding(), hasStream, cancel);
+            request.DecodeVoidAsync(request.GetSliceEncoding(), hasStream, cancel);
 
         /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared
         /// idempotent, the request is not marked idempotent. If the request is marked idempotent, it means the caller
@@ -85,7 +85,7 @@ namespace IceRpc.Slice
             DecodeFunc<T> decodeFunc,
             bool hasStream,
             CancellationToken cancel) =>
-            request.ReadValueAsync(
+            request.DecodeValueAsync(
                 request.GetSliceEncoding(),
                 request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
                 defaultActivator,
@@ -94,10 +94,12 @@ namespace IceRpc.Slice
                 hasStream,
                 cancel);
 
-        /// <summary>Creates an async enumerable over the payload reader of an incoming request.</summary>
+        /// <summary>Creates an async enumerable over the payload reader of an incoming request to decode streamed
+        /// members.</summary>
         /// <param name="request">The incoming request.</param>
         /// <param name="defaultActivator">The default activator.</param>
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
+        /// <returns>The async enumerable to decode and return the streamed members.</returns>
         public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this IncomingRequest request,
             IActivator defaultActivator,
