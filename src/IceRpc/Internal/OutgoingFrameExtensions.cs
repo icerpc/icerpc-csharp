@@ -16,8 +16,7 @@ namespace IceRpc.Internal
         internal static void UsePayloadCompressor(this OutgoingFrame frame, Configure.CompressOptions options)
         {
             // We don't compress if the payload is already compressed.
-            if (frame.Protocol.HasFields &&
-                !frame.Fields.ContainsKey((int)FieldKey.CompressionFormat))
+            if (frame.Protocol.HasFields && !frame.Fields.ContainsKey((int)FieldKey.CompressionFormat))
             {
                 frame.PayloadSink = PipeWriter.Create(
                     new DeflateStream(frame.PayloadSink.ToPayloadSinkStream(), options.CompressionLevel));

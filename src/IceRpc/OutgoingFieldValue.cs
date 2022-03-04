@@ -13,7 +13,7 @@ namespace IceRpc
         /// <summary>Holds the value of this outgoing field when <see cref="EncodeAction"/> is <c>null</c>.</summary>
         public ReadOnlySequence<byte> ByteSequence { get; }
 
-        /// <summary>Holds the value of this outgoing field not null</summary>
+        /// <summary>When not null, holds the value of this outgoing field.</summary>
         public EncodeAction? EncodeAction { get; }
 
         /// <summary>Constructs an outgoing field value that holds a byte sequence.</summary>
