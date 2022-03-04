@@ -6,9 +6,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The Slic frame reader class reads Slic frames. The implementation uses a pipe to read the Slic frame
-    /// header. The frame data is copied from the pipe until the pipe is empty. When empty, the data is directly read
-    /// from the read function (typically from the network connection).</summary>
+    /// <summary>The Slic frame reader class reads Slic frames from a simple network connection pipe reader.</summary>
     internal sealed class SlicFrameReader : ISlicFrameReader
     {
         private readonly SimpleNetworkConnectionPipeReader _reader;
