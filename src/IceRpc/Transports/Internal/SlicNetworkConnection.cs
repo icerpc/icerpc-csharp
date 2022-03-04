@@ -482,7 +482,7 @@ namespace IceRpc.Transports.Internal
                     _sendSemaphore.Release();
                 }
             }
-            while (!source1.IsEmpty && !source2.IsEmpty); // Loop until there's no data left to send.
+            while (source1.Length > 0 || source2.Length > 0); // Loop until there's no data left to send.
 
             return new FlushResult(isCanceled: false, isCompleted: false);
         }

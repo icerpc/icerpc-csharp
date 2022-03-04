@@ -17,6 +17,7 @@ namespace IceRpc.Transports.Internal
         public void Dispose() => _reader.Complete(new ConnectionLostException());
 
         public ValueTask ReadFrameDataAsync(Memory<byte> buffer, CancellationToken cancel) =>
+            // TODO: should buffer actually be a pipe writer to write into?
             _reader.ReadAsync(buffer, cancel);
 
         public async ValueTask<(FrameType FrameType, int FrameSize, long? StreamId)> ReadFrameHeaderAsync(

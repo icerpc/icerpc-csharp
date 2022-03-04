@@ -4,6 +4,7 @@ using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
@@ -13,6 +14,7 @@ namespace IceRpc.Transports.Internal
     {
         private readonly ISlicFrameWriter _decoratee;
         private readonly ILogger _logger;
+        private readonly Pipe _pipe;
 
         public async ValueTask WriteFrameAsync(
             FrameType frameType,
@@ -20,42 +22,71 @@ namespace IceRpc.Transports.Internal
             EncodeAction? encode,
             CancellationToken cancel)
         {
-            await _decoratee.WriteFrameAsync(frameType, streamId, encode, cancel).ConfigureAwait(false);
-            // LogSentFrame
+            _pipe.Writer.EncodeFrame(frameType, streamId, encode);
+            await _pipe.Writer.FlushAsync(cancel).ConfigureAwait(false);
+            _pipe.Reader.TryRead(out ReadResult readResult);
+
+            try
+            {
+                await _decoratee.WriteFrameAsync(frameType, streamId, encode, cancel).ConfigureAwait(false);
+
+                LogSentFrame(readResult.Buffer);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogSendSlicFrameFailure(frameType, exception);
+                throw;
+            }
+            finally
+            {
+                _pipe.Reader.AdvanceTo(readResult.Buffer.End);
+            }
         }
 
-        public ValueTask WriteStreamFrameAsync(
+        public async ValueTask WriteStreamFrameAsync(
             long streamId,
             ReadOnlySequence<byte> source1,
             ReadOnlySequence<byte> source2,
             bool endStream,
             CancellationToken cancel)
         {
-            // TODO
-            // try
-            // {
-            //     await _decoratee.WriteFrameAsync(buffers, cancel).ConfigureAwait(false);
-            // }
-            // catch (Exception exception)
-            // {
-            //     _logger.LogSendSlicFrameFailure((FrameType)buffers[0].Span[0], exception);
-            //     throw;
-            // }
-            // LogSentFrame(buffers[0]);
-            return _decoratee.WriteStreamFrameAsync(streamId, source1, source2, endStream, cancel);
+            _pipe.Writer.EncodeStreamFrameHeader(streamId, (int)(source1.Length + source2.Length), endStream);
+            await _pipe.Writer.FlushAsync(cancel).ConfigureAwait(false);
+            _pipe.Reader.TryRead(out ReadResult readResult);
+
+            try
+            {
+                await _decoratee.WriteStreamFrameAsync(
+                    streamId,
+                    source1,
+                    source2,
+                    endStream,
+                    cancel).ConfigureAwait(false);
+
+                LogSentFrame(readResult.Buffer);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogSendSlicFrameFailure(endStream ? FrameType.StreamLast : FrameType.Stream, exception);
+                throw;
+            }
+            finally
+            {
+                _pipe.Reader.AdvanceTo(readResult.Buffer.End);
+            }
         }
 
         internal LogSlicFrameWriterDecorator(ISlicFrameWriter decoratee, ILogger logger)
         {
             _decoratee = decoratee;
             _logger = logger;
+            _pipe = new Pipe();
         }
 
-        private void LogSentFrame(ReadOnlyMemory<byte> buffer)
+        private void LogSentFrame(ReadOnlySequence<byte> sequence)
         {
-            var sequence = new ReadOnlySequence<byte>(buffer);
             (FrameType type, int dataSize, long? streamId, long consumed) = sequence.DecodeHeader();
-            buffer = buffer[(int)consumed..];
+            ReadOnlyMemory<byte> buffer = sequence.Slice((int)consumed).ToArray();
             switch (type)
             {
                 case FrameType.Initialize:

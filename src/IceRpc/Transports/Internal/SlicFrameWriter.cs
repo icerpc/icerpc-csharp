@@ -18,24 +18,8 @@ namespace IceRpc.Transports.Internal
             EncodeAction? encode,
             CancellationToken cancel)
         {
-            Encode(_writer);
+            _writer.EncodeFrame(frameType, streamId, encode);
             return _writer.WriteAsync(ReadOnlySequence<byte>.Empty, cancel);
-
-            void Encode(PipeWriter writer)
-            {
-                var encoder = new SliceEncoder(writer, Encoding.Slice20);
-                encoder.EncodeByte((byte)frameType);
-                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
-                int startPos = encoder.EncodedByteCount;
-
-                if (streamId != null)
-                {
-                    encoder.EncodeVarULong((ulong)streamId);
-                }
-                encode?.Invoke(ref encoder);
-
-                Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
-            }
         }
 
         public ValueTask WriteStreamFrameAsync(
@@ -45,20 +29,8 @@ namespace IceRpc.Transports.Internal
             bool endStream,
             CancellationToken cancel)
         {
-            Encode(_writer);
+            _writer.EncodeStreamFrameHeader(streamId, (int)(source1.Length + source2.Length), endStream);
             return _writer.WriteAsync(source1, source2, cancel);
-
-            void Encode(PipeWriter writer)
-            {
-                var encoder = new SliceEncoder(writer, Encoding.Slice20);
-                encoder.EncodeByte((byte)(endStream ? FrameType.StreamLast : FrameType.Stream));
-                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
-                int startPos = encoder.EncodedByteCount;
-                encoder.EncodeVarULong((ulong)streamId);
-                Slice20Encoding.EncodeSize(
-                    encoder.EncodedByteCount - startPos + (int)source1.Length + (int)source2.Length,
-                    sizePlaceholder.Span);
-            }
         }
 
         internal SlicFrameWriter(SimpleNetworkConnectionPipeWriter writer) => _writer = writer;
