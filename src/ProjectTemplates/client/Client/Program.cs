@@ -1,6 +1,5 @@
 using Demo;
 using IceRpc;
-using IceRpc.Configure;
 
 await using var connection = new Connection("icerpc://127.0.0.1");
 

@@ -3,7 +3,7 @@
 using Demo;
 using IceRpc;
 
-await using var server = new Server(new Hello(), "icerpc://127.0.0.1");
+await using var server = new Server(new Hello());
 
 // Destroy the server on Ctrl+C or Ctrl+Break
 Console.CancelKeyPress += (sender, eventArgs) =>
