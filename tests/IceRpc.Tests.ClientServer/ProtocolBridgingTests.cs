@@ -5,6 +5,7 @@ using IceRpc.Slice;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Buffers;
 using System.Collections.Immutable;
 
 namespace IceRpc.Tests.ClientServer
@@ -164,7 +165,12 @@ namespace IceRpc.Tests.ClientServer
                 var outgoingRequest = new OutgoingRequest(_target)
                 {
                     Features = features,
-                    Fields = incomingRequest.Fields, // mostly ignored by ice, with the exception of Idempotent
+                    // mostly ignored by ice, with the exception of Idempotent
+                    Fields = new Dictionary<int, OutgoingFieldValue>(
+                        incomingRequest.Fields.Select(
+                            pair => new KeyValuePair<int, OutgoingFieldValue>(
+                                pair.Key,
+                                new OutgoingFieldValue(pair.Value)))),
                     IsOneway = incomingRequest.IsOneway,
                     Operation = incomingRequest.Operation,
                     PayloadEncoding = incomingRequest.PayloadEncoding,
@@ -197,10 +203,17 @@ namespace IceRpc.Tests.ClientServer
                     }
                 }
 
+                // Don't forward RetryPolicy
+                var fields = new Dictionary<int, OutgoingFieldValue>(
+                        incomingResponse.Fields.Select(
+                            pair => new KeyValuePair<int, OutgoingFieldValue>(
+                                pair.Key,
+                                new OutgoingFieldValue(pair.Value))));
+                _ = fields.Remove((int)FieldKey.RetryPolicy);
+
                 return new OutgoingResponse(incomingRequest)
                 {
-                    // Don't forward RetryPolicy
-                    Fields = incomingResponse.Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
+                    Fields = fields,
                     PayloadSource = incomingResponse.Payload,
                     ResultType = incomingResponse.ResultType
                 };

@@ -34,7 +34,7 @@ namespace IceRpc.Tests.ClientServer
                             OutgoingResponse response = await next.DispatchAsync(request, cancel);
                             if (response.Protocol == Protocol.IceRpc && request.Features.Get<string>() is string value)
                             {
-                                response.FieldsOverrides = response.FieldsOverrides.With(
+                                response.Fields = response.Fields.With(
                                     1,
                                     (ref SliceEncoder encoder) => encoder.EncodeString(value));
                             }
