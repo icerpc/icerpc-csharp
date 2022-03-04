@@ -636,11 +636,18 @@ namespace IceRpc
             }
             catch (OperationCanceledException)
             {
-                // The two calls are equivalent except the response.PayloadSink version goes through the decorators
-                // installed by the middleware, if any.
                 // TODO: we shouldn't have this protocol specific handling of OperationCanceledException here.
-                PipeWriter writer = response?.PayloadSink ?? request.ResponseWriter;
-                await writer.CompleteAsync(IceRpcStreamError.DispatchCanceled.ToException()).ConfigureAwait(false);
+                Exception exception = IceRpcStreamError.DispatchCanceled.ToException();
+
+                await request.CompleteAsync(exception).ConfigureAwait(false);
+                if (response == null)
+                {
+                    await request.ResponseWriter.CompleteAsync(exception).ConfigureAwait(false);
+                }
+                else
+                {
+                    await response.CompleteAsync(exception).ConfigureAwait(false);
+                }
             }
             catch (MultiplexedStreamAbortedException)
             {

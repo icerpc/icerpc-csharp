@@ -36,5 +36,8 @@ namespace IceRpc
             Payload = payload;
             Protocol = protocol;
         }
+
+        /// <summary>Completes the frame payload pipe reader.</summary>
+        internal ValueTask CompleteAsync(Exception? exception = null) => Payload.CompleteAsync(exception);
     }
 }

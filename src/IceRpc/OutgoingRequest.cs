@@ -60,5 +60,14 @@ namespace IceRpc
             Connection = proxy.Connection;
             Proxy = proxy;
         }
+
+        internal override async ValueTask CompleteAsync(Exception? exception = null)
+        {
+            await base.CompleteAsync(exception).ConfigureAwait(false);
+            if (_payloadSink != null)
+            {
+                await _payloadSink.CompleteAsync(exception).ConfigureAwait(false);
+            }
+        }
     }
 }

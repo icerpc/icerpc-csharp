@@ -391,14 +391,12 @@ namespace IceRpc.Internal
                 // TODO: this is clunky but required for retries to work because the retry interceptor only retries
                 // a request if the exception is a transport exception.
                 var ex = new ConnectionLostException(exception);
-                await request.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
-                await request.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                await request.CompleteAsync(ex).ConfigureAwait(false);
                 throw ex;
             }
             catch (Exception ex)
             {
-                await request.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
-                await request.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                await request.CompleteAsync(ex).ConfigureAwait(false);
                 throw;
             }
             finally
@@ -461,8 +459,7 @@ namespace IceRpc.Internal
                 // Send the response if the request is not a one-way request.
                 if (request.IsOneway)
                 {
-                    await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
-                    await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                    await response.CompleteAsync().ConfigureAwait(false);
                 }
                 else
                 {
@@ -534,8 +531,7 @@ namespace IceRpc.Internal
                     }
                     catch (Exception ex)
                     {
-                        await response.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
-                        await response.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                        await response.CompleteAsync(ex).ConfigureAwait(false);
                         throw;
                     }
                     finally
@@ -744,7 +740,7 @@ namespace IceRpc.Internal
             Debug.Assert(!flushResult.IsCanceled); // not implemented
             Debug.Assert(!flushResult.IsCompleted); // the reader can't reject the frame without triggering an exception
 
-            await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
+            await outgoingFrame.CompleteAsync().ConfigureAwait(false);
         }
 
         private void CancelDispatches()

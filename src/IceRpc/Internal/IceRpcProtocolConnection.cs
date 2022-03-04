@@ -362,12 +362,7 @@ namespace IceRpc.Internal
             }
             catch (Exception ex)
             {
-                await request.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
-                if (request.PayloadSourceStream != null)
-                {
-                    await request.PayloadSourceStream.CompleteAsync(ex).ConfigureAwait(false);
-                }
-                await request.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                await request.CompleteAsync(ex).ConfigureAwait(false);
 
                 if (stream != null)
                 {
@@ -430,8 +425,7 @@ namespace IceRpc.Internal
         {
             if (request.IsOneway)
             {
-                await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
-                await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                await response.CompleteAsync().ConfigureAwait(false);
                 return;
             }
 
@@ -442,12 +436,7 @@ namespace IceRpc.Internal
             }
             catch (Exception ex)
             {
-                await response.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
-                if (response.PayloadSourceStream != null)
-                {
-                    await response.PayloadSourceStream.CompleteAsync(ex).ConfigureAwait(false);
-                }
-                await response.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                await response.CompleteAsync(ex).ConfigureAwait(false);
                 throw;
             }
 
@@ -718,8 +707,6 @@ namespace IceRpc.Internal
                 outgoingFrame.PayloadSourceStream == null,
                 cancel).ConfigureAwait(false);
 
-            await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
-
             Debug.Assert(!flushResult.IsCanceled); // not implemented yet
 
             if (flushResult.IsCompleted)
@@ -730,11 +717,15 @@ namespace IceRpc.Internal
                 throw new OperationCanceledException("peer stopped reading the payload");
             }
 
-            // The caller calls CompleteAsync on the payload source/sink if an exception is thrown by CopyFromAsync
-            // above.
-
-            if (outgoingFrame.PayloadSourceStream != null)
+            if (outgoingFrame.PayloadSourceStream == null)
             {
+                await outgoingFrame.CompleteAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                // Just complete the payload source for now.
+                await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
+
                 // Send payloadSourceStream in the background
                 _ = Task.Run(
                     async () =>
@@ -746,13 +737,11 @@ namespace IceRpc.Internal
                                 completeWhenDone: true,
                                 CancellationToken.None).ConfigureAwait(false);
 
-                            await outgoingFrame.PayloadSourceStream.CompleteAsync().ConfigureAwait(false);
+                            await outgoingFrame.CompleteAsync().ConfigureAwait(false);
                         }
                         catch (Exception ex)
                         {
-                            await outgoingFrame.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
-                            await outgoingFrame.PayloadSourceStream.CompleteAsync(ex).ConfigureAwait(false);
-
+                            await outgoingFrame.CompleteAsync(ex).ConfigureAwait(false);
                         }
                     },
                     cancel);

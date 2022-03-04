@@ -55,5 +55,17 @@ namespace IceRpc
 
             Protocol = protocol;
         }
+
+        /// <summary>Completes the frame payload pipe readers.</summary>
+        /// <remarks>The completion of the payload sink is the responsibility of the subclasses that implement the
+        /// abstract <see cref="PayloadSink"/> property.</remarks>
+        internal virtual async ValueTask CompleteAsync(Exception? exception = null)
+        {
+            await PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
+            if (PayloadSourceStream != null)
+            {
+                await PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
+            }
+        }
     }
 }
