@@ -32,21 +32,28 @@ namespace ClientApp
 
                     // Get the ConnectionOptions from the configuration and add it to the generic host options. The DI
                     // container will inject it in services that require an IOptions<ConnectionOptions> dependency.
-                    services.AddOptions<ConnectionOptions>().Bind(hostContext.Configuration.GetSection("Connection"));
-
-                    // Create the client transport and add it as a singleton service of the generic host services. The
-                    // DI container will inject it in services that require an
-                    // IClientTransport<IMultiplexedNetworkConnection> dependency.
-                    services.AddSingleton<IClientTransport<IMultiplexedNetworkConnection>>(serviceProvider =>
+                    // Get the ServerOptions from the configuration and add it to the generic host options. The DI
+                    // container will inject it in services that require an IOptions<ServerOptions> dependency.
+                    services
+                        .AddOptions()
+                        .AddOptions<ConnectionOptions>()
+                        .Bind(hostContext.Configuration.GetSection("Connection"))
+                        .Configure(connectionOptions =>
                         {
-                            // Get the transport options from the configuration.
-                            IConfiguration configuration = hostContext.Configuration.GetSection("Transport");
-
-                            // TODO: bogus code
-                            TcpClientTransportOptions clientTransportOptions =
-                                configuration.GetValue<TcpClientTransportOptions>("Tcp") ?? new();
-                            return new SlicClientTransport(new TcpClientTransport(clientTransportOptions));
+                            // Configure the authentication options
+                            connectionOptions.AuthenticationOptions = new SslClientAuthenticationOptions()
+                            {
+                                RemoteCertificateValidationCallback =
+                                    CertificateValidaton.GetServerCertificateValidationCallback(
+                                        certificateAuthorities: new X509Certificate2Collection
+                                        {
+                                            new X509Certificate2(hostContext.Configuration.GetValue<string>(
+                                                "Connection:AuthenticationOptions:CertificateAuthoritiesFile"))
+                                        })
+                            };
                         });
+
+
 
                     // Add an IInvoker singleton service. The DI container will inject it in services that require an
                     // IInvoker dependency.
@@ -72,7 +79,6 @@ namespace ClientApp
             private readonly HelloPrx _proxy;
 
             public ClientHostedService(
-                IClientTransport<IMultiplexedNetworkConnection> clientTransport,
                 IOptions<ConnectionOptions> options,
                 IInvoker invoker,
                 ILoggerFactory loggerFactory,
@@ -80,11 +86,7 @@ namespace ClientApp
             {
                 _applicationLifetime = applicationLifetime;
 
-                _connection = new Connection(options.Value with
-                {
-                    MultiplexedClientTransport = clientTransport,
-                    LoggerFactory = loggerFactory
-                });
+                _connection = new Connection(options.Value);
 
                 _proxy = HelloPrx.FromConnection(_connection, invoker: invoker);
             }

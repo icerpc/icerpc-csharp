@@ -32,35 +32,31 @@ namespace ServerApp
 
                     // Get the ServerOptions from the configuration and add it to the generic host options. The DI
                     // container will inject it in services that require an IOptions<ServerOptions> dependency.
-                    services.AddOptions<ServerOptions>().Bind(hostContext.Configuration.GetSection("Server"));
-
-                    // Create the client transport and add it as a singleton service of the generic host services. The
-                    // DI container will inject it in services that require an
-                    // IServerTransport<IMultiplexedNetworkConnection> dependency.
-                    services.AddSingleton<IServerTransport<IMultiplexedNetworkConnection>>(serviceProvider =>
-                        {
-                            // Get the transport options from the configuration.
-                            IConfiguration configuration = hostContext.Configuration.GetSection("Transport");
-
-                            // TODO: bogus code
-                            TcpServerTransportOptions serverTransportOptions =
-                                configuration.GetValue<TcpServerTransportOptions>("Tcp") ?? new();
-                            return new SlicServerTransport(new TcpServerTransport(serverTransportOptions));
-                        });
-
-                    // Add an IDispatcher singleton service. The DI container will inject it in services that require an
-                    // IInvoker dependency.
-                    services.AddSingleton<IDispatcher>(serviceProvider =>
-                        {
-                            // The dispatcher is a router configured with the logger and telemetry middlewares and the
-                            // IHello service. The middlewares use the logger factory provided by the .NET Generic Host.
-                            ILoggerFactory loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
-                            var router = new Router();
-                            router.UseLogger(loggerFactory);
-                            router.UseTelemetry(new TelemetryOptions { LoggerFactory = loggerFactory });
-                            router.Map<IHello>(new Hello());
-                            return router;
-                        });
+                    services
+                        .AddOptions()
+                        .AddOptions<ServerOptions>()
+                        .Bind(hostContext.Configuration.GetSection("Server"))
+                        .Configure(serverOptions =>
+                            {
+                                // Configure the authentication options
+                                serverOptions.AuthenticationOptions = new SslServerAuthenticationOptions()
+                                {
+                                    ServerCertificate = new X509Certificate2(
+                                        hostContext.Configuration.GetValue<string>(
+                                            "Server:AuthenticationOptions:CertificateFile"),
+                                        hostContext.Configuration.GetValue<string>(
+                                            "Server:AuthenticationOptions:CertificatePassword"))
+                                };
+                            })
+                        .Configure((ServerOptions serverOptions, ILoggerFactory loggerFactory) =>
+                            {
+                                // Configure the dispatcher
+                                var router = new Router();
+                                router.UseLogger(loggerFactory);
+                                router.UseTelemetry(new TelemetryOptions { LoggerFactory = loggerFactory });
+                                router.Map<IHello>(new Hello());
+                                serverOptions.Dispatcher = router;
+                            });
                 });
 
         /// <summary>The server hosted service is ran and managed by the .NET Generic Host</summary>
@@ -69,17 +65,8 @@ namespace ServerApp
             // The IceRPC server to accept connections from IceRPC clients.
             private readonly Server _server;
 
-            public ServerHostedService(
-                IServerTransport<IMultiplexedNetworkConnection> serverTransport,
-                IOptions<ServerOptions> options,
-                IDispatcher dispatcher,
-                ILoggerFactory loggerFactory) =>
-                _server = new Server(options.Value with
-                {
-                    Dispatcher = dispatcher,
-                    LoggerFactory = loggerFactory,
-                    MultiplexedServerTransport = serverTransport
-                });
+            public ServerHostedService(IOptions<ServerOptions> options) =>
+                _server = new Server(options.Value);
 
             public Task StartAsync(CancellationToken cancellationToken)
             {
