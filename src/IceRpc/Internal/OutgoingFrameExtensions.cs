@@ -9,8 +9,8 @@ namespace IceRpc.Internal
     /// <summary>Extensions methods for OutgoingFrame.</summary>
     internal static class OutgoingFrameExtensions
     {
-        private static readonly OutgoingFieldValue _encodedCompressionFormatValue =
-            new(new ReadOnlySequence<byte>(new byte[] { (byte)CompressionFormat.Deflate }));
+        private static readonly ReadOnlySequence<byte> _encodedCompressionFormatValue =
+            new(new byte[] { (byte)CompressionFormat.Deflate });
 
         /// <summary>Installs a compressor on the frame's PayloadSink.</summary>
         internal static void UsePayloadCompressor(this OutgoingFrame frame, Configure.CompressOptions options)

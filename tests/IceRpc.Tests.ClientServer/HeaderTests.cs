@@ -36,7 +36,7 @@ namespace IceRpc.Tests.ClientServer
                             {
                                 response.Fields = response.Fields.With(
                                     1,
-                                    new OutgoingFieldValue((ref SliceEncoder encoder) => encoder.EncodeString(value)));
+                                    (ref SliceEncoder encoder) => encoder.EncodeString(value));
                             }
                             return response;
                         }));

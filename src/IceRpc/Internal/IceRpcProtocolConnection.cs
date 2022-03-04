@@ -407,11 +407,10 @@ namespace IceRpc.Internal
                     {
                         request.Fields = request.Fields.With(
                             (int)FieldKey.Context,
-                            new OutgoingFieldValue(
-                                (ref SliceEncoder encoder) => encoder.EncodeDictionary(
-                                    context,
-                                    (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
-                                    (ref SliceEncoder encoder, string value) => encoder.EncodeString(value))));
+                            (ref SliceEncoder encoder) => encoder.EncodeDictionary(
+                                context,
+                                (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
+                                (ref SliceEncoder encoder, string value) => encoder.EncodeString(value)));
                     }
                 }
 
