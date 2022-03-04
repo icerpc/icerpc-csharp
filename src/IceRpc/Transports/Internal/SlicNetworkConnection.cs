@@ -30,7 +30,6 @@ namespace IceRpc.Transports.Internal
         private int _bidirectionalStreamCount;
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly int _bidirectionalMaxStreams;
-        private readonly IDisposable _disposableReader;
         private bool _isDisposed;
         private long _lastRemoteBidirectionalStreamId = -1;
         private long _lastRemoteUnidirectionalStreamId = -1;
@@ -45,6 +44,8 @@ namespace IceRpc.Transports.Internal
         private readonly ISlicFrameReader _reader;
         private readonly AsyncSemaphore _sendSemaphore = new(1, 1);
         private readonly ISimpleNetworkConnection _simpleNetworkConnection;
+        private readonly SimpleNetworkConnectionPipeReader _simpleNetworkConnectionReader;
+        private readonly SimpleNetworkConnectionPipeWriter _simpleNetworkConnectionWriter;
         private readonly ConcurrentDictionary<long, SlicMultiplexedStream> _streams = new();
         private readonly int _unidirectionalMaxStreams;
         private int _unidirectionalStreamCount;
@@ -210,11 +211,14 @@ namespace IceRpc.Transports.Internal
                 await _readCompletedSemaphore.EnterAsync(CancellationToken.None).ConfigureAwait(false);
             }
 
+            var exception = new ObjectDisposedException($"{typeof(SlicNetworkConnection)}:{this}");
+
             // Close the network connection.
             await _simpleNetworkConnection.DisposeAsync().ConfigureAwait(false);
+            await _simpleNetworkConnectionReader.CompleteAsync(exception).ConfigureAwait(false);
+            await _simpleNetworkConnectionWriter.CompleteAsync(exception).ConfigureAwait(false);
 
             // Unblock requests waiting on the semaphores.
-            var exception = new ObjectDisposedException($"{typeof(SlicNetworkConnection)}:{this}");
             _bidirectionalStreamSemaphore?.Complete(exception);
             _unidirectionalStreamSemaphore?.Complete(exception);
             _sendSemaphore.Complete(exception);
@@ -224,7 +228,6 @@ namespace IceRpc.Transports.Internal
                 stream.Abort();
             }
 
-            _disposableReader.Dispose();
             _readCancellationTokenSource.Dispose();
 
             // Unblock task blocked on AcceptStreamAsync
@@ -252,19 +255,21 @@ namespace IceRpc.Transports.Internal
             _unidirectionalMaxStreams = slicOptions.UnidirectionalStreamMaxCount;
             _simpleNetworkConnection = simpleNetworkConnection;
 
-            var writer = new SlicFrameWriter(new SimpleNetworkConnectionPipeWriter(
+            _simpleNetworkConnectionWriter = new SimpleNetworkConnectionPipeWriter(
                 simpleNetworkConnection,
                 slicOptions.Pool,
-                slicOptions.MinimumSegmentSize));
+                slicOptions.MinimumSegmentSize);
 
-            var reader = new SlicFrameReader(new SimpleNetworkConnectionPipeReader(
+            _simpleNetworkConnectionReader = new SimpleNetworkConnectionPipeReader(
                 simpleNetworkConnection,
                 slicOptions.Pool,
-                slicOptions.MinimumSegmentSize));
+                slicOptions.MinimumSegmentSize);
+
+            var writer = new SlicFrameWriter(_simpleNetworkConnectionWriter);
+            var reader = new SlicFrameReader(_simpleNetworkConnectionReader);
 
             _writer = slicFrameWriterDecorator(writer);
             _reader = slicFrameReaderDecorator(reader);
-            _disposableReader = reader;
 
             // Initially set the peer packet max size to the local max size to ensure we can receive the first
             // initialize frame.

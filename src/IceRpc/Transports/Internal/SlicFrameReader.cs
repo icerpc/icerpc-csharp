@@ -9,11 +9,9 @@ namespace IceRpc.Transports.Internal
     /// <summary>The Slic frame reader class reads Slic frames. The implementation uses a pipe to read the Slic frame
     /// header. The frame data is copied from the pipe until the pipe is empty. When empty, the data is directly read
     /// from the read function (typically from the network connection).</summary>
-    internal sealed class SlicFrameReader : ISlicFrameReader, IDisposable
+    internal sealed class SlicFrameReader : ISlicFrameReader
     {
         private readonly SimpleNetworkConnectionPipeReader _reader;
-
-        public void Dispose() => _reader.Complete(new ConnectionLostException());
 
         public ValueTask ReadFrameDataAsync(Memory<byte> buffer, CancellationToken cancel) =>
             _reader.ReadAsync(buffer, cancel);
