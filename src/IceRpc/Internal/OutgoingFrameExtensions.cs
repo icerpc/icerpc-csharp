@@ -9,16 +9,15 @@ namespace IceRpc.Internal
     /// <summary>Extensions methods for OutgoingFrame.</summary>
     internal static class OutgoingFrameExtensions
     {
-        private static readonly ReadOnlySequence<byte> _encodedCompressionFormatValue =
-            new(new byte[] { (byte)CompressionFormat.Deflate });
+        private static readonly OutgoingFieldValue _encodedCompressionFormatValue =
+            new(new ReadOnlySequence<byte>(new byte[] { (byte)CompressionFormat.Deflate }));
 
         /// <summary>Installs a compressor on the frame's PayloadSink.</summary>
         internal static void UsePayloadCompressor(this OutgoingFrame frame, Configure.CompressOptions options)
         {
             // We don't compress if the payload is already compressed.
             if (frame.Protocol.HasFields &&
-                !frame.Fields.ContainsKey((int)FieldKey.CompressionFormat) &&
-                !frame.FieldsOverrides.ContainsKey((int)FieldKey.CompressionFormat))
+                !frame.Fields.ContainsKey((int)FieldKey.CompressionFormat))
             {
                 frame.PayloadSink = PipeWriter.Create(
                     new DeflateStream(frame.PayloadSink.ToPayloadSinkStream(), options.CompressionLevel));

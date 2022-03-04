@@ -178,9 +178,7 @@ namespace IceRpc.Tests.Api
             }
         }
 
-        private static bool HasDeadline(OutgoingRequest request) =>
-            request.Fields.ContainsKey((int)FieldKey.Deadline) ||
-            request.FieldsOverrides.ContainsKey((int)FieldKey.Deadline);
+        private static bool HasDeadline(OutgoingRequest request) => request.Fields.ContainsKey((int)FieldKey.Deadline);
 
         private class Greeter : Service, IGreeter
         {

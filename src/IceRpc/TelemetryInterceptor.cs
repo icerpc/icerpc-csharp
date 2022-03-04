@@ -106,35 +106,36 @@ namespace IceRpc
                 //    Baggage baggage;
                 // }
 
-                request.FieldsOverrides = request.FieldsOverrides.With(
+                request.Fields = request.Fields.With(
                     (int)FieldKey.TraceContext,
-                    (ref SliceEncoder encoder) =>
-                    {
-                        // W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,
-                        // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
-                        encoder.EncodeByte(0);
-
-                        // Unfortunately we can't use stackalloc.
-                        using IMemoryOwner<byte> memoryOwner = MemoryPool<byte>.Shared.Rent(16);
-                        Span<byte> buffer = memoryOwner.Memory.Span[0..16];
-                        activity.TraceId.CopyTo(buffer);
-                        encoder.WriteByteSpan(buffer);
-                        activity.SpanId.CopyTo(buffer[0..8]);
-                        encoder.WriteByteSpan(buffer[0..8]);
-                        encoder.EncodeByte((byte)activity.ActivityTraceFlags);
-
-                        // Tracestate encoded as an string
-                        encoder.EncodeString(activity.TraceStateString ?? "");
-
-                        // Baggage encoded as a sequence<BaggageEntry>
-                        encoder.EncodeSequence(
-                            activity.Baggage,
-                            (ref SliceEncoder encoder, KeyValuePair<string, string?> entry) =>
+                    new OutgoingFieldValue(
+                        (ref SliceEncoder encoder) =>
                         {
-                            encoder.EncodeString(entry.Key);
-                            encoder.EncodeString(entry.Value ?? "");
-                        });
-                    });
+                            // W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,
+                            // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
+                            encoder.EncodeByte(0);
+
+                            // Unfortunately we can't use stackalloc.
+                            using IMemoryOwner<byte> memoryOwner = MemoryPool<byte>.Shared.Rent(16);
+                            Span<byte> buffer = memoryOwner.Memory.Span[0..16];
+                            activity.TraceId.CopyTo(buffer);
+                            encoder.WriteByteSpan(buffer);
+                            activity.SpanId.CopyTo(buffer[0..8]);
+                            encoder.WriteByteSpan(buffer[0..8]);
+                            encoder.EncodeByte((byte)activity.ActivityTraceFlags);
+
+                            // Tracestate encoded as an string
+                            encoder.EncodeString(activity.TraceStateString ?? "");
+
+                            // Baggage encoded as a sequence<BaggageEntry>
+                            encoder.EncodeSequence(
+                                activity.Baggage,
+                                (ref SliceEncoder encoder, KeyValuePair<string, string?> entry) =>
+                            {
+                                encoder.EncodeString(entry.Key);
+                                encoder.EncodeString(entry.Value ?? "");
+                            });
+                        }));
             }
         }
     }
