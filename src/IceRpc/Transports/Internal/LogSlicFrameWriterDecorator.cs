@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Diagnostics;
@@ -13,18 +14,35 @@ namespace IceRpc.Transports.Internal
         private readonly ISlicFrameWriter _decoratee;
         private readonly ILogger _logger;
 
-        public async ValueTask WriteFrameAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
+        public async ValueTask WriteFrameAsync(
+            FrameType frameType,
+            long? streamId,
+            EncodeAction? encode,
+            CancellationToken cancel)
         {
-            try
-            {
-                await _decoratee.WriteFrameAsync(buffers, cancel).ConfigureAwait(false);
-            }
-            catch (Exception exception)
-            {
-                _logger.LogSendSlicFrameFailure((FrameType)buffers[0].Span[0], exception);
-                throw;
-            }
-            LogSentFrame(buffers[0]);
+            await _decoratee.WriteFrameAsync(frameType, streamId, encode, cancel).ConfigureAwait(false);
+            // LogSentFrame
+        }
+
+        public ValueTask WriteStreamFrameAsync(
+            long streamId,
+            ReadOnlySequence<byte> source1,
+            ReadOnlySequence<byte> source2,
+            bool endStream,
+            CancellationToken cancel)
+        {
+            // TODO
+            // try
+            // {
+            //     await _decoratee.WriteFrameAsync(buffers, cancel).ConfigureAwait(false);
+            // }
+            // catch (Exception exception)
+            // {
+            //     _logger.LogSendSlicFrameFailure((FrameType)buffers[0].Span[0], exception);
+            //     throw;
+            // }
+            // LogSentFrame(buffers[0]);
+            return _decoratee.WriteStreamFrameAsync(streamId, source1, source2, endStream, cancel);
         }
 
         internal LogSlicFrameWriterDecorator(ISlicFrameWriter decoratee, ILogger logger)

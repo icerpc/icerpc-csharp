@@ -1,27 +1,66 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
+using IceRpc.Slice.Internal;
+using System.Buffers;
+using System.IO.Pipelines;
+
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The Slic frame writer class writes Slic frames.</summary>
     internal sealed class SlicFrameWriter : ISlicFrameWriter
     {
-        private readonly Func<IReadOnlyList<ReadOnlyMemory<byte>>, CancellationToken, ValueTask> _writeFunc;
+        private readonly SimpleNetworkConnectionPipeWriter _writer;
 
-        public async ValueTask WriteFrameAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
+        public ValueTask WriteFrameAsync(
+            FrameType frameType,
+            long? streamId,
+            EncodeAction? encode,
+            CancellationToken cancel)
         {
-            // A Slic frame must always be sent entirely even if the sending is canceled.
-            ValueTask task = _writeFunc(buffers, CancellationToken.None);
-            if (task.IsCompleted || !cancel.CanBeCanceled)
+            Encode(_writer);
+            return _writer.WriteAsync(ReadOnlySequence<byte>.Empty, cancel);
+
+            void Encode(PipeWriter writer)
             {
-                await task.ConfigureAwait(false);
-            }
-            else
-            {
-                await task.AsTask().WaitAsync(cancel).ConfigureAwait(false);
+                var encoder = new SliceEncoder(writer, Encoding.Slice20);
+                encoder.EncodeByte((byte)frameType);
+                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
+                int startPos = encoder.EncodedByteCount;
+
+                if (streamId != null)
+                {
+                    encoder.EncodeVarULong((ulong)streamId);
+                }
+                encode?.Invoke(ref encoder);
+
+                Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
             }
         }
 
-        internal SlicFrameWriter(Func<IReadOnlyList<ReadOnlyMemory<byte>>, CancellationToken, ValueTask> writeFunc) =>
-            _writeFunc = writeFunc;
+        public ValueTask WriteStreamFrameAsync(
+            long streamId,
+            ReadOnlySequence<byte> source1,
+            ReadOnlySequence<byte> source2,
+            bool endStream,
+            CancellationToken cancel)
+        {
+            Encode(_writer);
+            return _writer.WriteAsync(source1, source2, cancel);
+
+            void Encode(PipeWriter writer)
+            {
+                var encoder = new SliceEncoder(writer, Encoding.Slice20);
+                encoder.EncodeByte((byte)(endStream ? FrameType.StreamLast : FrameType.Stream));
+                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
+                int startPos = encoder.EncodedByteCount;
+                encoder.EncodeVarULong((ulong)streamId);
+                Slice20Encoding.EncodeSize(
+                    encoder.EncodedByteCount - startPos + (int)source1.Length + (int)source2.Length,
+                    sizePlaceholder.Span);
+            }
+        }
+
+        internal SlicFrameWriter(SimpleNetworkConnectionPipeWriter writer) => _writer = writer;
     }
 }

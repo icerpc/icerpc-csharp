@@ -43,10 +43,6 @@ namespace IceRpc.Transports.Internal
         private readonly CancellationTokenSource _readCancellationTokenSource = new();
         private AsyncSemaphore? _readCompletedSemaphore;
         private readonly ISlicFrameReader _reader;
-        private readonly List<ReadOnlyMemory<byte>> _sendBuffers = new(16);
-        // The send frame writer is used to encode frames other than the Stream/StreamLast frames. 256 bytes should be
-        // sufficient to encode any of these frames.
-        private readonly MemoryBufferWriter _sendFrameWriter = new(new byte[256]);
         private readonly AsyncSemaphore _sendSemaphore = new(1, 1);
         private readonly ISimpleNetworkConnection _simpleNetworkConnection;
         private readonly ConcurrentDictionary<long, SlicMultiplexedStream> _streams = new();
@@ -256,11 +252,15 @@ namespace IceRpc.Transports.Internal
             _unidirectionalMaxStreams = slicOptions.UnidirectionalStreamMaxCount;
             _simpleNetworkConnection = simpleNetworkConnection;
 
-            var writer = new SlicFrameWriter(simpleNetworkConnection.WriteAsync);
-            var reader = new SlicFrameReader(
-                simpleNetworkConnection.ReadAsync,
+            var writer = new SlicFrameWriter(new SimpleNetworkConnectionPipeWriter(
+                simpleNetworkConnection,
                 slicOptions.Pool,
-                slicOptions.MinimumSegmentSize);
+                slicOptions.MinimumSegmentSize));
+
+            var reader = new SlicFrameReader(new SimpleNetworkConnectionPipeReader(
+                simpleNetworkConnection,
+                slicOptions.Pool,
+                slicOptions.MinimumSegmentSize));
 
             _writer = slicFrameWriterDecorator(writer);
             _reader = slicFrameReaderDecorator(reader);
@@ -347,34 +347,11 @@ namespace IceRpc.Transports.Internal
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
             try
             {
-                // Encode the frame with the frame writer.
-                _sendFrameWriter.Clear();
-                Encode(_sendFrameWriter);
-
-                // Send the frame.
-                _sendBuffers.Clear();
-                _sendBuffers.Add(_sendFrameWriter.WrittenMemory);
-                await _writer.WriteFrameAsync(_sendBuffers, cancel).ConfigureAwait(false);
+                await _writer.WriteFrameAsync(frameType, stream?.Id, encode, cancel).ConfigureAwait(false);
             }
             finally
             {
                 _sendSemaphore.Release();
-            }
-
-            void Encode(MemoryBufferWriter writer)
-            {
-                var encoder = new SliceEncoder(writer, Encoding.Slice20);
-                encoder.EncodeByte((byte)frameType);
-                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
-                int startPos = encoder.EncodedByteCount;
-
-                if (stream != null)
-                {
-                    encoder.EncodeVarULong((ulong)stream.Id);
-                }
-                encode?.Invoke(ref encoder);
-
-                Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
             }
         }
 
@@ -385,9 +362,7 @@ namespace IceRpc.Transports.Internal
             bool completeWhenDone,
             CancellationToken cancel)
         {
-            bool sendingSource1 = !source1.IsEmpty;
-            ReadOnlySequence<byte> sendSource = sendingSource1 ? source1 : source2;
-            Debug.Assert(!sendSource.IsEmpty || completeWhenDone);
+            Debug.Assert(!source1.IsEmpty || completeWhenDone);
             do
             {
                 // Check if writes completed, the stream might have been reset by the peer. Don't send the data and
@@ -441,32 +416,39 @@ namespace IceRpc.Transports.Internal
                         }
                     }
 
-                    // Compose the Slic packet into _sendBuffers. We gather from source1 or source2 up to sendCredit
-                    // bytes or the Slic packet maximum size.
-                    int sendSize = 0;
+                    // Gather data from source1 or source2 up to sendCredit bytes or the Slic packet maximum size.
                     int sendMaxSize = Math.Min(sendCredit, PeerPacketMaxSize);
-                    _sendBuffers.Clear();
-                    _sendBuffers.Add(SlicDefinitions.FrameHeader); // The header will be replaced once encoded.
-                    while (sendSize < sendMaxSize && !sendSource.IsEmpty)
+                    ReadOnlySequence<byte> sendSource1;
+                    ReadOnlySequence<byte> sendSource2;
+                    if (!source1.IsEmpty)
                     {
-                        // Add the send source data to the send buffers.
-                        sendSize += FillSendBuffers(ref sendSource, sendMaxSize - sendSize);
+                        int length = Math.Min((int)source1.Length, sendMaxSize);
+                        sendSource1 = source1.Slice(0, length);
+                        source1 = source1.Slice(length);
+                    }
+                    else
+                    {
+                        sendSource1 = ReadOnlySequence<byte>.Empty;
+                    }
 
-                        if (sendingSource1 && sendSource.IsEmpty)
-                        {
-                            // Switch to source2 if we're done with sending source1.
-                            sendingSource1 = false;
-                            sendSource = source2;
-                        }
+                    if (source1.IsEmpty && !source2.IsEmpty)
+                    {
+                        int length = Math.Min((int)source2.Length, sendMaxSize - (int)sendSource1.Length);
+                        sendSource2 = source2.Slice(0, length);
+                        source2 = source2.Slice(length);
+                    }
+                    else
+                    {
+                        sendSource2 = ReadOnlySequence<byte>.Empty;
                     }
 
                     // If there's no data left to send and completeWhenDone is true, send the last stream frame.
-                    bool endStream = completeWhenDone && sendSource.IsEmpty;
+                    bool endStream = completeWhenDone && source1.IsEmpty && source2.IsEmpty;
 
                     // Notify the stream that we're consuming sendSize credit. It's important to call this before
                     // sending the stream frame to avoid race conditions where the StreamConsumed frame could be
                     // received before the send credit was updated.
-                    stream.ConsumeSendCredit(sendSize);
+                    stream.ConsumeSendCredit((int)(sendSource1.Length + sendSource2.Length));
 
                     if (endStream)
                     {
@@ -476,11 +458,13 @@ namespace IceRpc.Transports.Internal
                         stream.TrySetWriteCompleted();
                     }
 
-                    // We can encode the Slic header now that we known the data size and the stream ID.
-                    _sendBuffers[0] = EncodeSlicHeader(sendSize, endStream);
-
-                    // Write the frame.
-                    await _writer.WriteFrameAsync(_sendBuffers, cancel).ConfigureAwait(false);
+                    // Write the stream frame.
+                    await _writer.WriteStreamFrameAsync(
+                        stream.Id,
+                        sendSource1,
+                        sendSource2,
+                        endStream,
+                        cancel).ConfigureAwait(false);
                 }
                 catch (MultiplexedStreamAbortedException ex)
                 {
@@ -498,55 +482,9 @@ namespace IceRpc.Transports.Internal
                     _sendSemaphore.Release();
                 }
             }
-            while (!sendSource.IsEmpty); // Loop until there's no data left to send.
+            while (!source1.IsEmpty && !source2.IsEmpty); // Loop until there's no data left to send.
 
             return new FlushResult(isCanceled: false, isCompleted: false);
-
-            ReadOnlyMemory<byte> EncodeSlicHeader(int sendSize, bool endStream)
-            {
-                // The stream ID is part of the frame data.
-                ulong streamId = checked((ulong)stream.Id);
-                sendSize += SliceEncoder.GetVarULongEncodedSize(streamId);
-                // Write the Slic frame header (frameType, frameSize, streamId).
-                _sendFrameWriter.Clear();
-                var encoder = new SliceEncoder(_sendFrameWriter, Encoding.Slice20);
-                encoder.EncodeByte((byte)(endStream ? FrameType.StreamLast : FrameType.Stream));
-                encoder.EncodeSize(sendSize);
-                encoder.EncodeVarULong(streamId);
-                return _sendFrameWriter.WrittenMemory;
-            }
-
-            int FillSendBuffers(ref ReadOnlySequence<byte> source, int maxSize)
-            {
-                Debug.Assert(maxSize > 0);
-                int size = 0;
-                SequencePosition position = source.Start;
-                while (true)
-                {
-                    if (!source.TryGet(ref position, out ReadOnlyMemory<byte> memory))
-                    {
-                        // No more data available.
-                        source = ReadOnlySequence<byte>.Empty;
-                        return size;
-                    }
-
-                    if (size + memory.Length < maxSize)
-                    {
-                        // Add the segment to the send buffers.
-                        _sendBuffers.Add(memory);
-                        size += memory.Length;
-                    }
-                    else
-                    {
-                        // We've reached the maximum send size. Slice the buffer to send and slice the source buffer
-                        // to the remaining data to consume.
-                        _sendBuffers.Add(memory[0..(maxSize - size)]);
-                        size += maxSize - size;
-                        source = source.Slice(source.GetPosition(size));
-                        return size;
-                    }
-                }
-            }
         }
 
         private Dictionary<int, IList<byte>> GetParameters()
