@@ -397,11 +397,10 @@ namespace IceRpc.Internal
                     {
                         // make sure it's not set anywhere
                         request.Fields = request.Fields.Without((int)FieldKey.Context);
-                        request.FieldsOverrides = request.FieldsOverrides.Without((int)FieldKey.Context);
                     }
                     else
                     {
-                        request.FieldsOverrides = request.FieldsOverrides.With(
+                        request.Fields = request.Fields.With(
                             (int)FieldKey.Context,
                             (ref SliceEncoder encoder) => encoder.EncodeDictionary(
                                 context,
@@ -410,7 +409,10 @@ namespace IceRpc.Internal
                     }
                 }
 
-                encoder.EncodeFieldDictionary(request.FieldsOverrides, request.Fields);
+                encoder.EncodeDictionary(
+                    request.Fields,
+                    (ref SliceEncoder encoder, int value) => encoder.EncodeVarInt(value),
+                    (ref SliceEncoder encoder, OutgoingFieldValue value) => value.Encode(ref encoder));
 
                 // We're done with the header encoding, write the header size.
                 Slice20Encoding.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
@@ -449,7 +451,11 @@ namespace IceRpc.Internal
                 int headerStartPos = encoder.EncodedByteCount;
 
                 new IceRpcResponseHeader(response.ResultType).Encode(ref encoder);
-                encoder.EncodeFieldDictionary(response.FieldsOverrides, response.Fields);
+
+                encoder.EncodeDictionary(
+                    response.Fields,
+                    (ref SliceEncoder encoder, int value) => encoder.EncodeVarInt(value),
+                    (ref SliceEncoder encoder, OutgoingFieldValue value) => value.Encode(ref encoder));
 
                 // We're done with the header encoding, write the header size.
                 Slice20Encoding.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);

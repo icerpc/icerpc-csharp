@@ -151,8 +151,7 @@ namespace IceRpc.Transports.Internal
 
         internal UdpClientNetworkConnection(Endpoint remoteEndpoint, UdpClientTransportOptions options)
         {
-            _remoteEndpoint = remoteEndpoint.WithTransport(TransportNames.Udp);
-
+            _remoteEndpoint = remoteEndpoint;
             (bool _, _ttl, _multicastInterface) = _remoteEndpoint.ParseUdpParams();
             _idleTimeout = options.IdleTimeout;
 
@@ -280,8 +279,6 @@ namespace IceRpc.Transports.Internal
 
         internal UdpServerNetworkConnection(Endpoint endpoint, UdpServerTransportOptions options)
         {
-            endpoint = endpoint.WithTransport(TransportNames.Udp);
-
             if (!IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress))
             {
                 throw new NotSupportedException(

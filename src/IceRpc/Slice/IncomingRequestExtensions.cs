@@ -60,7 +60,7 @@ namespace IceRpc.Slice
             if (response.Protocol.HasFields && remoteException.RetryPolicy != RetryPolicy.NoRetry)
             {
                 RetryPolicy retryPolicy = remoteException.RetryPolicy;
-                response.FieldsOverrides = response.FieldsOverrides.With(
+                response.Fields = response.Fields.With(
                     (int)FieldKey.RetryPolicy,
                     (ref SliceEncoder encoder) => retryPolicy.Encode(ref encoder));
             }

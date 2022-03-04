@@ -58,25 +58,6 @@ namespace IceRpc.Transports.Internal
             TcpServerTransportOptions options,
             Func<TcpServerNetworkConnection, ISimpleNetworkConnection> serverConnectionDecorator)
         {
-            _ = endpoint.ParseTcpParams(); // sanity check
-
-            if (endpoint.Params.TryGetValue("transport", out string? endpointTransport))
-            {
-                if (endpointTransport == TransportNames.Ssl && authenticationOptions == null)
-                {
-                    throw new ArgumentNullException(
-                        nameof(authenticationOptions),
-                        $"{nameof(authenticationOptions)} cannot be null with the ssl transport");
-                }
-            }
-            else
-            {
-                endpoint = endpoint with
-                {
-                    Params = endpoint.Params.Add("transport", TransportNames.Tcp)
-                };
-            }
-
             if (!IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress))
             {
                 throw new NotSupportedException(

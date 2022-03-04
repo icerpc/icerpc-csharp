@@ -29,7 +29,7 @@ namespace IceRpc.Configure
             TcpClientTransportOptions options)
         {
             var transport = new TcpClientTransport(options);
-            return clientTransport.Add(TransportNames.Tcp, transport).Add(TransportNames.Ssl, transport);
+            return clientTransport.Add(transport).Add(TransportNames.Ssl, transport);
         }
 
         /// <summary>Adds the udp client transport to this composite client transport.</summary>
@@ -46,6 +46,6 @@ namespace IceRpc.Configure
         public static CompositeClientTransport<ISimpleNetworkConnection> UseUdp(
             this CompositeClientTransport<ISimpleNetworkConnection> clientTransport,
             UdpClientTransportOptions options) =>
-            clientTransport.Add(TransportNames.Udp, new UdpClientTransport(options));
+            clientTransport.Add(new UdpClientTransport(options));
     }
 }

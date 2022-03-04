@@ -8,6 +8,9 @@ namespace IceRpc.Transports
     /// <summary>Gives class <see cref="Server"/> the ability to create incoming transport connections.</summary>
     public interface IServerTransport<T> where T : INetworkConnection
     {
+        /// <summary>Returns the transport's name.</summary>
+        string Name { get; }
+
         /// <summary>Starts listening on an endpoint.</summary>
         /// <param name="endpoint">The endpoint.</param>
         /// <param name="authenticationOptions">The SSL server authentication options.</param>

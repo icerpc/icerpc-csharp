@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System.Net.Security;
 
@@ -8,15 +9,18 @@ namespace IceRpc.Transports
     /// <summary>A composite client transport.</summary>
     public class CompositeClientTransport<T> : IClientTransport<T> where T : INetworkConnection
     {
+        /// <inheritdoc/>
+        public string Name => TransportNames.Composite;
+
         private readonly Dictionary<string, IClientTransport<T>> _builder = new();
         private IReadOnlyDictionary<string, IClientTransport<T>>? _transports;
 
         private string? _defaultTransport; // the name of the first transport added to _transports
 
-        /// <summary>Adds a new client transport to this composite client transport.</summary>
+        /// <summary>Adds a new client transport to this composite client transport with the specified name.</summary>
         /// <param name="name">The transport name.</param>
         /// <param name="transport">The transport instance.</param>
-        /// <returns>This transport.</returns>
+        /// <returns>This composite transport.</returns>
         public CompositeClientTransport<T> Add(string name, IClientTransport<T> transport)
         {
             if (_transports != null)
@@ -28,6 +32,11 @@ namespace IceRpc.Transports
             _defaultTransport ??= name;
             return this;
         }
+
+        /// <summary>Adds a new client transport to this composite client transport.</summary>
+        /// <param name="transport">The transport instance.</param>
+        /// <returns>This composite transport.</returns>
+        public CompositeClientTransport<T> Add(IClientTransport<T> transport) => Add(transport.Name, transport);
 
         T IClientTransport<T>.CreateConnection(
             Endpoint remoteEndpoint,
@@ -41,14 +50,9 @@ namespace IceRpc.Transports
                 endpointTransport = _defaultTransport ?? throw new InvalidOperationException("no transport configured");
             }
 
-            if (_transports.TryGetValue(endpointTransport, out IClientTransport<T>? clientTransport))
-            {
-                return clientTransport.CreateConnection(remoteEndpoint, authenticationOptions, logger);
-            }
-            else
-            {
+            return _transports.TryGetValue(endpointTransport, out IClientTransport<T>? clientTransport) ?
+                clientTransport.CreateConnection(remoteEndpoint, authenticationOptions, logger) :
                 throw new UnknownTransportException(endpointTransport);
-            }
         }
     }
 }

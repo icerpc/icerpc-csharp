@@ -10,6 +10,9 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IClientTransport{ISimpleNetworkConnection}"/> for the UDP transport.</summary>
     public class UdpClientTransport : IClientTransport<ISimpleNetworkConnection>
     {
+        /// <inheritdoc/>
+        public string Name => TransportNames.Udp;
+
         private readonly UdpClientTransportOptions _options;
 
         /// <summary>Constructs a <see cref="UdpClientTransport"/> with the default <see cref="UdpClientTransportOptions"/>.
@@ -28,14 +31,15 @@ namespace IceRpc.Transports
             SslClientAuthenticationOptions? authenticationOptions,
             ILogger logger)
         {
+            // This is the composition root of the udp client transport, where we install log decorators when logging
+            // is enabled.
+
             if (authenticationOptions != null)
             {
                 throw new NotSupportedException("cannot create a secure UDP connection");
             }
 
-            // This is the composition root of the udp client transport, where we install log decorators when logging
-            // is enabled.
-            var clientConnection = new UdpClientNetworkConnection(remoteEndpoint, _options);
+            var clientConnection = new UdpClientNetworkConnection(remoteEndpoint.WithTransport(Name), _options);
 
             return logger.IsEnabled(UdpLoggerExtensions.MaxLogLevel) ?
                 new LogUdpNetworkConnectionDecorator(clientConnection, logger) : clientConnection;
