@@ -38,18 +38,6 @@ namespace IceRpc.Tests.Api
         public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
         [Test]
-        public void Router_BadPath()
-        {
-            Assert.Throws<FormatException>(() => _router.Map("foo", _failDispatcher));
-            Assert.Throws<FormatException>(() => _router.Mount("foo", _failDispatcher));
-
-            _router.Mount("/", _failDispatcher);
-            string badPath = "/a/b/c/d/e/f/g/h/i/j/k/l/m/n/o/p/q";
-            var service = ServicePrx.FromConnection(_connection, badPath);
-            Assert.ThrowsAsync<DispatchException>(async () => await service.IcePingAsync());
-        }
-
-        [Test]
         public async Task Router_InvalidOperationAsync()
         {
             _router.Map<IGreeter>(new Greeter());
