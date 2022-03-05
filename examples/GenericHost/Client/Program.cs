@@ -78,7 +78,7 @@ public class Program
         {
             _applicationLifetime = applicationLifetime;
 
-            _connection = new Connection(connectionOptions);
+            _connection = new Connection(connectionOptions.Value);
 
             _proxy = HelloPrx.FromConnection(_connection, invoker: invoker);
         }
