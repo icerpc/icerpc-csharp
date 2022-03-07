@@ -5,11 +5,13 @@ using IceRpc.Configure;
 using IceRpc.Slice;
 using IceRpc.Tests;
 using IceRpc.Transports;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Collections.Immutable;
 
 namespace IntegrationTests;
 
+[Parallelizable(ParallelScope.All)]
 [Timeout(5000)]
 public class ServerTests
 {
@@ -17,13 +19,11 @@ public class ServerTests
     [Test]
     public async Task Canceling_a_request_also_cancels_the_dispatch()
     {
-        var colocTransport = new ColocTransport();
-
         using var semaphore = new SemaphoreSlim(0);
         bool waitForCancellation = true;
-        await using var server = new Server(new ServerOptions
-        {
-            Dispatcher = new InlineDispatcher(async (request, cancel) =>
+
+        await using var serviceProvider = new IntegrationTestServiceCollection().AddScoped<IDispatcher>(_ =>
+            new InlineDispatcher(async (request, cancel) =>
             {
                 if (waitForCancellation)
                 {
@@ -41,20 +41,11 @@ public class ServerTests
                     Assert.Fail();
                 }
                 return new OutgoingResponse(request);
-            }),
-            LoggerFactory = LogAttributeLoggerFactory.Instance,
-            MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport),
-        });
+            })).BuildServiceProvider();
 
-        server.Listen();
+        var server = serviceProvider.GetRequiredService<Server>();
 
-        await using var connection = new Connection(new ConnectionOptions
-        {
-            MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
-            LoggerFactory = LogAttributeLoggerFactory.Instance,
-            RemoteEndpoint = server.Endpoint
-        });
-        var proxy = ServicePrx.FromConnection(connection);
+        var proxy = new ServicePrx(serviceProvider.GetRequiredService<Proxy>());
 
         using var cancellationSource = new CancellationTokenSource();
         Task task = proxy.IcePingAsync(cancel: cancellationSource.Token);
@@ -78,30 +69,20 @@ public class ServerTests
     [Test]
     public async Task Shutdown_the_server_waits_for_pending_dispatch_to_finish()
     {
-        var colocTransport = new ColocTransport();
-
         using var dispatchStartSemaphore = new SemaphoreSlim(0);
         using var dispatchContinueSemaphore = new SemaphoreSlim(0);
-        await using var server = new Server(new ServerOptions
-        {
-            Dispatcher = new InlineDispatcher(async (request, cancel) =>
+
+        await using var serviceProvider = new IntegrationTestServiceCollection().AddScoped<IDispatcher>(_ =>
+            new InlineDispatcher(async (request, cancel) =>
             {
                 dispatchStartSemaphore.Release();
                 await dispatchContinueSemaphore.WaitAsync(cancel);
                 return new OutgoingResponse(request);
-            }),
-            MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport),
-        });
+            })).BuildServiceProvider();
 
-        server.Listen();
+        var server = serviceProvider.GetRequiredService<Server>();
 
-        await using var connection = new Connection(new ConnectionOptions
-        {
-            MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
-            RemoteEndpoint = server.Endpoint
-        });
-
-        var proxy = ServicePrx.FromConnection(connection);
+        var proxy = new ServicePrx(serviceProvider.GetRequiredService<Proxy>());
 
         Task task = proxy.IcePingAsync();
         Assert.That(server.ShutdownComplete.IsCompleted, Is.False);
