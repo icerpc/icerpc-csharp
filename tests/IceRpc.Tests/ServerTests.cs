@@ -10,20 +10,6 @@ namespace IceRpc.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class ServerTests
 {
-    /// <summary>
-    /// Verifies that a server without a explicit endpoint uses the dendpoint
-    /// </summary>
-    /// <returns></returns>
-    [Test]
-    public async Task Server_default_endpoint()
-    {
-        await using var server = new Server(ConnectionOptions.DefaultDispatcher);
-
-        var endpoint = server.Endpoint.ToString();
-
-        Assert.That(endpoint, Is.EqualTo("icerpc://[::0]"));
-    }
-
     /// <summary>Verifies that using a DNS name in a server endpoint fails with <see cref="NotSupportedException"/>
     /// exception.</summary>
     [Test]
@@ -46,6 +32,8 @@ public class ServerTests
         Assert.Throws<InvalidOperationException>(() => server.Listen());
     }
 
+    /// <summary>Verifies that calling <see cref="Server.Listen"/> on a disposed server fails with
+    /// <see cref="ObjectDisposedException"/>.</summary>
     [Test]
     public async Task Cannot_call_listen_on_a_disposed_server()
     {
@@ -58,7 +46,7 @@ public class ServerTests
     /// <summary>Verifies that a server without a dispatcher throws <see cref="DispatchException"/> with error code
     /// <see cref="DispatchErrorCode.ServiceNotFound"/>.</summary>
     [Test]
-    public async Task A_server_without_a_dispatcher_throws_dispatch_exception()
+    public async Task A_server_without_a_dispatcher_always_throws_dispatch_exception()
     {
         // Arrange
         var colocTransport = new ColocTransport();
@@ -84,6 +72,8 @@ public class ServerTests
         Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
     }
 
+    /// <summary>Verifies that two servers cannot listen on the same endpoint. The second attempt throws a
+    /// <see cref="TransportException"/>.</summary>
     [Test]
     public async Task Two_servers_listening_on_the_same_endpoint_fails_with_transport_exception()
     {
