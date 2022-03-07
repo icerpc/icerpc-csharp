@@ -28,8 +28,7 @@ public static class Program
                 // Add the ServerHostedService to the hosted services of the .NET Generic Host.
                 services.AddHostedService<ServerHostedService>();
 
-                // Add an IDispatcher singleton service. The DI container will inject it in services that require an
-                // IInvoker dependency.
+                // Add an IDispatcher singleton service.
                 services.AddSingleton<IDispatcher>(serviceProvider =>
                     {
                         // The dispatcher is a router configured with the logger and telemetry middlewares and the
@@ -42,8 +41,8 @@ public static class Program
                         return router;
                     });
 
-                // Get the ServerOptions from the configuration and add it to the generic host options. The DI
-                // container will inject it in services that require an IOptions<ServerOptions> dependency.
+                // Bind the server options to the "appsettings.json" configuration "Server" section, and add a
+                // Configure callback to configure its authentication options.
                 services
                     .AddOptions<ServerOptions>()
                     .Bind(hostContext.Configuration.GetSection("Server"))

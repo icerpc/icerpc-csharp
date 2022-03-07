@@ -11,6 +11,7 @@ using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
 namespace Demo;
+
 public static class Program
 {
     public static void Main(string[] args) => CreateHostBuilder(args).Build().Run();
@@ -27,8 +28,8 @@ public static class Program
                 // Add the ClientHostedService to the hosted services of the .NET Generic Host.
                 services.AddHostedService<ClientHostedService>();
 
-                // Get the ConnectionOptions from the configuration and add it to the generic host options. The DI
-                // container will inject it in services that require an IOptions<ConnectionOptions> dependency.
+                // Bind the connection options to the "appsettings.json" configuration "Connection" section, and add a
+                // Configure callback to configure its authentication options.
                 services
                     .AddOptions<ConnectionOptions>()
                     .Bind(hostContext.Configuration.GetSection("Connection"))
@@ -47,8 +48,7 @@ public static class Program
                         };
                     });
 
-                // Add an IInvoker singleton service. The DI container will inject it in services that require an
-                // IInvoker dependency.
+                // Add an IInvoker singleton service.
                 services.AddSingleton<IInvoker>(serviceProvider =>
                     {
                         // The invoker is a pipeline configured with the logger and telemetry interceptors. The
