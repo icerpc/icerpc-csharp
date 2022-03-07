@@ -86,7 +86,11 @@ public static class Program
         {
             try
             {
-                Console.WriteLine(await _proxy.SayHelloAsync("Hello", cancel: cancellationToken));
+                Console.Write("To say hello to the server, type your name: ");
+                if (Console.ReadLine() is string name)
+                {
+                    Console.WriteLine(await _proxy.SayHelloAsync(name, cancel: cancellationToken));
+                }
             }
             catch (Exception exception)
             {
