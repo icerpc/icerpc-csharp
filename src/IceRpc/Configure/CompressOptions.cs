@@ -8,13 +8,14 @@ namespace IceRpc.Configure
     /// <see cref="CompressorMiddleware"/>.</summary>
     public sealed record class CompressOptions
     {
-        /// <summary>The compression level for the compress operation, the default value is
-        /// <see cref="CompressionLevel.Fastest"/>.</summary>
+        /// <summary>Gets or sets the compression level for the compress operation.</summary>
+        /// <value> The default value is <see cref="CompressionLevel.Fastest"/>. </value>
         public CompressionLevel CompressionLevel { get; set; } = CompressionLevel.Fastest;
 
-        /// <summary>Whether or not to apply compression to the 2.0 encoded payload of a request or response when
+        /// <summary>Gets or sets whether or not to apply compression to the 2.0 encoded payload of a request or response when
         /// <see cref="Features.CompressPayload.Yes"/> is present in the request features or response features
-        /// respectively. The default value is <c>true</c>.</summary>
+        /// respectively.</summary>
+        /// <value>The default value is <c>true</c>.</value>
         public bool CompressPayload { get; set; } = true;
 
         /// <summary>Whether or not to decompress the compressed request or response payload. The default value is

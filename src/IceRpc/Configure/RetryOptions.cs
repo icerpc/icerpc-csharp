@@ -10,7 +10,7 @@ namespace IceRpc.Configure
     {
         /// <summary>The maximum amount of memory in bytes used to hold all retryable requests. Once this limit is
         /// reached new requests are not retried and their memory is released after being sent. The default value is
-        /// 100 MB</summary>
+        /// 100 MB.</summary>
         public int BufferMaxSize
         {
             get => _bufferMaxSize;

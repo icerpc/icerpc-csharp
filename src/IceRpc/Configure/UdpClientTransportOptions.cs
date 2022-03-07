@@ -9,9 +9,8 @@ namespace IceRpc.Configure
     public sealed record class UdpClientTransportOptions
     {
         /// <summary>The idle timeout. This timeout is used to monitor the network connection. If the connection
-        /// is idle within this timeout period, the connection is gracefully closed. It can't be 0 and the default
-        /// value is 60s.</summary>
-        /// <value>The network connection idle timeout value.</value>
+        /// is idle within this timeout period, the connection is gracefully closed.</summary>
+        /// <value>The network connection idle timeout value. It can't be 0 and the default value is 60s.</value>
         public TimeSpan IdleTimeout
         {
             get => _idleTimeout;
@@ -20,8 +19,8 @@ namespace IceRpc.Configure
         }
 
         /// <summary>Configures an IPv6 socket to only support IPv6. The socket won't support IPv4 mapped addresses
-        /// when this property is set to true. The default value is false.</summary>
-        /// <value>The boolean value to enable or disable IPv6-only support.</value>
+        /// when this property is set to true.</summary>
+        /// <value>The boolean value to enable or disable IPv6-only support. The default value is false.</value>
         public bool IsIPv6Only { get; set; }
 
         /// <summary>The address and port represented by a .NET IPEndPoint to use for a client socket. If specified the
@@ -29,9 +28,9 @@ namespace IceRpc.Configure
         /// <value>The address and port to bind the socket to.</value>
         public IPEndPoint? LocalEndPoint { get; set; }
 
-        /// <summary>The socket send buffer size in bytes. It can't be less than 1KB. If not set, the OS default
-        /// send buffer size is used.</summary>
-        /// <value>The send buffer size in bytes.</value>
+        /// <summary>The socket send buffer size in bytes.</summary>
+        /// <value>The send buffer size in bytes. It can't be less than 1KB. If not set, the OS default
+        /// send buffer size is used.</value>
         public int? SendBufferSize
         {
             get => _sendBufferSize;

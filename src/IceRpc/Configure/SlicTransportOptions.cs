@@ -12,9 +12,9 @@ namespace IceRpc.Configure
         /// bidirectional streams opened on a connection. When this limit is reached, trying to open a new
         /// bidirectional stream will be delayed until a bidirectional stream is closed. Since an
         /// bidirectional stream is opened for each two-way proxy invocation, the sending of the two-way
-        /// invocation will be delayed until another two-way invocation on the connection completes. It can't
-        /// be less than 1 and the default value is 100.</summary>
-        /// <value>The bidirectional stream maximum count.</value>
+        /// invocation will be delayed until another two-way invocation on the connection completes.</summary>
+        /// <value>The bidirectional stream maximum count. It can't
+        /// be less than 1 and the default value is 100.</value>
         public int BidirectionalStreamMaxCount
         {
             get => _bidirectionalStreamMaxCount;
@@ -24,11 +24,11 @@ namespace IceRpc.Configure
                     nameof(value));
         }
 
-        /// <summary>Gets the <see cref="MemoryPool{T}" /> object used for buffer management.</summary>
+        /// <summary>Gets or sets the <see cref="MemoryPool{T}" /> object used for buffer management.</summary>
         /// <value>A pool of memory blocks used for buffer management.</value>
         public MemoryPool<byte> Pool { get; set; } = MemoryPool<byte>.Shared;
 
-        /// <summary>Gets the minimum size of the segment requested from the <see cref="Pool" />.</summary>
+        /// <summary>Gets or sets the minimum size of the segment requested from the <see cref="Pool" />.</summary>
         /// <value>The minimum size of the segment requested from the <see cref="Pool" />.</value>
         public int MinimumSegmentSize
         {
@@ -37,9 +37,9 @@ namespace IceRpc.Configure
                 throw new ArgumentException($"{nameof(MinimumSegmentSize)} can't be less than 1KB", nameof(value));
         }
 
-        /// <summary>The packet maximum size in bytes. It can't be less than 1KB and the default value is
-        /// 32KB.</summary>
-        /// <value>The packet maximum size in bytes.</value>
+        /// <summary>The packet maximum size in bytes.</summary>
+        /// <value>The packet maximum size in bytes. It can't be less than 1KB and the default value is
+        /// 32KB.</value>
         public int PacketMaxSize
         {
             get => _packetMaxSize;
@@ -47,7 +47,7 @@ namespace IceRpc.Configure
                 throw new ArgumentException($"{nameof(PacketMaxSize)} can't be less than 1KB", nameof(value));
         }
 
-        /// <summary>Gets the number of bytes when writes on a Slic stream starts blocking.</summary>
+        /// <summary>Gets or setsthe number of bytes when writes on a Slic stream starts blocking.</summary>
         /// <value>The pause writer threshold.</value>
         public int PauseWriterThreshold
         {
@@ -56,7 +56,7 @@ namespace IceRpc.Configure
                 throw new ArgumentException($"{nameof(PauseWriterThreshold)} can't be less than 1KB", nameof(value));
         }
 
-        /// <summary>Gets the number of bytes when writes on a Slic stream stops blocking.</summary>
+        /// <summary>Gets or sets the number of bytes when writes on a Slic stream stops blocking.</summary>
         /// <value>The resume writer threshold.</value>
         public int ResumeWriterThreshold
         {
@@ -74,9 +74,9 @@ namespace IceRpc.Configure
         /// unidirectional streams opened on a connection. When this limit is reached, trying to open a new
         /// unidirectional stream will be delayed until an unidirectional stream is closed. Since an
         /// unidirectional stream is opened for each one-way proxy invocation, the sending of the one-way
-        /// invocation will be delayed until another one-way invocation on the connection completes. It can't
-        /// be less than 1 and the default value is 100.</summary>
-        /// <value>The unidirectional stream maximum count.</value>
+        /// invocation will be delayed until another one-way invocation on the connection completes.</summary>
+        /// <value>The unidirectional stream maximum count. It can't
+        /// be less than 1 and the default value is 100.</value>
         public int UnidirectionalStreamMaxCount
         {
             get => _unidirectionalStreamMaxCount;
