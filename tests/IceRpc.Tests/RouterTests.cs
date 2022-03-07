@@ -2,16 +2,16 @@
 
 using IceRpc.Configure;
 using IceRpc.Slice;
-using IceRpc.Transports;
 using NUnit.Framework;
+using System.IO.Pipelines;
 
 namespace IceRpc.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
 public class RouterTests
 {
-    /// <summary>Verifies that <see cref="Router.Mount(string, IDispatcher)"/> fails when using an invalid path.</summary>
-    /// <param name="path"></param>
+    /// <summary>Verifies that <see cref="Router.Mount(string, IDispatcher)"/> fails when using an invalid path.
+    /// </summary>
     [Test]
     public void Mounting_an_invalid_path_fails()
     {
@@ -53,26 +53,18 @@ public class RouterTests
     public async Task Cannot_add_middleware_after_a_request_has_been_dispatched()
     {
         // Arrange
-        var colocTransport = new ColocTransport();
+        Router router = new Router();
+        router.Mount("/", new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))));
 
-        var router = new Router();
-        router.Map<IService>(new Service());
-        var serverOptions = new ServerOptions()
-        {
-            Dispatcher = router,
-            MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
-        };
-        await using var server = new Server(serverOptions);
-        server.Listen();
-
-        var connectionOptions = new ConnectionOptions()
-        {
-            MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
-            RemoteEndpoint = server.Endpoint
-        };
-        await using var connection = new Connection(connectionOptions);
-        var proxy = ServicePrx.FromConnection(connection);
-        await proxy.IcePingAsync();
+        _ = await ((IDispatcher)router).DispatchAsync(
+            new IncomingRequest(
+                Protocol.IceRpc,
+                typeof(IService).GetDefaultPath(),
+                "",
+                "",
+                PipeReader.Create(Stream.Null),
+                Encoding.Slice20,
+                PipeWriter.Create(Stream.Null)));
 
         // Act/Assert
         Assert.Throws<InvalidOperationException>(() => router.Use(next => next));

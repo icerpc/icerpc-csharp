@@ -1,6 +1,5 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice.Internal;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq.Expressions;
