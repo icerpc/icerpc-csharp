@@ -2,6 +2,7 @@
 
 using IceRpc.Configure;
 using IceRpc.Slice;
+using IceRpc.Transports;
 using NUnit.Framework;
 
 namespace IceRpc.Tests;
@@ -45,5 +46,35 @@ public class RouterTests
         var router = new Router(prefix);
 
         Assert.That(router.AbsolutePrefix, Is.EqualTo(normalizedPrefix));
+    }
+
+    /// <summary>Verifies that middleware cannot be added after a request has been dispatched.</summary>
+    [Test]
+    public async Task Cannot_add_middleware_after_a_request_has_been_dispatched()
+    {
+        // Arrange
+        var colocTransport = new ColocTransport();
+
+        var router = new Router();
+        router.Map<IService>(new Service());
+        var serverOptions = new ServerOptions()
+        {
+            Dispatcher = router,
+            MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+        };
+        await using var server = new Server(serverOptions);
+        server.Listen();
+
+        var connectionOptions = new ConnectionOptions()
+        {
+            MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
+            RemoteEndpoint = server.Endpoint
+        };
+        await using var connection = new Connection(connectionOptions);
+        var proxy = ServicePrx.FromConnection(connection);
+        await proxy.IcePingAsync();
+
+        // Act/Assert
+        Assert.Throws<InvalidOperationException>(() => router.Use(next => next));
     }
 }
