@@ -4,6 +4,6 @@
     <ItemGroup>
         <AdditionalFiles Include="$(MSBuildThisFileDirectory)../build/stylecop.json" Link="stylecop.json" />
         <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.base.globalconfig" />
-        <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.test.globalconfig" />
+        <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.tests.globalconfig" />
     </ItemGroup>
 </Project>

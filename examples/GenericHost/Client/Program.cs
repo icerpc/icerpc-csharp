@@ -2,7 +2,6 @@
 
 using IceRpc;
 using IceRpc.Configure;
-using IceRpc.Transports;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -12,7 +11,7 @@ using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
 namespace Demo;
-public class Program
+public static class Program
 {
     public static void Main(string[] args) => CreateHostBuilder(args).Build().Run();
 

@@ -6,9 +6,9 @@ namespace Demo;
 
 public class Hello : Service, IHello
 {
-    public ValueTask<string?> SayHelloAsync(string? greeting, Dispatch dispatch, CancellationToken cancel)
+    public async ValueTask<string?> SayHelloAsync(string? greeting, Dispatch dispatch, CancellationToken cancel)
     {
-        Console.Out.WriteLine("Hello World!");
-        return new(greeting + ", server!");
+        await Console.Out.WriteLineAsync("Hello World!");
+        return $"{greeting}, server!";
     }
 }

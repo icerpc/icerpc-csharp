@@ -2,7 +2,6 @@
 
 using IceRpc;
 using IceRpc.Configure;
-using IceRpc.Transports;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -13,7 +12,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace Demo;
 
-public class Program
+public static class Program
 {
     public static void Main(string[] args) => CreateHostBuilder(args).Build().Run();
 
@@ -64,13 +63,15 @@ public class Program
             });
 
     /// <summary>The server hosted service is ran and managed by the .NET Generic Host</summary>
-    private class ServerHostedService : IHostedService
+    private class ServerHostedService : IHostedService, IAsyncDisposable
     {
         // The IceRPC server to accept connections from IceRPC clients.
         private readonly Server _server;
 
         public ServerHostedService(IOptions<ServerOptions> options) =>
             _server = new Server(options.Value);
+
+        public ValueTask DisposeAsync() => _server.DisposeAsync();
 
         public Task StartAsync(CancellationToken cancellationToken)
         {

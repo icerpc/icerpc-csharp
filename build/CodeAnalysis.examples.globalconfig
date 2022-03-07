@@ -1,0 +1,8 @@
+is_global = true
+
+# CA2007: Consider calling ConfigureAwait on the awaited task
+dotnet_diagnostic.CA2007.severity = none
+
+# CA1812: Internal class never instantiated
+# TODO BUG FIX https://developercommunity.visualstudio.com/t/top-level-statement-programcs-warning-ca1812-avoid/1555034
+dotnet_diagnostic.CA1812.severity = none
