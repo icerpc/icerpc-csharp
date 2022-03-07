@@ -18,7 +18,7 @@ namespace IceRpc.Configure
         public int BidirectionalStreamMaxCount
         {
             get => _bidirectionalStreamMaxCount;
-            init => _bidirectionalStreamMaxCount = value > 0 ? value :
+            set => _bidirectionalStreamMaxCount = value > 0 ? value :
                 throw new ArgumentException(
                     $"{nameof(BidirectionalStreamMaxCount)} can't be less than 1",
                     nameof(value));
@@ -26,14 +26,14 @@ namespace IceRpc.Configure
 
         /// <summary>Gets the <see cref="MemoryPool{T}" /> object used for buffer management.</summary>
         /// <value>A pool of memory blocks used for buffer management.</value>
-        public MemoryPool<byte> Pool { get; init; } = MemoryPool<byte>.Shared;
+        public MemoryPool<byte> Pool { get; set; } = MemoryPool<byte>.Shared;
 
         /// <summary>Gets the minimum size of the segment requested from the <see cref="Pool" />.</summary>
         /// <value>The minimum size of the segment requested from the <see cref="Pool" />.</value>
         public int MinimumSegmentSize
         {
             get => _minimumSegmentSize;
-            init => _minimumSegmentSize = value >= 1024 ? value :
+            set => _minimumSegmentSize = value >= 1024 ? value :
                 throw new ArgumentException($"{nameof(MinimumSegmentSize)} can't be less than 1KB", nameof(value));
         }
 
@@ -43,7 +43,7 @@ namespace IceRpc.Configure
         public int PacketMaxSize
         {
             get => _packetMaxSize;
-            init => _packetMaxSize = value >= 1024 ? value :
+            set => _packetMaxSize = value >= 1024 ? value :
                 throw new ArgumentException($"{nameof(PacketMaxSize)} can't be less than 1KB", nameof(value));
         }
 
@@ -52,7 +52,7 @@ namespace IceRpc.Configure
         public int PauseWriterThreshold
         {
             get => _pauseWriterThreshold;
-            init => _pauseWriterThreshold = value >= 1024 ? value :
+            set => _pauseWriterThreshold = value >= 1024 ? value :
                 throw new ArgumentException($"{nameof(PauseWriterThreshold)} can't be less than 1KB", nameof(value));
         }
 
@@ -61,7 +61,7 @@ namespace IceRpc.Configure
         public int ResumeWriterThreshold
         {
             get => _resumeWriterThreshold;
-            init => _resumeWriterThreshold =
+            set => _resumeWriterThreshold =
                 value < 1024 ? throw new ArgumentException(
                     @$"{nameof(ResumeWriterThreshold)} can't be less than 1KB", nameof(value)) :
                 value > _pauseWriterThreshold ? throw new ArgumentException(
@@ -80,7 +80,7 @@ namespace IceRpc.Configure
         public int UnidirectionalStreamMaxCount
         {
             get => _unidirectionalStreamMaxCount;
-            init => _unidirectionalStreamMaxCount = value > 0 ? value :
+            set => _unidirectionalStreamMaxCount = value > 0 ? value :
                 throw new ArgumentException(
                     $"{nameof(UnidirectionalStreamMaxCount)} can't be less than 1",
                     nameof(value));
@@ -99,14 +99,14 @@ namespace IceRpc.Configure
     /// <summary>An options class for configuring a <see cref="SlicClientTransport"/>.</summary>
     public sealed record class SlicClientTransportOptions : SlicTransportOptions
     {
-        /// <summary>Gets or initializes the underlying simple client transport.</summary>
-        public IClientTransport<ISimpleNetworkConnection>? SimpleClientTransport { get; init; }
+        /// <summary>Gets or sets the underlying simple client transport.</summary>
+        public IClientTransport<ISimpleNetworkConnection>? SimpleClientTransport { get; set; }
     }
 
     /// <summary>An options class for configuring a <see cref="SlicServerTransport"/>.</summary>
     public sealed record class SlicServerTransportOptions : SlicTransportOptions
     {
-        /// <summary>Gets or initializes the underlying simple server transport.</summary>
-        public IServerTransport<ISimpleNetworkConnection>? SimpleServerTransport { get; init; }
+        /// <summary>Gets or sets the underlying simple server transport.</summary>
+        public IServerTransport<ISimpleNetworkConnection>? SimpleServerTransport { get; set; }
     }
 }
