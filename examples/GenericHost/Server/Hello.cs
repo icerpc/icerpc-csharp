@@ -8,7 +8,7 @@ public class Hello : Service, IHello
 {
     public ValueTask<string> SayHelloAsync(string name, Dispatch dispatch, CancellationToken cancel)
     {
-        Console.Out.WriteLineAsync($"{name} says hello!");
+        await Console.Out.WriteLineAsync($"{name} says hello!");
         return new($"Hello, {name}!");
     }
 }
