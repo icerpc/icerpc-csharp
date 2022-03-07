@@ -4,12 +4,12 @@ using IceRpc.Slice;
 
 namespace Demo;
 
-public class AlertSystem: Service, IAlertSystem
+public class AlertSystem : Service, IAlertSystem
 {
-    public async ValueTask AddObserverAsync(AlertObserverPrx alertObserver, Dispatch dispatch, CancellationToken cancel)
+    public async ValueTask AddObserverAsync(AlertObserverPrx observer, Dispatch dispatch, CancellationToken cancel)
     {
         await Task.Delay(TimeSpan.FromSeconds(5), cancel);
-        string didHandle = await alertObserver.AlertAsync() ? "did" : "did not";
+        string didHandle = await observer.AlertAsync(cancel: cancel) ? "did" : "did not";
         Console.WriteLine($"Alert Recipient {didHandle} accept the alert");
     }
 }
