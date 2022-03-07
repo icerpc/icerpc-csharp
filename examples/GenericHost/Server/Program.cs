@@ -48,9 +48,9 @@ public class Program
                 services
                     .AddOptions<ServerOptions>()
                     .Bind(hostContext.Configuration.GetSection("Server"))
+                    // Configure the authentication options
                     .Configure(serverOptions =>
                         {
-                            // Configure the authentication options
                             serverOptions.AuthenticationOptions = new SslServerAuthenticationOptions()
                             {
                                 ServerCertificate = new X509Certificate2(
@@ -58,11 +58,9 @@ public class Program
                                     hostContext.Configuration.GetValue<string>("Certificate:Password"))
                             };
                         })
+                    // Configure the dispatcher
                     .Configure((ServerOptions serverOptions, IDispatcher dispatcher) =>
-                        {
-                            // Configure the dispatcher
-                            serverOptions.Dispatcher = dispatcher;
-                        });
+                        serverOptions.Dispatcher = dispatcher);
             });
 
     /// <summary>The server hosted service is ran and managed by the .NET Generic Host</summary>
