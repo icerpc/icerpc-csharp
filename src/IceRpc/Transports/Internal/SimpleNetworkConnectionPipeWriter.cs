@@ -12,7 +12,10 @@ namespace IceRpc.Transports.Internal
         private readonly List<ReadOnlyMemory<byte>> _sendBuffers = new(16);
 
         /// <inheritdoc/>
-        public override void CancelPendingFlush() => throw new NotImplementedException();
+        public override void CancelPendingFlush() =>
+            // Supporting this method would require to create a linked cancellation token source. Since there's no need
+            // for now to support this method, we just throw.
+            throw new NotImplementedException();
 
         /// <inheritdoc/>
         public override void Complete(Exception? exception = null)
@@ -46,15 +49,33 @@ namespace IceRpc.Transports.Internal
             return new FlushResult();
         }
 
-        public ValueTask WriteAsync(
+        internal SimpleNetworkConnectionPipeWriter(
+            ISimpleNetworkConnection connection,
+            MemoryPool<byte> pool,
+            int minimumSegmentSize)
+        {
+            _connection = connection;
+            _pipe = new Pipe(new PipeOptions(
+                pool: pool,
+                minimumSegmentSize: minimumSegmentSize,
+                pauseWriterThreshold: 0,
+                writerScheduler: PipeScheduler.Inline));
+        }
+
+        internal ValueTask WriteAsync(
             ReadOnlySequence<byte> source,
             CancellationToken cancel) => WriteAsync(source, ReadOnlySequence<byte>.Empty, cancel);
 
-        public async ValueTask WriteAsync(
+        internal async ValueTask WriteAsync(
             ReadOnlySequence<byte> source1,
             ReadOnlySequence<byte> source2,
             CancellationToken cancel)
         {
+            if (_pipe.Writer.UnflushedBytes == 0 && source1.IsEmpty && source2.IsEmpty)
+            {
+                return;
+            }
+
             _sendBuffers.Clear();
 
             // First add the data from the internal pipe.
@@ -108,19 +129,6 @@ namespace IceRpc.Transports.Internal
                     }
                 }
             }
-        }
-
-        internal SimpleNetworkConnectionPipeWriter(
-            ISimpleNetworkConnection connection,
-            MemoryPool<byte> pool,
-            int minimumSegmentSize)
-        {
-            _connection = connection;
-            _pipe = new Pipe(new PipeOptions(
-                pool: pool,
-                minimumSegmentSize: minimumSegmentSize,
-                pauseWriterThreshold: 0,
-                writerScheduler: PipeScheduler.Inline));
         }
     }
 }

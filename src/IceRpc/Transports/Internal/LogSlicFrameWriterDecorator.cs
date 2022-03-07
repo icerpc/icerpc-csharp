@@ -19,16 +19,16 @@ namespace IceRpc.Transports.Internal
         public async ValueTask WriteFrameAsync(
             FrameType frameType,
             long? streamId,
-            EncodeAction? encode,
+            EncodeAction? encodeAction,
             CancellationToken cancel)
         {
-            _pipe.Writer.EncodeFrame(frameType, streamId, encode);
+            _pipe.Writer.EncodeFrame(frameType, streamId, encodeAction);
             await _pipe.Writer.FlushAsync(cancel).ConfigureAwait(false);
             _pipe.Reader.TryRead(out ReadResult readResult);
 
             try
             {
-                await _decoratee.WriteFrameAsync(frameType, streamId, encode, cancel).ConfigureAwait(false);
+                await _decoratee.WriteFrameAsync(frameType, streamId, encodeAction, cancel).ConfigureAwait(false);
 
                 LogSentFrame(readResult.Buffer);
             }

@@ -116,7 +116,6 @@ namespace IceRpc.Transports.Internal
         // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
         private readonly AsyncSemaphore _sendCreditSemaphore = new(1, 1);
         private volatile Action? _shutdownAction;
-        private TaskCompletionSource? _shutdownCompletedTaskSource;
         private long? _resetErrorCode;
         private int _state;
 
@@ -187,19 +186,6 @@ namespace IceRpc.Transports.Internal
                 }
                 TrySetWriteCompleted();
             }
-        }
-
-        public async Task WaitForShutdownAsync(CancellationToken cancel)
-        {
-            lock (_mutex)
-            {
-                if (IsShutdown)
-                {
-                    return;
-                }
-                _shutdownCompletedTaskSource ??= new(TaskCreationOptions.RunContinuationsAsynchronously);
-            }
-            await _shutdownCompletedTaskSource.Task.WaitAsync(cancel).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
@@ -354,7 +340,6 @@ namespace IceRpc.Transports.Internal
             lock (_mutex)
             {
                 shutdownAction = _shutdownAction;
-                _shutdownCompletedTaskSource?.SetResult();
             }
 
             try

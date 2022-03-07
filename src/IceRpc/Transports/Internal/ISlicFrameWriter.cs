@@ -12,7 +12,7 @@ namespace IceRpc.Transports.Internal
         ValueTask WriteFrameAsync(
             FrameType frameType,
             long? streamId,
-            EncodeAction? encode,
+            EncodeAction? encodeAction,
             CancellationToken cancel);
 
         /// <summary>Writes a stream Slic frame.</summary>

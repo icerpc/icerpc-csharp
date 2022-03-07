@@ -13,10 +13,10 @@ namespace IceRpc.Transports.Internal
         public ValueTask WriteFrameAsync(
             FrameType frameType,
             long? streamId,
-            EncodeAction? encode,
+            EncodeAction? encodeAction,
             CancellationToken cancel)
         {
-            _writer.EncodeFrame(frameType, streamId, encode);
+            _writer.EncodeFrame(frameType, streamId, encodeAction);
             return _writer.WriteAsync(ReadOnlySequence<byte>.Empty, cancel);
         }
 

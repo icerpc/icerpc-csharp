@@ -12,7 +12,7 @@ namespace IceRpc.Transports.Internal
         private readonly SimpleNetworkConnectionPipeReader _reader;
 
         public ValueTask ReadFrameDataAsync(Memory<byte> buffer, CancellationToken cancel) =>
-            _reader.ReadAsync(buffer, cancel);
+            _reader.ReadUntilFullAsync(buffer, cancel);
 
         public async ValueTask<(FrameType FrameType, int FrameSize, long? StreamId)> ReadFrameHeaderAsync(
             CancellationToken cancel)

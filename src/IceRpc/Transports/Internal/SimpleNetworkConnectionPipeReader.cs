@@ -18,7 +18,10 @@ namespace IceRpc.Transports.Internal
             _pipe.Reader.AdvanceTo(consumed, examined);
 
         /// <inheritdoc/>
-        public override void CancelPendingRead() => throw new NotSupportedException();
+        public override void CancelPendingRead() =>
+            // Supporting this method would require to create a linked cancellation token source. Since there's no need
+            // for now to support this method, we just throw.
+            throw new NotSupportedException();
 
         /// <inheritdoc/>
         public override void Complete(Exception? exception = null)
@@ -32,7 +35,7 @@ namespace IceRpc.Transports.Internal
         {
             if (!_pipe.Reader.TryRead(out ReadResult readResult))
             {
-                // Fill the pipe with data read from _readFunc
+                // Fill the pipe with data read from the connection.
                 Memory<byte> buffer = _pipe.Writer.GetMemory();
                 int read = await _connection.ReadAsync(buffer, cancel).ConfigureAwait(false);
                 _pipe.Writer.Advance(read);
@@ -49,9 +52,9 @@ namespace IceRpc.Transports.Internal
         }
 
         /// <summary>Reads data in the given buffer and return once the buffer is full. This method bypass the internal
-        /// pipe once no more data is available. The data is directly read from the simple network connection, avoiding
+        /// pipe once no more data is available. The data is read directly from the simple network connection, avoiding
         /// a copy into the internal pipe.</summary>
-        internal async ValueTask ReadAsync(Memory<byte> buffer, CancellationToken cancel)
+        internal async ValueTask ReadUntilFullAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             if (buffer.IsEmpty)
             {
