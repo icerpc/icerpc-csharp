@@ -13,9 +13,9 @@ namespace IntegrationTests;
 [Timeout(5000)]
 public class ServerTests
 {
+    /// <summary>Verifies that when a client cancels a request the dispatch is also canceled.</summary>
     [Test]
-    // When a client cancels a request, the dispatch is canceled.
-    public async Task Server_RequestCancelAsync()
+    public async Task Canceling_a_request_also_cancels_the_dispatch()
     {
         var colocTransport = new ColocTransport();
 
@@ -37,9 +37,6 @@ public class ServerTests
                     {
                         semaphore.Release();
                         throw;
-                    }
-                    catch
-                    {
                     }
                     Assert.Fail();
                 }
@@ -76,8 +73,10 @@ public class ServerTests
         Assert.DoesNotThrowAsync(async () => await server.ShutdownAsync());
     }
 
+    /// <summary>Verifies that the server shutdown does not complete until the pending dispatches have finished.
+    /// </summary>
     [Test]
-    public async Task Server_ShutdownAsync()
+    public async Task Shutdown_the_server_waits_for_pending_dispatch_to_finish()
     {
         var colocTransport = new ColocTransport();
 
@@ -117,15 +116,18 @@ public class ServerTests
         Assert.That(server.ShutdownComplete.IsCompleted, Is.True);
     }
 
+    /// <summary>Canceling the cancellation token (source) of ShutdownAsync results in a DispatchException when the
+    /// operation completes with an OperationCanceledException. It also test calling DisposeAsync is called instead
+    /// of shutdown, which call ShutdownAsync with a canceled token.</summary>
+    /// <param name="disposeInsteadOfShutdown">Whether to call <see cref="Server.ShutdownAsync(CancellationToken)"/>
+    /// or <see cref="Server.DisposeAsync"/></param>
+    /// <param name="protocolStr">The protocol used for the tests.</param>
+    /// <returns></returns>
     [TestCase(false, "ice")]
     [TestCase(true, "ice")]
     [TestCase(false, "icerpc")]
     [TestCase(true, "icerpc")]
-    // [[Log(LogAttributeLevel.Debug)]
-    // Canceling the cancellation token (source) of ShutdownAsync results in a DispatchException when the operation
-    // completes with an OperationCanceledException. It also test calling DisposeAsync is called instead of
-    // shutdown, which call ShutdownAsync with a canceled token.
-    public async Task Server_ShutdownCancelAsync(bool disposeInsteadOfShutdown, string protocolStr)
+    public async Task Cancel_server_shutdown(bool disposeInsteadOfShutdown, string protocolStr)
     {
         var colocTransport = new ColocTransport();
         var protocol = Protocol.FromString(protocolStr);
