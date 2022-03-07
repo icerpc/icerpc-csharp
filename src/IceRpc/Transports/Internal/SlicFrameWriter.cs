@@ -1,27 +1,36 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
+using System.Buffers;
+
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The Slic frame writer class writes Slic frames.</summary>
     internal sealed class SlicFrameWriter : ISlicFrameWriter
     {
-        private readonly Func<IReadOnlyList<ReadOnlyMemory<byte>>, CancellationToken, ValueTask> _writeFunc;
+        private readonly SimpleNetworkConnectionPipeWriter _writer;
 
-        public async ValueTask WriteFrameAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
+        public ValueTask WriteFrameAsync(
+            FrameType frameType,
+            long? streamId,
+            EncodeAction? encodeAction,
+            CancellationToken cancel)
         {
-            // A Slic frame must always be sent entirely even if the sending is canceled.
-            ValueTask task = _writeFunc(buffers, CancellationToken.None);
-            if (task.IsCompleted || !cancel.CanBeCanceled)
-            {
-                await task.ConfigureAwait(false);
-            }
-            else
-            {
-                await task.AsTask().WaitAsync(cancel).ConfigureAwait(false);
-            }
+            _writer.EncodeFrame(frameType, streamId, encodeAction);
+            return _writer.WriteAsync(ReadOnlySequence<byte>.Empty, cancel);
         }
 
-        internal SlicFrameWriter(Func<IReadOnlyList<ReadOnlyMemory<byte>>, CancellationToken, ValueTask> writeFunc) =>
-            _writeFunc = writeFunc;
+        public ValueTask WriteStreamFrameAsync(
+            long streamId,
+            ReadOnlySequence<byte> source1,
+            ReadOnlySequence<byte> source2,
+            bool endStream,
+            CancellationToken cancel)
+        {
+            _writer.EncodeStreamFrameHeader(streamId, (int)(source1.Length + source2.Length), endStream);
+            return _writer.WriteAsync(source1, source2, cancel);
+        }
+
+        internal SlicFrameWriter(SimpleNetworkConnectionPipeWriter writer) => _writer = writer;
     }
 }
