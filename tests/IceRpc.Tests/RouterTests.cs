@@ -15,7 +15,7 @@ public class RouterTests
     [Test]
     public void Mounting_an_invalid_path_fails()
     {
-        Router router = new();
+        var router = new Router();
 
         Assert.Throws<FormatException>(() => router.Mount("foo", ConnectionOptions.DefaultDispatcher));
     }
@@ -24,7 +24,7 @@ public class RouterTests
     [Test]
     public void Maping_an_invalid_path_fails()
     {
-        Router router = new();
+        var router = new Router();
 
         Assert.Throws<FormatException>(() => router.Mount("foo", ConnectionOptions.DefaultDispatcher));
     }
@@ -53,13 +53,13 @@ public class RouterTests
     public async Task Cannot_add_middleware_after_a_request_has_been_dispatched()
     {
         // Arrange
-        Router router = new Router();
+        var router = new Router();
         router.Mount("/", new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))));
 
         _ = await ((IDispatcher)router).DispatchAsync(
             new IncomingRequest(
                 Protocol.IceRpc,
-                typeof(IService).GetDefaultPath(),
+                "/",
                 "",
                 "",
                 PipeReader.Create(Stream.Null),
