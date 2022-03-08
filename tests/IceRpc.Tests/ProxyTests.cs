@@ -202,7 +202,7 @@ public class ProxyTests
         await using var serverConnection = new Connection(networkConnection, Protocol.IceRpc, TimeSpan.FromSeconds(1));
 
         // Act
-        var proxy = Proxy.FromConnection(serverConnection!, "/");
+        var proxy = Proxy.FromConnection(serverConnection, "/");
 
         // Assert
         Assert.Multiple(() =>

@@ -22,19 +22,22 @@ public class InvocationTests
             Features = new FeatureCollection().WithContext(new Dictionary<string, string> { ["foo"] = "bar" })
         };
 
-        var pipeline = new Pipeline();
         IDictionary<string, string>? context = null;
-        pipeline.Use(next => new InlineInvoker((request, cancel) =>
+        var invoker = new InlineInvoker((request, cancel) =>
         {
             context = request.Features.GetContext();
             return Task.FromResult(new IncomingResponse(request, ResultType.Success, PipeReader.Create(Stream.Null)));
-        }));
+        });
 
         await using var connection = new Connection(new ConnectionOptions()
         {
             RemoteEndpoint = "icerpc://localhost"
         });
-        var proxy = Proxy.FromConnection(connection, "/", pipeline);
+        var proxy = new Proxy(Protocol.IceRpc)
+        {
+            Path = "/",
+            Invoker = invoker,
+        };
 
         // Act
         await proxy.InvokeAsync(

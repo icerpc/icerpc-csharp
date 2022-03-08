@@ -20,7 +20,7 @@ public class ServiceTests
             .AddTransient<IDispatcher, Service>()
             .BuildServiceProvider();
 
-        var service = ServicePrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
+        var service = serviceProvider.GetProxy<ServicePrx>();
 
         string[] ids = new string[]
         {
