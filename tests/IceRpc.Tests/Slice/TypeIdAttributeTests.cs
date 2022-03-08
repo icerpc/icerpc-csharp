@@ -99,7 +99,7 @@ public sealed class TypeIdAttributeTests
         Assert.That(typeId, Is.EqualTo(expected));
     }
 
-    /// <summary>Verifies that types generated from Slice definitions has the expected default path.</summary>
+    /// <summary>Verifies that types generated from Slice definitions have the expected default path.</summary>
     /// <param name="type">The <see cref="Type"/> of the generated type to test.</param>
     /// <param name="expected">The expected type ID.</param>
     [Test, TestCaseSource(nameof(GetDefaultPathSource))]
