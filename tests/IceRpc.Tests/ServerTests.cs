@@ -43,35 +43,6 @@ public class ServerTests
         Assert.Throws<ObjectDisposedException>(() => server.Listen());
     }
 
-    /// <summary>Verifies that a server without a dispatcher throws <see cref="DispatchException"/> with error code
-    /// <see cref="DispatchErrorCode.ServiceNotFound"/>.</summary>
-    [Test]
-    public async Task A_server_without_a_dispatcher_always_throws_dispatch_exception()
-    {
-        // Arrange
-        var colocTransport = new ColocTransport();
-        var serverOptions = new ServerOptions()
-        {
-            MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
-        };
-        await using var server = new Server(serverOptions);
-
-        var connectionOptions = new ConnectionOptions()
-        {
-            MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
-            RemoteEndpoint = server.Endpoint
-        };
-        await using var connection = new Connection(connectionOptions);
-        var proxy = ServicePrx.FromConnection(connection);
-        server.Listen();
-
-        // Act
-        DispatchException dispatchException = Assert.ThrowsAsync<DispatchException>(() => proxy.IcePingAsync());
-
-        // Assert
-        Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
-    }
-
     /// <summary>Verifies that two servers cannot listen on the same endpoint. The second attempt throws a
     /// <see cref="TransportException"/>.</summary>
     [Test]
