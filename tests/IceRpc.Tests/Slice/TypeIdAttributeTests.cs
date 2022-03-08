@@ -1,8 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using NUnit.Framework;
 using IceRpc.Slice.TypeIdAttributeTests;
-using IceRpc.Slice.TypeIdAttributeTests.I;
+using NUnit.Framework;
 
 namespace IceRpc.Slice.Tests;
 
@@ -42,12 +41,6 @@ public sealed class TypeIdAttributeTests
         [typeof(IMyInterface)] = "::IceRpc::Slice::TypeIdAttributeTests::MyInterface",
         [typeof(MyException)] = "::IceRpc::Slice::TypeIdAttributeTests::MyException",
         [typeof(MyStruct)] = "::IceRpc::Slice::TypeIdAttributeTests::MyStruct",
-        [typeof(A)] = "::IceRpc::Slice::TypeIdAttributeTests::I::A",
-        [typeof(IBPrx)] = "::IceRpc::Slice::TypeIdAttributeTests::I::B",
-        [typeof(BPrx)] = "::IceRpc::Slice::TypeIdAttributeTests::I::B",
-        [typeof(IB)] = "::IceRpc::Slice::TypeIdAttributeTests::I::B",
-        [typeof(C)] = "::IceRpc::Slice::TypeIdAttributeTests::I::C",
-        [typeof(D)] = "::IceRpc::Slice::TypeIdAttributeTests::I::D",
         [typeof(Slice.TypeIdAttributeTests.Inner.MyClass)] =
             "::IceRpc::Slice::TypeIdAttributeTests::Inner::myClass",
         [typeof(Slice.TypeIdAttributeTests.Inner.MyInterfacePrx)] =
@@ -71,12 +64,6 @@ public sealed class TypeIdAttributeTests
         [typeof(IMyInterface)] = "/IceRpc.Slice.TypeIdAttributeTests.MyInterface",
         [typeof(MyException)] = "/IceRpc.Slice.TypeIdAttributeTests.MyException",
         [typeof(MyStruct)] = "/IceRpc.Slice.TypeIdAttributeTests.MyStruct",
-        [typeof(A)] = "/IceRpc.Slice.TypeIdAttributeTests.I.A",
-        [typeof(IBPrx)] = "/IceRpc.Slice.TypeIdAttributeTests.I.B",
-        [typeof(BPrx)] = "/IceRpc.Slice.TypeIdAttributeTests.I.B",
-        [typeof(IB)] = "/IceRpc.Slice.TypeIdAttributeTests.I.B",
-        [typeof(C)] = "/IceRpc.Slice.TypeIdAttributeTests.I.C",
-        [typeof(D)] = "/IceRpc.Slice.TypeIdAttributeTests.I.D",
         [typeof(Slice.TypeIdAttributeTests.Inner.MyClass)] =
             "/IceRpc.Slice.TypeIdAttributeTests.Inner.myClass",
         [typeof(Slice.TypeIdAttributeTests.Inner.MyInterfacePrx)] =

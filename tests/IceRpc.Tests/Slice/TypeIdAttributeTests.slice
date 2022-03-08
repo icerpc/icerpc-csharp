@@ -7,14 +7,9 @@ module IceRpc::Slice::TypeIdAttributeTests
     exception MyException {}
     struct MyStruct {}
 
-    module I
-    {
-        class A {}
-        interface B {}
-        exception C {}
-        struct D {}
-    }
-
+    /// The constructs in the inner module doesn't use the same case convention that
+    /// the corresponding C# generated types, the type ID shouldn't be affected by the
+    /// case normalization of the generated types.
     module Inner
     {
         class myClass {}
