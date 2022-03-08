@@ -28,8 +28,8 @@ namespace IceRpc
 
         async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            if (_options.CompressPayload &&
-                request.Protocol.HasFields &&
+            if (request.Protocol.HasFields &&
+                _options.CompressPayload &&
                 request.Features[typeof(Features.CompressPayload)] == Features.CompressPayload.Yes &&
                 !request.Fields.ContainsKey(RequestFieldKey.CompressionFormat))
             {
@@ -43,10 +43,10 @@ namespace IceRpc
 
             IncomingResponse response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
 
-            if (_options.DecompressPayload &&
-                response.Protocol.HasFields &&
+            if (request.Protocol.HasFields &&
+                _options.DecompressPayload &&
                 response.ResultType == ResultType.Success &&
-                response.Request.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
+                request.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
             {
                 CompressionFormat compressionFormat = response.Fields.DecodeValue(
                    ResponseFieldKey.CompressionFormat,
