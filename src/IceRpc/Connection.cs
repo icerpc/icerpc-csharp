@@ -92,15 +92,15 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Returns a task that completes when the connections's shutdown is complete: see <see
-        /// cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
-        public Task ShutdownComplete => _shutdownCompleteSource.Task;
+        /// <summary>Returns a task that completes when the connections's shutdown is complete. This property can be
+        /// retrieved before shutdown is initiated.</summary>
+        public Task ConnectionClosed => _connectionClosedSource.Task;
 
         private EventHandler<ClosedEventArgs>? _closed;
 
         private readonly TimeSpan _closeTimeout;
 
-        private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
+        private readonly TaskCompletionSource<object?> _connectionClosedSource =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         // True once DisposeAsync is called. Once disposed the connection can't be resumed.
@@ -756,6 +756,7 @@ namespace IceRpc
                     try
                     {
                         _closed?.Invoke(this, new ClosedEventArgs(exception));
+                        _connectionClosedSource.TrySetResult(null);
                     }
                     catch
                     {
@@ -783,10 +784,10 @@ namespace IceRpc
                     .WaitAsync(closeCancellationSource.Token)
                     .ConfigureAwait(false);
 
-                _shutdownCompleteSource.TrySetResult(null);
-
                 // Close the connection.
                 await CloseAsync(new ConnectionClosedException(message)).ConfigureAwait(false);
+
+                _connectionClosedSource.TrySetResult(null);
             }
             catch (OperationCanceledException)
             {

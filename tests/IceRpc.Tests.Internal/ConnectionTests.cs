@@ -41,10 +41,12 @@ namespace IceRpc.Tests.Internal
             if (closeClientSide)
             {
                 await factory.ClientConnection.CloseAsync();
+                Assert.That(factory.ClientConnection.ConnectionClosed.IsCompleted, Is.True);
             }
             else
             {
                 await factory.ServerConnection.CloseAsync();
+                Assert.That(factory.ServerConnection.ConnectionClosed.IsCompleted, Is.True);
             }
 
             Assert.ThrowsAsync<ConnectionLostException>(async () => await pingTask);

@@ -23,7 +23,7 @@ var completionSource = new TaskCompletionSource();
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
     eventArgs.Cancel = true;
-    completionSource.SetResult();
+    _ = connection.ShutdownAsync();
 };
 
-await completionSource.Task;
+await connection.ConnectionClosed;
