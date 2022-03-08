@@ -46,7 +46,7 @@ namespace IceRpc.Configure
                 throw new ArgumentException($"{nameof(PacketMaxSize)} can't be less than 1KB", nameof(value));
         }
 
-        /// <summary>Gets or setsthe number of bytes when writes on a Slic stream starts blocking.</summary>
+        /// <summary>Gets or sets the number of bytes when writes on a Slic stream starts blocking.</summary>
         /// <value>The pause writer threshold.</value>
         public int PauseWriterThreshold
         {
