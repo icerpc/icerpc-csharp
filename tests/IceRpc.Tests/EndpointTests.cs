@@ -97,7 +97,7 @@ public class EndpointTests
         Assert.AreEqual(endpoint1, Endpoint.FromString(str2));
     }
 
-    /// <summary>Verifies that the properties of a default constructed endpoint has the expected default values.
+    /// <summary>Verifies that the properties of a default constructed endpoint have the expected default values.
     /// </summary>
     [Test]
     public void Endpoint_default_values()
