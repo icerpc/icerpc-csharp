@@ -36,8 +36,8 @@ namespace IceRpc.Configure
                 throw new ArgumentException($"{nameof(MinimumSegmentSize)} can't be less than 1KB", nameof(value));
         }
 
-        /// <summary>The packet maximum size in bytes.</summary>
-        /// <value>The packet maximum size in bytes. It can't be less than 1KB and the default value is
+        /// <summary>The maximum packet size in bytes.</summary>
+        /// <value>The maximum packet size in bytes. It can't be less than 1KB and the default value is
         /// 32KB.</value>
         public int PacketMaxSize
         {
