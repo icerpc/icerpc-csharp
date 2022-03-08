@@ -1,0 +1,25 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc::Slice::TypeIdAttributeTests
+{
+    class MyClass {}
+    interface MyInterface {}
+    exception MyException {}
+    struct MyStruct {}
+
+    module I
+    {
+        class A {}
+        interface B {}
+        exception C {}
+        struct D {}
+    }
+
+    module Inner
+    {
+        class myClass {}
+        interface myInterface {}
+        exception myException {}
+        struct myStruct {}
+    }
+}
