@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Configure;
+using IceRpc.Internal;
 using NUnit.Framework;
 using System.IO.Pipelines;
 
@@ -29,7 +29,7 @@ public class InvocationTests
             Invoker = new InlineInvoker((request, cancel) =>
             {
                 context = request.Features.GetContext();
-                return Task.FromResult(new IncomingResponse(request, ResultType.Success, PipeReader.Create(Stream.Null)));
+                return Task.FromResult(new IncomingResponse(request, ResultType.Success, EmptyPipeReader.Instance));
             }),
         };
 
@@ -37,12 +37,12 @@ public class InvocationTests
         await proxy.InvokeAsync(
             "",
             Encoding.Slice20,
-            PipeReader.Create(Stream.Null),
+            EmptyPipeReader.Instance,
             null,
             SliceDecoder.GetActivator(typeof(InvocationTests).Assembly),
             invocation);
 
         // Assert
-        Assert.That(context, Is.EquivalentTo(invocation.Features.GetContext()));
+        Assert.That(context, Is.EqualTo(invocation.Features.GetContext()));
     }
 }

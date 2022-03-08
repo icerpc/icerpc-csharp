@@ -51,38 +51,38 @@ public class EndpointTests
             ("ice://[::0]?foo=bar&xyz=true",
              "::",
              4061,
-             new Dictionary<string, string>() { { "foo", "bar" }, { "xyz", "true" } }),
+             new Dictionary<string, string>() { ["foo"] = "bar", ["xyz"] = "true" }),
             ("icerpc://[::0]?xyz=false&xyz=true&foo=&b=",
              "::",
              4062,
-             new Dictionary<string, string>() { { "xyz", "false,true" }, { "foo", "" }, { "b", "" } }),
+             new Dictionary<string, string>() { ["xyz"] = "false,true", ["foo"] = "", ["b"] = "" }),
             ("icerpc://host:10000?xyz=foo",
              "host",
              10000,
-             new Dictionary<string, string> { { "xyz", "foo" } }),
+             new Dictionary<string, string> { ["xyz"] = "foo" }),
             ("icerpc://host:10000?transport=coloc",
              "host",
              10000,
-             new Dictionary<string, string>() { { "transport", "coloc" } }),
+             new Dictionary<string, string>() { ["transport"] = "coloc" }),
             ("ice://localhost?transport=udp",
              "localhost",
              4061,
-             new Dictionary<string, string>{ { "transport", "udp" } }),
+             new Dictionary<string, string>{ ["transport"] = "udp" }),
             ("ice://host:10000", "host", 10000, null),
             ("icerpc://host:10000?xyz",
              "host",
              10000,
-             new Dictionary<string, string>{ { "xyz", "" } }),
+             new Dictionary<string, string>{ ["xyz"] = "" }),
             ("icerpc://host:10000?xyz&adapter-id=ok",
              "host",
              10000,
-             new Dictionary<string, string> { { "xyz", "" }, { "adapter-id", "ok" } }),
+             new Dictionary<string, string> { ["xyz"] = "", ["adapter-id"] = "ok" }),
             ("IceRpc://host:10000", "host", 10000, null),
             // parses ok even though not a valid name
             ("icerpc://host:10000? =bar",
              "host",
              10000,
-             new Dictionary<string, string>() { { "%20", "bar" } })
+             new Dictionary<string, string>() { ["%20"] = "bar" })
         };
 
     /// <summary>Verifies that an endpoint can be correctly converted into a string.</summary>
@@ -94,7 +94,7 @@ public class EndpointTests
 
         string str2 = endpoint1.ToString();
 
-        Assert.AreEqual(endpoint1, Endpoint.FromString(str2));
+        Assert.That(endpoint1, Is.EqualTo(Endpoint.FromString(str2)));
     }
 
     /// <summary>Verifies that the properties of a default constructed endpoint have the expected default values.

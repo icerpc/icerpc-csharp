@@ -176,11 +176,7 @@ public class ProxyTests
     [Test]
     public async Task From_connection_with_a_client_connection()
     {
-        var connectionOptions = new ConnectionOptions()
-        {
-            RemoteEndpoint = new Endpoint(Protocol.IceRpc)
-        };
-        await using var connection = new Connection(connectionOptions);
+        await using var connection = new Connection(new Endpoint(Protocol.IceRpc));
 
         var proxy = Proxy.FromConnection(connection, "/");
 
