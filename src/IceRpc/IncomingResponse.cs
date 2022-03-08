@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Buffers;
+using System.Collections.Immutable;
 using System.IO.Pipelines;
 
 namespace IceRpc
@@ -7,6 +9,10 @@ namespace IceRpc
     /// <summary>Represents a response protocol frame received by the application.</summary>
     public sealed class IncomingResponse : IncomingFrame
     {
+        /// <summary>Gets or initializes the fields of this response.</summary>
+        public IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> Fields { get; init; } =
+            ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
+
         /// <summary>The request that received this response.</summary>
         public OutgoingRequest Request { get; }
 

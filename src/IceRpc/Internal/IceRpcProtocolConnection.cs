@@ -89,7 +89,7 @@ namespace IceRpc.Internal
                 }
 
                 IceRpcRequestHeader header;
-                IDictionary<int, ReadOnlySequence<byte>> fields;
+                IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields;
                 FeatureCollection features = FeatureCollection.Empty;
                 PipeReader reader = stream.Input;
                 try
@@ -106,7 +106,7 @@ namespace IceRpc.Internal
 
                     // Decode Context from Fields and set corresponding feature.
                     if (fields.DecodeValue(
-                        (int)FieldKey.Context,
+                        RequestFieldKey.Context,
                         (ref SliceDecoder decoder) => decoder.DecodeDictionary(
                             minKeySize: 1,
                             minValueSize: 1,
@@ -178,11 +178,14 @@ namespace IceRpc.Internal
                     }
                 }
 
-                static (IceRpcRequestHeader, IDictionary<int, ReadOnlySequence<byte>>) DecodeHeader(
+                static (IceRpcRequestHeader, IDictionary<RequestFieldKey, ReadOnlySequence<byte>>) DecodeHeader(
                     ReadOnlySequence<byte> buffer)
                 {
                     var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                    var header = (new IceRpcRequestHeader(ref decoder), decoder.DecodeFieldDictionary());
+                    var header =
+                        (new IceRpcRequestHeader(ref decoder),
+                        decoder.DecodeFieldDictionary((ref SliceDecoder decoder) => decoder.DecodeRequestFieldKey()));
+
                     decoder.CheckEndOfBuffer(skipTaggedParams: false);
                     return header;
                 }
@@ -197,7 +200,7 @@ namespace IceRpc.Internal
             Debug.Assert(!request.IsOneway);
 
             IceRpcResponseHeader header;
-            IDictionary<int, ReadOnlySequence<byte>> fields;
+            IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields;
 
             PipeReader responseReader = request.ResponseReader;
 
@@ -237,7 +240,7 @@ namespace IceRpc.Internal
                 responseReader.AdvanceTo(readResult.Buffer.End);
 
                 RetryPolicy? retryPolicy = fields.DecodeValue(
-                    (int)FieldKey.RetryPolicy, (ref SliceDecoder decoder) => new RetryPolicy(ref decoder));
+                    ResponseFieldKey.RetryPolicy, (ref SliceDecoder decoder) => new RetryPolicy(ref decoder));
                 if (retryPolicy != null)
                 {
                     request.Features = request.Features.With(retryPolicy);
@@ -277,11 +280,14 @@ namespace IceRpc.Internal
                 Fields = fields,
             };
 
-            static (IceRpcResponseHeader, IDictionary<int, ReadOnlySequence<byte>>) DecodeHeader(
+            static (IceRpcResponseHeader, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>>) DecodeHeader(
                 ReadOnlySequence<byte> buffer)
             {
                 var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                var header = (new IceRpcResponseHeader(ref decoder), decoder.DecodeFieldDictionary());
+                var header =
+                    (new IceRpcResponseHeader(ref decoder),
+                    decoder.DecodeFieldDictionary((ref SliceDecoder decoder) => decoder.DecodeResponseFieldKey()));
+
                 decoder.CheckEndOfBuffer(skipTaggedParams: false);
                 return header;
             }
@@ -396,12 +402,12 @@ namespace IceRpc.Internal
                     if (context.Count == 0)
                     {
                         // make sure it's not set anywhere
-                        request.Fields = request.Fields.Without((int)FieldKey.Context);
+                        request.Fields = request.Fields.Without(RequestFieldKey.Context);
                     }
                     else
                     {
                         request.Fields = request.Fields.With(
-                            (int)FieldKey.Context,
+                            RequestFieldKey.Context,
                             (ref SliceEncoder encoder) => encoder.EncodeDictionary(
                                 context,
                                 (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
@@ -411,7 +417,7 @@ namespace IceRpc.Internal
 
                 encoder.EncodeDictionary(
                     request.Fields,
-                    (ref SliceEncoder encoder, int value) => encoder.EncodeVarInt(value),
+                    (ref SliceEncoder encoder, RequestFieldKey key) => encoder.EncodeRequestFieldKey(key),
                     (ref SliceEncoder encoder, OutgoingFieldValue value) => value.Encode(ref encoder));
 
                 // We're done with the header encoding, write the header size.
@@ -454,7 +460,7 @@ namespace IceRpc.Internal
 
                 encoder.EncodeDictionary(
                     response.Fields,
-                    (ref SliceEncoder encoder, int value) => encoder.EncodeVarInt(value),
+                    (ref SliceEncoder encoder, ResponseFieldKey key) => encoder.EncodeResponseFieldKey(key),
                     (ref SliceEncoder encoder, OutgoingFieldValue value) => value.Encode(ref encoder));
 
                 // We're done with the header encoding, write the header size.

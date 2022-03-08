@@ -1,6 +1,9 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
+using IceRpc.Slice;
+using System.Buffers;
+using System.IO.Compression;
+using System.IO.Pipelines;
 
 namespace IceRpc
 {
@@ -8,6 +11,9 @@ namespace IceRpc
     /// <see cref="Features.CompressPayload.Yes"/> is present in the request features.</summary>
     public class CompressorInterceptor : IInvoker
     {
+        private static readonly ReadOnlySequence<byte> _encodedCompressionFormatValue =
+            new(new byte[] { (byte)CompressionFormat.Deflate });
+
         private readonly IInvoker _next;
         private readonly Configure.CompressOptions _options;
 
@@ -23,18 +29,34 @@ namespace IceRpc
         async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
             if (_options.CompressPayload &&
-                request.Features[typeof(Features.CompressPayload)] == Features.CompressPayload.Yes)
+                request.Protocol.HasFields &&
+                request.Features[typeof(Features.CompressPayload)] == Features.CompressPayload.Yes &&
+                !request.Fields.ContainsKey(RequestFieldKey.CompressionFormat))
             {
-                request.UsePayloadCompressor(_options);
+                request.PayloadSink = PipeWriter.Create(
+                    new DeflateStream(request.PayloadSink.ToPayloadSinkStream(), _options.CompressionLevel));
+
+                request.Fields = request.Fields.With(
+                    RequestFieldKey.CompressionFormat,
+                    _encodedCompressionFormatValue);
             }
 
             IncomingResponse response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
 
             if (_options.DecompressPayload &&
+                response.Protocol.HasFields &&
                 response.ResultType == ResultType.Success &&
                 response.Request.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
             {
-                response.UsePayloadDecompressor();
+                CompressionFormat compressionFormat = response.Fields.DecodeValue(
+                   ResponseFieldKey.CompressionFormat,
+                   (ref SliceDecoder decoder) => decoder.DecodeCompressionFormat());
+
+                if (compressionFormat == CompressionFormat.Deflate)
+                {
+                    response.Payload = PipeReader.Create(
+                        new DeflateStream(response.Payload.AsStream(), CompressionMode.Decompress));
+                }
             }
 
             return response;

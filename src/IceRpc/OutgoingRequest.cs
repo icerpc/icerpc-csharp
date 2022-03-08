@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using System.Collections.Immutable;
 using System.IO.Pipelines;
 
 namespace IceRpc
@@ -13,6 +14,10 @@ namespace IceRpc
 
         /// <summary>The features of this request.</summary>
         public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
+
+        /// <summary>Gets or sets the fields of this request.</summary>
+        public IDictionary<RequestFieldKey, OutgoingFieldValue> Fields { get; set; } =
+            ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty;
 
         /// <summary>When true and the operation returns void, the request is sent as a oneway request. Otherwise, the
         /// request is sent as a twoway request.</summary>

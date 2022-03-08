@@ -1,9 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Slice;
-using System.Buffers;
-using System.Collections.Immutable;
 using System.IO.Pipelines;
 
 namespace IceRpc
@@ -11,10 +8,6 @@ namespace IceRpc
     /// <summary>Base class for outgoing frames.</summary>
     public abstract class OutgoingFrame
     {
-        /// <summary>Gets or sets the fields of this outgoing frame.</summary>
-        public IDictionary<int, OutgoingFieldValue> Fields { get; set; } =
-            ImmutableDictionary<int, OutgoingFieldValue>.Empty;
-
         /// <summary>Gets or sets the payload sink of this frame.</summary>
         public abstract PipeWriter PayloadSink { get; set; }
 

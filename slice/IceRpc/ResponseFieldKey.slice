@@ -1,0 +1,14 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc;
+
+/// The keys of fields carried by icerpc responses
+// TODO: add varulong as underlying type
+unchecked enum ResponseFieldKey
+{
+    /// The retry policy field.
+    RetryPolicy = 0,
+
+    /// The compression format of the payload.
+    CompressionFormat = 2,
+}

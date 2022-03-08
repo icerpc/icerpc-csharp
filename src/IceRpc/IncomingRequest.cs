@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Buffers;
+using System.Collections.Immutable;
 using System.IO.Pipelines;
 
 namespace IceRpc
@@ -9,6 +11,10 @@ namespace IceRpc
     {
         /// <summary>The features of this request.</summary>
         public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
+
+        /// <summary>Gets or initializes the fields of this request.</summary>
+        public IDictionary<RequestFieldKey, ReadOnlySequence<byte>> Fields { get; init; } =
+            ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
 
         /// <summary>The fragment of the target service. It's always empty with the icerpc protocol.</summary>
         public string Fragment { get; }

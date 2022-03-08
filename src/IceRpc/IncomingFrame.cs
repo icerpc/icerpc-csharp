@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Buffers;
-using System.Collections.Immutable;
 using System.IO.Pipelines;
 
 namespace IceRpc
@@ -15,10 +13,6 @@ namespace IceRpc
             get => _connection ?? throw new InvalidOperationException("connection not set");
             set => _connection = value;
         }
-
-        /// <summary>Returns the fields of this frame.</summary>
-        public IDictionary<int, ReadOnlySequence<byte>> Fields { get; init; } =
-            ImmutableDictionary<int, ReadOnlySequence<byte>>.Empty;
 
         /// <summary>The payload of this frame.</summary>
         public PipeReader Payload { get; set; }

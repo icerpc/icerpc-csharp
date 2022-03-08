@@ -107,7 +107,7 @@ namespace IceRpc
                 // }
 
                 request.Fields = request.Fields.With(
-                    (int)FieldKey.TraceContext,
+                    RequestFieldKey.TraceContext,
                     (ref SliceEncoder encoder) =>
                     {
                         // W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,

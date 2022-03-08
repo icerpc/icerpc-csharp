@@ -624,7 +624,7 @@ namespace IceRpc
                     {
                         RetryPolicy retryPolicy = remoteException.RetryPolicy;
                         response.Fields = response.Fields.With(
-                            (int)FieldKey.RetryPolicy,
+                            ResponseFieldKey.RetryPolicy,
                             (ref SliceEncoder encoder) => retryPolicy.Encode(ref encoder));
                     }
                 }

@@ -1,0 +1,23 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc;
+
+/// The keys of fields carried by icerpc requests. Some fields, such as Idempotent, are used for ice requests as well.
+// TODO: add varulong as underlying type
+unchecked enum RequestFieldKey
+{
+    /// The string-string dictionary field.
+    Context = 0,
+
+    /// The W3C Trace Context field used by the telemetry interceptor and middleware.
+    TraceContext = 1,
+
+    /// The compression format of the payload.
+    CompressionFormat = 2,
+
+    /// The deadline field, provided "for info" to the service.
+    Deadline = 3,
+
+    /// The idempotent field.
+    Idempotent = 4,
+}

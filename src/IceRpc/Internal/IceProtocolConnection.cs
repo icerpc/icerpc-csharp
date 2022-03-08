@@ -40,8 +40,11 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public event Action<string>? PeerShutdownInitiated;
 
-        private static readonly IDictionary<int, ReadOnlySequence<byte>> _idempotentFields =
-            new Dictionary<int, ReadOnlySequence<byte>> { [(int)FieldKey.Idempotent] = default }.ToImmutableDictionary();
+        private static readonly IDictionary<RequestFieldKey, ReadOnlySequence<byte>> _idempotentFields =
+            new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
+            {
+                [RequestFieldKey.Idempotent] = default
+            }.ToImmutableDictionary();
 
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -154,7 +157,7 @@ namespace IceRpc.Internal
                             InvalidPipeWriter.Instance : new SimpleNetworkConnectionPipeWriter(_networkConnection))
                     {
                         Fields = requestHeader.OperationMode == OperationMode.Normal ?
-                            ImmutableDictionary<int, ReadOnlySequence<byte>>.Empty : _idempotentFields,
+                            ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields,
                         IsOneway = requestId == 0,
                     };
 
@@ -433,7 +436,7 @@ namespace IceRpc.Internal
                     request.Operation,
                     // We're not checking FieldsOverrides because it makes no sense to use FieldsOverrides for
                     // idempotent.
-                    request.Fields.ContainsKey((int)FieldKey.Idempotent) ? OperationMode.Idempotent :
+                    request.Fields.ContainsKey(RequestFieldKey.Idempotent) ? OperationMode.Idempotent :
                         OperationMode.Normal,
                     request.Features.GetContext(),
                     new EncapsulationHeader(encapsulationSize: payloadSize + 6, encodingMajor, encodingMinor));
