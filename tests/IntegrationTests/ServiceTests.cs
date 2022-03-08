@@ -12,7 +12,7 @@ namespace IntegrationTests;
 [Timeout(5000)]
 public class ServiceTests
 {
-    /// <summary>Verifies the operations of <see cref="IceRpc.Slice.Service"/>.</summary>
+    /// <summary>Verifies the operations of <see cref="Service"/>.</summary>
     [Test]
     public async Task Service_operations()
     {
