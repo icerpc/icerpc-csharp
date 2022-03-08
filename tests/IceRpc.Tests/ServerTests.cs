@@ -2,7 +2,6 @@
 
 using IceRpc.Configure;
 using IceRpc.Transports;
-using IceRpc.Slice;
 using NUnit.Framework;
 
 namespace IceRpc.Tests;

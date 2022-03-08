@@ -15,7 +15,7 @@ namespace IntegrationTests;
 [Timeout(5000)]
 public class ServerTests
 {
-    /// <summary>Verifies that when a client cancels a request the dispatch is also canceled.</summary>
+    /// <summary>Verifies that canceling an invocation also cancels the corresponding server dispatch.</summary>
     [Test]
     public async Task Canceling_a_request_also_cancels_the_dispatch()
     {
@@ -64,10 +64,10 @@ public class ServerTests
         Assert.DoesNotThrowAsync(async () => await server.ShutdownAsync());
     }
 
-    /// <summary>Verifies that the server shutdown does not complete until the pending dispatches have finished.
+    /// <summary>Verifies that shutting down the server does not complete until the pending dispatches have finished.
     /// </summary>
     [Test]
-    public async Task Shutdown_the_server_waits_for_pending_dispatch_to_finish()
+    public async Task Shutting_down_the_server_waits_for_pending_dispatch_to_finish()
     {
         using var dispatchStartSemaphore = new SemaphoreSlim(0);
         using var dispatchContinueSemaphore = new SemaphoreSlim(0);
@@ -97,18 +97,12 @@ public class ServerTests
         Assert.That(server.ShutdownComplete.IsCompleted, Is.True);
     }
 
-    /// <summary>Canceling the cancellation token (source) of ShutdownAsync results in a DispatchException when the
-    /// operation completes with an OperationCanceledException. It also test calling DisposeAsync is called instead
-    /// of shutdown, which call ShutdownAsync with a canceled token.</summary>
-    /// <param name="disposeInsteadOfShutdown">Whether to call <see cref="Server.ShutdownAsync(CancellationToken)"/>
-    /// or <see cref="Server.DisposeAsync"/></param>
+    /// <summary>Verifies that canceling the server shutdown triggers the cancellation of the pending invocations,
+    /// and the corresponding server dispatch.</summary>
     /// <param name="protocolStr">The protocol used for the tests.</param>
-    /// <returns></returns>
-    [TestCase(false, "ice")]
-    [TestCase(true, "ice")]
-    [TestCase(false, "icerpc")]
-    [TestCase(true, "icerpc")]
-    public async Task Cancel_server_shutdown(bool disposeInsteadOfShutdown, string protocolStr)
+    [TestCase("ice")]
+    [TestCase("icerpc")]
+    public async Task Canceling_server_shutdown(string protocolStr)
     {
         var colocTransport = new ColocTransport();
         var protocol = Protocol.FromString(protocolStr);
@@ -151,22 +145,12 @@ public class ServerTests
         Assert.That(server.ShutdownComplete.IsCompleted, Is.False);
         await semaphore.WaitAsync(); // Wait for the dispatch
 
-        Task shutdownTask;
-        if (disposeInsteadOfShutdown)
-        {
-            // Dispose to trigger the dispatch cancellation immediately.
-            Assert.That(task.IsCompleted, Is.False);
-            shutdownTask = server.DisposeAsync().AsTask();
-        }
-        else
-        {
-            // Shutdown and cancel it to trigger the dispatch cancellation.
-            using var cancellationSource = new CancellationTokenSource();
-            shutdownTask = server.ShutdownAsync(cancellationSource.Token);
-            Assert.That(task.IsCompleted, Is.False);
-            Assert.That(shutdownTask.IsCompleted, Is.False);
-            cancellationSource.Cancel();
-        }
+        // Shutdown and cancel it to trigger the dispatch cancellation.
+        using var cancellationSource = new CancellationTokenSource();
+        Task shutdownTask = server.ShutdownAsync(cancellationSource.Token);
+        Assert.That(task.IsCompleted, Is.False);
+        Assert.That(shutdownTask.IsCompleted, Is.False);
+        cancellationSource.Cancel();
 
         // Ensures the client gets a DispatchException with the ice protocol and OperationCanceledException with
         // the icerpc protocol.
