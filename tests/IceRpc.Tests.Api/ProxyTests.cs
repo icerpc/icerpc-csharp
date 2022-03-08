@@ -13,60 +13,6 @@ namespace IceRpc.Tests.Api
     // [Log(LogAttributeLevel.Information)]
     public class ProxyTests
     {
-        [TestCase("ice")]
-        [TestCase("icerpc")]
-        public async Task Proxy_ServiceAsync(string protocol)
-        {
-            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-                .UseProtocol(protocol)
-                .AddTransient<IDispatcher, Greeter>()
-                .BuildServiceProvider();
-
-            var greeter = GreeterPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
-            var service = new ServicePrx(greeter.Proxy);
-
-            string[] ids = new string[]
-            {
-                "::IceRpc::Tests::Api::Greeter",
-                "::Slice::Service",
-            };
-
-            Assert.That(await service.IceIdsAsync(), Is.EqualTo(ids));
-            Assert.That(await service.IceIsAAsync("::IceRpc::Tests::Api::Greeter"), Is.True);
-            Assert.That(await service.IceIsAAsync("::IceRpc::Tests::Api::Foo"), Is.False);
-            Assert.That(await greeter.AsAsync<GreeterPrx>(), Is.EqualTo(greeter));
-
-            // Test that Service operation correctly forward the cancel param
-            var canceled = new CancellationToken(canceled: true);
-            Assert.CatchAsync<OperationCanceledException>(async () => await service.IcePingAsync(cancel: canceled));
-            Assert.CatchAsync<OperationCanceledException>(async () => await service.IceIdsAsync(cancel: canceled));
-            Assert.CatchAsync<OperationCanceledException>(
-                async () => await service.IceIsAAsync(
-                    "::IceRpc::Tests::Api::Greeter",
-                    cancel: canceled));
-            Assert.CatchAsync<OperationCanceledException>(
-                async () => await service.AsAsync<GreeterPrx>(cancel: canceled));
-
-            // Test that Service operations correctly forward the context
-            var invocation = new Invocation
-            {
-                Features = new FeatureCollection().WithContext(new Dictionary<string, string> { ["foo"] = "bar" })
-            };
-
-            var pipeline = new Pipeline();
-            service.Proxy.Invoker = pipeline;
-            pipeline.Use(next => new InlineInvoker((request, cancel) =>
-            {
-                Assert.That(request.Features.GetContext(), Is.EqualTo(invocation.Features.GetContext()));
-                return next.InvokeAsync(request, cancel);
-            }));
-
-            await service.IcePingAsync(invocation);
-            await service.IceIdsAsync(invocation);
-            await service.IceIsAAsync("::IceRpc::Tests::Api::Greeter", invocation);
-            await service.AsAsync<GreeterPrx>(invocation);
-        }
-
         [TestCase("icerpc://localhost:10000/test?alt-endpoint=host2")]
         [TestCase("ice://localhost:10000/test")]
         [TestCase("icerpc:/test?name=value")]
@@ -289,65 +235,6 @@ namespace IceRpc.Tests.Api
                 GreeterPrx.DefaultPath);
             service.Proxy.Encoding = Encoding.FromString(encoding);
             await service.IcePingAsync(); // works fine, we use the protocol's encoding in this case
-        }
-
-        [Test]
-        public async Task Proxy_FactoryMethodsAsync()
-        {
-            Assert.That(ServicePrx.DefaultPath, Is.EqualTo("/Slice.Service"));
-
-            var proxy = Proxy.FromPath("/test");
-            Assert.That(proxy.Path, Is.EqualTo("/test"));
-            Assert.That(proxy.Endpoint, Is.Null);
-
-            Assert.That(GreeterPrx.DefaultPath, Is.EqualTo("/IceRpc.Tests.Api.Greeter"));
-
-            var greeter = GreeterPrx.FromPath("/test");
-            Assert.That(greeter.Proxy.Path, Is.EqualTo("/test"));
-            Assert.That(greeter.Proxy.Endpoint, Is.Null);
-
-            dynamic? capture = null;
-
-            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-                .AddTransient<IDispatcher>(_ =>
-                {
-                    var router = new Router();
-                    router.Use(next => new InlineDispatcher((request, cancel) =>
-                    {
-                        capture = new
-                        {
-                            ServerConnection = request.Connection,
-                            Service = ServicePrx.FromConnection(request.Connection),
-                            Greeter = GreeterPrx.FromConnection(request.Connection)
-                        };
-                        return new(new OutgoingResponse(request));
-                    }));
-                    return router;
-                })
-                .BuildServiceProvider();
-
-            Connection connection = serviceProvider.GetRequiredService<Connection>();
-            proxy = Proxy.FromConnection(connection, ServicePrx.DefaultPath);
-            Assert.That(proxy.Path, Is.EqualTo(ServicePrx.DefaultPath));
-            Assert.That(proxy.Connection, Is.EqualTo(connection));
-            Assert.That(proxy.Endpoint, Is.EqualTo(connection.RemoteEndpoint));
-
-            greeter = GreeterPrx.FromConnection(connection);
-            Assert.That(greeter.Proxy.Path, Is.EqualTo(GreeterPrx.DefaultPath));
-            Assert.That(greeter.Proxy.Connection, Is.EqualTo(connection));
-            Assert.That(greeter.Proxy.Endpoint, Is.EqualTo(connection.RemoteEndpoint));
-
-            await ServicePrx.FromConnection(connection).IcePingAsync();
-
-            Assert.That(capture, Is.Not.Null);
-            Assert.That(capture!.Service.Proxy.Path, Is.EqualTo(ServicePrx.DefaultPath));
-            Assert.That(capture.Service.Proxy.Connection, Is.EqualTo(capture.ServerConnection));
-            Assert.That(capture.Service.Proxy.Endpoint, Is.Null);
-
-            Assert.That(capture.Greeter.Proxy.Path, Is.EqualTo(GreeterPrx.DefaultPath));
-            Assert.That(capture.Greeter.Proxy.Connection, Is.EqualTo(capture.ServerConnection));
-
-            Assert.That(capture.Greeter.Proxy.Endpoint, Is.Null);
         }
 
         public class Greeter : Service, IGreeter
