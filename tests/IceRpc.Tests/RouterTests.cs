@@ -55,15 +55,7 @@ public class RouterTests
         var router = new Router();
         router.Mount("/", new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))));
 
-        _ = await ((IDispatcher)router).DispatchAsync(
-            new IncomingRequest(
-                Protocol.IceRpc,
-                "/",
-                "",
-                "",
-                PipeReader.Create(Stream.Null),
-                Encoding.Slice20,
-                PipeWriter.Create(Stream.Null)));
+        _ = await ((IDispatcher)router).DispatchAsync(new IncomingRequest(Protocol.IceRpc));
 
         // Act/Assert
         Assert.Throws<InvalidOperationException>(() => router.Use(next => next));

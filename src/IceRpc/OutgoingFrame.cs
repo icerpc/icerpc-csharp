@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Slice;
-using System.Buffers;
 using System.Collections.Immutable;
 using System.IO.Pipelines;
 
