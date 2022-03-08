@@ -13,8 +13,7 @@ namespace IceRpc.Configure
         /// bidirectional stream will be delayed until a bidirectional stream is closed. Since an
         /// bidirectional stream is opened for each two-way proxy invocation, the sending of the two-way
         /// invocation will be delayed until another two-way invocation on the connection completes.</summary>
-        /// <value>The bidirectional stream maximum count. It can't
-        /// be less than 1 and the default value is 100.</value>
+        /// <value>The bidirectional stream maximum count. It can't be less than 1 and the default value is 100.</value>
         public int BidirectionalStreamMaxCount
         {
             get => _bidirectionalStreamMaxCount;
