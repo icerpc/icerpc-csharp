@@ -17,9 +17,8 @@ namespace IceRpc.Configure
         /// compress the payload. The default value is <c>true</c>.</value>
         public bool CompressPayload { get; set; } = true;
 
-        /// <summary>Gets or sets whether or not to decompress the compressed request or response payload.
-        /// The default value is <c>true</c>.</summary>
-        /// <value>When <c>true</c>, decompress the payload if it is not decompressed yet. When <c>false</c>, do not
+        /// <summary>Gets or sets whether or not to decompress the compressed request or response payload. </summary>
+        /// <value>When <c>true</c>, decompress the payload if it is compressed. When <c>false</c>, do not
         /// decompress the payload. The default value is <c>true</c>.</value>
         public bool DecompressPayload { get; set; } = true;
     }
