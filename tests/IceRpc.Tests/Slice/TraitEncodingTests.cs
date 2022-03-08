@@ -5,91 +5,96 @@ using NUnit.Framework;
 
 namespace IceRpc.Slice.Tests;
 
+[Timeout(5000)]
+[FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 public sealed class TraitEncodingTests
 {
-    [Test]
-    public void Trait_Encoding()
+    private IActivator _activator;
+    private Memory<byte> _buffer;
+    private MemoryBufferWriter _bufferWriter;
+
+    /// <summary>Common setup for the trait decoding tests.</summary>
+    public TraitEncodingTests()
     {
-        // TODO move this into a TypeId Generation unit test.
-        // Test the generation of type-ids on structs.
-        Assert.That(
-            typeof(TraitStructA).GetSliceTypeId()!,
-            Is.EqualTo("::IceRpc::Slice::Tests::TraitStructA")
-        );
+        _buffer = new byte[1024];
+        _bufferWriter = new MemoryBufferWriter(_buffer);
+        _activator = ActivatorFactory.Instance.Get(typeof(TraitEncodingTests).Assembly);
+    }
 
-        Memory<byte> buffer = new byte[1024];
-        var encoding = Encoding.Slice20;
-        var activator = ActivatorFactory.Instance.Get(typeof(TraitEncodingTests).Assembly);
+    /// <summary>Verifies the struct's EncodeTrait generated method correctly encodes a struct as a trait.</summary>
+    [Test]
+    public void Encoding_a_struct_as_a_trait()
+    {
+        var encoder = new SliceEncoder(_bufferWriter, Encoding.Slice20);
+        var decoder = new SliceDecoder(_buffer, Encoding.Slice20, activator: _activator);
+        var traitStructA = new TraitStructA("Foo");
 
-        // Test encoding traits with the generated code.
-        {
-            var bufferWriter = new MemoryBufferWriter(buffer);
-            var encoder = new SliceEncoder(bufferWriter, encoding);
-            var decoder = new SliceDecoder(buffer, encoding, activator: activator);
+        traitStructA.EncodeTrait(ref encoder);
 
-            var tsa = new TraitStructA("Foo");
-            tsa.EncodeTrait(ref encoder);
+        Assert.That(decoder.DecodeString(), Is.EqualTo("::IceRpc::Slice::Tests::TraitStructA"));
+        Assert.That(new TraitStructA(ref decoder), Is.EqualTo(traitStructA));
+    }
 
-            Assert.That(decoder.DecodeString(), Is.EqualTo("::IceRpc::Slice::Tests::TraitStructA"));
-            Assert.That(new TraitStructA(ref decoder), Is.EqualTo(tsa));
-        }
+    /// <summary>Verify that <see cref="SliceDecoder.DecodeTrait{T}"/> method correctly decodes a trait into a concrete
+    /// type.</summary>
+    [Test]
+    public void Decoding_a_trait_as_a_struct()
+    {
+        var encoder = new SliceEncoder(_bufferWriter, Encoding.Slice20);
+        encoder.EncodeString("::IceRpc::Slice::Tests::TraitStructB");
+        var traitStructB1 = new TraitStructB(79);
+        traitStructB1.Encode(ref encoder);
+        var decoder = new SliceDecoder(_buffer, Encoding.Slice20, activator: _activator);
 
-        // Test decoding a trait to a concrete type.
-        {
-            var bufferWriter = new MemoryBufferWriter(buffer);
-            var encoder = new SliceEncoder(bufferWriter, encoding);
-            var decoder = new SliceDecoder(buffer, encoding, activator: activator);
+        var traitStructB2 = decoder.DecodeTrait<TraitStructB>();
 
-            var tsb = new TraitStructB(79);
-            encoder.EncodeString("::IceRpc::Slice::Tests::TraitStructB");
-            tsb.Encode(ref encoder);
+        Assert.That(traitStructB2, Is.EqualTo(traitStructB1));
+    }
 
-            Assert.That(decoder.DecodeTrait<TraitStructB>(), Is.EqualTo(tsb));
-        }
+    /// <summary>Verify that <see cref="SliceDecoder.DecodeTrait{T}"/> method correctly decodes a trait as an
+    /// interface.</summary>
+    [Test]
+    public void Decoding_a_trait_as_an_interface()
+    {
+        var encoder = new SliceEncoder(_bufferWriter, Encoding.Slice20);
+        var decoder = new SliceDecoder(_buffer, Encoding.Slice20, activator: _activator);
+        var tsa = new TraitStructA("Bar");
+        encoder.EncodeString("::IceRpc::Slice::Tests::TraitStructA");
+        tsa.Encode(ref encoder);
 
-        // Test decoding a trait to an interface type.
-        {
-            var bufferWriter = new MemoryBufferWriter(buffer);
-            var encoder = new SliceEncoder(bufferWriter, encoding);
-            var decoder = new SliceDecoder(buffer, encoding, activator: activator);
+        IMyTraitA decodedTrait = decoder.DecodeTrait<IMyTraitA>();
 
-            var tsa = new TraitStructA("Bar");
-            encoder.EncodeString("::IceRpc::Slice::Tests::TraitStructA");
-            tsa.Encode(ref encoder);
+        Assert.That(decodedTrait.GetString(), Is.EqualTo("Bar"));
+    }
 
-            IMyTraitA decodedTrait = decoder.DecodeTrait<IMyTraitA>();
-            Assert.That(decodedTrait.GetString(), Is.EqualTo("Bar"));
-        }
+    /// <summary>Verifies that decoding a trait with a mismatched type fails with <see cref="InvalidDataException"/>.
+    /// </summary>
+    [Test]
+    public void Decoding_a_mismatched_type_fails()
+    {
+        // Arrange
+        var encoder = new SliceEncoder(_bufferWriter, Encoding.Slice20);
+        var traitStructB = new TraitStructB(97);
+        traitStructB.EncodeTrait(ref encoder);
 
-        // Test that decoding a mismatched type fails.
-        {
-            var bufferWriter = new MemoryBufferWriter(buffer);
+        // Act/Assert
+        Assert.Throws<InvalidDataException>(() =>
+            new SliceDecoder(_buffer, Encoding.Slice20, activator: _activator).DecodeTrait<IMyTraitA>());
+    }
 
-            Assert.Throws<InvalidDataException>(() =>
-            {
-                var encoder = new SliceEncoder(bufferWriter, encoding);
-                var decoder = new SliceDecoder(buffer, encoding, activator: activator);
-                var tsb = new TraitStructB(97);
-                tsb.EncodeTrait(ref encoder);
-                decoder.DecodeTrait<IMyTraitA>();
-            });
-        }
+    /// <summary>Verifies that decoding a trait with an unknown type ID fails with <see cref="InvalidDataException"/>.
+    /// </summary>
+    [Test]
+    public void Decoding_an_unknown_type_id_fails()
+    {
+        var encoder = new SliceEncoder(_bufferWriter, Encoding.Slice20);
 
-        // Test that decoding an unknown type-id fails.
-        {
-            var bufferWriter = new MemoryBufferWriter(buffer);
+        var traitStructB = new TraitStructB(42);
+        encoder.EncodeString("::IceRpc::Slice::Tests::FakeTrait");
+        traitStructB.Encode(ref encoder);
 
-            Assert.Throws<InvalidDataException>(() =>
-            {
-                var encoder = new SliceEncoder(bufferWriter, encoding);
-                var decoder = new SliceDecoder(buffer, encoding, activator: activator);
-
-                var tsb = new TraitStructB(42);
-                encoder.EncodeString("::IceRpc::Slice::Tests::FakeTrait");
-                tsb.Encode(ref encoder);
-                decoder.DecodeTrait<IMyTraitB>();
-            });
-        }
+        Assert.Throws<InvalidDataException>(() =>
+            new SliceDecoder(_buffer, Encoding.Slice20, activator: _activator).DecodeTrait<IMyTraitB>());
     }
 }
 
