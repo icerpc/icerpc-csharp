@@ -57,15 +57,11 @@ public class ServerTests
 
         // Now wait for the dispatch cancellation
         await semaphore.WaitAsync();
-
-        // Verify the service still works.
-        waitForCancellation = false;
-        Assert.DoesNotThrowAsync(async () => await proxy.IcePingAsync());
-        Assert.DoesNotThrowAsync(async () => await server.ShutdownAsync());
     }
 
     /// <summary>Verifies that shutting down the server does not complete until the pending dispatches have finished.
     /// </summary>
+    // TODO rework this test as suggested in https://github.com/zeroc-ice/icerpc-csharp/pull/880#discussion_r821539747
     [Test]
     public async Task Shutting_down_the_server_waits_for_pending_dispatch_to_finish()
     {
@@ -89,12 +85,11 @@ public class ServerTests
         await dispatchStartSemaphore.WaitAsync(); // Wait for the dispatch
 
         Task shutdownTask = server.ShutdownAsync();
+        await Task.Delay(100); // Ensure that shutdown cannot complete while there is a pending dispatch.
         Assert.That(server.ShutdownComplete.IsCompleted, Is.False);
         dispatchContinueSemaphore.Release();
 
         Assert.DoesNotThrowAsync(async () => await shutdownTask);
-
-        Assert.That(server.ShutdownComplete.IsCompleted, Is.True);
     }
 
     /// <summary>Verifies that canceling the server shutdown triggers the cancellation of the pending invocations,
@@ -149,6 +144,7 @@ public class ServerTests
         using var cancellationSource = new CancellationTokenSource();
         Task shutdownTask = server.ShutdownAsync(cancellationSource.Token);
         Assert.That(task.IsCompleted, Is.False);
+        await Task.Delay(100);  // Ensure that shutdown cannot complete while there is a pending dispatch.
         Assert.That(shutdownTask.IsCompleted, Is.False);
         cancellationSource.Cancel();
 
@@ -166,7 +162,5 @@ public class ServerTests
 
         // Shutdown shouldn't throw.
         Assert.DoesNotThrowAsync(() => shutdownTask);
-
-        Assert.That(server.ShutdownComplete.IsCompleted, Is.True);
     }
 }

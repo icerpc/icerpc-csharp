@@ -42,6 +42,19 @@ public class ServerTests
         Assert.Throws<ObjectDisposedException>(() => server.Listen());
     }
 
+
+    /// <summary>Verifies that <see cref="Server.ShutdownComplete"/> task is completed after
+    /// <see cref="Server.ShutdownAsync(CancellationToken)"/> completed.</summary>
+    [Test]
+    public async Task The_shudow_complete_task_is_completed_after_shutdow()
+    {
+        await using var server = new Server(ConnectionOptions.DefaultDispatcher);
+
+        await server.ShutdownAsync();
+
+        Assert.That(server.ShutdownComplete.IsCompleted, Is.True);
+    }
+
     /// <summary>Verifies that two servers cannot listen on the same endpoint. The second attempt throws a
     /// <see cref="TransportException"/>.</summary>
     [Test]
