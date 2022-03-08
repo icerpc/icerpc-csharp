@@ -15,7 +15,7 @@ unchecked enum RequestFieldKey
     /// The compression format of the payload.
     CompressionFormat = 2,
 
-    /// The deadline field, provided "for info" to the service.
+    /// The deadline of the request, provided "for info" to the service.
     Deadline = 3,
 
     /// The idempotent field.

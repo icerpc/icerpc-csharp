@@ -434,10 +434,8 @@ namespace IceRpc.Internal
                     request.Proxy.Path,
                     request.Proxy.Fragment,
                     request.Operation,
-                    // We're not checking FieldsOverrides because it makes no sense to use FieldsOverrides for
-                    // idempotent.
-                    request.Fields.ContainsKey(RequestFieldKey.Idempotent) ? OperationMode.Idempotent :
-                        OperationMode.Normal,
+                    request.Fields.ContainsKey(RequestFieldKey.Idempotent) ?
+                        OperationMode.Idempotent : OperationMode.Normal,
                     request.Features.GetContext(),
                     new EncapsulationHeader(encapsulationSize: payloadSize + 6, encodingMajor, encodingMinor));
                 requestHeader.Encode(ref encoder);

@@ -393,15 +393,13 @@ namespace IceRpc.Internal
 
                 header.Encode(ref encoder);
 
-                // If the context feature is set, convert it into a FieldsOverrides entry. This will overwrite any
-                // existing entry.
                 // We cannot use request.Features.GetContext here because it doesn't distinguish between empty and not
                 // set context.
                 if (request.Features.Get<Context>()?.Value is IDictionary<string, string> context)
                 {
                     if (context.Count == 0)
                     {
-                        // make sure it's not set anywhere
+                        // make sure it's not set.
                         request.Fields = request.Fields.Without(RequestFieldKey.Context);
                     }
                     else
