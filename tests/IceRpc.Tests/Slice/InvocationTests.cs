@@ -23,20 +23,14 @@ public class InvocationTests
         };
 
         IDictionary<string, string>? context = null;
-        var invoker = new InlineInvoker((request, cancel) =>
-        {
-            context = request.Features.GetContext();
-            return Task.FromResult(new IncomingResponse(request, ResultType.Success, PipeReader.Create(Stream.Null)));
-        });
-
-        await using var connection = new Connection(new ConnectionOptions()
-        {
-            RemoteEndpoint = "icerpc://localhost"
-        });
         var proxy = new Proxy(Protocol.IceRpc)
         {
             Path = "/",
-            Invoker = invoker,
+            Invoker = new InlineInvoker((request, cancel) =>
+            {
+                context = request.Features.GetContext();
+                return Task.FromResult(new IncomingResponse(request, ResultType.Success, PipeReader.Create(Stream.Null)));
+            }),
         };
 
         // Act
