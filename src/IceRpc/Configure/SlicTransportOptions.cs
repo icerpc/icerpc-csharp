@@ -74,8 +74,8 @@ namespace IceRpc.Configure
         /// unidirectional stream will be delayed until an unidirectional stream is closed. Since an
         /// unidirectional stream is opened for each one-way proxy invocation, the sending of the one-way
         /// invocation will be delayed until another one-way invocation on the connection completes.</summary>
-        /// <value>The unidirectional stream maximum count. It can't
-        /// be less than 1 and the default value is 100.</value>
+        /// <value>The unidirectional stream maximum count. It can't be less than 1 and the default value is
+        /// 100.</value>
         public int UnidirectionalStreamMaxCount
         {
             get => _unidirectionalStreamMaxCount;
