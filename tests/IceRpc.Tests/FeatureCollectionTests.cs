@@ -31,7 +31,7 @@ public class FeatureCollectionTests
 
     /// <summary>Verifies that setting a feature overwrites the value set in the defaults.</summary>
     [Test]
-    public void Setting_a_feature_overrides_the_defaults()
+    public void Setting_a_feature_overwrites_the_default_value()
     {
         var features = new FeatureCollection();
         features.Set("foo");
