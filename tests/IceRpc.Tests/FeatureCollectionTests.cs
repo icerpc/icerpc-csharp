@@ -20,15 +20,15 @@ public class FeatureCollectionTests
         Assert.That(feature, Is.EqualTo("foo"));
     }
 
-    /// <summary>Verifies that get returns null for an unset feature.</summary>
+    /// <summary>Verifies that get returns the <c>default</c> for an unset feature.</summary>
     [Test]
-    public void Getting_an_unset_feature_returns_null()
+    public void Getting_an_unset_feature_returns_the_default()
     {
         var features = new FeatureCollection();
 
-        int? feature = features.Get<int>();
+        int feature = features.Get<int>();
 
-        Assert.That(feature, Is.Null);
+        Assert.That(feature, Is.EqualTo(0));
     }
 
     /// <summary>Verifies that we can set a feature.</summary>
