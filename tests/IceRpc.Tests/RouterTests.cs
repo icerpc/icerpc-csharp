@@ -76,8 +76,7 @@ public class RouterTests
             new IncomingRequest(Protocol.IceRpc)
             {
                 Path = path
-            },
-            default);
+            });
 
         // Assert
         Assert.That(currentPath, Is.EqualTo(path));
@@ -119,8 +118,7 @@ public class RouterTests
             new IncomingRequest(Protocol.IceRpc)
             {
                 Path = path
-            },
-            default);
+            });
 
         // Assert
         Assert.That(currentPath, Is.EqualTo(path));
@@ -144,7 +142,7 @@ public class RouterTests
         var router = new Router();
 
         DispatchException ex = Assert.ThrowsAsync<DispatchException>(
-            async () => await router.DispatchAsync(new IncomingRequest(Protocol.IceRpc), default));
+            async () => await router.DispatchAsync(new IncomingRequest(Protocol.IceRpc)));
 
         Assert.That(ex.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
     }
@@ -223,8 +221,7 @@ public class RouterTests
             new IncomingRequest(Protocol.IceRpc)
             {
                 Path = path
-            },
-            default);
+            });
 
         // Assert
         Assert.That(calls, Is.EqualTo(expectedCalls));
@@ -240,7 +237,7 @@ public class RouterTests
         var router = new Router();
         router.Mount("/", dispatcher);
 
-        _ = await router.DispatchAsync(new IncomingRequest(Protocol.IceRpc), default);
+        _ = await router.DispatchAsync(new IncomingRequest(Protocol.IceRpc));
         return router;
     }
 }
