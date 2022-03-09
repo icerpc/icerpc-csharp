@@ -5,7 +5,6 @@ using NUnit.Framework;
 
 namespace IceRpc.Slice.Tests;
 
-[Timeout(5000)]
 public sealed class TraitEncodingTests
 {
     /// <summary>Verifies that decoding a trait with a mismatched type fails with <see cref="InvalidDataException"/>.
