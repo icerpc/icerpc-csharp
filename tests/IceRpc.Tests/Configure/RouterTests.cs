@@ -147,8 +147,8 @@ public class RouterTests
         Assert.That(ex.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
     }
 
-    /// <summary>Verifies that the pipeline interceptors are called in the expected order. That corresponds
-    /// to the order they were added to the pipeline.</summary>
+    /// <summary>Verifies that the router middleware are called in the expected order. That corresponds
+    /// to the order they were added to the router.</summary>
     [Test]
     public async Task Router_middleware_call_order()
     {
