@@ -552,13 +552,10 @@ namespace IceRpc.Internal
                 CancellationToken.None).ConfigureAwait(false);
 
             // Wait for the peer to complete its side of the shutdown.
-            ReadOnlyMemory<byte> buffer = await ReceiveControlFrameAsync(
+            await ReceiveControlFrameAsync(
                 IceRpcControlFrameType.GoAwayCompleted,
+                (ref SliceDecoder decoder) => 0, // does not read anything
                 CancellationToken.None).ConfigureAwait(false);
-            if (!buffer.IsEmpty)
-            {
-                throw new InvalidDataException($"{nameof(IceRpcControlFrameType.GoAwayCompleted)} frame is not empty");
-            }
         }
 
         /// <inheritdoc/>
@@ -587,23 +584,14 @@ namespace IceRpc.Internal
             // Wait for the remote control stream to be accepted and read the protocol initialize frame
             _remoteControlStream = await _networkConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
 
-            ReadOnlyMemory<byte> buffer = await ReceiveControlFrameAsync(
+            PeerFields = await ReceiveControlFrameAsync(
                 IceRpcControlFrameType.Initialize,
+                (ref SliceDecoder decoder) => decoder.DecodeFieldDictionary(
+                    (ref SliceDecoder decoder) => decoder.DecodeConnectionFieldKey()).ToImmutableDictionary(),
                 cancel).ConfigureAwait(false);
-
-            // Read the protocol parameters which are encoded as IceRpc.Fields.
-            PeerFields = DecodePeerFields(buffer);
 
             // Start a task to wait to receive the go away frame to initiate shutdown.
             _ = Task.Run(() => WaitForGoAwayAsync(), CancellationToken.None);
-
-            static ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>> DecodePeerFields(
-                ReadOnlyMemory<byte> buffer)
-            {
-                var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                return decoder.DecodeFieldDictionary(
-                    (ref SliceDecoder decoder) => decoder.DecodeConnectionFieldKey()).ToImmutableDictionary();
-            }
         }
 
         private async ValueTask<T> ReceiveControlFrameAsync<T>(
