@@ -9,13 +9,26 @@ public class FeatureCollectionTests
 {
     /// <summary>Verifies that we can get the value of a feature that is set in the defaults.</summary>
     [Test]
-    public void Get_feature_from_defaults()
+    public void Getting_a_feature_from_defaults()
     {
         var features = new FeatureCollection();
         features.Set("foo");
         var features2 = new FeatureCollection(features);
 
-        Assert.That(features2.Get<string>(), Is.EqualTo("foo"));
+        string? feature = features2.Get<string>();
+
+        Assert.That(feature, Is.EqualTo("foo"));
+    }
+
+    /// <summary>Verifies that get returns null for an unset feature.</summary>
+    [Test]
+    public void Getting_an_unset_feature_returns_null()
+    {
+        var features = new FeatureCollection();
+
+        int? feature = features.Get<int>();
+
+        Assert.That(feature, Is.Null);
     }
 
     /// <summary>Verifies that we can set a feature.</summary>
