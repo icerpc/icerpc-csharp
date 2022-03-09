@@ -3,7 +3,6 @@
 using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Slice;
-using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -399,7 +398,7 @@ namespace IceRpc.Transports.Internal
                 // Next, ensure send credit is available. If not, this will block until the receiver allows sending
                 // additional data.
                 int sendCredit = await stream.AcquireSendCreditAsync(cancel).ConfigureAwait(false);
-                Debug.Assert (sendCredit > 0);
+                Debug.Assert(sendCredit > 0);
 
                 // Finally, acquire the send semaphore to ensure only one stream writes to the connection.
                 await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);

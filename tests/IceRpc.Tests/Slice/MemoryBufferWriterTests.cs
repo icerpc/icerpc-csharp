@@ -19,7 +19,7 @@ public class MemoryBufferWriterTests
     [Test]
     public void MemoryBufferWriter_InvalidConstructor()
     {
-        Assert.Throws<ArgumentException>(() =>new MemoryBufferWriter(Array.Empty<byte>()));
+        Assert.Throws<ArgumentException>(() => new MemoryBufferWriter(Array.Empty<byte>()));
     }
 
     [Test]
