@@ -76,14 +76,10 @@ public class RouterTests
 
         // Act
         _ = await dispatcher.DispatchAsync(
-            new IncomingRequest(
-                Protocol.IceRpc,
-                path,
-                "",
-                "",
-                PipeReader.Create(Stream.Null),
-                Encoding.Slice20,
-                InvalidPipeWriter.Instance));
+            new IncomingRequest(Protocol.IceRpc)
+            {
+                Path = path
+            });
 
         // Assert
         Assert.That(currentPath, Is.EqualTo(path));
@@ -123,14 +119,10 @@ public class RouterTests
 
         // Act
         _ = await dispatcher.DispatchAsync(
-            new IncomingRequest(
-                Protocol.IceRpc,
-                path,
-                "",
-                "",
-                PipeReader.Create(Stream.Null),
-                Encoding.Slice20,
-                InvalidPipeWriter.Instance));
+            new IncomingRequest(Protocol.IceRpc)
+            {
+                Path = path
+            });
 
         // Assert
         Assert.That(currentPath, Is.EqualTo(path));
@@ -153,16 +145,8 @@ public class RouterTests
     {
         IDispatcher dispatcher = new Router();
 
-        DispatchException ex = Assert.ThrowsAsync<DispatchException>(async () => await dispatcher.DispatchAsync(
-            new IncomingRequest(
-                Protocol.IceRpc,
-                "/",
-                "",
-                "",
-                PipeReader.Create(Stream.Null),
-                Encoding.Slice20,
-                InvalidPipeWriter.Instance)));
-
+        DispatchException ex = Assert.ThrowsAsync<DispatchException>(
+            async () => await dispatcher.DispatchAsync(new IncomingRequest(Protocol.IceRpc)));
 
         Assert.That(ex.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
     }
@@ -238,14 +222,10 @@ public class RouterTests
 
         // Act
         _ = await ((IDispatcher)router).DispatchAsync(
-            new IncomingRequest(
-                Protocol.IceRpc,
-                path,
-                "",
-                "",
-                EmptyPipeReader.Instance,
-                Encoding.Slice20,
-                PipeWriter.Create(Stream.Null)));
+            new IncomingRequest(Protocol.IceRpc)
+            {
+                Path = path
+            });
 
         // Assert
         Assert.That(calls, Is.EqualTo(expectedCalls));
@@ -261,15 +241,7 @@ public class RouterTests
         var router = new Router();
         router.Mount("/", dispatcher);
 
-        _ = await((IDispatcher)router).DispatchAsync(
-            new IncomingRequest(
-                Protocol.IceRpc,
-                "/",
-                "",
-                "",
-                EmptyPipeReader.Instance,
-                Encoding.Slice20,
-                PipeWriter.Create(Stream.Null)));
+        _ = await((IDispatcher)router).DispatchAsync(new IncomingRequest(Protocol.IceRpc));
         return router;
     }
 }
