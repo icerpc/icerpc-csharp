@@ -68,7 +68,7 @@ public class InvocationTests
             }),
         };
 
-        // Act/Assert
+        // Act
         Assert.ThrowsAsync<TaskCanceledException>(
             () => proxy.InvokeAsync(
                 "",
@@ -78,6 +78,7 @@ public class InvocationTests
                 SliceDecoder.GetActivator(typeof(InvocationTests).Assembly),
                 invocation));
 
+        // Assert
         Assert.That(cancelationToken, Is.Not.Null);
         Assert.That(cancelationToken.Value.CanBeCanceled, Is.True);
         Assert.That(cancelationToken.Value.IsCancellationRequested, Is.True);
