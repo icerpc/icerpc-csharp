@@ -43,10 +43,10 @@ namespace IceRpc.Tests
                GetTransport(serviceProvider.GetRequiredService<Endpoint>()) switch
                {
                    "udp" => new SlicServerTransportOptions(), // i.e. invalid
-                    _ => new SlicServerTransportOptions
+                   _ => new SlicServerTransportOptions
                    {
                        SimpleServerTransport =
-                           serviceProvider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()
+                          serviceProvider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()
                    }
                });
 

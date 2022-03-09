@@ -7,7 +7,6 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using System.IO.Pipelines;
 using System.Net.Security;
 
 namespace IceRpc
@@ -335,7 +334,7 @@ namespace IceRpc
 
             // Wait for the response if it's a two-way request, otherwise return a response with an empty payload.
             IncomingResponse response = request.IsOneway ?
-                new IncomingResponse(request, ResultType.Success, EmptyPipeReader.Instance) :
+                new IncomingResponse(request) :
                 await protocolConnection.ReceiveResponseAsync(request, cancel).ConfigureAwait(false);
 
             response.Connection = this;

@@ -5,7 +5,6 @@ using IceRpc.Slice;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System.Buffers;
 using System.Collections.Immutable;
 
 namespace IceRpc.Tests.ClientServer

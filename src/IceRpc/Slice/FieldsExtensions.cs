@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Buffers;
 using IceRpc.Slice.Internal;
+using System.Buffers;
 
 namespace IceRpc.Slice
 {
