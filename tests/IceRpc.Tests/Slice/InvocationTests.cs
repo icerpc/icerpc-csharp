@@ -28,7 +28,7 @@ public class InvocationTests
             Invoker = new InlineInvoker((request, cancel) =>
             {
                 context = request.Features.GetContext();
-                return Task.FromResult(new IncomingResponse(request, ResultType.Success, EmptyPipeReader.Instance));
+                return Task.FromResult(new IncomingResponse(request));
             }),
         };
 
