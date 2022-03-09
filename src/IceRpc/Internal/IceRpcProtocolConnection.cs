@@ -606,8 +606,9 @@ namespace IceRpc.Internal
             }
         }
 
-        private async ValueTask<ReadOnlyMemory<byte>> ReceiveControlFrameAsync(
+        private async ValueTask<T> ReceiveControlFrameAsync<T>(
             IceRpcControlFrameType expectedFrameType,
+            DecodeFunc<T> decodeFunc,
             CancellationToken cancel)
         {
             while (true)
@@ -642,13 +643,21 @@ namespace IceRpc.Internal
                     }
                     else
                     {
-                        return readResult.Buffer.Slice(1).ToArray();
+                        return DecodeBody(readResult.Buffer.Slice(1), decodeFunc);
                     }
                 }
                 finally
                 {
                     _remoteControlStream!.Input.AdvanceTo(readResult.Buffer.End);
                 }
+            }
+
+            static T DecodeBody(ReadOnlySequence<byte> buffer, DecodeFunc<T> decodeFunc)
+            {
+                var decoder = new SliceDecoder(buffer, Encoding.Slice20);
+                T result = decodeFunc(ref decoder);
+                decoder.CheckEndOfBuffer(skipTaggedParams: false);
+                return result;
             }
         }
 
@@ -739,11 +748,10 @@ namespace IceRpc.Internal
             try
             {
                 // Receive and decode GoAway frame
-                ReadOnlyMemory<byte> buffer = await ReceiveControlFrameAsync(
+                IceRpcGoAwayBody goAwayFrame = await ReceiveControlFrameAsync(
                     IceRpcControlFrameType.GoAway,
+                    (ref SliceDecoder decoder) => new IceRpcGoAwayBody(ref decoder),
                     CancellationToken.None).ConfigureAwait(false);
-
-                IceRpcGoAwayBody goAwayFrame = DecodeIceRpcGoAwayBody(buffer);
 
                 // Raise the peer shutdown initiated event.
                 try
@@ -783,12 +791,6 @@ namespace IceRpc.Internal
             finally
             {
                 _waitForGoAwayCompleted.SetResult();
-            }
-
-            static IceRpcGoAwayBody DecodeIceRpcGoAwayBody(ReadOnlyMemory<byte> buffer)
-            {
-                var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                return new IceRpcGoAwayBody(ref decoder);
             }
         }
     }
