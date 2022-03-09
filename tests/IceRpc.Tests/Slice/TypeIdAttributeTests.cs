@@ -74,7 +74,6 @@ public sealed class TypeIdAttributeTests
             "/IceRpc.Slice.TypeIdAttributeTests.Inner.myStruct",
     };
 
-
     /// <summary>Verifies that types generated from Slice definitions have the expected type ID.</summary>
     /// <param name="type">The <see cref="Type"/> of the generated type to test.</param>
     /// <param name="expected">The expected type ID.</param>
