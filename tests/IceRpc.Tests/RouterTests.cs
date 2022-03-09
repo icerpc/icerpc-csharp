@@ -22,7 +22,7 @@ public class RouterTests
         Assert.Throws<InvalidOperationException>(() => router.Use(next => next));
     }
 
-    /// <summary>Verifies that middleware cannot be added after a request has been dispatched.</summary>
+    /// <summary>Verifies that a dispatcher cannot be mapped after a request has been dispatched.</summary>
     [Test]
     public async Task Cannot_map_a_dispatcher_after_a_request_has_been_dispatched()
     {
@@ -34,7 +34,7 @@ public class RouterTests
             () => router.Map("/foo", new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)))));
     }
 
-    /// <summary>Verifies that middleware cannot be added after a request has been dispatched.</summary>
+    /// <summary>Verifies that a dispatcher cannot be mounted after a request has been dispatched.</summary>
     [Test]
     public async Task Cannot_mount_a_dispatcher_after_a_request_has_been_dispatched()
     {
