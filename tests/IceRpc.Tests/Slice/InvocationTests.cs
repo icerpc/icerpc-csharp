@@ -92,6 +92,7 @@ public class InvocationTests
         // Arrange
         var invocation = new Invocation
         {
+            Timeout = Timeout.InfiniteTimeSpan
         };
 
         CancellationToken? cancelationToken = null;
