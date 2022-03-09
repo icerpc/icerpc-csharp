@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Internal;
 using NUnit.Framework;
 using System.IO.Pipelines;
 
@@ -61,7 +62,7 @@ public class RouterTests
                 "/",
                 "",
                 "",
-                PipeReader.Create(Stream.Null),
+                EmptyPipeReader.Instance,
                 Encoding.Slice20,
                 PipeWriter.Create(Stream.Null)));
 

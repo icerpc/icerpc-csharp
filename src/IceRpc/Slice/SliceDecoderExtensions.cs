@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Collections.Immutable;
-using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;

@@ -4,11 +4,10 @@ using IceRpc.Slice.Internal;
 using IceRpc.Transports.Internal;
 using System.Buffers;
 using System.Diagnostics;
+using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.IO.Pipelines;
 using System.Text;
-
 using static IceRpc.Slice.Internal.Slice11Definitions;
 
 namespace IceRpc.Slice

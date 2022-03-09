@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
 using NUnit.Framework;
 using System.Collections.Immutable;
 
@@ -63,7 +64,7 @@ public class ProxyTests
     /// <summary>A collection of proxy strings that are invalid for the the URI proxy format.</summary>
     private static readonly string[] _invalidUriFormatProxies = new string[]
         {
-            "", 
+            "",
             "\"\"",
             "icerpc://host/path?alt-endpoint=", // alt-endpoint authority cannot be empty
             "icerpc://host/path?alt-endpoint=/foo", // alt-endpoint cannot have a path
@@ -101,8 +102,8 @@ public class ProxyTests
             ("icerpc://host.zeroc.com//identity?alt-endpoint=host2.zeroc.com", "//identity", ""),
             ("icerpc://host.zeroc.com//identity?alt-endpoint=host2.zeroc.com:10000", "//identity", ""),
             ("icerpc://[::1]:10000/identity?alt-endpoint=host1:10000,host2,host3,host4", "/identity", ""),
-            ("icerpc://[::1]:10000/identity?alt-endpoint=host1:10000&alt-endpoint=host2,host3&alt-endpoint=[::2]", 
-             "/identity", 
+            ("icerpc://[::1]:10000/identity?alt-endpoint=host1:10000&alt-endpoint=host2,host3&alt-endpoint=[::2]",
+             "/identity",
              ""),
             ("icerpc://[::1]/path?alt-endpoint=host1?adapter-id=foo=bar$name=value&alt-endpoint=host2?foo=bar$123=456",
              "/path",
@@ -141,7 +142,7 @@ public class ProxyTests
             ("foobar:path#fragment", "path", "fragment"),
         };
 
-    /// <summary>Checks that a proxy can be converted into a string using any of the supported formats.</summary>
+    /// <summary>Verifies that a proxy can be converted into a string using any of the supported formats.</summary>
     /// <param name="str">The string used to create the source proxy.</param>
     /// <param name="format">The proxy format for the string conversion.</param>
     [Test, TestCaseSource(nameof(ProxyToStringSource))]
@@ -154,7 +155,7 @@ public class ProxyTests
         Assert.That(Proxy.Parse(str2), Is.EqualTo(proxy));
     }
 
-    /// <summary>Checks that two equal proxies always produce the same hash code.</summary>
+    /// <summary>Verifies that two equal proxies always produce the same hash code.</summary>
     /// <param name="str">The string proxy to test.</param>
     [Test, TestCaseSource(nameof(ProxyHashCodeSource))]
     public void Equal_proxies_produce_the_same_hash_code(string str)
@@ -169,7 +170,61 @@ public class ProxyTests
         Assert.That(hashCode1, Is.EqualTo(proxy2.GetHashCode()));
     }
 
-    /// <summary>Checks that a string can be correctly parsed as a proxy.</summary>
+    /// <summary>Verifies that a proxy created from a client connection has the expected path, connection and endpoint
+    /// properties.</summary>
+    [Test]
+    public async Task From_connection_with_a_client_connection()
+    {
+        await using var connection = new Connection(new Endpoint(Protocol.IceRpc));
+
+        var proxy = Proxy.FromConnection(connection, "/");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(proxy.Path, Is.EqualTo("/"));
+            Assert.That(proxy.Connection, Is.EqualTo(connection));
+            Assert.That(proxy.Endpoint, Is.EqualTo(connection.RemoteEndpoint));
+        });
+    }
+
+    /// <summary>Verifies that a proxy created from a server connection has the expected path, connection and endpoint
+    /// properties.</summary>
+    [Test]
+    public async Task From_connection_with_a_server_connection()
+    {
+        // Arrange
+        await using var networkConnection = new MockNetworkConnection();
+        await using var serverConnection = new Connection(networkConnection, Protocol.IceRpc, TimeSpan.FromSeconds(1));
+
+        // Act
+        var proxy = Proxy.FromConnection(serverConnection, "/");
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(proxy.Path, Is.EqualTo("/"));
+            Assert.That(proxy.Connection, Is.EqualTo(serverConnection));
+            Assert.That(proxy.Endpoint, Is.Null);
+        });
+    }
+
+    /// <summary>Verifies that a proxy created from a path has the expected protocol, path and endpoint properties.
+    /// </summary>
+    [TestCase("/")]
+    [TestCase("/foo/bar/")]
+    public void From_path(string path)
+    {
+        var proxy = Proxy.FromPath(path);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(proxy.Protocol, Is.EqualTo(Protocol.Relative));
+            Assert.That(proxy.Path, Is.EqualTo(path));
+            Assert.That(proxy.Endpoint, Is.Null);
+        });
+    }
+
+    /// <summary>Verifies that a string can be correctly parsed as a proxy.</summary>
     /// <param name="str">The string to parse as a proxy.</param>
     /// <param name="format">The format of <paramref name="str"/> string.</param>
     /// <param name="path">The expected path for the parsed proxy.</param>
@@ -183,16 +238,16 @@ public class ProxyTests
         Assert.That(proxy.Fragment, Is.EqualTo(fragment));
     }
 
-    /// <summary>Check that parsing a string that is not valid according the given <paramref name="format"/> throws
+    /// <summary>Verifies that parsing a string that is not valid according the given <paramref name="format"/> throws
     /// <see cref="FormatException"/>.</summary>
     /// <param name="str">The string to parse as a proxy.</param>
     /// <param name="format">The format use to parse the string as a proxy.</param>
     [Test, TestCaseSource(nameof(ProxyParseInvalidSource))]
-    public void Parse_an_invalid_proxy(string str) =>
+    public void Parse_an_invalid_proxy_string(string str) =>
         Assert.Throws(Is.InstanceOf<FormatException>(), () => Proxy.Parse(str));
 
-    /// <summary>Test that setting the alt endpoints containing endpoints that uses a protocol different than the proxy
-    /// protocol throws <see cref="ArgumentException"/>.
+    /// <summary>Verifies that setting the alt endpoints containing endpoints that uses a protocol different than the
+    /// proxy protocol throws <see cref="ArgumentException"/>.</summary>
     [Test]
     public void Set_the_alt_endpoints_using_a_diferent_protocol_fails()
     {
@@ -207,8 +262,8 @@ public class ProxyTests
         Assert.That(prx.AltEndpoints, Is.Empty);
     }
 
-    /// <summary>Test that setting an endpoint that uses a protocol different than the proxy protocol
-    /// throws <see cref="ArgumentException"/>.
+    /// <summary>Verifies that setting an endpoint that uses a protocol different than the proxy protocol throws
+    /// <see cref="ArgumentException"/>.</summary>
     [Test]
     public void Set_the_endpoint_using_a_diferent_protocol_fails()
     {
@@ -220,5 +275,15 @@ public class ProxyTests
 
         // Ensure the endpoint wasn't updated
         Assert.That(prx.Endpoint, Is.EqualTo(endpoint));
+    }
+
+    /// <summary>INetworkConnection mock used to create a server connection.</summary>
+    private class MockNetworkConnection : INetworkConnection
+    {
+        public TimeSpan LastActivity => throw new NotImplementedException();
+
+        public Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel) => throw new NotImplementedException();
+        public ValueTask DisposeAsync() => default;
+        public bool HasCompatibleParams(Endpoint remoteEndpoint) => throw new NotImplementedException();
     }
 }
