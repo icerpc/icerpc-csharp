@@ -1,10 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
-using IceRpc.Internal;
 using IceRpc.Slice;
 using NUnit.Framework;
-using System.IO.Pipelines;
 
 namespace IceRpc.Tests;
 
@@ -72,14 +70,14 @@ public class RouterTests
             }));
 
         router.Mount(path, new InlineDispatcher((current, cancel) => new(new OutgoingResponse(current))));
-        IDispatcher dispatcher = router;
 
         // Act
-        _ = await dispatcher.DispatchAsync(
+        _ = await router.DispatchAsync(
             new IncomingRequest(Protocol.IceRpc)
             {
                 Path = path
-            });
+            },
+            default);
 
         // Assert
         Assert.That(currentPath, Is.EqualTo(path));
@@ -115,14 +113,14 @@ public class RouterTests
                 currentPath = current.Path;
                 return new(new OutgoingResponse(current));
             }));
-        IDispatcher dispatcher = router;
 
         // Act
-        _ = await dispatcher.DispatchAsync(
+        _ = await router.DispatchAsync(
             new IncomingRequest(Protocol.IceRpc)
             {
                 Path = path
-            });
+            },
+            default);
 
         // Assert
         Assert.That(currentPath, Is.EqualTo(path));
@@ -143,10 +141,10 @@ public class RouterTests
     [Test]
     public void Path_not_found()
     {
-        IDispatcher dispatcher = new Router();
+        var router = new Router();
 
         DispatchException ex = Assert.ThrowsAsync<DispatchException>(
-            async () => await dispatcher.DispatchAsync(new IncomingRequest(Protocol.IceRpc)));
+            async () => await router.DispatchAsync(new IncomingRequest(Protocol.IceRpc), default));
 
         Assert.That(ex.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
     }
@@ -221,11 +219,12 @@ public class RouterTests
         });
 
         // Act
-        _ = await ((IDispatcher)router).DispatchAsync(
+        _ = await router.DispatchAsync(
             new IncomingRequest(Protocol.IceRpc)
             {
                 Path = path
-            });
+            },
+            default);
 
         // Assert
         Assert.That(calls, Is.EqualTo(expectedCalls));
@@ -241,7 +240,7 @@ public class RouterTests
         var router = new Router();
         router.Mount("/", dispatcher);
 
-        _ = await((IDispatcher)router).DispatchAsync(new IncomingRequest(Protocol.IceRpc));
+        _ = await router.DispatchAsync(new IncomingRequest(Protocol.IceRpc), default);
         return router;
     }
 }
