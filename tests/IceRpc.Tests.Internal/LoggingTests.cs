@@ -255,23 +255,21 @@ namespace IceRpc.Tests.Internal
         }
 
         private static IncomingRequest CreateIncomingRequest(Connection connection, bool twoway) =>
-            new(
-                connection.Protocol,
-                path: "/dummy",
-                fragment: "",
-                operation: "foo",
-                PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
-                Encoding.Slice20,
-                responseWriter: new DelayedPipeWriterDecorator())
+            new(connection.Protocol)
             {
                 Connection = connection,
-                IsOneway = !twoway
+                IsOneway = !twoway,
+                Path = "/dummy",
+                Operation = "foo",
+                Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
+                PayloadEncoding = Encoding.Slice20,
+                ResponseWriter = new DelayedPipeWriterDecorator()
             };
 
-        private static IncomingResponse CreateIncomingResponse(OutgoingRequest request) => new(
-            request,
-            ResultType.Success,
-            PipeReader.Create(new ReadOnlySequence<byte>(new byte[10])));
+        private static IncomingResponse CreateIncomingResponse(OutgoingRequest request) => new(request)
+        {
+            Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[10]))
+        };
 
         private static OutgoingRequest CreateOutgoingRequest(Connection connection, bool twoway) =>
             new(new Proxy(connection.Protocol) { Path = "/dummy" })

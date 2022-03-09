@@ -99,14 +99,12 @@ public sealed class DispatchEventSourceTests : IDisposable
     }
 
     private static IncomingRequest CreateIncomingRequest(string path, string operation) =>
-        new IncomingRequest(
-            Protocol.IceRpc,
-            path: path,
-            fragment: "",
-            operation: operation,
-            PipeReader.Create(ReadOnlySequence<byte>.Empty),
-            Encoding.Slice20,
-            responseWriter: InvalidPipeWriter.Instance);
+        new(Protocol.IceRpc)
+        {
+            Path = path,
+            Operation = operation,
+            PayloadEncoding = Encoding.Slice20
+        };
 
     private class TestEventListener : EventListener
     {
