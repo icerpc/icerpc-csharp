@@ -5,6 +5,7 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using System.Buffers;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
@@ -37,20 +38,25 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
+        public ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>> PeerFields { get; private set; } =
+            ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>>.Empty;
+
+        /// <inheritdoc/>
         public event Action<string>? PeerShutdownInitiated;
 
         private IMultiplexedStream? _controlStream;
         private readonly HashSet<IncomingRequest> _dispatches = new();
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly int _incomingFrameMaxSize;
+
         private readonly HashSet<IMultiplexedStream> _invocations = new();
         private long _lastRemoteBidirectionalStreamId = -1;
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
         private long _lastRemoteUnidirectionalStreamId = -1;
+        private readonly IDictionary<ConnectionFieldKey, OutgoingFieldValue> _localFields;
+
         private readonly object _mutex = new();
         private readonly IMultiplexedNetworkConnection _networkConnection;
-        private int? _peerIncomingFrameMaxSize;
         private IMultiplexedStream? _remoteControlStream;
         private readonly CancellationTokenSource _shutdownCancellationSource = new();
         private bool _shutdownCanceled;
@@ -556,10 +562,12 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
-        internal IceRpcProtocolConnection(IMultiplexedNetworkConnection networkConnection, int incomingFrameMaxSize)
+        internal IceRpcProtocolConnection(
+            IMultiplexedNetworkConnection networkConnection,
+            IDictionary<ConnectionFieldKey, OutgoingFieldValue> localFields)
         {
             _networkConnection = networkConnection;
-            _incomingFrameMaxSize = incomingFrameMaxSize;
+            _localFields = localFields;
         }
 
         internal async Task InitializeAsync(CancellationToken cancel)
@@ -570,16 +578,10 @@ namespace IceRpc.Internal
             await SendControlFrameAsync(
                 IceRpcControlFrameType.Initialize,
                 (ref SliceEncoder encoder) =>
-                {
-                    // Encode the transport parameters as Fields
-                    encoder.EncodeSize(1);
-
-                    encoder.EncodeVarInt((int)IceRpcParameterKey.IncomingFrameMaxSize);
-                    Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
-                    int startPos = encoder.EncodedByteCount;
-                    encoder.EncodeVarULong((ulong)_incomingFrameMaxSize);
-                    Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
-                },
+                    encoder.EncodeDictionary(
+                        _localFields,
+                        (ref SliceEncoder encoder, ConnectionFieldKey key) => encoder.EncodeConnectionFieldKey(key),
+                        (ref SliceEncoder encoder, OutgoingFieldValue value) => value.Encode(ref encoder)),
                 cancel).ConfigureAwait(false);
 
             // Wait for the remote control stream to be accepted and read the protocol initialize frame
@@ -590,40 +592,17 @@ namespace IceRpc.Internal
                 cancel).ConfigureAwait(false);
 
             // Read the protocol parameters which are encoded as IceRpc.Fields.
-            _peerIncomingFrameMaxSize = DecodePeerIncomingFrameMaxSize(buffer);
+            PeerFields = DecodePeerFields(buffer);
 
             // Start a task to wait to receive the go away frame to initiate shutdown.
             _ = Task.Run(() => WaitForGoAwayAsync(), CancellationToken.None);
 
-            static int DecodePeerIncomingFrameMaxSize(ReadOnlyMemory<byte> buffer)
+            static ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>> DecodePeerFields(
+                ReadOnlyMemory<byte> buffer)
             {
                 var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                int dictionarySize = decoder.DecodeSize();
-
-                for (int i = 0; i < dictionarySize; ++i)
-                {
-                    int key = decoder.DecodeVarInt();
-                    if (key == (int)IceRpcParameterKey.IncomingFrameMaxSize)
-                    {
-                        decoder.SkipSize();
-
-                        int peerIncomingFrameMaxSize = checked((int)decoder.DecodeVarUInt());
-
-                        if (peerIncomingFrameMaxSize < 1024)
-                        {
-                            throw new InvalidDataException($@"the peer's IncomingFrameMaxSize ({
-                                peerIncomingFrameMaxSize} bytes) value is inferior to 1KB");
-                        }
-                        return peerIncomingFrameMaxSize;
-                    }
-                    else
-                    {
-                        // Ignore unsupported parameters.
-                        decoder.Skip(decoder.DecodeSize());
-                    }
-                }
-
-                throw new InvalidDataException("missing IncomingFrameMaxSize IceRpc connection parameter");
+                return decoder.DecodeFieldDictionary(
+                    (ref SliceDecoder decoder) => decoder.DecodeConnectionFieldKey()).ToImmutableDictionary();
             }
         }
 

@@ -4,6 +4,7 @@ using IceRpc.Features.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
+using IceRpc.Transports.Internal;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -38,6 +39,10 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
+        public ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>> PeerFields =>
+            ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>>.Empty;
+
+        /// <inheritdoc/>
         public event Action<string>? PeerShutdownInitiated;
 
         private static readonly IDictionary<RequestFieldKey, ReadOnlySequence<byte>> _idempotentFields =
@@ -49,7 +54,6 @@ namespace IceRpc.Internal
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly HashSet<IncomingRequest> _dispatches = new();
-        private readonly int _incomingFrameMaxSize;
         private readonly Dictionary<int, OutgoingRequest> _invocations = new();
         private readonly bool _isUdp;
 
@@ -655,13 +659,9 @@ namespace IceRpc.Internal
             }
         }
 
-        internal IceProtocolConnection(
-            ISimpleNetworkConnection simpleNetworkConnection,
-            int incomingFrameMaxSize,
-            bool isUdp)
+        internal IceProtocolConnection(ISimpleNetworkConnection simpleNetworkConnection, bool isUdp)
         {
             _isUdp = isUdp;
-            _incomingFrameMaxSize = incomingFrameMaxSize;
             _memoryPool = MemoryPool<byte>.Shared; // TODO: should be configurable by caller
             _networkConnection = simpleNetworkConnection;
         }
@@ -799,7 +799,7 @@ namespace IceRpc.Internal
                     // Receive the Ice frame header.
                     if (_isUdp)
                     {
-                        memoryOwner = _memoryPool.Rent(_incomingFrameMaxSize);
+                        memoryOwner = _memoryPool.Rent(UdpUtils.MaxPacketSize);
 
                         int received = await _networkConnection.ReadAsync(
                             memoryOwner.Memory, cancel).ConfigureAwait(false);
@@ -823,26 +823,15 @@ namespace IceRpc.Internal
                     // Check the header
                     IceDefinitions.CheckHeader(buffer.Span[0..IceDefinitions.HeaderSize]);
                     int frameSize = Slice11Encoding.DecodeFixedLengthSize(buffer[10..14].Span);
-                    if (_isUdp && frameSize != buffer.Length)
+                    if (_isUdp && (frameSize != buffer.Length || frameSize > UdpUtils.MaxPacketSize))
                     {
                         // TODO: implement protocol logging with decorators
                         // _logger.LogReceivedInvalidDatagram(frameSize);
+                        // _logger.LogDatagramSizeExceededIncomingFrameMaxSize(frameSize);
                         continue; // while
                     }
-                    else if (frameSize > _incomingFrameMaxSize)
-                    {
-                        if (_isUdp)
-                        {
-                            // TODO: implement protocol logging with decorators
-                            // _logger.LogDatagramSizeExceededIncomingFrameMaxSize(frameSize);
-                            continue;
-                        }
-                        else
-                        {
-                            throw new InvalidDataException(
-                                $"frame with {frameSize} bytes exceeds IncomingFrameMaxSize connection option value");
-                        }
-                    }
+
+                    // TODO: introduce a max for the frame size? what for?
 
                     // The magic and version fields have already been checked by CheckHeader above
                     var frameType = (IceFrameType)buffer.Span[8];
