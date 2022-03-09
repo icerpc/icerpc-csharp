@@ -165,7 +165,7 @@ namespace IceRpc.Tests.Internal
             router.UseLogger(loggerFactory);
             router.Use(next => new InlineDispatcher((request, cancel) => new(response)));
 
-            Assert.That(await ((IDispatcher)router).DispatchAsync(request), Is.EqualTo(response));
+            Assert.That(await router.DispatchAsync(request), Is.EqualTo(response));
 
             Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc"));
             Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(twoway ? 2 : 1));
@@ -211,8 +211,7 @@ namespace IceRpc.Tests.Internal
             router.UseLogger(loggerFactory);
             router.Use(next => new InlineDispatcher((request, cancel) => throw exception));
 
-            Assert.CatchAsync<ArgumentException>(
-                async () => await ((IDispatcher)router).DispatchAsync(request));
+            Assert.CatchAsync<ArgumentException>(async () => await router.DispatchAsync(request));
 
             Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(2));
 
