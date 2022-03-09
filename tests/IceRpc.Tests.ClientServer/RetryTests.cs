@@ -92,7 +92,7 @@ namespace IceRpc.Tests.ClientServer
 
             var dispatchException = Assert.ThrowsAsync<DispatchException>(
                 () => bidir.OtherReplicaAsync(cancel: CancellationToken.None));
-             Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
+            Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
 
             // The exception is not retryable with the Ice protocol. With the IceRPC protocol, we can retry using the
             // existing connection because the exception uses the AfterDelay retry policy.

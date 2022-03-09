@@ -15,10 +15,11 @@ namespace IceRpc
         /// <inheritdoc/>
         public override PipeWriter PayloadSink { get; set; }
 
-        /// <summary>The corresponding request.</summary>
+        /// <summary>Returns the corresponding incoming request.</summary>
         public IncomingRequest Request { get; }
 
-        /// <summary>The <see cref="IceRpc.ResultType"/> of this response.</summary>
+        /// <summary>Gets or initializes the <see cref="IceRpc.ResultType"/> of this response.</summary>
+        /// <value>The result type of this response. The default is <see cref="ResultType.Success"/>.</value>
         public ResultType ResultType { get; init; } = ResultType.Success;
 
         /// <summary>Constructs an outgoing response.</summary>

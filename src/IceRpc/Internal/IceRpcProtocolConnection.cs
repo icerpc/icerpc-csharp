@@ -125,19 +125,17 @@ namespace IceRpc.Internal
                     throw;
                 }
 
-                var request = new IncomingRequest(
-                    Protocol.IceRpc,
-                    path: header.Path,
-                    fragment: "", // no fragment with icerpc
-                    operation: header.Operation,
-                    payload: reader,
-                    payloadEncoding: header.PayloadEncoding.Length > 0 ?
-                        Encoding.FromString(header.PayloadEncoding) : IceRpcDefinitions.Encoding,
-                    responseWriter: stream.IsBidirectional ? stream.Output : InvalidPipeWriter.Instance)
+                var request = new IncomingRequest(Protocol.IceRpc)
                 {
-                    IsOneway = !stream.IsBidirectional,
                     Features = features,
-                    Fields = fields
+                    Fields = fields,
+                    IsOneway = !stream.IsBidirectional,
+                    Operation = header.Operation,
+                    Path = header.Path,
+                    Payload = reader,
+                    PayloadEncoding = header.PayloadEncoding.Length > 0 ?
+                        Encoding.FromString(header.PayloadEncoding) : IceRpcDefinitions.Encoding,
+                    ResponseWriter = stream.IsBidirectional ? stream.Output : InvalidPipeWriter.Instance
                 };
 
                 lock (_mutex)
@@ -272,12 +270,11 @@ namespace IceRpc.Internal
                 throw;
             }
 
-            return new IncomingResponse(
-                request,
-                header.ResultType,
-                payload: responseReader)
+            return new IncomingResponse(request)
             {
                 Fields = fields,
+                Payload = responseReader,
+                ResultType = header.ResultType
             };
 
             static (IceRpcResponseHeader, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>>) DecodeHeader(

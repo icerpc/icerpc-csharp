@@ -146,19 +146,18 @@ namespace IceRpc.Internal
 
                     Slice20Encoding.EncodeSize(payloadSize, buffer.Span[0..4]);
 
-                    var request = new IncomingRequest(
-                        Protocol.Ice,
-                        path: requestHeader.Path,
-                        fragment: requestHeader.Fragment,
-                        operation: requestHeader.Operation,
-                        payload: new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
-                        payloadEncoding,
-                        responseWriter: requestId == 0 ?
-                            InvalidPipeWriter.Instance : new SimpleNetworkConnectionPipeWriter(_networkConnection))
+                    var request = new IncomingRequest(Protocol.Ice)
                     {
                         Fields = requestHeader.OperationMode == OperationMode.Normal ?
                             ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields,
+                        Fragment = requestHeader.Fragment,
                         IsOneway = requestId == 0,
+                        Operation = requestHeader.Operation,
+                        Path = requestHeader.Path,
+                        Payload = new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
+                        PayloadEncoding = payloadEncoding,
+                        ResponseWriter = requestId == 0 ?
+                            InvalidPipeWriter.Instance : new SimpleNetworkConnectionPipeWriter(_networkConnection)
                     };
 
                     request.Features = request.Features.With(new IceRequest(requestId, outgoing: false));
@@ -262,10 +261,11 @@ namespace IceRpc.Internal
                     request.Features = request.Features.With(RetryPolicy.OtherReplica);
                 }
 
-                return new IncomingResponse(
-                    request,
-                    resultType,
-                    new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable));
+                return new IncomingResponse(request)
+                {
+                    Payload = new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
+                    ResultType = resultType
+                };
             }
             catch
             {

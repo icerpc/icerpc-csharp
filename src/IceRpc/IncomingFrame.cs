@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System.IO.Pipelines;
 
 namespace IceRpc
@@ -14,22 +15,18 @@ namespace IceRpc
             set => _connection = value;
         }
 
-        /// <summary>The payload of this frame.</summary>
-        public PipeReader Payload { get; set; }
+        /// <summary>Gets or sets the payload of this frame.</summary>
+        /// <value>The payload of this frame. The default value is an empty <see cref="PipeReader"/>.</value>
+        public PipeReader Payload { get; set; } = EmptyPipeReader.Instance;
 
-        /// <summary>The Ice protocol of this frame.</summary>
+        /// <summary>Returns the protocol of this frame.</summary>
         public Protocol Protocol { get; }
 
         private Connection? _connection;
 
         /// <summary>Constructs an incoming frame.</summary>
         /// <param name="protocol">The protocol used to receive the frame.</param>
-        /// <param name="payload">The payload of the new frame.</param>
-        protected IncomingFrame(Protocol protocol, PipeReader payload)
-        {
-            Payload = payload;
-            Protocol = protocol;
-        }
+        protected IncomingFrame(Protocol protocol) => Protocol = protocol;
 
         /// <summary>Completes the frame payload pipe reader.</summary>
         internal ValueTask CompleteAsync(Exception? exception = null) => Payload.CompleteAsync(exception);

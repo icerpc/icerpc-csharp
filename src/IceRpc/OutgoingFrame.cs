@@ -13,6 +13,7 @@ namespace IceRpc
 
         /// <summary>Gets or sets the payload source of this frame. The payload source is sent together with the frame
         /// header and the sending operation awaits until the payload source is fully sent.</summary>
+        /// <value>The payload source of this frame. The default is an empty pipe reader.</value>
         public PipeReader PayloadSource { get; set; } = EmptyPipeReader.Instance;
 
         /// <summary>Gets or sets the payload source stream of this frame. The payload source stream (if specified) is
