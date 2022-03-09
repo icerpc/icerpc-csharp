@@ -24,7 +24,6 @@ public class InvocationTests
         IDictionary<string, string>? context = null;
         var proxy = new Proxy(Protocol.IceRpc)
         {
-            Path = "/",
             Invoker = new InlineInvoker((request, cancel) =>
             {
                 context = request.Features.GetContext();
@@ -45,8 +44,8 @@ public class InvocationTests
         Assert.That(context, Is.EqualTo(invocation.Features.GetContext()));
     }
 
-    // <summary>Verifies that the cancellation token passed to the invoker is canceled after the invocation timeout
-    // expires.</summary>
+    /// <summary>Verifies that the cancellation token passed to the invoker is canceled after the invocation timeout
+    /// expires.</summary>
     [Test]
     public void Invocation_timeout()
     {
@@ -59,12 +58,11 @@ public class InvocationTests
         CancellationToken? cancelationToken = null;
         var proxy = new Proxy(Protocol.IceRpc)
         {
-            Path = "/",
             Invoker = new InlineInvoker(async (request, cancel) =>
             {
                 cancelationToken = cancel;
                 await Task.Delay(10000, cancel);
-                return new IncomingResponse(request, ResultType.Success, EmptyPipeReader.Instance);
+                return new IncomingResponse(request);
             }),
         };
 
@@ -84,8 +82,8 @@ public class InvocationTests
         Assert.That(cancelationToken.Value.IsCancellationRequested, Is.True);
     }
 
-    // <summary>Verifies that when using an infinite invocation timeout the cancellation token passed to the invoker
-    // cannot be canceled.</summary>
+    /// <summary>Verifies that when using an infinite invocation timeout the cancellation token passed to the invoker
+    /// cannot be canceled.</summary>
     [Test]
     public async Task Invocation_with_infinite_timeout_cannot_be_canceled()
     {
@@ -98,11 +96,10 @@ public class InvocationTests
         CancellationToken? cancelationToken = null;
         var proxy = new Proxy(Protocol.IceRpc)
         {
-            Path = "/",
             Invoker = new InlineInvoker((request, cancel) =>
             {
                 cancelationToken = cancel;
-                return Task.FromResult(new IncomingResponse(request, ResultType.Success, EmptyPipeReader.Instance));
+                return Task.FromResult(new IncomingResponse(request));
             }),
         };
 
