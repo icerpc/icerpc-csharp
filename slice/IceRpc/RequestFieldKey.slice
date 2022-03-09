@@ -2,7 +2,7 @@
 
 module IceRpc;
 
-/// The keys of fields carried by icerpc requests. Some fields, such as Idempotent, are used for ice requests as well.
+/// The keys of fields carried by icerpc request headers.
 // TODO: add varulong as underlying type
 unchecked enum RequestFieldKey
 {

@@ -2,7 +2,7 @@
 
 module IceRpc;
 
-/// The keys of fields carried by icerpc responses.
+/// The keys of fields carried by icerpc response headers.
 // TODO: add varulong as underlying type
 unchecked enum ResponseFieldKey
 {

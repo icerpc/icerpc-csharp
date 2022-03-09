@@ -8,8 +8,7 @@ module IceRpc::Internal;
 /// Each icerpc control frame has a type identified by this enumeration.
 enum IceRpcControlFrameType : byte
 {
-    /// The initialize frame is sent by each side the icerpc connection on connection establishment to exchange icerpc
-    /// connection fields.
+    /// The initialize frame is sent by each side on connection establishment to exchange icerpc connection fields.
     Initialize = 0,
 
     /// The ping frame is sent to keep alive the icerpc connection.
