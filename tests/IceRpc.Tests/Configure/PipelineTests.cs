@@ -4,6 +4,7 @@ using IceRpc.Configure;
 using NUnit.Framework;
 
 namespace IceRpc.Tests;
+
 public class PipelineTests
 {
     /// <summary>Verifies that an invoker cannot be added after
@@ -14,7 +15,7 @@ public class PipelineTests
     {
         // Arrange
         var pipeline = new Pipeline();
-            pipeline.Use(next => new InlineInvoker((request, cancel) =>
+        pipeline.Use(next => new InlineInvoker((request, cancel) =>
                 Task.FromResult(new IncomingResponse(request))));
         pipeline.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
 
