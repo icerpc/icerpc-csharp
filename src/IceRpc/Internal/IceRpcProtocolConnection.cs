@@ -133,7 +133,7 @@ namespace IceRpc.Internal
                     payload: reader,
                     payloadEncoding: header.PayloadEncoding.Length > 0 ?
                         Encoding.FromString(header.PayloadEncoding) : IceRpcDefinitions.Encoding,
-                    responseWriter: stream.IsBidirectional ? stream.Output : InvalidPipeWriter.Instance)
+                    responseWriter: stream.Output)
                 {
                     IsOneway = !stream.IsBidirectional,
                     Features = features,

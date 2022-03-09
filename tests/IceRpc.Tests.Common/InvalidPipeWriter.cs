@@ -2,19 +2,19 @@
 
 using System.IO.Pipelines;
 
-namespace IceRpc.Internal
+namespace IceRpc.Tests
 {
     /// <summary>A PipeWriter that does nothing and always throws NotSupportedException except for
     /// Complete/CompleteAsync.</summary>
-    internal sealed class InvalidPipeWriter : PipeWriter
+    public sealed class InvalidPipeWriter : PipeWriter
     {
         public override bool CanGetUnflushedBytes => false;
         public override long UnflushedBytes => throw _notSupportedException;
 
         /// <summary>A shared instance of this pipe writer.</summary>
-        internal static PipeWriter Instance { get; } = new InvalidPipeWriter();
+        public static PipeWriter Instance { get; } = new InvalidPipeWriter();
 
-        private static readonly Exception _notSupportedException =
+        private static readonly NotSupportedException _notSupportedException =
             new NotSupportedException("cannot use invalid pipe writer");
 
         public override void Advance(int bytes) => throw _notSupportedException;

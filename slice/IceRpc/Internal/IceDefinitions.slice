@@ -15,6 +15,23 @@ enum IceFrameType : byte
     CloseConnection = 4,
 }
 
+/// The ice frame prologue
+[cs:readonly]
+compact struct IcePrologue
+{
+    magic1: byte,
+    magic2: byte,
+    magic3: byte,
+    magic4: byte,
+    protocolMajor: byte,
+    protocolMinor: byte,
+    encodingMajor: byte,
+    encodingMinor: byte,
+    frameType: IceFrameType,
+    compressionStatus: byte,
+    frameSize: int
+}
+
 /// Determines the retry behavior an invocation in case of a (potentially) recoverable error. OperationMode is
 /// sent with each ice request to allow the server to verify the assumptions made by the caller.
 enum OperationMode : byte
