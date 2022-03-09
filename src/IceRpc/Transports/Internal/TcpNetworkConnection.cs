@@ -3,7 +3,6 @@
 using IceRpc.Configure;
 using IceRpc.Internal;
 using System.Buffers;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Security;

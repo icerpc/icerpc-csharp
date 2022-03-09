@@ -11,6 +11,7 @@ namespace IceRpc
         public OutgoingRequest Request { get; }
 
         /// <summary>Gets or initializes the <see cref="IceRpc.ResultType"/> of this response.</summary>
+        /// <value>The result type of the response. The default value is <see cref="ResultType.Success"/>.</value>
         public ResultType ResultType { get; init; } = ResultType.Success;
 
         /// <summary>Constructs an incoming response.</summary>

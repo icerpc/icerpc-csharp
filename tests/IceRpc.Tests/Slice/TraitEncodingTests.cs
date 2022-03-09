@@ -10,13 +10,6 @@ public sealed class TraitEncodingTests
     [Test]
     public void Trait_Encoding()
     {
-        // TODO move this into a TypeId Generation unit test.
-        // Test the generation of type-ids on structs.
-        Assert.That(
-            typeof(TraitStructA).GetSliceTypeId()!,
-            Is.EqualTo("::IceRpc::Slice::Tests::TraitStructA")
-        );
-
         Memory<byte> buffer = new byte[1024];
         var encoding = Encoding.Slice20;
         var activator = ActivatorFactory.Instance.Get(typeof(TraitEncodingTests).Assembly);
