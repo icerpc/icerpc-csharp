@@ -609,7 +609,7 @@ namespace IceRpc.Internal
 
             try
             {
-                return DecodeBody(readResult.Buffer, decodeFunc);
+                return Encoding.Slice20.DecodeBuffer(readResult.Buffer, decodeFunc);
             }
             finally
             {
@@ -617,14 +617,6 @@ namespace IceRpc.Internal
                 {
                     input.AdvanceTo(readResult.Buffer.End);
                 }
-            }
-
-            static T DecodeBody(ReadOnlySequence<byte> buffer, DecodeFunc<T> decodeFunc)
-            {
-                var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                T result = decodeFunc(ref decoder);
-                decoder.CheckEndOfBuffer(skipTaggedParams: false);
-                return result;
             }
         }
 
