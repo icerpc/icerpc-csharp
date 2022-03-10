@@ -48,37 +48,6 @@ namespace IceRpc.Tests.Api
         public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
         [Test]
-        public async Task SliceFree_InvokeAsync()
-        {
-            var payload = new ReadOnlySequence<byte>(_utf8.GetBytes(_greeting));
-
-            var joeProxy = _proxy with { Path = _joe };
-            var request = new OutgoingRequest(joeProxy)
-            {
-                PayloadEncoding = _customEncoding,
-                PayloadSource = PipeReader.Create(payload)
-            };
-            IncomingResponse response = await joeProxy.Invoker.InvokeAsync(request).ConfigureAwait(false);
-
-            Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
-            string greetingResponse = _utf8.GetString((await ReadFullPayloadAsync(response.Payload)).Span);
-            await response.Payload.CompleteAsync(); // done with payload
-            Assert.That(greetingResponse, Is.EqualTo(_doingWell));
-
-            var austinProxy = _proxy with { Path = _austin };
-            request = new OutgoingRequest(austinProxy)
-            {
-                PayloadEncoding = _customEncoding,
-                PayloadSource = PipeReader.Create(payload)
-            };
-            response = await austinProxy.Invoker.InvokeAsync(request);
-            Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
-            greetingResponse = _utf8.GetString((await ReadFullPayloadAsync(response.Payload)).Span);
-            await response.Payload.CompleteAsync(); // done with payload
-            Assert.That(greetingResponse, Is.EqualTo(_notGood));
-        }
-
-        [Test]
         public async Task SliceFree_ExceptionAsync()
         {
             var payload = new ReadOnlySequence<byte>(_utf8.GetBytes(_greeting));

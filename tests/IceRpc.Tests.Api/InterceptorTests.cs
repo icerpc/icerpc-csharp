@@ -56,39 +56,6 @@ namespace IceRpc.Tests.Api
                 new Invocation { Timeout = TimeSpan.FromMilliseconds(10) }));
         }
 
-        /// <summary>Ensure that invocation interceptors are called in the expected order.</summary>
-        [Test]
-        public async Task Interceptor_CallOrder()
-        {
-            var interceptorCalls = new List<string>();
-            var pipeline = new Pipeline();
-            var prx = new InterceptorTestPrx(_prx.Proxy with { Invoker = pipeline });
-
-            pipeline.Use(
-                next => new InlineInvoker(async (request, cancel) =>
-                {
-                    interceptorCalls.Add("ProxyInterceptors -> 0");
-                    IncomingResponse result = await next.InvokeAsync(request, cancel);
-                    interceptorCalls.Add("ProxyInterceptors <- 0");
-                    return result;
-                }),
-                next => new InlineInvoker(async (request, cancel) =>
-                {
-                    interceptorCalls.Add("ProxyInterceptors -> 1");
-                    IncomingResponse result = await next.InvokeAsync(request, cancel);
-                    interceptorCalls.Add("ProxyInterceptors <- 1");
-                    return result;
-                }));
-
-            await new ServicePrx(prx.Proxy).IcePingAsync();
-
-            Assert.That(interceptorCalls[0], Is.EqualTo("ProxyInterceptors -> 0"));
-            Assert.That(interceptorCalls[1], Is.EqualTo("ProxyInterceptors -> 1"));
-            Assert.That(interceptorCalls[2], Is.EqualTo("ProxyInterceptors <- 1"));
-            Assert.That(interceptorCalls[3], Is.EqualTo("ProxyInterceptors <- 0"));
-            Assert.That(interceptorCalls.Count, Is.EqualTo(4));
-        }
-
         /// <summary>Ensure that invocation interceptors can bypass the remote call and directly return a result.
         /// </summary>
         [TestCase(0, 1)]
