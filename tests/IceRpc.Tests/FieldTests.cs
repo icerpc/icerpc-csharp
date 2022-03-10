@@ -16,7 +16,7 @@ public class FieldTests
     private static readonly byte[] _connectionFieldValue = new byte[] { 0xAA, 0xBB, 0xCC };
 
     [Test]
-    public async Task Verify_client_connection_field_is_received_by_server_connection()
+    public async Task Client_connection_field_is_received_by_server_connection()
     {
         ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>>? peerFields = null;
         var colocTransport = new ColocTransport();
@@ -48,7 +48,7 @@ public class FieldTests
     }
 
     [Test]
-    public async Task Verify_server_connection_field_is_received_by_client_connection()
+    public async Task Server_connection_field_is_received_by_client_connection()
     {
         var colocTransport = new ColocTransport();
         await using var server = new Server(new ServerOptions

@@ -30,7 +30,7 @@ namespace IceRpc
         {
             if (request.Protocol.HasFields &&
                 _options.DecompressPayload &&
-                request.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
+                request.Features.Get<Features.DecompressPayload>() != Features.DecompressPayload.No)
             {
                 CompressionFormat compressionFormat = request.Fields.DecodeValue(
                     RequestFieldKey.CompressionFormat,
@@ -45,6 +45,8 @@ namespace IceRpc
             }
 
             OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
+
+            // The CompressPayload feature is typically set through the Slice compress attribute.
 
             if (request.Protocol.HasFields &&
                 _options.CompressPayload &&

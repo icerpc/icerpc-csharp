@@ -28,9 +28,11 @@ namespace IceRpc
 
         async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
+            // The CompressPayload feature is typically set through the Slice compress attribute.
+
             if (request.Protocol.HasFields &&
                 _options.CompressPayload &&
-                request.Features[typeof(Features.CompressPayload)] == Features.CompressPayload.Yes &&
+                request.Features.Get<Features.CompressPayload>() == Features.CompressPayload.Yes &&
                 !request.Fields.ContainsKey(RequestFieldKey.CompressionFormat))
             {
                 request.PayloadSink = PipeWriter.Create(
@@ -46,7 +48,7 @@ namespace IceRpc
             if (request.Protocol.HasFields &&
                 _options.DecompressPayload &&
                 response.ResultType == ResultType.Success &&
-                request.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
+                request.Features.Get<Features.DecompressPayload>() != Features.DecompressPayload.No)
             {
                 CompressionFormat compressionFormat = response.Fields.DecodeValue(
                    ResponseFieldKey.CompressionFormat,
