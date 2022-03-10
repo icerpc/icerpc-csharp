@@ -599,10 +599,24 @@ namespace IceRpc.Internal
             DecodeFunc<T> decodeFunc,
             CancellationToken cancel)
         {
+            PipeReader input = _remoteControlStream!.Input;
+
             while (true)
             {
-                ReadResult readResult = await _remoteControlStream!.Input.ReadSegmentAsync(
-                    cancel).ConfigureAwait(false);
+                ReadResult readResult = await input.ReadAsync(cancel).ConfigureAwait(false);
+                if (readResult.IsCanceled)
+                {
+                    throw new OperationCanceledException();
+                }
+                if (readResult.Buffer.IsEmpty)
+                {
+                    throw new InvalidDataException("invalid empty control frame");
+                }
+
+                IceRpcControlFrameType frameType = readResult.Buffer.FirstSpan[0].AsIceRpcControlFrameType();
+                input.AdvanceTo(readResult.Buffer.GetPosition(1));
+
+                readResult = await input.ReadSegmentAsync(cancel).ConfigureAwait(false);
                 if (readResult.IsCanceled)
                 {
                     throw new OperationCanceledException();
@@ -610,16 +624,10 @@ namespace IceRpc.Internal
 
                 try
                 {
-                    if (readResult.Buffer.Length == 0)
-                    {
-                        throw new InvalidDataException("invalid empty control frame");
-                    }
-
-                    IceRpcControlFrameType frameType = readResult.Buffer.FirstSpan[0].AsIceRpcControlFrameType();
                     if (frameType == IceRpcControlFrameType.Ping)
                     {
                         // expected, nothing to do
-                        if (readResult.Buffer.Length > 1)
+                        if (readResult.Buffer.Length > 0)
                         {
                             throw new InvalidDataException("invalid non-empty ping control frame");
                         }
@@ -631,12 +639,15 @@ namespace IceRpc.Internal
                     }
                     else
                     {
-                        return DecodeBody(readResult.Buffer.Slice(1), decodeFunc);
+                        return DecodeBody(readResult.Buffer, decodeFunc);
                     }
                 }
                 finally
                 {
-                    _remoteControlStream!.Input.AdvanceTo(readResult.Buffer.End);
+                    if (!readResult.Buffer.IsEmpty)
+                    {
+                        input.AdvanceTo(readResult.Buffer.End);
+                    }
                 }
             }
 
@@ -655,11 +666,13 @@ namespace IceRpc.Internal
             CancellationToken cancel)
         {
             PipeWriter output = _controlStream!.Output;
+            Span<byte> span = output.GetSpan();
+            span[0] = (byte)frameType;
+            output.Advance(1);
 
             var encoder = new SliceEncoder(output, Encoding.Slice20);
-            Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4); // TODO: reduce bytes?
+            Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2); // TODO: switch to MaxHeaderSize
             int startPos = encoder.EncodedByteCount; // does not include the size
-            encoder.EncodeByte((byte)frameType);
             frameEncodeAction?.Invoke(ref encoder);
             Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
 
