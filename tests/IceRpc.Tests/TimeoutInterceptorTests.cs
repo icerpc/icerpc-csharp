@@ -4,11 +4,136 @@ using NUnit.Framework;
 using IceRpc.Configure;
 using IceRpc.Slice;
 using IceRpc.Internal;
+using IceRpc.Transports;
 
 namespace IceRpc.Tests;
 
 public sealed class TimeoutInterceptorTests
 {
+    [Test]
+    public void Cannot_set_invocation_deadline_with_a_non_cancellable_cancellation_token()
+    {
+        // Arrange
+        var invocation = new Invocation
+        {
+            Deadline = DateTime.Now + TimeSpan.FromSeconds(60),
+        };
+
+        var proxy = new Proxy(Protocol.IceRpc);
+
+        // Act
+        Assert.ThrowsAsync<ArgumentException>(
+            () => proxy.InvokeAsync(
+                "",
+                Encoding.Slice20,
+                EmptyPipeReader.Instance,
+                null,
+                SliceDecoder.GetActivator(typeof(TimeoutInterceptorTests).Assembly),
+                invocation,
+                cancel: CancellationToken.None));
+    }
+
+    [TestCase(-2)] // Cannot use a negative timeout
+    [TestCase(-1)] // Cannot use infinite timeout
+    public void Invalid_timeout_with_timeout_interceptor(int timeout)
+    {
+        // Arrange
+        var pipeline = new Pipeline();
+        pipeline.UseTimeout(TimeSpan.FromSeconds(timeout));
+        var proxy = new Proxy(Protocol.IceRpc)
+        {
+            Invoker = pipeline,
+        };
+
+        // Act
+        Assert.ThrowsAsync<ArgumentException>(
+            () => proxy.InvokeAsync(
+                "",
+                Encoding.Slice20,
+                EmptyPipeReader.Instance,
+                null,
+                SliceDecoder.GetActivator(typeof(TimeoutInterceptorTests).Assembly),
+                null));
+    }
+
+    /// <summary>Verifies that the dispatch deadline has the expected value set by the timeout interceptor.</summary>
+    [Test]
+    public async Task Invocation_interceptor_sets_the_dispatch_deadline()
+    {
+        // Arrange
+        var colocTransport = new ColocTransport();
+        var timeout = TimeSpan.FromSeconds(60);
+        DateTime deadline = DateTime.MaxValue;
+        await using var server = new Server(new ServerOptions()
+        {
+            Dispatcher = new InlineDispatcher((request, cancel) =>
+            {
+                deadline = new Dispatch(request).Deadline;
+                return new(new OutgoingResponse(request));
+            }),
+            MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+        });
+        server.Listen();
+
+        await using var connection = new Connection(new ConnectionOptions()
+        {
+            RemoteEndpoint = server.Endpoint,
+            MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport)
+        });
+        var pipeline = new Pipeline();
+        pipeline.UseTimeout(timeout);
+        var prx = Proxy.FromConnection(connection, "/", invoker: pipeline);
+
+        DateTime expectedDeadline = DateTime.UtcNow + timeout;
+
+        // Act
+        await prx.InvokeAsync(
+            "",
+            Encoding.Slice20,
+            EmptyPipeReader.Instance,
+            null,
+            SliceDecoder.GetActivator(typeof(TimeoutInterceptorTests).Assembly),
+            null);
+
+        // Assert
+        Assert.That((deadline - expectedDeadline).TotalMilliseconds, Is.LessThan(100));
+    }
+
+    /// <summary>Verifies that when using an infinite invocation timeout the cancellation token passed to the invoker
+    /// cannot be canceled.</summary>
+    [Test]
+    public async Task Invocation_with_infinite_timeout_cannot_be_canceled()
+    {
+        // Arrange
+        var invocation = new Invocation
+        {
+            Timeout = Timeout.InfiniteTimeSpan
+        };
+
+        CancellationToken? cancelationToken = null;
+        var proxy = new Proxy(Protocol.IceRpc)
+        {
+            Invoker = new InlineInvoker((request, cancel) =>
+            {
+                cancelationToken = cancel;
+                return Task.FromResult(new IncomingResponse(request));
+            }),
+        };
+
+        // Act
+        await proxy.InvokeAsync(
+            "",
+            Encoding.Slice20,
+            EmptyPipeReader.Instance,
+            null,
+            SliceDecoder.GetActivator(typeof(TimeoutInterceptorTests).Assembly),
+            invocation);
+
+        // Assert
+        Assert.That(cancelationToken, Is.Not.Null);
+        Assert.That(cancelationToken.Value.CanBeCanceled, Is.False);
+    }
+
     /// <summary>Verifies that the timeout interceptor is automatically setup when <see cref="Invocation.Timeout"/> is
     /// set and <see cref="Invocation.Deadline"/> is not.</summary>
     [Test]
@@ -88,86 +213,5 @@ public sealed class TimeoutInterceptorTests
         Assert.That(cancelationToken, Is.Not.Null);
         Assert.That(cancelationToken.Value.CanBeCanceled, Is.True);
         Assert.That(cancelationToken.Value.IsCancellationRequested, Is.True);
-    }
-
-    [Test]
-    public void Cannot_set_invocation_deadline_with_a_non_cancellable_cancellation_token()
-    {
-        // Arrange
-        var invocation = new Invocation
-        {
-            Deadline = DateTime.Now + TimeSpan.FromSeconds(60),
-        };
-
-        var proxy = new Proxy(Protocol.IceRpc);
-
-        // Act
-        Assert.ThrowsAsync<ArgumentException>(
-            () => proxy.InvokeAsync(
-                "",
-                Encoding.Slice20,
-                EmptyPipeReader.Instance,
-                null,
-                SliceDecoder.GetActivator(typeof(TimeoutInterceptorTests).Assembly),
-                invocation,
-                cancel: CancellationToken.None));
-    }
-
-    [TestCase(-2)] // Cannot use a negative timeout
-    [TestCase(-1)] // Cannot use infinite timeout
-    public void Invalid_timeout_with_timeout_interceptor(int timeout)
-    {
-        // Arrange
-        var pipeline = new Pipeline();
-        pipeline.UseTimeout(TimeSpan.FromSeconds(timeout));
-        var proxy = new Proxy(Protocol.IceRpc)
-        {
-            Invoker = pipeline,
-        };
-
-        // Act
-        Assert.ThrowsAsync<ArgumentException>(
-            () => proxy.InvokeAsync(
-                "",
-                Encoding.Slice20,
-                EmptyPipeReader.Instance,
-                null,
-                SliceDecoder.GetActivator(typeof(TimeoutInterceptorTests).Assembly),
-                null));
-    }
-
-    /// <summary>Verifies that when using an infinite invocation timeout the cancellation token passed to the invoker
-    /// cannot be canceled.</summary>
-    [Test]
-    public async Task Invocation_with_infinite_timeout_cannot_be_canceled()
-    {
-        // Arrange
-        var invocation = new Invocation
-        {
-            Timeout = Timeout.InfiniteTimeSpan
-        };
-
-        CancellationToken? cancelationToken = null;
-        var proxy = new Proxy(Protocol.IceRpc)
-        {
-            Invoker = new InlineInvoker((request, cancel) =>
-            {
-                cancelationToken = cancel;
-                return Task.FromResult(new IncomingResponse(request));
-            }),
-        };
-
-        // Act
-        await proxy.InvokeAsync(
-            "",
-            Encoding.Slice20,
-            EmptyPipeReader.Instance,
-            null,
-            SliceDecoder.GetActivator(typeof(TimeoutInterceptorTests).Assembly),
-            invocation);
-
-        // Assert
-        Assert.That(cancelationToken, Is.Not.Null);
-        Assert.That(cancelationToken.Value.CanBeCanceled, Is.False);
     }
 }
