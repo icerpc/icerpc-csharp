@@ -67,7 +67,7 @@ namespace IceRpc.Internal
         public void Dispose() => _shutdownCancellationSource.Dispose();
 
         public Task PingAsync(CancellationToken cancel) =>
-            SendControlFrameAsync(IceRpcControlFrameType.Ping, null, cancel).AsTask();
+            SendControlFrameAsync(IceRpcControlFrameType.Ping, encodeAction: null, cancel).AsTask();
 
         /// <inheritdoc/>
         public async Task<IncomingRequest> ReceiveRequestAsync()
@@ -555,6 +555,8 @@ namespace IceRpc.Internal
             await ReceiveControlFrameHeaderAsync(
                 IceRpcControlFrameType.GoAwayCompleted,
                 CancellationToken.None).ConfigureAwait(false);
+
+            // GoAwayCompleted has no body
         }
 
         /// <inheritdoc/>
@@ -583,8 +585,9 @@ namespace IceRpc.Internal
             // Wait for the remote control stream to be accepted and read the protocol initialize frame
             _remoteControlStream = await _networkConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
 
-            PeerFields = await ReceiveControlFrameAsync(
-                IceRpcControlFrameType.Initialize,
+            await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.Initialize, cancel).ConfigureAwait(false);
+
+            PeerFields = await ReceiveControlFrameBodyAsync(
                 (ref SliceDecoder decoder) => decoder.DecodeFieldDictionary(
                     (ref SliceDecoder decoder) => decoder.DecodeConnectionFieldKey()).ToImmutableDictionary(),
                 cancel).ConfigureAwait(false);
@@ -593,60 +596,26 @@ namespace IceRpc.Internal
             _ = Task.Run(() => WaitForGoAwayAsync(), CancellationToken.None);
         }
 
-        private async ValueTask<T> ReceiveControlFrameAsync<T>(
-            IceRpcControlFrameType expectedFrameType,
+        private async ValueTask<T> ReceiveControlFrameBodyAsync<T>(
             DecodeFunc<T> decodeFunc,
             CancellationToken cancel)
         {
             PipeReader input = _remoteControlStream!.Input;
-
-            while (true)
+            ReadResult readResult = await input.ReadSegmentAsync(cancel).ConfigureAwait(false);
+            if (readResult.IsCanceled)
             {
-                ReadResult readResult = await input.ReadAsync(cancel).ConfigureAwait(false);
-                if (readResult.IsCanceled)
-                {
-                    throw new OperationCanceledException();
-                }
-                if (readResult.Buffer.IsEmpty)
-                {
-                    throw new InvalidDataException("invalid empty control frame");
-                }
+                throw new OperationCanceledException();
+            }
 
-                IceRpcControlFrameType frameType = readResult.Buffer.FirstSpan[0].AsIceRpcControlFrameType();
-                input.AdvanceTo(readResult.Buffer.GetPosition(1));
-
-                if (frameType == IceRpcControlFrameType.Ping)
+            try
+            {
+                return DecodeBody(readResult.Buffer, decodeFunc);
+            }
+            finally
+            {
+                if (!readResult.Buffer.IsEmpty)
                 {
-                    continue;
-                }
-                else if (frameType != expectedFrameType)
-                {
-                    throw new InvalidDataException(
-                       $"received frame type {frameType} but expected {expectedFrameType}");
-                }
-                else if (frameType == IceRpcControlFrameType.GoAwayCompleted)
-                {
-                    return DecodeBody(default, decodeFunc); // TODO: temporary
-                }
-                else
-                {
-                    readResult = await input.ReadSegmentAsync(cancel).ConfigureAwait(false);
-                    if (readResult.IsCanceled)
-                    {
-                        throw new OperationCanceledException();
-                    }
-
-                    try
-                    {
-                        return DecodeBody(readResult.Buffer, decodeFunc);
-                    }
-                    finally
-                    {
-                        if (!readResult.Buffer.IsEmpty)
-                        {
-                            input.AdvanceTo(readResult.Buffer.End);
-                        }
-                    }
+                    input.AdvanceTo(readResult.Buffer.End);
                 }
             }
 
@@ -704,8 +673,7 @@ namespace IceRpc.Internal
             CancellationToken cancel)
         {
             PipeWriter output = _controlStream!.Output;
-            Span<byte> span = output.GetSpan();
-            span[0] = (byte)frameType;
+            output.GetSpan()[0] = (byte)frameType;
             output.Advance(1);
 
             if (encodeAction != null)
@@ -782,8 +750,12 @@ namespace IceRpc.Internal
             try
             {
                 // Receive and decode GoAway frame
-                IceRpcGoAway goAwayFrame = await ReceiveControlFrameAsync(
+
+                await ReceiveControlFrameHeaderAsync(
                     IceRpcControlFrameType.GoAway,
+                    CancellationToken.None).ConfigureAwait(false);
+
+                IceRpcGoAway goAwayFrame = await ReceiveControlFrameBodyAsync(
                     (ref SliceDecoder decoder) => new IceRpcGoAway(ref decoder),
                     CancellationToken.None).ConfigureAwait(false);
 
