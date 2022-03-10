@@ -497,7 +497,7 @@ namespace IceRpc.Internal
             // Send GoAway frame.
             await SendControlFrameAsync(
                 IceRpcControlFrameType.GoAway,
-                (ref SliceEncoder encoder) => new IceRpcGoAwayBody(
+                (ref SliceEncoder encoder) => new IceRpcGoAway(
                     _lastRemoteBidirectionalStreamId,
                     _lastRemoteUnidirectionalStreamId,
                     message).Encode(ref encoder),
@@ -736,9 +736,9 @@ namespace IceRpc.Internal
             try
             {
                 // Receive and decode GoAway frame
-                IceRpcGoAwayBody goAwayFrame = await ReceiveControlFrameAsync(
+                IceRpcGoAway goAwayFrame = await ReceiveControlFrameAsync(
                     IceRpcControlFrameType.GoAway,
-                    (ref SliceDecoder decoder) => new IceRpcGoAwayBody(ref decoder),
+                    (ref SliceDecoder decoder) => new IceRpcGoAway(ref decoder),
                     CancellationToken.None).ConfigureAwait(false);
 
                 // Raise the peer shutdown initiated event.
