@@ -67,7 +67,7 @@ namespace IceRpc.Internal
         public void Dispose() => _shutdownCancellationSource.Dispose();
 
         public Task PingAsync(CancellationToken cancel) =>
-            SendControlFrameAsync(IceRpcControlFrameType.Ping, null, cancel);
+            SendControlFrameAsync(IceRpcControlFrameType.Ping, null, cancel).AsTask();
 
         /// <inheritdoc/>
         public async Task<IncomingRequest> ReceiveRequestAsync()
@@ -649,34 +649,26 @@ namespace IceRpc.Internal
             }
         }
 
-        private async Task SendControlFrameAsync(
+        private ValueTask<FlushResult> SendControlFrameAsync(
             IceRpcControlFrameType frameType,
             EncodeAction? frameEncodeAction,
             CancellationToken cancel)
         {
-            EncodeFrame(_controlStream!.Output);
+            PipeWriter output = _controlStream!.Output;
 
-            if (frameType == IceRpcControlFrameType.GoAwayCompleted)
-            {
-                await _controlStream!.Output.WriteAsync(
+            var encoder = new SliceEncoder(output, Encoding.Slice20);
+            Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4); // TODO: reduce bytes?
+            int startPos = encoder.EncodedByteCount; // does not include the size
+            encoder.EncodeByte((byte)frameType);
+            frameEncodeAction?.Invoke(ref encoder);
+            Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
+
+            return frameType == IceRpcControlFrameType.GoAwayCompleted ?
+                output.WriteAsync(
                     ReadOnlySequence<byte>.Empty,
                     completeWhenDone: true,
-                    cancel).ConfigureAwait(false);
-            }
-            else
-            {
-                await _controlStream!.Output.FlushAsync(cancel).ConfigureAwait(false);
-            }
-
-            void EncodeFrame(PipeWriter writer)
-            {
-                var encoder = new SliceEncoder(writer, Encoding.Slice20);
-                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4); // TODO: reduce bytes?
-                int startPos = encoder.EncodedByteCount; // does not include the size
-                encoder.EncodeByte((byte)frameType);
-                frameEncodeAction?.Invoke(ref encoder);
-                Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
-            }
+                    cancel) :
+                output.FlushAsync(cancel);
         }
 
         /// <summary>Sends the payload source and payload source stream of an outgoing frame.</summary>
