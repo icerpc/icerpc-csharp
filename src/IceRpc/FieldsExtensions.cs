@@ -10,7 +10,7 @@ namespace IceRpc
     {
         /// <summary>Sets an entry in the outgoing fields dictionary and returns the fields dictionary. If
         /// <paramref name="fields"/> is read-only, a copy is created, modified then returned.</summary>
-        /// <paramtype name="TKey">The type of the field keys.</paramtype>
+        /// <paramtype name="TKey">The type of the field key.</paramtype>
         /// <param name="fields">A fields dictionary.</param>
         /// <param name="key">The key of the entry to set.</param>
         /// <param name="value">The value of the entry to set.</param>
