@@ -548,13 +548,12 @@ namespace IceRpc.Internal
             // We are done with the shutdown, notify the peer that shutdown completed on our side.
             await SendControlFrameAsync(
                 IceRpcControlFrameType.GoAwayCompleted,
-                frameEncodeAction: null,
+                encodeAction: null,
                 CancellationToken.None).ConfigureAwait(false);
 
             // Wait for the peer to complete its side of the shutdown.
-            await ReceiveControlFrameAsync(
+            await ReceiveControlFrameHeaderAsync(
                 IceRpcControlFrameType.GoAwayCompleted,
-                (ref SliceDecoder decoder) => 0, // does not read anything
                 CancellationToken.None).ConfigureAwait(false);
         }
 
@@ -660,9 +659,48 @@ namespace IceRpc.Internal
             }
         }
 
+        private async ValueTask ReceiveControlFrameHeaderAsync(
+            IceRpcControlFrameType expectedFrameType,
+            CancellationToken cancel)
+        {
+            Debug.Assert(expectedFrameType != IceRpcControlFrameType.Ping);
+            PipeReader input = _remoteControlStream!.Input;
+
+            while (true)
+            {
+                ReadResult readResult = await input.ReadAsync(cancel).ConfigureAwait(false);
+                if (readResult.IsCanceled)
+                {
+                    throw new OperationCanceledException();
+                }
+                if (readResult.Buffer.IsEmpty)
+                {
+                    throw new InvalidDataException("invalid empty control frame");
+                }
+
+                IceRpcControlFrameType frameType = readResult.Buffer.FirstSpan[0].AsIceRpcControlFrameType();
+                input.AdvanceTo(readResult.Buffer.GetPosition(1));
+
+                if (frameType == IceRpcControlFrameType.Ping)
+                {
+                    continue;
+                }
+                else if (frameType != expectedFrameType)
+                {
+                    throw new InvalidDataException(
+                       $"received frame type {frameType} but expected {expectedFrameType}");
+                }
+                else
+                {
+                    // Received expected frame type, returning.
+                    break; // while
+                }
+            }
+        }
+
         private ValueTask<FlushResult> SendControlFrameAsync(
             IceRpcControlFrameType frameType,
-            EncodeAction? frameEncodeAction,
+            EncodeAction? encodeAction,
             CancellationToken cancel)
         {
             PipeWriter output = _controlStream!.Output;
@@ -670,12 +708,12 @@ namespace IceRpc.Internal
             span[0] = (byte)frameType;
             output.Advance(1);
 
-            if (frameEncodeAction != null)
+            if (encodeAction != null)
             {
                 var encoder = new SliceEncoder(output, Encoding.Slice20);
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2); // TODO: switch to MaxHeaderSize
                 int startPos = encoder.EncodedByteCount; // does not include the size
-                frameEncodeAction?.Invoke(ref encoder);
+                encodeAction?.Invoke(ref encoder);
                 Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
             }
 
