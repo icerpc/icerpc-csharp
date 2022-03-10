@@ -646,7 +646,8 @@ namespace IceRpc.Internal
                 {
                     continue;
                 }
-                else if (frameType != expectedFrameType)
+
+                if (frameType != expectedFrameType)
                 {
                     throw new InvalidDataException(
                        $"received frame type {frameType} but expected {expectedFrameType}");
