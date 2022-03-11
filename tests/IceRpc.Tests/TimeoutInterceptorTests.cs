@@ -25,7 +25,7 @@ public sealed class TimeoutInterceptorTests
             Invoker = pipeline,
         };
 
-        // Act
+        // Act & Assert 
         Assert.ThrowsAsync<ArgumentException>(
             () => proxy.InvokeAsync(
                 "",
