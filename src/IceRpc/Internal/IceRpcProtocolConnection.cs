@@ -67,7 +67,7 @@ namespace IceRpc.Internal
         public void Dispose() => _shutdownCancellationSource.Dispose();
 
         public Task PingAsync(CancellationToken cancel) =>
-            SendControlFrameAsync(IceRpcControlFrameType.Ping, null, cancel);
+            SendControlFrameAsync(IceRpcControlFrameType.Ping, encodeAction: null, cancel).AsTask();
 
         /// <inheritdoc/>
         public async Task<IncomingRequest> ReceiveRequestAsync()
@@ -497,7 +497,7 @@ namespace IceRpc.Internal
             // Send GoAway frame.
             await SendControlFrameAsync(
                 IceRpcControlFrameType.GoAway,
-                (ref SliceEncoder encoder) => new IceRpcGoAwayBody(
+                (ref SliceEncoder encoder) => new IceRpcGoAway(
                     _lastRemoteBidirectionalStreamId,
                     _lastRemoteUnidirectionalStreamId,
                     message).Encode(ref encoder),
@@ -548,14 +548,15 @@ namespace IceRpc.Internal
             // We are done with the shutdown, notify the peer that shutdown completed on our side.
             await SendControlFrameAsync(
                 IceRpcControlFrameType.GoAwayCompleted,
-                frameEncodeAction: null,
+                encodeAction: null,
                 CancellationToken.None).ConfigureAwait(false);
 
             // Wait for the peer to complete its side of the shutdown.
-            await ReceiveControlFrameAsync(
+            await ReceiveControlFrameHeaderAsync(
                 IceRpcControlFrameType.GoAwayCompleted,
-                (ref SliceDecoder decoder) => 0, // does not read anything
                 CancellationToken.None).ConfigureAwait(false);
+
+            // GoAwayCompleted has no body
         }
 
         /// <inheritdoc/>
@@ -584,8 +585,9 @@ namespace IceRpc.Internal
             // Wait for the remote control stream to be accepted and read the protocol initialize frame
             _remoteControlStream = await _networkConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
 
-            PeerFields = await ReceiveControlFrameAsync(
-                IceRpcControlFrameType.Initialize,
+            await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.Initialize, cancel).ConfigureAwait(false);
+
+            PeerFields = await ReceiveControlFrameBodyAsync(
                 (ref SliceDecoder decoder) => decoder.DecodeFieldDictionary(
                     (ref SliceDecoder decoder) => decoder.DecodeConnectionFieldKey()).ToImmutableDictionary(),
                 cancel).ConfigureAwait(false);
@@ -594,89 +596,91 @@ namespace IceRpc.Internal
             _ = Task.Run(() => WaitForGoAwayAsync(), CancellationToken.None);
         }
 
-        private async ValueTask<T> ReceiveControlFrameAsync<T>(
-            IceRpcControlFrameType expectedFrameType,
+        private async ValueTask<T> ReceiveControlFrameBodyAsync<T>(
             DecodeFunc<T> decodeFunc,
             CancellationToken cancel)
         {
+            PipeReader input = _remoteControlStream!.Input;
+            ReadResult readResult = await input.ReadSegmentAsync(cancel).ConfigureAwait(false);
+            if (readResult.IsCanceled)
+            {
+                throw new OperationCanceledException();
+            }
+
+            try
+            {
+                return Encoding.Slice20.DecodeBuffer(readResult.Buffer, decodeFunc);
+            }
+            finally
+            {
+                if (!readResult.Buffer.IsEmpty)
+                {
+                    input.AdvanceTo(readResult.Buffer.End);
+                }
+            }
+        }
+
+        private async ValueTask ReceiveControlFrameHeaderAsync(
+            IceRpcControlFrameType expectedFrameType,
+            CancellationToken cancel)
+        {
+            Debug.Assert(expectedFrameType != IceRpcControlFrameType.Ping);
+            PipeReader input = _remoteControlStream!.Input;
+
             while (true)
             {
-                ReadResult readResult = await _remoteControlStream!.Input.ReadSegmentAsync(
-                    cancel).ConfigureAwait(false);
+                ReadResult readResult = await input.ReadAsync(cancel).ConfigureAwait(false);
                 if (readResult.IsCanceled)
                 {
                     throw new OperationCanceledException();
                 }
-
-                try
+                if (readResult.Buffer.IsEmpty)
                 {
-                    if (readResult.Buffer.Length == 0)
-                    {
-                        throw new InvalidDataException("invalid empty control frame");
-                    }
-
-                    IceRpcControlFrameType frameType = readResult.Buffer.FirstSpan[0].AsIceRpcControlFrameType();
-                    if (frameType == IceRpcControlFrameType.Ping)
-                    {
-                        // expected, nothing to do
-                        if (readResult.Buffer.Length > 1)
-                        {
-                            throw new InvalidDataException("invalid non-empty ping control frame");
-                        }
-                    }
-                    else if (frameType != expectedFrameType)
-                    {
-                        throw new InvalidDataException(
-                            $"received frame type {frameType} but expected {expectedFrameType}");
-                    }
-                    else
-                    {
-                        return DecodeBody(readResult.Buffer.Slice(1), decodeFunc);
-                    }
+                    throw new InvalidDataException("invalid empty control frame");
                 }
-                finally
+
+                IceRpcControlFrameType frameType = readResult.Buffer.FirstSpan[0].AsIceRpcControlFrameType();
+                input.AdvanceTo(readResult.Buffer.GetPosition(1));
+
+                if (frameType == IceRpcControlFrameType.Ping)
                 {
-                    _remoteControlStream!.Input.AdvanceTo(readResult.Buffer.End);
+                    continue;
                 }
-            }
 
-            static T DecodeBody(ReadOnlySequence<byte> buffer, DecodeFunc<T> decodeFunc)
-            {
-                var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                T result = decodeFunc(ref decoder);
-                decoder.CheckEndOfBuffer(skipTaggedParams: false);
-                return result;
+                if (frameType != expectedFrameType)
+                {
+                    throw new InvalidDataException(
+                       $"received frame type {frameType} but expected {expectedFrameType}");
+                }
+                else
+                {
+                    // Received expected frame type, returning.
+                    break; // while
+                }
             }
         }
 
-        private async Task SendControlFrameAsync(
+        private ValueTask<FlushResult> SendControlFrameAsync(
             IceRpcControlFrameType frameType,
-            EncodeAction? frameEncodeAction,
+            EncodeAction? encodeAction,
             CancellationToken cancel)
         {
-            EncodeFrame(_controlStream!.Output);
+            PipeWriter output = _controlStream!.Output;
+            output.GetSpan()[0] = (byte)frameType;
+            output.Advance(1);
 
-            if (frameType == IceRpcControlFrameType.GoAwayCompleted)
+            if (encodeAction != null)
             {
-                await _controlStream!.Output.WriteAsync(
-                    ReadOnlySequence<byte>.Empty,
-                    completeWhenDone: true,
-                    cancel).ConfigureAwait(false);
-            }
-            else
-            {
-                await _controlStream!.Output.FlushAsync(cancel).ConfigureAwait(false);
-            }
-
-            void EncodeFrame(PipeWriter writer)
-            {
-                var encoder = new SliceEncoder(writer, Encoding.Slice20);
-                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4); // TODO: reduce bytes?
+                var encoder = new SliceEncoder(output, Encoding.Slice20);
+                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2); // TODO: switch to MaxHeaderSize
                 int startPos = encoder.EncodedByteCount; // does not include the size
-                encoder.EncodeByte((byte)frameType);
-                frameEncodeAction?.Invoke(ref encoder);
+                encodeAction?.Invoke(ref encoder);
                 Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
             }
+
+            return frameType == IceRpcControlFrameType.GoAwayCompleted ?
+                output.WriteAsync(ReadOnlySequence<byte>.Empty, completeWhenDone: true, cancel) :
+                output.FlushAsync(cancel);
         }
 
         /// <summary>Sends the payload source and payload source stream of an outgoing frame.</summary>
@@ -736,9 +740,13 @@ namespace IceRpc.Internal
             try
             {
                 // Receive and decode GoAway frame
-                IceRpcGoAwayBody goAwayFrame = await ReceiveControlFrameAsync(
+
+                await ReceiveControlFrameHeaderAsync(
                     IceRpcControlFrameType.GoAway,
-                    (ref SliceDecoder decoder) => new IceRpcGoAwayBody(ref decoder),
+                    CancellationToken.None).ConfigureAwait(false);
+
+                IceRpcGoAway goAwayFrame = await ReceiveControlFrameBodyAsync(
+                    (ref SliceDecoder decoder) => new IceRpcGoAway(ref decoder),
                     CancellationToken.None).ConfigureAwait(false);
 
                 // Raise the peer shutdown initiated event.
