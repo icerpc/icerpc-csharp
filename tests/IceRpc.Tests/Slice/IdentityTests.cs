@@ -7,17 +7,17 @@ using System.Collections.Immutable;
 namespace IceRpc.Slice.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
-[Timeout(30000)]
 public class IdentityTests
 {
     /// <summary>Provides test case data for
-    /// <see cref="Format_identity_to_path(string name, string category, IceProxyFormat format)"/> test.
+    /// <see cref="Identity_to_proxy_path_with_format(string name, string category, IceProxyFormat format)"/> test.
     /// </summary>
-    private static IEnumerable<TestCaseData> IceProxyFormatSource
+    private static IEnumerable<TestCaseData> IdentityProxyPathSource
     {
         get
         {
-            (string, string)[] testData = {
+            (string, string)[] testData =
+            {
                 ("test", "\x7f€"),
                 ("banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024", "greek \ud800\udd6a"),
                 ("test", ",X2QNUAzSBcJ_e$AV;E\\"),
@@ -31,6 +31,71 @@ public class IdentityTests
                     {
                         yield return new TestCaseData(name, category, format);
                     }
+            }
+        }
+    }
+
+    /// <summary>Provides test case data for
+    /// <see cref="Identity_to_proxy_string_with_format(string name, string category, string expected,
+    ///  IceProxyFormat format)"/> test. </summary>
+    private static IEnumerable<TestCaseData> IdentityProxyStringSource
+    {
+        get
+        {
+            (string, string, string, IceProxyFormat)[] testData =
+            {
+                (
+                    "test",
+                    "\x7f€",
+                    "\\177\\342\\202\\254/test",
+                    IceProxyFormat.Compat
+                ),
+                (
+                    "banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024",
+                    "greek \ud800\udd6a",
+                    "\"greek \\360\\220\\205\\252/banana \\016-\\360\\237\\215\\214\\342\\202\\254\\302\\242$\"",
+                    IceProxyFormat.Compat
+                ),
+                (
+                    "test",
+                    "\x7f€",
+                    "\\u007f\\u20ac/test",
+                    IceProxyFormat.ASCII
+                ),
+                (
+                    "banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024",
+                    "greek \ud800\udd6a",
+                    "\"greek \\U0001016a/banana \\u000e-\\U0001f34c\\u20ac\\u00a2$\"",
+                    IceProxyFormat.ASCII
+                ),
+                (
+                    "test",
+                    "\x7f€",
+                    "\\u007f€/test",
+                    IceProxyFormat.Unicode
+                ),
+                (
+                    "test",
+                    ",X2QNUAz\\SB\\/cJ_e$AV;E\\\\",
+                    ",X2QNUAz\\\\SB\\\\\\/cJ_e$AV;E\\\\\\\\/test",
+                    IceProxyFormat.Unicode
+                ),
+                (
+                    "/test",
+                    "cat/",
+                    "cat\\//\\/test",
+                    IceProxyFormat.Unicode
+                ),
+                (
+                    "banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024",
+                    "greek \ud800\udd6a",
+                    "\"greek \ud800\udd6a/banana \\u000e-\ud83c\udf4c\u20ac\u00a2$\"",
+                    IceProxyFormat.Unicode
+                )
+            };
+            foreach ((string name, string category, string expected, IceProxyFormat format) in testData)
+            {
+                yield return new TestCaseData(name, category, expected, format);
             }
         }
     }
@@ -56,71 +121,30 @@ public class IdentityTests
         Assert.That(path, Is.EqualTo(referencePath));
     }
 
-    /// <summary>Verifies that Identity can be converted to an Ice string with Compat format (using ToString)
-    /// and converted back to the same identity (with Parse).</summary>
-    /// <param name="name">The name field of the Identity.</param>
-    /// <param name="category">The category field of the Identity.</param>
-    /// <param name="compat">The "stringified" compat identity to check against (optional).</param>
-    [TestCase("test", "\x7f€", "\\177\\342\\202\\254/test")]
-    [TestCase("banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024",
-              "greek \ud800\udd6a",
-              "\"greek \\360\\220\\205\\252/banana \\016-\\360\\237\\215\\214\\342\\202\\254\\302\\242$\"")]
-    public void Compat_identity_to_path(string name, string category, string compat)
-    {
-        var path = new Identity(name, category).ToPath();
-        var proxy = new Proxy(Protocol.Ice) { Path = path };
-
-        string identity = proxy.ToString(IceProxyFormat.Compat)[..^10];
-
-        Assert.That(identity, Is.EqualTo(compat));
-    }
-
     /// <summary>Verifies that Identity can be converted to an Ice string with ASCII format (using ToString)
     /// and converted back to the same identity (with Parse).</summary>
     /// <param name="name">The name field of the Identity.</param>
     /// <param name="category">The category field of the Identity.</param>
-    /// <param name="ascii">The "stringified" ascii identity to check against (optional).</param>
-    [TestCase("test", "\x7f€", "\\u007f\\u20ac/test")]
-    [TestCase("banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024",
-              "greek \ud800\udd6a",
-              "\"greek \\U0001016a/banana \\u000e-\\U0001f34c\\u20ac\\u00a2$\"")]
-    public void Ascii_identity_to_path(string name, string category, string ascii)
+    /// <param name="expected">The "stringified" format identity to check against</param>
+    /// <param name="format">The format being used to create the Identity from the Proxy</param>
+    [Test, TestCaseSource(nameof(IdentityProxyStringSource))]
+    public void Identity_to_proxy_string_with_format(string name, string category, string expected, IceProxyFormat format)
     {
         var path = new Identity(name, category).ToPath();
         var proxy = new Proxy(Protocol.Ice) { Path = path };
 
-        string identity = proxy.ToString(IceProxyFormat.ASCII)[..^10];
+        string identity = proxy.ToString(format)[..^10];
 
-        Assert.That(identity, Is.EqualTo(ascii));
-    }
-
-    /// <summary>Verifies that Identity can be converted to an Ice string with unicode format (using ToString)
-    /// and converted back to the same identity (with Parse).</summary>
-    /// <param name="name">The name field of the Identity.</param>
-    /// <param name="category">The category field of the Identity.</param>
-    /// <param name="unicode">The "stringified" unicode identity to check against.</param>
-    [TestCase("test", "\x7f€", "\\u007f€/test")]
-    [TestCase("banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024",
-              "greek \ud800\udd6a",
-              "\"greek \ud800\udd6a/banana \\u000e-\ud83c\udf4c\u20ac\u00a2$\"")]
-    [TestCase("test", ",X2QNUAz\\SB\\/cJ_e$AV;E\\\\", ",X2QNUAz\\\\SB\\\\\\/cJ_e$AV;E\\\\\\\\/test")]
-    [TestCase("/test", "cat/", "cat\\//\\/test")]
-    public void Unicode_identity_to_path(string name, string category, string unicode)
-    {
-        var path = new Identity(name, category).ToPath();
-        var proxy = new Proxy(Protocol.Ice) { Path = path };
-
-        string identity = proxy.ToString(IceProxyFormat.Unicode)[..^10]; // trim " -t -e 1.1"
-
-        Assert.That(identity, Is.EqualTo(unicode));
+        Assert.That(identity, Is.EqualTo(expected));
     }
 
     /// <summary>Verifies that an Identity can be used in conjunction with an IceFormat to produce a
     /// Proxy with the correct path.</summary>
     /// <param name="name">The name field of the Identity.</param>
     /// <param name="category">The category field of the Identity.</param>
-    [Test, TestCaseSource(nameof(IceProxyFormatSource))]
-    public void Format_identity_to_path(string name, string category, IceProxyFormat format)
+    /// <param name="format">The format being used to create the Identity from the Proxy</param>
+    [Test, TestCaseSource(nameof(IdentityProxyPathSource))]
+    public void Identity_to_proxy_path_with_format(string name, string category, IceProxyFormat format)
     {
         var path = new Identity(name, category).ToPath();
         var proxy = new Proxy(Protocol.Ice) { Path = path };
