@@ -165,7 +165,7 @@ namespace IceRpc.Tests.Internal
             router.UseLogger(loggerFactory);
             router.Use(next => new InlineDispatcher((request, cancel) => new(response)));
 
-            Assert.That(await ((IDispatcher)router).DispatchAsync(request), Is.EqualTo(response));
+            Assert.That(await router.DispatchAsync(request), Is.EqualTo(response));
 
             Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc"));
             Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(twoway ? 2 : 1));
@@ -211,8 +211,7 @@ namespace IceRpc.Tests.Internal
             router.UseLogger(loggerFactory);
             router.Use(next => new InlineDispatcher((request, cancel) => throw exception));
 
-            Assert.CatchAsync<ArgumentException>(
-                async () => await ((IDispatcher)router).DispatchAsync(request));
+            Assert.CatchAsync<ArgumentException>(async () => await router.DispatchAsync(request));
 
             Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(2));
 
@@ -255,23 +254,21 @@ namespace IceRpc.Tests.Internal
         }
 
         private static IncomingRequest CreateIncomingRequest(Connection connection, bool twoway) =>
-            new(
-                connection.Protocol,
-                path: "/dummy",
-                fragment: "",
-                operation: "foo",
-                PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
-                Encoding.Slice20,
-                responseWriter: new DelayedPipeWriterDecorator())
+            new(connection.Protocol)
             {
                 Connection = connection,
-                IsOneway = !twoway
+                IsOneway = !twoway,
+                Path = "/dummy",
+                Operation = "foo",
+                Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
+                PayloadEncoding = Encoding.Slice20,
+                ResponseWriter = new DelayedPipeWriterDecorator()
             };
 
-        private static IncomingResponse CreateIncomingResponse(OutgoingRequest request) => new(
-            request,
-            ResultType.Success,
-            PipeReader.Create(new ReadOnlySequence<byte>(new byte[10])));
+        private static IncomingResponse CreateIncomingResponse(OutgoingRequest request) => new(request)
+        {
+            Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[10]))
+        };
 
         private static OutgoingRequest CreateOutgoingRequest(Connection connection, bool twoway) =>
             new(new Proxy(connection.Protocol) { Path = "/dummy" })

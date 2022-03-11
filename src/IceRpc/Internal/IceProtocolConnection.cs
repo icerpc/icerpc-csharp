@@ -136,20 +136,19 @@ namespace IceRpc.Internal
                     }
                 }
 
-                var request = new IncomingRequest(
-                    Protocol.Ice,
-                    path: requestHeader.Path,
-                    fragment: requestHeader.Fragment,
-                    operation: requestHeader.Operation,
-                    payload: payloadReader,
-                    payloadEncoding: Encoding.FromMajorMinor(
-                        requestHeader.EncapsulationHeader.PayloadEncodingMajor,
-                        requestHeader.EncapsulationHeader.PayloadEncodingMinor),
-                    responseWriter: _payloadWriter)
+                var request = new IncomingRequest(Protocol.Ice)
                 {
                     Fields = requestHeader.OperationMode == OperationMode.Normal ?
                         ImmutableDictionary<int, ReadOnlySequence<byte>>.Empty : _idempotentFields,
+                    Fragment = requestHeader.Fragment,
                     IsOneway = requestId == 0,
+                    Operation = requestHeader.Operation,
+                    Path = requestHeader.Path,
+                    Payload = payloadReader,
+                    PayloadEncoding = Encoding.FromMajorMinor(
+                        requestHeader.EncapsulationHeader.PayloadEncodingMajor,
+                        requestHeader.EncapsulationHeader.PayloadEncodingMinor),
+                    ResponseWriter = _payloadWriter,
                 };
 
                 request.Features = request.Features.With(new IceRequest(requestId, outgoing: false));
@@ -223,7 +222,11 @@ namespace IceRpc.Internal
                 request.Features = request.Features.With(RetryPolicy.OtherReplica);
             }
 
-            return new IncomingResponse(request, resultType, payloadReader);
+            return new IncomingResponse(request)
+            {
+                Payload = payloadReader,
+                ResultType = resultType
+            };
         }
 
         /// <inheritdoc/>
