@@ -52,7 +52,7 @@ public sealed class InvocationTimeoutTests
         Assert.That(cancelationToken.Value.IsCancellationRequested, Is.True);
     }
 
-    /// <summary>Verifies that the encoded deadline has the expected when using the timeout interceptor.</summary>
+    /// <summary>Verifies that the encoded deadline has the expected value when using the timeout interceptor.</summary>
     [Test]
     public async Task Invocation_interceptor_sets_the_deadline_field()
     {
@@ -76,7 +76,8 @@ public sealed class InvocationTimeoutTests
         Assert.That((deadline - expectedDeadline).TotalMilliseconds, Is.LessThan(100));
     }
 
-    /// <summary>Verifies that the encoded deadline has the expected when using the timeout interceptor.</summary>
+    /// <summary>Verifies that the encoded deadline has the expected value when <see cref="Invocation.Deadline"/> is
+    /// set.</summary>
     [Test]
     public async Task Invocation_deadline_sets_the_deadline_field()
     {
@@ -107,10 +108,10 @@ public sealed class InvocationTimeoutTests
         Assert.That((deadline - expectedDeadline).TotalMilliseconds, Is.LessThan(100));
     }
 
-    /// <summary>Verifies that the invocation timeout value set in the <see cref="Invocation"/> prevails over the
-    /// invocation timeout value set with <see cref="PipelineExtensions.UseTimeout(Pipeline, TimeSpan)"/>.</summary>
+    /// <summary>Verifies that the invocation timeout value set in the <see cref="Invocation.Timeout"/> prevails over
+    /// the invocation timeout value set with the invoker <see cref="TimeoutInterceptor"/>.</summary>
     [Test]
-    public async Task Invocation_timeout_prevails_over_uset_timeout()
+    public async Task Invocation_timeout_prevails_over_use_timeout()
     {
         // Arrange
         var colocTransport = new ColocTransport();
