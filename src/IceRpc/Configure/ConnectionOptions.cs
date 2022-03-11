@@ -4,6 +4,7 @@ using IceRpc.Slice;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Collections.Immutable;
 using System.Net.Security;
 
 namespace IceRpc.Configure
@@ -53,6 +54,10 @@ namespace IceRpc.Configure
         /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection.</summary>
         /// <value>The dispatcher that dispatches requests received by this connection.</value>
         public IDispatcher Dispatcher { get; set; } = DefaultDispatcher;
+
+        /// <summary>Gets or sets the connection fields to send to the server.</summary>
+        public IDictionary<ConnectionFieldKey, OutgoingFieldValue> Fields { get; set; } =
+            ImmutableDictionary<ConnectionFieldKey, OutgoingFieldValue>.Empty;
 
         /// <summary>Gets or sets the maximum size in bytes of an incoming Ice or IceRpc protocol frame. It can't
         /// be less than 1KB and the default value is 1MB.</summary>

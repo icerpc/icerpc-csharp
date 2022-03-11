@@ -6,6 +6,8 @@ using IceRpc.Slice;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
+using System.Buffers;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Net.Security;
 
@@ -90,6 +92,11 @@ namespace IceRpc
                 }
             }
         }
+
+        /// <summary>Returns the connection fields set by the peer, or an empty dictionary if the connection is not
+        /// active.</summary>
+        public ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>> PeerFields =>
+            _protocolConnection?.PeerFields ?? ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>>.Empty;
 
         private EventHandler<ClosedEventArgs>? _closed;
 
@@ -253,7 +260,7 @@ namespace IceRpc
                     _options.Dispatcher,
                     protocolConnectionFactory,
                     _options.ConnectTimeout,
-                    _options.IncomingFrameMaxSize,
+                    _options.Fields,
                     _options.KeepAlive,
                     closedEventHandler);
             }
@@ -407,7 +414,7 @@ namespace IceRpc
         /// <param name="dispatcher">The dispatcher.</param>
         /// <param name="protocolConnectionFactory">The protocol connection factory.</param>
         /// <param name="connectTimeout">The connect timeout.</param>
-        /// <param name="incomingFrameMaxSize">The incoming frame max size.</param>
+        /// <param name="localFields">The fields to send to the remote peer.</param>
         /// <param name="keepAlive">Whether or not to keep the new connection alive.</param>
         /// <param name="closedEventHandler">A closed event handler added to the connection once the connection is
         /// active.</param>
@@ -416,7 +423,7 @@ namespace IceRpc
             IDispatcher dispatcher,
             IProtocolConnectionFactory<T> protocolConnectionFactory,
             TimeSpan connectTimeout,
-            int incomingFrameMaxSize,
+            IDictionary<ConnectionFieldKey, OutgoingFieldValue> localFields,
             bool keepAlive,
             EventHandler<ClosedEventArgs>? closedEventHandler) where T : INetworkConnection
         {
@@ -434,7 +441,7 @@ namespace IceRpc
                 _protocolConnection = await protocolConnectionFactory.CreateProtocolConnectionAsync(
                     networkConnection,
                     NetworkConnectionInformation.Value,
-                    incomingFrameMaxSize,
+                    localFields,
                     IsServer,
                     connectCancellationSource.Token).ConfigureAwait(false);
 
@@ -623,7 +630,7 @@ namespace IceRpc
                     {
                         RetryPolicy retryPolicy = remoteException.RetryPolicy;
                         response.Fields = response.Fields.With(
-                            (int)FieldKey.RetryPolicy,
+                            ResponseFieldKey.RetryPolicy,
                             (ref SliceEncoder encoder) => retryPolicy.Encode(ref encoder));
                     }
                 }

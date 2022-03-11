@@ -165,9 +165,9 @@ namespace IceRpc.Tests.ClientServer
                 {
                     Features = features,
                     // mostly ignored by ice, with the exception of Idempotent
-                    Fields = new Dictionary<int, OutgoingFieldValue>(
+                    Fields = new Dictionary<RequestFieldKey, OutgoingFieldValue>(
                         incomingRequest.Fields.Select(
-                            pair => new KeyValuePair<int, OutgoingFieldValue>(
+                            pair => new KeyValuePair<RequestFieldKey, OutgoingFieldValue>(
                                 pair.Key,
                                 new OutgoingFieldValue(pair.Value)))),
                     IsOneway = incomingRequest.IsOneway,
@@ -203,12 +203,12 @@ namespace IceRpc.Tests.ClientServer
                 }
 
                 // Don't forward RetryPolicy
-                var fields = new Dictionary<int, OutgoingFieldValue>(
+                var fields = new Dictionary<ResponseFieldKey, OutgoingFieldValue>(
                         incomingResponse.Fields.Select(
-                            pair => new KeyValuePair<int, OutgoingFieldValue>(
+                            pair => new KeyValuePair<ResponseFieldKey, OutgoingFieldValue>(
                                 pair.Key,
                                 new OutgoingFieldValue(pair.Value))));
-                _ = fields.Remove((int)FieldKey.RetryPolicy);
+                _ = fields.Remove(ResponseFieldKey.RetryPolicy);
 
                 return new OutgoingResponse(incomingRequest)
                 {

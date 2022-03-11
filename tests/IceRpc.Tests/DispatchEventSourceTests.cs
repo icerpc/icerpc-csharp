@@ -1,110 +1,112 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using NUnit.Framework;
-using System.Buffers;
 using System.Diagnostics.Tracing;
-using System.IO.Pipelines;
 
 namespace IceRpc.Tests;
 
-[FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-public sealed class DispatchEventSourceTests : IDisposable
+public sealed class DispatchEventSourceTests
 {
-    private readonly DispatchEventSource _eventSource;
-
-    public DispatchEventSourceTests() =>
-        _eventSource = new DispatchEventSource(Guid.NewGuid().ToString());
-
-    [TearDown]
-    public void TearDown() => Dispose();
-
-    public void Dispose() => _eventSource.Dispose();
-
     [Test]
-    public void DispatchEventSource_RequestStart()
+    public void Request_start_event_published()
     {
         int expectedEventId = 1;
+        using var eventSource = new DispatchEventSource(Guid.NewGuid().ToString());
         using var eventListener = new TestEventListener(expectedEventId);
-        eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
+        eventListener.EnableEvents(eventSource, EventLevel.Verbose);
+        var request = new IncomingRequest(Protocol.IceRpc)
+        {
+            Path = "/test",
+            Operation = "Op"
+        };
 
-        _eventSource.RequestStart(CreateIncomingRequest("/service", "ice_id"));
+        eventSource.RequestStart(request);
 
         EventWrittenEventArgs? eventData = eventListener.EventData;
         Assert.That(eventData, Is.Not.Null);
         Assert.That(eventData!.EventId, Is.EqualTo(expectedEventId));
         Assert.That(eventData.EventName, Is.EqualTo("RequestStart"));
         Assert.That(eventData.Level, Is.EqualTo(EventLevel.Informational));
-        Assert.That(eventData.EventSource, Is.SameAs(_eventSource));
-        Assert.That(eventData.Payload![0], Is.EqualTo("/service"));
-        Assert.That(eventData.Payload![1], Is.EqualTo("ice_id"));
+        Assert.That(eventData.EventSource, Is.SameAs(eventSource));
+        Assert.That(eventData.Payload![0], Is.EqualTo(request.Path));
+        Assert.That(eventData.Payload![1], Is.EqualTo(request.Operation));
     }
 
     [Test]
-    public void DispatchEventSource_RequestStop()
+    public void Request_stop_event_published()
     {
         int expectedEventId = 2;
         using var eventListener = new TestEventListener(expectedEventId);
-        eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
+        using var eventSource = new DispatchEventSource(Guid.NewGuid().ToString());
+        eventListener.EnableEvents(eventSource, EventLevel.Verbose);
+        var request = new IncomingRequest(Protocol.IceRpc)
+        {
+            Path = "/test",
+            Operation = "Op"
+        };
 
-        _eventSource.RequestStop(CreateIncomingRequest("/service", "ice_id"));
+        eventSource.RequestStop(request);
 
         EventWrittenEventArgs? eventData = eventListener.EventData;
         Assert.That(eventData, Is.Not.Null);
         Assert.That(eventData!.EventId, Is.EqualTo(expectedEventId));
         Assert.That(eventData.EventName, Is.EqualTo("RequestStop"));
         Assert.That(eventData.Level, Is.EqualTo(EventLevel.Informational));
-        Assert.That(eventData.EventSource, Is.SameAs(_eventSource));
-        Assert.That(eventData.Payload![0], Is.EqualTo("/service"));
-        Assert.That(eventData.Payload![1], Is.EqualTo("ice_id"));
+        Assert.That(eventData.EventSource, Is.SameAs(eventSource));
+        Assert.That(eventData.Payload![0], Is.EqualTo(request.Path));
+        Assert.That(eventData.Payload![1], Is.EqualTo(request.Operation));
     }
 
     [Test]
-    public void DispatchEventSource_RequestCanceled()
+    public void Request_canceled_event_published()
     {
         int expectedEventId = 3;
         using var eventListener = new TestEventListener(expectedEventId);
-        eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
+        using var eventSource = new DispatchEventSource(Guid.NewGuid().ToString());
+        eventListener.EnableEvents(eventSource, EventLevel.Verbose);
+        var request = new IncomingRequest(Protocol.IceRpc)
+        {
+            Path = "/test",
+            Operation = "Op"
+        };
 
-        _eventSource.RequestCanceled(CreateIncomingRequest("/service", "ice_id"));
+        eventSource.RequestCanceled(request);
 
         EventWrittenEventArgs? eventData = eventListener.EventData;
         Assert.That(eventData, Is.Not.Null);
         Assert.That(eventData!.EventId, Is.EqualTo(expectedEventId));
         Assert.That(eventData.EventName, Is.EqualTo("RequestCanceled"));
         Assert.That(eventData.Level, Is.EqualTo(EventLevel.Informational));
-        Assert.That(eventData.EventSource, Is.SameAs(_eventSource));
-        Assert.That(eventData.Payload![0], Is.EqualTo("/service"));
-        Assert.That(eventData.Payload![1], Is.EqualTo("ice_id"));
+        Assert.That(eventData.EventSource, Is.SameAs(eventSource));
+        Assert.That(eventData.Payload![0], Is.EqualTo(request.Path));
+        Assert.That(eventData.Payload![1], Is.EqualTo(request.Operation));
     }
 
     [Test]
-    public void DispatchEventSource_RequestFailed()
+    public void Request_failed_event_published()
     {
         int expectedEventId = 4;
         using var eventListener = new TestEventListener(expectedEventId);
-        eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
+        using var eventSource = new DispatchEventSource(Guid.NewGuid().ToString());
+        eventListener.EnableEvents(eventSource, EventLevel.Verbose);
+        var request = new IncomingRequest(Protocol.IceRpc)
+        {
+            Path = "/test",
+            Operation = "Op"
+        };
 
-        _eventSource.RequestFailed(CreateIncomingRequest("/service", "ice_id"), "IceRpc.RemoteException");
+        eventSource.RequestFailed(request, "IceRpc.RemoteException");
 
         EventWrittenEventArgs? eventData = eventListener.EventData;
         Assert.That(eventData, Is.Not.Null);
         Assert.That(eventData!.EventId, Is.EqualTo(expectedEventId));
         Assert.That(eventData.EventName, Is.EqualTo("RequestFailed"));
         Assert.That(eventData.Level, Is.EqualTo(EventLevel.Informational));
-        Assert.That(eventData.EventSource, Is.SameAs(_eventSource));
-        Assert.That(eventData.Payload![0], Is.EqualTo("/service"));
-        Assert.That(eventData.Payload![1], Is.EqualTo("ice_id"));
+        Assert.That(eventData.EventSource, Is.SameAs(eventSource));
+        Assert.That(eventData.Payload![0], Is.EqualTo(request.Path));
+        Assert.That(eventData.Payload![1], Is.EqualTo(request.Operation));
         Assert.That(eventData.Payload![2], Is.EqualTo("IceRpc.RemoteException"));
     }
-
-    private static IncomingRequest CreateIncomingRequest(string path, string operation) =>
-        new(Protocol.IceRpc)
-        {
-            Path = path,
-            Operation = operation,
-            PayloadEncoding = Encoding.Slice20
-        };
 
     private class TestEventListener : EventListener
     {
