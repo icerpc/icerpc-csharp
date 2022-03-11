@@ -2,7 +2,6 @@
 
 using IceRpc.Slice.Internal;
 using NUnit.Framework;
-using System.Collections.Immutable;
 
 namespace IceRpc.Slice.Tests;
 
@@ -10,7 +9,7 @@ namespace IceRpc.Slice.Tests;
 public class IdentityTests
 {
 
-    /// <summary>Verifies that any arbitrary Ice Identity can represented by a URI path.</summary>
+    /// <summary>Verifies that any arbitrary Ice Identity can represented by an URI path.</summary>
     /// <param name="name">The name field of the Identity.</param>
     /// <param name="category">The category field of the Identity.</param>
     /// <param name="referencePath">The normalized URI path to check against.</param>

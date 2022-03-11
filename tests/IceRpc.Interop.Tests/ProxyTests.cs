@@ -64,7 +64,7 @@ public class ProxyTests
     }
 
     /// <summary>Provides test case data for
-    /// <see cref="Path_to_proxy_path_with_format(string name, string category, IceProxyFormat format)"/> test.
+    /// <see cref="Path_to_proxy_path_with_format(string, string, IceProxyFormat)"/> test.
     /// </summary>
     private static IEnumerable<TestCaseData> PathToProxyPathSource
     {
@@ -90,8 +90,7 @@ public class ProxyTests
     }
 
     /// <summary>Provides test case data for
-    /// <see cref="Path_to_proxy_string_with_format(string name, string category, string expected,
-    ///  IceProxyFormat format)"/> test. </summary>
+    /// <see cref="Path_to_proxy_string_with_format(string, string, string, IceProxyFormat)"/> test. </summary>
     private static IEnumerable<TestCaseData> PathToProxyStringSource
     {
         get
