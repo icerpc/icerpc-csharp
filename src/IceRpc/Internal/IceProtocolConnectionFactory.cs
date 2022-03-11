@@ -11,7 +11,7 @@ namespace IceRpc.Internal
         public async Task<IProtocolConnection> CreateProtocolConnectionAsync(
             ISimpleNetworkConnection networkConnection,
             NetworkConnectionInformation connectionInfo,
-            int incomingFrameMaxSize,
+            IDictionary<ConnectionFieldKey, OutgoingFieldValue> localFields,
             bool isServer,
             CancellationToken cancel)
         {
@@ -19,12 +19,7 @@ namespace IceRpc.Internal
             bool isUdp = connectionInfo.LocalEndpoint.Params.TryGetValue("transport", out string? transport) &&
                 transport == TransportNames.Udp;
 
-            if (isUdp)
-            {
-                incomingFrameMaxSize = Math.Min(incomingFrameMaxSize, UdpUtils.MaxPacketSize);
-            }
-
-            var protocolConnection = new IceProtocolConnection(networkConnection, incomingFrameMaxSize, isUdp);
+            var protocolConnection = new IceProtocolConnection(networkConnection, isUdp);
             try
             {
                 await protocolConnection.InitializeAsync(isServer, cancel).ConfigureAwait(false);

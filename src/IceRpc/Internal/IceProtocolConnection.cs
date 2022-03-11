@@ -39,15 +39,21 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
+        public ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>> PeerFields =>
+            ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>>.Empty;
+
+        /// <inheritdoc/>
         public event Action<string>? PeerShutdownInitiated;
 
-        private static readonly IDictionary<int, ReadOnlySequence<byte>> _idempotentFields =
-            new Dictionary<int, ReadOnlySequence<byte>> { [(int)FieldKey.Idempotent] = default }.ToImmutableDictionary();
+        private static readonly IDictionary<RequestFieldKey, ReadOnlySequence<byte>> _idempotentFields =
+            new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
+            {
+                [RequestFieldKey.Idempotent] = default
+            }.ToImmutableDictionary();
 
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly HashSet<IncomingRequest> _dispatches = new();
-        private readonly int _incomingFrameMaxSize;
         private readonly Dictionary<int, OutgoingRequest> _invocations = new();
         private readonly bool _isUdp;
 
@@ -139,7 +145,7 @@ namespace IceRpc.Internal
                 var request = new IncomingRequest(Protocol.Ice)
                 {
                     Fields = requestHeader.OperationMode == OperationMode.Normal ?
-                        ImmutableDictionary<int, ReadOnlySequence<byte>>.Empty : _idempotentFields,
+                            ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields,
                     Fragment = requestHeader.Fragment,
                     IsOneway = requestId == 0,
                     Operation = requestHeader.Operation,
@@ -346,10 +352,8 @@ namespace IceRpc.Internal
                     request.Proxy.Path,
                     request.Proxy.Fragment,
                     request.Operation,
-                    // We're not checking FieldsOverrides because it makes no sense to use FieldsOverrides for
-                    // idempotent.
-                    request.Fields.ContainsKey((int)FieldKey.Idempotent) ? OperationMode.Idempotent :
-                        OperationMode.Normal,
+                    request.Fields.ContainsKey(RequestFieldKey.Idempotent) ?
+                        OperationMode.Idempotent : OperationMode.Normal,
                     request.Features.GetContext(),
                     new EncapsulationHeader(encapsulationSize: payloadSize + 6, encodingMajor, encodingMinor));
                 requestHeader.Encode(ref encoder);
@@ -560,13 +564,9 @@ namespace IceRpc.Internal
             }
         }
 
-        internal IceProtocolConnection(
-            ISimpleNetworkConnection simpleNetworkConnection,
-            int incomingFrameMaxSize,
-            bool isUdp)
+        internal IceProtocolConnection(ISimpleNetworkConnection simpleNetworkConnection, bool isUdp)
         {
             _isUdp = isUdp;
-            _incomingFrameMaxSize = incomingFrameMaxSize;
 
             // TODO: get the pool and minimum segment size from an option class, but which one? The Slic connection
             // gets these from SlicOptions but another option could to add Pool/MinimunSegmentSize on
@@ -728,22 +728,11 @@ namespace IceRpc.Internal
 
                 // Check the header
                 IceDefinitions.CheckPrologue(prologue);
-                if (_isUdp && prologue.FrameSize > result.Buffer.Length)
+                if (_isUdp &&
+                    (prologue.FrameSize > result.Buffer.Length || prologue.FrameSize > UdpUtils.MaxPacketSize))
                 {
                     // Ignore truncated UDP datagram.
                     continue; // while
-                }
-                else if (prologue.FrameSize > _incomingFrameMaxSize)
-                {
-                    if (_isUdp)
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        throw new InvalidDataException(@$"frame with {
-                            prologue.FrameSize} bytes exceeds IncomingFrameMaxSize connection option value");
-                    }
                 }
 
                 if (prologue.CompressionStatus == 2)

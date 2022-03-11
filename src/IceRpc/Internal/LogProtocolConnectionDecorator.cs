@@ -2,6 +2,8 @@
 
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
+using System.Buffers;
+using System.Collections.Immutable;
 
 namespace IceRpc.Internal
 {
@@ -10,6 +12,10 @@ namespace IceRpc.Internal
     {
         bool IProtocolConnection.HasDispatchesInProgress => _decoratee.HasDispatchesInProgress;
         bool IProtocolConnection.HasInvocationsInProgress => _decoratee.HasInvocationsInProgress;
+
+        ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>> IProtocolConnection.PeerFields =>
+            _decoratee.PeerFields;
+
         event Action<string>? IProtocolConnection.PeerShutdownInitiated
         {
             add => _decoratee.PeerShutdownInitiated += value;

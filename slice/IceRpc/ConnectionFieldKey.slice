@@ -1,0 +1,11 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc;
+
+/// The keys of fields carried by icerpc connections.
+// TODO: add varulong as underlying type
+unchecked enum ConnectionFieldKey
+{
+    /// The maximum size of an icerpc header.
+    MaxHeaderSize = 0,
+}
