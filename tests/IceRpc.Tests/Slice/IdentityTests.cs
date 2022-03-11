@@ -29,10 +29,7 @@ public class IdentityTests
                 foreach (IceProxyFormat format in
                     ImmutableList.Create(IceProxyFormat.Unicode, IceProxyFormat.ASCII, IceProxyFormat.Compat))
                     {
-                        yield return new TestCaseData(
-                            name,
-                            category,
-                            format);
+                        yield return new TestCaseData(name, category, format);
                     }
             }
         }
