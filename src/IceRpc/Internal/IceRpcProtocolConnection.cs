@@ -679,10 +679,7 @@ namespace IceRpc.Internal
             }
 
             return frameType == IceRpcControlFrameType.GoAwayCompleted ?
-                output.WriteAsync(
-                    ReadOnlySequence<byte>.Empty,
-                    completeWhenDone: true,
-                    cancel) :
+                output.WriteAsync(ReadOnlySequence<byte>.Empty, completeWhenDone: true, cancel) :
                 output.FlushAsync(cancel);
         }
 

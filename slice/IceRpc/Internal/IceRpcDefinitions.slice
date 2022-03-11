@@ -11,7 +11,7 @@ enum IceRpcControlFrameType : byte
     /// The Initialize frame is sent by each side on connection establishment to exchange connection fields.
     Initialize = 0,
 
-    /// The Ping frame is sent to keep alive the icerpc connection. This frame does not have a body.
+    /// The Ping frame is sent to keep alive the connection. This frame does not have a body.
     Ping = 1,
 
     /// The GoAway frame is sent to notify the peer that the connection is being shutdown. The shutdown initiator
