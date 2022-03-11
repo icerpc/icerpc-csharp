@@ -23,17 +23,13 @@ public class IdentityTests
                 ("test", ",X2QNUAzSBcJ_e$AV;E\\"),
                 ("test", ",X2QNUAz\\SB\\/cJ_e$AV;E\\\\"),
                 ("/test", "cat/"),
-
             };
             foreach ((string name, string category) in testData)
             {
                 foreach (IceProxyFormat format in
                     ImmutableList.Create(IceProxyFormat.Unicode, IceProxyFormat.ASCII, IceProxyFormat.Compat))
                     {
-                        yield return new TestCaseData(
-                            name,
-                            category,
-                            format);
+                        yield return new TestCaseData(name, category, format);
                     }
             }
         }
