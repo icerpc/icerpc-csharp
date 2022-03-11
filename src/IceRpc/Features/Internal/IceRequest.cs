@@ -1,5 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
+using System.IO.Pipelines;
+
 namespace IceRpc.Features.Internal
 {
     /// <summary>A feature that specifies the request ID of an Ice request or response.</summary>
@@ -9,7 +12,7 @@ namespace IceRpc.Features.Internal
         internal int Id { get; }
 
         /// <summary>The task completion source that will be completed when the response is received.</summary>
-        internal TaskCompletionSource<int>? ResponseCompletionSource { get; }
+        internal TaskCompletionSource<(ReplyStatus, PipeReader)>? ResponseCompletionSource { get; }
 
         internal IceRequest(int id, bool outgoing)
         {

@@ -60,6 +60,7 @@ namespace IceRpc.Internal
         private readonly SimpleNetworkConnectionPipeWriter _networkConnectionWriter;
         private readonly SimpleNetworkConnectionPipeReader _networkConnectionReader;
         private int _nextRequestId;
+        private readonly IcePayloadPipeWriter _payloadWriter;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly AsyncSemaphore _sendSemaphore = new(1, 1);
         private bool _shutdown;
@@ -112,10 +113,11 @@ namespace IceRpc.Internal
             {
                 // Wait for a request frame to be received.
                 int requestId;
-                int frameSize;
+                IceRequestHeader requestHeader;
+                PipeReader payloadReader;
                 try
                 {
-                    (requestId, frameSize) = await ReceiveFrameAsync().ConfigureAwait(false);
+                    (requestId, requestHeader, payloadReader) = await ReceiveFrameAsync().ConfigureAwait(false);
                 }
                 catch (ConnectionLostException)
                 {
@@ -134,46 +136,16 @@ namespace IceRpc.Internal
                     }
                 }
 
-                // TODO: Add TryDecodeHeader to avoid reading the whole frame here?
-                ReadResult result = await _networkConnectionReader.ReadAtLeastAsync(
-                    frameSize,
-                    CancellationToken.None).ConfigureAwait(false);
-
-                (IceRequestHeader requestHeader, long consumed) = DecodeHeader(result.Buffer.Slice(0, frameSize));
-                _networkConnectionReader.AdvanceTo(result.Buffer.GetPosition(consumed));
-
-                // The payload size is the encapsulation size less the 6 bytes of the encapsulation header.
-                int payloadSize = requestHeader.EncapsulationHeader.EncapsulationSize - 6;
-
-                var payloadEncoding = Encoding.FromMajorMinor(
-                    requestHeader.EncapsulationHeader.PayloadEncodingMajor,
-                    requestHeader.EncapsulationHeader.PayloadEncodingMinor);
-
-                var payloadReader = new IcePayloadPipeReader(
-                    _networkConnectionReader,
-                    payloadSize,
-                    _memoryPool,
-                    _minimumSegmentSize);
-
-                // TODO: fetches the full payload now. Is this the best behavior however? Another option is to not fetch
-                // the full payload (requires to the not read the whole frame above). The connection dispatcher is
-                // responsible for reading the full payload. With this behavior, request dispatch would be serialized
-                // and reading of request/response would only be resumed once the full payload is read. This allows to
-                // implement flow control at the middleware level for Ice connections (a middleware can read the full
-                // payload to allow other requests to be dispatched). See also the following issues:
-                // https://github.com/zeroc-ice/icerpc-csharp/issues/583
-                // https://github.com/zeroc-ice/icerpc-csharp/issues/661
-                // https://github.com/zeroc-ice/icerpc-csharp/issues/684
-                await payloadReader.FetchFullPayloadAsync(CancellationToken.None).ConfigureAwait(false);
-
                 var request = new IncomingRequest(
                     Protocol.Ice,
                     path: requestHeader.Path,
                     fragment: requestHeader.Fragment,
                     operation: requestHeader.Operation,
                     payload: payloadReader,
-                    payloadEncoding,
-                    responseWriter: _networkConnectionWriter)
+                    payloadEncoding: Encoding.FromMajorMinor(
+                        requestHeader.EncapsulationHeader.PayloadEncodingMajor,
+                        requestHeader.EncapsulationHeader.PayloadEncodingMinor),
+                    responseWriter: _payloadWriter)
                 {
                     Fields = requestHeader.OperationMode == OperationMode.Normal ?
                         ImmutableDictionary<int, ReadOnlySequence<byte>>.Empty : _idempotentFields,
@@ -200,12 +172,6 @@ namespace IceRpc.Internal
                 // closed.
                 await request.CompleteAsync(new ConnectionClosedException()).ConfigureAwait(false);
             }
-
-            static (IceRequestHeader, long) DecodeHeader(ReadOnlySequence<byte> buffer)
-            {
-                var decoder = new SliceDecoder(buffer, Encoding.Slice11);
-                return (new IceRequestHeader(ref decoder), decoder.Consumed);
-            }
         }
 
         /// <inheritdoc/>
@@ -222,10 +188,12 @@ namespace IceRpc.Internal
             }
 
             // Wait for the response.
-            int frameSize;
+            ReplyStatus replyStatus;
+            PipeReader payloadReader;
             try
             {
-                frameSize = await requestFeature.ResponseCompletionSource.Task.WaitAsync(cancel).ConfigureAwait(false);
+                (replyStatus, payloadReader) =
+                    await requestFeature.ResponseCompletionSource.Task.WaitAsync(cancel).ConfigureAwait(false);
             }
             finally
             {
@@ -242,14 +210,6 @@ namespace IceRpc.Internal
                 }
             }
 
-            ReadResult result = await _networkConnectionReader.ReadAtLeastAsync(
-                frameSize,
-                CancellationToken.None).ConfigureAwait(false);
-
-            // TODO: Add TryDecodeHeader to avoid reading the whole frame here?
-            (ReplyStatus replyStatus, int payloadSize, long consumed) = DecodeHeader(result.Buffer.Slice(0, frameSize));
-            _networkConnectionReader.AdvanceTo(result.Buffer.GetPosition(consumed));
-
             ResultType resultType = replyStatus switch
             {
                 ReplyStatus.OK => ResultType.Success,
@@ -263,50 +223,7 @@ namespace IceRpc.Internal
                 request.Features = request.Features.With(RetryPolicy.OtherReplica);
             }
 
-            // TODO: see comments from ReceiveRequestAsync
-            var payloadReader = new IcePayloadPipeReader(
-                _networkConnectionReader,
-                payloadSize,
-                MemoryPool<byte>.Shared,
-                4096);
-            await payloadReader.FetchFullPayloadAsync(CancellationToken.None).ConfigureAwait(false);
-
-            return new IncomingResponse(
-                request,
-                resultType,
-                payloadReader);
-
-            static (ReplyStatus ReplyStatus, int PayloadSize, int Consumed) DecodeHeader(ReadOnlySequence<byte> buffer)
-            {
-                // Decode the response.
-                var decoder = new SliceDecoder(buffer, Encoding.Slice11);
-
-                ReplyStatus replyStatus = decoder.DecodeReplyStatus();
-
-                int payloadSize;
-
-                if (replyStatus <= ReplyStatus.UserException)
-                {
-                    var encapsulationHeader = new EncapsulationHeader(ref decoder);
-                    payloadSize = encapsulationHeader.EncapsulationSize - 6;
-
-                    // we ignore the payload encoding, it's irrelevant: the caller knows which encoding to expect,
-                    // usually the same encoding as the request payload.
-
-                    if (payloadSize != buffer.Length - 7)
-                    {
-                        throw new InvalidDataException(@$"response payload size mismatch: expected {payloadSize
-                            } bytes, read {buffer.Length - 7} bytes");
-                    }
-                }
-                else
-                {
-                    // Ice system exception
-                    payloadSize = (int)buffer.Length - 1; // includes reply status
-                }
-
-                return (replyStatus, payloadSize, (int)decoder.Consumed);
-            }
+            return new IncomingResponse(request, resultType, payloadReader);
         }
 
         /// <inheritdoc/>
@@ -366,11 +283,11 @@ namespace IceRpc.Internal
                 PipeWriter payloadSink;
                 if (request.InitialPayloadSink == null)
                 {
-                    payloadSink = _networkConnectionWriter;
+                    payloadSink = _payloadWriter;
                 }
                 else
                 {
-                    request.InitialPayloadSink.SetDecoratee(_networkConnectionWriter);
+                    request.InitialPayloadSink.SetDecoratee(_payloadWriter);
                     payloadSink = request.PayloadSink;
                 }
 
@@ -665,6 +582,8 @@ namespace IceRpc.Internal
                 simpleNetworkConnection,
                 _memoryPool,
                 _minimumSegmentSize);
+
+            _payloadWriter = new IcePayloadPipeWriter(_networkConnectionWriter);
         }
 
         internal async Task InitializeAsync(bool isServer, CancellationToken cancel)
@@ -778,7 +697,7 @@ namespace IceRpc.Internal
             }
         }
 
-        private async ValueTask<(int RequestId, int FrameSize)> ReceiveFrameAsync()
+        private async ValueTask<(int RequestId, IceRequestHeader RequestHeader, PipeReader PayloadReader)> ReceiveFrameAsync()
         {
             // Reads are not cancellable. This method returns once a frame is read or when the connection is disposed.
             CancellationToken cancel = CancellationToken.None;
@@ -790,9 +709,10 @@ namespace IceRpc.Internal
                     cancel).ConfigureAwait(false);
 
                 // Decode the prologue and eventually the request ID.
-                (IcePrologue prologue, int? requestId, long consumed) = DecodePrologue(result.Buffer);
+                (IcePrologue prologue, int? requestId, int consumed) = DecodePrologue(result.Buffer);
+                _networkConnectionReader.AdvanceTo(result.Buffer.GetPosition(consumed));
 
-                _networkConnectionReader.AdvanceTo(result.Buffer.GetPosition(IceDefinitions.PrologueSize));
+                int frameRemainderSize = prologue.FrameSize - consumed;
 
                 // Check the header
                 IceDefinitions.CheckPrologue(prologue);
@@ -872,7 +792,29 @@ namespace IceRpc.Internal
                     case IceFrameType.Request:
                     {
                         Debug.Assert(requestId != null);
-                        return (requestId.Value, prologue.FrameSize);
+
+                        // Read and decode the remainder of the request frame.
+                        result = await _networkConnectionReader.ReadAtLeastAsync(
+                            frameRemainderSize,
+                            CancellationToken.None).ConfigureAwait(false);
+
+                        (IceRequestHeader requestHeader, consumed) = DecodeRequestHeader(
+                            result.Buffer.Slice(0, frameRemainderSize));
+
+                        _networkConnectionReader.AdvanceTo(result.Buffer.GetPosition(consumed));
+
+                        // The payload size is the encapsulation size less the 6 bytes of the encapsulation header.
+                        int payloadSize = requestHeader.EncapsulationHeader.EncapsulationSize - 6;
+
+                        var payloadReader = new IcePayloadPipeReader(_memoryPool, _minimumSegmentSize);
+
+                        await payloadReader.ReadPayloadAsync(
+                            _networkConnectionReader,
+                            payloadSize,
+                            replyStatus: null,
+                            CancellationToken.None).ConfigureAwait(false);
+
+                        return (requestId.Value, requestHeader, payloadReader);
                     }
 
                     case IceFrameType.RequestBatch:
@@ -884,15 +826,32 @@ namespace IceRpc.Internal
 
                     case IceFrameType.Reply:
                     {
-                        // int requestId = Slice11Encoding.DecodeFixedLengthSize(buffer.Span[0..4]);
-                        // TODO: XXX we keep these 4 bytes in buffer
+                        Debug.Assert(requestId != null);
+
+                        // Read and decode the remainder of the reply frame.
+                        result = await _networkConnectionReader.ReadAtLeastAsync(
+                            frameRemainderSize,
+                            CancellationToken.None).ConfigureAwait(false);
+
+                        (ReplyStatus replyStatus, int payloadSize, consumed) = DecodeReplyHeader(
+                            result.Buffer.Slice(0, frameRemainderSize));
+                        _networkConnectionReader.AdvanceTo(result.Buffer.GetPosition(consumed));
+
+                        var payloadReader = new IcePayloadPipeReader(_memoryPool, _minimumSegmentSize);
+
+                        await payloadReader.ReadPayloadAsync(
+                            _networkConnectionReader,
+                            payloadSize,
+                            replyStatus,
+                            CancellationToken.None).ConfigureAwait(false);
 
                         lock (_mutex)
                         {
                             Debug.Assert(requestId != null);
                             if (_invocations.TryGetValue(requestId.Value, out OutgoingRequest? request))
                             {
-                                request.Features.Get<IceRequest>()!.ResponseCompletionSource!.SetResult(prologue.FrameSize);
+                                request.Features.Get<IceRequest>()!.ResponseCompletionSource!.SetResult(
+                                    (replyStatus, payloadReader));
                             }
                             else if (!_shutdown)
                             {
@@ -910,8 +869,6 @@ namespace IceRpc.Internal
                             throw new InvalidDataException(
                                 $"unexpected data for {nameof(IceFrameType.ValidateConnection)}");
                         }
-                        // TODO: implement protocol logging with decorators
-                        // _logger.LogReceivedIceValidateConnectionFrame();
                         break;
                     }
 
@@ -923,7 +880,7 @@ namespace IceRpc.Internal
                 }
             } // while
 
-            static (IcePrologue, int?, long) DecodePrologue(ReadOnlySequence<byte> buffer)
+            static (IcePrologue Prologue, int? RequestId, int Consumed) DecodePrologue(ReadOnlySequence<byte> buffer)
             {
                 var decoder = new SliceDecoder(buffer, Encoding.Slice11);
                 var prologue = new IcePrologue(ref decoder);
@@ -932,7 +889,46 @@ namespace IceRpc.Internal
                 {
                     requestId = decoder.DecodeInt();
                 }
-                return (prologue, requestId, decoder.Consumed);
+                return (prologue, requestId, (int)decoder.Consumed);
+            }
+
+            static (IceRequestHeader Header, int Consumed) DecodeRequestHeader(ReadOnlySequence<byte> buffer)
+            {
+                var decoder = new SliceDecoder(buffer, Encoding.Slice11);
+                return (new IceRequestHeader(ref decoder), (int)decoder.Consumed);
+            }
+
+            static (ReplyStatus ReplyStatus, int PayloadSize, int Consumed) DecodeReplyHeader(
+                ReadOnlySequence<byte> buffer)
+            {
+                // Decode the response.
+                var decoder = new SliceDecoder(buffer, Encoding.Slice11);
+
+                ReplyStatus replyStatus = decoder.DecodeReplyStatus();
+
+                int payloadSize;
+
+                if (replyStatus <= ReplyStatus.UserException)
+                {
+                    var encapsulationHeader = new EncapsulationHeader(ref decoder);
+                    payloadSize = encapsulationHeader.EncapsulationSize - 6;
+
+                    // we ignore the payload encoding, it's irrelevant: the caller knows which encoding to expect,
+                    // usually the same encoding as the request payload.
+
+                    if (payloadSize != buffer.Length - 7)
+                    {
+                        throw new InvalidDataException(@$"response payload size mismatch: expected {payloadSize
+                            } bytes, read {buffer.Length - 7} bytes");
+                    }
+                }
+                else
+                {
+                    // Ice system exception
+                    payloadSize = (int)buffer.Length;
+                }
+
+                return (replyStatus, payloadSize, (int)decoder.Consumed);
             }
         }
 

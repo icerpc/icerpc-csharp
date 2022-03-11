@@ -11,8 +11,6 @@ namespace IceRpc.Internal
     /// the internal pipe and it's followed by the payload data read from the network connection pipe reader.</summary>
     internal sealed class IcePayloadPipeReader : PipeReader
     {
-        private readonly PipeReader _networkConnectionReader;
-        private int _payloadSizeLeftToRead;
         private readonly Pipe _pipe;
 
         /// <inheritdoc/>
@@ -33,65 +31,57 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
-        public override ValueTask<ReadResult> ReadAsync(CancellationToken cancel) => ReadPayloadAsync(cancel);
+        public override ValueTask<ReadResult> ReadAsync(CancellationToken cancel) => _pipe.Reader.ReadAsync(cancel);
 
         /// <inheritdoc/>
         public override bool TryRead(out ReadResult result) => _pipe.Reader.TryRead(out result);
 
-        internal IcePayloadPipeReader(
-            PipeReader networkConnectionReader,
-            int payloadSize,
-            MemoryPool<byte> pool,
-            int minimumSegmentSize)
+        internal IcePayloadPipeReader(MemoryPool<byte> pool, int minimumSegmentSize)
         {
-            _networkConnectionReader = networkConnectionReader;
-            _payloadSizeLeftToRead = payloadSize;
             _pipe = new Pipe(new PipeOptions(
                 pool: pool,
                 minimumSegmentSize: minimumSegmentSize,
                 pauseWriterThreshold: 0,
                 writerScheduler: PipeScheduler.Inline));
-
-            // First add the payload size to the internal pipe.
-            var encoder = new SliceEncoder(_pipe.Writer, Encoding.Slice20);
-            encoder.EncodeSize(payloadSize);
         }
 
-        /// <summary>Fetches and copy the full payload from the network connection pipe reader to the internal
-        /// pipe.</summary>
-        internal async ValueTask FetchFullPayloadAsync(CancellationToken cancel)
+        /// <summary>Fetches and copy the full payload from the network connection pipe reader to the internal pip (as a
+        /// segment). If it's a reply payload, the reply status is eventually encoded as well (if the payload is a
+        /// system exception)</summary>
+        internal async ValueTask ReadPayloadAsync(
+            PipeReader networkConnectionReader,
+            int payloadSize,
+            ReplyStatus? replyStatus,
+            CancellationToken cancel)
         {
-            while (_payloadSizeLeftToRead > 0)
+            // Encode the segment size and eventually the reply status.
+            EncodeSegmentSizeAndReplyStatus(payloadSize, replyStatus);
+
+            while (payloadSize > 0)
             {
-                await ReadPayloadAsync(cancel).ConfigureAwait(false);
+                // Read data from the network connection pipe reader.
+                ReadResult readResult = await networkConnectionReader.ReadAsync(cancel).ConfigureAwait(false);
+
+                // Copy the data to the internal pipe writer.
+                int copied = CopySequenceToWriter(readResult.Buffer, payloadSize);
+                networkConnectionReader.AdvanceTo(readResult.Buffer.GetPosition(copied));
+                payloadSize -= copied;
             }
-        }
 
-        private async ValueTask<ReadResult> ReadPayloadAsync(CancellationToken cancel)
-        {
-            if (!_pipe.Reader.TryRead(out ReadResult readResult))
+            // No more data to consume for the payload so it's time to complete the internal pipe writer.
+            await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
+
+            void EncodeSegmentSizeAndReplyStatus(int payloadSize, ReplyStatus? replyStatus)
             {
-                // Read and consume at most _payloadSizeLeftToRead bytes from the connection pipe reader.
-                ReadResult result = await _networkConnectionReader.ReadAsync(cancel).ConfigureAwait(false);
-                int copied = CopySequenceToWriter(result.Buffer, _pipe.Writer, _payloadSizeLeftToRead);
-                _networkConnectionReader.AdvanceTo(result.Buffer.GetPosition(copied));
-                _payloadSizeLeftToRead -= copied;
-
-                // Flush the read data to the internal pipe.
-                await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-
-                if (_payloadSizeLeftToRead == 0)
+                var encoder = new SliceEncoder(_pipe.Writer, Encoding.Slice20);
+                encoder.EncodeSize(payloadSize);
+                if (replyStatus != null && replyStatus > ReplyStatus.UserException)
                 {
-                    // No more data to consume for the payload so it's time to complete the internal pipe writer.
-                    await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
+                    encoder.EncodeReplyStatus(replyStatus.Value);
                 }
-
-                // Data should now be available unless the read above didn't return any additional data.
-                _pipe.Reader.TryRead(out readResult);
             }
-            return readResult;
 
-            static int CopySequenceToWriter(ReadOnlySequence<byte> buffer, IBufferWriter<byte> writer, int size)
+            int CopySequenceToWriter(ReadOnlySequence<byte> buffer, int size)
             {
                 int copied = Math.Min((int)buffer.Length, size);
                 while (size > 0 && buffer.Length > 0)
@@ -101,10 +91,10 @@ namespace IceRpc.Internal
                         buffer = buffer.Slice(0, size);
                     }
 
-                    Span<byte> span = writer.GetSpan();
+                    Span<byte> span = _pipe.Writer.GetSpan();
                     int copySize = Math.Min((int)buffer.Length, span.Length);
                     buffer.Slice(0, copySize).CopyTo(span);
-                    writer.Advance(copySize);
+                    _pipe.Writer.Advance(copySize);
                     size -= copySize;
                     buffer = buffer.Slice(copySize);
                 }
