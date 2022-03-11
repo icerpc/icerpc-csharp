@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Collections.Immutable;
 using System.IO.Pipelines;
 
 namespace IceRpc
@@ -7,6 +8,10 @@ namespace IceRpc
     /// <summary>Represents a response protocol frame sent by the application.</summary>
     public sealed class OutgoingResponse : OutgoingFrame
     {
+        /// <summary>Gets or sets the fields of this response.</summary>
+        public IDictionary<ResponseFieldKey, OutgoingFieldValue> Fields { get; set; } =
+            ImmutableDictionary<ResponseFieldKey, OutgoingFieldValue>.Empty;
+
         /// <inheritdoc/>
         public override PipeWriter PayloadSink { get; set; }
 

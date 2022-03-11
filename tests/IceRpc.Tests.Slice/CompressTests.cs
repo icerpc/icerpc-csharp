@@ -65,9 +65,9 @@ namespace IceRpc.Tests.Slice
                         {
                             try
                             {
-                                compressedRequest = request.Fields.ContainsKey((int)FieldKey.CompressionFormat);
+                                compressedRequest = request.Fields.ContainsKey(RequestFieldKey.CompressionFormat);
                                 OutgoingResponse response = await next.DispatchAsync(request, cancel);
-                                compressedResponse = response.Fields.ContainsKey((int)FieldKey.CompressionFormat);
+                                compressedResponse = response.Fields.ContainsKey(ResponseFieldKey.CompressionFormat);
                                 return response;
                             }
                             catch

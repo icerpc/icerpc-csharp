@@ -3,6 +3,7 @@
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Collections.Immutable;
 using System.Net.Security;
 
 namespace IceRpc.Configure
@@ -57,19 +58,9 @@ namespace IceRpc.Configure
                 throw new NotSupportedException($"cannot set endpoint with protocol '{value.Protocol}'");
         }
 
-        /// <summary>Gets or sets the maximum size in bytes of an incoming Ice or IceRpc protocol frame. It's
-        /// important to specify
-        /// a reasonable value for this size since it limits the size of the buffer allocated by IceRPC to receive
-        /// a request or response. It can't be less than 1KB and the default value is 1MB.</summary>
-        /// <value>The maximum size of incoming frame in bytes.</value>
-        // TODO: replace
-        public int IncomingFrameMaxSize
-        {
-            get => _incomingFrameMaxSize;
-            set => _incomingFrameMaxSize = value >= 1024 ? value :
-                value <= 0 ? int.MaxValue :
-                throw new ArgumentException($"{nameof(IncomingFrameMaxSize)} cannot be less than 1KB ", nameof(value));
-        }
+        /// <summary>Gets or sets the connection fields to send to the clients.</summary>
+        public IDictionary<ConnectionFieldKey, OutgoingFieldValue> Fields { get; set; } =
+            ImmutableDictionary<ConnectionFieldKey, OutgoingFieldValue>.Empty;
 
         /// <summary>Gets or sets the connection's keep alive. If a connection is kept alive, the connection
         /// monitoring will send keep alive frames to ensure the peer doesn't close the connection in the period defined
@@ -96,6 +87,5 @@ namespace IceRpc.Configure
         private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
         private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
         private Endpoint _endpoint = new(Protocol.IceRpc);
-        private int _incomingFrameMaxSize = 1024 * 1024;
     }
 }

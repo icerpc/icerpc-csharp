@@ -1,5 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Buffers;
+using System.Collections.Immutable;
+
 namespace IceRpc.Internal
 {
     /// <summary>A protocol connection enables communication over a network connection using either the Ice or
@@ -13,6 +16,9 @@ namespace IceRpc.Internal
         /// <summary>Returns <c>true</c> if one or more invocations are in progress, <c>false</c>
         /// otherwise.</summary>
         bool HasInvocationsInProgress { get; }
+
+        /// <summary>Returns the fields provided by the peer.</summary>
+        ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>> PeerFields { get; }
 
         /// <summary>This event is raised when the protocol connection is notified of the peer shutdown.</summary>
         event Action<string>? PeerShutdownInitiated;

@@ -8,28 +8,20 @@ module IceRpc::Internal;
 /// Each icerpc control frame has a type identified by this enumeration.
 enum IceRpcControlFrameType : byte
 {
-    /// The initialize frame is sent by each side the icerpc connection on connection establishment
-    /// to exchange icerpc parameters.
+    /// The Initialize frame is sent by each side on connection establishment to exchange connection fields.
     Initialize = 0,
 
-    /// The ping frame is sent to keep alive the icerpc connection.
-    Ping = 5,
+    /// The Ping frame is sent to keep alive the connection. This frame does not have a body.
+    Ping = 1,
 
-    /// The go away frame is sent to notify the peer that the connection is being shutdown. The shutdown initiator
+    /// The GoAway frame is sent to notify the peer that the connection is being shutdown. The shutdown initiator
     /// sends it as soon as the connection is shutdown. The receiver sends back a go away frame in return.
-    GoAway = 6,
+    GoAway = 2,
 
-    /// The go away completed frame is sent after receiving a go away frame and once the invocations and dispatches
+    /// The GoAwayCompleted frame is sent after receiving a GoAway frame and once the invocations and dispatches
     /// are completed. The connection is closed once the local invocations and dispatches are completed and once
-    /// this frame is received.
-    GoAwayCompleted = 7,
-}
-
-/// Keys of reserved icerpc connection parameters.
-unchecked enum IceRpcParameterKey : int
-{
-    /// The incoming frame maximum size.
-    IncomingFrameMaxSize = 0,
+    /// this frame is received. This frame does not have a body.
+    GoAwayCompleted = 3,
 }
 
 /// Each icerpc request frame consists of:
@@ -42,7 +34,7 @@ compact struct IceRpcRequestHeader
     path: string,
     operation: string,
     payloadEncoding: string, // empty equivalent to "2.0"
-    // fields: Fields, (encoded/decoded manually)
+    // fields: dictionary<RequestFieldKey, sequence<byte>>, (encoded/decoded manually)
 }
 
 /// Each icerpc response frame consists of:
@@ -53,14 +45,21 @@ compact struct IceRpcRequestHeader
 compact struct IceRpcResponseHeader
 {
     resultType: ResultType,
-    // fields: Fields, (encoded/decoded manually)
+    // fields: dictionary<ResponseFieldKey, sequence<byte>>, (encoded/decoded manually)
 }
 
-/// The go away frame is sent on connection shutdown to notify the peer that it shouldn't perform new invocations
-/// and to provide the stream IDs of the invocations being dispatched. Invocations with stream IDs superior to
-/// these stream IDs can safely be retried.
+/// The initialize frame is sent by each side on connection establishment to exchange connection fields.
 [cs:readonly]
-compact struct IceRpcGoAwayBody
+compact struct IceRpcInitialize
+{
+    fields: dictionary<ConnectionFieldKey, sequence<byte>>,
+}
+
+/// The GoAway frame is sent on connection shutdown to notify the peer that it shouldn't perform new invocations and to
+/// provide the stream IDs of the invocations being dispatched. Invocations with stream IDs superior to these stream IDs
+/// can safely be retried.
+[cs:readonly]
+compact struct IceRpcGoAway
 {
     lastBidirectionalStreamId: varlong,
     lastUnidirectionalStreamId: varlong,
