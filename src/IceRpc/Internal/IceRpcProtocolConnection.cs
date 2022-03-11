@@ -135,7 +135,8 @@ namespace IceRpc.Internal
                     Payload = reader,
                     PayloadEncoding = header.PayloadEncoding.Length > 0 ?
                         Encoding.FromString(header.PayloadEncoding) : IceRpcDefinitions.Encoding,
-                    ResponseWriter = stream.Output
+                    // TODO: Why are tests failing if it's always set to stream.Output?
+                    ResponseWriter = stream.IsBidirectional ? stream.Output : InvalidPipeWriter.Instance
                 };
 
                 lock (_mutex)

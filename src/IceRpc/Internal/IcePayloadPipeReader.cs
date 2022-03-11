@@ -36,40 +36,33 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public override bool TryRead(out ReadResult result) => _pipe.Reader.TryRead(out result);
 
-        internal IcePayloadPipeReader(MemoryPool<byte> pool, int minimumSegmentSize)
+        internal IcePayloadPipeReader(
+            ReadOnlySequence<byte> payload,
+            ReplyStatus? replyStatus,
+            MemoryPool<byte> pool,
+            int minimumSegmentSize)
         {
             _pipe = new Pipe(new PipeOptions(
                 pool: pool,
                 minimumSegmentSize: minimumSegmentSize,
                 pauseWriterThreshold: 0,
                 writerScheduler: PipeScheduler.Inline));
-        }
 
-        /// <summary>Fetches and copy the full payload from the network connection pipe reader to the internal pip (as a
-        /// segment). If it's a reply payload, the reply status is eventually encoded as well (if the payload is a
-        /// system exception)</summary>
-        internal async ValueTask ReadPayloadAsync(
-            PipeReader networkConnectionReader,
-            int payloadSize,
-            ReplyStatus? replyStatus,
-            CancellationToken cancel)
-        {
             // Encode the segment size and eventually the reply status.
-            EncodeSegmentSizeAndReplyStatus(payloadSize, replyStatus);
+            EncodeSegmentSizeAndReplyStatus((int)payload.Length, replyStatus);
 
-            while (payloadSize > 0)
+            // Copy the payload data to the internal pipe writer.
+            while (payload.Length > 0)
             {
-                // Read data from the network connection pipe reader.
-                ReadResult readResult = await networkConnectionReader.ReadAsync(cancel).ConfigureAwait(false);
-
-                // Copy the data to the internal pipe writer.
-                int copied = CopySequenceToWriter(readResult.Buffer, payloadSize);
-                networkConnectionReader.AdvanceTo(readResult.Buffer.GetPosition(copied));
-                payloadSize -= copied;
+                Span<byte> span = _pipe.Writer.GetSpan();
+                int copySize = Math.Min((int)payload.Length, span.Length);
+                payload.Slice(0, copySize).CopyTo(span);
+                _pipe.Writer.Advance(copySize);
+                payload = payload.Slice(copySize);
             }
 
-            // No more data to consume for the payload so it's time to complete the internal pipe writer.
-            await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
+            // No more data to consume for the payload so we complete the internal pipe writer.
+            _pipe.Writer.Complete();
 
             void EncodeSegmentSizeAndReplyStatus(int payloadSize, ReplyStatus? replyStatus)
             {
@@ -79,26 +72,6 @@ namespace IceRpc.Internal
                 {
                     encoder.EncodeReplyStatus(replyStatus.Value);
                 }
-            }
-
-            int CopySequenceToWriter(ReadOnlySequence<byte> buffer, int size)
-            {
-                int copied = Math.Min((int)buffer.Length, size);
-                while (size > 0 && buffer.Length > 0)
-                {
-                    if (buffer.Length > size)
-                    {
-                        buffer = buffer.Slice(0, size);
-                    }
-
-                    Span<byte> span = _pipe.Writer.GetSpan();
-                    int copySize = Math.Min((int)buffer.Length, span.Length);
-                    buffer.Slice(0, copySize).CopyTo(span);
-                    _pipe.Writer.Advance(copySize);
-                    size -= copySize;
-                    buffer = buffer.Slice(copySize);
-                }
-                return copied;
             }
         }
     }

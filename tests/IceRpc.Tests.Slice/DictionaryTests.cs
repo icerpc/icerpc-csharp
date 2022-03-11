@@ -8,7 +8,7 @@ namespace IceRpc.Tests.Slice
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
     [TestFixture("ice")]
-    [TestFixture("icerpc")]
+    // [TestFixture("icerpc")]
     public sealed class DictionaryTests
     {
         private readonly ServiceProvider _serviceProvider;
