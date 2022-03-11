@@ -60,7 +60,6 @@ namespace IceRpc.Tests.Slice
         }
 
         [Test]
-        [Log(LogAttributeLevel.Debug)]
         public async Task Operations_OnewayAsync()
         {
             Assert.ThrowsAsync<SomeException>(async () => await _prx.OpOnewayAsync());
