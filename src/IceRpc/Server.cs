@@ -226,7 +226,7 @@ namespace IceRpc
                         _options.Dispatcher,
                         protocolConnectionFactory,
                         _options.ConnectTimeout,
-                        _options.IncomingFrameMaxSize,
+                        _options.Fields,
                         _options.KeepAlive,
                         closedEventHandler);
                 }

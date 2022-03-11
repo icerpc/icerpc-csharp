@@ -34,7 +34,7 @@ namespace IceRpc
         async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
             // If the deadline field is already set, we don't do anything
-            if (request.Fields.ContainsKey((int)FieldKey.Deadline))
+            if (request.Fields.ContainsKey(RequestFieldKey.Deadline))
             {
                 return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
             }
@@ -50,7 +50,7 @@ namespace IceRpc
                 Debug.Assert(deadline > 0);
 
                 request.Fields = request.Fields.With(
-                    (int)FieldKey.Deadline,
+                    RequestFieldKey.Deadline,
                     (ref SliceEncoder encoder) => encoder.EncodeVarLong(deadline));
 
                 return await _next.InvokeAsync(request, linkedTokenSource.Token).ConfigureAwait(false);

@@ -22,7 +22,7 @@ namespace IceRpc.Slice
                 if (_deadline == null)
                 {
                     long value = Request.Fields.DecodeValue(
-                        (int)FieldKey.Deadline,
+                        RequestFieldKey.Deadline,
                         (ref SliceDecoder decoder) => decoder.DecodeVarLong());
 
                     // unset or <= 0 results in DateTime.MaxValue

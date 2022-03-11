@@ -535,12 +535,13 @@ namespace IceRpc.Slice
         /// <summary>Decodes fields.</summary>
         /// <returns>The fields.</returns>
         /// <remarks>The fields use and must use the remainder of the underlying buffer.</remarks>
-        internal IDictionary<int, ReadOnlySequence<byte>> DecodeFieldDictionary()
+        internal IDictionary<TKey, ReadOnlySequence<byte>> DecodeFieldDictionary<TKey>(
+            DecodeFunc<TKey> decodeKeyFunc) where TKey : struct
         {
             int size = DecodeSize();
             if (size == 0)
             {
-                return ImmutableDictionary<int, ReadOnlySequence<byte>>.Empty;
+                return ImmutableDictionary<TKey, ReadOnlySequence<byte>>.Empty;
             }
             else
             {
@@ -551,10 +552,10 @@ namespace IceRpc.Slice
                 _reader.AdvanceToEnd();
 
                 var decoder = new SliceDecoder(new ReadOnlyMemory<byte>(buffer), Encoding);
-                var dict = new Dictionary<int, ReadOnlySequence<byte>>(size);
+                var dict = new Dictionary<TKey, ReadOnlySequence<byte>>(size);
                 for (int i = 0; i < size; ++i)
                 {
-                    int key = decoder.DecodeVarInt();
+                    TKey key = decodeKeyFunc(ref decoder);
                     int valueSize = decoder.DecodeSize();
                     ReadOnlySequence<byte> value = decoder._reader.UnreadSequence.Slice(0, valueSize);
                     decoder._reader.Advance(valueSize);
