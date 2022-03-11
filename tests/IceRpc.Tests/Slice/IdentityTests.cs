@@ -23,7 +23,6 @@ public class IdentityTests
                 ("test", ",X2QNUAzSBcJ_e$AV;E\\"),
                 ("test", ",X2QNUAz\\SB\\/cJ_e$AV;E\\\\"),
                 ("/test", "cat/"),
-
             };
             foreach ((string name, string category) in testData)
             {
