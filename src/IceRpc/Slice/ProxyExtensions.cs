@@ -190,7 +190,7 @@ namespace IceRpc.Slice
             if (invocation.Deadline != DateTime.MaxValue && !cancel.CanBeCanceled)
             {
                 throw new ArgumentException(
-                    $"{nameof(cancel)} must be cancellable when the invocation deadline is set",
+                    $"{nameof(cancel)} must be cancelable when the invocation deadline is set",
                     nameof(cancel));
             }
         }
