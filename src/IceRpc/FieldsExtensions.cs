@@ -10,7 +10,7 @@ namespace IceRpc
     {
         /// <summary>Sets an entry in the outgoing fields dictionary and returns the fields dictionary. If
         /// <paramref name="fields"/> is read-only, a copy is created, modified then returned.</summary>
-        /// <paramtype name="TKey">The type of the field keys.</paramtype>
+        /// <paramtype name="TKey">The type of the field key.</paramtype>
         /// <param name="fields">A fields dictionary.</param>
         /// <param name="key">The key of the entry to set.</param>
         /// <param name="value">The value of the entry to set.</param>
@@ -30,19 +30,19 @@ namespace IceRpc
 
         /// <summary>Sets an entry in the outgoing fields dictionary and returns the fields dictionary. If
         /// <paramref name="fields"/> is read-only, a copy is created, modified then returned.</summary>
-        /// <paramtype name="TKey">The type of the field keys.</paramtype>
+        /// <paramtype name="TKey">The type of the field key.</paramtype>
         /// <param name="fields">A fields dictionary.</param>
         /// <param name="key">The key of the entry to set.</param>
         /// <param name="value">The value of the entry to set.</param>
         /// <returns>The fields dictionary.</returns>
-        public static IDictionary<T, OutgoingFieldValue> With<T>(
-            this IDictionary<T, OutgoingFieldValue> fields,
-            T key,
-            ReadOnlySequence<byte> value) where T : struct
+        public static IDictionary<TKey, OutgoingFieldValue> With<TKey>(
+            this IDictionary<TKey, OutgoingFieldValue> fields,
+            TKey key,
+            ReadOnlySequence<byte> value) where TKey : struct
         {
             if (fields.IsReadOnly)
             {
-                fields = new Dictionary<T, OutgoingFieldValue>(fields);
+                fields = new Dictionary<TKey, OutgoingFieldValue>(fields);
             }
             fields[key] = new OutgoingFieldValue(value);
             return fields;
@@ -51,8 +51,8 @@ namespace IceRpc
         /// <summary>Removes an entry in the fields dictionary and returns the fields dictionary. If
         /// <paramref name="fields"/> is read-only and contains the value, a copy is created, modified then returned.
         /// </summary>
-        /// <paramtype name="TKey">The type of the field keys.</paramtype>
-        /// <paramtype name="TValue">The type of the field values.</paramtype>
+        /// <paramtype name="TKey">The type of the field key.</paramtype>
+        /// <paramtype name="TValue">The type of the field value.</paramtype>
         /// <param name="fields">A fields dictionary.</param>
         /// <param name="key">The key of the entry to check.</param>
         /// <returns>The fields dictionary.</returns>

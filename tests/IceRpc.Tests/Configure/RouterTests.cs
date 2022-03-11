@@ -147,6 +147,47 @@ public class RouterTests
         Assert.That(ex.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
     }
 
+    /// <summary>Verifies that the router middleware are called in the expected order. That corresponds
+    /// to the order they were added to the router.</summary>
+    [Test]
+    public async Task Router_middleware_call_order()
+    {
+        // Arrange
+        var expectedCalls = new List<string>() { "middleware-1", "middleware-2", "middleware-3", "middleware-4" };
+        var calls = new List<string>();
+
+        var router = new Router();
+        router.Use(
+            next => new InlineDispatcher((request, cancel) =>
+            {
+                calls.Add("middleware-1");
+                return next.DispatchAsync(request, cancel);
+            }),
+            next => new InlineDispatcher((request, cancel) =>
+            {
+                calls.Add("middleware-2");
+                return next.DispatchAsync(request, cancel);
+            }));
+
+        router.Use(
+            next => new InlineDispatcher((request, cancel) =>
+            {
+                calls.Add("middleware-3");
+                return next.DispatchAsync(request, cancel);
+            }),
+            next => new InlineDispatcher((request, cancel) =>
+            {
+                calls.Add("middleware-4");
+                return new(new OutgoingResponse(request));
+            }));
+
+        // Act
+        _ = await router.DispatchAsync(new IncomingRequest(Protocol.IceRpc));
+
+        // Assert
+        Assert.That(calls, Is.EqualTo(expectedCalls));
+    }
+
     [TestCase("/foo/", "/foo")]
     [TestCase("/foo//", "/foo")]
     [TestCase("//foo//", "//foo")]
