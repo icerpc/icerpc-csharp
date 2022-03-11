@@ -64,7 +64,7 @@ public class ProxyTests
     }
 
     /// <summary>Provides test case data for
-    /// <see cref="Path_to_proxy_path_with_format(string, string, IceProxyFormat)"/> test.
+    /// <see cref="Path_to_proxy_path_with_format(string, IceProxyFormat)"/> test.
     /// </summary>
     private static IEnumerable<TestCaseData> PathToProxyPathSource
     {
@@ -80,17 +80,18 @@ public class ProxyTests
             };
             foreach ((string name, string category) in testData)
             {
+                var path = $"/{Uri.EscapeDataString(category)}/{Uri.EscapeDataString(name)}";
                 foreach (IceProxyFormat format in
                     ImmutableList.Create(IceProxyFormat.Unicode, IceProxyFormat.ASCII, IceProxyFormat.Compat))
                     {
-                        yield return new TestCaseData(name, category, format);
+                        yield return new TestCaseData(path, format);
                     }
             }
         }
     }
 
     /// <summary>Provides test case data for
-    /// <see cref="Path_to_proxy_string_with_format(string, string, string, IceProxyFormat)"/> test. </summary>
+    /// <see cref="Path_to_proxy_string_with_format(string, string, IceProxyFormat)"/> test. </summary>
     private static IEnumerable<TestCaseData> PathToProxyStringSource
     {
         get
@@ -148,7 +149,8 @@ public class ProxyTests
             };
             foreach ((string name, string category, string expected, IceProxyFormat format) in testData)
             {
-                yield return new TestCaseData(name, category, expected, format);
+                var path = $"/{Uri.EscapeDataString(category)}/{Uri.EscapeDataString(name)}";
+                yield return new TestCaseData(path, expected, format);
             }
         }
     }
@@ -240,16 +242,14 @@ public class ProxyTests
     public void Parse_an_invalid_proxy(string str, IProxyFormat format) =>
         Assert.Throws(Is.InstanceOf<FormatException>(), () => Proxy.Parse(str, format: format));
 
-    /// <summary>Verifies that a path can be converted to an Ice string with a specified format (using ToString)
-    /// and converted back to the same path (with Parse).</summary>
-    /// <param name="name">The name field of the Identity.</param>
-    /// <param name="category">The category field of the Identity.</param>
-    /// <param name="expected">The "stringified" format identity to check against</param>
-    /// <param name="format">The format being used to create the Identity from the Proxy</param>
+    /// <summary>Verifies that a path can be converted to an Ice string with a specified format (using ToString).
+    /// </summary>
+    /// <param name="path">The path used to create the proxy.</param>
+    /// <param name="expected">The "stringified" formatted path to check against.</param>
+    /// <param name="format">The format being used to create the proxy.</param>
     [Test, TestCaseSource(nameof(PathToProxyStringSource))]
-    public void Path_to_proxy_string_with_format(string name, string category, string expected, IceProxyFormat format)
+    public void Path_to_proxy_string_with_format(string path, string expected, IceProxyFormat format)
     {
-        var path = $"/{Uri.EscapeDataString(category)}/{Uri.EscapeDataString(name)}";
         var proxy = new Proxy(Protocol.Ice) { Path = path };
 
         string identity = proxy.ToString(format)[..^10];
@@ -259,13 +259,11 @@ public class ProxyTests
 
     /// <summary>Verifies that a path can be used in conjunction with an Ice format to produce a
     /// Proxy with the correct path (using Parse).</summary>
-    /// <param name="name">The name field of the Identity.</param>
-    /// <param name="category">The category field of the Identity.</param>
-    /// <param name="format">The format being used to create the Identity from the Proxy</param>
+    /// <param name="path">The path used to create the proxy.</param>
+    /// <param name="format">The format being used to create the proxy.</param>
     [Test, TestCaseSource(nameof(PathToProxyPathSource))]
-    public void Path_to_proxy_path_with_format(string name, string category, IceProxyFormat format)
+    public void Path_to_proxy_path_with_format(string path, IceProxyFormat format)
     {
-        var path = $"/{Uri.EscapeDataString(category)}/{Uri.EscapeDataString(name)}";
         var proxy = new Proxy(Protocol.Ice) { Path = path };
         string iceProxyString = proxy.ToString(format);
 
