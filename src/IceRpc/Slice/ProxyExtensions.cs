@@ -73,8 +73,8 @@ namespace IceRpc.Slice
             IInvoker invoker = proxy.Invoker;
             if (invocation != null)
             {
-                ConfigureTimeout(ref invoker, invocation);
                 CheckCancellationToken(invocation, cancel);
+                ConfigureTimeout(ref invoker, invocation, request);
             }
 
             // We perform as much work as possible in a non async method to throw exceptions synchronously.
@@ -135,8 +135,8 @@ namespace IceRpc.Slice
             IInvoker invoker = proxy.Invoker;
             if (invocation != null)
             {
-                ConfigureTimeout(ref invoker, invocation);
                 CheckCancellationToken(invocation, cancel);
+                ConfigureTimeout(ref invoker, invocation, request);
             }
 
             // We perform as much work as possible in a non async method to throw exceptions synchronously.
@@ -159,20 +159,30 @@ namespace IceRpc.Slice
         }
 
         /// <summary>When <paramref name="invocation"/> does not carry a deadline but sets a timeout, adds the
-        /// <see cref="TimeoutInterceptor"/> to <paramref name="invoker"/> with the invocation's timeout.
-        /// </summary>
-        private static void ConfigureTimeout(ref IInvoker invoker, Invocation invocation)
+        /// <see cref="TimeoutInterceptor"/> to <paramref name="invoker"/> with the invocation's timeout. Otherwise
+        /// if the request carries a deadline add it to the request fields.</summary>
+        private static void ConfigureTimeout(ref IInvoker invoker, Invocation invocation, OutgoingRequest request)
         {
-            if (invocation.Deadline == DateTime.MaxValue && invocation.Timeout != Timeout.InfiniteTimeSpan)
+            if (invocation.Deadline == DateTime.MaxValue)
             {
-                invoker = new TimeoutInterceptor(invoker, invocation.Timeout);
+                if (invocation.Timeout != Timeout.InfiniteTimeSpan)
+                {
+                    invoker = new TimeoutInterceptor(invoker, invocation.Timeout);
+                }
+            }
+            else
+            {
+                long deadline = (long)(invocation.Deadline - DateTime.UnixEpoch).TotalMilliseconds;
+                request.Fields = request.Fields.With(
+                    (int)FieldKey.Deadline,
+                    (ref SliceEncoder encoder) => encoder.EncodeVarLong(deadline));
             }
         }
 
         /// <summary>Verifies that when <paramref name="invocation"/> carries a deadline, <paramref name="cancel"/> is
-        /// cancellable.</summary>
+        /// cancelable.</summary>
         /// <exception cref="ArgumentException">Thrown when the invocation carries a deadline but
-        /// <paramref name="cancel"/> is not cancellable.</exception>
+        /// <paramref name="cancel"/> is not cancelable.</exception>
         private static void CheckCancellationToken(Invocation invocation, CancellationToken cancel)
         {
             if (invocation.Deadline != DateTime.MaxValue && !cancel.CanBeCanceled)
