@@ -33,7 +33,7 @@ public sealed class InvocationTimeoutTests
 
         var invoker = new InlineInvoker(async (request, cancel) =>
             {
-                hasDeadline = request.Fields.ContainsKey((int)FieldKey.Deadline);
+                hasDeadline = request.Fields.ContainsKey(RequestFieldKey.Deadline);
                 cancelationToken = cancel;
                 await Task.Delay(10000, cancel);
                 return new IncomingResponse(request);
@@ -151,7 +151,7 @@ public sealed class InvocationTimeoutTests
             Invoker = new InlineInvoker((request, cancel) =>
             {
                 cancelationToken = cancel;
-                hasDeadline = request.Fields.ContainsKey((int)FieldKey.Deadline);
+                hasDeadline = request.Fields.ContainsKey(RequestFieldKey.Deadline);
                 return Task.FromResult(new IncomingResponse(request));
             }),
         };
@@ -203,7 +203,7 @@ public sealed class InvocationTimeoutTests
         {
             Invoker = new InlineInvoker(async (request, cancel) =>
             {
-                hasDeadline = request.Fields.ContainsKey((int)FieldKey.Deadline);
+                hasDeadline = request.Fields.ContainsKey(RequestFieldKey.Deadline);
                 cancelationToken = cancel;
                 await Task.Delay(10000, cancel);
                 return new IncomingResponse(request);
@@ -227,9 +227,9 @@ public sealed class InvocationTimeoutTests
         Assert.That(hasDeadline, Is.True);
     }
 
-    private static DateTime DecodeDeadlineField(IDictionary<int, OutgoingFieldValue> fields)
+    private static DateTime DecodeDeadlineField(IDictionary<RequestFieldKey, OutgoingFieldValue> fields)
     {
-        if (fields.TryGetValue((int)FieldKey.Deadline, out var deadlineField))
+        if (fields.TryGetValue(RequestFieldKey.Deadline, out var deadlineField))
         {
             var buffer = new byte[256];
             var bufferWriter = new MemoryBufferWriter(buffer);
