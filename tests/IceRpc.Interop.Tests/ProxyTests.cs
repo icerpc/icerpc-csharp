@@ -252,9 +252,9 @@ public class ProxyTests
     {
         var proxy = new Proxy(Protocol.Ice) { Path = path };
 
-        string identity = proxy.ToString(format)[..^10];
+        string iceProxyString = proxy.ToString(format)[..^10];
 
-        Assert.That(identity, Is.EqualTo(expected));
+        Assert.That(iceProxyString, Is.EqualTo(expected));
     }
 
     /// <summary>Verifies that a path can be used in conjunction with an Ice format to produce a
