@@ -41,16 +41,17 @@ public sealed class InvokeAsyncTests
             RemoteEndpoint = server.Endpoint,
             MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport)
         });
+        var proxy = Proxy.FromConnection(connection, "/");
 
         var requestPayload = new ReadOnlySequence<byte>(new byte[] { 0xAA, 0xBB, 0xCC });
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
+        var request = new OutgoingRequest(proxy)
         {
             PayloadSource = PipeReader.Create(requestPayload)
         };
 
         // Act
-        IncomingResponse response = await connection.InvokeAsync(request, default);
-        var responsePayload = (await response.Payload.ReadAllAsync(default)).Buffer.ToArray();
+        IncomingResponse response = await proxy.Invoker.InvokeAsync(request, default);
+        byte[] responsePayload = (await response.Payload.ReadAllAsync(default)).Buffer.ToArray();
         await response.Payload.CompleteAsync(); // done with payload
 
         // Assert
