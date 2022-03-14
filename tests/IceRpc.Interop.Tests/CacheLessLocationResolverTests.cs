@@ -12,7 +12,7 @@ public class CacheLessLocationResolverTests
     [TestCase(true, false)]
     [TestCase(false, true)]
     [TestCase(false, false)]
-    public async Task Resolve_async(bool isAdapterId, bool refreshCache)
+    public async Task Resolve_async_known_entry(bool isAdapterId, bool refreshCache)
     {
         var expectedProxy = Proxy.Parse("dummy:tcp -h localhost -p 10000");
         ILocationResolver locationResolver = new CacheLessLocationResolver(new FakeEndpointFinder(expectedProxy));
@@ -31,7 +31,7 @@ public class CacheLessLocationResolverTests
     [TestCase(true, false)]
     [TestCase(false, true)]
     [TestCase(false, false)]
-    public async Task Resolve_async_fail(bool isAdapterId, bool refreshCache)
+    public async Task Resolve_async_unknown_entry(bool isAdapterId, bool refreshCache)
     {
         var expectedProxy = Proxy.Parse("dummy:tcp -h localhost -p 10000");
         ILocationResolver locationResolver = new CacheLessLocationResolver(new FakeEndpointFinder(expectedProxy));
