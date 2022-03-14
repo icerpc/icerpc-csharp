@@ -8,13 +8,12 @@ namespace IceRpc.Tests;
 [Parallelizable(ParallelScope.All)]
 public class CacheLessLocationResolverTests
 {
-    [TestCase(true, true)]
-    [TestCase(true, false)]
-    [TestCase(false, true)]
-    [TestCase(false, false)]
-    public async Task Resolve_async_known_entry(bool isAdapterId, bool refreshCache)
+    [Test]
+    public async Task Resolve_known_location_returns_a_proxy(
+        [Values(true, false)] bool isAdapterId,
+        [Values(true, false)] bool refreshCache)
     {
-        var expectedProxy = Proxy.Parse("dummy:tcp -h localhost -p 10000");
+        var expectedProxy = Proxy.Parse("dummy:tcp -h localhost -p 10000", format: IceProxyFormat.Default);
         ILocationResolver locationResolver = new CacheLessLocationResolver(new FakeEndpointFinder(expectedProxy));
 
         (Proxy? proxy, bool fromCache) =
@@ -27,13 +26,12 @@ public class CacheLessLocationResolverTests
         Assert.That(fromCache, Is.False);
     }
 
-    [TestCase(true, true)]
-    [TestCase(true, false)]
-    [TestCase(false, true)]
-    [TestCase(false, false)]
-    public async Task Resolve_async_unknown_entry(bool isAdapterId, bool refreshCache)
+    [Test]
+    public async Task Resolve_unknown_location_returns_null(
+        [Values(true, false)] bool isAdapterId,
+        [Values(true, false)] bool refreshCache)
     {
-        var expectedProxy = Proxy.Parse("dummy:tcp -h localhost -p 10000");
+        var expectedProxy = Proxy.Parse("dummy:tcp -h localhost -p 10000", format: IceProxyFormat.Default);
         ILocationResolver locationResolver = new CacheLessLocationResolver(new FakeEndpointFinder(expectedProxy));
 
         (Proxy? proxy, bool fromCache) =

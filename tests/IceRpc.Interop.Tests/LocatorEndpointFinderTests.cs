@@ -14,7 +14,7 @@ public class LocatorEndpointFinderTests
     {
         var expectedProxy = ServicePrx.Parse("ice://localhost/dummy:10000");
         IEndpointFinder endpointFinder = new LocatorEndpointFinder(new FakeLocatorPrx(expectedProxy, adapterId: true));
-        var location = new Location() { IsAdapterId = true, Value = "good" };
+        var location = new Location { IsAdapterId = true, Value = "good" };
 
         Proxy? proxy = await endpointFinder.FindAsync(location, default);
 
@@ -27,7 +27,7 @@ public class LocatorEndpointFinderTests
     public async Task Find_adapter_by_id_not_found()
     {
         IEndpointFinder endpointFinder = new LocatorEndpointFinder(new NotFoundLocatorPrx());
-        var location = new Location() { IsAdapterId = true, Value = "good" };
+        var location = new Location { IsAdapterId = true, Value = "good" };
 
         Proxy? proxy = await endpointFinder.FindAsync(location, default);
 
@@ -40,7 +40,7 @@ public class LocatorEndpointFinderTests
     {
         var expectedProxy = ServicePrx.Parse("ice://localhost/dummy:10000");
         IEndpointFinder endpointFinder = new LocatorEndpointFinder(new FakeLocatorPrx(expectedProxy, adapterId: false));
-        var location = new Location() { IsAdapterId = false, Value = "good" };
+        var location = new Location { IsAdapterId = false, Value = "good" };
 
         Proxy? proxy = await endpointFinder.FindAsync(location, default);
 
@@ -53,7 +53,7 @@ public class LocatorEndpointFinderTests
     public async Task Find_object_by_id_not_found()
     {
         IEndpointFinder endpointFinder = new LocatorEndpointFinder(new NotFoundLocatorPrx());
-        var location = new Location() { IsAdapterId = false, Value = "good" };
+        var location = new Location { IsAdapterId = false, Value = "good" };
 
         Proxy? proxy = await endpointFinder.FindAsync(location, default);
 
@@ -66,7 +66,7 @@ public class LocatorEndpointFinderTests
     public async Task Cache_decorator_adds_found_entries_to_the_endpoint_cache()
     {
         var endpointCache = new EndpointCache();
-        var location = new Location() { IsAdapterId = false, Value = "good" };
+        var location = new Location { IsAdapterId = false, Value = "good" };
         var expectedProxy = Proxy.Parse("ice://localhost/dummy:10000");
         IEndpointFinder endpointFinder = new CacheUpdateEndpointFinderDecorator(
             new LocatorEndpointFinder(new FakeLocatorPrx(new ServicePrx(expectedProxy), adapterId: false)),
@@ -85,7 +85,7 @@ public class LocatorEndpointFinderTests
     public async Task Cache_decorator_removes_not_found_entries_from_the_endpoint_cache()
     {
         var endpointCache = new EndpointCache();
-        var location = new Location() { IsAdapterId = false, Value = "good" };
+        var location = new Location { IsAdapterId = false, Value = "good" };
         var expectedProxy = Proxy.Parse("ice://localhost/dummy:10000");
         endpointCache.Cache[location] = expectedProxy;
 
@@ -105,7 +105,7 @@ public class LocatorEndpointFinderTests
         // Arrange
         using var blockingEndpointFinder = new BlockingEndpointFinder();
         IEndpointFinder endpointFinder = new CoalesceEndpointFinderDecorator(blockingEndpointFinder);
-        var location = new Location() { IsAdapterId = false, Value = "good" };
+        var location = new Location { IsAdapterId = false, Value = "good" };
 
         var t1 = endpointFinder.FindAsync(location, default);
         var t2 = endpointFinder.FindAsync(location, default);

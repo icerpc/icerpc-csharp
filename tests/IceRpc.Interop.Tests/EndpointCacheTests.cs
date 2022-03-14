@@ -9,33 +9,33 @@ namespace IceRpc.Tests;
 public class EndpointCacheTests
 {
     [Test]
-    public void Get_cached_endpoint_from_cache()
+    public void Get_known_location_from_endpoint_cache()
     {
         var expected = Proxy.Parse("ice:/dummy");
         var location = new Location { IsAdapterId = true, Value = "hello" };
         IEndpointCache endpointCache = new EndpointCache(10);
         endpointCache.Set(location, expected);
 
-        bool cached = endpointCache.TryGetValue(location, out var resolved);
+        bool cached = endpointCache.TryGetValue(location, out (TimeSpan InsertionTime, Proxy Proxy) resolved);
 
         Assert.That(resolved.Proxy, Is.EqualTo(expected));
         Assert.That(cached, Is.True);
     }
 
     [Test]
-    public void Get_non_cached_endpoint_from_cache()
+    public void Get_unknown_location_from_endpoint_cache()
     {
         var location = new Location { IsAdapterId = true, Value = "hello" };
         IEndpointCache endpointCache = new EndpointCache(10);
 
-        bool cached = endpointCache.TryGetValue(location, out var resolved);
+        bool cached = endpointCache.TryGetValue(location, out (TimeSpan InsertionTime, Proxy Proxy) resolved);
 
         Assert.That(resolved.Proxy, Is.Null);
         Assert.That(cached, Is.False);
     }
 
     [Test]
-    public void Remove_existing_entry()
+    public void Remove_location_entry_from_endpoint_cache()
     {
         // Arrange
         IEndpointCache endpointCache = new EndpointCache(10);
@@ -54,7 +54,7 @@ public class EndpointCacheTests
     }
 
     [Test]
-    public void Set_purge_old_entries()
+    public void Endpoint_cache_prunes_oldest_entries_when_cache_reaches_max_cache_size()
     {
         // Arrange
         var expected = Proxy.Parse("ice:/dummy");
@@ -76,7 +76,7 @@ public class EndpointCacheTests
     }
 
     [Test]
-    public void Set_updates_existing_entry()
+    public void Updatate_existing_location_entry()
     {
         // Arrange
         var expected = Proxy.Parse("ice:/expected");
