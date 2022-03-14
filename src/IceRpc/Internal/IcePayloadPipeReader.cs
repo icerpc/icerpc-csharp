@@ -7,8 +7,8 @@ using System.IO.Pipelines;
 namespace IceRpc.Internal
 {
     /// <summary>This pipe reader implementation provides a reader to simplify the reading of the payload from an
-    /// incoming Ice request or response. The payload is buffered into an internal pipe. The size is written first to
-    /// the internal pipe and it's followed by the payload data read from the network connection pipe reader.</summary>
+    /// incoming Ice request or response. The payload is buffered into an internal pipe. The size is written first,
+    /// followed by the Ice reply status if the status > UserException and finally the payload data.</summary>
     internal sealed class IcePayloadPipeReader : PipeReader
     {
         private readonly Pipe _pipe;

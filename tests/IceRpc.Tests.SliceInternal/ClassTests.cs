@@ -61,7 +61,6 @@ namespace IceRpc.Tests.SliceInternal
                 request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 readResult = await response.Payload.ReadAllAsync(cancel);
-
                 DecodeAfter(readResult.Buffer);
                 response.Payload.AdvanceTo(readResult.Buffer.Start);
 

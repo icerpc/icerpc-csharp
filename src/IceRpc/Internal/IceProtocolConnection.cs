@@ -157,7 +157,11 @@ namespace IceRpc.Internal
                     ResponseWriter = _payloadWriter,
                 };
 
-                request.Features = request.Features.With(new IceRequest(requestId, outgoing: false));
+                if (requestId > 0)
+                {
+                    request.Features = request.Features.With(new IceIncomingRequest(requestId));
+                }
+
                 if (requestHeader.Context.Count > 0)
                 {
                     request.Features = request.Features.WithContext(requestHeader.Context);
@@ -186,8 +190,7 @@ namespace IceRpc.Internal
             Debug.Assert(request.ResponseReader == null);
             Debug.Assert(!request.IsOneway);
 
-            IceRequest? requestFeature = request.Features.Get<IceRequest>();
-            if (requestFeature == null || requestFeature.ResponseCompletionSource == null)
+            if (request.Features.Get<IceOutgoingRequest>() is not IceOutgoingRequest requestFeature)
             {
                 throw new InvalidOperationException("unknown request");
             }
@@ -198,7 +201,7 @@ namespace IceRpc.Internal
             try
             {
                 (replyStatus, payloadReader) =
-                    await requestFeature.ResponseCompletionSource.Task.WaitAsync(cancel).ConfigureAwait(false);
+                    await requestFeature.IncomingResponseCompletionSource.Task.WaitAsync(cancel).ConfigureAwait(false);
             }
             finally
             {
@@ -261,7 +264,7 @@ namespace IceRpc.Internal
                         }
                         requestId = ++_nextRequestId;
                         _invocations[requestId] = request;
-                        request.Features = request.Features.With(new IceRequest(requestId, outgoing: true));
+                        request.Features = request.Features.With(new IceOutgoingRequest(requestId));
                     }
                 }
                 catch
@@ -368,15 +371,15 @@ namespace IceRpc.Internal
             IncomingRequest request,
             CancellationToken cancel)
         {
-            if (request.Features.GetRequestId() is not int requestId)
-            {
-                throw new InvalidOperationException("request ID feature is not set");
-            }
-
             if (request.IsOneway)
             {
                 await response.CompleteAsync().ConfigureAwait(false);
                 return;
+            }
+
+            if (request.Features.Get<IceIncomingRequest>() is not IceIncomingRequest requestFeature)
+            {
+                throw new InvalidOperationException("request ID feature is not set");
             }
 
             // Wait for sending of other frames to complete. The semaphore is used as an asynchronous
@@ -474,7 +477,7 @@ namespace IceRpc.Internal
                 encoder.EncodeByte(0); // compression status
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
 
-                encoder.EncodeInt(requestId);
+                encoder.EncodeInt(requestFeature.Id);
 
                 encoder.EncodeReplyStatus(replyStatus);
                 if (replyStatus <= ReplyStatus.UserException)
@@ -696,7 +699,7 @@ namespace IceRpc.Internal
 
             foreach (OutgoingRequest request in invocations)
             {
-                request.Features.Get<IceRequest>()!.ResponseCompletionSource!.TrySetException(exception);
+                request.Features.Get<IceOutgoingRequest>()!.IncomingResponseCompletionSource.TrySetException(exception);
             }
         }
 
@@ -849,7 +852,7 @@ namespace IceRpc.Internal
                             Debug.Assert(requestId != null);
                             if (_invocations.TryGetValue(requestId.Value, out OutgoingRequest? request))
                             {
-                                request.Features.Get<IceRequest>()!.ResponseCompletionSource!.SetResult(
+                                request.Features.Get<IceOutgoingRequest>()!.IncomingResponseCompletionSource.SetResult(
                                     (replyStatus, payloadReader));
                             }
                             else if (!_shutdown)
