@@ -10,10 +10,10 @@ namespace IceRpc.Tests;
 
 public sealed class InvokeAsyncTests
 {
-    /// <summary>Verifies that <see cref="Connection.InvokeAsync(OutgoingRequest, CancellationToken)"/> can send raw
-    /// payload data without using Slice definitions.</summary>
+    /// <summary>Verifies that sending a payload using
+    /// <see cref="Connection.InvokeAsync(OutgoingRequest, CancellationToken)"/> works.</summary>
     [Test]
-    public async Task Invoke_can_send_raw_payload_data()
+    public async Task Invoke_async_send_payload()
     {
         // Arrange
         var colocTransport = new ColocTransport();
@@ -56,10 +56,10 @@ public sealed class InvokeAsyncTests
         });
     }
 
-    /// <summary>Verifies that <see cref="Connection.InvokeAsync(OutgoingRequest, CancellationToken)"/> can receive raw
-    /// payload data without using Slice definitions.</summary>
+    /// <summary>Verifies that receiving a payload using
+    /// <see cref="Connection.InvokeAsync(OutgoingRequest, CancellationToken)"/> works.</summary>
     [Test]
-    public async Task Invoke_can_receive_raw_payload_data()
+    public async Task Invoke_async_receive_payload()
     {
         // Arrange
         var colocTransport = new ColocTransport();
