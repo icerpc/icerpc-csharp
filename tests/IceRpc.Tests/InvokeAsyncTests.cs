@@ -69,7 +69,7 @@ public sealed class InvokeAsyncTests
         {
             Dispatcher = new InlineDispatcher(async (request, cancel) =>
             {
-                _ = await request.Payload.ReadAllAsync(cancel);
+                await request.Payload.CompleteAsync();
                 return new OutgoingResponse(request)
                 {
                     PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(expectedPayload)),
