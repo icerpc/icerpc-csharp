@@ -10,28 +10,25 @@ namespace IceRpc.Tests;
 
 public sealed class InvokeAsyncTests
 {
-    /// <summary>Verifies that <see cref="Connection.InvokeAsync(OutgoingRequest, CancellationToken)"/> can send and
-    /// receive raw payload data without using Slice definitions.</summary>
+    /// <summary>Verifies that <see cref="Connection.InvokeAsync(OutgoingRequest, CancellationToken)"/> can send raw
+    /// payload data without using Slice definitions.</summary>
     [Test]
-    public async Task Invoke_can_send_and_receive_raw_payload_data()
+    public async Task Invoke_can_send_raw_payload_data()
     {
         // Arrange
         var colocTransport = new ColocTransport();
 
+        byte[]? payload = null;
+        byte[] expectedPayload = new byte[] { 0xAA, 0xBB, 0xCC };
         await using var server = new Server(new ServerOptions()
         {
             Dispatcher = new InlineDispatcher(async (request, cancel) =>
-                {
-                    ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
-                    var responsePayload = new ReadOnlySequence<byte>(readResult.Buffer.ToArray());
-                    await request.Payload.CompleteAsync(); // done with payload
-
-                    var response = new OutgoingResponse(request)
-                    {
-                        PayloadSource = PipeReader.Create(responsePayload),
-                    };
-                    return response;
-                }),
+            {
+                ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
+                payload = readResult.Buffer.ToArray();
+                await request.Payload.CompleteAsync(); // done with payload
+                return new OutgoingResponse(request);
+            }),
             MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
         });
         server.Listen();
@@ -43,21 +40,61 @@ public sealed class InvokeAsyncTests
         });
         var proxy = Proxy.FromConnection(connection, "/");
 
-        var requestPayload = new ReadOnlySequence<byte>(new byte[] { 0xAA, 0xBB, 0xCC });
         var request = new OutgoingRequest(proxy)
         {
-            PayloadSource = PipeReader.Create(requestPayload)
+            PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(expectedPayload))
         };
 
         // Act
         IncomingResponse response = await proxy.Invoker.InvokeAsync(request, default);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(payload, Is.EqualTo(expectedPayload));
+            Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
+        });
+    }
+
+    /// <summary>Verifies that <see cref="Connection.InvokeAsync(OutgoingRequest, CancellationToken)"/> can receive raw
+    /// payload data without using Slice definitions.</summary>
+    [Test]
+    public async Task Invoke_can_receive_raw_payload_data()
+    {
+        // Arrange
+        var colocTransport = new ColocTransport();
+        byte[] expectedPayload = new byte[] { 0xAA, 0xBB, 0xCC };
+
+        await using var server = new Server(new ServerOptions()
+        {
+            Dispatcher = new InlineDispatcher(async (request, cancel) =>
+            {
+                _ = await request.Payload.ReadAllAsync(cancel);
+                return new OutgoingResponse(request)
+                {
+                    PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(expectedPayload)),
+                };
+            }),
+            MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+        });
+        server.Listen();
+
+        await using var connection = new Connection(new ConnectionOptions()
+        {
+            RemoteEndpoint = server.Endpoint,
+            MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport)
+        });
+        var proxy = Proxy.FromConnection(connection, "/");
+
+        // Act
+        IncomingResponse response = await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy), default);
         byte[] responsePayload = (await response.Payload.ReadAllAsync(default)).Buffer.ToArray();
         await response.Payload.CompleteAsync(); // done with payload
 
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(responsePayload, Is.EqualTo(requestPayload.ToArray()));
+            Assert.That(responsePayload, Is.EqualTo(expectedPayload));
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
         });
     }
