@@ -45,15 +45,6 @@ namespace IceRpc.Tests.Api
             Assert.That(lastOperation, Is.EqualTo("sayHello"));
         }
 
-        // A simple interceptor
-        private static Func<IInvoker, IInvoker> CheckValue(Func<int> nextValue, int count) => next =>
-            new InlineInvoker((request, cancel) =>
-            {
-                int value = nextValue();
-                Assert.That(value, Is.EqualTo(count));
-                return next.InvokeAsync(request, cancel);
-            });
-
         // TODO: move to shared location?
         public class Greeter : Service, IGreeter
         {
