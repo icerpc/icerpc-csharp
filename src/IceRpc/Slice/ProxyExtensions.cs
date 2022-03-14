@@ -16,10 +16,10 @@ namespace IceRpc.Slice
     /// <summary>Provides extension methods for class Proxy.</summary>
     public static class ProxyExtensions
     {
-        private static readonly IDictionary<int, OutgoingFieldValue> _idempotentFields =
-            new Dictionary<int, OutgoingFieldValue>
+        private static readonly IDictionary<RequestFieldKey, OutgoingFieldValue> _idempotentFields =
+            new Dictionary<RequestFieldKey, OutgoingFieldValue>
             {
-                [(int)FieldKey.Idempotent] = default
+                [RequestFieldKey.Idempotent] = default
             }.ToImmutableDictionary();
 
         /// <summary>Computes the Slice encoding to use when encoding a Slice-generated request.</summary>
@@ -63,7 +63,8 @@ namespace IceRpc.Slice
             var request = new OutgoingRequest(proxy)
             {
                 Features = invocation?.Features ?? FeatureCollection.Empty,
-                Fields = idempotent ? _idempotentFields : ImmutableDictionary<int, OutgoingFieldValue>.Empty,
+                Fields = idempotent ?
+                    _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
                 Operation = operation,
                 PayloadEncoding = payloadEncoding,
                 PayloadSource = payloadSource,
@@ -124,7 +125,8 @@ namespace IceRpc.Slice
             var request = new OutgoingRequest(proxy)
             {
                 Features = invocation?.Features ?? FeatureCollection.Empty,
-                Fields = idempotent ? _idempotentFields : ImmutableDictionary<int, OutgoingFieldValue>.Empty,
+                Fields = idempotent ?
+                    _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
                 IsOneway = oneway || (invocation?.IsOneway ?? false),
                 Operation = operation,
                 PayloadEncoding = payloadEncoding,
