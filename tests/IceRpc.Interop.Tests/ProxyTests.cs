@@ -64,7 +64,7 @@ public class ProxyTests
     }
 
     /// <summary>Provides test case data for
-    /// <see cref="Parse_a_proxy_created_from_a_ice_proxy_string_and_ice_format(string, IceProxyFormat)"/> test.
+    /// <see cref="Parse_a_proxy_from_an_ice_proxy_string_and_an_ice_format(string, IceProxyFormat)"/> test.
     /// </summary>
     private static IEnumerable<TestCaseData> PathToProxyPathSource
     {
@@ -252,17 +252,16 @@ public class ProxyTests
     {
         var proxy = new Proxy(Protocol.Ice) { Path = path };
 
-        string iceProxyString = proxy.ToString(format)[..^10];
+        string iceProxyString = proxy.ToString(format)[..^10]; // trim " -t -e 1.1"
 
         Assert.That(iceProxyString, Is.EqualTo(expected));
     }
 
-    /// <summary>Verifies that a path can be used in conjunction with an Ice format to produce a
-    /// Proxy with the correct path (using Parse).</summary>
+    /// <summary>Verifies that an Ice proxy string can be parsed into a proxy</summary>
     /// <param name="path">The path used to create the proxy.</param>
     /// <param name="format">The format being used to create the proxy.</param>
     [Test, TestCaseSource(nameof(PathToProxyPathSource))]
-    public void Parse_a_proxy_created_from_a_ice_proxy_string_and_ice_format(string path, IceProxyFormat format)
+    public void Parse_an_ice_proxy_string(string path, IceProxyFormat format)
     {
         var proxy = new Proxy(Protocol.Ice) { Path = path };
         string iceProxyString = proxy.ToString(format);
