@@ -128,9 +128,9 @@ public sealed class ConnectionPoolTests
         Assert.That(connection.RemoteEndpoint, Is.EqualTo(server1.Endpoint));
     }
 
-    /// <summary>Verifies that the connection pool reuse existing connection.</summary>
+    /// <summary>Verifies that the connection pool reuses existing connection.</summary>
     [Test]
-    public async Task Get_connection_reuse_existing_connection()
+    public async Task Get_connection_reuses_existing_connection()
     {
         // Arrange
         var colocTransport = new ColocTransport();
