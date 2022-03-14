@@ -9,7 +9,7 @@ namespace IceRpc.Tests;
 public class CacheLessLocationResolverTests
 {
     [Test]
-    public async Task Resolve_known_location_returns_a_proxy(
+    public async Task Resolving_a_known_location_returns_a_proxy(
         [Values(true, false)] bool isAdapterId,
         [Values(true, false)] bool refreshCache)
     {
@@ -27,7 +27,7 @@ public class CacheLessLocationResolverTests
     }
 
     [Test]
-    public async Task Resolve_unknown_location_returns_null(
+    public async Task Resolving_an_unknown_location_returns_null(
         [Values(true, false)] bool isAdapterId,
         [Values(true, false)] bool refreshCache)
     {
