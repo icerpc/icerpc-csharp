@@ -64,7 +64,7 @@ public class ProxyTests
     }
 
     /// <summary>Provides test case data for
-    /// <see cref="Path_to_proxy_path_with_format(string, IceProxyFormat)"/> test.
+    /// <see cref="Parse_a_proxy_created_from_a_ice_proxy_string_and_ice_format(string, IceProxyFormat)"/> test.
     /// </summary>
     private static IEnumerable<TestCaseData> PathToProxyPathSource
     {
@@ -91,7 +91,7 @@ public class ProxyTests
     }
 
     /// <summary>Provides test case data for
-    /// <see cref="Path_to_proxy_string_with_format(string, string, IceProxyFormat)"/> test. </summary>
+    /// <see cref="Convert_a_proxy_to_a_string_with_ice_format(string, string, IceProxyFormat)"/> test. </summary>
     private static IEnumerable<TestCaseData> PathToProxyStringSource
     {
         get
@@ -248,7 +248,7 @@ public class ProxyTests
     /// <param name="expected">The "stringified" formatted path to check against.</param>
     /// <param name="format">The format being used to create the proxy.</param>
     [Test, TestCaseSource(nameof(PathToProxyStringSource))]
-    public void Path_to_proxy_string_with_format(string path, string expected, IceProxyFormat format)
+    public void Convert_a_proxy_to_a_string_with_ice_format(string path, string expected, IceProxyFormat format)
     {
         var proxy = new Proxy(Protocol.Ice) { Path = path };
 
@@ -262,7 +262,7 @@ public class ProxyTests
     /// <param name="path">The path used to create the proxy.</param>
     /// <param name="format">The format being used to create the proxy.</param>
     [Test, TestCaseSource(nameof(PathToProxyPathSource))]
-    public void Path_to_proxy_path_with_format(string path, IceProxyFormat format)
+    public void Parse_a_proxy_created_from_a_ice_proxy_string_and_ice_format(string path, IceProxyFormat format)
     {
         var proxy = new Proxy(Protocol.Ice) { Path = path };
         string iceProxyString = proxy.ToString(format);
