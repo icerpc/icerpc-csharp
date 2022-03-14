@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using NUnit.Framework;
+using System.Collections.Immutable;
 
 namespace IceRpc.Tests;
 
@@ -58,6 +59,98 @@ public class ProxyTests
                 yield return new TestCaseData(Str, IceProxyFormat.ASCII);
                 yield return new TestCaseData(Str, IceProxyFormat.Compat);
                 yield return new TestCaseData(Str, IceProxyFormat.Unicode);
+            }
+        }
+    }
+
+    /// <summary>Provides test case data for
+    /// <see cref="Parse_a_proxy_from_an_ice_proxy_string_and_an_ice_format(string, IceProxyFormat)"/> test.
+    /// </summary>
+    private static IEnumerable<TestCaseData> PathToProxyPathSource
+    {
+        get
+        {
+            (string, string)[] testData =
+            {
+                ("test", "\x7f€"),
+                ("banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024", "greek \ud800\udd6a"),
+                ("test", ",X2QNUAzSBcJ_e$AV;E\\"),
+                ("test", ",X2QNUAz\\SB\\/cJ_e$AV;E\\\\"),
+                ("/test", "cat/"),
+            };
+            foreach ((string name, string category) in testData)
+            {
+                var path = $"/{Uri.EscapeDataString(category)}/{Uri.EscapeDataString(name)}";
+                foreach (IceProxyFormat format in
+                    ImmutableList.Create(IceProxyFormat.Unicode, IceProxyFormat.ASCII, IceProxyFormat.Compat))
+                    {
+                        yield return new TestCaseData(path, format);
+                    }
+            }
+        }
+    }
+
+    /// <summary>Provides test case data for
+    /// <see cref="Convert_a_proxy_to_a_string_with_ice_format(string, string, IceProxyFormat)"/> test. </summary>
+    private static IEnumerable<TestCaseData> PathToProxyStringSource
+    {
+        get
+        {
+            (string, string, string, IceProxyFormat)[] testData =
+            {
+                (
+                    "test",
+                    "\x7f€",
+                    "\\177\\342\\202\\254/test",
+                    IceProxyFormat.Compat
+                ),
+                (
+                    "banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024",
+                    "greek \ud800\udd6a",
+                    "\"greek \\360\\220\\205\\252/banana \\016-\\360\\237\\215\\214\\342\\202\\254\\302\\242$\"",
+                    IceProxyFormat.Compat
+                ),
+                (
+                    "test",
+                    "\x7f€",
+                    "\\u007f\\u20ac/test",
+                    IceProxyFormat.ASCII
+                ),
+                (
+                    "banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024",
+                    "greek \ud800\udd6a",
+                    "\"greek \\U0001016a/banana \\u000e-\\U0001f34c\\u20ac\\u00a2$\"",
+                    IceProxyFormat.ASCII
+                ),
+                (
+                    "test",
+                    "\x7f€",
+                    "\\u007f€/test",
+                    IceProxyFormat.Unicode
+                ),
+                (
+                    "test",
+                    ",X2QNUAz\\SB\\/cJ_e$AV;E\\\\",
+                    ",X2QNUAz\\\\SB\\\\\\/cJ_e$AV;E\\\\\\\\/test",
+                    IceProxyFormat.Unicode
+                ),
+                (
+                    "/test",
+                    "cat/",
+                    "cat\\//\\/test",
+                    IceProxyFormat.Unicode
+                ),
+                (
+                    "banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024",
+                    "greek \ud800\udd6a",
+                    "\"greek \ud800\udd6a/banana \\u000e-\ud83c\udf4c\u20ac\u00a2$\"",
+                    IceProxyFormat.Unicode
+                )
+            };
+            foreach ((string name, string category, string expected, IceProxyFormat format) in testData)
+            {
+                var path = $"/{Uri.EscapeDataString(category)}/{Uri.EscapeDataString(name)}";
+                yield return new TestCaseData(path, expected, format);
             }
         }
     }
@@ -148,4 +241,33 @@ public class ProxyTests
     [Test, TestCaseSource(nameof(ProxyParseInvalidSource))]
     public void Parse_an_invalid_proxy(string str, IProxyFormat format) =>
         Assert.Throws(Is.InstanceOf<FormatException>(), () => Proxy.Parse(str, format: format));
+
+    /// <summary>Verifies that a path can be converted to an Ice string with a specified format (using ToString).
+    /// </summary>
+    /// <param name="path">The path used to create the proxy.</param>
+    /// <param name="expected">The "stringified" formatted path to check against.</param>
+    /// <param name="format">The format being used to create the proxy.</param>
+    [Test, TestCaseSource(nameof(PathToProxyStringSource))]
+    public void Convert_a_proxy_to_a_string_with_ice_format(string path, string expected, IceProxyFormat format)
+    {
+        var proxy = new Proxy(Protocol.Ice) { Path = path };
+
+        string iceProxyString = proxy.ToString(format)[..^10]; // trim " -t -e 1.1"
+
+        Assert.That(iceProxyString, Is.EqualTo(expected));
+    }
+
+    /// <summary>Verifies that an Ice proxy string can be parsed into a proxy</summary>
+    /// <param name="path">The path used to create the proxy.</param>
+    /// <param name="format">The format being used to create the proxy.</param>
+    [Test, TestCaseSource(nameof(PathToProxyPathSource))]
+    public void Parse_an_ice_proxy_string(string path, IceProxyFormat format)
+    {
+        var proxy = new Proxy(Protocol.Ice) { Path = path };
+        string iceProxyString = proxy.ToString(format);
+
+        var iceProxy = Proxy.Parse(iceProxyString, format: IceProxyFormat.Default);
+
+        Assert.That(iceProxy.Path, Is.EqualTo(path));
+    }
 }
