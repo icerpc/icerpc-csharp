@@ -63,6 +63,7 @@ compact struct EncapsulationHeader
 
 /// Each ice request frame has:
 /// - a frame prologue, with the frame type and the overall frame size
+/// - a request ID
 /// - a request header (below)
 /// - a request payload, with encapsulationSize - 6 bytes
 [cs:readonly]
@@ -79,6 +80,7 @@ compact struct IceRequestHeader
 /// The reply status of an ice response frame.
 /// Each ice response frame has:
 /// - a frame prologue, with the frame type and the overall frame size
+/// - a request ID
 /// - a reply status
 /// - when reply status is OK or UserException, an encapsulation header followed by a response payload, with
 /// encapsulationSize - 6 bytes

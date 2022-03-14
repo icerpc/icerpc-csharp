@@ -7,8 +7,8 @@ using System.IO.Pipelines;
 namespace IceRpc.Internal
 {
     /// <summary>A stateless pipe writer used for the payload sink of an outgoing request or response. The writer just
-    /// the writting to the network connection pipe writer. The network connection pipe writer can't be used directly
-    /// as the output sink because we don't want the completion of the output sink to complete the the network pipe
+    /// writes to the network connection pipe writer. The network connection pipe writer can't be used directly as the
+    /// output sink because we don't want the completion of the output sink to complete the the network pipe
     /// writer.</summary>
     internal sealed class IcePayloadPipeWriter : PipeWriter
     {

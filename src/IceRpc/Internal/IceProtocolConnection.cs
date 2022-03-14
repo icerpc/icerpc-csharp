@@ -569,7 +569,7 @@ namespace IceRpc.Internal
             _isUdp = isUdp;
 
             // TODO: get the pool and minimum segment size from an option class, but which one? The Slic connection
-            // gets these from SlicOptions but another option could to add Pool/MinimunSegmentSize on
+            // gets these from SlicOptions but another option could be to add Pool/MinimunSegmentSize on
             // ConnectionOptions/ServerOptions. These properties would be used by:
             // - the multiplexed transport implementations
             // - the Ice protocol connection
@@ -720,7 +720,9 @@ namespace IceRpc.Internal
                     (prologue.FrameType == IceFrameType.Reply || prologue.FrameType == IceFrameType.Request))
                 {
                     result = await _networkConnectionReader.ReadAtLeastAsync(4, cancel).ConfigureAwait(false);
-                    requestId = DecodeRequestId(result.Buffer);
+                    requestId = Encoding.Slice11.DecodeBuffer(
+                        result.Buffer.Slice(0, 4),
+                        (ref SliceDecoder decoder) => decoder.DecodeInt());
                     _networkConnectionReader.AdvanceTo(result.Buffer.GetPosition(4));
                 }
 
@@ -803,12 +805,6 @@ namespace IceRpc.Internal
                         (IceRequestHeader requestHeader, consumed) = DecodeRequestHeader(frameData);
                         frameData = frameData.Slice(consumed);
 
-                        // The payload size is the encapsulation size less the 6 bytes of the encapsulation header.
-                        int payloadSize = requestHeader.EncapsulationHeader.EncapsulationSize - 6;
-                        if (payloadSize != frameData.Length)
-                        {
-                        }
-
                         var payloadReader = new IcePayloadPipeReader(
                             frameData,
                             replyStatus: null,
@@ -840,14 +836,9 @@ namespace IceRpc.Internal
                         (ReplyStatus replyStatus, int payloadSize, consumed) = DecodeReplyHeader(frameData);
                         frameData = frameData.Slice(consumed);
 
-                        // The payload size is the encapsulation size less the 6 bytes of the encapsulation header.
-                        if (payloadSize != frameData.Length)
-                        {
-                        }
-
                         var payloadReader = new IcePayloadPipeReader(
                             frameData,
-                            replyStatus: null,
+                            replyStatus,
                             _memoryPool,
                             _minimumSegmentSize);
 
@@ -894,23 +885,26 @@ namespace IceRpc.Internal
                 var prologue = new IcePrologue(ref decoder);
                 int? requestId = null;
                 if ((prologue.FrameType == IceFrameType.Reply || prologue.FrameType == IceFrameType.Request) &&
-                    buffer.Length > IceDefinitions.PrologueSize)
+                    buffer.Length >= (IceDefinitions.PrologueSize + 4))
                 {
                     requestId = decoder.DecodeInt();
                 }
                 return (prologue, requestId, (int)decoder.Consumed);
             }
 
-            static int DecodeRequestId(ReadOnlySequence<byte> buffer)
-            {
-                var decoder = new SliceDecoder(buffer, Encoding.Slice11);
-                return decoder.DecodeInt();
-            }
-
             static (IceRequestHeader Header, int Consumed) DecodeRequestHeader(ReadOnlySequence<byte> buffer)
             {
                 var decoder = new SliceDecoder(buffer, Encoding.Slice11);
-                return (new IceRequestHeader(ref decoder), (int)decoder.Consumed);
+                var requestHeader = new IceRequestHeader(ref decoder);
+
+                int payloadSize = requestHeader.EncapsulationHeader.EncapsulationSize - 6;
+                if (payloadSize != (buffer.Length - decoder.Consumed))
+                {
+                    throw new InvalidDataException(@$"request payload size mismatch: expected {payloadSize
+                        } bytes, read {buffer.Length - decoder.Consumed} bytes");
+                }
+
+                return (requestHeader, (int)decoder.Consumed);
             }
 
             static (ReplyStatus ReplyStatus, int PayloadSize, int Consumed) DecodeReplyHeader(
@@ -930,17 +924,17 @@ namespace IceRpc.Internal
 
                     // we ignore the payload encoding, it's irrelevant: the caller knows which encoding to expect,
                     // usually the same encoding as the request payload.
-
-                    if (payloadSize != buffer.Length - 7)
-                    {
-                        throw new InvalidDataException(@$"response payload size mismatch: expected {payloadSize
-                            } bytes, read {buffer.Length - 7} bytes");
-                    }
                 }
                 else
                 {
                     // Ice system exception
-                    payloadSize = (int)buffer.Length;
+                    payloadSize = (int)buffer.Length - 1;
+                }
+
+                if (payloadSize != (buffer.Length - decoder.Consumed))
+                {
+                    throw new InvalidDataException(@$"response payload size mismatch: expected {payloadSize
+                        } bytes, read {buffer.Length - decoder.Consumed} bytes");
                 }
 
                 return (replyStatus, payloadSize, (int)decoder.Consumed);

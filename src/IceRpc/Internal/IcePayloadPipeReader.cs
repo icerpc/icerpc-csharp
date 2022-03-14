@@ -6,7 +6,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Internal
 {
-    /// <summary>This pipe reader implementation provides a reader to simplifying the reading of the payload from an
+    /// <summary>This pipe reader implementation provides a reader to simplify the reading of the payload from an
     /// incoming Ice request or response. The payload is buffered into an internal pipe. The size is written first to
     /// the internal pipe and it's followed by the payload data read from the network connection pipe reader.</summary>
     internal sealed class IcePayloadPipeReader : PipeReader
@@ -67,10 +67,19 @@ namespace IceRpc.Internal
             void EncodeSegmentSizeAndReplyStatus(int payloadSize, ReplyStatus? replyStatus)
             {
                 var encoder = new SliceEncoder(_pipe.Writer, Encoding.Slice20);
-                encoder.EncodeSize(payloadSize);
+
+                // The payload size is always encoded as a varulong on 4 bytes.
+                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+
+                // Encode the reply status only if it's a system exception.
                 if (replyStatus != null && replyStatus > ReplyStatus.UserException)
                 {
+                    SliceEncoder.EncodeVarULong((ulong)payloadSize + 1, sizePlaceholder);
                     encoder.EncodeReplyStatus(replyStatus.Value);
+                }
+                else
+                {
+                    SliceEncoder.EncodeVarULong((ulong)payloadSize, sizePlaceholder);
                 }
             }
         }

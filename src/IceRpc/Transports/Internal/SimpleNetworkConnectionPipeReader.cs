@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Buffers;
-using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
@@ -12,7 +11,7 @@ namespace IceRpc.Transports.Internal
         private readonly Pipe _pipe;
 
         /// <inheritdoc/>
-        public override void AdvanceTo(SequencePosition consumed) => AdvanceTo(consumed, consumed);
+        public override void AdvanceTo(SequencePosition consumed) => _pipe.Reader.AdvanceTo(consumed);
 
         /// <inheritdoc/>
         public override void AdvanceTo(SequencePosition consumed, SequencePosition examined) =>
