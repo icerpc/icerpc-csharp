@@ -8,7 +8,7 @@ namespace IceRpc.Tests;
 
 public class LocatorEndpointFinderTests
 {
-    /// <summary>Verifies <see cref="LocatorEndpointFinder"/> correctly resolves an adapter Id.</summary>
+    /// <summary>Verifies that <see cref="LocatorEndpointFinder"/> correctly resolves an adapter Id.</summary>
     [Test]
     public async Task Find_adapter_by_id()
     {
@@ -21,8 +21,8 @@ public class LocatorEndpointFinderTests
         Assert.That(proxy, Is.EqualTo(expectedProxy.Proxy));
     }
 
-    /// <summary>Verifies <see cref="LocatorEndpointFinder"/> correctly handles <see cref="AdapterNotFoundException"/>.
-    /// </summary>
+    /// <summary>Verifies that <see cref="LocatorEndpointFinder"/> correctly handles
+    /// <see cref="AdapterNotFoundException"/>.</summary>
     [Test]
     public async Task Find_adapter_by_id_not_found()
     {
@@ -34,7 +34,7 @@ public class LocatorEndpointFinderTests
         Assert.That(proxy, Is.Null);
     }
 
-    /// <summary>Verifies <see cref="LocatorEndpointFinder"/> correctly resolves an object Id.</summary>
+    /// <summary>Verifies that <see cref="LocatorEndpointFinder"/> correctly resolves an object Id.</summary>
     [Test]
     public async Task Find_object_by_id()
     {
@@ -47,8 +47,8 @@ public class LocatorEndpointFinderTests
         Assert.That(proxy, Is.EqualTo(expectedProxy.Proxy));
     }
 
-    /// <summary>Verifies <see cref="LocatorEndpointFinder"/> correctly handles <see cref="ObjectNotFoundException"/>.
-    /// </summary>
+    /// <summary>Verifies that <see cref="LocatorEndpointFinder"/> correctly handles
+    /// <see cref="ObjectNotFoundException"/>.</summary>
     [Test]
     public async Task Find_object_by_id_not_found()
     {
