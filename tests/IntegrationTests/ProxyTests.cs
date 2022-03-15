@@ -67,7 +67,6 @@ public class ProxyTests
 
         Assert.That(service.ReceivedPrx, Is.Not.Null);
         Assert.That(service.ReceivedPrx.Value.Proxy.Invoker, Is.EqualTo(pipeline));
-
     }
 
     private class ReceiveProxyTest : Service, IReceiveProxyTest
