@@ -49,7 +49,6 @@ public class InvocationTests
     public async Task Invocation_deadline_sets_the_deadline_field()
     {
         // Arrange
-        var timeout = TimeSpan.FromMilliseconds(500);
         DateTime deadline = DateTime.MaxValue;
         var invoker = new InlineInvoker((request, cancel) =>
         {
@@ -59,7 +58,7 @@ public class InvocationTests
 
         using var cancellationSource = new CancellationTokenSource();
         var sut = new Proxy(Protocol.IceRpc) { Invoker = invoker };
-        DateTime expectedDeadline = DateTime.UtcNow + timeout;
+        DateTime expectedDeadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(50);
         var invocation = new Invocation() { Deadline = expectedDeadline };
 
         // Act
@@ -89,20 +88,21 @@ public class InvocationTests
             {
                 hasDeadline = request.Fields.ContainsKey(RequestFieldKey.Deadline);
                 cancellationToken = cancel;
-                await Task.Delay(10000, cancel);
+                await Task.Delay(TimeSpan.FromSeconds(5), cancel);
                 return new IncomingResponse(request);
             }),
         };
 
         // Act
-        Assert.ThrowsAsync<TaskCanceledException>(
+        Assert.That(
             () => sut.InvokeAsync(
                 "",
                 Encoding.Slice20,
                 EmptyPipeReader.Instance,
                 null,
                 SliceDecoder.GetActivator(typeof(InvocationTests).Assembly),
-                new Invocation { Timeout = TimeSpan.FromMilliseconds(500) }));
+                new Invocation { Timeout = TimeSpan.FromMilliseconds(50) }),
+            Throws.TypeOf<TaskCanceledException>());
 
         // Assert
         Assert.That(cancellationToken, Is.Not.Null);

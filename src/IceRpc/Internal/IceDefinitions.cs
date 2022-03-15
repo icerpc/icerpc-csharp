@@ -11,33 +11,27 @@ namespace IceRpc.Internal
         // for the subset of the encoding used by the ice headers.
         internal static readonly Encoding Encoding = Encoding.Slice11;
 
-        // Size of an ice frame header:
+        // Size of an ice frame prologue:
         // Magic number (4 bytes)
         // Protocol bytes (4 bytes)
         // Frame type (Byte)
         // Compression status (Byte)
         // Frame size (Int - 4 bytes)
-        internal const int HeaderSize = 14;
+        internal const int PrologueSize = 14;
 
         // The magic number at the front of each frame.
         internal static readonly byte[] Magic = new byte[] { 0x49, 0x63, 0x65, 0x50 }; // 'I', 'c', 'e', 'P'
 
-        // 4-bytes after magic that provide the protocol version (always 1.0 for an ice frame) and the
-        // encoding of the frame header (always set to 1.0 with the an ice frame, even though we use 1.1).
+        // 4-bytes after magic that provide the protocol version (always 1.0 for an ice frame) and the encoding of the
+        // frame header (always set to 1.0 with the an ice frame, even though we use 1.1).
         internal static readonly byte[] ProtocolBytes = new byte[] { 1, 0, 1, 0 };
 
-        internal static readonly IReadOnlyList<ReadOnlyMemory<byte>> CloseConnectionFrame =
-            new ReadOnlyMemory<byte>[]
-            {
-                new byte[]
-                {
-                    Magic[0], Magic[1], Magic[2], Magic[3],
-                    ProtocolBytes[0], ProtocolBytes[1], ProtocolBytes[2], ProtocolBytes[3],
-                    (byte)IceFrameType.CloseConnection,
-                    0, // Compression status.
-                    HeaderSize, 0, 0, 0 // Frame size.
-                }
-            };
+        internal static readonly IcePrologue CloseConnectionFrame = new(
+            Magic[0], Magic[1], Magic[2], Magic[3],
+            ProtocolBytes[0], ProtocolBytes[1], ProtocolBytes[2], ProtocolBytes[3],
+            IceFrameType.CloseConnection,
+            compressionStatus: 0,
+            PrologueSize);
 
         internal static readonly byte[] FramePrologue = new byte[]
         {
@@ -45,41 +39,37 @@ namespace IceRpc.Internal
             ProtocolBytes[0], ProtocolBytes[1], ProtocolBytes[2], ProtocolBytes[3],
         };
 
-        internal static readonly IReadOnlyList<ReadOnlyMemory<byte>> ValidateConnectionFrame =
-            new ReadOnlyMemory<byte>[]
-            {
-                new byte[]
-                {
-                    Magic[0], Magic[1], Magic[2], Magic[3],
-                    ProtocolBytes[0], ProtocolBytes[1], ProtocolBytes[2], ProtocolBytes[3],
-                    (byte)IceFrameType.ValidateConnection,
-                    0, // Compression status.
-                    HeaderSize, 0, 0, 0 // Frame size.
-                }
-            };
+        internal static readonly IcePrologue ValidateConnectionFrame = new(
+            Magic[0], Magic[1], Magic[2], Magic[3],
+            ProtocolBytes[0], ProtocolBytes[1], ProtocolBytes[2], ProtocolBytes[3],
+            IceFrameType.ValidateConnection,
+            compressionStatus: 0,
+            PrologueSize);
 
         // Verify that the first 8 bytes correspond to Magic + ProtocolBytes
-        internal static void CheckHeader(ReadOnlySpan<byte> header)
+        internal static void CheckPrologue(IcePrologue prologue)
         {
-            Debug.Assert(header.Length == 14);
-            if (header[0] != Magic[0] || header[1] != Magic[1] || header[2] != Magic[2] || header[3] != Magic[3])
+            if (prologue.Magic1 != Magic[0] ||
+                prologue.Magic2 != Magic[1] ||
+                prologue.Magic3 != Magic[2] ||
+                prologue.Magic4 != Magic[3])
             {
+                byte[] magic = new byte[] { prologue.Magic1, prologue.Magic2, prologue.Magic3, prologue.Magic4 };
                 throw new InvalidDataException(
-                    $"received incorrect magic bytes in header of ice frame: {BytesToString(header[0..4])}");
+                    $"received incorrect magic bytes in prologue of ice frame: {BytesToString(magic)}");
             }
 
-            header = header[4..];
-
-            if (header[0] != ProtocolBytes[0] || header[1] != ProtocolBytes[1])
+            if (prologue.ProtocolMajor != ProtocolBytes[0] || prologue.ProtocolMinor != ProtocolBytes[1])
             {
                 throw new InvalidDataException(
-                    $"received ice protocol frame with protocol set to {header[0]}.{header[1]}");
+                    $"received ice prologue with protocol set to {prologue.ProtocolMajor}.{prologue.ProtocolMinor}");
             }
 
-            if (header[2] != ProtocolBytes[2] || header[3] != ProtocolBytes[3])
+            if (prologue.EncodingMajor != ProtocolBytes[2] || prologue.EncodingMinor != ProtocolBytes[3])
             {
                 throw new InvalidDataException(
-                    $"received ice protocol frame with protocol encoding set to {header[2]}.{header[3]}");
+                    @$"received ice prologue with protocol encoding set to {
+                        prologue.EncodingMajor}.{prologue.EncodingMinor}");
             }
         }
 

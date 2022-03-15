@@ -59,11 +59,11 @@ public class SlicingTests
             activator,
             slicedTypeIds: ImmutableList.Create(MyMostDerivedClass.SliceTypeId));
 
-        Assert.Throws<InvalidDataException>(() =>
+        Assert.That(() =>
         {
             var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
             decoder.DecodeClass<MyMostDerivedClass>();
-        });
+        }, Throws.TypeOf<InvalidDataException>());
 
         decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
         MyDerivedClass r1 = decoder.DecodeClass<MyDerivedClass>();
@@ -76,11 +76,11 @@ public class SlicingTests
             activator,
             slicedTypeIds: ImmutableList.Create(MyMostDerivedClass.SliceTypeId, MyDerivedClass.SliceTypeId));
 
-        Assert.Throws<InvalidDataException>(() =>
+        Assert.That(() =>
         {
             var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
             decoder.DecodeClass<MyDerivedClass>();
-        });
+        }, Throws.TypeOf<InvalidDataException>());
 
         decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
         MyBaseClass r2 = decoder.DecodeClass<MyBaseClass>();
@@ -95,17 +95,17 @@ public class SlicingTests
                     MyDerivedClass.SliceTypeId,
                     MyBaseClass.SliceTypeId));
 
-        Assert.Throws<InvalidDataException>(() =>
+        Assert.That(() =>
         {
             var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
             decoder.DecodeClass<MyBaseClass>();
-        });
+        }, Throws.TypeOf<InvalidDataException>());
 
-        Assert.DoesNotThrow(() =>
+        Assert.That(() =>
         {
             var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
             decoder.DecodeClass<AnyClass>();
-        });
+        }, Throws.Nothing);
     }
 
     [Test]
@@ -140,11 +140,11 @@ public class SlicingTests
             activator,
             slicedTypeIds: ImmutableList.Create("3"));
 
-        Assert.Throws<InvalidDataException>(() =>
+        Assert.That(() =>
         {
             var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
             decoder.DecodeClass<MyCompactMostDerivedClass>();
-        });
+        }, Throws.TypeOf<InvalidDataException>());
 
         decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
         MyCompactDerivedClass r1 = decoder.DecodeClass<MyCompactDerivedClass>();
@@ -157,11 +157,11 @@ public class SlicingTests
             activator,
             slicedTypeIds: ImmutableList.Create("3", "2"));
 
-        Assert.Throws<InvalidDataException>(() =>
+        Assert.That(() =>
         {
             var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
             decoder.DecodeClass<MyCompactDerivedClass>();
-        });
+        }, Throws.TypeOf<InvalidDataException>());
 
         decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
         MyCompactBaseClass r2 = decoder.DecodeClass<MyCompactBaseClass>();
@@ -173,17 +173,17 @@ public class SlicingTests
             activator,
             slicedTypeIds: ImmutableList.Create("3", "2", "1"));
 
-        Assert.Throws<InvalidDataException>(() =>
+        Assert.That(() =>
         {
             var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
             decoder.DecodeClass<MyCompactBaseClass>();
-        });
+        }, Throws.TypeOf<InvalidDataException>());
 
-        Assert.DoesNotThrow(() =>
+        Assert.That(() =>
         {
             var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
             decoder.DecodeClass<AnyClass>();
-        });
+        }, Throws.Nothing);
     }
 
     [Test]
@@ -279,11 +279,11 @@ public class SlicingTests
             activator,
             slicedTypeIds: ImmutableList.Create(MyPreservedDerivedClass1.SliceTypeId));
 
-        Assert.Throws<InvalidDataException>(() =>
+        Assert.That(() =>
         {
             var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
             decoder.DecodeClass<MyPreservedDerivedClass1>();
-        });
+        }, Throws.TypeOf<InvalidDataException>());
 
         var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
         MyBaseClass r1 = decoder.DecodeClass<MyBaseClass>();
@@ -330,11 +330,11 @@ public class SlicingTests
             activator,
             slicedTypeIds: ImmutableList.Create("56"));
 
-        Assert.Throws<InvalidDataException>(() =>
+        Assert.That(() =>
         {
             var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
             decoder.DecodeClass<MyPreservedDerivedClass2>();
-        });
+        }, Throws.TypeOf<InvalidDataException>());
 
         var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
         MyBaseClass r1 = decoder.DecodeClass<MyBaseClass>();

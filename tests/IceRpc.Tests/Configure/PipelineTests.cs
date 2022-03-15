@@ -57,7 +57,6 @@ public class PipelineTests
                 return Task.FromResult(new IncomingResponse(request));
             }));
 
-
         pipeline.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
 
         Assert.That(calls, Is.EqualTo(expectedCalls));

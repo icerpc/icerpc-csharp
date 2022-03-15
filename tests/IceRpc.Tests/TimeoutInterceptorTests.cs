@@ -10,7 +10,7 @@ public sealed class TimeoutInterceptorTests
 {
     /// <summary>Verifies that the invocation is canceled when the invocation time expires.</summary>
     [Test]
-    public void Invocation_is_canceled_after_the_invocation_timeout_expires()
+    public void Invocation_is_canceled_after_the_timeout_expires()
     {
         // Arrange
         CancellationToken? cancellationToken = null;
@@ -24,7 +24,7 @@ public sealed class TimeoutInterceptorTests
             return new IncomingResponse(request);
         });
 
-        var sut = new TimeoutInterceptor(invoker, TimeSpan.FromMilliseconds(500));
+        var sut = new TimeoutInterceptor(invoker, TimeSpan.FromMilliseconds(50));
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
 
         // Act
@@ -39,7 +39,7 @@ public sealed class TimeoutInterceptorTests
 
     /// <summary>Verifies that the timeout interceptor encodes the expected deadline value.</summary>
     [Test]
-    public async Task Invocation_interceptor_sets_the_deadline_field()
+    public async Task Timeout_interceptor_sets_the_deadline_field()
     {
         // Arrange
         var timeout = TimeSpan.FromMilliseconds(500);
