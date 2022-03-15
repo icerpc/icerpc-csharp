@@ -36,10 +36,7 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public override bool TryRead(out ReadResult result) => _pipe.Reader.TryRead(out result);
 
-        internal IcePayloadPipeReader(
-            ReadOnlySequence<byte> payload,
-            MemoryPool<byte> pool,
-            int minimumSegmentSize)
+        internal IcePayloadPipeReader(ReadOnlySequence<byte> payload, MemoryPool<byte> pool, int minimumSegmentSize)
         {
             _pipe = new Pipe(new PipeOptions(
                 pool: pool,
@@ -51,13 +48,19 @@ namespace IceRpc.Internal
             EncodeSegmentSize(checked((int)payload.Length));
 
             // Copy the payload data to the internal pipe writer.
-            while (payload.Length > 0)
+            if (payload.Length > 0)
             {
-                Span<byte> span = _pipe.Writer.GetSpan();
-                int copySize = Math.Min((int)payload.Length, span.Length);
-                payload.Slice(0, copySize).CopyTo(span);
-                _pipe.Writer.Advance(copySize);
-                payload = payload.Slice(copySize);
+                if (payload.IsSingleSegment)
+                {
+                    _pipe.Writer.Write(payload.FirstSpan);
+                }
+                else
+                {
+                    foreach (ReadOnlyMemory<byte> segment in payload)
+                    {
+                        _pipe.Writer.Write(segment.Span);
+                    }
+                }
             }
 
             // No more data to consume for the payload so we complete the internal pipe writer.
