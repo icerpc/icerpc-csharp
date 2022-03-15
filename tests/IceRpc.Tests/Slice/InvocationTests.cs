@@ -67,14 +67,15 @@ public class InvocationTests
         };
 
         // Act
-        Assert.ThrowsAsync<TaskCanceledException>(
+        Assert.That(
             () => proxy.InvokeAsync(
                 "",
                 Encoding.Slice20,
                 EmptyPipeReader.Instance,
                 null,
                 SliceDecoder.GetActivator(typeof(InvocationTests).Assembly),
-                invocation));
+                invocation),
+            Throws.TypeOf<TaskCanceledException>());
 
         // Assert
         Assert.That(cancelationToken, Is.Not.Null);
