@@ -19,8 +19,13 @@ public sealed class TraitEncodingTests
         traitStructB.EncodeTrait(ref encoder);
 
         // Act/Assert
-        Assert.Throws<InvalidDataException>(() =>
-            new SliceDecoder(buffer, Encoding.Slice20, activator: CreateActivator()).DecodeTrait<IMyTraitA>());
+        Assert.That(
+            () => new SliceDecoder(
+                buffer,
+                Encoding.Slice20,
+                activator: CreateActivator())
+                .DecodeTrait<IMyTraitA>(),
+            Throws.Exception.TypeOf<InvalidDataException>());
     }
 
     /// <summary>Verify that <see cref="SliceDecoder.DecodeTrait{T}"/> method correctly decodes a trait into a concrete
@@ -70,8 +75,13 @@ public sealed class TraitEncodingTests
         traitStructB.Encode(ref encoder);
 
         // Act/Assert
-        Assert.Throws<InvalidDataException>(() =>
-            new SliceDecoder(buffer, Encoding.Slice20, activator: CreateActivator()).DecodeTrait<IMyTraitB>());
+        Assert.That(
+            () => new SliceDecoder(
+                buffer,
+                Encoding.Slice20,
+                activator: CreateActivator())
+                .DecodeTrait<IMyTraitB>(),
+            Throws.Exception.TypeOf<InvalidDataException>());
     }
 
     /// <summary>Verifies the struct's EncodeTrait generated method correctly encodes a struct as a trait.</summary>

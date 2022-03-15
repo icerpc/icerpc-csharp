@@ -38,14 +38,21 @@ public sealed class StreamDecoderTests
     [Test]
     public void StreamDecoder_Options()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new SliceStreamDecoderOptions(pauseWriterThreshold: -2));
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new SliceStreamDecoderOptions(pauseWriterThreshold: 100, resumeWriterThreshold: 200));
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new SliceStreamDecoderOptions(pauseWriterThreshold: 0, resumeWriterThreshold: 200));
-
-        Assert.DoesNotThrow(() => new SliceStreamDecoderOptions(pauseWriterThreshold: -1, resumeWriterThreshold: 200));
-        Assert.DoesNotThrow(() => new SliceStreamDecoderOptions(pauseWriterThreshold: 0, resumeWriterThreshold: 0));
+        Assert.That(
+            () => new SliceStreamDecoderOptions(pauseWriterThreshold: -2),
+            Throws.Exception.TypeOf<ArgumentOutOfRangeException>());
+        Assert.That(
+            () => new SliceStreamDecoderOptions(pauseWriterThreshold: 100, resumeWriterThreshold: 200),
+            Throws.Exception.TypeOf<ArgumentOutOfRangeException>());
+        Assert.That(
+            () => new SliceStreamDecoderOptions(pauseWriterThreshold: 0, resumeWriterThreshold: 200),
+            Throws.Exception.TypeOf<ArgumentOutOfRangeException>());
+        Assert.That(
+            () => new SliceStreamDecoderOptions(pauseWriterThreshold: -1, resumeWriterThreshold: 200),
+            Throws.Nothing);
+        Assert.That(
+            () => new SliceStreamDecoderOptions(pauseWriterThreshold: 0, resumeWriterThreshold: 0),
+            Throws.Nothing);
     }
 
     [Test]
