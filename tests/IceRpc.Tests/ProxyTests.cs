@@ -67,7 +67,7 @@ public class ProxyTests
     {
         get
         {
-            foreach ( (string str, Endpoint[] altEntpoints) in _altEdpoints)
+            foreach ((string str, Endpoint[] altEntpoints) in _altEdpoints)
             {
                 yield return new TestCaseData(str, altEntpoints);
             }
