@@ -47,7 +47,6 @@ namespace IceRpc.Transports.Internal
                     throw new ConnectionLostException();
                 }
             }
-
             return readResult;
         }
 
