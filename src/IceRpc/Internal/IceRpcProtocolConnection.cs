@@ -224,7 +224,7 @@ namespace IceRpc.Internal
                         }
                         else if (_shuttingDown)
                         {
-                            // It shutdown isn't canceled, the cancelation indicates that the peer didn't dispatch the
+                            // If shutdown isn't canceled, the cancellation indicates that the peer didn't dispatch the
                             // invocation.
                             throw new ConnectionClosedException("connection shutdown by peer");
                         }

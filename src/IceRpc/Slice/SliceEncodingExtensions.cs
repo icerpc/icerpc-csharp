@@ -51,8 +51,8 @@ namespace IceRpc.Slice
             {
                 PipeWriter writer = pipe.Writer;
 
-                using var cancelationSource = new CancellationTokenSource();
-                IAsyncEnumerator<T> asyncEnumerator = asyncEnumerable.GetAsyncEnumerator(cancelationSource.Token);
+                using var cancellationSource = new CancellationTokenSource();
+                IAsyncEnumerator<T> asyncEnumerator = asyncEnumerable.GetAsyncEnumerator(cancellationSource.Token);
                 await using var _ = asyncEnumerator.ConfigureAwait(false);
 
                 Memory<byte> sizePlaceholder = StartSegment();
@@ -90,7 +90,7 @@ namespace IceRpc.Slice
 
                             if (flushResult.IsCompleted) // reader no longer reading
                             {
-                                cancelationSource.Cancel();
+                                cancellationSource.Cancel();
                                 break; // End iteration
                             }
 
@@ -159,7 +159,7 @@ namespace IceRpc.Slice
                     }
                     catch (Exception ex)
                     {
-                        cancelationSource.Cancel();
+                        cancellationSource.Cancel();
                         await writer.CompleteAsync(ex).ConfigureAwait(false);
                         throw;
                     }

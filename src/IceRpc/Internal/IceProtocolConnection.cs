@@ -684,7 +684,7 @@ namespace IceRpc.Internal
 
         private async ValueTask<(int RequestId, IceRequestHeader RequestHeader, PipeReader PayloadReader)> ReceiveFrameAsync()
         {
-            // Reads are not cancellable. This method returns once a frame is read or when the connection is disposed.
+            // Reads are not cancelable. This method returns once a frame is read or when the connection is disposed.
             CancellationToken cancel = CancellationToken.None;
 
             while (true)
