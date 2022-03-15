@@ -4,8 +4,6 @@ using IceRpc.Configure;
 using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System.Buffers;
-using System.IO.Pipelines;
 
 namespace IceRpc.Tests.Api
 {
@@ -54,40 +52,6 @@ namespace IceRpc.Tests.Api
 
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync(
                 new Invocation { Timeout = TimeSpan.FromMilliseconds(10) }));
-        }
-
-        /// <summary>Ensure that invocation interceptors can bypass the remote call and directly return a result.
-        /// </summary>
-        [TestCase(0, 1)]
-        public async Task Interceptor_Bypass_RemoteCall(int p1, int p2)
-        {
-            IncomingResponse? response = null;
-            ReadOnlySequence<byte> savedPayload = default;
-
-            var pipeline = new Pipeline();
-            var prx = new InterceptorTestPrx(_prx.Proxy with { Invoker = pipeline });
-
-            pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
-            {
-                if (response == null)
-                {
-                    response = await next.InvokeAsync(request, cancel);
-
-                    ReadResult readResult = await response.Payload.ReadAllAsync(cancel);
-                    savedPayload = new ReadOnlySequence<byte>(readResult.Buffer.ToArray());
-                    response.Payload.AdvanceTo(readResult.Buffer.End);
-                }
-
-                response.Payload = PipeReader.Create(savedPayload); // restore saved payload
-                return response;
-            }));
-
-            int r1 = await prx.OpIntAsync(p1);
-            int r2 = await prx.OpIntAsync(p2);
-
-            Assert.That(p1, Is.EqualTo(r1));
-            Assert.That(p1, Is.EqualTo(r2));
-            Assert.That(response, Is.Not.Null);
         }
 
         [Test]

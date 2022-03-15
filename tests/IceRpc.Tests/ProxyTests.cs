@@ -61,6 +61,19 @@ public class ProxyTests
         }
     }
 
+    /// <summary>Provides test case data for <see cref="Convert_a_proxy_to_a_string(string, IceProxyFormat)"/> test.
+    /// </summary>
+    private static IEnumerable<TestCaseData> AltEndpointsSource
+    {
+        get
+        {
+            foreach ( (string str, Endpoint[] altEntpoints) in _altEdpoints)
+            {
+                yield return new TestCaseData(str, altEntpoints);
+            }
+        }
+    }
+
     /// <summary>A collection of proxy strings that are invalid for the the URI proxy format.</summary>
     private static readonly string[] _invalidUriFormatProxies = new string[]
         {
@@ -141,6 +154,68 @@ public class ProxyTests
             ("foobar:path", "path", ""),  // not a valid path since it doesn't start with /, and that's ok
             ("foobar:path#fragment", "path", "fragment"),
         };
+
+    private static readonly Dictionary<string, Endpoint[]> _altEdpoints = new()
+    {
+        ["icerpc://localhost/path?alt-endpoint=host1,host2"] = new Endpoint[]
+                {
+                    new Endpoint() { Host = "host1"},
+                    new Endpoint() { Host = "host2"},
+                },
+        ["icerpc://localhost/path?alt-endpoint=host1:10001,host2:10002"] = new Endpoint[]
+                {
+                    new Endpoint() { Host = "host1", Port = 10001},
+                    new Endpoint() { Host = "host2", Port = 10002},
+                },
+        ["icerpc://localhost/path?alt-endpoint=host1:10001&alt-endpoint=host2:10002"] = new Endpoint[]
+                {
+                    new Endpoint() { Host = "host1", Port = 10001},
+                    new Endpoint() { Host = "host2", Port = 10002},
+                },
+    };
+
+    /// <summary>Verifies that adapter-id param cannot be set to an empty value.</summary>
+    [Test]
+    public void Adapter_id_cannot_be_empty()
+    {
+        var proxy = Proxy.Parse("ice://localhost/hello");
+
+        Assert.Throws<ArgumentException>(() => proxy.Params = proxy.Params.SetItem("adapter-id", ""));
+    }
+
+    /// <summary>Verifies that the proxy endpoint cannot be set when the proxy contains any params.</summary>
+    [Test]
+    public void Cannot_set_endpoint_on_a_proxy_with_parameters()
+    {
+        var proxy = new Proxy(Protocol.Ice)
+        {
+            Params = new Dictionary<string,string> { ["adapter-id"] = "value" }.ToImmutableDictionary(),
+        };
+
+        Assert.Throws<InvalidOperationException>(() => proxy.Endpoint = new Endpoint(proxy.Protocol) { Host = "localhost" });
+    }
+
+    /// <summary>Verifies that the "fragment" cannot be set when the protocol has no fragment.</summary>
+    [TestCase("icerpc")]
+    [TestCase("")]
+    public void Cannot_set_fragment_if_protocol_has_no_fragment(string protocolName)
+    {
+        var protocol = Protocol.FromString(protocolName);
+        var proxy = new Proxy(protocol);
+
+        Assert.Throws<InvalidOperationException>(() => proxy = proxy with { Fragment = "bar" });
+
+        Assert.That(protocol.HasFragment, Is.False);
+    }
+
+    /// <summary>Verifies that the proxy params cannot be set when the proxy has an endpoint.</summary>
+    [Test]
+    public void Cannot_set_params_on_a_proxy_with_endpoints()
+    {
+        var proxy = Proxy.Parse("icerpc://localhost/hello");
+
+        Assert.Throws<InvalidOperationException>(() => proxy.Params = proxy.Params.Add("name", "value"));
+    }
 
     /// <summary>Verifies that a proxy can be converted into a string using any of the supported formats.</summary>
     /// <param name="str">The string used to create the source proxy.</param>
@@ -246,6 +321,29 @@ public class ProxyTests
     public void Parse_an_invalid_proxy_string(string str) =>
         Assert.Throws(Is.InstanceOf<FormatException>(), () => Proxy.Parse(str));
 
+
+    [Test, TestCaseSource(nameof(AltEndpointsSource))]
+    public void Parse_proxy_alt_endpoints(string str, Endpoint[] altEndpoints)
+    {
+        var proxy = Proxy.Parse(str);
+
+        Assert.That(proxy.AltEndpoints, Is.EqualTo(altEndpoints));
+    }
+
+    /// <summary>Verifies that the proxy encoding is set from the parsed encoding parameter.</summary>
+    /// <param name="str">The proxy string to parse.</param>
+    /// <param name="encoding">The expected encoding.</param>
+    [TestCase("ice://localhost/foo?encoding=1.0", "1.0")]
+    [TestCase("ice://localhost/foo?encoding=1.1", "1.1")]
+    [TestCase("ice://localhost/foo?encoding=2.0", "2.0")]
+    [TestCase("ice://localhost/foo?encoding=json", "json")]
+    public void Parse_proxy_encoding(string str, string encoding)
+    {
+        var proxy = Proxy.Parse(str);
+
+        Assert.That(proxy.Encoding, Is.EqualTo(Encoding.FromString(encoding)));
+    }
+
     /// <summary>Verifies that setting the alt endpoints containing endpoints that uses a protocol different than the
     /// proxy protocol throws <see cref="ArgumentException"/>.</summary>
     [Test]
@@ -275,6 +373,18 @@ public class ProxyTests
 
         // Ensure the endpoint wasn't updated
         Assert.That(prx.Endpoint, Is.EqualTo(endpoint));
+    }
+
+    /// <summary>Verifies that we can set the fragment on an ice proxy.</summary>
+    [Test]
+    public void Set_fragment_on_an_ice_proxy()
+    {
+        var proxy = new Proxy(Protocol.Ice);
+
+        proxy = proxy with { Fragment = "bar" };
+
+        Assert.That(proxy.Fragment, Is.EqualTo("bar"));
+        Assert.That(proxy.Protocol.HasFragment, Is.True);
     }
 
     /// <summary>INetworkConnection mock used to create a server connection.</summary>
