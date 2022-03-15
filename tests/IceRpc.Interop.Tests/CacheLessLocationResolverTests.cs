@@ -13,7 +13,7 @@ public class CacheLessLocationResolverTests
         [Values(true, false)] bool isAdapterId,
         [Values(true, false)] bool refreshCache)
     {
-        var expectedProxy = Proxy.Parse("dummy:tcp -h localhost -p 10000", format: IceProxyFormat.Default);
+        var expectedProxy = Proxy.Parse("ice://localhost:10000/dummy");
         ILocationResolver locationResolver = new CacheLessLocationResolver(new FakeEndpointFinder(expectedProxy));
 
         (Proxy? proxy, bool fromCache) =
@@ -31,7 +31,7 @@ public class CacheLessLocationResolverTests
         [Values(true, false)] bool isAdapterId,
         [Values(true, false)] bool refreshCache)
     {
-        var expectedProxy = Proxy.Parse("dummy:tcp -h localhost -p 10000", format: IceProxyFormat.Default);
+        var expectedProxy = Proxy.Parse("ice://localhost:10000/dummy");
         ILocationResolver locationResolver = new CacheLessLocationResolver(new FakeEndpointFinder(expectedProxy));
 
         (Proxy? proxy, bool fromCache) =
