@@ -156,18 +156,5 @@ namespace IceRpc.Tests.Api
         {
             public ValueTask SayHelloAsync(string message, Dispatch dispatch, CancellationToken cancel) => default;
         }
-
-        private class ProxyTest : Service, IProxyTest
-        {
-            internal ProxyTestPrx? Prx { get; set; }
-
-            public ValueTask<ProxyTestPrx?> ReceiveProxyAsync(Dispatch dispatch, CancellationToken cancel) => new(Prx);
-
-            public ValueTask SendProxyAsync(ProxyTestPrx prx, Dispatch dispatch, CancellationToken cancel)
-            {
-                Prx = prx;
-                return default;
-            }
-        }
     }
 }

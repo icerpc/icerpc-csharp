@@ -59,7 +59,6 @@ public class ProxyTests
                 router.UseFeature(new SliceDecodePayloadOptions { ProxyInvoker = pipeline });
                 return router;
             })
-
             .BuildServiceProvider();
         var prx = SendProxyTestPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
 
