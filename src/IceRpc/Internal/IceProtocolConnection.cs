@@ -789,7 +789,6 @@ namespace IceRpc.Internal
 
                         var payloadReader = new IcePayloadPipeReader(
                             frameData,
-                            replyStatus: null,
                             _memoryPool,
                             _minimumSegmentSize);
 
@@ -820,7 +819,6 @@ namespace IceRpc.Internal
 
                         var payloadReader = new IcePayloadPipeReader(
                             frameData,
-                            replyStatus,
                             _memoryPool,
                             _minimumSegmentSize);
 
@@ -916,28 +914,30 @@ namespace IceRpc.Internal
                 ReplyStatus replyStatus = decoder.DecodeReplyStatus();
 
                 int payloadSize;
+                int consumed = 0;
 
                 if (replyStatus <= ReplyStatus.UserException)
                 {
                     var encapsulationHeader = new EncapsulationHeader(ref decoder);
                     payloadSize = encapsulationHeader.EncapsulationSize - 6;
 
-                    // we ignore the payload encoding, it's irrelevant: the caller knows which encoding to expect,
-                    // usually the same encoding as the request payload.
+                    if (payloadSize != (buffer.Length - decoder.Consumed))
+                    {
+                        throw new InvalidDataException(@$"response payload size mismatch: expected {payloadSize
+                            } bytes, read {buffer.Length - decoder.Consumed} bytes");
+                    }
+
+                    consumed = checked((int)decoder.Consumed);
+
+                    // TODO: check encoding is 1.1. See github proposal.
                 }
                 else
                 {
-                    // Ice system exception
-                    payloadSize = (int)buffer.Length - 1;
+                    // Ice system exception. The payload includes the reply status so consumed remains 0.
+                    payloadSize = (int)buffer.Length;
                 }
 
-                if (payloadSize != (buffer.Length - decoder.Consumed))
-                {
-                    throw new InvalidDataException(@$"response payload size mismatch: expected {payloadSize
-                        } bytes, read {buffer.Length - decoder.Consumed} bytes");
-                }
-
-                return (replyStatus, payloadSize, (int)decoder.Consumed);
+                return (replyStatus, payloadSize, consumed);
             }
         }
     }

@@ -7,8 +7,8 @@ using System.IO.Pipelines;
 namespace IceRpc.Internal
 {
     /// <summary>This pipe reader implementation provides a reader to simplify the reading of the payload from an
-    /// incoming Ice request or response. The payload is buffered into an internal pipe. The size is written first,
-    /// followed by the Ice reply status if the status > UserException and finally the payload data.</summary>
+    /// incoming Ice request or response. The payload is buffered into an internal pipe. The size is written first as
+    /// a varulong followed by the payload.</summary>
     internal sealed class IcePayloadPipeReader : PipeReader
     {
         private readonly Pipe _pipe;
@@ -38,7 +38,6 @@ namespace IceRpc.Internal
 
         internal IcePayloadPipeReader(
             ReadOnlySequence<byte> payload,
-            ReplyStatus? replyStatus,
             MemoryPool<byte> pool,
             int minimumSegmentSize)
         {
@@ -48,8 +47,8 @@ namespace IceRpc.Internal
                 pauseWriterThreshold: 0,
                 writerScheduler: PipeScheduler.Inline));
 
-            // Encode the segment size and eventually the reply status.
-            EncodeSegmentSizeAndReplyStatus((int)payload.Length, replyStatus);
+            // Encode the segment size.
+            EncodeSegmentSize(checked((int)payload.Length));
 
             // Copy the payload data to the internal pipe writer.
             while (payload.Length > 0)
@@ -64,23 +63,10 @@ namespace IceRpc.Internal
             // No more data to consume for the payload so we complete the internal pipe writer.
             _pipe.Writer.Complete();
 
-            void EncodeSegmentSizeAndReplyStatus(int payloadSize, ReplyStatus? replyStatus)
+            void EncodeSegmentSize(int payloadSize)
             {
                 var encoder = new SliceEncoder(_pipe.Writer, Encoding.Slice20);
-
-                // The payload size is always encoded as a varulong on 4 bytes.
-                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
-
-                // Encode the reply status only if it's a system exception.
-                if (replyStatus != null && replyStatus > ReplyStatus.UserException)
-                {
-                    SliceEncoder.EncodeVarULong((ulong)payloadSize + 1, sizePlaceholder);
-                    encoder.EncodeReplyStatus(replyStatus.Value);
-                }
-                else
-                {
-                    SliceEncoder.EncodeVarULong((ulong)payloadSize, sizePlaceholder);
-                }
+                encoder.EncodeSize(payloadSize);
             }
         }
     }

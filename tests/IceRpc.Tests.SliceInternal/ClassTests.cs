@@ -71,7 +71,7 @@ namespace IceRpc.Tests.SliceInternal
                     var decoder = new SliceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
-                    decoder.Skip(4);
+                    _ = decoder.DecodeVarULong();
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -85,7 +85,7 @@ namespace IceRpc.Tests.SliceInternal
                     var decoder = new SliceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
-                    decoder.Skip(4);
+                    _ = decoder.DecodeVarULong();
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -114,7 +114,7 @@ namespace IceRpc.Tests.SliceInternal
                     var decoder = new SliceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
-                    decoder.Skip(4);
+                    _ = decoder.DecodeVarULong();
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -128,7 +128,7 @@ namespace IceRpc.Tests.SliceInternal
                     var decoder = new SliceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
-                    decoder.Skip(4);
+                    _ = decoder.DecodeVarULong();
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -157,7 +157,7 @@ namespace IceRpc.Tests.SliceInternal
                     var decoder = new SliceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
-                    decoder.Skip(4);
+                    _ = decoder.DecodeVarULong();
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -171,7 +171,7 @@ namespace IceRpc.Tests.SliceInternal
                     var decoder = new SliceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
-                    decoder.Skip(4);
+                    _ = decoder.DecodeVarULong();
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -201,7 +201,7 @@ namespace IceRpc.Tests.SliceInternal
                     var decoder = new SliceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
-                    decoder.Skip(4);
+                    _ = decoder.DecodeVarULong();
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -215,7 +215,7 @@ namespace IceRpc.Tests.SliceInternal
                     var decoder = new SliceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
-                    decoder.Skip(4);
+                    _ = decoder.DecodeVarULong();
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
