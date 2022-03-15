@@ -196,12 +196,10 @@ namespace IceRpc.Internal
             }
 
             // Wait for the response.
-            ReplyStatus replyStatus;
-            PipeReader payloadReader;
             try
             {
-                (replyStatus, payloadReader) =
-                    await requestFeature.IncomingResponseCompletionSource.Task.WaitAsync(cancel).ConfigureAwait(false);
+                return await requestFeature.IncomingResponseCompletionSource.Task.WaitAsync(
+                    cancel).ConfigureAwait(false);
             }
             finally
             {
@@ -217,25 +215,6 @@ namespace IceRpc.Internal
                     }
                 }
             }
-
-            ResultType resultType = replyStatus switch
-            {
-                ReplyStatus.OK => ResultType.Success,
-                ReplyStatus.UserException => (ResultType)SliceResultType.ServiceFailure,
-                _ => ResultType.Failure
-            };
-
-            // For compatibility with ZeroC Ice "indirect" proxies
-            if (replyStatus == ReplyStatus.ObjectNotExistException && request.Proxy.Endpoint == null)
-            {
-                request.Features = request.Features.With(RetryPolicy.OtherReplica);
-            }
-
-            return new IncomingResponse(request)
-            {
-                Payload = payloadReader,
-                ResultType = resultType
-            };
         }
 
         /// <inheritdoc/>
@@ -852,8 +831,26 @@ namespace IceRpc.Internal
                             Debug.Assert(requestId != null);
                             if (_invocations.TryGetValue(requestId.Value, out OutgoingRequest? request))
                             {
+                                ResultType resultType = replyStatus switch
+                                {
+                                    ReplyStatus.OK => ResultType.Success,
+                                    ReplyStatus.UserException => (ResultType)SliceResultType.ServiceFailure,
+                                    _ => ResultType.Failure
+                                };
+
                                 request.Features.Get<IceOutgoingRequest>()!.IncomingResponseCompletionSource.SetResult(
-                                    (replyStatus, payloadReader));
+                                    new IncomingResponse(request)
+                                    {
+                                        Payload = payloadReader,
+                                        ResultType = resultType
+                                    });
+
+                                // For compatibility with ZeroC Ice "indirect" proxies
+                                if (replyStatus == ReplyStatus.ObjectNotExistException &&
+                                    request.Proxy.Endpoint == null)
+                                {
+                                    request.Features = request.Features.With(RetryPolicy.OtherReplica);
+                                }
                             }
                             else if (!_shutdown)
                             {
