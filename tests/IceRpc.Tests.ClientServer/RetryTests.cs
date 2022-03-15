@@ -187,6 +187,7 @@ namespace IceRpc.Tests.ClientServer
                 }
                 else
                 {
+                    // A single task failed.
                     exceptions = new [] { ex };
                 }
 
@@ -200,11 +201,10 @@ namespace IceRpc.Tests.ClientServer
                 }
                 else
                 {
-                    // With icerpc cancelation, the peer shutdown might cancel invocations which are being dispatched.
                     Assert.That(exceptions.All(exception => exception is OperationCanceledException), Is.True);
                 }
 
-                // There should at least be few invocations to succeed (the ones sent after the connection shutdown).
+                // Few invocations should succeed (the ones sent after the connection shutdown).
                 Assert.That(exceptions.Count, Is.LessThan(results.Count));
             }
         }
