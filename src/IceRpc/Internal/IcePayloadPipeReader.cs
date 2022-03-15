@@ -48,7 +48,7 @@ namespace IceRpc.Internal
             encoder.EncodeSize(checked((int)payload.Length));
 
             // Copy the payload data to the internal pipe writer.
-            if (payload.Length > 0)
+            if (!payload.IsEmpty)
             {
                 if (payload.IsSingleSegment)
                 {
