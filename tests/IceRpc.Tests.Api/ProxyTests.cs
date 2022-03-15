@@ -222,21 +222,6 @@ namespace IceRpc.Tests.Api
             Assert.That(proxy.AltEndpoints.Count, Is.EqualTo(1));
         }
 
-        [TestCase("1.3")]
-        [TestCase("2.1")]
-        public async Task Proxy_NotSupportedEncoding(string encoding)
-        {
-            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-                .AddTransient<IDispatcher, Greeter>()
-                .BuildServiceProvider();
-
-            var service = ServicePrx.FromConnection(
-                serviceProvider.GetRequiredService<Connection>(),
-                GreeterPrx.DefaultPath);
-            service.Proxy.Encoding = Encoding.FromString(encoding);
-            await service.IcePingAsync(); // works fine, we use the protocol's encoding in this case
-        }
-
         public class Greeter : Service, IGreeter
         {
             public ValueTask SayHelloAsync(string message, Dispatch dispatch, CancellationToken cancel) => default;
