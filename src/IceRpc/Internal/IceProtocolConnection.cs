@@ -824,17 +824,24 @@ namespace IceRpc.Internal
 
                         _networkConnectionReader.AdvanceTo(result.Buffer.GetPosition(frameRemainderSize));
 
+                        ResultType resultType = replyStatus switch
+                        {
+                            ReplyStatus.OK => ResultType.Success,
+                            ReplyStatus.UserException => (ResultType)SliceResultType.ServiceFailure,
+                            _ => ResultType.Failure
+                        };
+
                         lock (_mutex)
                         {
                             Debug.Assert(requestId != null);
                             if (_invocations.TryGetValue(requestId.Value, out OutgoingRequest? request))
                             {
-                                ResultType resultType = replyStatus switch
+                                // For compatibility with ZeroC Ice "indirect" proxies
+                                if (replyStatus == ReplyStatus.ObjectNotExistException &&
+                                    request.Proxy.Endpoint == null)
                                 {
-                                    ReplyStatus.OK => ResultType.Success,
-                                    ReplyStatus.UserException => (ResultType)SliceResultType.ServiceFailure,
-                                    _ => ResultType.Failure
-                                };
+                                    request.Features = request.Features.With(RetryPolicy.OtherReplica);
+                                }
 
                                 request.Features.Get<IceOutgoingRequest>()!.IncomingResponseCompletionSource.SetResult(
                                     new IncomingResponse(request)
@@ -842,13 +849,6 @@ namespace IceRpc.Internal
                                         Payload = payloadReader,
                                         ResultType = resultType
                                     });
-
-                                // For compatibility with ZeroC Ice "indirect" proxies
-                                if (replyStatus == ReplyStatus.ObjectNotExistException &&
-                                    request.Proxy.Endpoint == null)
-                                {
-                                    request.Features = request.Features.With(RetryPolicy.OtherReplica);
-                                }
                             }
                             else if (!_shutdown)
                             {
