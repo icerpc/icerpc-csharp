@@ -25,7 +25,7 @@ public sealed class TraitEncodingTests
                 Encoding.Slice20,
                 activator: CreateActivator())
                 .DecodeTrait<IMyTraitA>(),
-            Throws.Exception.TypeOf<InvalidDataException>());
+            Throws.TypeOf<InvalidDataException>());
     }
 
     /// <summary>Verify that <see cref="SliceDecoder.DecodeTrait{T}"/> method correctly decodes a trait into a concrete
@@ -81,7 +81,7 @@ public sealed class TraitEncodingTests
                 Encoding.Slice20,
                 activator: CreateActivator())
                 .DecodeTrait<IMyTraitB>(),
-            Throws.Exception.TypeOf<InvalidDataException>());
+            Throws.TypeOf<InvalidDataException>());
     }
 
     /// <summary>Verifies the struct's EncodeTrait generated method correctly encodes a struct as a trait.</summary>

@@ -40,13 +40,13 @@ public sealed class StreamDecoderTests
     {
         Assert.That(
             () => new SliceStreamDecoderOptions(pauseWriterThreshold: -2),
-            Throws.Exception.TypeOf<ArgumentOutOfRangeException>());
+            Throws.TypeOf<ArgumentOutOfRangeException>());
         Assert.That(
             () => new SliceStreamDecoderOptions(pauseWriterThreshold: 100, resumeWriterThreshold: 200),
-            Throws.Exception.TypeOf<ArgumentOutOfRangeException>());
+            Throws.TypeOf<ArgumentOutOfRangeException>());
         Assert.That(
             () => new SliceStreamDecoderOptions(pauseWriterThreshold: 0, resumeWriterThreshold: 200),
-            Throws.Exception.TypeOf<ArgumentOutOfRangeException>());
+            Throws.TypeOf<ArgumentOutOfRangeException>());
         Assert.That(
             () => new SliceStreamDecoderOptions(pauseWriterThreshold: -1, resumeWriterThreshold: 200),
             Throws.Nothing);
