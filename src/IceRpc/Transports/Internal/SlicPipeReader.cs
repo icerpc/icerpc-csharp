@@ -110,6 +110,11 @@ namespace IceRpc.Transports.Internal
             CheckIfCompleted();
 
             ReadResult result = await _pipe.Reader.ReadAsync(cancel).ConfigureAwait(false);
+            if (result.IsCanceled && _stream.ResetError is long errorCode)
+            {
+                // The pipe reader pending read has been canceled by AbortRead.
+                throw new MultiplexedStreamAbortedException(errorCode);
+            }
 
             // Cache the read result for the implementation of AdvanceTo. It needs to be able to figure out how much
             // data got examined and consumed. It also needs to know if the reader is completed to mark reads as
@@ -130,6 +135,12 @@ namespace IceRpc.Transports.Internal
 
             if (_pipe.Reader.TryRead(out result))
             {
+                if (result.IsCanceled && _stream.ResetError is long errorCode)
+                {
+                    // The pipe reader pending read has been canceled by AbortRead.
+                    throw new MultiplexedStreamAbortedException(errorCode);
+                }
+
                 // Cache the read result for the implementation of AdvanceTo. It needs to be able to figure out how much
                 // data got examined and consumed. It also needs to know if the reader is completed to mark reads as
                 // completed on the stream.

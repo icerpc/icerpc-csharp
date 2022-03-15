@@ -127,7 +127,10 @@ namespace IceRpc.Internal
                 catch (Exception ex)
                 {
                     await stream.Input.CompleteAsync(ex).ConfigureAwait(false);
-                    await stream.Output.CompleteAsync(ex).ConfigureAwait(false);
+                    if (stream.IsBidirectional)
+                    {
+                        await stream.Output.CompleteAsync(ex).ConfigureAwait(false);
+                    }
                     throw;
                 }
 
@@ -141,7 +144,6 @@ namespace IceRpc.Internal
                     Payload = reader,
                     PayloadEncoding = header.PayloadEncoding.Length > 0 ?
                         Encoding.FromString(header.PayloadEncoding) : IceRpcDefinitions.Encoding,
-                    // TODO: Why are tests failing if it's always set to stream.Output?
                     ResponseWriter = stream.IsBidirectional ? stream.Output : InvalidPipeWriter.Instance
                 };
 
@@ -376,8 +378,11 @@ namespace IceRpc.Internal
 
                 if (stream != null)
                 {
-                    await stream.Input.CompleteAsync(ex).ConfigureAwait(false);
                     await stream.Output.CompleteAsync(ex).ConfigureAwait(false);
+                    if (stream.IsBidirectional)
+                    {
+                        await stream.Input.CompleteAsync(ex).ConfigureAwait(false);
+                    }
                 }
                 throw;
             }
