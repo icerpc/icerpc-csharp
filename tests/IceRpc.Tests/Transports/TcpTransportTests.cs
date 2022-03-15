@@ -78,7 +78,7 @@ public class TcpTransportTests
             });
 
         var connection = (TcpClientNetworkConnection)clientTransport.CreateConnection(
-            new Endpoint(Protocol.IceRpc) { Host = "localhost" },
+            new Endpoint(Protocol.IceRpc) { Host = ipv6 ? "::1" : "127.0.0.1" },
             authenticationOptions: null,
             NullLogger.Instance);
 
