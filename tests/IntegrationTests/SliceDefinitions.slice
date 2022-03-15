@@ -1,0 +1,13 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IntegrationTests;
+
+interface ReceiveProxyTest
+{
+    receiveProxy() -> ReceiveProxyTest;
+}
+
+interface SendProxyTest
+{
+    sendProxy(proxy: SendProxyTest);
+}
