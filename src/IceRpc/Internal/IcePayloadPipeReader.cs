@@ -44,8 +44,8 @@ namespace IceRpc.Internal
                 pauseWriterThreshold: 0,
                 writerScheduler: PipeScheduler.Inline));
 
-            // Encode the segment size.
-            EncodeSegmentSize(checked((int)payload.Length));
+            var encoder = new SliceEncoder(_pipe.Writer, Encoding.Slice20);
+            encoder.EncodeSize(checked((int)payload.Length));
 
             // Copy the payload data to the internal pipe writer.
             if (payload.Length > 0)
@@ -65,12 +65,6 @@ namespace IceRpc.Internal
 
             // No more data to consume for the payload so we complete the internal pipe writer.
             _pipe.Writer.Complete();
-
-            void EncodeSegmentSize(int payloadSize)
-            {
-                var encoder = new SliceEncoder(_pipe.Writer, Encoding.Slice20);
-                encoder.EncodeSize(payloadSize);
-            }
         }
     }
 }
