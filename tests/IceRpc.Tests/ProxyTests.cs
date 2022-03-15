@@ -178,21 +178,27 @@ public class ProxyTests
     [Test]
     public void Adapter_id_cannot_be_empty()
     {
+        // Arrange
         var proxy = Proxy.Parse("ice://localhost/hello");
 
-        Assert.Throws<ArgumentException>(() => proxy.Params = proxy.Params.SetItem("adapter-id", ""));
+        // Act/Assert
+        Assert.That(() => proxy.Params = proxy.Params.SetItem("adapter-id", ""), Throws.ArgumentException);
     }
 
     /// <summary>Verifies that the proxy endpoint cannot be set when the proxy contains any params.</summary>
     [Test]
     public void Cannot_set_endpoint_on_a_proxy_with_parameters()
     {
+        // Arrange
         var proxy = new Proxy(Protocol.Ice)
         {
             Params = new Dictionary<string,string> { ["adapter-id"] = "value" }.ToImmutableDictionary(),
         };
 
-        Assert.Throws<InvalidOperationException>(() => proxy.Endpoint = new Endpoint(proxy.Protocol) { Host = "localhost" });
+        // Act/Assert
+        Assert.That(
+            () => proxy.Endpoint = new Endpoint(proxy.Protocol) { Host = "localhost" },
+            Throws.TypeOf<InvalidOperationException>());
     }
 
     /// <summary>Verifies that the "fragment" cannot be set when the protocol has no fragment.</summary>
@@ -203,7 +209,9 @@ public class ProxyTests
         var protocol = Protocol.FromString(protocolName);
         var proxy = new Proxy(protocol);
 
-        Assert.Throws<InvalidOperationException>(() => proxy = proxy with { Fragment = "bar" });
+        Assert.That(
+            () => proxy = proxy with { Fragment = "bar" },
+            Throws.TypeOf<InvalidOperationException>());
 
         Assert.That(protocol.HasFragment, Is.False);
     }
@@ -214,7 +222,9 @@ public class ProxyTests
     {
         var proxy = Proxy.Parse("icerpc://localhost/hello");
 
-        Assert.Throws<InvalidOperationException>(() => proxy.Params = proxy.Params.Add("name", "value"));
+        Assert.That(
+            () => proxy.Params = proxy.Params.Add("name", "value"),
+            Throws.TypeOf<InvalidOperationException>());
     }
 
     /// <summary>Verifies that a proxy can be converted into a string using any of the supported formats.</summary>
@@ -337,11 +347,13 @@ public class ProxyTests
     [TestCase("ice://localhost/foo?encoding=1.1", "1.1")]
     [TestCase("ice://localhost/foo?encoding=2.0", "2.0")]
     [TestCase("ice://localhost/foo?encoding=json", "json")]
-    public void Parse_proxy_encoding(string str, string encoding)
+    public void Parse_proxy_encoding(string str, string encodingStr)
     {
+        var encoding = Encoding.FromString(encodingStr);
+
         var proxy = Proxy.Parse(str);
 
-        Assert.That(proxy.Encoding, Is.EqualTo(Encoding.FromString(encoding)));
+        Assert.That(proxy.Encoding, Is.EqualTo(encoding));
     }
 
     /// <summary>Verifies that setting the alt endpoints containing endpoints that uses a protocol different than the
