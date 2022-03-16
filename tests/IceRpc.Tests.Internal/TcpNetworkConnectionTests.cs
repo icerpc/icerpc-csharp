@@ -53,49 +53,6 @@ namespace IceRpc.Tests.Internal
             _endpoint = $"icerpc://{host}:0";
         }
 
-        [Test]
-        public async Task TcpNetworkConnection_Listener_AcceptAsync()
-        {
-            await using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
-            await using ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
-
-            Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-            var connectTask = clientConnection.ConnectAsync(default);
-
-            await using ISimpleNetworkConnection serverConnection = await acceptTask;
-            _ = await serverConnection.ConnectAsync(default);
-            _ = await connectTask;
-        }
-
-        [Test]
-        public async Task TcpNetworkConnection_Listener_TransportException()
-        {
-            await using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
-            Assert.Throws<TransportException>(
-                () => _serverTransport.Listen(
-                    listener.Endpoint,
-                    _serverAuthenticationOptions,
-                    LogAttributeLoggerFactory.Instance.Logger));
-        }
-
-        [Test]
-        public async Task TcpNetworkConnection_AcceptAsync()
-        {
-            await using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
-
-            Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-
-            await using ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
-
-            Task<NetworkConnectionInformation> connectTask = clientConnection.ConnectAsync(default);
-
-            await using ISimpleNetworkConnection serverConnection = await acceptTask;
-
-            Task<NetworkConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
-
-            _ = await connectTask;
-            _ = await serverConnectTask;
-        }
 
         [Test]
         public async Task TcpNetworkConnection_AcceptAsync_ConnectFailedExceptionAsync()
@@ -121,8 +78,7 @@ namespace IceRpc.Tests.Internal
                 // Server side ConnectAsync is a no-op for non secure TCP connections so it won't throw.
                 _ = await serverConnection.ConnectAsync(default);
 
-                Assert.ThrowsAsync<ConnectionLostException>(
-                    async () => await serverConnection.ReadAsync(new byte[1], default));
+                Assert.That(await serverConnection.ReadAsync(new byte[1], default), Is.Zero);
             }
             else
             {
