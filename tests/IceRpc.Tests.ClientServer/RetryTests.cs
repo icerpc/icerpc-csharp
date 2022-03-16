@@ -162,9 +162,7 @@ namespace IceRpc.Tests.ClientServer
                 results.Add(retry.OpWithDataAsync(-1, 0, seq));
             }
 
-            using var source = new CancellationTokenSource();
-            Task shutdownTask = service.Connection!.ShutdownAsync(cancel: source.Token);
-            source.Cancel();
+            _ = service.Connection!.ShutdownAsync(new CancellationToken(canceled: true));
 
             for (int i = 0; i < maxQueue; i++)
             {

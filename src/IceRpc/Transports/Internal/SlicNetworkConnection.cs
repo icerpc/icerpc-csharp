@@ -601,8 +601,7 @@ namespace IceRpc.Transports.Internal
                                 {
                                     await stream.Output.CompleteAsync().ConfigureAwait(false);
                                 }
-                                stream.AbortRead(SlicStreamError.Aborted.ToError());
-                                stream.AbortWrite(SlicStreamError.Aborted.ToError());
+                                Debug.Assert(stream.IsShutdown);
                                 throw;
                             }
 
