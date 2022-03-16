@@ -98,10 +98,16 @@ namespace IceRpc.Transports.Internal
 
                 bufferWriter.Write(buffer);
                 _pipe.Reader.AdvanceTo(buffer.End);
-                byteCount -= (int)buffer.Length;
+
+                byteCount -= (int)buffer.Length;;
+
+                if (byteCount == 0)
+                {
+                    return default;
+                }
             }
 
-            return byteCount == 0 ? default : ReadFromConnectionAsync(byteCount);
+            return ReadFromConnectionAsync(byteCount);
 
             // Read the remaining bytes directly from the connection into the buffer writer.
             async ValueTask ReadFromConnectionAsync(int byteCount)
