@@ -9,10 +9,10 @@ namespace IceRpc.Transports.Internal
     /// <summary>The Slic frame reader class reads Slic frames from a simple network connection pipe reader.</summary>
     internal sealed class SlicFrameReader : ISlicFrameReader
     {
-        private readonly SimpleNetworkConnectionPipeReader _reader;
+        public SimpleNetworkConnectionPipeReader PipeReader { get; }
 
         public ValueTask ReadFrameDataAsync(Memory<byte> buffer, CancellationToken cancel) =>
-            _reader.ReadUntilFullAsync(buffer, cancel);
+            PipeReader.ReadUntilFullAsync(buffer, cancel);
 
         public async ValueTask<(FrameType FrameType, int FrameSize, long? StreamId)> ReadFrameHeaderAsync(
             CancellationToken cancel)
@@ -20,9 +20,9 @@ namespace IceRpc.Transports.Internal
             while (true)
             {
                 // Read data from the pipe reader.
-                if (!_reader.TryRead(out ReadResult readResult))
+                if (!PipeReader.TryRead(out ReadResult readResult))
                 {
-                    readResult = await _reader.ReadAsync(cancel).ConfigureAwait(false);
+                    readResult = await PipeReader.ReadAsync(cancel).ConfigureAwait(false);
                 }
 
                 if (TryDecodeHeader(
@@ -30,12 +30,12 @@ namespace IceRpc.Transports.Internal
                     out (FrameType FrameType, int FrameSize, long? StreamId) header,
                     out int consumed))
                 {
-                    _reader.AdvanceTo(readResult.Buffer.GetPosition(consumed));
+                    PipeReader.AdvanceTo(readResult.Buffer.GetPosition(consumed));
                     return header;
                 }
                 else
                 {
-                    _reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                    PipeReader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
                 }
             }
 
@@ -74,6 +74,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal SlicFrameReader(SimpleNetworkConnectionPipeReader reader) => _reader = reader;
+        internal SlicFrameReader(SimpleNetworkConnectionPipeReader reader) => PipeReader = reader;
     }
 }

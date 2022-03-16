@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -74,11 +75,10 @@ namespace IceRpc.Transports.Internal
                 InitializeBody? initializeBody;
                 (type, dataSize, _) = await _reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
                 {
-                    (version, initializeBody) =
-                        await ReadFrameAsync(
-                            dataSize,
-                            memory => memory.DecodeInitialize(type),
-                            cancel).ConfigureAwait(false);
+                    (version, initializeBody) = await ReadFrameAsync(
+                        dataSize,
+                        SlicMemoryExtensions.DecodeInitialize,
+                        cancel).ConfigureAwait(false);
                 }
 
                 if (version != 1)
@@ -96,7 +96,7 @@ namespace IceRpc.Transports.Internal
                     (version, initializeBody) =
                         await ReadFrameAsync(
                             dataSize,
-                            memory => memory.DecodeInitialize(type),
+                            SlicMemoryExtensions.DecodeInitialize,
                             cancel).ConfigureAwait(false);
                 }
 
@@ -144,20 +144,30 @@ namespace IceRpc.Transports.Internal
 
                 // Read back either the InitializeAck or Version frame.
                 (type, dataSize, _) = await _reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
-                (InitializeAckBody? initializeAckBody, VersionBody? versionBody) = await ReadFrameAsync(
-                    dataSize,
-                    memory => memory.DecodeInitializeAckOrVersion(type),
-                    cancel).ConfigureAwait(false);
 
-                if (initializeAckBody != null)
+                switch (type)
                 {
-                    SetParameters(initializeAckBody.Value.Parameters);
-                }
-                else if (versionBody != null)
-                {
-                    // We currently only support V1
-                    throw new InvalidDataException(
-                        $"unsupported Slic versions '{string.Join(", ", versionBody.Value.Versions)}'");
+                    case FrameType.InitializeAck:
+                        InitializeAckBody initializeAckBody = await ReadFrameAsync(
+                            dataSize,
+                            (ref SliceDecoder decoder) => new InitializeAckBody(ref decoder),
+                            cancel).ConfigureAwait(false);
+
+                        SetParameters(initializeAckBody.Parameters);
+                        break;
+
+                    case FrameType.Version:
+                        VersionBody versionBody = await ReadFrameAsync(
+                            dataSize,
+                            (ref SliceDecoder decoder) => new VersionBody(ref decoder),
+                            cancel).ConfigureAwait(false);
+
+                        // We currently only support V1
+                        throw new InvalidDataException(
+                            $"unsupported Slic versions '{string.Join(", ", versionBody.Versions)}'");
+
+                    default:
+                        throw new InvalidDataException($"unexpected Slic frame '{type}'");
                 }
             }
 
@@ -642,7 +652,7 @@ namespace IceRpc.Transports.Internal
 
                         StreamConsumedBody consumed = await ReadFrameAsync(
                             dataSize,
-                            memory => memory.DecodeStreamConsumed(),
+                            (ref SliceDecoder decoder) => new StreamConsumedBody(ref decoder),
                             cancel).ConfigureAwait(false);
                         if (_streams.TryGetValue(streamId.Value, out SlicMultiplexedStream? stream))
                         {
@@ -659,7 +669,7 @@ namespace IceRpc.Transports.Internal
 
                         StreamResetBody streamReset = await ReadFrameAsync(
                             dataSize,
-                            memory => memory.DecodeStreamReset(),
+                            (ref SliceDecoder decoder) => new StreamResetBody(ref decoder),
                             cancel).ConfigureAwait(false);
                         if (_streams.TryGetValue(streamId.Value, out SlicMultiplexedStream? stream))
                         {
@@ -676,7 +686,7 @@ namespace IceRpc.Transports.Internal
 
                         StreamStopSendingBody streamStopSending = await ReadFrameAsync(
                             dataSize,
-                            memory => memory.DecodeStreamStopSending(),
+                            (ref SliceDecoder decoder) => new StreamStopSendingBody(ref decoder),
                             cancel).ConfigureAwait(false);
                         if (_streams.TryGetValue(streamId.Value, out SlicMultiplexedStream? stream))
                         {
@@ -722,13 +732,30 @@ namespace IceRpc.Transports.Internal
 
         private async ValueTask<T> ReadFrameAsync<T>(
             int size,
-            Func<ReadOnlyMemory<byte>, T> decode,
+            DecodeFunc<T> decodeFunc,
             CancellationToken cancel)
         {
-            using IMemoryOwner<byte> owner = Pool.Rent(size);
-            Memory<byte> buffer = owner.Memory[0..Math.Min(size, owner.Memory.Length)];
-            await _reader.ReadFrameDataAsync(buffer, cancel).ConfigureAwait(false);
-            return decode(owner.Memory[0..size]);
+            ReadResult readResult = size > 0 ?
+                await _reader.PipeReader.ReadAtLeastAsync(size, cancel).ConfigureAwait(false) : default;
+
+            ReadOnlySequence<byte> buffer = readResult.Buffer;
+            if (buffer.Length > size)
+            {
+                buffer = buffer.Slice(0, size);
+            }
+            else if (buffer.Length < size)
+            {
+                // TODO: confirm this is indeed correct
+                throw new ConnectionLostException();
+            }
+
+            T result = Encoding.Slice20.DecodeBuffer(buffer, decodeFunc);
+            if (size > 0)
+            {
+                _reader.PipeReader.AdvanceTo(buffer.End);
+            }
+
+            return result;
         }
 
         private void SetParameters(IDictionary<int, IList<byte>> parameters)

@@ -9,6 +9,8 @@ namespace IceRpc.Transports.Internal
     /// reader.</summary>
     internal sealed class LogSlicFrameReaderDecorator : ISlicFrameReader
     {
+        public SimpleNetworkConnectionPipeReader PipeReader => _decoratee.PipeReader;
+
         private readonly ISlicFrameReader _decoratee;
         private FrameType _frameType;
         private int _frameDataSize;
