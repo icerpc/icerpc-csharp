@@ -15,7 +15,7 @@ namespace IceRpc
         /// certificate authorities to verify the server certificate.</param>
         /// <returns>The certificate validation callback</returns>
         public static RemoteCertificateValidationCallback GetServerCertificateValidationCallback(
-                string certificateAuthorities) =>
+            string certificateAuthorities) =>
             GetRemoteCertificateValidationCallback(
                 true,
                 false,

@@ -4,12 +4,11 @@ using Demo;
 using IceRpc;
 using System.Net.Security;
 
-// Create the authentication options with a custom certificate validation callback
-// that uses our Root CA certificate.
+// Create the authentication options with a custom certificate validation callback that uses our Root CA certificate.
 var authenticationOptions = new SslClientAuthenticationOptions()
 {
     RemoteCertificateValidationCallback =
-        CertificateValidaton.GetServerCertificateValidationCallback(certificateAuthorities: "../../certs/cacert.der")
+        CertificateValidaton.GetServerCertificateValidationCallback("../../certs/cacert.der")
 };
 
 await using var connection = new Connection("icerpc://127.0.0.1", authenticationOptions);

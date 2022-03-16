@@ -8,7 +8,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
 
 namespace Demo;
 
