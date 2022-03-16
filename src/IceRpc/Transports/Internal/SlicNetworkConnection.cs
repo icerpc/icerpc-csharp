@@ -630,15 +630,21 @@ namespace IceRpc.Transports.Internal
 
                         if (readSize < dataSize)
                         {
-                            // The stream has been shutdown. Read and ignore the data.
-                            using IMemoryOwner<byte> owner = Pool.Rent(MinimumSegmentSize);
-                            int sizeToRead = dataSize - readSize;
-                            while (sizeToRead > 0)
-                            {
-                                Memory<byte> chunk = owner.Memory[0..Math.Min(sizeToRead, owner.Memory.Length)];
-                                await _reader.ReadFrameDataAsync(chunk, cancel).ConfigureAwait(false);
-                                sizeToRead -= chunk.Length;
-                            }
+                            // The stream has been shutdown. Read and ignore the data using a helper pipe.
+                            var pipe = new Pipe(
+                                new PipeOptions(
+                                    pool: Pool,
+                                    pauseWriterThreshold: 0,
+                                    minimumSegmentSize: MinimumSegmentSize,
+                                    writerScheduler: PipeScheduler.Inline));
+
+                            await _reader.PipeReader.FillBufferWriterAsync(
+                                    pipe.Writer,
+                                    dataSize - readSize,
+                                    cancel).ConfigureAwait(false);
+
+                            await pipe.Writer.CompleteAsync().ConfigureAwait(false);
+                            await pipe.Reader.CompleteAsync().ConfigureAwait(false);
                         }
 
                         break;
@@ -700,8 +706,6 @@ namespace IceRpc.Transports.Internal
                         {
                             throw new InvalidDataException("unidirectional stream released frame too large");
                         }
-
-                        await _reader.ReadFrameDataAsync(Memory<byte>.Empty, cancel).ConfigureAwait(false);
 
                         // Release the unidirectional stream semaphore for the unidirectional stream.
                         _unidirectionalStreamSemaphore!.Release();
