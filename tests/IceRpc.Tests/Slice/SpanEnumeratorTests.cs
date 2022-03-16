@@ -13,7 +13,7 @@ public class SpanEnumeratorTests
     /// <summary>Provides test case data for
     /// <see cref="Span_enumerator_successfully_enumerates_to_additional_spans_and_memory(...)"/> test.
     /// </summary>
-    private static IEnumerable<TestCaseData> enumeratorCurrentUpdatesSuccessfullySource
+    private static IEnumerable<TestCaseData> EnumeratorCurrentUpdatesSuccessfullySource
     {
         get
         {
