@@ -67,7 +67,7 @@ namespace IceRpc.Tests.Internal
 
             await _clientConnection.DisposeAsync();
 
-            Assert.ThrowsAsync<InvalidOperationException>(async () => await clientStream.Input.ReadAsync());
+            Assert.ThrowsAsync<MultiplexedStreamAbortedException>(async () => await clientStream.Input.ReadAsync());
 
             // Can't create new stream
             clientStream = _clientConnection.CreateStream(true);
@@ -312,7 +312,7 @@ namespace IceRpc.Tests.Internal
             Assert.That(readResult.IsCompleted, Is.True);
             await _serverConnection.DisposeAsync();
 
-            Assert.CatchAsync<InvalidOperationException>(
+            Assert.CatchAsync<MultiplexedStreamAbortedException>(
                 async () => await serverStream.Output.WriteAsync(new byte[10], true, default));
         }
     }

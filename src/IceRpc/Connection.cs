@@ -488,8 +488,9 @@ namespace IceRpc
 
                     // Start the receive request task. The task accepts new incoming requests and processes them. It
                     // only completes once the connection is closed.
+                    IProtocolConnection protocolConnection = _protocolConnection;
                     _ = Task.Run(
-                        () => AcceptIncomingRequestAsync(_protocolConnection, dispatcher),
+                        () => AcceptIncomingRequestAsync(protocolConnection, dispatcher),
                         CancellationToken.None);
                 }
             }
