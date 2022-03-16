@@ -74,7 +74,7 @@ public class SpanEnumeratorTests
     /// <summary>Provides test case data for
     /// <see cref="Span_enumerator_fails_to_move_to_additional_spans_and_memory_if_none_provided(...)"/> test.
     /// </summary>
-    private static IEnumerable<TestCaseData> enumeratorNextFailsSource
+    private static IEnumerable<TestCaseData> EnumeratorNextFailsSource
     {
         get
         {
