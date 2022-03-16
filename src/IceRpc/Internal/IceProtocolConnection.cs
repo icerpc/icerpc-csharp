@@ -787,7 +787,7 @@ namespace IceRpc.Internal
                         (IceRequestHeader requestHeader, consumed) = DecodeRequestHeader(frameData);
                         frameData = frameData.Slice(consumed);
 
-                        var payloadReader = new IcePayloadPipeReader(
+                        var payloadReader = CreateIcePayloadPipeReader(
                             frameData,
                             _memoryPool,
                             _minimumSegmentSize);
@@ -817,7 +817,7 @@ namespace IceRpc.Internal
                         (ReplyStatus replyStatus, int payloadSize, consumed) = DecodeReplyHeader(frameData);
                         frameData = frameData.Slice(consumed);
 
-                        var payloadReader = new IcePayloadPipeReader(
+                        var payloadReader = CreateIcePayloadPipeReader(
                             frameData,
                             _memoryPool,
                             _minimumSegmentSize);
@@ -938,6 +938,44 @@ namespace IceRpc.Internal
                 }
 
                 return (replyStatus, payloadSize, consumed);
+            }
+
+            // Creates a pipe reader to simplify the reading of the payload from an incoming Ice request or response.
+            // The payload is buffered into an internal pipe. The size is written first as a varulong followed by the
+            // payload.
+            static PipeReader CreateIcePayloadPipeReader(
+                ReadOnlySequence<byte> payload,
+                MemoryPool<byte> pool,
+                int minimumSegmentSize)
+            {
+                var pipe = new Pipe(new PipeOptions(
+                    pool: pool,
+                    minimumSegmentSize: minimumSegmentSize,
+                    pauseWriterThreshold: 0,
+                    writerScheduler: PipeScheduler.Inline));
+
+                var encoder = new SliceEncoder(pipe.Writer, Encoding.Slice20);
+                encoder.EncodeSize(checked((int)payload.Length));
+
+                // Copy the payload data to the internal pipe writer.
+                if (!payload.IsEmpty)
+                {
+                    if (payload.IsSingleSegment)
+                    {
+                        pipe.Writer.Write(payload.FirstSpan);
+                    }
+                    else
+                    {
+                        foreach (ReadOnlyMemory<byte> segment in payload)
+                        {
+                            pipe.Writer.Write(segment.Span);
+                        }
+                    }
+                }
+
+                // No more data to consume for the payload so we complete the internal pipe writer.
+                pipe.Writer.Complete();
+                return pipe.Reader;
             }
         }
     }
