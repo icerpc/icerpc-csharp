@@ -162,31 +162,45 @@ namespace IceRpc.Tests.ClientServer
                 results.Add(retry.OpWithDataAsync(-1, 0, seq));
             }
 
-            _ = service.Connection!.ShutdownAsync(new CancellationToken(canceled: true));
+            await service.Connection!.ShutdownAsync(new CancellationToken(canceled: true));
 
-            for (int i = 0; i < maxQueue; i++)
-            {
-                results.Add(retry.OpWithDataAsync(-1, 0, seq));
-            }
+            results.Add(retry.OpWithDataAsync(-1, 0, seq));
 
-            if (protocol == "icerpc")
+            var whenAllTask = Task.WhenAll(results);
+            try
             {
-                // With icerpc cancelation, the peer shutdown might cancel invocations which are being dispatched.
-                try
-                {
-                    await Task.WhenAll(results);
-                }
-                catch (OperationCanceledException)
-                {
-                }
-                catch (AggregateException ex)
-                {
-                    Assert.That(ex.InnerExceptions.All(exception => exception is OperationCanceledException), Is.True);
-                }
+                await whenAllTask;
             }
-            else
+            catch (Exception ex)
             {
-                await Task.WhenAll(results);
+                // await whenAllTask unwraps the AggregateException and throws the first exception. So we obtain the
+                // exception from the completed WhenAll task instead.
+                IEnumerable<Exception> exceptions;
+                if (whenAllTask.Exception is AggregateException aggregateException)
+                {
+                    exceptions = aggregateException.InnerExceptions;
+                }
+                else
+                {
+                    // A single task failed.
+                    exceptions = new [] { ex };
+                }
+
+                // The peer shutdown might cancel dispatches. For now, the cancellation is reported as a
+                // DispatchException with ice and as an OperationCanceledException for icerpc.
+                // TODO: fix the different exceptions once we have a plan and consider if the cancellation should be
+                // retryable or only retryable in some specific circumstances or never.
+                if (protocol == "ice")
+                {
+                    Assert.That(exceptions.All(exception => exception is DispatchException), Is.True);
+                }
+                else
+                {
+                    Assert.That(exceptions.All(exception => exception is OperationCanceledException), Is.True);
+                }
+
+                // At least one invocation should succeed: the one after the shutdown.
+                Assert.That(exceptions.Count, Is.LessThanOrEqualTo(maxQueue));
             }
         }
 

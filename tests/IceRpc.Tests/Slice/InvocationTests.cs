@@ -141,7 +141,6 @@ public class InvocationTests
         Assert.That(Math.Abs((deadline - expectedDeadline).TotalMilliseconds), Is.LessThanOrEqualTo(50));
     }
 
-
     /// <summary>Verifies that when using an infinite invocation timeout the cancellation token passed to the invoker
     /// is not cancelable.</summary>
     [Test]
