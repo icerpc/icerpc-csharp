@@ -83,9 +83,9 @@ public class ProxyTests
                 var path = $"/{Uri.EscapeDataString(category)}/{Uri.EscapeDataString(name)}";
                 foreach (IceProxyFormat format in
                     ImmutableList.Create(IceProxyFormat.Unicode, IceProxyFormat.ASCII, IceProxyFormat.Compat))
-                    {
-                        yield return new TestCaseData(path, format);
-                    }
+                {
+                    yield return new TestCaseData(path, format);
+                }
             }
         }
     }

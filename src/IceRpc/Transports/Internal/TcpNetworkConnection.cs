@@ -260,7 +260,7 @@ namespace IceRpc.Transports.Internal
                 if (authenticationOptions != null)
                 {
                     // This can only be created with a connected socket.
-                    _sslStream = new SslStream(new System.Net.Sockets.NetworkStream(Socket, false), false);
+                    _sslStream = new SslStream(new NetworkStream(Socket, false), false);
                     await _sslStream.AuthenticateAsClientAsync(authenticationOptions, cancel).ConfigureAwait(false);
                 }
 
@@ -371,7 +371,7 @@ namespace IceRpc.Transports.Internal
                 if (_authenticationOptions != null)
                 {
                     // This can only be created with a connected socket.
-                    _sslStream = new SslStream(new System.Net.Sockets.NetworkStream(Socket, false), false);
+                    _sslStream = new SslStream(new NetworkStream(Socket, false), false);
                     await _sslStream.AuthenticateAsServerAsync(_authenticationOptions, cancel).ConfigureAwait(false);
                 }
 

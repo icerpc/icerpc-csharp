@@ -195,7 +195,7 @@ public class ProxyTests
         // Arrange
         var proxy = new Proxy(Protocol.Ice)
         {
-            Params = new Dictionary<string,string> { ["adapter-id"] = "value" }.ToImmutableDictionary(),
+            Params = new Dictionary<string, string> { ["adapter-id"] = "value" }.ToImmutableDictionary(),
         };
 
         // Act/Assert

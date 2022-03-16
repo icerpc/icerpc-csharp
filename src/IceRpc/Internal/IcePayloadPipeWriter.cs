@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice;
-using System.Buffers;
 using System.IO.Pipelines;
 
 namespace IceRpc.Internal

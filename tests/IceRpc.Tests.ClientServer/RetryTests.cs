@@ -183,7 +183,7 @@ namespace IceRpc.Tests.ClientServer
                 else
                 {
                     // A single task failed.
-                    exceptions = new [] { ex };
+                    exceptions = new[] { ex };
                 }
 
                 // The peer shutdown might cancel dispatches. For now, the cancellation is reported as a

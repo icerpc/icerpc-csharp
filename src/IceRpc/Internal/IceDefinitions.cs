@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Diagnostics;
-
 namespace IceRpc.Internal
 {
     // Definitions for the ice protocol.
