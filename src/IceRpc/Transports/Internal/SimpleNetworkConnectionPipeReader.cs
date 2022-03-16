@@ -130,37 +130,5 @@ namespace IceRpc.Transports.Internal
                 }
             }
         }
-
-        /// <summary>Reads data in the given buffer and return once the buffer is full. This method bypass the internal
-        /// pipe once no more data is available. The data is read directly from the simple network connection, avoiding
-        /// a copy into the internal pipe.</summary>
-        internal async ValueTask ReadUntilFullAsync(Memory<byte> buffer, CancellationToken cancel)
-        {
-            if (buffer.IsEmpty)
-            {
-                return;
-            }
-
-            // If there's still data on the pipe reader, copy the data from the pipe reader.
-            ReadResult result = default;
-            while (buffer.Length > 0 && _pipe.Reader.TryRead(out result))
-            {
-                int length = Math.Min(buffer.Length, (int)result.Buffer.Length);
-                result.Buffer.Slice(0, length).CopyTo(buffer.Span);
-                _pipe.Reader.AdvanceTo(result.Buffer.GetPosition(length));
-                buffer = buffer[length..];
-            }
-
-            // No more data from the pipe reader, read the remainder directly from the read function to avoid copies.
-            while (buffer.Length > 0)
-            {
-                int length = await _connection.ReadAsync(buffer, cancel).ConfigureAwait(false);
-                if (length == 0)
-                {
-                    throw new ConnectionLostException();
-                }
-                buffer = buffer[length..];
-            }
-        }
     }
 }

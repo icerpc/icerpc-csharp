@@ -9,9 +9,6 @@ namespace IceRpc.Transports.Internal
         // TODO: are we getting rid of this ISlicFrameReader interface?
         SimpleNetworkConnectionPipeReader PipeReader { get; }
 
-        /// <summary>Reads the data from a Slic frame into a buffer.</summary>
-        ValueTask ReadFrameDataAsync(Memory<byte> buffer, CancellationToken cancel);
-
         /// <summary>Reads a Slic frame header.</summary>
         ValueTask<(FrameType FrameType, int FrameSize, long? StreamId)> ReadFrameHeaderAsync(CancellationToken cancel);
     }

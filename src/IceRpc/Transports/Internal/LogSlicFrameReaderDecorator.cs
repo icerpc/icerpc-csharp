@@ -17,18 +17,6 @@ namespace IceRpc.Transports.Internal
         private long? _frameStreamId;
         private readonly ILogger _logger;
 
-        public async ValueTask ReadFrameDataAsync(Memory<byte> buffer, CancellationToken cancel)
-        {
-            using IDisposable? _ = _frameStreamId == null ?
-                null :
-                _logger.StartMultiplexedStreamScope(_frameStreamId.Value);
-            await _decoratee.ReadFrameDataAsync(buffer, cancel).ConfigureAwait(false);
-            if (_frameType != FrameType.Stream && _frameType != FrameType.StreamLast)
-            {
-                LogReadFrame(_frameType, _frameDataSize, buffer);
-            }
-        }
-
         public async ValueTask<(FrameType FrameType, int FrameSize, long? StreamId)> ReadFrameHeaderAsync(
             CancellationToken cancel)
         {
@@ -48,6 +36,7 @@ namespace IceRpc.Transports.Internal
             _logger = logger;
         }
 
+        // TODO: this method is not used anywhere
         private void LogReadFrame(FrameType type, int dataSize, ReadOnlyMemory<byte> buffer)
         {
             switch (type)
@@ -115,7 +104,6 @@ namespace IceRpc.Transports.Internal
                     break;
                 }
             }
-
         }
     }
 }

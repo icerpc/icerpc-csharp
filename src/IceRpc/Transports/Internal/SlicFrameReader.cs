@@ -11,9 +11,6 @@ namespace IceRpc.Transports.Internal
     {
         public SimpleNetworkConnectionPipeReader PipeReader { get; }
 
-        public ValueTask ReadFrameDataAsync(Memory<byte> buffer, CancellationToken cancel) =>
-            PipeReader.ReadUntilFullAsync(buffer, cancel);
-
         public async ValueTask<(FrameType FrameType, int FrameSize, long? StreamId)> ReadFrameHeaderAsync(
             CancellationToken cancel)
         {
