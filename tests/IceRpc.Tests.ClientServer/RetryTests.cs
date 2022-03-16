@@ -162,14 +162,9 @@ namespace IceRpc.Tests.ClientServer
                 results.Add(retry.OpWithDataAsync(-1, 0, seq));
             }
 
-            using var source = new CancellationTokenSource();
-            Task shutdownTask = service.Connection!.ShutdownAsync(cancel: source.Token);
-            source.Cancel();
+            await service.Connection!.ShutdownAsync(new CancellationToken(canceled: true));
 
-            for (int i = 0; i < maxQueue; i++)
-            {
-                results.Add(retry.OpWithDataAsync(-1, 0, seq));
-            }
+            results.Add(retry.OpWithDataAsync(-1, 0, seq));
 
             var whenAllTask = Task.WhenAll(results);
             try
@@ -204,8 +199,8 @@ namespace IceRpc.Tests.ClientServer
                     Assert.That(exceptions.All(exception => exception is OperationCanceledException), Is.True);
                 }
 
-                // Few invocations should succeed (the ones sent after the connection shutdown).
-                Assert.That(exceptions.Count, Is.LessThan(results.Count));
+                // At least one invocation should succeed: the one after the shutdown.
+                Assert.That(exceptions.Count, Is.LessThanOrEqualTo(maxQueue));
             }
         }
 
