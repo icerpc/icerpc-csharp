@@ -113,10 +113,7 @@ namespace IceRpc.Tests
             {
                 RemoteCertificateValidationCallback =
                     CertificateValidaton.GetServerCertificateValidationCallback(
-                        certificateAuthorities: new X509Certificate2Collection
-                        {
-                            new X509Certificate2(Path.Combine(Environment.CurrentDirectory, "certs", caFile))
-                        })
+                        certificateAuthorities: Path.Combine(Environment.CurrentDirectory, "certs", caFile))
             });
 
             collection.AddScoped(_ => new SslServerAuthenticationOptions()

@@ -68,10 +68,7 @@ namespace IceRpc.Tests.Internal
                 {
                     RemoteCertificateValidationCallback =
                                 CertificateValidaton.GetServerCertificateValidationCallback(
-                                    certificateAuthorities: new X509Certificate2Collection()
-                                    {
-                                        new X509Certificate2("../../../certs/cacert.pem")
-                                    }),
+                                    certificateAuthorities: "../../../certs/cacert.pem"),
                     TargetHost = _isIPv6 ? "[::1]" : "127.0.0.1"
                 };
             }

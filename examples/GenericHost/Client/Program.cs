@@ -40,11 +40,7 @@ public static class Program
                         {
                             RemoteCertificateValidationCallback =
                                 CertificateValidaton.GetServerCertificateValidationCallback(
-                                    certificateAuthorities: new X509Certificate2Collection
-                                    {
-                                        new X509Certificate2(
-                                            hostContext.Configuration.GetValue<string>("CertificateAuthoritiesFile"))
-                                    })
+                                    hostContext.Configuration.GetValue<string>("CertificateAuthoritiesFile"))
                         };
                     });
 

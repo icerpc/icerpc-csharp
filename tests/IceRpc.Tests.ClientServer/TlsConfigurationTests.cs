@@ -41,10 +41,7 @@ namespace IceRpc.Tests.ClientServer
                         new X509Certificate2(GetCertificatePath(clientCertFile), "password")
                     },
                     RemoteCertificateValidationCallback = CertificateValidaton.GetServerCertificateValidationCallback(
-                        certificateAuthorities: new X509Certificate2Collection
-                        {
-                            new X509Certificate2(GetCertificatePath(caFile))
-                        })
+                        GetCertificatePath(caFile))
                 })
                 .BuildServiceProvider();
 
@@ -126,10 +123,7 @@ namespace IceRpc.Tests.ClientServer
                             return certs[0];
                         },
                     RemoteCertificateValidationCallback = CertificateValidaton.GetServerCertificateValidationCallback(
-                        certificateAuthorities: new X509Certificate2Collection
-                        {
-                            new X509Certificate2(GetCertificatePath("cacert1.der"))
-                        }),
+                        certificateAuthorities: GetCertificatePath("cacert1.der"))
                 })
                 .BuildServiceProvider();
 
@@ -155,10 +149,7 @@ namespace IceRpc.Tests.ClientServer
                 serviceCollection.AddTransient(_ => new SslClientAuthenticationOptions()
                 {
                     RemoteCertificateValidationCallback = CertificateValidaton.GetServerCertificateValidationCallback(
-                        certificateAuthorities: new X509Certificate2Collection
-                        {
-                            new X509Certificate2(GetCertificatePath(caFile))
-                        })
+                        certificateAuthorities: GetCertificatePath(caFile))
                 });
             }
             else
@@ -350,10 +341,7 @@ namespace IceRpc.Tests.ClientServer
                 .AddTransient(_ => new SslClientAuthenticationOptions()
                 {
                     RemoteCertificateValidationCallback = CertificateValidaton.GetServerCertificateValidationCallback(
-                        certificateAuthorities: new X509Certificate2Collection
-                        {
-                            new X509Certificate2(GetCertificatePath("cacert1.der"))
-                        }),
+                        certificateAuthorities: GetCertificatePath("cacert1.der")),
                     EnabledSslProtocols = SslProtocols.Tls12
                 })
                 .BuildServiceProvider();

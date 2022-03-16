@@ -11,6 +11,40 @@ namespace IceRpc
     {
         /// <summary>Returns a certificate validation callback that can be used to validate server certificates.
         /// </summary>
+        /// <param name="certificateAuthorities">The path to the CA certificate collection that will be used as trusted
+        /// certificate authorities to verify the server certificate.</param>
+        /// <returns>The certificate validation callback</returns>
+        public static RemoteCertificateValidationCallback GetServerCertificateValidationCallback(
+                string certificateAuthorities) =>
+            GetRemoteCertificateValidationCallback(
+                true,
+                false,
+                new X509Certificate2Collection
+                {
+                    new X509Certificate2(certificateAuthorities)
+                });
+
+        /// <summary>Returns a certificate validation callback that can be used to validate server certificates.
+        /// </summary>
+        /// <param name="useMachineContext">When <c>true</c> the certificate chain used to validate the server
+        /// certificate is built using the machine context, otherwise the certificate chain uses the current user
+        /// context.</param>
+        /// <param name="certificateAuthorities">The path to the CA certificate collection that will be used as trusted
+        /// certificate authorities to verify the server certificate.</param>
+        /// <returns>The certificate validation callback</returns>
+        public static RemoteCertificateValidationCallback GetServerCertificateValidationCallback(
+            bool useMachineContext,
+            string certificateAuthorities) =>
+            GetRemoteCertificateValidationCallback(
+                true,
+                useMachineContext,
+                new X509Certificate2Collection
+                {
+                    new X509Certificate2(certificateAuthorities)
+                });
+
+        /// <summary>Returns a certificate validation callback that can be used to validate server certificates.
+        /// </summary>
         /// <param name="useMachineContext">When <c>true</c> the certificate chain used to validate the server
         /// certificate is built using the machine context, otherwise the certificate chain uses the current user
         /// context.</param>
@@ -21,6 +55,61 @@ namespace IceRpc
             bool useMachineContext = false,
             X509Certificate2Collection? certificateAuthorities = null) =>
             GetRemoteCertificateValidationCallback(true, useMachineContext, certificateAuthorities);
+
+        /// <summary>Returns a certificate validation callback that can be used to validate client certificates.
+        /// </summary>
+        /// <param name="certificateAuthorities">The path to the CA certificate collection that will be used as trusted
+        /// certificate authorities to verify the client certificate.</param>
+        /// <returns>The certificate validation callback</returns>
+        public static RemoteCertificateValidationCallback GetClientCertificateValidationCallback(
+            string certificateAuthorities) =>
+            GetRemoteCertificateValidationCallback(
+                false,
+                false,
+                new X509Certificate2Collection
+                {
+                    new X509Certificate2(certificateAuthorities)
+                });
+
+        /// <summary>Returns a certificate validation callback that can be used to validate client certificates.
+        /// </summary>
+        /// <param name="clientCertificateRequired">When <c>true</c>the validation callback will only trust clients
+        /// that provide a certificate context.</param>
+        /// <param name="certificateAuthorities">The path to the CA certificate collection that will be used as trusted
+        /// certificate authorities to verify the client certificate.</param>
+        /// <returns>The certificate validation callback</returns>
+        public static RemoteCertificateValidationCallback GetClientCertificateValidationCallback(
+            bool clientCertificateRequired,
+            string certificateAuthorities) =>
+            GetRemoteCertificateValidationCallback(
+                clientCertificateRequired,
+                false,
+                new X509Certificate2Collection
+                {
+                    new X509Certificate2(certificateAuthorities)
+                });
+
+        /// <summary>Returns a certificate validation callback that can be used to validate client certificates.
+        /// </summary>
+        /// <param name="clientCertificateRequired">When <c>true</c>the validation callback will only trust clients
+        /// that provide a certificate context.</param>
+        /// <param name="useMachineContext">When <c>true</c> the certificate chain used to validate the client
+        /// certificate is built using the machine context, otherwise the certificate chain uses the current user
+        /// context.</param>
+        /// <param name="certificateAuthorities">The path to the CA certificate collection that will be used as trusted
+        /// certificate authorities to verify the client certificate.</param>
+        /// <returns>The certificate validation callback</returns>
+        public static RemoteCertificateValidationCallback GetClientCertificateValidationCallback(
+            bool clientCertificateRequired,
+            bool useMachineContext,
+            string certificateAuthorities) =>
+            GetRemoteCertificateValidationCallback(
+                clientCertificateRequired,
+                useMachineContext,
+                new X509Certificate2Collection
+                {
+                    new X509Certificate2(certificateAuthorities)
+                });
 
         /// <summary>Returns a certificate validation callback that can be used to validate client certificates.
         /// </summary>
