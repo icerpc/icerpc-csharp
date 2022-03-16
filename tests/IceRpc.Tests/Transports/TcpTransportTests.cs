@@ -184,16 +184,23 @@ public class TcpTransportTests
         Assert.That(serverConnection.Socket.ReceiveBufferSize, Is.GreaterThanOrEqualTo(bufferSize));
 
         // But ensure it doesn't allocate too much as well
-        if (OperatingSystem.IsLinux())
+        if (OperatingSystem.IsMacOS())
         {
-            // Linux allocates twice the size.
+            // macOS appears to have a low limit of a little more than 256KB for the receive buffer and
+            // 64KB for the send buffer.
+            Assert.That(serverConnection.Socket.SendBufferSize,
+                        Is.LessThanOrEqualTo(1.5 * Math.Max(bufferSize, 64 * 1024)));
+            Assert.That(serverConnection.Socket.ReceiveBufferSize,
+                        Is.LessThanOrEqualTo(1.5 * Math.Max(bufferSize, 256 * 1024)));
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+            // Linux allocates twice the size
             Assert.That(serverConnection.Socket.SendBufferSize, Is.LessThanOrEqualTo(2.5 * bufferSize));
             Assert.That(serverConnection.Socket.ReceiveBufferSize, Is.LessThanOrEqualTo(2.5 * bufferSize));
         }
         else
         {
-            // Windows typically allocates the requested size and macOS allocates a little more than the
-            // requested size.
             Assert.That(serverConnection.Socket.SendBufferSize, Is.LessThanOrEqualTo(1.5 * bufferSize));
             Assert.That(serverConnection.Socket.ReceiveBufferSize, Is.LessThanOrEqualTo(1.5 * bufferSize));
         }
