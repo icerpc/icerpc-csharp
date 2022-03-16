@@ -54,7 +54,7 @@ public class TcpTransportTests
     }
 
     [Test]
-    public void Client_connection_is_ipv6_only([Values(true, false)]bool ipv6only)
+    public void Client_connection_is_ipv6_only([Values(true, false)] bool ipv6only)
     {
         IClientTransport<ISimpleNetworkConnection> clientTransport = new TcpClientTransport(
             new TcpClientTransportOptions
@@ -63,7 +63,7 @@ public class TcpTransportTests
             });
 
         var connection = (TcpClientNetworkConnection)clientTransport.CreateConnection(
-            new Endpoint(Protocol.IceRpc) { Host = "::1"},
+            new Endpoint(Protocol.IceRpc) { Host = "::1" },
             authenticationOptions: null,
             NullLogger.Instance);
 
@@ -98,11 +98,11 @@ public class TcpTransportTests
                 IsIPv6Only = false
             });
 
-        var listener = serverTransport.Listen(
+        IListener<ISimpleNetworkConnection>? listener = serverTransport.Listen(
             new Endpoint(Protocol.IceRpc) { Host = "::0", Port = 0 },
             authenticationOptions: null,
             NullLogger.Instance);
-        var acceptTask = listener.AcceptAsync();
+        Task<ISimpleNetworkConnection>? acceptTask = listener.AcceptAsync();
 
         IClientTransport<ISimpleNetworkConnection> clientTransport =
             new TcpClientTransport(new TcpClientTransportOptions());
@@ -209,12 +209,10 @@ public class TcpTransportTests
                 ListenerBackLog = 18
             });
 
-        IListener<ISimpleNetworkConnection>? listener = serverTransport.Listen(
+        IListener<ISimpleNetworkConnection> listener = serverTransport.Listen(
             new Endpoint(Protocol.IceRpc) { Host = "::1", Port = 0 },
             authenticationOptions: null,
             NullLogger.Instance);
-        Task<ISimpleNetworkConnection>? acceptTask = listener.AcceptAsync();
-
 
         IClientTransport<ISimpleNetworkConnection> clientTransport =
             new TcpClientTransport(new TcpClientTransportOptions());
@@ -227,13 +225,12 @@ public class TcpTransportTests
             using var source = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
             try
             {
-                ISimpleNetworkConnection? clientConnection = clientTransport.CreateConnection(
+                ISimpleNetworkConnection clientConnection = clientTransport.CreateConnection(
                     listener.Endpoint,
                     authenticationOptions: null,
                     NullLogger.Instance);
                 await clientConnection.ConnectAsync(source.Token);
                 connections.Add(clientConnection);
-
             }
             catch (OperationCanceledException)
             {
@@ -242,7 +239,7 @@ public class TcpTransportTests
         }
 
         // Assert
-        Assert.That(connections.Count, Is.GreaterThanOrEqualTo(19));
+        Assert.That(connections.Count, Is.GreaterThanOrEqualTo(18));
         Assert.That(connections.Count, Is.LessThanOrEqualTo(25));
 
         await Task.WhenAll(connections.Select(connection => connection.DisposeAsync().AsTask()));
