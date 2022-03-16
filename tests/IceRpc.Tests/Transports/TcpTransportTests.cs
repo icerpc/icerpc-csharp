@@ -25,7 +25,7 @@ public class TcpTransportTests
         Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
         await clientConnection.ConnectAsync(default);
 
-        // Act
+        // Act/Assert
         Assert.That(
             async () =>
             {
@@ -369,6 +369,7 @@ public class TcpTransportTests
     [Test]
     public async Task Tls_client_connect_operation_canceled_exception()
     {
+        // Arrange
         await using IListener<ISimpleNetworkConnection> listener = CreteTcpListenerWithAuthOptions();
 
         await using TcpClientNetworkConnection clientConnection =
@@ -409,6 +410,7 @@ public class TcpTransportTests
     [Test]
     public async Task Tls_server_connect_operation_canceled_exception()
     {
+        // Arrange
         await using IListener<ISimpleNetworkConnection> listener = CreteTcpListenerWithAuthOptions();
 
         await using TcpClientNetworkConnection clientConnection =
