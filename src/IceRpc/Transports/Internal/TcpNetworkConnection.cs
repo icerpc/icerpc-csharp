@@ -80,11 +80,6 @@ namespace IceRpc.Transports.Internal
                 throw ex.ToTransportException(cancel);
             }
 
-            if (received == 0)
-            {
-                throw new ConnectionLostException();
-            }
-
             Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
             return received;
         }

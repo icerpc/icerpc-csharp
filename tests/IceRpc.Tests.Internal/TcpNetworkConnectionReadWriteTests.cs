@@ -130,11 +130,12 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task TcpNetworkConnectionReadWrite_ReadAsync_ConnectionLostException()
+        public async Task TcpNetworkConnectionReadWrite_ReadAsync_ReturnsZero()
         {
             await _serverConnection!.DisposeAsync();
-            Assert.CatchAsync<ConnectionLostException>(
-                async () => await ClientConnection.ReadAsync(new byte[1], default));
+            int read = await ClientConnection.ReadAsync(new byte[1], default);
+
+            Assert.That(read, Is.Zero);
         }
 
         [Test]
