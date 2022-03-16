@@ -12,7 +12,7 @@ namespace IceRpc.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class ProxyTests
 {
-    /// <summary>Provides test case data for <see cref="Equal_proxies_produce_the_same_hash_code(string, IProxyFormat)"/>
+    /// <summary>Provides test case data for <see cref="Equal_proxies_produce_the_same_hash_code(string)"/>
     /// test.</summary>
     private static IEnumerable<TestCaseData> ProxyHashCodeSource
     {
@@ -25,7 +25,7 @@ public class ProxyTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Parse_an_invalid_proxy(string, IProxyFormat)"/>
+    /// <summary>Provides test case data for <see cref="Parse_an_invalid_proxy_string(string)"/>
     /// test.</summary>
     private static IEnumerable<TestCaseData> ProxyParseInvalidSource
     {
@@ -38,7 +38,7 @@ public class ProxyTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Parse_a_proxy_string(string, IProxyFormat, string, string)"/>
+    /// <summary>Provides test case data for <see cref="Parse_a_proxy_string(string, string, string)"/>
     /// test.</summary>
     private static IEnumerable<TestCaseData> ProxyParseSource
     {
@@ -51,7 +51,7 @@ public class ProxyTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Convert_a_proxy_to_a_string(string, IceProxyFormat)"/> test.
+    /// <summary>Provides test case data for <see cref="Convert_a_proxy_to_a_string(string)"/> test.
     /// </summary>
     private static IEnumerable<TestCaseData> ProxyToStringSource
     {
@@ -64,7 +64,7 @@ public class ProxyTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Convert_a_proxy_to_a_string(string, IceProxyFormat)"/> test.
+    /// <summary>Provides test case data for <see cref="Parse_proxy_alt_endpoints(string)"/> test.
     /// </summary>
     private static IEnumerable<TestCaseData> AltEndpointsSource
     {
@@ -161,20 +161,20 @@ public class ProxyTests
     private static readonly Dictionary<string, Endpoint[]> _altEdpoints = new()
     {
         ["icerpc://localhost/path?alt-endpoint=host1,host2"] = new Endpoint[]
-                {
-                    new Endpoint() { Host = "host1"},
-                    new Endpoint() { Host = "host2"},
-                },
+        {
+            new Endpoint { Host = "host1" },
+            new Endpoint { Host = "host2" },
+        },
         ["icerpc://localhost/path?alt-endpoint=host1:10001,host2:10002"] = new Endpoint[]
-                {
-                    new Endpoint() { Host = "host1", Port = 10001},
-                    new Endpoint() { Host = "host2", Port = 10002},
-                },
+        {
+            new Endpoint { Host = "host1", Port = 10001 },
+            new Endpoint { Host = "host2", Port = 10002 },
+        },
         ["icerpc://localhost/path?alt-endpoint=host1:10001&alt-endpoint=host2:10002"] = new Endpoint[]
-                {
-                    new Endpoint() { Host = "host1", Port = 10001},
-                    new Endpoint() { Host = "host2", Port = 10002},
-                },
+        {
+            new Endpoint { Host = "host1", Port = 10001 },
+            new Endpoint { Host = "host2", Port = 10002 },
+        },
     };
 
     /// <summary>Verifies that adapter-id param cannot be set to an empty value.</summary>
