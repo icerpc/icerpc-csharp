@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Buffers;
+using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
@@ -38,14 +39,16 @@ namespace IceRpc.Transports.Internal
                 // Fill the pipe with data read from the connection.
                 Memory<byte> buffer = _pipe.Writer.GetMemory();
                 int read = await _connection.ReadAsync(buffer, cancel).ConfigureAwait(false);
+                if (read == 0)
+                {
+                    throw new ConnectionLostException();
+                }
                 _pipe.Writer.Advance(read);
                 await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
 
                 // Data should now be available unless the read above didn't return any additional data.
-                if (!_pipe.Reader.TryRead(out readResult))
-                {
-                    throw new ConnectionLostException();
-                }
+                _pipe.Reader.TryRead(out readResult);
+                Debug.Assert(readResult.Buffer.Length > 0);
             }
             return readResult;
         }

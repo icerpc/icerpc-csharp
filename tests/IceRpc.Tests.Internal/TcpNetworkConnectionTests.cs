@@ -121,8 +121,7 @@ namespace IceRpc.Tests.Internal
                 // Server side ConnectAsync is a no-op for non secure TCP connections so it won't throw.
                 _ = await serverConnection.ConnectAsync(default);
 
-                Assert.ThrowsAsync<ConnectionLostException>(
-                    async () => await serverConnection.ReadAsync(new byte[1], default));
+                Assert.That(await serverConnection.ReadAsync(new byte[1], default), Is.Zero);
             }
             else
             {
