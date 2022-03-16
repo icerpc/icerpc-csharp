@@ -19,7 +19,9 @@ public class MemoryBufferWriterTests
     [Test]
     public void MemoryBufferWriter_InvalidConstructor()
     {
-        Assert.Throws<ArgumentException>(() => new MemoryBufferWriter(Array.Empty<byte>()));
+        Assert.That(
+            () => new MemoryBufferWriter(Array.Empty<byte>()),
+            Throws.Exception.TypeOf<ArgumentException>());
     }
 
     [Test]
@@ -55,8 +57,8 @@ public class MemoryBufferWriterTests
     {
         var writer = new MemoryBufferWriter(new byte[10]);
 
-        Assert.Throws<InvalidOperationException>(() => writer.Advance(11));
-        Assert.Throws<ArgumentException>(() => writer.Advance(-1));
+        Assert.That(() => writer.Advance(11), Throws.InvalidOperationException);
+        Assert.That(() => writer.Advance(-1), Throws.ArgumentException);
     }
 
     [Test]
@@ -90,7 +92,7 @@ public class MemoryBufferWriterTests
     {
         var writer = new MemoryBufferWriter(new byte[10]);
 
-        Assert.Throws<ArgumentException>(() => writer.GetMemory(15));
+        Assert.That(() => writer.GetMemory(15), Throws.ArgumentException);
     }
 
     [Test]

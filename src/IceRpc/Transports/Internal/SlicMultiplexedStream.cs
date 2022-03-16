@@ -136,6 +136,7 @@ namespace IceRpc.Transports.Internal
             else
             {
                 TrySetReadCompleted();
+                _inputPipeReader.CancelPendingRead();
             }
 
             async Task SendStopSendingFrameAndShutdownAsync()
@@ -153,6 +154,7 @@ namespace IceRpc.Transports.Internal
                     // Ignore.
                 }
                 TrySetReadCompleted();
+                _inputPipeReader.CancelPendingRead();
             }
         }
 
@@ -227,22 +229,6 @@ namespace IceRpc.Transports.Internal
                     // Read-side of local unidirectional stream is marked as completed.
                     TrySetReadCompleted();
                 }
-            }
-        }
-
-        internal void Abort()
-        {
-            // Abort the stream without notifying the peer. This is used for Slic streams which are still registered
-            // with the Slic connection when the connection is disposed.
-            if (!IsShutdown)
-            {
-                // Shutdown the stream.
-                TrySetStateAndShutdown(State.ReadCompleted | State.WriteCompleted);
-
-                // Ensure the Slic pipe reader and writer are completed.
-                var exception = new ConnectionLostException();
-                _inputPipeReader.Complete(exception);
-                _outputPipeWriter.Complete(exception);
             }
         }
 

@@ -196,12 +196,10 @@ namespace IceRpc.Internal
             }
 
             // Wait for the response.
-            ReplyStatus replyStatus;
-            PipeReader payloadReader;
             try
             {
-                (replyStatus, payloadReader) =
-                    await requestFeature.IncomingResponseCompletionSource.Task.WaitAsync(cancel).ConfigureAwait(false);
+                return await requestFeature.IncomingResponseCompletionSource.Task.WaitAsync(
+                    cancel).ConfigureAwait(false);
             }
             finally
             {
@@ -217,25 +215,6 @@ namespace IceRpc.Internal
                     }
                 }
             }
-
-            ResultType resultType = replyStatus switch
-            {
-                ReplyStatus.OK => ResultType.Success,
-                ReplyStatus.UserException => (ResultType)SliceResultType.ServiceFailure,
-                _ => ResultType.Failure
-            };
-
-            // For compatibility with ZeroC Ice "indirect" proxies
-            if (replyStatus == ReplyStatus.ObjectNotExistException && request.Proxy.Endpoint == null)
-            {
-                request.Features = request.Features.With(RetryPolicy.OtherReplica);
-            }
-
-            return new IncomingResponse(request)
-            {
-                Payload = payloadReader,
-                ResultType = resultType
-            };
         }
 
         /// <inheritdoc/>
@@ -705,7 +684,7 @@ namespace IceRpc.Internal
 
         private async ValueTask<(int RequestId, IceRequestHeader RequestHeader, PipeReader PayloadReader)> ReceiveFrameAsync()
         {
-            // Reads are not cancellable. This method returns once a frame is read or when the connection is disposed.
+            // Reads are not cancelable. This method returns once a frame is read or when the connection is disposed.
             CancellationToken cancel = CancellationToken.None;
 
             while (true)
@@ -810,7 +789,6 @@ namespace IceRpc.Internal
 
                         var payloadReader = new IcePayloadPipeReader(
                             frameData,
-                            replyStatus: null,
                             _memoryPool,
                             _minimumSegmentSize);
 
@@ -841,19 +819,36 @@ namespace IceRpc.Internal
 
                         var payloadReader = new IcePayloadPipeReader(
                             frameData,
-                            replyStatus,
                             _memoryPool,
                             _minimumSegmentSize);
 
                         _networkConnectionReader.AdvanceTo(result.Buffer.GetPosition(frameRemainderSize));
+
+                        ResultType resultType = replyStatus switch
+                        {
+                            ReplyStatus.OK => ResultType.Success,
+                            ReplyStatus.UserException => (ResultType)SliceResultType.ServiceFailure,
+                            _ => ResultType.Failure
+                        };
 
                         lock (_mutex)
                         {
                             Debug.Assert(requestId != null);
                             if (_invocations.TryGetValue(requestId.Value, out OutgoingRequest? request))
                             {
+                                // For compatibility with ZeroC Ice "indirect" proxies
+                                if (replyStatus == ReplyStatus.ObjectNotExistException &&
+                                    request.Proxy.Endpoint == null)
+                                {
+                                    request.Features = request.Features.With(RetryPolicy.OtherReplica);
+                                }
+
                                 request.Features.Get<IceOutgoingRequest>()!.IncomingResponseCompletionSource.SetResult(
-                                    (replyStatus, payloadReader));
+                                    new IncomingResponse(request)
+                                    {
+                                        Payload = payloadReader,
+                                        ResultType = resultType
+                                    });
                             }
                             else if (!_shutdown)
                             {
@@ -919,28 +914,30 @@ namespace IceRpc.Internal
                 ReplyStatus replyStatus = decoder.DecodeReplyStatus();
 
                 int payloadSize;
+                int consumed = 0;
 
                 if (replyStatus <= ReplyStatus.UserException)
                 {
                     var encapsulationHeader = new EncapsulationHeader(ref decoder);
                     payloadSize = encapsulationHeader.EncapsulationSize - 6;
 
-                    // we ignore the payload encoding, it's irrelevant: the caller knows which encoding to expect,
-                    // usually the same encoding as the request payload.
+                    if (payloadSize != (buffer.Length - decoder.Consumed))
+                    {
+                        throw new InvalidDataException(@$"response payload size mismatch: expected {payloadSize
+                            } bytes, read {buffer.Length - decoder.Consumed} bytes");
+                    }
+
+                    consumed = checked((int)decoder.Consumed);
+
+                    // TODO: check encoding is 1.1. See github proposal.
                 }
                 else
                 {
-                    // Ice system exception
-                    payloadSize = (int)buffer.Length - 1;
+                    // Ice system exception. The payload includes the reply status so consumed remains 0.
+                    payloadSize = (int)buffer.Length;
                 }
 
-                if (payloadSize != (buffer.Length - decoder.Consumed))
-                {
-                    throw new InvalidDataException(@$"response payload size mismatch: expected {payloadSize
-                        } bytes, read {buffer.Length - decoder.Consumed} bytes");
-                }
-
-                return (replyStatus, payloadSize, (int)decoder.Consumed);
+                return (replyStatus, payloadSize, consumed);
             }
         }
     }

@@ -31,7 +31,8 @@ namespace IceRpc
             _timeout = timeout;
         }
 
-        async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+        /// <inheritdoc/>
+        public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
             // If the deadline field is already set, we don't do anything
             if (request.Fields.ContainsKey(RequestFieldKey.Deadline))

@@ -7,8 +7,8 @@ using System.IO.Pipelines;
 namespace IceRpc.Internal
 {
     /// <summary>This pipe reader implementation provides a reader to simplify the reading of the payload from an
-    /// incoming Ice request or response. The payload is buffered into an internal pipe. The size is written first,
-    /// followed by the Ice reply status if the status > UserException and finally the payload data.</summary>
+    /// incoming Ice request or response. The payload is buffered into an internal pipe. The size is written first as
+    /// a varulong followed by the payload.</summary>
     internal sealed class IcePayloadPipeReader : PipeReader
     {
         private readonly Pipe _pipe;
@@ -36,11 +36,7 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public override bool TryRead(out ReadResult result) => _pipe.Reader.TryRead(out result);
 
-        internal IcePayloadPipeReader(
-            ReadOnlySequence<byte> payload,
-            ReplyStatus? replyStatus,
-            MemoryPool<byte> pool,
-            int minimumSegmentSize)
+        internal IcePayloadPipeReader(ReadOnlySequence<byte> payload, MemoryPool<byte> pool, int minimumSegmentSize)
         {
             _pipe = new Pipe(new PipeOptions(
                 pool: pool,
@@ -48,40 +44,27 @@ namespace IceRpc.Internal
                 pauseWriterThreshold: 0,
                 writerScheduler: PipeScheduler.Inline));
 
-            // Encode the segment size and eventually the reply status.
-            EncodeSegmentSizeAndReplyStatus((int)payload.Length, replyStatus);
+            var encoder = new SliceEncoder(_pipe.Writer, Encoding.Slice20);
+            encoder.EncodeSize(checked((int)payload.Length));
 
             // Copy the payload data to the internal pipe writer.
-            while (payload.Length > 0)
+            if (!payload.IsEmpty)
             {
-                Span<byte> span = _pipe.Writer.GetSpan();
-                int copySize = Math.Min((int)payload.Length, span.Length);
-                payload.Slice(0, copySize).CopyTo(span);
-                _pipe.Writer.Advance(copySize);
-                payload = payload.Slice(copySize);
+                if (payload.IsSingleSegment)
+                {
+                    _pipe.Writer.Write(payload.FirstSpan);
+                }
+                else
+                {
+                    foreach (ReadOnlyMemory<byte> segment in payload)
+                    {
+                        _pipe.Writer.Write(segment.Span);
+                    }
+                }
             }
 
             // No more data to consume for the payload so we complete the internal pipe writer.
             _pipe.Writer.Complete();
-
-            void EncodeSegmentSizeAndReplyStatus(int payloadSize, ReplyStatus? replyStatus)
-            {
-                var encoder = new SliceEncoder(_pipe.Writer, Encoding.Slice20);
-
-                // The payload size is always encoded as a varulong on 4 bytes.
-                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
-
-                // Encode the reply status only if it's a system exception.
-                if (replyStatus != null && replyStatus > ReplyStatus.UserException)
-                {
-                    SliceEncoder.EncodeVarULong((ulong)payloadSize + 1, sizePlaceholder);
-                    encoder.EncodeReplyStatus(replyStatus.Value);
-                }
-                else
-                {
-                    SliceEncoder.EncodeVarULong((ulong)payloadSize, sizePlaceholder);
-                }
-            }
         }
     }
 }

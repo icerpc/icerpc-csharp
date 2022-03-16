@@ -224,7 +224,8 @@ namespace IceRpc.Transports.Internal
 
             foreach (SlicMultiplexedStream stream in _streams.Values)
             {
-                stream.Abort();
+                stream.AbortRead(SlicStreamError.Aborted.ToError());
+                stream.AbortWrite(SlicStreamError.Aborted.ToError());
             }
 
             _readCancellationTokenSource.Dispose();
@@ -586,7 +587,7 @@ namespace IceRpc.Transports.Internal
                                 Interlocked.Increment(ref _unidirectionalStreamCount);
                             }
 
-                            // Accept the new incoming stream.
+                            // Accept the new remote stream.
                             // TODO: Cache SliceMultiplexedStream
                             stream = new SlicMultiplexedStream(this, isBidirectional, remote: true, _reader, _writer);
                             try
@@ -595,7 +596,12 @@ namespace IceRpc.Transports.Internal
                             }
                             catch
                             {
-                                stream.Abort();
+                                await stream.Input.CompleteAsync().ConfigureAwait(false);
+                                if (isBidirectional)
+                                {
+                                    await stream.Output.CompleteAsync().ConfigureAwait(false);
+                                }
+                                Debug.Assert(stream.IsShutdown);
                                 throw;
                             }
 
