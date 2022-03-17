@@ -74,12 +74,16 @@ namespace IceRpc.Transports.Internal
                 uint version;
                 InitializeBody? initializeBody;
                 (type, dataSize, _) = await _reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+
+                if (dataSize == 0)
                 {
-                    (version, initializeBody) = await ReadFrameAsync(
-                        dataSize,
-                        SlicMemoryExtensions.DecodeInitialize,
-                        cancel).ConfigureAwait(false);
+                    throw new InvalidDataException("invalid empty initialize frame");
                 }
+
+                (version, initializeBody) = await ReadFrameAsync(
+                    dataSize,
+                    SlicMemoryExtensions.DecodeInitialize,
+                    cancel).ConfigureAwait(false);
 
                 if (version != 1)
                 {
@@ -93,11 +97,16 @@ namespace IceRpc.Transports.Internal
 
                     // Read again the Initialize frame sent by the client.
                     (type, dataSize, _) = await _reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
-                    (version, initializeBody) =
-                        await ReadFrameAsync(
-                            dataSize,
-                            SlicMemoryExtensions.DecodeInitialize,
-                            cancel).ConfigureAwait(false);
+
+                    if (dataSize == 0)
+                    {
+                        throw new InvalidDataException("invalid empty initialize frame");
+                    }
+
+                    (version, initializeBody) = await ReadFrameAsync(
+                        dataSize,
+                        SlicMemoryExtensions.DecodeInitialize,
+                        cancel).ConfigureAwait(false);
                 }
 
                 if (initializeBody == null)
@@ -651,7 +660,11 @@ namespace IceRpc.Transports.Internal
                     }
                     case FrameType.StreamConsumed:
                     {
-                        if (dataSize > 8)
+                        if (dataSize == 0)
+                        {
+                            throw new InvalidDataException("stream consumed frame too small");
+                        }
+                        else if (dataSize > 8)
                         {
                             throw new InvalidDataException("stream consumed frame too large");
                         }
@@ -668,7 +681,11 @@ namespace IceRpc.Transports.Internal
                     }
                     case FrameType.StreamReset:
                     {
-                        if (dataSize > 8)
+                        if (dataSize == 0)
+                        {
+                            throw new InvalidDataException("stream reset frame too small");
+                        }
+                        else if (dataSize > 8)
                         {
                             throw new InvalidDataException("stream reset frame too large");
                         }
@@ -685,7 +702,11 @@ namespace IceRpc.Transports.Internal
                     }
                     case FrameType.StreamStopSending:
                     {
-                        if (dataSize > 8)
+                        if (dataSize == 0)
+                        {
+                            throw new InvalidDataException("stream stop sending frame too small");
+                        }
+                        else if (dataSize > 8)
                         {
                             throw new InvalidDataException("stream stop sending frame too large");
                         }
@@ -739,8 +760,8 @@ namespace IceRpc.Transports.Internal
             DecodeFunc<T> decodeFunc,
             CancellationToken cancel)
         {
-            ReadResult readResult = size > 0 ?
-                await _reader.PipeReader.ReadAtLeastAsync(size, cancel).ConfigureAwait(false) : default;
+            Debug.Assert(size > 0);
+            ReadResult readResult = await _reader.PipeReader.ReadAtLeastAsync(size, cancel).ConfigureAwait(false);
 
             ReadOnlySequence<byte> buffer = readResult.Buffer;
             if (buffer.Length > size)
@@ -749,7 +770,6 @@ namespace IceRpc.Transports.Internal
             }
             else if (buffer.Length < size)
             {
-                // TODO: confirm this is indeed correct
                 throw new ConnectionLostException();
             }
 

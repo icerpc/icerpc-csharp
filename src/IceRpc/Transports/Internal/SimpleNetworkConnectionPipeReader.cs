@@ -99,7 +99,7 @@ namespace IceRpc.Transports.Internal
                 bufferWriter.Write(buffer);
                 _pipe.Reader.AdvanceTo(buffer.End);
 
-                byteCount -= (int)buffer.Length;;
+                byteCount -= (int)buffer.Length;
 
                 if (byteCount == 0)
                 {
@@ -112,7 +112,7 @@ namespace IceRpc.Transports.Internal
             // Read the remaining bytes directly from the connection into the buffer writer.
             async ValueTask ReadFromConnectionAsync(int byteCount)
             {
-                while (byteCount > 0)
+                do
                 {
                     Memory<byte> buffer = bufferWriter.GetMemory();
                     if (buffer.Length > byteCount)
@@ -127,7 +127,7 @@ namespace IceRpc.Transports.Internal
                     }
                     bufferWriter.Advance(length);
                     byteCount -= length;
-                }
+                } while (byteCount > 0);
             }
         }
     }
