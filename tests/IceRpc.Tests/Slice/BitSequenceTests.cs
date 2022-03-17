@@ -42,42 +42,51 @@ public class BitSequenceTests
         Assert.That(enumerator.MoveNext(), Is.False);
     }
 
+     /// <summary>Verifies that calling <see cref="BitSequenceWriter.Write"/> correctly writes the specified
+     /// bit sequence to the provided spans and memory.</summary>
+     /// <param name="pattern">The byte pattern to write.</param>
     [TestCase(0)]
     [TestCase(0xFF)]
     [TestCase(0xAA)]
     [TestCase(0x5B)]
-    public void BitSequence_Writer(byte pattern)
+    public void Write_bit_sequence(byte pattern)
     {
         Span<byte> firstSpan = new byte[3];
-        firstSpan.Fill(0xAA);
         Span<byte> secondSpan = new byte[30];
-        secondSpan.Fill(0xAA);
         IList<Memory<byte>> additionalMemory = new Memory<byte>[]
         {
             new byte[40],
             new byte[60]
         };
-        additionalMemory[0].Span.Fill(0xAA);
-        additionalMemory[1].Span.Fill(0xAA);
-
         const int size = (3 + 30 + 40 + 60) * 8; // in bits
-
         var writer = new BitSequenceWriter(new SpanEnumerator(firstSpan, secondSpan, additionalMemory));
 
+        // Writing the bit sequence patterns to first span, second span, and additional memory
         for (int i = 0; i < size; ++i)
         {
             writer.Write(IsSet(i, pattern));
         }
 
-        // Verify we correctly wrote the pattern
+        // Enumerating through the written spans and memory to validate that the write was successful
         var enumerator = new SpanEnumerator(firstSpan, secondSpan, additionalMemory);
         while (enumerator.MoveNext())
         {
-            for (int i = 0; i < enumerator.Current.Length; ++i)
-            {
-                Assert.That(enumerator.Current[i], Is.EqualTo(pattern));
+            foreach (byte i in enumerator.Current) {
+                Assert.That(i, Is.EqualTo(pattern));
             }
         }
+    }
+
+    /// <summary>Verifies that calling <see cref="BitSequenceWriter.Write"/> correctly writes the specified
+    /// bit sequence to the provided spans and memory.</summary>
+    /// <param name="pattern">The byte pattern to write.</param>
+    [TestCase(0)]
+    [TestCase(0xFF)]
+    [TestCase(0xAA)]
+    [TestCase(0x5B)]
+    public void Write_bit_seqeunce_clears_memory(byte pattern)
+    {
+
     }
 
     [Test]
