@@ -10,8 +10,8 @@ namespace IceRpc.Transports.Internal
         private int _examined;
         private Exception? _exception;
         private long _lastExaminedOffset;
+        private readonly SimpleNetworkConnectionPipeReader _networkConnectionReader;
         private readonly Pipe _pipe;
-        private readonly Func<Memory<byte>, CancellationToken, ValueTask> _readUntilFullFunc;
         private ReadResult _readResult;
         private int _receiveCredit;
         private readonly int _resumeThreshold;
@@ -165,11 +165,11 @@ namespace IceRpc.Transports.Internal
             int minimumSegmentSize,
             int resumeThreshold,
             int pauseThreshold,
-            Func<Memory<byte>, CancellationToken, ValueTask> readUntilFullFunc)
+            SimpleNetworkConnectionPipeReader networkConnectionReader)
         {
             _stream = stream;
             _resumeThreshold = resumeThreshold;
-            _readUntilFullFunc = readUntilFullFunc;
+            _networkConnectionReader = networkConnectionReader;
             _receiveCredit = pauseThreshold;
             _pipe = new(new PipeOptions(
                 pool: pool,
@@ -221,25 +221,11 @@ namespace IceRpc.Transports.Internal
                     throw new InvalidDataException("received more data than flow control permits");
                 }
 
-                // Read and append the received data to the pipe writer.
-                int size = 0;
-                while (size < dataSize)
-                {
-                    // Receive the data and push it to the pipe writer.
-                    Memory<byte> chunk = _pipe.Writer.GetMemory();
-                    chunk = chunk[0..Math.Min(dataSize - size, chunk.Length)];
-                    await _readUntilFullFunc(chunk, cancel).ConfigureAwait(false);
-                    size += chunk.Length;
-                    _pipe.Writer.Advance(chunk.Length);
-
-                    // Only flush if we didn't read all the data yet or if it's not the end of the stream. If it's the
-                    // end of the stream and we've read all the data, we rely on CompleteAsync bellow to flush the data.
-                    // This ensures the reader will get a read result with both the data and IsCompleted=true.
-                    if (size < dataSize || !endStream)
-                    {
-                        _ = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-                    }
-                }
+                // Fill the pipe writer with dataSize bytes.
+                await _networkConnectionReader.FillBufferWriterAsync(
+                        _pipe.Writer,
+                        dataSize,
+                        cancel).ConfigureAwait(false);
 
                 if (endStream)
                 {
@@ -250,8 +236,12 @@ namespace IceRpc.Transports.Internal
                     // chance to consume the data, defeating the purpose of the UnidirectionalStreamMaxCount option.
                     await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
                 }
+                else
+                {
+                    _ = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                }
 
-                return size;
+                return dataSize;
             }
             finally
             {

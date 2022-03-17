@@ -212,7 +212,7 @@ namespace IceRpc.Transports.Internal
                 _connection.MinimumSegmentSize,
                 _connection.ResumeWriterThreshold,
                 _connection.PauseWriterThreshold,
-                _frameReader.ReadFrameDataAsync);
+                _frameReader.PipeReader);
 
             _outputPipeWriter = new SlicPipeWriter(this, _connection.Pool, _connection.MinimumSegmentSize);
 

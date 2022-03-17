@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -73,13 +74,16 @@ namespace IceRpc.Transports.Internal
                 uint version;
                 InitializeBody? initializeBody;
                 (type, dataSize, _) = await _reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+
+                if (dataSize == 0)
                 {
-                    (version, initializeBody) =
-                        await ReadFrameAsync(
-                            dataSize,
-                            memory => memory.DecodeInitialize(type),
-                            cancel).ConfigureAwait(false);
+                    throw new InvalidDataException("invalid empty initialize frame");
                 }
+
+                (version, initializeBody) = await ReadFrameAsync(
+                    dataSize,
+                    SlicMemoryExtensions.DecodeInitialize,
+                    cancel).ConfigureAwait(false);
 
                 if (version != 1)
                 {
@@ -93,11 +97,16 @@ namespace IceRpc.Transports.Internal
 
                     // Read again the Initialize frame sent by the client.
                     (type, dataSize, _) = await _reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
-                    (version, initializeBody) =
-                        await ReadFrameAsync(
-                            dataSize,
-                            memory => memory.DecodeInitialize(type),
-                            cancel).ConfigureAwait(false);
+
+                    if (dataSize == 0)
+                    {
+                        throw new InvalidDataException("invalid empty initialize frame");
+                    }
+
+                    (version, initializeBody) = await ReadFrameAsync(
+                        dataSize,
+                        SlicMemoryExtensions.DecodeInitialize,
+                        cancel).ConfigureAwait(false);
                 }
 
                 if (initializeBody == null)
@@ -144,20 +153,30 @@ namespace IceRpc.Transports.Internal
 
                 // Read back either the InitializeAck or Version frame.
                 (type, dataSize, _) = await _reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
-                (InitializeAckBody? initializeAckBody, VersionBody? versionBody) = await ReadFrameAsync(
-                    dataSize,
-                    memory => memory.DecodeInitializeAckOrVersion(type),
-                    cancel).ConfigureAwait(false);
 
-                if (initializeAckBody != null)
+                switch (type)
                 {
-                    SetParameters(initializeAckBody.Value.Parameters);
-                }
-                else if (versionBody != null)
-                {
-                    // We currently only support V1
-                    throw new InvalidDataException(
-                        $"unsupported Slic versions '{string.Join(", ", versionBody.Value.Versions)}'");
+                    case FrameType.InitializeAck:
+                        InitializeAckBody initializeAckBody = await ReadFrameAsync(
+                            dataSize,
+                            (ref SliceDecoder decoder) => new InitializeAckBody(ref decoder),
+                            cancel).ConfigureAwait(false);
+
+                        SetParameters(initializeAckBody.Parameters);
+                        break;
+
+                    case FrameType.Version:
+                        VersionBody versionBody = await ReadFrameAsync(
+                            dataSize,
+                            (ref SliceDecoder decoder) => new VersionBody(ref decoder),
+                            cancel).ConfigureAwait(false);
+
+                        // We currently only support V1
+                        throw new InvalidDataException(
+                            $"unsupported Slic versions '{string.Join(", ", versionBody.Versions)}'");
+
+                    default:
+                        throw new InvalidDataException($"unexpected Slic frame '{type}'");
                 }
             }
 
@@ -620,29 +639,39 @@ namespace IceRpc.Transports.Internal
 
                         if (readSize < dataSize)
                         {
-                            // The stream has been shutdown. Read and ignore the data.
-                            using IMemoryOwner<byte> owner = Pool.Rent(MinimumSegmentSize);
-                            int sizeToRead = dataSize - readSize;
-                            while (sizeToRead > 0)
-                            {
-                                Memory<byte> chunk = owner.Memory[0..Math.Min(sizeToRead, owner.Memory.Length)];
-                                await _reader.ReadFrameDataAsync(chunk, cancel).ConfigureAwait(false);
-                                sizeToRead -= chunk.Length;
-                            }
+                            // The stream has been shutdown. Read and ignore the data using a helper pipe.
+                            var pipe = new Pipe(
+                                new PipeOptions(
+                                    pool: Pool,
+                                    pauseWriterThreshold: 0,
+                                    minimumSegmentSize: MinimumSegmentSize,
+                                    writerScheduler: PipeScheduler.Inline));
+
+                            await _reader.PipeReader.FillBufferWriterAsync(
+                                    pipe.Writer,
+                                    dataSize - readSize,
+                                    cancel).ConfigureAwait(false);
+
+                            await pipe.Writer.CompleteAsync().ConfigureAwait(false);
+                            await pipe.Reader.CompleteAsync().ConfigureAwait(false);
                         }
 
                         break;
                     }
                     case FrameType.StreamConsumed:
                     {
-                        if (dataSize > 8)
+                        if (dataSize == 0)
+                        {
+                            throw new InvalidDataException("stream consumed frame too small");
+                        }
+                        else if (dataSize > 8)
                         {
                             throw new InvalidDataException("stream consumed frame too large");
                         }
 
                         StreamConsumedBody consumed = await ReadFrameAsync(
                             dataSize,
-                            memory => memory.DecodeStreamConsumed(),
+                            (ref SliceDecoder decoder) => new StreamConsumedBody(ref decoder),
                             cancel).ConfigureAwait(false);
                         if (_streams.TryGetValue(streamId.Value, out SlicMultiplexedStream? stream))
                         {
@@ -652,14 +681,18 @@ namespace IceRpc.Transports.Internal
                     }
                     case FrameType.StreamReset:
                     {
-                        if (dataSize > 8)
+                        if (dataSize == 0)
+                        {
+                            throw new InvalidDataException("stream reset frame too small");
+                        }
+                        else if (dataSize > 8)
                         {
                             throw new InvalidDataException("stream reset frame too large");
                         }
 
                         StreamResetBody streamReset = await ReadFrameAsync(
                             dataSize,
-                            memory => memory.DecodeStreamReset(),
+                            (ref SliceDecoder decoder) => new StreamResetBody(ref decoder),
                             cancel).ConfigureAwait(false);
                         if (_streams.TryGetValue(streamId.Value, out SlicMultiplexedStream? stream))
                         {
@@ -669,14 +702,18 @@ namespace IceRpc.Transports.Internal
                     }
                     case FrameType.StreamStopSending:
                     {
-                        if (dataSize > 8)
+                        if (dataSize == 0)
+                        {
+                            throw new InvalidDataException("stream stop sending frame too small");
+                        }
+                        else if (dataSize > 8)
                         {
                             throw new InvalidDataException("stream stop sending frame too large");
                         }
 
                         StreamStopSendingBody streamStopSending = await ReadFrameAsync(
                             dataSize,
-                            memory => memory.DecodeStreamStopSending(),
+                            (ref SliceDecoder decoder) => new StreamStopSendingBody(ref decoder),
                             cancel).ConfigureAwait(false);
                         if (_streams.TryGetValue(streamId.Value, out SlicMultiplexedStream? stream))
                         {
@@ -690,8 +727,6 @@ namespace IceRpc.Transports.Internal
                         {
                             throw new InvalidDataException("unidirectional stream released frame too large");
                         }
-
-                        await _reader.ReadFrameDataAsync(Memory<byte>.Empty, cancel).ConfigureAwait(false);
 
                         // Release the unidirectional stream semaphore for the unidirectional stream.
                         _unidirectionalStreamSemaphore!.Release();
@@ -722,13 +757,29 @@ namespace IceRpc.Transports.Internal
 
         private async ValueTask<T> ReadFrameAsync<T>(
             int size,
-            Func<ReadOnlyMemory<byte>, T> decode,
+            DecodeFunc<T> decodeFunc,
             CancellationToken cancel)
         {
-            using IMemoryOwner<byte> owner = Pool.Rent(size);
-            Memory<byte> buffer = owner.Memory[0..Math.Min(size, owner.Memory.Length)];
-            await _reader.ReadFrameDataAsync(buffer, cancel).ConfigureAwait(false);
-            return decode(owner.Memory[0..size]);
+            Debug.Assert(size > 0);
+            ReadResult readResult = await _reader.PipeReader.ReadAtLeastAsync(size, cancel).ConfigureAwait(false);
+
+            ReadOnlySequence<byte> buffer = readResult.Buffer;
+            if (buffer.Length > size)
+            {
+                buffer = buffer.Slice(0, size);
+            }
+            else if (buffer.Length < size)
+            {
+                throw new ConnectionLostException();
+            }
+
+            T decodedFrame = Encoding.Slice20.DecodeBuffer(buffer, decodeFunc);
+            if (size > 0)
+            {
+                _reader.PipeReader.AdvanceTo(buffer.End);
+            }
+
+            return decodedFrame;
         }
 
         private void SetParameters(IDictionary<int, IList<byte>> parameters)
