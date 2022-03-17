@@ -308,7 +308,7 @@ public class TcpTransportTests
         canceled.Cancel();
 
         // Assert
-        Assert.CatchAsync<OperationCanceledException>(async () => await readTask);
+        Assert.That(async () => await readTask, Throws.TypeOf<OperationCanceledException>());
     }
 
     /// <summary>Verifies that calling read on a disposed tcp client connection fails with
@@ -540,7 +540,7 @@ public class TcpTransportTests
         canceled.Cancel();
 
         // Assert
-        Assert.CatchAsync<OperationCanceledException>(async () => await writeTask);
+        Assert.That(async () => await writeTask, Throws.TypeOf<OperationCanceledException>());
     }
 
     /// <summary>Verifies that calling write fails with <see cref="ConnectionLostException"/> when the peer connection
@@ -622,8 +622,9 @@ public class TcpTransportTests
         var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1] { 0xFF } };
 
         // Act/Assert
-        Assert.CatchAsync<OperationCanceledException>(
-            async () => await clientConnection.WriteAsync(buffer, new CancellationToken(canceled: true)));
+        Assert.That(
+            async () => await clientConnection.WriteAsync(buffer, new CancellationToken(canceled: true)),
+            Throws.InstanceOf<OperationCanceledException>());
     }
 
     private static IListener<ISimpleNetworkConnection> CreateTcpListener(
