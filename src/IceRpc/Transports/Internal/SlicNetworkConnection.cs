@@ -753,13 +753,13 @@ namespace IceRpc.Transports.Internal
                 throw new ConnectionLostException();
             }
 
-            T result = Encoding.Slice20.DecodeBuffer(buffer, decodeFunc);
+            T decodedFrame = Encoding.Slice20.DecodeBuffer(buffer, decodeFunc);
             if (size > 0)
             {
                 _reader.PipeReader.AdvanceTo(buffer.End);
             }
 
-            return result;
+            return decodedFrame;
         }
 
         private void SetParameters(IDictionary<int, IList<byte>> parameters)
