@@ -11,6 +11,7 @@ using System.Security.Cryptography.X509Certificates;
 namespace IceRpc.Transports.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
+[Timeout(5000)]
 public class TcpTransportTests
 {
     /// <summary>Verifies that the transport can accept tcp network connections.</summary>
