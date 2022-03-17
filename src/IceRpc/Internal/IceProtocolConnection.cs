@@ -255,19 +255,27 @@ namespace IceRpc.Internal
 
             try
             {
-                (int payloadSize, bool isCanceled, bool isCompleted) =
-                    await request.PayloadSource.DecodeSegmentSizeAsync(cancel).ConfigureAwait(false);
+                const int maxPayloadSize = 4 * 1024 * 1024; // TODO: make configurable
 
-                if (isCanceled)
+                // Read payload source until IsCompleted is true.
+
+                ReadResult readResult = await request.PayloadSource.ReadAtLeastAsync(
+                    maxPayloadSize + 1, cancel).ConfigureAwait(false);
+
+                if (!readResult.IsCompleted || readResult.Buffer.Length > maxPayloadSize)
+                {
+                    throw new ArgumentException("payload exceeds max payload size", nameof(request));
+                }
+
+                if (readResult.IsCanceled)
                 {
                     throw new OperationCanceledException();
                 }
 
-                if (payloadSize > 0 && isCompleted)
-                {
-                    throw new ArgumentException(
-                        $"expected {payloadSize} bytes in request payload source, but it's empty");
-                }
+                int payloadSize = checked((int)readResult.Buffer.Length);
+
+                // TODO: temporary. For now, we just consume nothing and use the old code.
+                request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
 
                 // If the application sets the payload sink, the initial payload sink is set and we need to set the
                 // stream output on the delayed pipe writer decorator. Otherwise, we directly use the stream output.
@@ -369,19 +377,27 @@ namespace IceRpc.Internal
             {
                 Debug.Assert(!_isUdp); // udp is oneway-only so no response
 
-                (int payloadSize, bool isCanceled, bool isCompleted) =
-                    await response.PayloadSource.DecodeSegmentSizeAsync(cancel).ConfigureAwait(false);
+                const int maxPayloadSize = 4 * 1024 * 1024; // TODO: make configurable
 
-                if (isCanceled)
+                // Read payload source until IsCompleted is true.
+
+                ReadResult readResult = await response.PayloadSource.ReadAtLeastAsync(
+                    maxPayloadSize + 1, cancel).ConfigureAwait(false);
+
+                if (!readResult.IsCompleted || readResult.Buffer.Length > maxPayloadSize)
+                {
+                    throw new ArgumentException("payload exceeds max payload size", nameof(request));
+                }
+
+                if (readResult.IsCanceled)
                 {
                     throw new OperationCanceledException();
                 }
 
-                if (payloadSize > 0 && isCompleted)
-                {
-                    throw new ArgumentException(
-                        $"expected {payloadSize} bytes in response payload source, but it's empty");
-                }
+                int payloadSize = checked((int)readResult.Buffer.Length);
+
+                // TODO: temporary. For now, we just consume nothing and use the old code.
+                response.PayloadSource.AdvanceTo(readResult.Buffer.Start);
 
                 ReplyStatus replyStatus = ReplyStatus.OK;
 
@@ -390,7 +406,7 @@ namespace IceRpc.Internal
                     if (response.ResultType == ResultType.Failure)
                     {
                         // extract reply status from 1.1-encoded payload
-                        ReadResult readResult = await response.PayloadSource.ReadAsync(cancel).ConfigureAwait(false);
+                        readResult = await response.PayloadSource.ReadAsync(cancel).ConfigureAwait(false);
 
                         if (readResult.IsCanceled)
                         {
@@ -968,7 +984,6 @@ namespace IceRpc.Internal
                     writerScheduler: PipeScheduler.Inline));
 
                 var encoder = new SliceEncoder(pipe.Writer, Encoding.Slice20);
-                encoder.EncodeSize(checked((int)payload.Length));
 
                 // Copy the payload data to the internal pipe writer.
                 // TODO: this full payload copying is temporary.
@@ -998,8 +1013,6 @@ namespace IceRpc.Internal
                     pauseWriterThreshold: 0,
                     writerScheduler: PipeScheduler.Inline));
 
-                EncodeSize(payloadSize, pipe.Writer);
-
                 await networkConnectionReader.FillBufferWriterAsync(
                     pipe.Writer,
                     payloadSize,
@@ -1008,13 +1021,6 @@ namespace IceRpc.Internal
                 await pipe.Writer.CompleteAsync().ConfigureAwait(false);
 
                 return pipe.Reader;
-
-                static void EncodeSize(int payloadSize, PipeWriter into)
-                {
-                    // We always encode the size as a varulong.
-                    var encoder = new SliceEncoder(into, Encoding.Slice20);
-                    encoder.EncodeSize(payloadSize);
-                }
             }
         }
     }

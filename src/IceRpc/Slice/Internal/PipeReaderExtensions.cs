@@ -58,42 +58,70 @@ namespace IceRpc.Slice.Internal
             }
         }
 
-        /// <summary>Reads a segment from a pipe reader.</summary>
+        /// <summary>Reads a segment from a pipe reader. Segments are used only with 2.0 encoded payloads.</summary>
         /// <param name="reader">The pipe reader.</param>
+        /// <param name="encoding">The encoding.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>A read result with the segment read from the reader unless IsCanceled is true.</returns>
         /// <exception cref="InvalidDataException">Thrown when the segment size could not be decoded.</exception>
         /// <remarks>The caller must call AdvanceTo when the returned segment length is greater than 0. This method
-        /// never marks the reader as completed.</remarks>
-        internal static async ValueTask<ReadResult> ReadSegmentAsync(this PipeReader reader, CancellationToken cancel)
+        /// does not mark the reader as completed.</remarks>
+        internal static async ValueTask<ReadResult> ReadSegmentAsync(
+            this PipeReader reader,
+            SliceEncoding encoding,
+            CancellationToken cancel)
         {
-            (int segmentSize, bool isCanceled, bool isCompleted) =
-                await reader.DecodeSegmentSizeAsync(cancel).ConfigureAwait(false);
+            // TODO: make maxSegmentSize configurable
+            const int maxSegmentSize = 4 * 1024 * 1024;
 
-            if (isCanceled || segmentSize == 0)
+            if (encoding == Encoding.Slice11)
             {
-                return new ReadResult(ReadOnlySequence<byte>.Empty, isCanceled, isCompleted);
-            }
+                // We read everything up to the max + 1.
 
-            if (isCompleted)
-            {
-                throw new InvalidDataException($"no byte in segment with {segmentSize} bytes");
-            }
+                ReadResult readResult = await reader.ReadAtLeastAsync(maxSegmentSize + 1, cancel).ConfigureAwait(false);
 
-            ReadResult readResult = await reader.ReadAtLeastAsync(segmentSize, cancel).ConfigureAwait(false);
+                if (!readResult.IsCompleted || readResult.Buffer.Length > maxSegmentSize)
+                {
+                    throw new InvalidDataException("segment size exceeds maximum value");
+                }
 
-            if (readResult.IsCanceled)
-            {
                 return readResult;
             }
-
-            if (readResult.Buffer.Length < segmentSize)
+            else
             {
-                throw new InvalidDataException($"too few bytes in segment with {segmentSize} bytes");
-            }
+                (int segmentSize, bool isCanceled, bool isCompleted) =
+                    await reader.DecodeSegmentSizeAsync(cancel).ConfigureAwait(false);
 
-            return readResult.Buffer.Length == segmentSize ? readResult :
-                new ReadResult(readResult.Buffer.Slice(0, segmentSize), isCanceled: false, isCompleted: false);
+                if (segmentSize > maxSegmentSize)
+                {
+                    throw new InvalidDataException($"segment size '{segmentSize}' exceeds maximum value");
+                }
+
+                if (isCanceled || segmentSize == 0)
+                {
+                    return new ReadResult(ReadOnlySequence<byte>.Empty, isCanceled, isCompleted);
+                }
+
+                if (isCompleted)
+                {
+                    throw new InvalidDataException($"no byte in segment with {segmentSize} bytes");
+                }
+
+                ReadResult readResult = await reader.ReadAtLeastAsync(segmentSize, cancel).ConfigureAwait(false);
+
+                if (readResult.IsCanceled)
+                {
+                    return readResult;
+                }
+
+                if (readResult.Buffer.Length < segmentSize)
+                {
+                    throw new InvalidDataException($"too few bytes in segment with {segmentSize} bytes");
+                }
+
+                return readResult.Buffer.Length == segmentSize ? readResult :
+                    new ReadResult(readResult.Buffer.Slice(0, segmentSize), isCanceled: false, isCompleted: false);
+            }
         }
     }
 }
