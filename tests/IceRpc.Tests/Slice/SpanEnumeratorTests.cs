@@ -10,7 +10,7 @@ namespace IceRpc.Slice.Tests;
 public class SpanEnumeratorTests
 {
     /// <summary>Provides test case data for
-    /// <see cref="Move_to_next_span(...)"/> test.
+    /// <see cref="Move_to_next_span(byte[], byte[], IList<Memory<byte>>?, int, byte[])"/> test.
     /// </summary>
     private static IEnumerable<TestCaseData> EnumeratorCurrentUpdatesSuccessfullySource
     {
@@ -67,7 +67,7 @@ public class SpanEnumeratorTests
     }
 
     /// <summary>Provides test case data for
-    /// <see cref="Move_pass_the_end_fails(...)"/> test.
+    /// <see cref="Move_past_the_end_fails(byte[], byte[], IList<Memory<byte>>?, int)"/> test.
     /// </summary>
     private static IEnumerable<TestCaseData> EnumeratorNextFailsSource
     {
@@ -134,11 +134,14 @@ public class SpanEnumeratorTests
         byte[] expected)
     {
         var enumerator = new SpanEnumerator(firstBytes.AsSpan(), secondBytes.AsSpan(), additionalMemory);
-        for (int i = 0; i < moves - 1; i++) enumerator.MoveNext();
+        for (int i = 0; i < moves - 1; i++)
+        {
+            enumerator.MoveNext();
+        }
 
-        bool opperationSuccessful = enumerator.MoveNext();
+        bool operationSuccessful = enumerator.MoveNext();
 
-        Assert.That(opperationSuccessful, Is.True);
+        Assert.That(operationSuccessful, Is.True);
         Assert.That(enumerator.Current.ToArray(), Is.EqualTo(expected.ToArray()));
     }
 
@@ -149,17 +152,20 @@ public class SpanEnumeratorTests
     /// <param name="additionalMemory">The list of memory used for additional memory. (Optional)</param>
     /// <param name="moves">The number of times to call `MoveNext`.</param>
     [Test, TestCaseSource(nameof(EnumeratorNextFailsSource))]
-    public void Move_pass_the_end_fails(
+    public void Move_past_the_end_fails(
         byte[] firstBytes,
         byte[] secondBytes,
         IList<Memory<byte>>? additionalMemory,
         int moves)
     {
         var enumerator = new SpanEnumerator(firstBytes.AsSpan(), secondBytes.AsSpan(), additionalMemory);
-        for (int i = 0; i < moves; i++) enumerator.MoveNext();
+        for (int i = 0; i < moves; i++)
+        {
+            enumerator.MoveNext();
+        }
 
-        bool opperationSuccessful = enumerator.MoveNext();
+        bool operationSuccessful = enumerator.MoveNext();
 
-        Assert.That(opperationSuccessful, Is.False);
+        Assert.That(operationSuccessful, Is.False);
     }
 }
