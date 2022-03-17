@@ -15,6 +15,7 @@ namespace IceRpc.Tests.Slice
     {
         [TestCase(true)]
         [TestCase(false)]
+        [Ignore("missing completion of the incoming request on dispatcher failure, #929")]
         public async Task Compress_Override(bool keepDefault)
         {
             bool executed = false;

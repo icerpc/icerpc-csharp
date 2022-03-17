@@ -634,11 +634,6 @@ namespace IceRpc
                             ResponseFieldKey.RetryPolicy,
                             (ref SliceEncoder encoder) => retryPolicy.Encode(ref encoder));
                     }
-
-                    // TODO: Review once we figure the strategy for completing frame pipe readers/writers. This is
-                    // necessary for now because the dispatcher might not complete the request (e.g:
-                    // ConnectionOptions.DefaultDispatcher)
-                    await request.CompleteAsync().ConfigureAwait(false);
                 }
 
                 await protocolConnection.SendResponseAsync(
