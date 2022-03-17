@@ -118,9 +118,8 @@ public class SpanEnumeratorTests
         }
     }
 
-    /// <summary>Tests that the SpanEnumerator will successfully enumerate to the second span and additional memory if
-    /// it is provided as an argument. This test accomplishes this by checking if the operation `MoveNext` was
-    /// successful and that the SpanEnumerator updated the state of `Current` correctly.</summary>
+    /// <summary>Verifies that calling <see cref="SpanEnumerator.MoveNext"/> correctly enumerates through the spans
+    /// held by the enumerator. </summary>
     /// <param name="firstBytes">The bytes that will be used to create the first span.</param>
     /// <param name="secondBytes">The bytes that will be used to create the second span. (Can be empty)</param>
     /// <param name="additionalMemory">The list of memory used for additional memory. (Optional)</param>
@@ -143,9 +142,8 @@ public class SpanEnumeratorTests
         Assert.That(enumerator.Current.ToArray(), Is.EqualTo(expected.ToArray()));
     }
 
-    /// <summary>Tests that the SpanEnumerator will not enumerate past the last provided span or additional memory if
-    /// This test accomplishes this by checking if the operation `MoveNext` returns false when there is no
-    /// subsequent provided.</summary>
+    /// <summary>Verifies that calling <see cref="SpanEnumerator.MoveNext"/> will not enumerate past the final
+    /// span or memory provided to the enumerator.</summary>
     /// <param name="firstBytes">The bytes that will be used to create the first span.</param>
     /// <param name="secondBytes">The bytes that will be used to create the second span. (Can be empty)</param>
     /// <param name="additionalMemory">The list of memory used for additional memory. (Optional)</param>
