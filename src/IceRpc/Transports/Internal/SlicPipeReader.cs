@@ -7,10 +7,10 @@ namespace IceRpc.Transports.Internal
 {
     internal class SlicPipeReader : PipeReader
     {
-        private readonly SimpleNetworkConnectionPipeReader _connectionPipeReader;
         private int _examined;
         private Exception? _exception;
         private long _lastExaminedOffset;
+        private readonly SimpleNetworkConnectionPipeReader _networkConnectionReader;
         private readonly Pipe _pipe;
         private ReadResult _readResult;
         private int _receiveCredit;
@@ -165,11 +165,11 @@ namespace IceRpc.Transports.Internal
             int minimumSegmentSize,
             int resumeThreshold,
             int pauseThreshold,
-            SimpleNetworkConnectionPipeReader connectionPipeReader)
+            SimpleNetworkConnectionPipeReader networkConnectionReader)
         {
             _stream = stream;
             _resumeThreshold = resumeThreshold;
-            _connectionPipeReader = connectionPipeReader;
+            _networkConnectionReader = networkConnectionReader;
             _receiveCredit = pauseThreshold;
             _pipe = new(new PipeOptions(
                 pool: pool,
@@ -222,7 +222,7 @@ namespace IceRpc.Transports.Internal
                 }
 
                 // Fill the pipe writer with dataSize bytes.
-                await _connectionPipeReader.FillBufferWriterAsync(
+                await _networkConnectionReader.FillBufferWriterAsync(
                         _pipe.Writer,
                         dataSize,
                         cancel).ConfigureAwait(false);

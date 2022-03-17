@@ -564,6 +564,9 @@ namespace IceRpc
             }
             catch (Exception exception)
             {
+                // TODO: it's very painful to just eat this exception
+                // Console.WriteLine($"ReceiveRequestAsync exception: {exception}");
+
                 // Unexpected exception, if the connection hasn't been resumed already, close the connection.
                 lock (_mutex)
                 {
