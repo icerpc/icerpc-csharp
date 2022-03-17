@@ -11,6 +11,55 @@ namespace IceRpc.Slice.Tests;
 public class BitSequenceTests
 {
 
+    private static IEnumerable<TestCaseData> WriteClearsMemorySource
+    {
+        get
+        {
+            (byte[], byte[], IList<Memory<byte>>?, int writes)[] testData =
+            {
+                (
+                    new byte[] { 1, 2, 3 },
+                    Array.Empty<byte>(),
+                    null,
+                    1
+                ),
+                (
+                    new byte[] { 1, 2, 3 },
+                    new byte[] { 4, 5, 6 },
+                    null,
+                    2
+                ),
+                (
+                    new byte[] { 1, 2, 3 },
+                    new byte[] { 4, 5, 6 },
+                    new Memory<byte>[]
+                    {
+                        new byte[] { 7, 8, 9 }
+                    },
+                    3
+                ),
+                (
+                    new byte[] { 1, 2, 3 },
+                    new byte[] { 4, 5, 6 },
+                    new Memory<byte>[]
+                    {
+                        new byte[] { 7, 8, 9 },
+                        new byte[] { 10, 11, 12 }
+                    },
+                    4
+                ),
+            };
+            foreach ((
+                byte[] firstBytes,
+                byte[] secondBytes,
+                IList<Memory<byte>>? additionalMemory,
+                int writes) in testData)
+            {
+                yield return new TestCaseData(firstBytes, secondBytes, additionalMemory, writes);
+            }
+        }
+    }
+
      /// <summary>Verifies that calling <see cref="BitSequenceWriter.Write"/> correctly writes the specified
      /// bit sequence to the provided spans and memory.</summary>
      /// <param name="pattern">The byte pattern to write.</param>
@@ -49,13 +98,23 @@ public class BitSequenceTests
     /// <summary>Verifies that calling <see cref="BitSequenceWriter.Write"/> correctly writes the specified
     /// bit sequence to the provided spans and memory.</summary>
     /// <param name="pattern">The byte pattern to write.</param>
-    [TestCase(0)]
-    [TestCase(0xFF)]
-    [TestCase(0xAA)]
-    [TestCase(0x5B)]
-    public void Write_bit_seqeunce_clears_memory(byte pattern)
+    [Test, TestCaseSource(nameof(WriteClearsMemorySource))]
+    public void Write_bit_seqeunce_clears_memory(
+        byte[] firstBytes,
+        byte[] secondBytes,
+        IList<Memory<byte>>? additionalMemory,
+        int writes)
     {
+        var enumerator = new SpanEnumerator(firstBytes.AsSpan(), secondBytes.AsSpan(), additionalMemory.AsSpan());
+        var writer = new BitSequenceWriter(enumerator);
+        for (int i = 0; i < writes - 1; i++)
+        {
+            writer.Write(false);
+        }
 
+        writer.Write(false);
+
+        Assert.That(enumerator.Current.ToArray().All(o => o == 0), Is.True);
     }
 
     [Test]
