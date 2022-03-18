@@ -10,37 +10,6 @@ namespace IceRpc.Slice.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class BitSequenceTests
 {
-    [Test]
-    public void BitSequence_SpanEnumerator()
-    {
-        Span<byte> firstSpan = new byte[] { 1, 2, 3 };
-        Span<byte> secondSpan = new byte[] { 4, 5, 6 };
-        IList<Memory<byte>> additionalMemory = new Memory<byte>[]
-        {
-            new byte[] { 7, 8, 9 },
-            new byte[] { 10, 11, 12 }
-        };
-
-        var enumerator = new SpanEnumerator(firstSpan, secondSpan, additionalMemory);
-
-        Assert.That(enumerator.MoveNext(), Is.True);
-        Assert.That(enumerator.Current.Length, Is.EqualTo(3));
-        Assert.That(enumerator.Current[0], Is.EqualTo(1));
-
-        Assert.That(enumerator.MoveNext(), Is.True);
-        Assert.That(enumerator.Current.Length, Is.EqualTo(3));
-        Assert.That(enumerator.Current[0], Is.EqualTo(4));
-
-        Assert.That(enumerator.MoveNext(), Is.True);
-        Assert.That(enumerator.Current.Length, Is.EqualTo(3));
-        Assert.That(enumerator.Current[0], Is.EqualTo(7));
-
-        Assert.That(enumerator.MoveNext(), Is.True);
-        Assert.That(enumerator.Current.Length, Is.EqualTo(3));
-        Assert.That(enumerator.Current[0], Is.EqualTo(10));
-
-        Assert.That(enumerator.MoveNext(), Is.False);
-    }
 
     [TestCase(0)]
     [TestCase(0xFF)]
