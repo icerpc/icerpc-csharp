@@ -61,11 +61,10 @@ namespace IceRpc.Internal
         private readonly int _minimumSegmentSize;
 
         private readonly object _mutex = new();
-
-        private readonly ISimpleNetworkConnection _networkConnection;
         private readonly SimpleNetworkConnectionPipeWriter _networkConnectionWriter;
         private readonly SimpleNetworkConnectionPipeReader _networkConnectionReader;
         private int _nextRequestId;
+        private readonly Configure.IceProtocolOptions _options;
         private readonly IcePayloadPipeWriter _payloadWriter;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly AsyncSemaphore _sendSemaphore = new(1, 1);
@@ -255,16 +254,16 @@ namespace IceRpc.Internal
 
             try
             {
-                const int maxPayloadSize = 4 * 1024 * 1024; // TODO: make configurable
-
                 // Read payload source until IsCompleted is true.
 
                 ReadResult readResult = await request.PayloadSource.ReadAtLeastAsync(
-                    maxPayloadSize + 1, cancel).ConfigureAwait(false);
+                    _options.MaxOutgoingPayloadSize + 1, cancel).ConfigureAwait(false);
 
-                if (!readResult.IsCompleted || readResult.Buffer.Length > maxPayloadSize)
+                if (!readResult.IsCompleted || readResult.Buffer.Length > _options.MaxOutgoingPayloadSize)
                 {
-                    throw new ArgumentException("payload exceeds max payload size", nameof(request));
+                    throw new ArgumentException(
+                        "payload size is greater than max outgoing max payload size",
+                        nameof(request));
                 }
 
                 if (readResult.IsCanceled)
@@ -377,16 +376,16 @@ namespace IceRpc.Internal
             {
                 Debug.Assert(!_isUdp); // udp is oneway-only so no response
 
-                const int maxPayloadSize = 4 * 1024 * 1024; // TODO: make configurable
-
                 // Read payload source until IsCompleted is true.
 
                 ReadResult readResult = await response.PayloadSource.ReadAtLeastAsync(
-                    maxPayloadSize + 1, cancel).ConfigureAwait(false);
+                    _options.MaxOutgoingPayloadSize + 1, cancel).ConfigureAwait(false);
 
-                if (!readResult.IsCompleted || readResult.Buffer.Length > maxPayloadSize)
+                if (!readResult.IsCompleted || readResult.Buffer.Length > _options.MaxOutgoingPayloadSize)
                 {
-                    throw new ArgumentException("payload exceeds max payload size", nameof(request));
+                    throw new ArgumentException(
+                        "payload size is greater than max outgoing max payload size",
+                        nameof(response));
                 }
 
                 if (readResult.IsCanceled)
@@ -562,9 +561,13 @@ namespace IceRpc.Internal
             }
         }
 
-        internal IceProtocolConnection(ISimpleNetworkConnection simpleNetworkConnection, bool isUdp)
+        internal IceProtocolConnection(
+            ISimpleNetworkConnection simpleNetworkConnection,
+            Configure.IceProtocolOptions options,
+            bool isUdp)
         {
             _isUdp = isUdp;
+            _options = options;
 
             // TODO: get the pool and minimum segment size from an option class, but which one? The Slic connection
             // gets these from SlicOptions but another option could be to add Pool/MinimunSegmentSize on
@@ -574,7 +577,6 @@ namespace IceRpc.Internal
             _memoryPool = MemoryPool<byte>.Shared;
             _minimumSegmentSize = 4096;
 
-            _networkConnection = simpleNetworkConnection;
             _networkConnectionWriter = new SimpleNetworkConnectionPipeWriter(
                 simpleNetworkConnection,
                 _memoryPool,
@@ -728,7 +730,12 @@ namespace IceRpc.Internal
 
                 // Check the header
                 IceDefinitions.CheckPrologue(prologue);
-                if (_isUdp &&
+                if (prologue.FrameSize > _options.MaxIncomingFrameSize)
+                {
+                    throw new InvalidDataException(
+                        $"incoming frame size ({prologue.FrameSize}) is greater than max incoming frame size");
+                }
+                else if (_isUdp &&
                     (prologue.FrameSize > result.Buffer.Length || prologue.FrameSize > UdpUtils.MaxPacketSize))
                 {
                     // Ignore truncated UDP datagram.

@@ -10,6 +10,7 @@ namespace IceRpc.Internal
         public async Task<IProtocolConnection> CreateProtocolConnectionAsync(
             IMultiplexedNetworkConnection networkConnection,
             NetworkConnectionInformation connectionInfo,
+            Configure.IceProtocolOptions? iceProtocolOptions,
             IDictionary<ConnectionFieldKey, OutgoingFieldValue> localFields,
             bool _,
             CancellationToken cancel)
