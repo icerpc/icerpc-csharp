@@ -8,7 +8,7 @@ using System.IO.Pipelines;
 namespace IceRpc.Slice.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
-public class BitSequenceTests
+public class BitSequenceWriterTests
 {
 
     /// <summary>Provides test case data for
@@ -20,8 +20,18 @@ public class BitSequenceTests
         {
             (byte[], byte[], IList<Memory<byte>>?, int writes)[] testData =
             {
-                (new byte[] { 1, 2, 3 }, Array.Empty<byte>(), null, 1),
-                (new byte[] { 1, 2, 3 }, new byte[] { 4, 5, 6 }, null, 2),
+                (
+                    new byte[] { 1, 2, 3 },
+                    Array.Empty<byte>(),
+                    null,
+                    1
+                ),
+                (
+                    new byte[] { 1, 2, 3 },
+                    new byte[] { 4, 5, 6 },
+                    null,
+                    2
+                ),
                 (
                     new byte[] { 1, 2, 3 },
                     new byte[] { 4, 5, 6 },
@@ -94,16 +104,23 @@ public class BitSequenceTests
         IList<Memory<byte>>? additionalMemory,
         int writes)
     {
-        var enumerator = new SpanEnumerator(firstBytes.AsSpan(), secondBytes.AsSpan(), additionalMemory);
-        var writer = new BitSequenceWriter(enumerator);
-        for (int i = 0; i < writes - 1; i++)
+        // Arrange
+        int additionalMemSize = additionalMemory != null ? additionalMemory.Sum(m => m.Length) : 0;
+        int size = (firstBytes.Length + secondBytes.Length + additionalMemSize) * 8;
+        var writer = new BitSequenceWriter(new SpanEnumerator(firstBytes.AsSpan(), secondBytes.AsSpan(), additionalMemory));
+
+        // Act
+        for (int i = 0; i < size; ++i)
         {
             writer.Write(false);
         }
 
-        writer.Write(false);
-
-        Assert.That(enumerator.Current.ToArray().All(o => o == 0), Is.True);
+        // Assert
+        var enumerator = new SpanEnumerator(firstBytes.AsSpan(), secondBytes.AsSpan(), additionalMemory);
+        while (enumerator.MoveNext())
+        {
+            Assert.That(enumerator.Current.ToArray().All(o => o == 0 ), Is.True);
+        }
     }
 
     /// <summary> TODO </summary>
