@@ -106,9 +106,26 @@ private static readonly global::System.Collections.Generic.HashSet<{underlying}>
         );
     }
 
+    let mut as_enum_doc = CodeBlock::new();
+
+    writeln!(
+        as_enum_doc,
+        r#"
+/// <summary>Converts a <see cref="{underlying_type}"/> into the corresponding <see cref="{escaped_identifier}"/>
+/// enumerator.</summary>
+/// <param name="value">The value being converted.</param>
+/// <returns>The enumerator.</returns>"#
+    );
+
     let mut as_enum: CodeBlock = if enum_def.is_unchecked {
         format!("({})value", escaped_identifier).into()
     } else {
+        write!(
+            as_enum_doc,
+            r#"/// <exception cref="IceRpc.InvalidDataException">Thrown when the value does not correspond to one of
+/// the enumerators.</exception>"#,
+        );
+
         format!(
             r#"
 {check_enum} ?
@@ -131,14 +148,10 @@ private static readonly global::System.Collections.Generic.HashSet<{underlying}>
     builder.add_block(
         format!(
             r#"
-/// <summary>Converts a <see cref="{underlying_type}"/> into the corresponding <see cref="{escaped_identifier}"/>
-/// enumerator.</summary>
-/// <param name="value">The value being converted.</param>
-/// <returns>The enumerator.</returns>
-/// <exception cref="IceRpc.InvalidDataException">Thrown when the value does not correspond to one of the enumerators.
-/// </exception>
+{as_enum_doc}
 {access} static {escaped_identifier} As{identifier}(this {underlying_type} value) =>
     {as_enum};"#,
+            as_enum_doc = as_enum_doc,
             access = access,
             identifier = enum_def.identifier(),
             escaped_identifier = escaped_identifier,
