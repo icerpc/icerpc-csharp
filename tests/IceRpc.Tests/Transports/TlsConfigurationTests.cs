@@ -45,7 +45,7 @@ public class TlsConfigurationTests
 
         // Start the TLS handshake by calling connect on the client and server connections and wait for the
         // connection establishment.
-        Task<NetworkConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
+        _ = clientConnection.ConnectAsync(default);
         await using ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
 
         // Act/Assert
