@@ -7,6 +7,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
+    /// <summary>A pipe reader implementation to read data over a simple network connection.</summary>
     internal class SimpleNetworkConnectionPipeReader : PipeReader
     {
         private readonly ISimpleNetworkConnection _connection;
@@ -21,9 +22,9 @@ namespace IceRpc.Transports.Internal
 
         /// <inheritdoc/>
         public override void CancelPendingRead() =>
-            // Supporting this method would require to create a linked cancellation token source. Since there's no need
-            // for now to support this method, we just throw.
-            throw new NotSupportedException();
+            // Supporting this method would require to create a linked cancellation token source for each ReadAsync
+            // call. Since the IceRpc core never calls this method, we raise NotSupportedException.
+            throw new NotSupportedException("simple network connection pending read cancel is not supported");
 
         /// <inheritdoc/>
         public override void Complete(Exception? exception = null)

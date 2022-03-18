@@ -222,41 +222,47 @@ namespace IceRpc.Internal
         {
             if (_isUdp && !request.IsOneway)
             {
-                await request.PayloadSink.CompleteAsync(exception).ConfigureAwait(false);
-                await request.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
-                if (request.PayloadSourceStream != null)
-                {
-                    await request.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
-                }
+                await CompleteRequestAsync().ConfigureAwait(false);
                 throw new InvalidOperationException("cannot send twoway request over UDP");
             }
 
-            // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue to serialize
-            // the sending of frames.
-            await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+            // Set the final payload sink to the stateless payload writer.
+            request.SetFinalPayloadSink(_payloadWriter);
 
-            // Assign the request ID for twoway invocations and keep track of the invocation for receiving the response.
             int requestId = 0;
-            if (!request.IsOneway)
+            try
             {
-                try
+                // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue to serialize
+                // the sending of frames.
+                await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+
+                // Assign the request ID for twoway invocations and keep track of the invocation for receiving the response.
+                if (!request.IsOneway)
                 {
-                    lock (_mutex)
+                    try
                     {
-                        if (_shutdown)
+                        lock (_mutex)
                         {
-                            throw new ConnectionClosedException();
+                            if (_shutdown)
+                            {
+                                throw new ConnectionClosedException();
+                            }
+                            requestId = ++_nextRequestId;
+                            _invocations[requestId] = request;
+                            request.Features = request.Features.With(new IceOutgoingRequest(requestId));
                         }
-                        requestId = ++_nextRequestId;
-                        _invocations[requestId] = request;
-                        request.Features = request.Features.With(new IceOutgoingRequest(requestId));
+                    }
+                    catch
+                    {
+                        _sendSemaphore.Release();
+                        throw;
                     }
                 }
-                catch
-                {
-                    _sendSemaphore.Release();
-                    throw;
-                }
+            }
+            catch (Exception exception)
+            {
+                await CompleteRequestAsync(exception).ConfigureAwait(false);
+                throw;
             }
 
             try
@@ -275,25 +281,30 @@ namespace IceRpc.Internal
                         $"expected {payloadSize} bytes in request payload source, but it's empty");
                 }
 
-                // Set the final payload sink to the stateless payload writer.
-                request.SetFinalPayloadSink(_payloadWriter);
-
                 EncodeHeader(_networkConnectionWriter, payloadSize);
-
                 await SendPayloadAsync(request, cancel).ConfigureAwait(false);
                 request.IsSent = true;
-            }
-            catch (ObjectDisposedException exception)
-            {
-                // If the network connection has been disposed, we raise ConnectionLostException to ensure the
-                // request is retried by the retry interceptor.
-                // TODO: this is clunky but required for retries to work because the retry interceptor only retries
-                // a request if the exception is a transport exception.
-                var ex = new ConnectionLostException(exception);
-                await request.CompleteAsync(ex).ConfigureAwait(false);
-                throw ex;
+
+                // SendPayloadSink takes care of the completion of the payload sink / sources.
             }
             catch (Exception exception)
+            {
+                // If the network connection has been disposed, we raise ConnectionLostException to ensure the request
+                // is retried by the retry interceptor. The retry interceptor only retries a request if the exception is
+                // a transport exception.
+                if (exception is ObjectDisposedException)
+                {
+                    exception = new ConnectionLostException(exception);
+                }
+                await CompleteRequestAsync(exception).ConfigureAwait(false);
+                throw;
+            }
+            finally
+            {
+                _sendSemaphore.Release();
+            }
+
+            async Task CompleteRequestAsync(Exception? exception = null)
             {
                 await request.PayloadSink.CompleteAsync(exception).ConfigureAwait(false);
                 await request.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
@@ -301,16 +312,6 @@ namespace IceRpc.Internal
                 {
                     await request.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
                 }
-                throw;
-            }
-            catch (Exception ex)
-            {
-                await request.CompleteAsync(ex).ConfigureAwait(false);
-                throw;
-            }
-            finally
-            {
-                _sendSemaphore.Release();
             }
 
             void EncodeHeader(PipeWriter output, int payloadSize)
@@ -358,18 +359,32 @@ namespace IceRpc.Internal
         {
             if (request.IsOneway)
             {
-                await response.CompleteAsync().ConfigureAwait(false);
+                await CompleteResponseAsync().ConfigureAwait(false);
+                if (response.PayloadSourceStream != null)
+                {
+                    // Since the payload is encoded with a Slice encoding, PayloadSourceStream can only come from a
+                    // Slice stream parameter/return.
+                    throw new NotSupportedException("stream parameters and return values are not supported with ice");
+                }
                 return;
             }
 
-            if (request.Features.Get<IceIncomingRequest>() is not IceIncomingRequest requestFeature)
+            IceIncomingRequest? requestFeature = request.Features.Get<IceIncomingRequest>();
+            try
             {
-                throw new InvalidOperationException("request ID feature is not set");
-            }
+                if (requestFeature == null)
+                {
+                    throw new InvalidOperationException("request ID feature is not set");
+                }
 
-            // Wait for sending of other frames to complete. The semaphore is used as an asynchronous
-            // queue to serialize the sending of frames.
-            await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+                // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue to
+                // serialize the sending of frames.
+                await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                await CompleteResponseAsync(exception).ConfigureAwait(false);
+            }
 
             try
             {
@@ -424,11 +439,13 @@ namespace IceRpc.Internal
                 }
 
                 EncodeHeader(_networkConnectionWriter, payloadSize, replyStatus);
-                await SendPayloadAsync(response, response.PayloadSink, cancel).ConfigureAwait(false);
+                await SendPayloadAsync(response, cancel).ConfigureAwait(false);
+
+                // SendPayloadSink takes care of the completion of the payload sink / sources.
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                await response.CompleteAsync(ex).ConfigureAwait(false);
+                await CompleteResponseAsync(exception).ConfigureAwait(false);
                 throw;
             }
             finally
@@ -451,6 +468,16 @@ namespace IceRpc.Internal
                 }
             }
 
+            async Task CompleteResponseAsync(Exception? exception = null)
+            {
+                await response.PayloadSink.CompleteAsync(exception).ConfigureAwait(false);
+                await response.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
+                if (response.PayloadSourceStream != null)
+                {
+                    await response.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
+                }
+            }
+
             void EncodeHeader(PipeWriter writer, int payloadSize, ReplyStatus replyStatus)
             {
                 var encoder = new SliceEncoder(writer, Encoding.Slice11);
@@ -462,7 +489,7 @@ namespace IceRpc.Internal
                 encoder.EncodeByte(0); // compression status
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
 
-                encoder.EncodeInt(requestFeature.Id);
+                encoder.EncodeInt(requestFeature!.Id);
 
                 encoder.EncodeReplyStatus(replyStatus);
                 if (replyStatus <= ReplyStatus.UserException)
@@ -622,31 +649,31 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <summary>Sends the payload source of an outgoing frame.</summary>
+        /// <summary>Sends the payload source and payload source stream of an outgoing frame. The payload source and
+        /// sink are completed if successful.</summary>
         private static async ValueTask SendPayloadAsync(OutgoingFrame outgoingFrame, CancellationToken cancel)
         {
             if (outgoingFrame.PayloadSourceStream != null)
             {
-                // Since the payload is encoded with a Slice encoding, PayloadSourceStream can only come from
-                // a Slice stream parameter/return.
+                // Since the payload is encoded with a Slice encoding, PayloadSourceStream can only come from a Slice
+                // stream parameter/return.
                 throw new NotSupportedException("stream parameters and return values are not supported with ice");
             }
 
             FlushResult flushResult = await outgoingFrame.PayloadSink.CopyFromAsync(
                 outgoingFrame.PayloadSource,
-                completeWhenDone: true,
+                endStream: true,
                 cancel).ConfigureAwait(false);
 
-            Debug.Assert(!flushResult.IsCanceled); // not implemented
-
-            if (flushResult.IsCompleted)
+            // If a payload source sink decorator returns a canceled or completed flush result, we have to raise
+            // NotSupportedException. We can't interrupt the sending of a payload since it would lead to a bogus payload
+            // to be sent over the connection.
+            if (flushResult.IsCanceled || flushResult.IsCompleted)
             {
-                // The remote reader gracefully complete the stream input pipe. TODO: which exception should we
-                // throw here? We throw OperationCanceledException... which implies that if the frame is an outgoing
-                // request is won't be retried.
-                throw new OperationCanceledException("peer stopped reading the payload");
+                throw new NotSupportedException("payload sink cancellation or completion is not supported");
             }
 
+            await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
             await outgoingFrame.PayloadSink.CompleteAsync().ConfigureAwait(false);
         }
 

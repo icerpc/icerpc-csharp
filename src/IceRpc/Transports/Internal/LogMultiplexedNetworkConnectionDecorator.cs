@@ -105,11 +105,11 @@ namespace IceRpc.Transports.Internal
 
         public override async ValueTask<FlushResult> WriteAsync(
             ReadOnlySequence<byte> source,
-            bool completeWhenDone,
+            bool endStream,
             CancellationToken cancel)
         {
             using IDisposable _ = _logger.StartMultiplexedStreamScope(_stream);
-            return await _decoratee.WriteAsync(source, completeWhenDone, cancel).ConfigureAwait(false);
+            return await _decoratee.WriteAsync(source, endStream, cancel).ConfigureAwait(false);
         }
 
         internal LogMultiplexedStreamPipeWriter(PipeWriter decoratee, IMultiplexedStream stream, ILogger logger)

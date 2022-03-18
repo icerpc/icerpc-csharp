@@ -37,12 +37,12 @@ namespace IceRpc.Internal
         /// <returns>The incoming response.</returns>
         Task<IncomingResponse> ReceiveResponseAsync(OutgoingRequest request, CancellationToken cancel);
 
-        /// <summary>Sends a request.</summary>
+        /// <summary>Sends a request. The implementation must complete the request payload sources and sink.</summary>
         /// <param name="request">The outgoing request to send.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel);
 
-        /// <summary>Sends a response.</summary>
+        /// <summary>Sends a response. The implementation must complete the response payload source and sink.</summary>
         /// <param name="response">The outgoing response to send.</param>
         /// <param name="request">The incoming request associated to the response to send.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

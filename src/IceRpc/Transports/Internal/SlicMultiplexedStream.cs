@@ -304,9 +304,9 @@ namespace IceRpc.Transports.Internal
         internal ValueTask<FlushResult> SendStreamFrameAsync(
             ReadOnlySequence<byte> source1,
             ReadOnlySequence<byte> source2,
-            bool completeWhenDone,
+            bool endStream,
             CancellationToken cancel) =>
-            _connection.SendStreamFrameAsync(this, source1, source2, completeWhenDone, cancel);
+            _connection.SendStreamFrameAsync(this, source1, source2, endStream, cancel);
 
         internal void SendStreamConsumed(int size) =>
             _ = _connection.SendFrameAsync(

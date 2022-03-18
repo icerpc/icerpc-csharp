@@ -302,23 +302,25 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            if (request.Proxy.Fragment.Length > 0)
-            {
-                throw new NotSupportedException("the icerpc protocol does not support fragments");
-            }
-
-            // Create the stream.
-            IMultiplexedStream stream = _networkConnection.CreateStream(!request.IsOneway);
-
-            // Set the final payload sink to the stream output and the response reader to the stream input.
-            request.SetFinalPayloadSink(stream.Output);
-            if (!request.IsOneway)
-            {
-                request.ResponseReader = stream.Input;
-            }
-
             try
             {
+                if (request.Proxy.Fragment.Length > 0)
+                {
+                    throw new NotSupportedException("the icerpc protocol does not support fragments");
+                }
+
+                // Create the stream.
+                IMultiplexedStream stream = _networkConnection.CreateStream(!request.IsOneway);
+
+                // Set the final payload sink to the stream output and the response reader to the stream input. It's
+                // important to do this right after the stream creation to ensure the completion of the request payload
+                // sources in case the of failures from the code bellow.
+                request.SetFinalPayloadSink(stream.Output);
+                if (!request.IsOneway)
+                {
+                    request.ResponseReader = stream.Input;
+                }
+
                 // Keep track of the invocation for the shutdown logic.
                 if (!request.IsOneway || request.PayloadSourceStream != null)
                 {
@@ -356,13 +358,18 @@ namespace IceRpc.Internal
                 }
 
                 EncodeHeader(stream.Output);
-                // SendPayloadAsync completes the payload source if successful. It completes the payload sink only if
-                // there's no payload source stream. Otherwise, the streaming task is responsible for completing the
-                // payload sink and payload source stream.
                 await SendPayloadAsync(request, cancel).ConfigureAwait(false);
                 request.IsSent = true;
+
+                // SendPayloadSink takes care of the completion of the payload sink / sources.
             }
             catch (Exception exception)
+            {
+                await CompleteRequestAsync(exception).ConfigureAwait(false);
+                throw;
+            }
+
+            async Task CompleteRequestAsync(Exception? exception = null)
             {
                 await request.PayloadSink.CompleteAsync(exception).ConfigureAwait(false);
                 await request.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
@@ -374,7 +381,6 @@ namespace IceRpc.Internal
                 {
                     await request.ResponseReader.CompleteAsync(exception).ConfigureAwait(false);
                 }
-                throw;
             }
 
             void EncodeHeader(PipeWriter writer)
@@ -430,24 +436,24 @@ namespace IceRpc.Internal
         {
             if (request.IsOneway)
             {
-                await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
-                await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
-                if (response.PayloadSourceStream != null)
-                {
-                    await response.PayloadSourceStream.CompleteAsync().ConfigureAwait(false);
-                }
+                await CompleteResponseAsync().ConfigureAwait(false);
                 return;
             }
 
             try
             {
                 EncodeHeader();
-                // SendPayloadAsync completes the payload source if successful. It completes the payload sink only if
-                // there's no payload source stream. Otherwise, the streaming task is responsible for completing the
-                // payload sink and payload source stream.
                 await SendPayloadAsync(response, cancel).ConfigureAwait(false);
+
+                // SendPayloadSink takes care of the completion of the payload sink / sources.
             }
             catch (Exception exception)
+            {
+                await CompleteResponseAsync(exception).ConfigureAwait(false);
+                throw;
+            }
+
+            async Task CompleteResponseAsync(Exception? exception = null)
             {
                 await response.PayloadSink.CompleteAsync(exception).ConfigureAwait(false);
                 await response.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
@@ -455,7 +461,6 @@ namespace IceRpc.Internal
                 {
                     await response.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
                 }
-                throw;
             }
 
             void EncodeHeader()
@@ -688,21 +693,28 @@ namespace IceRpc.Internal
             }
 
             return frameType == IceRpcControlFrameType.GoAwayCompleted ?
-                output.WriteAsync(ReadOnlySequence<byte>.Empty, completeWhenDone: true, cancel) :
+                output.WriteAsync(ReadOnlySequence<byte>.Empty, endStream: true, cancel) :
                 output.FlushAsync(cancel);
         }
 
-        /// <summary>Sends the payload source and payload source stream of an outgoing frame.</summary>
+        /// <summary>Sends the payload source and payload source stream of an outgoing frame. SendPayloadAsync completes
+        /// the payload source if successful. It completes the payload sink only if there's no payload source stream.
+        /// Otherwise, the streaming task is responsible for completing the payload sink and payload source stream.
+        /// </summary>
         private static async ValueTask SendPayloadAsync(
             OutgoingFrame outgoingFrame,
             CancellationToken cancel)
         {
             FlushResult flushResult = await outgoingFrame.PayloadSink.CopyFromAsync(
                 outgoingFrame.PayloadSource,
-                outgoingFrame.PayloadSourceStream == null,
+                endStream: outgoingFrame.PayloadSourceStream == null,
                 cancel).ConfigureAwait(false);
 
-            Debug.Assert(!flushResult.IsCanceled); // not implemented yet
+            // An application payload sink decorator can return a canceled flush result.
+            if (flushResult.IsCanceled)
+            {
+                throw new OperationCanceledException("payload sink canceled");
+            }
 
             if (flushResult.IsCompleted)
             {
@@ -720,7 +732,7 @@ namespace IceRpc.Internal
             }
             else
             {
-                // Send payloadSourceStream in the background
+                // Send payloadSourceStream in the background.
                 _ = Task.Run(
                     async () =>
                     {
@@ -728,7 +740,7 @@ namespace IceRpc.Internal
                         {
                             _ = await outgoingFrame.PayloadSink.CopyFromAsync(
                                 outgoingFrame.PayloadSourceStream,
-                                completeWhenDone: true,
+                                endStream: true,
                                 CancellationToken.None).ConfigureAwait(false);
 
                             await outgoingFrame.PayloadSink.CompleteAsync().ConfigureAwait(false);

@@ -383,10 +383,10 @@ namespace IceRpc.Transports.Internal
             SlicMultiplexedStream stream,
             ReadOnlySequence<byte> source1,
             ReadOnlySequence<byte> source2,
-            bool completeWhenDone,
+            bool endStream,
             CancellationToken cancel)
         {
-            Debug.Assert(!source1.IsEmpty || completeWhenDone);
+            Debug.Assert(!source1.IsEmpty || endStream);
             do
             {
                 // Check if writes completed, the stream might have been reset by the peer. Don't send the data and
@@ -466,15 +466,15 @@ namespace IceRpc.Transports.Internal
                         sendSource2 = ReadOnlySequence<byte>.Empty;
                     }
 
-                    // If there's no data left to send and completeWhenDone is true, send the last stream frame.
-                    bool endStream = completeWhenDone && source1.IsEmpty && source2.IsEmpty;
+                    // If there's no data left to send and endStream is true, it's the last stream frame.
+                    bool lastStreamFrame = endStream && source1.IsEmpty && source2.IsEmpty;
 
                     // Notify the stream that we're consuming sendSize credit. It's important to call this before
                     // sending the stream frame to avoid race conditions where the StreamConsumed frame could be
                     // received before the send credit was updated.
                     stream.ConsumeSendCredit((int)(sendSource1.Length + sendSource2.Length));
 
-                    if (endStream)
+                    if (lastStreamFrame)
                     {
                         // At this point writes are considered completed on the stream. It's important to call
                         // this before sending the last packet to avoid a race condition where the peer could
@@ -487,7 +487,7 @@ namespace IceRpc.Transports.Internal
                         stream.Id,
                         sendSource1,
                         sendSource2,
-                        endStream,
+                        lastStreamFrame,
                         cancel).ConfigureAwait(false);
                 }
                 catch (MultiplexedStreamAbortedException ex)

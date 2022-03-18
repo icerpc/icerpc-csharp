@@ -39,9 +39,9 @@ namespace IceRpc.Internal
 
         public override ValueTask<FlushResult> WriteAsync(
             ReadOnlySequence<byte> source,
-            bool completeWhenDone,
+            bool endStream,
             CancellationToken cancel) =>
-            Decoratee.WriteAsync(source, completeWhenDone, cancel);
+            Decoratee.WriteAsync(source, endStream, cancel);
 
         // We use the default implementation for CopyFromAsync: it's protected as a result we can't forward
         // it to Decoratee.

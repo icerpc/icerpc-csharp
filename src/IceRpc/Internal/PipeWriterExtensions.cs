@@ -8,17 +8,16 @@ namespace IceRpc.Internal
 {
     internal static class PipeWriterExtensions
     {
-        /// <summary>Copies source to a sink pipe writer. Also optionally completes this sink upon successful
-        /// completion, i.e. when the source is fully read.</summary>
+        /// <summary>Copies source to a sink pipe writer.</summary>
         /// <param name="sink">The sink pipe writer.</param>
         /// <param name="source">The source pipe reader.</param>
-        /// <param name="completeWhenDone">When true, this method completes the sink after a successful copy.</param>
+        /// <param name="endStream">When true, no more data will be written to the sink.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The flush result.</returns>
         internal static async Task<FlushResult> CopyFromAsync(
             this PipeWriter sink,
             PipeReader source,
-            bool completeWhenDone,
+            bool endStream,
             CancellationToken cancel)
         {
             FlushResult flushResult;
@@ -32,7 +31,7 @@ namespace IceRpc.Internal
                     {
                         flushResult = await writer.WriteAsync(
                             readResult.Buffer,
-                            completeWhenDone && readResult.IsCompleted,
+                            endStream && readResult.IsCompleted,
                             cancel).ConfigureAwait(false);
                     }
                     finally
@@ -55,7 +54,6 @@ namespace IceRpc.Internal
                 {
                     readResult = await source.ReadAsync(cancel).ConfigureAwait(false);
                     flushResult = default;
-
                     try
                     {
                         // TODO: If readResult.Buffer.Length is small, it might be better to call a single
@@ -87,15 +85,6 @@ namespace IceRpc.Internal
                 {
                     flushResult = await sink.FlushAsync(cancel).ConfigureAwait(false);
                 }
-
-                if (completeWhenDone &&
-                    readResult.IsCompleted &&
-                    !flushResult.IsCompleted &&
-                    !flushResult.IsCanceled)
-                {
-                    // Complete the sink.
-                    await sink.CompleteAsync().ConfigureAwait(false);
-                }
             }
 
             return flushResult;
@@ -104,31 +93,18 @@ namespace IceRpc.Internal
         /// <summary>Writes a read only sequence of bytes to this writer.</summary>
         /// <param name="pipeWriter">The pipe writer.</param>
         /// <param name="source">The source sequence.</param>
-        /// <param name="completeWhenDone">When true, this method completes the writer after a successful write.</param>
-        /// <param name="cancel">The cancellation token.</param>
-        /// <returns>The flush result.</returns>
-        internal static ValueTask<FlushResult> WriteAsync(
-            this PipeWriter pipeWriter,
-            ReadOnlyMemory<byte> source,
-            bool completeWhenDone,
-            CancellationToken cancel) =>
-            WriteAsync(pipeWriter, new ReadOnlySequence<byte>(source), completeWhenDone, cancel);
-
-        /// <summary>Writes a read only sequence of bytes to this writer.</summary>
-        /// <param name="pipeWriter">The pipe writer.</param>
-        /// <param name="source">The source sequence.</param>
-        /// <param name="completeWhenDone">When true, this method completes the writer after a successful write.</param>
+        /// <param name="endStream">When true, no more data will be written to the sink.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The flush result.</returns>
         internal static async ValueTask<FlushResult> WriteAsync(
             this PipeWriter pipeWriter,
             ReadOnlySequence<byte> source,
-            bool completeWhenDone,
+            bool endStream,
             CancellationToken cancel)
         {
             if (pipeWriter is ReadOnlySequencePipeWriter writer)
             {
-                return await writer.WriteAsync(source, completeWhenDone, cancel).ConfigureAwait(false);
+                return await writer.WriteAsync(source, endStream, cancel).ConfigureAwait(false);
             }
             else
             {
@@ -139,10 +115,6 @@ namespace IceRpc.Internal
                 foreach (ReadOnlyMemory<byte> buffer in source)
                 {
                     result = await pipeWriter.WriteAsync(buffer, cancel).ConfigureAwait(false);
-                }
-                if (completeWhenDone)
-                {
-                    await pipeWriter.CompleteAsync().ConfigureAwait(false);
                 }
                 return result;
             }

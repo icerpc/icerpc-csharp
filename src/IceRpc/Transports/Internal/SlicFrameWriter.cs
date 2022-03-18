@@ -25,10 +25,10 @@ namespace IceRpc.Transports.Internal
             ReadOnlySequence<byte> source1,
             ReadOnlySequence<byte> source2,
             bool endStream,
-            CancellationToken cancel)
+            CancellationToken _)
         {
             _writer.EncodeStreamFrameHeader(streamId, (int)(source1.Length + source2.Length), endStream);
-            return _writer.WriteAsync(source1, source2, cancel);
+            return _writer.WriteAsync(source1, source2);
         }
 
         internal SlicFrameWriter(SimpleNetworkConnectionPipeWriter writer) => _writer = writer;

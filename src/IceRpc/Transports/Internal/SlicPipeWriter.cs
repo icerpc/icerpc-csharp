@@ -68,7 +68,7 @@ namespace IceRpc.Transports.Internal
 
         public override ValueTask<FlushResult> FlushAsync(CancellationToken cancel) =>
             // WriteAsync will flush the internal buffer
-            WriteAsync(ReadOnlySequence<byte>.Empty, completeWhenDone: false, cancel);
+            WriteAsync(ReadOnlySequence<byte>.Empty, endStream: false, cancel);
 
         public override Memory<byte> GetMemory(int sizeHint) => _pipe.Writer.GetMemory(sizeHint);
 
@@ -76,11 +76,11 @@ namespace IceRpc.Transports.Internal
 
         public override ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancel) =>
             // Writing an empty buffer completes the stream.
-            WriteAsync(new ReadOnlySequence<byte>(source), completeWhenDone: source.Length == 0, cancel);
+            WriteAsync(new ReadOnlySequence<byte>(source), endStream: source.Length == 0, cancel);
 
         public override async ValueTask<FlushResult> WriteAsync(
             ReadOnlySequence<byte> source,
-            bool completeWhenDone,
+            bool endStream,
             CancellationToken cancel)
         {
             CheckIfCompleted();
@@ -130,7 +130,7 @@ namespace IceRpc.Transports.Internal
                         return await _stream.SendStreamFrameAsync(
                             readResult.Buffer,
                             source,
-                            completeWhenDone,
+                            endStream,
                             cancel).ConfigureAwait(false);
                     }
                     finally
@@ -152,13 +152,13 @@ namespace IceRpc.Transports.Internal
                     _state.ClearFlag(State.PipeReaderInUse);
                 }
             }
-            else if (source.Length > 0 || completeWhenDone)
+            else if (source.Length > 0 || endStream)
             {
                 // If there's no unflushed bytes, we just send the source.
                 return await _stream.SendStreamFrameAsync(
                     source,
                     ReadOnlySequence<byte>.Empty,
-                    completeWhenDone,
+                    endStream,
                     cancel).ConfigureAwait(false);
             }
             else
