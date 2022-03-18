@@ -363,19 +363,15 @@ namespace IceRpc.Internal
                 return;
             }
 
+            Debug.Assert(!_isUdp); // udp is oneway-only so no response
+
             if (request.Features.Get<IceIncomingRequest>() is not IceIncomingRequest requestFeature)
             {
                 throw new InvalidOperationException("request ID feature is not set");
             }
 
-            // Wait for sending of other frames to complete. The semaphore is used as an asynchronous
-            // queue to serialize the sending of frames.
-            await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
-
             try
             {
-                Debug.Assert(!_isUdp); // udp is oneway-only so no response
-
                 // Read payload source until IsCompleted is true.
 
                 ReadResult readResult = await response.PayloadSource.ReadAtLeastAsync(
@@ -393,47 +389,60 @@ namespace IceRpc.Internal
                     throw new OperationCanceledException();
                 }
 
-                int payloadSize = checked((int)readResult.Buffer.Length);
+                ReadOnlySequence<byte> payload = readResult.Buffer;
+                int payloadSize = checked((int)payload.Length);
 
-                // TODO: temporary. For now, we just consume nothing and use the old code.
-                response.PayloadSource.AdvanceTo(readResult.Buffer.Start);
+                // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue to
+                // serialize the sending of frames.
+                await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
 
-                ReplyStatus replyStatus = ReplyStatus.OK;
-
-                if (response.ResultType != ResultType.Success)
+                try
                 {
-                    if (response.ResultType == ResultType.Failure)
+                    ReplyStatus replyStatus = ReplyStatus.OK;
+
+                    if (response.ResultType != ResultType.Success)
                     {
-                        // extract reply status from 1.1-encoded payload
-                        readResult = await response.PayloadSource.ReadAsync(cancel).ConfigureAwait(false);
-
-                        if (readResult.IsCanceled)
+                        if (response.ResultType == ResultType.Failure)
                         {
-                            throw new OperationCanceledException();
+                            replyStatus = payload.FirstSpan[0].AsReplyStatus();
+
+                            if (replyStatus <= ReplyStatus.UserException)
+                            {
+                                throw new InvalidDataException(
+                                    $"unexpected reply status value '{replyStatus}' in payload");
+                            }
+
+
                         }
-                        if (readResult.Buffer.IsEmpty)
+                        else
                         {
-                            throw new ArgumentException("empty exception payload");
+                            replyStatus = ReplyStatus.UserException;
                         }
+                    }
 
-                        replyStatus = (ReplyStatus)readResult.Buffer.FirstSpan[0];
+                    EncodeHeader(_networkConnectionWriter, payloadSize, replyStatus);
 
-                        if (replyStatus <= ReplyStatus.UserException)
-                        {
-                            throw new InvalidDataException("unexpected reply status value '{replyStatus}' in payload");
-                        }
-
-                        response.PayloadSource.AdvanceTo(readResult.Buffer.GetPosition(1));
-                        payloadSize -= 1;
+                    if (payload.IsSingleSegment)
+                    {
+                        _ = await response.PayloadSink.WriteAsync(payload.First, cancel).ConfigureAwait(false);
+                    }
+                    else if (response.PayloadSink is IcePayloadPipeWriter icePayloadPipeWriter)
+                    {
+                        await icePayloadPipeWriter.WriteAsync(payload, cancel).ConfigureAwait(false);
                     }
                     else
                     {
-                        replyStatus = ReplyStatus.UserException;
+                        foreach (ReadOnlyMemory<byte> segment in payload)
+                        {
+                            _ = await response.PayloadSink.WriteAsync(segment, cancel).ConfigureAwait(false);
+                        }
                     }
+                    await response.CompleteAsync().ConfigureAwait(false);
                 }
-
-                EncodeHeader(_networkConnectionWriter, payloadSize, replyStatus);
-                await SendPayloadAsync(response, response.PayloadSink, cancel).ConfigureAwait(false);
+                finally
+                {
+                    _sendSemaphore.Release();
+                }
             }
             catch (Exception ex)
             {
@@ -442,8 +451,6 @@ namespace IceRpc.Internal
             }
             finally
             {
-                _sendSemaphore.Release();
-
                 lock (_mutex)
                 {
                     // Dispatch is done, remove the cancellation token source for the dispatch.
@@ -473,9 +480,10 @@ namespace IceRpc.Internal
 
                 encoder.EncodeInt(requestFeature.Id);
 
-                encoder.EncodeReplyStatus(replyStatus);
                 if (replyStatus <= ReplyStatus.UserException)
                 {
+                    encoder.EncodeReplyStatus(replyStatus);
+
                     // When IceRPC receives a response, it ignores the response encoding. So this "1.1" is only relevant
                     // to a ZeroC Ice client that decodes the response. The only Slice encoding such a client can
                     // possibly use to decode the response payload is 1.1 or 1.0, and we don't care about interop with
@@ -486,6 +494,7 @@ namespace IceRpc.Internal
                         payloadEncodingMinor: 1);
                     encapsulationHeader.Encode(ref encoder);
                 }
+                // else the reply status (> UserException) is part of the payload
 
                 SliceEncoder.EncodeInt(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
             }
