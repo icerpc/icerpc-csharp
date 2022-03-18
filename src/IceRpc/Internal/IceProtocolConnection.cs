@@ -179,7 +179,7 @@ namespace IceRpc.Internal
 
                 // If shutting down, ignore the incoming request and continue receiving frames until the connection is
                 // closed.
-                await request.CompleteAsync(new ConnectionClosedException()).ConfigureAwait(false);
+                await request.Payload.CompleteAsync(new ConnectionClosedException()).ConfigureAwait(false);
             }
         }
 
@@ -222,6 +222,12 @@ namespace IceRpc.Internal
         {
             if (_isUdp && !request.IsOneway)
             {
+                await request.PayloadSink.CompleteAsync(exception).ConfigureAwait(false);
+                await request.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
+                if (request.PayloadSourceStream != null)
+                {
+                    await request.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
+                }
                 throw new InvalidOperationException("cannot send twoway request over UDP");
             }
 
@@ -269,22 +275,12 @@ namespace IceRpc.Internal
                         $"expected {payloadSize} bytes in request payload source, but it's empty");
                 }
 
-                // If the application sets the payload sink, the initial payload sink is set and we need to set the
-                // stream output on the delayed pipe writer decorator. Otherwise, we directly use the stream output.
-                PipeWriter payloadSink;
-                if (request.InitialPayloadSink == null)
-                {
-                    payloadSink = _payloadWriter;
-                }
-                else
-                {
-                    request.InitialPayloadSink.SetDecoratee(_payloadWriter);
-                    payloadSink = request.PayloadSink;
-                }
+                // Set the final payload sink to the stateless payload writer.
+                request.SetFinalPayloadSink(_payloadWriter);
 
                 EncodeHeader(_networkConnectionWriter, payloadSize);
 
-                await SendPayloadAsync(request, payloadSink, cancel).ConfigureAwait(false);
+                await SendPayloadAsync(request, cancel).ConfigureAwait(false);
                 request.IsSent = true;
             }
             catch (ObjectDisposedException exception)
@@ -296,6 +292,16 @@ namespace IceRpc.Internal
                 var ex = new ConnectionLostException(exception);
                 await request.CompleteAsync(ex).ConfigureAwait(false);
                 throw ex;
+            }
+            catch (Exception exception)
+            {
+                await request.PayloadSink.CompleteAsync(exception).ConfigureAwait(false);
+                await request.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
+                if (request.PayloadSourceStream != null)
+                {
+                    await request.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
+                }
+                throw;
             }
             catch (Exception ex)
             {
@@ -617,10 +623,7 @@ namespace IceRpc.Internal
         }
 
         /// <summary>Sends the payload source of an outgoing frame.</summary>
-        private static async ValueTask SendPayloadAsync(
-            OutgoingFrame outgoingFrame,
-            PipeWriter payloadSink,
-            CancellationToken cancel)
+        private static async ValueTask SendPayloadAsync(OutgoingFrame outgoingFrame, CancellationToken cancel)
         {
             if (outgoingFrame.PayloadSourceStream != null)
             {
@@ -629,7 +632,7 @@ namespace IceRpc.Internal
                 throw new NotSupportedException("stream parameters and return values are not supported with ice");
             }
 
-            FlushResult flushResult = await payloadSink.CopyFromAsync(
+            FlushResult flushResult = await outgoingFrame.PayloadSink.CopyFromAsync(
                 outgoingFrame.PayloadSource,
                 completeWhenDone: true,
                 cancel).ConfigureAwait(false);
@@ -644,7 +647,7 @@ namespace IceRpc.Internal
                 throw new OperationCanceledException("peer stopped reading the payload");
             }
 
-            await outgoingFrame.CompleteAsync().ConfigureAwait(false);
+            await outgoingFrame.PayloadSink.CompleteAsync().ConfigureAwait(false);
         }
 
         private void CancelDispatches()

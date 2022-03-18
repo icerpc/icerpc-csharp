@@ -39,8 +39,8 @@ namespace IceRpc
         {
             get
             {
-                InitialPayloadSink ??= new DelayedPipeWriterDecorator();
-                return _payloadSink ?? InitialPayloadSink;
+                _initialPayloadSink ??= new DelayedPipeWriterDecorator();
+                return _payloadSink ?? _initialPayloadSink;
             }
             set => _payloadSink = value;
         }
@@ -48,14 +48,11 @@ namespace IceRpc
         /// <summary>Returns the proxy that is sending this request.</summary>
         public Proxy Proxy { get; }
 
-        /// <summary>Returns the payload sink that an interceptor would see unless some other interceptor decorates it.
-        /// </summary>
-        internal DelayedPipeWriterDecorator? InitialPayloadSink { get; private set; }
-
         /// <summary>Returns the pipe reader used to read the response. The protocol connection implementation may or
         /// may not set this property when sending the request.</summary>
         internal PipeReader? ResponseReader { get; set; }
 
+        private DelayedPipeWriterDecorator? _initialPayloadSink;
         private PipeWriter? _payloadSink;
 
         /// <summary>Constructs an outgoing request.</summary>
@@ -67,12 +64,15 @@ namespace IceRpc
             Proxy = proxy;
         }
 
-        internal override async ValueTask CompleteAsync(Exception? exception = null)
+        internal void SetFinalPayloadSink(PipeWriter writer)
         {
-            await base.CompleteAsync(exception).ConfigureAwait(false);
-            if (_payloadSink != null)
+            if (_initialPayloadSink == null)
             {
-                await _payloadSink.CompleteAsync(exception).ConfigureAwait(false);
+                _payloadSink = writer;
+            }
+            else
+            {
+                _initialPayloadSink.SetDecoratee(writer);
             }
         }
     }

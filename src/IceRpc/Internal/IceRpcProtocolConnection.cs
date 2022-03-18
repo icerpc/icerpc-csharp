@@ -189,7 +189,7 @@ namespace IceRpc.Internal
                     ReadOnlySequence<byte> buffer)
                 {
                     var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                    var header =
+                    (IceRpcRequestHeader, IDictionary<RequestFieldKey, ReadOnlySequence<byte>>) header =
                         (new IceRpcRequestHeader(ref decoder),
                         decoder.DecodeFieldDictionary((ref SliceDecoder decoder) => decoder.DecodeRequestFieldKey()));
 
@@ -290,7 +290,7 @@ namespace IceRpc.Internal
                 ReadOnlySequence<byte> buffer)
             {
                 var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                var header =
+                (IceRpcResponseHeader, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>>) header =
                     (new IceRpcResponseHeader(ref decoder),
                     decoder.DecodeFieldDictionary((ref SliceDecoder decoder) => decoder.DecodeResponseFieldKey()));
 
@@ -307,12 +307,18 @@ namespace IceRpc.Internal
                 throw new NotSupportedException("the icerpc protocol does not support fragments");
             }
 
-            IMultiplexedStream? stream = null;
+            // Create the stream.
+            IMultiplexedStream stream = _networkConnection.CreateStream(!request.IsOneway);
+
+            // Set the final payload sink to the stream output and the response reader to the stream input.
+            request.SetFinalPayloadSink(stream.Output);
+            if (!request.IsOneway)
+            {
+                request.ResponseReader = stream.Input;
+            }
+
             try
             {
-                // Create the stream.
-                stream = _networkConnection.CreateStream(!request.IsOneway);
-
                 // Keep track of the invocation for the shutdown logic.
                 if (!request.IsOneway || request.PayloadSourceStream != null)
                 {
@@ -349,40 +355,24 @@ namespace IceRpc.Internal
                     }
                 }
 
-                // If the application sets the payload sink, the initial payload sink is set and we need to set the
-                // stream output on the delayed pipe writer decorator. Otherwise, we directly use the stream output.
-                PipeWriter payloadSink;
-                if (request.InitialPayloadSink == null)
-                {
-                    payloadSink = stream.Output;
-                }
-                else
-                {
-                    request.InitialPayloadSink.SetDecoratee(stream.Output);
-                    payloadSink = request.PayloadSink;
-                }
-
                 EncodeHeader(stream.Output);
-                await SendPayloadAsync(request, payloadSink, cancel).ConfigureAwait(false);
-
+                // SendPayloadAsync completes the payload source if successful. It completes the payload sink only if
+                // there's no payload source stream. Otherwise, the streaming task is responsible for completing the
+                // payload sink and payload source stream.
+                await SendPayloadAsync(request, cancel).ConfigureAwait(false);
                 request.IsSent = true;
-
-                if (!request.IsOneway)
-                {
-                    request.ResponseReader = stream.Input;
-                }
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                await request.CompleteAsync(ex).ConfigureAwait(false);
-
-                if (stream != null)
+                await request.PayloadSink.CompleteAsync(exception).ConfigureAwait(false);
+                await request.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
+                if (request.PayloadSourceStream != null)
                 {
-                    await stream.Output.CompleteAsync(ex).ConfigureAwait(false);
-                    if (stream.IsBidirectional)
-                    {
-                        await stream.Input.CompleteAsync(ex).ConfigureAwait(false);
-                    }
+                    await request.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
+                }
+                if (request.ResponseReader != null)
+                {
+                    await request.ResponseReader.CompleteAsync(exception).ConfigureAwait(false);
                 }
                 throw;
             }
@@ -440,18 +430,31 @@ namespace IceRpc.Internal
         {
             if (request.IsOneway)
             {
-                await response.CompleteAsync().ConfigureAwait(false);
+                await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
+                if (response.PayloadSourceStream != null)
+                {
+                    await response.PayloadSourceStream.CompleteAsync().ConfigureAwait(false);
+                }
                 return;
             }
 
             try
             {
                 EncodeHeader();
-                await SendPayloadAsync(response, response.PayloadSink, cancel).ConfigureAwait(false);
+                // SendPayloadAsync completes the payload source if successful. It completes the payload sink only if
+                // there's no payload source stream. Otherwise, the streaming task is responsible for completing the
+                // payload sink and payload source stream.
+                await SendPayloadAsync(response, cancel).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                await response.CompleteAsync(ex).ConfigureAwait(false);
+                await response.PayloadSink.CompleteAsync(exception).ConfigureAwait(false);
+                await response.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
+                if (response.PayloadSourceStream != null)
+                {
+                    await response.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
+                }
                 throw;
             }
 
@@ -692,10 +695,9 @@ namespace IceRpc.Internal
         /// <summary>Sends the payload source and payload source stream of an outgoing frame.</summary>
         private static async ValueTask SendPayloadAsync(
             OutgoingFrame outgoingFrame,
-            PipeWriter payloadSink,
             CancellationToken cancel)
         {
-            FlushResult flushResult = await payloadSink.CopyFromAsync(
+            FlushResult flushResult = await outgoingFrame.PayloadSink.CopyFromAsync(
                 outgoingFrame.PayloadSource,
                 outgoingFrame.PayloadSourceStream == null,
                 cancel).ConfigureAwait(false);
@@ -710,31 +712,32 @@ namespace IceRpc.Internal
                 throw new OperationCanceledException("peer stopped reading the payload");
             }
 
+            await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
+
             if (outgoingFrame.PayloadSourceStream == null)
             {
-                await outgoingFrame.CompleteAsync().ConfigureAwait(false);
+                await outgoingFrame.PayloadSink.CompleteAsync().ConfigureAwait(false);
             }
             else
             {
-                // Just complete the payload source for now.
-                await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
-
                 // Send payloadSourceStream in the background
                 _ = Task.Run(
                     async () =>
                     {
                         try
                         {
-                            _ = await payloadSink.CopyFromAsync(
+                            _ = await outgoingFrame.PayloadSink.CopyFromAsync(
                                 outgoingFrame.PayloadSourceStream,
                                 completeWhenDone: true,
                                 CancellationToken.None).ConfigureAwait(false);
 
-                            await outgoingFrame.CompleteAsync().ConfigureAwait(false);
+                            await outgoingFrame.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                            await outgoingFrame.PayloadSourceStream.CompleteAsync().ConfigureAwait(false);
                         }
-                        catch (Exception ex)
+                        catch (Exception exception)
                         {
-                            await outgoingFrame.CompleteAsync(ex).ConfigureAwait(false);
+                            await outgoingFrame.PayloadSink.CompleteAsync(exception).ConfigureAwait(false);
+                            await outgoingFrame.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
                         }
                     },
                     cancel);

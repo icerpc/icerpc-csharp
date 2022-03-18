@@ -335,8 +335,7 @@ namespace IceRpc
                 await ConnectAsync(cancel).ConfigureAwait(false);
             }
 
-            // Send the request. This completes payload source; this also completes payload sink when the Send fails
-            // with an exception or there is no payload source stream.
+            // SendRequestAsync is responsible for completing the payload sources and sink.
             await protocolConnection.SendRequestAsync(request, cancel).ConfigureAwait(false);
 
             // Wait for the response if it's a two-way request, otherwise return a response with an empty payload.
@@ -538,23 +537,23 @@ namespace IceRpc
                 else if (idleTime > NetworkConnectionInformation.Value.IdleTimeout / 4 &&
                          (keepAlive || _protocolConnection.HasDispatchesInProgress))
                 {
-                    // We send a ping if there was no activity in the last (IdleTimeout / 4) period. Sending a
-                    // ping sooner than really needed is safer to ensure that the receiver will receive the
-                    // ping in time. Sending the ping if there was no activity in the last (IdleTimeout / 2)
-                    // period isn't enough since Monitor is called only every (IdleTimeout / 2) period. We
-                    // also send a ping if dispatch are in progress to notify the peer that we're still alive.
+                    // We send a ping if there was no activity in the last (IdleTimeout / 4) period. Sending a ping
+                    // sooner than really needed is safer to ensure that the receiver will receive the ping in time.
+                    // Sending the ping if there was no activity in the last (IdleTimeout / 2) period isn't enough since
+                    // Monitor is called only every (IdleTimeout / 2) period. We also send a ping if dispatch are in
+                    // progress to notify the peer that we're still alive.
                     //
-                    // Note that this doesn't imply that we are sending 4 heartbeats per timeout period
-                    // because Monitor is still only called every (IdleTimeout / 2) period.
+                    // Note that this doesn't imply that we are sending 4 heartbeats per timeout period because Monitor
+                    // is still only called every (IdleTimeout / 2) period.
                     _ = _protocolConnection.PingAsync(CancellationToken.None);
                 }
             }
         }
 
-        /// <summary>Accepts an incoming request and dispatch it. As soon as new incoming request is accepted
-        /// but before it's dispatched, a new accept incoming request task is started to allow multiple
-        /// incoming requests to be dispatched. The protocol implementation can limit the number of concurrent
-        /// dispatch by no longer accepting a new request when a limit is reached.</summary>
+        /// <summary>Accepts an incoming request and dispatch it. As soon as new incoming request is accepted but before
+        /// it's dispatched, a new accept incoming request task is started to allow multiple incoming requests to be
+        /// dispatched. The protocol implementation can limit the number of concurrent dispatch by no longer accepting a
+        /// new request when a limit is reached.</summary>
         private async Task AcceptIncomingRequestAsync(IProtocolConnection protocolConnection, IDispatcher dispatcher)
         {
             IncomingRequest request;
@@ -578,83 +577,77 @@ namespace IceRpc
             // Start a new task to accept a new incoming request before dispatching this one.
             _ = Task.Run(() => AcceptIncomingRequestAsync(protocolConnection, dispatcher));
 
-            OutgoingResponse? response = null;
+            OutgoingResponse response;
+
+            // Dispatch the request and get the response.
+            try
+            {
+                CancellationToken cancel = request.CancelDispatchSource?.Token ?? default;
+                request.Connection = this;
+
+                // The dispatcher is responsible for completing the incoming request payload source.
+                response = await dispatcher.DispatchAsync(request, cancel).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                // If we catch an exception, we return a failure response with a Slice-encoded payload.
+
+                if (exception is OperationCanceledException)
+                {
+                    // TODO: we shouldn't have this protocol specific handling of OperationCanceledException here.
+                    if (Protocol == Protocol.Ice)
+                    {
+                        exception = new DispatchException("dispatch canceled by peer", DispatchErrorCode.Canceled);
+                    }
+                    else
+                    {
+                        // The dispatcher completes the incoming request payload even on failures. We just complete the
+                        // response writer here.
+                        await request.ResponseWriter.CompleteAsync(
+                            IceRpcStreamError.DispatchCanceled.ToException()).ConfigureAwait(false);
+
+                        // We're done since the completion of the response writer aborts the stream, we don't send a
+                        // response.
+                        return;
+                    }
+                }
+
+                // With the ice protocol, a ResultType = Failure exception must be an ice system exception.
+                if (exception is not RemoteException remoteException ||
+                    remoteException.ConvertToUnhandled ||
+                    (Protocol == Protocol.Ice && remoteException is not DispatchException))
+                {
+                    remoteException = new DispatchException(
+                        message: null,
+                        exception is InvalidDataException ?
+                            DispatchErrorCode.InvalidData : DispatchErrorCode.UnhandledException,
+                        exception);
+                }
+
+                SliceEncoding sliceEncoding = request.Protocol.SliceEncoding!;
+
+                response = new OutgoingResponse(request)
+                {
+                    PayloadSource = sliceEncoding.CreatePayloadFromRemoteException(remoteException),
+                    ResultType = ResultType.Failure
+                };
+
+                if (Protocol.HasFields && remoteException.RetryPolicy != RetryPolicy.NoRetry)
+                {
+                    RetryPolicy retryPolicy = remoteException.RetryPolicy;
+                    response.Fields = response.Fields.With(
+                        ResponseFieldKey.RetryPolicy,
+                        (ref SliceEncoder encoder) => retryPolicy.Encode(ref encoder));
+                }
+            }
 
             try
             {
-                // Dispatch the request and get the response.
-                try
-                {
-                    CancellationToken cancel = request.CancelDispatchSource?.Token ?? default;
-                    request.Connection = this;
-                    response = await dispatcher.DispatchAsync(request, cancel).ConfigureAwait(false);
-                }
-                catch (Exception exception)
-                {
-                    // If we catch an exception, we return a failure response with a Slice-encoded payload.
-
-                    if (exception is OperationCanceledException)
-                    {
-                        // TODO: do we really need this protocol-dependent processing?
-                        if (Protocol == Protocol.Ice)
-                        {
-                            exception = new DispatchException("dispatch canceled by peer", DispatchErrorCode.Canceled);
-                        }
-                        else
-                        {
-                            // Rethrow to abort the stream.
-                            throw;
-                        }
-                    }
-
-                    // With the ice protocol, a ResultType = Failure exception must be an ice system exception.
-                    if (exception is not RemoteException remoteException ||
-                        remoteException.ConvertToUnhandled ||
-                        (Protocol == Protocol.Ice && remoteException is not DispatchException))
-                    {
-                        remoteException = new DispatchException(
-                            message: null,
-                            exception is InvalidDataException ?
-                                DispatchErrorCode.InvalidData : DispatchErrorCode.UnhandledException,
-                            exception);
-                    }
-
-                    SliceEncoding sliceEncoding = request.Protocol.SliceEncoding!;
-
-                    response = new OutgoingResponse(request)
-                    {
-                        PayloadSource = sliceEncoding.CreatePayloadFromRemoteException(remoteException),
-                        ResultType = ResultType.Failure
-                    };
-
-                    if (Protocol.HasFields && remoteException.RetryPolicy != RetryPolicy.NoRetry)
-                    {
-                        RetryPolicy retryPolicy = remoteException.RetryPolicy;
-                        response.Fields = response.Fields.With(
-                            ResponseFieldKey.RetryPolicy,
-                            (ref SliceEncoder encoder) => retryPolicy.Encode(ref encoder));
-                    }
-                }
-
+                // SendResponseAsync is responsible for completing the response payload sources and sink.
                 await protocolConnection.SendResponseAsync(
                     response,
                     request,
                     CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // TODO: we shouldn't have this protocol specific handling of OperationCanceledException here.
-                Exception exception = IceRpcStreamError.DispatchCanceled.ToException();
-
-                await request.CompleteAsync(exception).ConfigureAwait(false);
-                if (response == null)
-                {
-                    await request.ResponseWriter.CompleteAsync(exception).ConfigureAwait(false);
-                }
-                else
-                {
-                    await response.CompleteAsync(exception).ConfigureAwait(false);
-                }
             }
             catch (MultiplexedStreamAbortedException)
             {
