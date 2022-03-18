@@ -108,53 +108,54 @@ private static readonly global::System.Collections.Generic.HashSet<{underlying}>
         );
     }
 
-    let as_enum_block = FunctionBuilder::new(
-        &access,
+    let mut as_enum_block = FunctionBuilder::new(
+        format!("{} static", access).as_str(),
         &escaped_identifier,
         format!("As{}", enum_def.identifier()).as_str(),
         FunctionType::ExpressionBody,
-    )
-    .add_parameter(
-        format!("this {}", underlying_type).as_str(),
-        "value",
-        None,
-        Some("The value being converted"),
-    )
-    .add_comment(
-        "summary",
-        format!(
-            r#"
+    );
+    as_enum_block
+        .add_parameter(
+            format!("this {}", underlying_type).as_str(),
+            "value",
+            None,
+            Some("The value being converted"),
+        )
+        .add_comment(
+            "summary",
+            format!(
+                r#"
 Converts a <see cref="{underlying_type}"/> into the corresponding <see cref="{escaped_identifier}"/>
 enumerator."#,
-            underlying_type = underlying_type,
-            escaped_identifier = escaped_identifier
+                underlying_type = underlying_type,
+                escaped_identifier = escaped_identifier
+            )
+            .as_str(),
         )
-        .as_str(),
-    )
-    .add_comment("returns", "The enumerator.")
-    .set_body(if enum_def.is_unchecked {
-        format!("({})value", escaped_identifier).into()
-    } else {
-        format!(
-            r#"
+        .add_comment("returns", "The enumerator.")
+        .set_body(if enum_def.is_unchecked {
+            format!("({})value", escaped_identifier).into()
+        } else {
+            format!(
+                r#"
 {check_enum} ?
     ({escaped_identifier})value :
     throw new IceRpc.InvalidDataException($"invalid enumerator value '{{value}}' for {scoped}")"#,
-            check_enum = match use_set {
-                true => "_enumeratorValues.Contains(value)".to_owned(),
-                false => format!(
-                    "{min_value} <= value && value <= {max_value}",
-                    min_value = min_max_values.unwrap().0,
-                    max_value = min_max_values.unwrap().1,
-                ),
-            },
-            escaped_identifier = escaped_identifier,
-            scoped = enum_def.escape_scoped_identifier(namespace),
-        )
-        .into()
-    });
+                check_enum = match use_set {
+                    true => "_enumeratorValues.Contains(value)".to_owned(),
+                    false => format!(
+                        "{min_value} <= value && value <= {max_value}",
+                        min_value = min_max_values.unwrap().0,
+                        max_value = min_max_values.unwrap().1,
+                    ),
+                },
+                escaped_identifier = escaped_identifier,
+                scoped = enum_def.escape_scoped_identifier(namespace),
+            )
+            .into()
+        });
 
-    if enum_def.is_unchecked {
+    if !enum_def.is_unchecked {
         as_enum_block.add_comment_with_attribute(
             "exception",
             "cref",
