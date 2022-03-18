@@ -14,9 +14,8 @@ namespace IceRpc.Transports.Tests;
 [Timeout(5000)]
 public class TlsConfigurationTests
 {
-    /// <summary>Verifies that the remote certificate validation callbacks set with the client and server connections
-    /// are used during the tls handshake.</summary>
-    /// <returns></returns>
+    /// <summary>Verifies that the server connection establishment fail with <see cref="AuthenticationException"/> when
+    /// the client certificate is not trusted.</summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Security",
         "CA5359:Do Not Disable Certificate Validation",
@@ -55,8 +54,8 @@ public class TlsConfigurationTests
             Throws.TypeOf<AuthenticationException>());
     }
 
-    /// <summary>Verifies that the remote certificate validation callbacks set with the client and server connections
-    /// are used during the tls handshake.</summary>
+    /// <summary>Verifies that the local certificate selection callback is used to select the client certificate.
+    /// </summary>
     /// <returns></returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Security",
@@ -162,8 +161,8 @@ public class TlsConfigurationTests
         Assert.That(clientCertificateValidationCallback, Is.True);
     }
 
-    /// <summary>Verifies that the remote certificate validation callbacks set with the client and server connections
-    /// are used during the tls handshake.</summary>
+    /// <summary>Verifies that the client connection establishment fail with <see cref="AuthenticationException"/> when
+    /// the server certificate is not trusted.</summary>
     [Test]
     public async Task Tls_server_certificate_not_trusted()
     {
