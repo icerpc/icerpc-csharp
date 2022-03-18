@@ -40,7 +40,7 @@ public static class Program
                             new X509Certificate2(hostContext.Configuration.GetValue<string>("CertificateAuthoritiesFile"));
                         connectionOptions.AuthenticationOptions = new SslClientAuthenticationOptions()
                         {
-                            // A certificate validation callback that use the configured certificate authorities file
+                            // A certificate validation callback that uses the configured certificate authorities file
                             // to validate the peer certificates.
                             RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
                             {
