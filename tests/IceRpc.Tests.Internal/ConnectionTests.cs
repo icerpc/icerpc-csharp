@@ -132,10 +132,6 @@ namespace IceRpc.Tests.Internal
                 serviceCollection.UseProtocol("ice");
             }
 
-            if (secure)
-            {
-                serviceCollection.UseTls();
-            }
             serviceCollection.UseEndpoint(transport, host: "127.0.0.1", port: 0);
             await using var factory = new ConnectionFactory(serviceCollection);
 
@@ -155,13 +151,6 @@ namespace IceRpc.Tests.Internal
             }
             Assert.That(factory.ClientConnection.IsServer, Is.False);
             Assert.That(factory.ServerConnection.IsServer, Is.True);
-
-            if (secure)
-            {
-                Assert.That(transport, Is.EqualTo("tcp"));
-                Assert.That(clientInformation?.RemoteCertificate, Is.Not.Null);
-                Assert.That(serverInformation?.RemoteCertificate, Is.Null);
-            }
         }
 
         [TestCase("ice")]
