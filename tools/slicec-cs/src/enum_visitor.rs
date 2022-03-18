@@ -112,7 +112,7 @@ private static readonly global::System.Collections.Generic.HashSet<{underlying}>
         &access,
         &escaped_identifier,
         format!("As{}", enum_def.identifier()).as_str(),
-        FunctionType::BlockBody,
+        FunctionType::ExpressionBody,
     )
     .add_parameter(
         format!("this {}", underlying_type).as_str(),
