@@ -796,23 +796,23 @@ namespace IceRpc
                 exception = ex;
             }
 
-            Task? waitTask = null;
+            Task? closeTask = null;
             lock (_mutex)
             {
                 if (_protocolConnection == protocolConnection)
                 {
-                    waitTask = CloseAsync(exception);
+                    closeTask = CloseAsync(exception);
                 }
                 else
                 {
                     // The connection has already been closed so there's no need to close it again. This can occur
-                    // if the protocol connection raise from RequestRequestAsync.
+                    // if the protocol connection raise from ReceiveRequestAsync.
                 }
             }
 
-            if (waitTask != null)
+            if (closeTask != null)
             {
-                await waitTask.ConfigureAwait(false);
+                await closeTask.ConfigureAwait(false);
             }
         }
     }
