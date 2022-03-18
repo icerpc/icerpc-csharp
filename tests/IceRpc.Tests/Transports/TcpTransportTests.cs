@@ -646,6 +646,10 @@ public class TcpTransportTests
             NullLogger.Instance);
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Security",
+        "CA5359:Do Not Disable Certificate Validation",
+        Justification = "<Pending>")]
     private static TcpClientNetworkConnection CreateTcpClientConnection(
         Endpoint? endpoint = null,
         TcpClientTransportOptions? options = null,
@@ -662,11 +666,7 @@ public class TcpTransportTests
                     {
                         new X509Certificate2("../../../certs/client.p12", "password")
                     },
-                    RemoteCertificateValidationCallback = CertificateValidaton.GetServerCertificateValidationCallback(
-                        certificateAuthorities: new X509Certificate2Collection()
-                        {
-                            new X509Certificate2("../../../certs/cacert.pem")
-                        })
+                    RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true,
                 } : authenticationOptions,
             NullLogger.Instance);
     }

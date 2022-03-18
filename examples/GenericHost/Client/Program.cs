@@ -36,15 +36,29 @@ public static class Program
                     .Configure(connectionOptions =>
                     {
                         // Configure the authentication options
+                        var rootCA =
+                            new X509Certificate2(hostContext.Configuration.GetValue<string>("CertificateAuthoritiesFile"));
                         connectionOptions.AuthenticationOptions = new SslClientAuthenticationOptions()
                         {
-                            RemoteCertificateValidationCallback =
-                                CertificateValidaton.GetServerCertificateValidationCallback(
-                                    certificateAuthorities: new X509Certificate2Collection
-                                    {
-                                        new X509Certificate2(
-                                            hostContext.Configuration.GetValue<string>("CertificateAuthoritiesFile"))
-                                    })
+                            // A certificate validation callback that use the configured certificate authorities file
+                            // to validate the peer certificates.
+                            RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
+                            {
+                                chain = new X509Chain();
+                                try
+                                {
+                                    chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+                                    chain.ChainPolicy.DisableCertificateDownloads = true;
+                                    chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
+                                    chain.ChainPolicy.CustomTrustStore.Clear();
+                                    chain.ChainPolicy.CustomTrustStore.Add(rootCA);
+                                    return chain.Build((X509Certificate2)certificate!);
+                                }
+                                finally
+                                {
+                                    chain.Dispose();
+                                }
+                            }
                         };
                     });
 
