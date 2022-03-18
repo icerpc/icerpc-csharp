@@ -564,6 +564,9 @@ namespace IceRpc
             }
             catch (Exception exception)
             {
+                // TODO: it's very painful to just eat this exception
+                // Console.WriteLine($"ReceiveRequestAsync exception: {exception}");
+
                 // Unexpected exception, if the connection hasn't been resumed already, close the connection.
                 lock (_mutex)
                 {
@@ -775,6 +778,7 @@ namespace IceRpc
             await Task.Yield();
 
             using var closeCancellationSource = new CancellationTokenSource(_closeTimeout);
+            Exception exception;
             try
             {
                 // Shutdown the connection.
@@ -784,15 +788,34 @@ namespace IceRpc
                     .ConfigureAwait(false);
 
                 // Close the connection.
-                await CloseAsync(new ConnectionClosedException(message)).ConfigureAwait(false);
+                exception = new ConnectionClosedException(message);
             }
             catch (OperationCanceledException)
             {
-                await CloseAsync(new ConnectionClosedException("shutdown timed out")).ConfigureAwait(false);
+                exception = new ConnectionClosedException("shutdown timed out");
             }
-            catch (Exception exception)
+            catch (Exception ex)
             {
-                await CloseAsync(exception).ConfigureAwait(false);
+                exception = ex;
+            }
+
+            Task? closeTask = null;
+            lock (_mutex)
+            {
+                if (_protocolConnection == protocolConnection)
+                {
+                    closeTask = CloseAsync(exception);
+                }
+                else
+                {
+                    // The connection has already been closed so there's no need to close it again. This can occur
+                    // if the protocol connection raise from ReceiveRequestAsync.
+                }
+            }
+
+            if (closeTask != null)
+            {
+                await closeTask.ConfigureAwait(false);
             }
         }
     }

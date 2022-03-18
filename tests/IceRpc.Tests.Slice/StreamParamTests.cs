@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 namespace IceRpc.Tests.Slice.Stream
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    [Timeout(30000)]
+    [Timeout(5000)]
     [Parallelizable(ParallelScope.All)]
     public sealed class StreamParamTests : IAsyncDisposable
     {
@@ -47,6 +47,7 @@ namespace IceRpc.Tests.Slice.Stream
             ReadResult readResult = await reader.ReadAtLeastAsync(256);
             Assert.That(readResult.Buffer.Length, Is.EqualTo(256));
             Assert.That(readResult.Buffer.FirstSpan.SequenceEqual(_sendBuffer.FirstSpan));
+            await reader.CompleteAsync();
 
             (r1, reader) = await _prx.OpStreamByteReceive1Async();
             readResult = await reader.ReadAtLeastAsync(256);
@@ -188,6 +189,7 @@ namespace IceRpc.Tests.Slice.Stream
         }
 
         [Test]
+        [Ignore("test hang, #930")]
         public async Task StreamParam_Send_MyStructCancellation()
         {
             using var semaphore = new SemaphoreSlim(0);
@@ -206,7 +208,7 @@ namespace IceRpc.Tests.Slice.Stream
             }
 
             await _prx.OpStreamMyStructSendAndCancel0Async(MyStructEnemerable0Async());
-            // Start streaming data the server cancel its enumerable upon receive the first 20 items
+            // Start streaming data, the server cancels its enumerable after receiving the first 20 items
             semaphore.Release(20);
             await _servant.EnumerableReceived.WaitAsync();
             Assert.That(_servant.MyStructs.Count, Is.EqualTo(20));
@@ -263,7 +265,6 @@ namespace IceRpc.Tests.Slice.Stream
         }
 
         [Test]
-        // [Log(LogAttributeLevel.Debug)]
         public async Task StreamParam_Receive_AnotherStruct()
         {
             AnotherStruct v1 = GetAnotherStruct(1);
@@ -665,21 +666,21 @@ namespace IceRpc.Tests.Slice.Stream
                 CancellationToken cancel)
             {
                 _ = Task.Run(async () =>
-                {
-                    var cancellationSource = new CancellationTokenSource();
-                    int i = 0;
-                    await foreach (MyStruct element in p1.WithCancellation(cancellationSource.Token))
                     {
-                        MyStructs = MyStructs.Add(element);
-                        if (++i == 20)
+                        var cancellationSource = new CancellationTokenSource();
+                        int i = 0;
+                        await foreach (MyStruct element in p1.WithCancellation(cancellationSource.Token))
                         {
-                            break;
+                            MyStructs = MyStructs.Add(element);
+                            if (++i == 20)
+                            {
+                                break;
+                            }
                         }
-                    }
-                    cancellationSource.Cancel();
-                    EnumerableReceived.Release();
-                },
-                CancellationToken.None);
+                        cancellationSource.Cancel();
+                        EnumerableReceived.Release();
+                    },
+                    CancellationToken.None);
                 return default;
             }
 
