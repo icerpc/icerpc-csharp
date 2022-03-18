@@ -11,41 +11,27 @@ namespace IceRpc.Slice.Tests;
 public class BitSequenceTests
 {
 
+    /// <summary>Provides test case data for
+    /// <see cref="Write_bit_sequence_clears_memory(byte)"/> test.
+    /// </summary>
     private static IEnumerable<TestCaseData> WriteClearsMemorySource
     {
         get
         {
             (byte[], byte[], IList<Memory<byte>>?, int writes)[] testData =
             {
-                (
-                    new byte[] { 1, 2, 3 },
-                    Array.Empty<byte>(),
-                    null,
-                    1
-                ),
+                (new byte[] { 1, 2, 3 }, Array.Empty<byte>(), null, 1),
+                (new byte[] { 1, 2, 3 }, new byte[] { 4, 5, 6 }, null, 2),
                 (
                     new byte[] { 1, 2, 3 },
                     new byte[] { 4, 5, 6 },
-                    null,
-                    2
-                ),
-                (
-                    new byte[] { 1, 2, 3 },
-                    new byte[] { 4, 5, 6 },
-                    new Memory<byte>[]
-                    {
-                        new byte[] { 7, 8, 9 }
-                    },
+                    new Memory<byte>[] { new byte[] { 7, 8, 9 } },
                     3
                 ),
                 (
                     new byte[] { 1, 2, 3 },
                     new byte[] { 4, 5, 6 },
-                    new Memory<byte>[]
-                    {
-                        new byte[] { 7, 8, 9 },
-                        new byte[] { 10, 11, 12 }
-                    },
+                    new Memory<byte>[] { new byte[] { 7, 8, 9 }, new byte[] { 10, 11, 12 } },
                     4
                 ),
             };
@@ -95,11 +81,14 @@ public class BitSequenceTests
         }
     }
 
-    /// <summary>Verifies that calling <see cref="BitSequenceWriter.Write"/> correctly writes the specified
-    /// bit sequence to the provided spans and memory.</summary>
-    /// <param name="pattern">The byte pattern to write.</param>
+    /// <summary>Verifies that calling <see cref="BitSequenceWriter.Write"/> correctly zeros the provided spans
+    /// and additional memory</summary>
+    /// <param name="firstBytes">The bytes that will be used to create the first span.</param>
+    /// <param name="secondBytes">The bytes that will be used to create the second span. (Can be empty)</param>
+    /// <param name="additionalMemory">The list of memory used for additional memory. (Optional)</param>
+    /// <param name="writes">The number of times to call <see cref="BitSequenceWriter.Write"/>.</param>
     [Test, TestCaseSource(nameof(WriteClearsMemorySource))]
-    public void Write_bit_seqeunce_clears_memory(
+    public void Write_bit_sequence_clears_memory(
         byte[] firstBytes,
         byte[] secondBytes,
         IList<Memory<byte>>? additionalMemory,
@@ -117,36 +106,37 @@ public class BitSequenceTests
         Assert.That(enumerator.Current.ToArray().All(o => o == 0), Is.True);
     }
 
+    /// <summary> TODO </summary>
     [Test]
-    public void BitSequence_GetBitSequenceWriter(
+    public void Get_bit_sequence_writer_from_slice_encoder(
         [Values(1, 8, 17, 97, 791)] int bitSize,
         [Values(0x00, 0x01, 0x12, 0x3C, 0x55, 0xFF)] byte pattern)
     {
+        // Arrange
         const int maxBufferSize = 7;
         using var testPool = new TestMemoryPool(maxBufferSize);
         var pipe = new Pipe(new PipeOptions(pool: testPool));
         var encoder = new SliceEncoder(pipe.Writer, Encoding.Slice20);
-
         BitSequenceWriter writer = encoder.GetBitSequenceWriter(bitSize);
 
+        // Act
         for (int i = 0; i < bitSize; ++i)
         {
             writer.Write(IsSet(i, pattern));
         }
         pipe.Writer.Complete();
-
-        // Read it back with a bit sequence reader
-
         bool read = pipe.Reader.TryRead(out ReadResult readResult);
-        Assert.That(read, Is.True);
-        Assert.That(readResult.Buffer.IsSingleSegment, Is.EqualTo(bitSize <= maxBufferSize * 8));
-
         var reader = new BitSequenceReader(readResult.Buffer);
 
+        // Assert
+        Assert.That(read, Is.True);
+        Assert.That(readResult.Buffer.IsSingleSegment, Is.EqualTo(bitSize <= maxBufferSize * 8));
         for (int i = 0; i < bitSize; ++i)
         {
             Assert.That(reader.Read(), Is.EqualTo(IsSet(i, pattern)));
         }
+
+        // Cleanup
         pipe.Reader.Complete();
     }
 
