@@ -94,7 +94,7 @@ public class BitSequenceTests
         IList<Memory<byte>>? additionalMemory,
         int writes)
     {
-        var enumerator = new SpanEnumerator(firstBytes.AsSpan(), secondBytes.AsSpan(), additionalMemory.AsSpan());
+        var enumerator = new SpanEnumerator(firstBytes.AsSpan(), secondBytes.AsSpan(), additionalMemory);
         var writer = new BitSequenceWriter(enumerator);
         for (int i = 0; i < writes - 1; i++)
         {
