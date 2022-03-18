@@ -223,6 +223,10 @@ namespace IceRpc.Internal
             {
                 throw new InvalidOperationException("cannot send twoway request over UDP");
             }
+            if (request.PayloadSourceStream != null)
+            {
+                throw new NotSupportedException("PayloadSourceStream must be null with the ice protocol");
+            }
 
             // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue to serialize
             // the sending of frames.
@@ -271,10 +275,8 @@ namespace IceRpc.Internal
                     throw new OperationCanceledException();
                 }
 
-                int payloadSize = checked((int)readResult.Buffer.Length);
-
-                // TODO: temporary. For now, we just consume nothing and use the old code.
-                request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
+                ReadOnlySequence<byte> payload = readResult.Buffer;
+                int payloadSize = checked((int)payload.Length);
 
                 // If the application sets the payload sink, the initial payload sink is set and we need to set the
                 // stream output on the delayed pipe writer decorator. Otherwise, we directly use the stream output.
@@ -291,7 +293,9 @@ namespace IceRpc.Internal
 
                 EncodeHeader(_networkConnectionWriter, payloadSize);
 
-                await SendPayloadAsync(request, payloadSink, cancel).ConfigureAwait(false);
+                await SendPayloadAsync(payload, request.PayloadSource, payloadSink, cancel).ConfigureAwait(false);
+                await request.CompleteAsync().ConfigureAwait(false);
+
                 request.IsSent = true;
             }
             catch (ObjectDisposedException exception)
@@ -362,6 +366,10 @@ namespace IceRpc.Internal
                 await response.CompleteAsync().ConfigureAwait(false);
                 return;
             }
+            if (response.PayloadSourceStream != null)
+            {
+                throw new NotSupportedException("PayloadSourceStream must be null with the ice protocol");
+            }
 
             Debug.Assert(!_isUdp); // udp is oneway-only so no response
 
@@ -411,8 +419,6 @@ namespace IceRpc.Internal
                                 throw new InvalidDataException(
                                     $"unexpected reply status value '{replyStatus}' in payload");
                             }
-
-
                         }
                         else
                         {
@@ -422,21 +428,12 @@ namespace IceRpc.Internal
 
                     EncodeHeader(_networkConnectionWriter, payloadSize, replyStatus);
 
-                    if (payload.IsSingleSegment)
-                    {
-                        _ = await response.PayloadSink.WriteAsync(payload.First, cancel).ConfigureAwait(false);
-                    }
-                    else if (response.PayloadSink is IcePayloadPipeWriter icePayloadPipeWriter)
-                    {
-                        await icePayloadPipeWriter.WriteAsync(payload, cancel).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        foreach (ReadOnlyMemory<byte> segment in payload)
-                        {
-                            _ = await response.PayloadSink.WriteAsync(segment, cancel).ConfigureAwait(false);
-                        }
-                    }
+                    await SendPayloadAsync(
+                        payload,
+                        response.PayloadSource,
+                        response.PayloadSink,
+                        cancel).ConfigureAwait(false);
+
                     await response.CompleteAsync().ConfigureAwait(false);
                 }
                 finally
@@ -643,71 +640,63 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <summary>Sends the payload source of an outgoing frame.</summary>
+        /// <summary>Sends the payload source of an outgoing frame alongside any header previously buffered.</summary>
         private static async ValueTask SendPayloadAsync(
-            OutgoingFrame outgoingFrame,
+            ReadOnlySequence<byte> payload,
+            PipeReader payloadSource,
             PipeWriter payloadSink,
             CancellationToken cancel)
         {
-            if (outgoingFrame.PayloadSourceStream != null)
-            {
-                // Since the payload is encoded with a Slice encoding, PayloadSourceStream can only come from
-                // a Slice stream parameter/return.
-                throw new NotSupportedException("stream parameters and return values are not supported with ice");
-            }
-
-            FlushResult flushResult = default;
-            ReadResult readResult = await outgoingFrame.PayloadSource.ReadAsync(cancel).ConfigureAwait(false);
-            Debug.Assert(readResult.IsCompleted);
-            ReadOnlySequence<byte> payload = readResult.Buffer;
+            FlushResult flushResult;
 
             try
             {
-                // TODO: If readResult.Buffer.Length is small, it might be better to call a single
-                // sink.WriteAsync(readResult.Buffer.ToArray()) instead of calling multiple times WriteAsync
-                // that will end up in multiple network calls?
-                if (payload.IsSingleSegment)
+                if (payload.Length > 0)
                 {
-                    flushResult = await payloadSink.WriteAsync(payload.First, cancel).ConfigureAwait(false);
-                }
-                else if (payloadSink is IcePayloadPipeWriter icePayloadPipeWriter)
-                {
-                    await icePayloadPipeWriter.WriteAsync(payload, cancel).ConfigureAwait(false);
-                }
-                else
-                {
-                    foreach (ReadOnlyMemory<byte> memory in payload)
+                    if (payload.IsSingleSegment)
                     {
-                        flushResult = await payloadSink.WriteAsync(memory, cancel).ConfigureAwait(false);
-                        if (flushResult.IsCompleted || flushResult.IsCanceled)
+                        flushResult = await payloadSink.WriteAsync(payload.First, cancel).ConfigureAwait(false);
+                        CheckFlushResult(flushResult);
+                    }
+                    else if (payloadSink is IcePayloadPipeWriter icePayloadPipeWriter)
+                    {
+                        await icePayloadPipeWriter.WriteAsync(payload, cancel).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        // TODO: If readResult.Buffer.Length is small, it might be better to Write these buffers (i.e.
+                        // copy/buffer them) instead of calling multiple times WriteAsync that will end up in multiple
+                        // network calls?
+
+                        foreach (ReadOnlyMemory<byte> memory in payload)
                         {
-                            Debug.Assert(false);
-                            break;
+                            flushResult = await payloadSink.WriteAsync(memory, cancel).ConfigureAwait(false);
+                            CheckFlushResult(flushResult);
                         }
                     }
                 }
             }
             finally
             {
-                outgoingFrame.PayloadSource.AdvanceTo(readResult.Buffer.End);
+                payloadSource.AdvanceTo(payload.End);
             }
 
+            // FlushAsync on the underlying SimpleNetworkConnectionPipeWriter is no-op when there is no unflushed byte
+            // (typically because one of the WriteAsync above flushed all the bytes).
+            // We need to call FlushAsync no matter what in case an interceptor or middleware decides to implement
+            // WriteAsync by sending everything to the unflushed bytes, which is a legitimate implementation.
             flushResult = await payloadSink.FlushAsync(cancel).ConfigureAwait(false);
+            CheckFlushResult(flushResult);
+
             await payloadSink.CompleteAsync().ConfigureAwait(false);
 
-            Debug.Assert(!flushResult.IsCanceled); // not implemented
-
-            if (flushResult.IsCompleted)
+            static void CheckFlushResult(FlushResult flushResult)
             {
-                Debug.Assert(false);
-
-                // The remote reader gracefully complete the stream input pipe. TODO: which exception should we
-                // throw here? We throw OperationCanceledException... which implies that if the frame is an outgoing
-                // request is won't be retried.
-                throw new OperationCanceledException("peer stopped reading the payload");
+                if (flushResult.IsCanceled || flushResult.IsCompleted)
+                {
+                    throw new NotSupportedException("unexpected flush result");
+                }
             }
-
-            await outgoingFrame.CompleteAsync().ConfigureAwait(false);
         }
 
         private void CancelDispatches()
