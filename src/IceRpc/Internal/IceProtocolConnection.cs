@@ -261,9 +261,9 @@ namespace IceRpc.Internal
                 // Read payload source until IsCompleted is true.
 
                 ReadResult readResult = await request.PayloadSource.ReadAtLeastAsync(
-                    _options.MaxOutgoingPayloadSize + 1, cancel).ConfigureAwait(false);
+                    _options.MaxOutgoingFrameSize + 1, cancel).ConfigureAwait(false);
 
-                if (!readResult.IsCompleted || readResult.Buffer.Length > _options.MaxOutgoingPayloadSize)
+                if (!readResult.IsCompleted || readResult.Buffer.Length > _options.MaxOutgoingFrameSize)
                 {
                     throw new ArgumentException(
                         "payload size is greater than max outgoing max payload size",
@@ -383,12 +383,16 @@ namespace IceRpc.Internal
                 // Read payload source until IsCompleted is true.
 
                 ReadResult readResult = await response.PayloadSource.ReadAtLeastAsync(
-                    _options.MaxOutgoingPayloadSize + 1, cancel).ConfigureAwait(false);
+                    _options.MaxOutgoingFrameSize + 1,
+                    cancel).ConfigureAwait(false);
 
-                if (!readResult.IsCompleted || readResult.Buffer.Length > _options.MaxOutgoingPayloadSize)
+                ReadOnlySequence<byte> payload = readResult.Buffer;
+                int payloadSize = checked((int)payload.Length);
+
+                if (!readResult.IsCompleted)
                 {
                     throw new ArgumentException(
-                        "payload size is greater than max outgoing max payload size",
+                        "payload size is greater than the max outgoing frame size",
                         nameof(response));
                 }
 
@@ -396,9 +400,6 @@ namespace IceRpc.Internal
                 {
                     throw new OperationCanceledException();
                 }
-
-                ReadOnlySequence<byte> payload = readResult.Buffer;
-                int payloadSize = checked((int)payload.Length);
 
                 // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue to
                 // serialize the sending of frames.
@@ -426,7 +427,13 @@ namespace IceRpc.Internal
                         }
                     }
 
-                    EncodeHeader(_networkConnectionWriter, payloadSize, replyStatus);
+                    int frameSize = EncodeHeader(_networkConnectionWriter, requestFeature.Id, payloadSize, replyStatus);
+                    if (frameSize > _options.MaxOutgoingFrameSize)
+                    {
+                        throw new ArgumentException(
+                            "frame size is greater than the max outgoing frame size",
+                            nameof(response));
+                    }
 
                     await SendPayloadAsync(
                         payload,
@@ -464,7 +471,7 @@ namespace IceRpc.Internal
                 }
             }
 
-            void EncodeHeader(PipeWriter writer, int payloadSize, ReplyStatus replyStatus)
+            static int EncodeHeader(PipeWriter writer, int requestId, int payloadSize, ReplyStatus replyStatus)
             {
                 var encoder = new SliceEncoder(writer, Encoding.Slice11);
 
@@ -475,7 +482,7 @@ namespace IceRpc.Internal
                 encoder.EncodeByte(0); // compression status
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
 
-                encoder.EncodeInt(requestFeature.Id);
+                encoder.EncodeInt(requestId);
 
                 if (replyStatus <= ReplyStatus.UserException)
                 {
@@ -493,7 +500,9 @@ namespace IceRpc.Internal
                 }
                 // else the reply status (> UserException) is part of the payload
 
-                SliceEncoder.EncodeInt(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
+                int frameSize = encoder.EncodedByteCount + payloadSize;
+                SliceEncoder.EncodeInt(frameSize, sizePlaceholder.Span);
+                return frameSize;
             }
         }
 
@@ -665,9 +674,8 @@ namespace IceRpc.Internal
                     else
                     {
                         // TODO: If readResult.Buffer.Length is small, it might be better to Write these buffers (i.e.
-                        // copy/buffer them) instead of calling multiple times WriteAsync that will end up in multiple
-                        // network calls?
-
+                        // copy them to the unflushed bytes) instead of calling multiple times WriteAsync that can end
+                        // up in multiple network calls.
                         foreach (ReadOnlyMemory<byte> memory in payload)
                         {
                             flushResult = await payloadSink.WriteAsync(memory, cancel).ConfigureAwait(false);

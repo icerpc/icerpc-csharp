@@ -26,7 +26,7 @@ namespace IceRpc.Tests.ClientServer
                     _ => new()
                     {
                         MaxIncomingFrameSize = 4 * 1024 * 1024,
-                        MaxOutgoingPayloadSize = 4 * 1024 * 1024
+                        MaxOutgoingFrameSize = 4 * 1024 * 1024
                     })
                 .UseTransport("tcp")
                 .UseProtocol(protocol)
