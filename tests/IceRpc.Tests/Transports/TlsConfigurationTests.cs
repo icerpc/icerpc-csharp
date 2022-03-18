@@ -14,8 +14,8 @@ namespace IceRpc.Transports.Tests;
 [Timeout(5000)]
 public class TlsConfigurationTests
 {
-    /// <summary>Verifies that the server connection establishment fail with <see cref="AuthenticationException"/> when
-    /// the client certificate is not trusted.</summary>
+    /// <summary>Verifies that the server connection establishment will fail with <see cref="AuthenticationException"/>
+    /// when the client certificate is not trusted.</summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Security",
         "CA5359:Do Not Disable Certificate Validation",
