@@ -656,15 +656,51 @@ namespace IceRpc.Internal
                 throw new NotSupportedException("stream parameters and return values are not supported with ice");
             }
 
-            FlushResult flushResult = await payloadSink.CopyFromAsync(
-                outgoingFrame.PayloadSource,
-                completeWhenDone: true,
-                cancel).ConfigureAwait(false);
+            FlushResult flushResult = default;
+            ReadResult readResult = await outgoingFrame.PayloadSource.ReadAsync(cancel).ConfigureAwait(false);
+            Debug.Assert(readResult.IsCompleted);
+            ReadOnlySequence<byte> payload = readResult.Buffer;
+
+            try
+            {
+                // TODO: If readResult.Buffer.Length is small, it might be better to call a single
+                // sink.WriteAsync(readResult.Buffer.ToArray()) instead of calling multiple times WriteAsync
+                // that will end up in multiple network calls?
+                if (payload.IsSingleSegment)
+                {
+                    flushResult = await payloadSink.WriteAsync(payload.First, cancel).ConfigureAwait(false);
+                }
+                else if (payloadSink is IcePayloadPipeWriter icePayloadPipeWriter)
+                {
+                    await icePayloadPipeWriter.WriteAsync(payload, cancel).ConfigureAwait(false);
+                }
+                else
+                {
+                    foreach (ReadOnlyMemory<byte> memory in payload)
+                    {
+                        flushResult = await payloadSink.WriteAsync(memory, cancel).ConfigureAwait(false);
+                        if (flushResult.IsCompleted || flushResult.IsCanceled)
+                        {
+                            Debug.Assert(false);
+                            break;
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                outgoingFrame.PayloadSource.AdvanceTo(readResult.Buffer.End);
+            }
+
+            flushResult = await payloadSink.FlushAsync(cancel).ConfigureAwait(false);
+            await payloadSink.CompleteAsync().ConfigureAwait(false);
 
             Debug.Assert(!flushResult.IsCanceled); // not implemented
 
             if (flushResult.IsCompleted)
             {
+                Debug.Assert(false);
+
                 // The remote reader gracefully complete the stream input pipe. TODO: which exception should we
                 // throw here? We throw OperationCanceledException... which implies that if the frame is an outgoing
                 // request is won't be retried.
