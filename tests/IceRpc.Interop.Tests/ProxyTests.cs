@@ -80,7 +80,7 @@ public class ProxyTests
             };
             foreach ((string name, string category) in testData)
             {
-                var path = $"/{Uri.EscapeDataString(category)}/{Uri.EscapeDataString(name)}";
+                string path = $"/{Uri.EscapeDataString(category)}/{Uri.EscapeDataString(name)}";
                 foreach (IceProxyFormat format in
                     ImmutableList.Create(IceProxyFormat.Unicode, IceProxyFormat.ASCII, IceProxyFormat.Compat))
                 {
