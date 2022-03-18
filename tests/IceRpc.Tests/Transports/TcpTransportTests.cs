@@ -14,6 +14,27 @@ namespace IceRpc.Transports.Tests;
 [Timeout(5000)]
 public class TcpTransportTests
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Security",
+        "CA5359:Do Not Disable Certificate Validation",
+        Justification = "The transport tests do not rely on certificate validation")]
+    private static SslClientAuthenticationOptions DefaultSslClientAuthenticationOptions { get; } =
+        new SslClientAuthenticationOptions
+        {
+            ClientCertificates = new X509CertificateCollection()
+            {
+                new X509Certificate2("../../../certs/client.p12", "password")
+            },
+            RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true,
+        };
+
+        private static SslServerAuthenticationOptions DefaultSslServerAuthenticationOptions { get; } =
+            new SslServerAuthenticationOptions
+            {
+                ClientCertificateRequired = false,
+                ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
+            };
+
     /// <summary>Verifies that the transport can accept tcp network connections.</summary>
     [Test]
     public async Task Accept_tcp_network_connection()
@@ -456,9 +477,10 @@ public class TcpTransportTests
     public async Task Tls_server_connection_connect_failed_exception()
     {
         // Arrange
-        await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(withAuthenticationOptions: true);
+        await using IListener<ISimpleNetworkConnection> listener =
+            CreateTcpListener(authenticationOptions: DefaultSslServerAuthenticationOptions);
         await using TcpClientNetworkConnection clientConnection =
-            CreateTcpClientConnection(listener.Endpoint, withAuthenticationOptions: true);
+            CreateTcpClientConnection(listener.Endpoint, authenticationOptions: DefaultSslClientAuthenticationOptions);
 
         Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
         // We don't use clientConnection.ConnectAsync() here as this would start the TLS handshake
@@ -495,7 +517,7 @@ public class TcpTransportTests
 
         await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(
             listener.Endpoint,
-            withAuthenticationOptions: true);
+            authenticationOptions: DefaultSslClientAuthenticationOptions);
 
         Task<NetworkConnectionInformation> connectTask = clientConnection.ConnectAsync(default);
         ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
@@ -632,43 +654,24 @@ public class TcpTransportTests
     private static IListener<ISimpleNetworkConnection> CreateTcpListener(
         Endpoint? endpoint = null,
         TcpServerTransportOptions? options = null,
-        SslServerAuthenticationOptions? authenticationOptions = null,
-        bool withAuthenticationOptions = false)
+        SslServerAuthenticationOptions? authenticationOptions = null)
     {
         IServerTransport<ISimpleNetworkConnection> serverTransport = new TcpServerTransport(options ?? new());
         return serverTransport.Listen(
             endpoint ?? new Endpoint(Protocol.IceRpc) { Host = "::1", Port = 0 },
-            authenticationOptions: withAuthenticationOptions ?
-                new SslServerAuthenticationOptions
-                {
-                    ClientCertificateRequired = false,
-                    ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
-                } : authenticationOptions,
+            authenticationOptions: authenticationOptions,
             NullLogger.Instance);
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Security",
-        "CA5359:Do Not Disable Certificate Validation",
-        Justification = "<Pending>")]
     private static TcpClientNetworkConnection CreateTcpClientConnection(
         Endpoint? endpoint = null,
         TcpClientTransportOptions? options = null,
-        SslClientAuthenticationOptions? authenticationOptions= null,
-        bool withAuthenticationOptions = false)
+        SslClientAuthenticationOptions? authenticationOptions= null)
     {
         IClientTransport<ISimpleNetworkConnection> transport = new TcpClientTransport(options ?? new());
         return (TcpClientNetworkConnection)transport.CreateConnection(
             endpoint ?? new Endpoint(Protocol.IceRpc),
-            authenticationOptions: withAuthenticationOptions ?
-                new SslClientAuthenticationOptions
-                {
-                    ClientCertificates = new X509CertificateCollection()
-                    {
-                        new X509Certificate2("../../../certs/client.p12", "password")
-                    },
-                    RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true,
-                } : authenticationOptions,
+            authenticationOptions:authenticationOptions,
             NullLogger.Instance);
     }
 }
