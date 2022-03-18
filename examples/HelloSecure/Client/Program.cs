@@ -13,20 +13,12 @@ var authenticationOptions = new SslClientAuthenticationOptions()
 {
     RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
     {
-        chain = new X509Chain();
-        try
-        {
-            chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-            chain.ChainPolicy.DisableCertificateDownloads = true;
-            chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
-            chain.ChainPolicy.CustomTrustStore.Clear();
-            chain.ChainPolicy.CustomTrustStore.Add(rootCA);
-            return chain.Build((X509Certificate2)certificate!);
-        }
-        finally
-        {
-            chain.Dispose();
-        }
+        using var customChain = new X509Chain();
+        customChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+        customChain.ChainPolicy.DisableCertificateDownloads = true;
+        customChain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
+        customChain.ChainPolicy.CustomTrustStore.Add(rootCA);
+        return customChain.Build((X509Certificate2)certificate!);
     }
 };
 
