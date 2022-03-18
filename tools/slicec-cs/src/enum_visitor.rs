@@ -159,7 +159,7 @@ enumerator."#,
             "exception",
             "cref",
             "IceRpc.InvalidDataException",
-            "Thrown when the value does not correspond to one of the enumerators.</exception>",
+            "Thrown when the value does not correspond to one of the enumerators.",
         );
     }
 
