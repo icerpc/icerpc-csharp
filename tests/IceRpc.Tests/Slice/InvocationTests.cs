@@ -138,7 +138,7 @@ public class InvocationTests
             new Invocation() { Timeout = invocationTimeout });
 
         // Assert
-        Assert.That(Math.Abs((deadline - expectedDeadline).TotalMilliseconds), Is.LessThanOrEqualTo(50));
+        Assert.That(Math.Abs((deadline - expectedDeadline).TotalMilliseconds), Is.LessThanOrEqualTo(100));
     }
 
     /// <summary>Verifies that when using an infinite invocation timeout the cancellation token passed to the invoker

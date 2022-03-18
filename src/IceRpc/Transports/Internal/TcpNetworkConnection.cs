@@ -256,7 +256,9 @@ namespace IceRpc.Transports.Internal
                 {
                     // This can only be created with a connected socket.
                     _sslStream = new SslStream(new NetworkStream(Socket, false), false);
-                    await _sslStream.AuthenticateAsClientAsync(authenticationOptions, cancel).ConfigureAwait(false);
+                    await _sslStream.AuthenticateAsClientAsync(
+                        authenticationOptions,
+                        cancel).WaitAsync(cancel).ConfigureAwait(false);
                 }
 
                 var ipEndPoint = (IPEndPoint)Socket.LocalEndPoint!;
@@ -367,7 +369,9 @@ namespace IceRpc.Transports.Internal
                 {
                     // This can only be created with a connected socket.
                     _sslStream = new SslStream(new NetworkStream(Socket, false), false);
-                    await _sslStream.AuthenticateAsServerAsync(_authenticationOptions, cancel).ConfigureAwait(false);
+                    await _sslStream.AuthenticateAsServerAsync(
+                        _authenticationOptions,
+                        cancel).WaitAsync(cancel).ConfigureAwait(false);
                 }
 
                 var ipEndPoint = (IPEndPoint)Socket.RemoteEndPoint!;

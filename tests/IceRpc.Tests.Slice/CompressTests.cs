@@ -10,23 +10,22 @@ using System.IO.Pipelines;
 namespace IceRpc.Tests.Slice
 {
     [Parallelizable(ParallelScope.All)]
+    [Timeout(5000)]
     class CompressTests
     {
         [TestCase(true)]
         [TestCase(false)]
+        [Ignore("missing completion of the incoming request on dispatcher failure, #929")]
         public async Task Compress_Override(bool keepDefault)
         {
             bool executed = false;
-
+            Features.CompressPayload? feature = null;
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IInvoker>(_ =>
                     new Pipeline().Use(next => new InlineInvoker((request, cancel) =>
                     {
                         executed = true;
-                        Assert.That(request.Operation, Is.EqualTo("opCompressArgs"));
-                        Assert.AreEqual(keepDefault ? Features.CompressPayload.Yes : Features.CompressPayload.No,
-                                        request.Features.Get<Features.CompressPayload>());
-
+                        feature = request.Features.Get<Features.CompressPayload>();
                         return next.InvokeAsync(request, cancel);
                     })))
                 .BuildServiceProvider();
@@ -42,7 +41,11 @@ namespace IceRpc.Tests.Slice
             }
 
             await prx.OpCompressArgsAsync(0, default, invocation);
+
             Assert.That(executed, Is.True);
+            Assert.That(
+                keepDefault ? Features.CompressPayload.Yes : Features.CompressPayload.No,
+                Is.EqualTo(feature));
         }
 
         [TestCase(512, "Optimal")]
