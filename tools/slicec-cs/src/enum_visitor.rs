@@ -1,4 +1,6 @@
-use crate::builders::{AttributeBuilder, CommentBuilder, ContainerBuilder};
+use crate::builders::{
+    AttributeBuilder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType,
+};
 use crate::code_block::CodeBlock;
 use crate::comments::{doc_comment_message, CommentTag};
 use crate::generated_code::GeneratedCode;
@@ -106,26 +108,33 @@ private static readonly global::System.Collections.Generic.HashSet<{underlying}>
         );
     }
 
-    let mut as_enum_doc = CodeBlock::new();
-
-    writeln!(
-        as_enum_doc,
-        r#"
-/// <summary>Converts a <see cref="{underlying_type}"/> into the corresponding <see cref="{escaped_identifier}"/>
-/// enumerator.</summary>
-/// <param name="value">The value being converted.</param>
-/// <returns>The enumerator.</returns>"#
-    );
-
-    let mut as_enum: CodeBlock = if enum_def.is_unchecked {
+    let as_enum_block = FunctionBuilder::new(
+        &access,
+        &escaped_identifier,
+        format!("As{}", enum_def.identifier()).as_str(),
+        FunctionType::BlockBody,
+    )
+    .add_parameter(
+        format!("this {}", underlying_type).as_str(),
+        "value",
+        None,
+        Some("The value being converted"),
+    )
+    .add_comment(
+        "summary",
+        format!(
+            r#"
+Converts a <see cref="{underlying_type}"/> into the corresponding <see cref="{escaped_identifier}"/>
+enumerator."#,
+            underlying_type = underlying_type,
+            escaped_identifier = escaped_identifier
+        )
+        .as_str(),
+    )
+    .add_comment("returns", "The enumerator.")
+    .set_body(if enum_def.is_unchecked {
         format!("({})value", escaped_identifier).into()
     } else {
-        write!(
-            as_enum_doc,
-            r#"/// <exception cref="IceRpc.InvalidDataException">Thrown when the value does not correspond to one of
-/// the enumerators.</exception>"#,
-        );
-
         format!(
             r#"
 {check_enum} ?
@@ -143,23 +152,18 @@ private static readonly global::System.Collections.Generic.HashSet<{underlying}>
             scoped = enum_def.escape_scoped_identifier(namespace),
         )
         .into()
-    };
+    });
 
-    builder.add_block(
-        format!(
-            r#"
-{as_enum_doc}
-{access} static {escaped_identifier} As{identifier}(this {underlying_type} value) =>
-    {as_enum};"#,
-            as_enum_doc = as_enum_doc,
-            access = access,
-            identifier = enum_def.identifier(),
-            escaped_identifier = escaped_identifier,
-            underlying_type = underlying_type,
-            as_enum = as_enum.indent()
-        )
-        .into(),
-    );
+    if enum_def.is_unchecked {
+        as_enum_block.add_comment_with_attribute(
+            "exception",
+            "cref",
+            "IceRpc.InvalidDataException",
+            "Thrown when the value does not correspond to one of the enumerators.</exception>",
+        );
+    }
+
+    builder.add_block(as_enum_block.build());
 
     builder.build().into()
 }

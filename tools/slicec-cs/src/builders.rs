@@ -182,7 +182,7 @@ impl FunctionBuilder {
         self
     }
 
-    fn add_comment_with_attribute(
+    pub fn add_comment_with_attribute(
         &mut self,
         tag: &str,
         attribute_name: &str,
