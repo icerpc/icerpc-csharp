@@ -228,34 +228,6 @@ namespace IceRpc.Internal
                 throw new NotSupportedException("PayloadSourceStream must be null with the ice protocol");
             }
 
-            // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue to serialize
-            // the sending of frames.
-            await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
-
-            // Assign the request ID for twoway invocations and keep track of the invocation for receiving the response.
-            int requestId = 0;
-            if (!request.IsOneway)
-            {
-                try
-                {
-                    lock (_mutex)
-                    {
-                        if (_shutdown)
-                        {
-                            throw new ConnectionClosedException();
-                        }
-                        requestId = ++_nextRequestId;
-                        _invocations[requestId] = request;
-                        request.Features = request.Features.With(new IceOutgoingRequest(requestId));
-                    }
-                }
-                catch
-                {
-                    _sendSemaphore.Release();
-                    throw;
-                }
-            }
-
             try
             {
                 // Read payload source until IsCompleted is true.
@@ -263,7 +235,7 @@ namespace IceRpc.Internal
                 ReadResult readResult = await request.PayloadSource.ReadAtLeastAsync(
                     _options.MaxOutgoingFrameSize + 1, cancel).ConfigureAwait(false);
 
-                if (!readResult.IsCompleted || readResult.Buffer.Length > _options.MaxOutgoingFrameSize)
+                if (!readResult.IsCompleted)
                 {
                     throw new ArgumentException(
                         "payload size is greater than max outgoing max payload size",
@@ -278,25 +250,59 @@ namespace IceRpc.Internal
                 ReadOnlySequence<byte> payload = readResult.Buffer;
                 int payloadSize = checked((int)payload.Length);
 
-                // If the application sets the payload sink, the initial payload sink is set and we need to set the
-                // stream output on the delayed pipe writer decorator. Otherwise, we directly use the stream output.
-                PipeWriter payloadSink;
-                if (request.InitialPayloadSink == null)
+                // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue to
+                // serialize the sending of frames.
+                await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+
+                try
                 {
-                    payloadSink = _payloadWriter;
+                    // Assign the request ID for twoway invocations and keep track of the invocation for receiving the
+                    // response.
+                    int requestId = 0;
+                    if (!request.IsOneway)
+                    {
+                        lock (_mutex)
+                        {
+                            if (_shutdown)
+                            {
+                                throw new ConnectionClosedException();
+                            }
+                            requestId = ++_nextRequestId;
+                            _invocations[requestId] = request;
+                            request.Features = request.Features.With(new IceOutgoingRequest(requestId));
+                        }
+                    }
+
+                    // If the application sets the payload sink, the initial payload sink is set and we need to set the
+                    // stream output on the delayed pipe writer decorator. Otherwise, we directly use the stream output.
+                    PipeWriter payloadSink;
+                    if (request.InitialPayloadSink == null)
+                    {
+                        payloadSink = _payloadWriter;
+                    }
+                    else
+                    {
+                        request.InitialPayloadSink.SetDecoratee(_payloadWriter);
+                        payloadSink = request.PayloadSink;
+                    }
+
+                    int frameSize = EncodeHeader(_networkConnectionWriter, request, requestId, payloadSize);
+                    if (frameSize > _options.MaxOutgoingFrameSize)
+                    {
+                        throw new ArgumentException(
+                            "request frame size is greater than the max outgoing frame size",
+                            nameof(request));
+                    }
+
+                    await SendPayloadAsync(payload, request.PayloadSource, payloadSink, cancel).ConfigureAwait(false);
+                    await request.CompleteAsync().ConfigureAwait(false);
+
+                    request.IsSent = true;
                 }
-                else
+                finally
                 {
-                    request.InitialPayloadSink.SetDecoratee(_payloadWriter);
-                    payloadSink = request.PayloadSink;
+                    _sendSemaphore.Release();
                 }
-
-                EncodeHeader(_networkConnectionWriter, payloadSize);
-
-                await SendPayloadAsync(payload, request.PayloadSource, payloadSink, cancel).ConfigureAwait(false);
-                await request.CompleteAsync().ConfigureAwait(false);
-
-                request.IsSent = true;
             }
             catch (ObjectDisposedException exception)
             {
@@ -313,12 +319,8 @@ namespace IceRpc.Internal
                 await request.CompleteAsync(ex).ConfigureAwait(false);
                 throw;
             }
-            finally
-            {
-                _sendSemaphore.Release();
-            }
 
-            void EncodeHeader(PipeWriter output, int payloadSize)
+            static int EncodeHeader(PipeWriter output, OutgoingRequest request, int requestId, int payloadSize)
             {
                 var encoder = new SliceEncoder(output, Encoding.Slice11);
 
@@ -351,7 +353,9 @@ namespace IceRpc.Internal
                     new EncapsulationHeader(encapsulationSize: payloadSize + 6, encodingMajor, encodingMinor));
                 requestHeader.Encode(ref encoder);
 
-                SliceEncoder.EncodeInt(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
+                int frameSize = encoder.EncodedByteCount + payloadSize;
+                SliceEncoder.EncodeInt(frameSize, sizePlaceholder.Span);
+                return frameSize;
             }
         }
 
@@ -386,9 +390,6 @@ namespace IceRpc.Internal
                     _options.MaxOutgoingFrameSize + 1,
                     cancel).ConfigureAwait(false);
 
-                ReadOnlySequence<byte> payload = readResult.Buffer;
-                int payloadSize = checked((int)payload.Length);
-
                 if (!readResult.IsCompleted)
                 {
                     throw new ArgumentException(
@@ -400,6 +401,9 @@ namespace IceRpc.Internal
                 {
                     throw new OperationCanceledException();
                 }
+
+                ReadOnlySequence<byte> payload = readResult.Buffer;
+                int payloadSize = checked((int)payload.Length);
 
                 // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue to
                 // serialize the sending of frames.
@@ -431,7 +435,7 @@ namespace IceRpc.Internal
                     if (frameSize > _options.MaxOutgoingFrameSize)
                     {
                         throw new ArgumentException(
-                            "frame size is greater than the max outgoing frame size",
+                            "response frame size is greater than the max outgoing frame size",
                             nameof(response));
                     }
 
