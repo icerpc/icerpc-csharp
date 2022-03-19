@@ -194,11 +194,82 @@ namespace IceRpc.Internal
                 throw new InvalidOperationException("unknown request");
             }
 
+            int requestId = requestFeature.Id;
+
             // Wait for the response.
             try
             {
-                return await requestFeature.IncomingResponseCompletionSource.Task.WaitAsync(
+                PipeReader frameReader =  await requestFeature.IncomingResponseCompletionSource.Task.WaitAsync(
                     cancel).ConfigureAwait(false);
+
+                try
+                {
+                    if (!frameReader.TryRead(out ReadResult readResult))
+                    {
+                        throw new InvalidDataException($"received empty response frame for request #{requestId}");
+                    }
+
+                    ReplyStatus replyStatus = readResult.Buffer.FirstSpan[0].AsReplyStatus();
+
+                    if (replyStatus <= ReplyStatus.UserException)
+                    {
+                        const int headerSize = 7; // reply status byte + encapsulation header
+
+                        // read and check encapsulation header (6 bytes long)
+
+                        if (readResult.Buffer.Length < headerSize)
+                        {
+                            throw new ConnectionLostException();
+                        }
+
+                        EncapsulationHeader encapsulationHeader = Encoding.Slice11.DecodeBuffer(
+                            readResult.Buffer.Slice(1, 6),
+                            (ref SliceDecoder decoder) => new EncapsulationHeader(ref decoder));
+
+                        // Consume header.
+                        frameReader.AdvanceTo(readResult.Buffer.GetPosition(headerSize));
+
+                        // Sanity check
+                        int payloadSize = encapsulationHeader.EncapsulationSize - 6;
+                        if (payloadSize != readResult.Buffer.Length - headerSize)
+                        {
+                            throw new InvalidDataException(
+                                @$"response payload size/frame size mismatch: payload size is {payloadSize
+                                } bytes but frame has {readResult.Buffer.Length - headerSize} bytes left");
+                        }
+
+                        // TODO: check encoding is 1.1. See github proposal.
+                    }
+                    else
+                    {
+                        // An ice system exception
+
+                        // examined 1 byte, did not consume anything
+                        frameReader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.GetPosition(1));
+                    }
+
+                    // For compatibility with ZeroC Ice "indirect" proxies
+                    if (replyStatus == ReplyStatus.ObjectNotExistException && request.Proxy.Endpoint == null)
+                    {
+                        request.Features = request.Features.With(RetryPolicy.OtherReplica);
+                    }
+
+                    return new IncomingResponse(request)
+                    {
+                        Payload = frameReader,
+                        ResultType = replyStatus switch
+                        {
+                            ReplyStatus.OK => ResultType.Success,
+                            ReplyStatus.UserException => (ResultType)SliceResultType.ServiceFailure,
+                            _ => ResultType.Failure
+                        }
+                    };
+                }
+                catch (Exception ex)
+                {
+                    await frameReader.CompleteAsync(ex).ConfigureAwait(false);
+                    throw;
+                }
             }
             finally
             {
@@ -876,99 +947,37 @@ namespace IceRpc.Internal
                     {
                         Debug.Assert(requestId != null);
 
-                        result = await _networkConnectionReader.ReadAsync(CancellationToken.None).ConfigureAwait(false);
-
-                        if (result.Buffer.IsEmpty)
-                        {
-                            throw new ConnectionLostException();
-                        }
-
-                        int payloadSize;
-
-                        ReplyStatus replyStatus = result.Buffer.FirstSpan[0].AsReplyStatus();
-
-                        if (replyStatus <= ReplyStatus.UserException)
-                        {
-                            const int headerSize = 7; // reply status byte + encapsulation header
-
-                            // read and check encapsulation header (6 bytes long)
-                            if (result.Buffer.Length < headerSize)
-                            {
-                                // examined 1 byte, did not consume anything
-                                _networkConnectionReader.AdvanceTo(result.Buffer.Start, result.Buffer.GetPosition(1));
-                                result = await _networkConnectionReader.ReadAtLeastAsync(
-                                    headerSize,
-                                    CancellationToken.None).ConfigureAwait(false);
-
-                                if (result.Buffer.Length < headerSize)
-                                {
-                                    throw new ConnectionLostException();
-                                }
-                            }
-
-                            EncapsulationHeader encapsulationHeader = Encoding.Slice11.DecodeBuffer(
-                                result.Buffer.Slice(1, 6),
-                                (ref SliceDecoder decoder) => new EncapsulationHeader(ref decoder));
-
-                            _networkConnectionReader.AdvanceTo(result.Buffer.GetPosition(headerSize));
-
-                            payloadSize = encapsulationHeader.EncapsulationSize - 6;
-
-                            if (payloadSize != frameRemainderSize - headerSize)
-                            {
-                                throw new InvalidDataException(
-                                    @$"response payload size/frame size mismatch: payload size is {payloadSize
-                                    } bytes but frame has {frameRemainderSize - headerSize} bytes left");
-                            }
-
-                            // TODO: check encoding is 1.1. See github proposal.
-                        }
-                        else
-                        {
-                            // An ice system exception
-
-                            // examined 1 byte, did not consume anything
-                            _networkConnectionReader.AdvanceTo(result.Buffer.Start, result.Buffer.GetPosition(1));
-
-                            payloadSize = frameRemainderSize;
-                        }
-
-                        PipeReader payloadReader = await CreateResponsePayloadPipeReaderAsync(
-                            payloadSize,
+                        PipeReader frameReader = await CreateFrameReaderAsync(
+                            frameRemainderSize,
                             _networkConnectionReader,
                             _memoryPool,
                             _minimumSegmentSize,
                             CancellationToken.None).ConfigureAwait(false);
 
-                        ResultType resultType = replyStatus switch
-                        {
-                            ReplyStatus.OK => ResultType.Success,
-                            ReplyStatus.UserException => (ResultType)SliceResultType.ServiceFailure,
-                            _ => ResultType.Failure
-                        };
+                        bool cleanupFrameReader = true;
 
-                        lock (_mutex)
+                        try
                         {
-                            Debug.Assert(requestId != null);
-                            if (_invocations.TryGetValue(requestId.Value, out OutgoingRequest? request))
+                            lock (_mutex)
                             {
-                                // For compatibility with ZeroC Ice "indirect" proxies
-                                if (replyStatus == ReplyStatus.ObjectNotExistException &&
-                                    request.Proxy.Endpoint == null)
+                                if (_invocations.TryGetValue(requestId.Value, out OutgoingRequest? request))
                                 {
-                                    request.Features = request.Features.With(RetryPolicy.OtherReplica);
-                                }
+                                    request.Features.Get<IceOutgoingRequest>()!.IncomingResponseCompletionSource.SetResult(
+                                        frameReader);
 
-                                request.Features.Get<IceOutgoingRequest>()!.IncomingResponseCompletionSource.SetResult(
-                                    new IncomingResponse(request)
-                                    {
-                                        Payload = payloadReader,
-                                        ResultType = resultType
-                                    });
+                                    cleanupFrameReader = false;
+                                }
+                                else if (!_shutdown)
+                                {
+                                    throw new InvalidDataException("received ice Reply for unknown invocation");
+                                }
                             }
-                            else if (!_shutdown)
+                        }
+                        finally
+                        {
+                            if (cleanupFrameReader)
                             {
-                                throw new InvalidDataException("received ice Reply for unknown invocation");
+                                await frameReader.CompleteAsync().ConfigureAwait(false);
                             }
                         }
                         break;
@@ -1049,11 +1058,10 @@ namespace IceRpc.Internal
                 return pipe.Reader;
             }
 
-            // Creates a pipe reader to simplify the reading of the payload from an incoming ice response.
-            // The payload is buffered into an internal pipe. The size is written first as a varulong followed by the
-            // payload.
-            static async ValueTask<PipeReader> CreateResponsePayloadPipeReaderAsync(
-                int payloadSize,
+            // Creates a pipe reader to simplify the reading of a request or response frame. The frame is read fully and
+            // buffered into an internal pipe.
+            static async ValueTask<PipeReader> CreateFrameReaderAsync(
+                int size,
                 SimpleNetworkConnectionPipeReader networkConnectionReader,
                 MemoryPool<byte> pool,
                 int minimumSegmentSize,
@@ -1067,7 +1075,7 @@ namespace IceRpc.Internal
 
                 await networkConnectionReader.FillBufferWriterAsync(
                     pipe.Writer,
-                    payloadSize,
+                    size,
                     cancel).ConfigureAwait(false);
 
                 await pipe.Writer.CompleteAsync().ConfigureAwait(false);
