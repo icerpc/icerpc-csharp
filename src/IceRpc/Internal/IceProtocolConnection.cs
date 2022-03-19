@@ -853,28 +853,25 @@ namespace IceRpc.Internal
 
             while (true)
             {
-                ReadResult result = await _networkConnectionReader.ReadAtLeastAsync(
+                ReadResult readResult = await _networkConnectionReader.ReadAtLeastAsync(
                     IceDefinitions.PrologueSize,
                     cancel).ConfigureAwait(false);
 
-                // Decode the prologue and eventually the request ID (depending on the frame type and if there's enough
-                // data in the buffer to read the request ID).
-                (IcePrologue prologue, int? requestId, int consumed) = DecodePrologue(result.Buffer);
-                _networkConnectionReader.AdvanceTo(result.Buffer.GetPosition(consumed));
-
-                if (requestId == null &&
-                    (prologue.FrameType == IceFrameType.Reply || prologue.FrameType == IceFrameType.Request))
+                if (readResult.Buffer.Length < IceDefinitions.PrologueSize)
                 {
-                    result = await _networkConnectionReader.ReadAtLeastAsync(4, cancel).ConfigureAwait(false);
-                    requestId = Encoding.Slice11.DecodeBuffer(
-                        result.Buffer.Slice(0, 4),
-                        (ref SliceDecoder decoder) => decoder.DecodeInt());
-                    _networkConnectionReader.AdvanceTo(result.Buffer.GetPosition(4));
+                    throw new ConnectionLostException();
                 }
 
-                int frameRemainderSize = prologue.FrameSize - consumed;
+                // First decode and check the prologue
 
-                // Check the header
+                ReadOnlySequence<byte> prologueBuffer = readResult.Buffer.Slice(0, IceDefinitions.PrologueSize);
+
+                IcePrologue prologue = Encoding.Slice11.DecodeBuffer(
+                    prologueBuffer,
+                    (ref SliceDecoder decoder) => new IcePrologue(ref decoder));
+
+                _networkConnectionReader.AdvanceTo(prologueBuffer.End);
+
                 IceDefinitions.CheckPrologue(prologue);
                 if (prologue.FrameSize > _options.MaxIncomingFrameSize)
                 {
@@ -882,7 +879,7 @@ namespace IceRpc.Internal
                         $"incoming frame size ({prologue.FrameSize}) is greater than max incoming frame size");
                 }
                 else if (_isUdp &&
-                    (prologue.FrameSize > result.Buffer.Length || prologue.FrameSize > UdpUtils.MaxPacketSize))
+                    (prologue.FrameSize > readResult.Buffer.Length || prologue.FrameSize > UdpUtils.MaxPacketSize))
                 {
                     // Ignore truncated UDP datagram.
                     continue; // while
@@ -944,32 +941,10 @@ namespace IceRpc.Internal
                     }
 
                     case IceFrameType.Request:
-                    {
-                        Debug.Assert(requestId != null);
-
-                        PipeReader frameReader = await CreateFrameReaderAsync(
-                            frameRemainderSize,
-                            _networkConnectionReader,
-                            _memoryPool,
-                            _minimumSegmentSize,
-                            CancellationToken.None).ConfigureAwait(false);
-
-                        return (requestId.Value, frameReader);
-                    }
-
-                    case IceFrameType.RequestBatch:
-                    {
-                        // TODO: skip the data
-
-                        break; // Batch requests are ignored because not supported
-                    }
-
                     case IceFrameType.Reply:
                     {
-                        Debug.Assert(requestId != null);
-
                         PipeReader frameReader = await CreateFrameReaderAsync(
-                            frameRemainderSize,
+                            prologue.FrameSize - IceDefinitions.PrologueSize,
                             _networkConnectionReader,
                             _memoryPool,
                             _minimumSegmentSize,
@@ -979,20 +954,40 @@ namespace IceRpc.Internal
 
                         try
                         {
-                            lock (_mutex)
+                            // Read and decode request ID
+                            if (!frameReader.TryRead(out readResult) || readResult.Buffer.Length < 4)
                             {
-                                if (_invocations.TryGetValue(requestId.Value, out OutgoingRequest? request))
-                                {
-                                    request.Features.Get<IceOutgoingRequest>()!.IncomingResponseCompletionSource.SetResult(
-                                        frameReader);
-
-                                    cleanupFrameReader = false;
-                                }
-                                else if (!_shutdown)
-                                {
-                                    throw new InvalidDataException("received ice Reply for unknown invocation");
-                                }
+                                throw new ConnectionLostException();
                             }
+
+                            ReadOnlySequence<byte> requestIdBuffer = readResult.Buffer.Slice(0, 4);
+                            int requestId = Encoding.Slice11.DecodeBuffer(
+                                requestIdBuffer,
+                                (ref SliceDecoder decoder) => decoder.DecodeInt());
+                            frameReader.AdvanceTo(requestIdBuffer.End);
+
+                            if (prologue.FrameType == IceFrameType.Request)
+                            {
+                                cleanupFrameReader = false;
+                                return (requestId, frameReader);
+                            }
+                            else
+                            {
+                                lock (_mutex)
+                                {
+                                    if (_invocations.TryGetValue(requestId, out OutgoingRequest? request))
+                                    {
+                                        request.Features.Get<IceOutgoingRequest>()!.IncomingResponseCompletionSource.SetResult(
+                                            frameReader);
+
+                                        cleanupFrameReader = false;
+                                    }
+                                    else if (!_shutdown)
+                                    {
+                                        throw new InvalidDataException("received ice Reply for unknown invocation");
+                                    }
+                                }
+                             }
                         }
                         finally
                         {
@@ -1003,6 +998,17 @@ namespace IceRpc.Internal
                         }
                         break;
                     }
+
+                    case IceFrameType.RequestBatch:
+                        // Read and ignore
+                        PipeReader reader = await CreateFrameReaderAsync(
+                            prologue.FrameSize - IceDefinitions.PrologueSize,
+                            _networkConnectionReader,
+                            _memoryPool,
+                            _minimumSegmentSize,
+                            CancellationToken.None).ConfigureAwait(false);
+                        await reader.CompleteAsync().ConfigureAwait(false);
+                        break;
 
                     case IceFrameType.ValidateConnection:
                     {
@@ -1022,19 +1028,6 @@ namespace IceRpc.Internal
                     }
                 }
             } // while
-
-            static (IcePrologue Prologue, int? RequestId, int Consumed) DecodePrologue(ReadOnlySequence<byte> buffer)
-            {
-                var decoder = new SliceDecoder(buffer, Encoding.Slice11);
-                var prologue = new IcePrologue(ref decoder);
-                int? requestId = null;
-                if ((prologue.FrameType == IceFrameType.Reply || prologue.FrameType == IceFrameType.Request) &&
-                    buffer.Length >= (IceDefinitions.PrologueSize + 4))
-                {
-                    requestId = decoder.DecodeInt();
-                }
-                return (prologue, requestId, (int)decoder.Consumed);
-            }
 
             // Creates a pipe reader to simplify the reading of a request or response frame. The frame is read fully and
             // buffered into an internal pipe.
