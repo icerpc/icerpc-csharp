@@ -35,8 +35,8 @@ namespace IceRpc.Configure
         internal static IceProtocolOptions Default { get; } = new();
 
         private const int DefaultValue = 1024 * 1024;
-        private const int MinValue = 256;
         private const int MaxValue = 1024 * 1024 * 1024;
+        private const int MinValue = 256;
         private int _maxIncomingFrameSize = DefaultValue;
         private int _maxOutgoingPayloadSize = DefaultValue;
     }

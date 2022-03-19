@@ -334,18 +334,19 @@ namespace IceRpc.Internal
                 // Read payload source until IsCompleted is true.
 
                 ReadResult readResult = await request.PayloadSource.ReadAtLeastAsync(
-                    _options.MaxOutgoingFrameSize + 1, cancel).ConfigureAwait(false);
+                    _options.MaxOutgoingFrameSize + 1,
+                    cancel).ConfigureAwait(false);
+
+                if (readResult.IsCanceled)
+                {
+                    throw new OperationCanceledException();
+                }
 
                 if (!readResult.IsCompleted)
                 {
                     throw new ArgumentException(
                         "payload size is greater than the max outgoing frame size",
                         nameof(request));
-                }
-
-                if (readResult.IsCanceled)
-                {
-                    throw new OperationCanceledException();
                 }
 
                 ReadOnlySequence<byte> payload = readResult.Buffer;
@@ -490,16 +491,16 @@ namespace IceRpc.Internal
                     _options.MaxOutgoingFrameSize + 1,
                     cancel).ConfigureAwait(false);
 
+                if (readResult.IsCanceled)
+                {
+                    throw new OperationCanceledException();
+                }
+
                 if (!readResult.IsCompleted)
                 {
                     throw new ArgumentException(
                         "payload size is greater than the max outgoing frame size",
                         nameof(response));
-                }
-
-                if (readResult.IsCanceled)
-                {
-                    throw new OperationCanceledException();
                 }
 
                 ReadOnlySequence<byte> payload = readResult.Buffer;
@@ -788,8 +789,6 @@ namespace IceRpc.Internal
             }
             finally
             {
-                // The "writer" on the other side of this payloadSource is completed, so there is no point to pass an
-                // exception to CompleteAsync.
                 await payloadSource.CompleteAsync().ConfigureAwait(false);
             }
 
