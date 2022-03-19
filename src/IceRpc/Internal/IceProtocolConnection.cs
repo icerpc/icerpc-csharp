@@ -118,11 +118,11 @@ namespace IceRpc.Internal
             {
                 // Wait for a request frame to be received.
                 int requestId;
-                IceRequestHeader requestHeader;
-                PipeReader payloadReader;
+                PipeReader frameReader;
+
                 try
                 {
-                    (requestId, requestHeader, payloadReader) = await ReceiveFrameAsync().ConfigureAwait(false);
+                    (requestId, frameReader) = await ReceiveFrameAsync().ConfigureAwait(false);
                 }
                 catch (ConnectionLostException)
                 {
@@ -141,44 +141,74 @@ namespace IceRpc.Internal
                     }
                 }
 
-                var request = new IncomingRequest(Protocol.Ice)
+                try
                 {
-                    Fields = requestHeader.OperationMode == OperationMode.Normal ?
-                            ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields,
-                    Fragment = requestHeader.Fragment,
-                    IsOneway = requestId == 0,
-                    Operation = requestHeader.Operation,
-                    Path = requestHeader.Path,
-                    Payload = payloadReader,
-                    PayloadEncoding = Encoding.FromMajorMinor(
-                        requestHeader.EncapsulationHeader.PayloadEncodingMajor,
-                        requestHeader.EncapsulationHeader.PayloadEncodingMinor),
-                    ResponseWriter = _payloadWriter,
-                };
-
-                if (requestId > 0)
-                {
-                    request.Features = request.Features.With(new IceIncomingRequest(requestId));
-                }
-
-                if (requestHeader.Context.Count > 0)
-                {
-                    request.Features = request.Features.WithContext(requestHeader.Context);
-                }
-
-                lock (_mutex)
-                {
-                    if (!_shutdown)
+                    if (!frameReader.TryRead(out ReadResult readResult))
                     {
-                        _dispatches.Add(request);
-                        request.CancelDispatchSource = new();
-                        return request;
+                        throw new InvalidDataException($"request #{requestId} has an empty frame");
                     }
+
+                    (IceRequestHeader requestHeader, int headerSize) = DecodeRequestHeader(readResult.Buffer);
+                    frameReader.AdvanceTo(readResult.Buffer.GetPosition(headerSize));
+
+                    var request = new IncomingRequest(Protocol.Ice)
+                    {
+                        Fields = requestHeader.OperationMode == OperationMode.Normal ?
+                                ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields,
+                        Fragment = requestHeader.Fragment,
+                        IsOneway = requestId == 0,
+                        Operation = requestHeader.Operation,
+                        Path = requestHeader.Path,
+                        Payload = frameReader,
+                        PayloadEncoding = Encoding.FromMajorMinor(
+                            requestHeader.EncapsulationHeader.PayloadEncodingMajor,
+                            requestHeader.EncapsulationHeader.PayloadEncodingMinor),
+                        ResponseWriter = _payloadWriter,
+                    };
+
+                    if (requestId > 0)
+                    {
+                        request.Features = request.Features.With(new IceIncomingRequest(requestId));
+                    }
+
+                    if (requestHeader.Context.Count > 0)
+                    {
+                        request.Features = request.Features.WithContext(requestHeader.Context);
+                    }
+
+                    lock (_mutex)
+                    {
+                        if (!_shutdown)
+                        {
+                            _dispatches.Add(request);
+                            request.CancelDispatchSource = new();
+                            return request;
+                        }
+                    }
+
+                    // If shutting down, ignore the incoming request and continue receiving frames until the connection
+                    // is closed.
+                    await request.CompleteAsync(new ConnectionClosedException()).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    await frameReader.CompleteAsync(ex).ConfigureAwait(false);
+                }
+            }
+
+            static (IceRequestHeader Header, int HeaderSize) DecodeRequestHeader(ReadOnlySequence<byte> buffer)
+            {
+                var decoder = new SliceDecoder(buffer, Encoding.Slice11);
+                var requestHeader = new IceRequestHeader(ref decoder);
+
+                int payloadSize = requestHeader.EncapsulationHeader.EncapsulationSize - 6;
+                if (payloadSize != (buffer.Length - decoder.Consumed))
+                {
+                    throw new InvalidDataException(@$"request payload size mismatch: expected {payloadSize
+                        } bytes, read {buffer.Length - decoder.Consumed} bytes");
                 }
 
-                // If shutting down, ignore the incoming request and continue receiving frames until the connection is
-                // closed.
-                await request.CompleteAsync(new ConnectionClosedException()).ConfigureAwait(false);
+                return (requestHeader, (int)decoder.Consumed);
             }
         }
 
@@ -199,7 +229,7 @@ namespace IceRpc.Internal
             // Wait for the response.
             try
             {
-                PipeReader frameReader =  await requestFeature.IncomingResponseCompletionSource.Task.WaitAsync(
+                PipeReader frameReader = await requestFeature.IncomingResponseCompletionSource.Task.WaitAsync(
                     cancel).ConfigureAwait(false);
 
                 try
@@ -816,7 +846,7 @@ namespace IceRpc.Internal
             }
         }
 
-        private async ValueTask<(int RequestId, IceRequestHeader RequestHeader, PipeReader PayloadReader)> ReceiveFrameAsync()
+        private async ValueTask<(int RequestId, PipeReader RequestFrameReader)> ReceiveFrameAsync()
         {
             // Reads are not cancelable. This method returns once a frame is read or when the connection is disposed.
             CancellationToken cancel = CancellationToken.None;
@@ -917,23 +947,14 @@ namespace IceRpc.Internal
                     {
                         Debug.Assert(requestId != null);
 
-                        // Read and decode the remainder of the request frame.
-                        result = await _networkConnectionReader.ReadAtLeastAsync(
+                        PipeReader frameReader = await CreateFrameReaderAsync(
                             frameRemainderSize,
+                            _networkConnectionReader,
+                            _memoryPool,
+                            _minimumSegmentSize,
                             CancellationToken.None).ConfigureAwait(false);
 
-                        ReadOnlySequence<byte> frameData = result.Buffer.Slice(0, frameRemainderSize);
-                        (IceRequestHeader requestHeader, consumed) = DecodeRequestHeader(frameData);
-                        frameData = frameData.Slice(consumed);
-
-                        var payloadReader = CreateRequestPayloadPipeReader(
-                            frameData,
-                            _memoryPool,
-                            _minimumSegmentSize);
-
-                        _networkConnectionReader.AdvanceTo(result.Buffer.GetPosition(frameRemainderSize));
-
-                        return (requestId.Value, requestHeader, payloadReader);
+                        return (requestId.Value, frameReader);
                     }
 
                     case IceFrameType.RequestBatch:
@@ -1013,49 +1034,6 @@ namespace IceRpc.Internal
                     requestId = decoder.DecodeInt();
                 }
                 return (prologue, requestId, (int)decoder.Consumed);
-            }
-
-            static (IceRequestHeader Header, int Consumed) DecodeRequestHeader(ReadOnlySequence<byte> buffer)
-            {
-                var decoder = new SliceDecoder(buffer, Encoding.Slice11);
-                var requestHeader = new IceRequestHeader(ref decoder);
-
-                int payloadSize = requestHeader.EncapsulationHeader.EncapsulationSize - 6;
-                if (payloadSize != (buffer.Length - decoder.Consumed))
-                {
-                    throw new InvalidDataException(@$"request payload size mismatch: expected {payloadSize
-                        } bytes, read {buffer.Length - decoder.Consumed} bytes");
-                }
-
-                return (requestHeader, (int)decoder.Consumed);
-            }
-
-            // Creates a pipe reader to simplify the reading of the payload from an incoming ice request.
-            // The payload is buffered into an internal pipe. The size is written first as a varulong followed by the
-            // payload.
-            static PipeReader CreateRequestPayloadPipeReader(
-                ReadOnlySequence<byte> payload,
-                MemoryPool<byte> pool,
-                int minimumSegmentSize)
-            {
-                var pipe = new Pipe(new PipeOptions(
-                    pool: pool,
-                    minimumSegmentSize: minimumSegmentSize,
-                    pauseWriterThreshold: 0,
-                    writerScheduler: PipeScheduler.Inline));
-
-                var encoder = new SliceEncoder(pipe.Writer, Encoding.Slice20);
-
-                // Copy the payload data to the internal pipe writer.
-                // TODO: this full payload copying is temporary.
-                if (!payload.IsEmpty)
-                {
-                    pipe.Writer.Write(payload);
-                }
-
-                // No more data to consume for the payload so we complete the internal pipe writer.
-                pipe.Writer.Complete();
-                return pipe.Reader;
             }
 
             // Creates a pipe reader to simplify the reading of a request or response frame. The frame is read fully and
