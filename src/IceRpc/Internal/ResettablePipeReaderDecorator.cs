@@ -85,7 +85,7 @@ namespace IceRpc.Internal
                 if (_isReadingInProgress)
                 {
                     Debug.Assert(_sequence != null);
-                    AdvanceTo(_sequence.Value.Start, _sequence.Value.End);
+                    AdvanceTo(_sequence.Value.End);
                 }
 
                 _isReaderCompleted = true;
@@ -106,7 +106,7 @@ namespace IceRpc.Internal
                 if (_isReadingInProgress)
                 {
                     Debug.Assert(_sequence != null);
-                    AdvanceTo(_sequence.Value.Start, _sequence.Value.End);
+                    AdvanceTo(_sequence.Value.End);
                 }
 
                 _isReaderCompleted = true;

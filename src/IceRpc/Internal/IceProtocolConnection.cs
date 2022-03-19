@@ -295,8 +295,6 @@ namespace IceRpc.Internal
                     }
 
                     await SendPayloadAsync(payload, request.PayloadSource, payloadSink, cancel).ConfigureAwait(false);
-                    await request.CompleteAsync().ConfigureAwait(false);
-
                     request.IsSent = true;
                 }
                 finally
@@ -445,8 +443,6 @@ namespace IceRpc.Internal
                         response.PayloadSource,
                         response.PayloadSink,
                         cancel).ConfigureAwait(false);
-
-                    await response.CompleteAsync().ConfigureAwait(false);
                 }
                 finally
                 {
@@ -691,7 +687,9 @@ namespace IceRpc.Internal
             }
             finally
             {
-                payloadSource.AdvanceTo(payload.End);
+                // The "writer" on the other side of this payloadSource is completed, so there is no point to pass an
+                // exception to CompleteAsync.
+                await payloadSource.CompleteAsync().ConfigureAwait(false);
             }
 
             // FlushAsync on the underlying SimpleNetworkConnectionPipeWriter is no-op when there is no unflushed byte
