@@ -238,7 +238,7 @@ namespace IceRpc.Internal
                 if (!readResult.IsCompleted)
                 {
                     throw new ArgumentException(
-                        "payload size is greater than max outgoing max payload size",
+                        "payload size is greater than the max outgoing frame size",
                         nameof(request));
                 }
 
@@ -301,6 +301,7 @@ namespace IceRpc.Internal
                 }
                 finally
                 {
+                    // None of the CompleteAsync later on can write to the network.
                     _sendSemaphore.Release();
                 }
             }
