@@ -206,6 +206,7 @@ namespace IceRpc.Internal
                 catch
                 {
                     await frameReader.CompleteAsync().ConfigureAwait(false);
+                    throw;
                 }
             }
 
