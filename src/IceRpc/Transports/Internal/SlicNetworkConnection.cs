@@ -232,10 +232,10 @@ namespace IceRpc.Transports.Internal
             _simpleNetworkConnectionReader.Dispose();
             _simpleNetworkConnectionWriter.Dispose();
 
-            var exception = new ObjectDisposedException($"{typeof(SlicNetworkConnection)}:{this}");
-
             // Close the network connection.
             await _simpleNetworkConnection.DisposeAsync().ConfigureAwait(false);
+
+            var exception = new ObjectDisposedException($"{typeof(SlicNetworkConnection)}:{this}");
 
             // Unblock requests waiting on the semaphores.
             _bidirectionalStreamSemaphore?.Complete(exception);
