@@ -73,6 +73,8 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public void Dispose()
         {
+            _networkConnectionReader.Dispose();
+
             // The connection is disposed, if there are sill pending invocations, it indicates a non-graceful shutdown,
             // we raise ConnectionLostException.
             var exception = new ConnectionLostException();

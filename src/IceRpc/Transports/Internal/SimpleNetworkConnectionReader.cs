@@ -8,10 +8,16 @@ namespace IceRpc.Transports.Internal
 {
     /// <summary>A helper class to efficiently read a simple network connection. It provides a PipeReader-like API but
     /// is not a PipeReader.</summary>
-    internal class SimpleNetworkConnectionReader
+    internal class SimpleNetworkConnectionReader : IDisposable
     {
         private readonly ISimpleNetworkConnection _connection;
         private readonly Pipe _pipe;
+
+        public void Dispose()
+        {
+            _pipe.Writer.Complete();
+            _pipe.Reader.Complete();
+        }
 
         internal SimpleNetworkConnectionReader(
             ISimpleNetworkConnection connection,
@@ -30,12 +36,6 @@ namespace IceRpc.Transports.Internal
 
         internal void AdvanceTo(SequencePosition consumed, SequencePosition examined) =>
             _pipe.Reader.AdvanceTo(consumed, examined);
-
-        internal void Complete()
-        {
-            _pipe.Writer.Complete();
-            _pipe.Reader.Complete();
-        }
 
         /// <summary>Writes <paramref name="byteCount"/> bytes read from this pipe reader or its underlying connection
         /// into <paramref name="bufferWriter"/>.</summary>

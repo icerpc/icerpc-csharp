@@ -229,11 +229,12 @@ namespace IceRpc.Transports.Internal
                 await _readCompletedSemaphore.EnterAsync(CancellationToken.None).ConfigureAwait(false);
             }
 
+            _simpleNetworkConnectionReader.Dispose();
+
             var exception = new ObjectDisposedException($"{typeof(SlicNetworkConnection)}:{this}");
 
             // Close the network connection.
             await _simpleNetworkConnection.DisposeAsync().ConfigureAwait(false);
-            _simpleNetworkConnectionReader.Complete();
             await _simpleNetworkConnectionWriter.CompleteAsync(exception).ConfigureAwait(false);
 
             // Unblock requests waiting on the semaphores.
