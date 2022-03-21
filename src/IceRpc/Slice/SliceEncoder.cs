@@ -504,7 +504,7 @@ namespace IceRpc.Slice
                     }
                 }
 
-                return new BitSequenceWriter(new SpanEnumerator(firstSpan, secondSpan, additionalMemory));
+                return new BitSequenceWriter(firstSpan, secondSpan, additionalMemory);
             }
         }
 

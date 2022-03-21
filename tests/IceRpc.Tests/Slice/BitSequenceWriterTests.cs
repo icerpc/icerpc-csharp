@@ -13,7 +13,7 @@ public class BitSequenceWriterTests
 
     /// <summary>Provides test case data for <see cref="Write_fails(byte[], byte[], IList<Memory<byte>>?"/> test.
     /// </summary>
-    private static IEnumerable<TestCaseData> SpanEnumeratorDataSource
+    private static IEnumerable<TestCaseData> WriteFailsDataSource
     {
         get
         {
@@ -112,7 +112,7 @@ public class BitSequenceWriterTests
             new byte[60]
         };
         const int size = (3 + 30 + 40 + 60) * 8; // in bits
-        var writer = new BitSequenceWriter(new SpanEnumerator(firstSpan, secondSpan, additionalMemory));
+        var writer = new BitSequenceWriter(firstSpan, secondSpan, additionalMemory);
 
         // Writing the bit sequence patterns to first span, second span, and additional memory
         for (int i = 0; i < size; ++i)
@@ -136,7 +136,7 @@ public class BitSequenceWriterTests
     /// <param name="firstBytes">The bytes that will be used to create the first span.</param>
     /// <param name="secondBytes">The bytes that will be used to create the second span. (Can be empty)</param>
     /// <param name="additionalMemory">The list of memory used for additional memory. (Optional)</param>
-    /// <param name="writes">The number of writes to make to move the SpanEnumerator to the final span.</param>
+    /// <param name="writes">The number of writes to make to move the BitSequenceWriter to the final span.</param>
     [Test, TestCaseSource(nameof(WriteClearsDataSource))]
     public void Write_bit_sequence_clears_memory(
         byte[] firstBytes,
@@ -145,7 +145,7 @@ public class BitSequenceWriterTests
         int writes)
     {
         // Arrange
-        var writer = new BitSequenceWriter(new SpanEnumerator(firstBytes.AsSpan(), secondBytes.AsSpan(), additionalMemory));
+        var writer = new BitSequenceWriter(firstBytes.AsSpan(), secondBytes.AsSpan(), additionalMemory);
         for (int i = 0; i < writes * 8; ++i)
         {
             writer.Write(true);
@@ -164,28 +164,12 @@ public class BitSequenceWriterTests
         Assert.That(current.ToArray().All(o => o == 0), Is.True);
     }
 
-    /// <summary>Verifies that constructing a <see cref="BitSequenceWriter"/> with a <see cref="SpanEnumerator"/>
-    /// that has already enumerated fully through its spans throws an argument exception.</summary>
-    [Test]
-    public void Construct_bit_sequence_writer_fails()
-    {
-        Assert.That(() =>
-        {
-            // Arrange
-            var enumerator = new SpanEnumerator(default);
-            enumerator.MoveNext();
-
-            // Act
-            var writer = new BitSequenceWriter(enumerator);
-        }, Throws.ArgumentException);
-    }
-
-    /// <summary>Verifies that constructing a <see cref="BitSequenceWriter"/> with a <see cref="SpanEnumerator"/>
-    /// that has already enumerated fully through its spans throws an argument exception.</summary>
+    /// <summary>Verifies that calling <see cref="BitSequenceWriter.Write"/> on a BitSequenceWriter that has already
+    /// enumerated fully through its spans throws an invalid operation exception.</summary>
     /// <param name="firstBytes">The bytes that will be used to create the first span.</param>
     /// <param name="secondBytes">The bytes that will be used to create the second span. (Can be empty)</param>
     /// <param name="additionalMemory">The list of memory used for additional memory. (Optional)</param>
-    [Test, TestCaseSource(nameof(SpanEnumeratorDataSource))]
+    [Test, TestCaseSource(nameof(WriteFailsDataSource))]
     public void Write_fails(byte[] firstBytes,
         byte[] secondBytes,
         IList<Memory<byte>>? additionalMemory)
@@ -195,7 +179,7 @@ public class BitSequenceWriterTests
             // Arrange
             int additionalMemSize = additionalMemory != null ? additionalMemory.Sum(m => m.Length) : 0;
             int size = (firstBytes.Length + secondBytes.Length + additionalMemSize) * 8;
-            var writer = new BitSequenceWriter(new SpanEnumerator(firstBytes, secondBytes, additionalMemory));
+            var writer = new BitSequenceWriter(firstBytes, secondBytes, additionalMemory);
             for (int i = 0; i < size; ++i)
             {
                 writer.Write(true);

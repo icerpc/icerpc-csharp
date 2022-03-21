@@ -85,19 +85,17 @@ namespace IceRpc.Slice
 
         /// <summary>Constructs a bit sequence writer over a bit sequence represented by a <see cref="SpanEnumerator"/>.
         /// </summary>
-        internal BitSequenceWriter(SpanEnumerator spanEnumerator)
+        internal BitSequenceWriter(
+            Span<byte> firstSpan,
+            Span<byte> secondSpan = default,
+            IList<Memory<byte>>? additionalMemory = null)
         {
             _index = 0;
-            _spanEnumerator = spanEnumerator;
-            if (_spanEnumerator.MoveNext())
-            {
-                // We fill the span with 0s, this way we only need to set bits, never unset them.
-                _spanEnumerator.Current.Fill(0);
-            }
-            else
-            {
-                throw new ArgumentException("cannot create a bit sequence writer over an empty bit sequence");
-            }
+            _spanEnumerator = new SpanEnumerator(firstSpan, secondSpan, additionalMemory);
+            _spanEnumerator.MoveNext();
+
+            // We fill the span with 0s, this way we only need to set bits, never unset them.
+            _spanEnumerator.Current.Fill(0);
         }
     }
 }
