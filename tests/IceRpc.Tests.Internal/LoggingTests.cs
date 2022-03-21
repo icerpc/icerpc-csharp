@@ -20,10 +20,8 @@ namespace IceRpc.Tests.Internal
     public class LoggingTests
     {
         /// <summary>Check the retry interceptor logging.</summary>
-        // TODO: enable again this test once the retry interceptor is fixed.
-        // [Ignore("retry interceptor issues, #929")]
+        [Ignore("retry interceptor issues, #929")]
         [Test]
-        [Log(LogAttributeLevel.Debug)]
         public async Task Logging_RetryInterceptor()
         {
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()

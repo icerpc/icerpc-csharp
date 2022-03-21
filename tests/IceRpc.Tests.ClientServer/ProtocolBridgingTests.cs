@@ -22,7 +22,6 @@ namespace IceRpc.Tests.ClientServer
         [TestCase("ice", "icerpc", true)]
         [TestCase("icerpc", "ice", false)]
         [TestCase("ice", "icerpc", false)]
-        [Repeat(2)]
         public async Task ProtocolBridging_Forward(string forwarderProtocol, string targetProtocol, bool colocated)
         {
             var router = new Router();
