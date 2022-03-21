@@ -29,7 +29,10 @@ namespace IceRpc.Tests
                     Endpoint = serviceProvider.GetRequiredService<Endpoint>(),
                     LoggerFactory = serviceProvider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance,
                     MultiplexedServerTransport = multiplexedServerTransport,
-                    SimpleServerTransport = simpleServerTransport
+                    SimpleServerTransport = simpleServerTransport,
+                    // Use 60s timeout otherwise tests causing connection shutdown issues might silently succeed.
+                    CloseTimeout = TimeSpan.FromSeconds(60),
+                    IceProtocolOptions = serviceProvider.GetService<IceProtocolOptions>()
                 });
 
                 server.Listen();
@@ -53,7 +56,10 @@ namespace IceRpc.Tests
                     SimpleClientTransport = simpleClientTransport,
                     MultiplexedClientTransport = multiplexedClientTransport,
                     LoggerFactory = serviceProvider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance,
-                    IsResumable = serviceProvider.GetService<ResumableConnection>() != null
+                    IsResumable = serviceProvider.GetService<ResumableConnection>() != null,
+                    // Use 60s timeout otherwise tests causing connection shutdown issues might silently succeed.
+                    CloseTimeout = TimeSpan.FromSeconds(60),
+                    IceProtocolOptions = serviceProvider.GetService<IceProtocolOptions>()
                 };
             });
 

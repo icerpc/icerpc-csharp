@@ -120,7 +120,13 @@ namespace IceRpc.Slice
             var resultType = (SliceResultType)response.ResultType;
             if (resultType is SliceResultType.Failure or SliceResultType.ServiceFailure)
             {
-                ReadResult readResult = await response.Payload.ReadSegmentAsync(cancel).ConfigureAwait(false);
+                SliceEncoding encoding = resultType == SliceResultType.Failure ?
+                    response.Protocol.SliceEncoding! :
+                    (SliceEncoding)response.Request.PayloadEncoding;
+
+                ReadResult readResult = await response.Payload.ReadSegmentAsync(
+                    encoding,
+                    cancel).ConfigureAwait(false);
 
                 if (readResult.IsCanceled)
                 {

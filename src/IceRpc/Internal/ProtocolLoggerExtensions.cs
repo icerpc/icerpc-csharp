@@ -23,11 +23,11 @@ namespace IceRpc.Internal
         internal static partial void LogDatagramMaximumSizeExceeded(this ILogger logger, int size);
 
         [LoggerMessage(
-            EventId = (int)ProtocolEventIds.DatagramSizeExceededIncomingFrameMaxSize,
-            EventName = nameof(ProtocolEventIds.DatagramSizeExceededIncomingFrameMaxSize),
+            EventId = (int)ProtocolEventIds.DatagramSizeExceededMaxIncomingFrameSize,
+            EventName = nameof(ProtocolEventIds.DatagramSizeExceededMaxIncomingFrameSize),
             Level = LogLevel.Debug,
-            Message = "frame with {Size} bytes exceeds IncomingFrameMaxSize connection option value")]
-        internal static partial void LogDatagramSizeExceededIncomingFrameMaxSize(this ILogger logger, int size);
+            Message = "frame with {Size} bytes exceeds MaxIncomingFrameSize connection option value")]
+        internal static partial void LogDatagramSizeExceededMaxIncomingFrameSize(this ILogger logger, int size);
 
         [LoggerMessage(
             EventId = (int)ProtocolEventIds.ReceivedIceRequestBatchFrame,
@@ -66,8 +66,8 @@ namespace IceRpc.Internal
             EventId = (int)ProtocolEventIds.ReceivedInitializeFrame,
             EventName = nameof(ProtocolEventIds.ReceivedInitializeFrame),
             Level = LogLevel.Debug,
-            Message = "received initialize frame (IncomingFrameMaxSize={IncomingFrameMaxSize})")]
-        internal static partial void LogReceivedInitializeFrame(this ILogger logger, int incomingFrameMaxSize);
+            Message = "received initialize frame (MaxIncomingFrameSize={MaxIncomingFrameSize})")]
+        internal static partial void LogReceivedInitializeFrame(this ILogger logger, int MaxIncomingFrameSize);
 
         [LoggerMessage(
             EventId = (int)ProtocolEventIds.ReceivedInvalidDatagram,
@@ -106,7 +106,7 @@ namespace IceRpc.Internal
             EventId = (int)ProtocolEventIds.SentInitializeFrame,
             EventName = nameof(ProtocolEventIds.SentInitializeFrame),
             Level = LogLevel.Debug,
-            Message = "sent initialize frame (IncomingFrameMaxSize={IncomingFrameMaxSize})")]
-        internal static partial void LogSentInitializeFrame(this ILogger logger, int incomingFrameMaxSize);
+            Message = "sent initialize frame (MaxIncomingFrameSize={MaxIncomingFrameSize})")]
+        internal static partial void LogSentInitializeFrame(this ILogger logger, int MaxIncomingFrameSize);
     }
 }

@@ -104,31 +104,6 @@ namespace IceRpc.Tests
             int port) =>
             collection.AddScoped(_ => transport).UseEndpoint("coloc", host: "coloctest", port);
 
-        public static IServiceCollection UseTls(
-            this IServiceCollection collection,
-            string caFile = "cacert.der",
-            string certificateFile = "server.p12")
-        {
-            collection.AddScoped(serviceProvider => new SslClientAuthenticationOptions()
-            {
-                RemoteCertificateValidationCallback =
-                    CertificateValidaton.GetServerCertificateValidationCallback(
-                        certificateAuthorities: new X509Certificate2Collection
-                        {
-                            new X509Certificate2(Path.Combine(Environment.CurrentDirectory, "certs", caFile))
-                        })
-            });
-
-            collection.AddScoped(_ => new SslServerAuthenticationOptions()
-            {
-                ServerCertificate = new X509Certificate2(
-                    Path.Combine(Environment.CurrentDirectory, "certs", certificateFile),
-                    "password")
-            });
-
-            return collection;
-        }
-
         public static IServiceCollection UseTransport(this IServiceCollection collection, string transport) =>
             collection.UseEndpoint(transport, "[::1]", 0);
 

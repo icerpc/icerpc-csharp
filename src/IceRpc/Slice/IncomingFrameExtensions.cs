@@ -34,7 +34,7 @@ namespace IceRpc.Slice
         {
             try
             {
-                ReadResult readResult = await frame.Payload.ReadSegmentAsync(cancel).ConfigureAwait(false);
+                ReadResult readResult = await frame.Payload.ReadSegmentAsync(encoding, cancel).ConfigureAwait(false);
 
                 if (readResult.IsCanceled)
                 {
@@ -95,7 +95,7 @@ namespace IceRpc.Slice
         {
             try
             {
-                ReadResult readResult = await frame.Payload.ReadSegmentAsync(cancel).ConfigureAwait(false);
+                ReadResult readResult = await frame.Payload.ReadSegmentAsync(encoding, cancel).ConfigureAwait(false);
 
                 if (readResult.IsCanceled)
                 {
@@ -189,7 +189,7 @@ namespace IceRpc.Slice
 
                     try
                     {
-                        readResult = await frame.Payload.ReadSegmentAsync(cancel).ConfigureAwait(false);
+                        readResult = await frame.Payload.ReadSegmentAsync(encoding, cancel).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {

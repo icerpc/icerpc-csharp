@@ -26,16 +26,18 @@ namespace IceRpc.Internal
         // True when the caller complete this reader; reset by Reset.
         private bool _isReaderCompleted;
 
+        private bool _isReadingInProgress;
+
         /// <inheritdoc/>
         public override void AdvanceTo(SequencePosition consumed) => AdvanceTo(consumed, consumed);
 
         /// <inheritdoc/>
         public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
         {
-            if (_sequence == null)
-            {
+            _isReadingInProgress = _isReadingInProgress ? false :
                 throw new InvalidOperationException("cannot call AdvanceTo before reading PipeReader");
-            }
+
+            Debug.Assert(_sequence != null);
 
             // The examined given to _decoratee must be ever-increasing.
             if (_highestExamined == null) // first AdvanceTo ever
@@ -80,11 +82,18 @@ namespace IceRpc.Internal
         {
             if (IsResettable)
             {
+                if (_isReadingInProgress)
+                {
+                    Debug.Assert(_sequence != null);
+                    AdvanceTo(_sequence.Value.End);
+                }
+
                 _isReaderCompleted = true;
                 // and that's it
             }
             else
             {
+                _isReadingInProgress = false;
                 _decoratee.Complete(exception);
             }
         }
@@ -94,11 +103,18 @@ namespace IceRpc.Internal
         {
             if (IsResettable)
             {
+                if (_isReadingInProgress)
+                {
+                    Debug.Assert(_sequence != null);
+                    AdvanceTo(_sequence.Value.End);
+                }
+
                 _isReaderCompleted = true;
                 // and that's it
             }
             else
             {
+                _isReadingInProgress = false;
                 await _decoratee.CompleteAsync(exception).ConfigureAwait(false);
             }
         }
@@ -110,6 +126,9 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken)
         {
+            _isReadingInProgress = !_isReadingInProgress ? true :
+                throw new InvalidOperationException("reading is already in progress");
+
             if (IsResettable)
             {
                 ThrowIfCompleted();
@@ -150,6 +169,9 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public override bool TryRead(out ReadResult result)
         {
+            _isReadingInProgress = !_isReadingInProgress ? true :
+                throw new InvalidOperationException("reading is already in progress");
+
             if (IsResettable)
             {
                 ThrowIfCompleted();
@@ -206,6 +228,12 @@ namespace IceRpc.Internal
         {
             if (IsResettable)
             {
+                if (_isReadingInProgress)
+                {
+                    throw new InvalidOperationException(
+                        "cannot reset ResettablePipeReaderDecorator while reading is in progress");
+                }
+
                 if (!_isReaderCompleted && _consumed != null)
                 {
                     throw new InvalidOperationException(

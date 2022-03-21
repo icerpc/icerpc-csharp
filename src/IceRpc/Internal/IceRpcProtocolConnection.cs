@@ -100,7 +100,9 @@ namespace IceRpc.Internal
                 PipeReader reader = stream.Input;
                 try
                 {
-                    ReadResult readResult = await reader.ReadSegmentAsync(CancellationToken.None).ConfigureAwait(false);
+                    ReadResult readResult = await reader.ReadSegmentAsync(
+                        Encoding.Slice20,
+                        CancellationToken.None).ConfigureAwait(false);
 
                     if (readResult.Buffer.IsEmpty)
                     {
@@ -213,7 +215,9 @@ namespace IceRpc.Internal
 
             try
             {
-                ReadResult readResult = await responseReader.ReadSegmentAsync(cancel).ConfigureAwait(false);
+                ReadResult readResult = await responseReader.ReadSegmentAsync(
+                    Encoding.Slice20,
+                    cancel).ConfigureAwait(false);
 
                 if (readResult.IsCanceled)
                 {
@@ -607,7 +611,7 @@ namespace IceRpc.Internal
             CancellationToken cancel)
         {
             PipeReader input = _remoteControlStream!.Input;
-            ReadResult readResult = await input.ReadSegmentAsync(cancel).ConfigureAwait(false);
+            ReadResult readResult = await input.ReadSegmentAsync(Encoding.Slice20, cancel).ConfigureAwait(false);
             if (readResult.IsCanceled)
             {
                 throw new OperationCanceledException();

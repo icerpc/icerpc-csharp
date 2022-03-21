@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 using System.Buffers;
 
 namespace IceRpc.Transports.Internal
@@ -24,15 +25,9 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal static (uint, InitializeBody?) DecodeInitialize(this ReadOnlyMemory<byte> buffer, FrameType type)
+        // TODO: if we really want a separate method, it should go to a different class.
+        internal static (uint, InitializeBody?) DecodeInitialize(this ref SliceDecoder decoder)
         {
-            if (type != FrameType.Initialize)
-            {
-                throw new InvalidDataException(
-                    $"unexpected Slic frame type {type}, expected {FrameType.Initialize}");
-            }
-
-            var decoder = new SliceDecoder(buffer, Encoding.Slice20);
             uint version = decoder.DecodeVarUInt();
             if (version == SlicDefinitions.V1)
             {
@@ -42,6 +37,17 @@ namespace IceRpc.Transports.Internal
             {
                 return (version, null);
             }
+        }
+
+        internal static (uint, InitializeBody?) DecodeInitialize(this ReadOnlyMemory<byte> buffer, FrameType type)
+        {
+            if (type != FrameType.Initialize)
+            {
+                throw new InvalidDataException(
+                    $"unexpected Slic frame type {type}, expected {FrameType.Initialize}");
+            }
+
+            return Encoding.Slice20.DecodeBuffer(new ReadOnlySequence<byte>(buffer), DecodeInitialize);
         }
 
         internal static (InitializeAckBody?, VersionBody?) DecodeInitializeAckOrVersion(
