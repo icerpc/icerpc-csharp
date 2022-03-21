@@ -45,7 +45,7 @@ namespace IceRpc.Transports.Internal
         private readonly AsyncSemaphore _sendSemaphore = new(1, 1);
         private readonly ISimpleNetworkConnection _simpleNetworkConnection;
         private readonly SimpleNetworkConnectionReader _simpleNetworkConnectionReader;
-        private readonly SimpleNetworkConnectionPipeWriter _simpleNetworkConnectionWriter;
+        private readonly SimpleNetworkConnectionWriter _simpleNetworkConnectionWriter;
         private readonly ConcurrentDictionary<long, SlicMultiplexedStream> _streams = new();
         private readonly int _unidirectionalMaxStreams;
         private int _unidirectionalStreamCount;
@@ -230,12 +230,12 @@ namespace IceRpc.Transports.Internal
             }
 
             _simpleNetworkConnectionReader.Dispose();
+            _simpleNetworkConnectionWriter.Dispose();
 
             var exception = new ObjectDisposedException($"{typeof(SlicNetworkConnection)}:{this}");
 
             // Close the network connection.
             await _simpleNetworkConnection.DisposeAsync().ConfigureAwait(false);
-            await _simpleNetworkConnectionWriter.CompleteAsync(exception).ConfigureAwait(false);
 
             // Unblock requests waiting on the semaphores.
             _bidirectionalStreamSemaphore?.Complete(exception);
@@ -275,7 +275,7 @@ namespace IceRpc.Transports.Internal
             _unidirectionalMaxStreams = slicOptions.UnidirectionalStreamMaxCount;
             _simpleNetworkConnection = simpleNetworkConnection;
 
-            _simpleNetworkConnectionWriter = new SimpleNetworkConnectionPipeWriter(
+            _simpleNetworkConnectionWriter = new SimpleNetworkConnectionWriter(
                 simpleNetworkConnection,
                 slicOptions.Pool,
                 slicOptions.MinimumSegmentSize);
