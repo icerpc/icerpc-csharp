@@ -20,7 +20,7 @@ namespace IceRpc.Internal
 
         public override void Complete(Exception? exception = null)
         {
-            // No-op. We don't want to close the network connection pipe writer.
+            // No-op. We don't want to dispose the network connection writer.
         }
 
         public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken = default)
