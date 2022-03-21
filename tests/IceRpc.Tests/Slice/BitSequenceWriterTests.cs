@@ -19,21 +19,9 @@ public class BitSequenceWriterTests
         {
             (byte[], byte[], IList<Memory<byte>>?)[] testData =
             {
-                (
-                    new byte[] { 1, 2, 3 },
-                    Array.Empty<byte>(),
-                    null
-                ),
-                (
-                    new byte[] { 1, 2, 3 },
-                    new byte[] { 4, 5, 6 },
-                    null
-                ),
-                (
-                    new byte[] { 1, 2, 3 },
-                    new byte[] { 4, 5, 6 },
-                    new Memory<byte>[] { new byte[] { 7, 8, 9 } }
-                ),
+                (new byte[] { 1, 2, 3 }, Array.Empty<byte>(), null),
+                (new byte[] { 1, 2, 3 }, new byte[] { 4, 5, 6 }, null),
+                (new byte[] { 1, 2, 3 }, new byte[] { 4, 5, 6 }, new Memory<byte>[] { new byte[] { 7, 8, 9 } }),
                 (
                     new byte[] { 1, 2, 3 },
                     new byte[] { 4, 5, 6 },
@@ -59,24 +47,9 @@ public class BitSequenceWriterTests
         {
             (byte[], byte[], IList<Memory<byte>>?, int)[] testData =
             {
-                (
-                    new byte[] { 1, 2, 3 },
-                    Array.Empty<byte>(),
-                    null,
-                    0
-                ),
-                (
-                    new byte[] { 1, 2, 3 },
-                    new byte[] { 4, 5, 6 },
-                    null,
-                    3
-                ),
-                (
-                    new byte[] { 1, 2, 3 },
-                    new byte[] { 4, 5, 6 },
-                    new Memory<byte>[] { new byte[] { 7, 8, 9 } },
-                    6
-                ),
+                (new byte[] { 1, 2, 3 }, Array.Empty<byte>(), null, 0),
+                (new byte[] { 1, 2, 3 }, new byte[] { 4, 5, 6 }, null, 3),
+                (new byte[] { 1, 2, 3 }, new byte[] { 4, 5, 6 }, new Memory<byte>[] { new byte[] { 7, 8, 9 } }, 6),
                 (
                     new byte[] { 1, 2, 3 },
                     new byte[] { 4, 5, 6 },
@@ -174,6 +147,8 @@ public class BitSequenceWriterTests
         byte[] secondBytes,
         IList<Memory<byte>>? additionalMemory)
     {
+        // We cannot follow traditional AAA with this test as the writer must be accessible inside of the lambda
+        // expression. Thus the arrange and act sections were moved into the Nunit assertion.
         Assert.That(() =>
         {
             // Arrange
