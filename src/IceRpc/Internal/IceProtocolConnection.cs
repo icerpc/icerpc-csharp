@@ -117,12 +117,12 @@ namespace IceRpc.Internal
             while (true)
             {
                 // Wait for a request frame to be received.
-                int requestId;
-                PipeReader frameReader;
+
+                int frameSize; // the total size of the frame
 
                 try
                 {
-                    (requestId, frameReader) = await ReceiveFrameAsync().ConfigureAwait(false);
+                    frameSize = await ReceiveFrameAsync().ConfigureAwait(false);
                 }
                 catch (ConnectionLostException)
                 {
@@ -141,15 +141,26 @@ namespace IceRpc.Internal
                     }
                 }
 
+                // TODO: at this point - before reading the actual request frame - we could easily wait until
+                // _dispatches.Count < MaxConcurrentDispatches.
+
+                PipeReader frameReader = await CreateFrameReaderAsync(
+                    frameSize - IceDefinitions.PrologueSize,
+                    _networkConnectionReader,
+                    _memoryPool,
+                    _minimumSegmentSize,
+                    CancellationToken.None).ConfigureAwait(false);
+
                 try
                 {
                     if (!frameReader.TryRead(out ReadResult readResult))
                     {
-                        throw new InvalidDataException($"request #{requestId} has an empty frame");
+                        throw new InvalidDataException("received request with an empty frame");
                     }
 
-                    (IceRequestHeader requestHeader, int headerSize) = DecodeRequestHeader(readResult.Buffer);
-                    frameReader.AdvanceTo(readResult.Buffer.GetPosition(headerSize));
+                    (int requestId, IceRequestHeader requestHeader, int consumed) = DecodeRequestIdAndHeader(
+                        readResult.Buffer);
+                    frameReader.AdvanceTo(readResult.Buffer.GetPosition(consumed));
 
                     var request = new IncomingRequest(Protocol.Ice)
                     {
@@ -196,9 +207,12 @@ namespace IceRpc.Internal
                 }
             }
 
-            static (IceRequestHeader Header, int HeaderSize) DecodeRequestHeader(ReadOnlySequence<byte> buffer)
+            static (int RequestId, IceRequestHeader Header, int Consumed) DecodeRequestIdAndHeader(
+                ReadOnlySequence<byte> buffer)
             {
                 var decoder = new SliceDecoder(buffer, Encoding.Slice11);
+
+                int requestId = decoder.DecodeInt();
                 var requestHeader = new IceRequestHeader(ref decoder);
 
                 int payloadSize = requestHeader.EncapsulationHeader.EncapsulationSize - 6;
@@ -208,7 +222,7 @@ namespace IceRpc.Internal
                         } bytes, read {buffer.Length - decoder.Consumed} bytes");
                 }
 
-                return (requestHeader, (int)decoder.Consumed);
+                return (requestId, requestHeader, (int)decoder.Consumed);
             }
         }
 
@@ -272,10 +286,10 @@ namespace IceRpc.Internal
                     }
                     else
                     {
-                        // An ice system exception
+                        // An ice system exception. The reply status is part of the payload.
 
-                        // examined 1 byte, did not consume anything
-                        frameReader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.GetPosition(1));
+                        // Don't consume anything. The examined is irrelevant since frameReader is completed.
+                        frameReader.AdvanceTo(readResult.Buffer.Start);
                     }
 
                     // For compatibility with ZeroC Ice "indirect" proxies
@@ -752,6 +766,41 @@ namespace IceRpc.Internal
             }
         }
 
+        /// <summary>Creates a pipe reader to simplify the reading of a request or response frame. The frame is read
+        /// fully and buffered into an internal pipe.</summary>
+        private static async ValueTask<PipeReader> CreateFrameReaderAsync(
+            int size,
+            SimpleNetworkConnectionPipeReader networkConnectionReader,
+            MemoryPool<byte> pool,
+            int minimumSegmentSize,
+            CancellationToken cancel)
+        {
+            var pipe = new Pipe(new PipeOptions(
+                pool: pool,
+                minimumSegmentSize: minimumSegmentSize,
+                pauseWriterThreshold: 0,
+                writerScheduler: PipeScheduler.Inline));
+
+            try
+            {
+                await networkConnectionReader.FillBufferWriterAsync(
+                    pipe.Writer,
+                    size,
+                    cancel).ConfigureAwait(false);
+            }
+            catch
+            {
+                await pipe.Reader.CompleteAsync().ConfigureAwait(false);
+                throw;
+            }
+            finally
+            {
+                await pipe.Writer.CompleteAsync().ConfigureAwait(false);
+            }
+
+            return pipe.Reader;
+        }
+
         /// <summary>Sends the payload source of an outgoing frame alongside any header previously buffered.</summary>
         private static async ValueTask SendPayloadAsync(
             ReadOnlySequence<byte> payload,
@@ -845,7 +894,11 @@ namespace IceRpc.Internal
             }
         }
 
-        private async ValueTask<(int RequestId, PipeReader RequestFrameReader)> ReceiveFrameAsync()
+        /// <summary>Receives all incoming frames and returns once a request frame is received.</summary>
+        /// <returns>The size of the request frame.</returns>
+        /// <remarks>When this method returns, only the frame prologue has been read from the network. The caller is
+        /// responsible to read the remainder of the request frame from _networkConnectionReader.</remarks>
+        private async ValueTask<int> ReceiveFrameAsync()
         {
             // Reads are not cancelable. This method returns once a frame is read or when the connection is disposed.
             CancellationToken cancel = CancellationToken.None;
@@ -861,7 +914,7 @@ namespace IceRpc.Internal
                     throw new ConnectionLostException();
                 }
 
-                // First decode and check the prologue
+                // First decode and check the prologue.
 
                 ReadOnlySequence<byte> prologueBuffer = readResult.Buffer.Slice(0, IceDefinitions.PrologueSize);
 
@@ -888,6 +941,8 @@ namespace IceRpc.Internal
                 {
                     throw new NotSupportedException("cannot decompress Ice frame");
                 }
+
+                // Then process the frame based on its type.
 
                 switch (prologue.FrameType)
                 {
@@ -940,8 +995,22 @@ namespace IceRpc.Internal
                     }
 
                     case IceFrameType.Request:
+                        // the caller will read the request from _networkConnectionReader
+                        return prologue.FrameSize;
+
+                    case IceFrameType.RequestBatch:
+                        // Read and ignore
+                        PipeReader reader = await CreateFrameReaderAsync(
+                            prologue.FrameSize - IceDefinitions.PrologueSize,
+                            _networkConnectionReader,
+                            _memoryPool,
+                            _minimumSegmentSize,
+                            CancellationToken.None).ConfigureAwait(false);
+                        await reader.CompleteAsync().ConfigureAwait(false);
+                        break;
+
                     case IceFrameType.Reply:
-                    {
+                        // Read the remainder of the frame immediately into frameReader.
                         PipeReader frameReader = await CreateFrameReaderAsync(
                             prologue.FrameSize - IceDefinitions.PrologueSize,
                             _networkConnectionReader,
@@ -965,28 +1034,20 @@ namespace IceRpc.Internal
                                 (ref SliceDecoder decoder) => decoder.DecodeInt());
                             frameReader.AdvanceTo(requestIdBuffer.End);
 
-                            if (prologue.FrameType == IceFrameType.Request)
+                            lock (_mutex)
                             {
-                                cleanupFrameReader = false;
-                                return (requestId, frameReader);
-                            }
-                            else
-                            {
-                                lock (_mutex)
+                                if (_invocations.TryGetValue(requestId, out OutgoingRequest? request))
                                 {
-                                    if (_invocations.TryGetValue(requestId, out OutgoingRequest? request))
-                                    {
-                                        request.Features.Get<IceOutgoingRequest>()!.IncomingResponseCompletionSource.SetResult(
-                                            frameReader);
+                                    request.Features.Get<IceOutgoingRequest>()!.IncomingResponseCompletionSource.SetResult(
+                                        frameReader);
 
-                                        cleanupFrameReader = false;
-                                    }
-                                    else if (!_shutdown)
-                                    {
-                                        throw new InvalidDataException("received ice Reply for unknown invocation");
-                                    }
+                                    cleanupFrameReader = false;
                                 }
-                             }
+                                else if (!_shutdown)
+                                {
+                                    throw new InvalidDataException("received ice Reply for unknown invocation");
+                                }
+                            }
                         }
                         finally
                         {
@@ -995,18 +1056,6 @@ namespace IceRpc.Internal
                                 await frameReader.CompleteAsync().ConfigureAwait(false);
                             }
                         }
-                        break;
-                    }
-
-                    case IceFrameType.RequestBatch:
-                        // Read and ignore
-                        PipeReader reader = await CreateFrameReaderAsync(
-                            prologue.FrameSize - IceDefinitions.PrologueSize,
-                            _networkConnectionReader,
-                            _memoryPool,
-                            _minimumSegmentSize,
-                            CancellationToken.None).ConfigureAwait(false);
-                        await reader.CompleteAsync().ConfigureAwait(false);
                         break;
 
                     case IceFrameType.ValidateConnection:
@@ -1027,31 +1076,6 @@ namespace IceRpc.Internal
                     }
                 }
             } // while
-
-            // Creates a pipe reader to simplify the reading of a request or response frame. The frame is read fully and
-            // buffered into an internal pipe.
-            static async ValueTask<PipeReader> CreateFrameReaderAsync(
-                int size,
-                SimpleNetworkConnectionPipeReader networkConnectionReader,
-                MemoryPool<byte> pool,
-                int minimumSegmentSize,
-                CancellationToken cancel)
-            {
-                var pipe = new Pipe(new PipeOptions(
-                    pool: pool,
-                    minimumSegmentSize: minimumSegmentSize,
-                    pauseWriterThreshold: 0,
-                    writerScheduler: PipeScheduler.Inline));
-
-                await networkConnectionReader.FillBufferWriterAsync(
-                    pipe.Writer,
-                    size,
-                    cancel).ConfigureAwait(false);
-
-                await pipe.Writer.CompleteAsync().ConfigureAwait(false);
-
-                return pipe.Reader;
-            }
         }
     }
 }
