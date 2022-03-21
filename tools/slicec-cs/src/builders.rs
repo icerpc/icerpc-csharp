@@ -1,7 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use slice::code_gen_util::TypeContext;
-use slice::grammar::{Attributable, Class, Entity, NamedSymbol, Operation};
+use std::collections::HashMap;
+
+use slice::code_gen_util::{TypeContext, SupportedEncodings};
+use slice::grammar::{Attributable, Class, Entity, NamedSymbol, Operation, SliceEncoding, Type};
 
 use crate::code_block::CodeBlock;
 use crate::comments::{operation_parameter_doc_comment, CommentTag};
@@ -411,5 +413,64 @@ impl CommentBuilder for FunctionBuilder {
             content,
         ));
         self
+    }
+}
+
+pub struct EncodingBlockBuilder {
+    encoding_blocks: HashMap<SliceEncoding, CodeBlock>,
+    supported_encoding: SupportedEncodings,
+    encoding_variable: String
+}
+
+impl EncodingBlockBuilder {
+    pub fn new(encoding_variable: &str, slice_type: &dyn Type) -> Self {
+        Self {
+            encoding_blocks: HashMap::new(),
+            supported_encoding: slice_type.supported_encodings(),
+            encoding_variable: encoding_variable.to_owned(),
+        }
+    }
+
+    pub fn add_encoding_block(&mut self, encoding: SliceEncoding, code: CodeBlock) -> &mut Self {
+        self.encoding_blocks.insert(encoding, code);
+        self
+    }
+
+    pub fn build(&mut self) -> CodeBlock {
+        match self.supported_encoding.iter().collect::<Vec<_>>().as_slice() {
+            [] => panic!("No supported encodings"),
+            [encoding] => {
+                format!("\
+if ({encoding_variable} != {encoding})
+{{
+    throw new InvalidOperationException(\"can only be encoded with the {encoding} encoding.\");
+}}
+
+{encode_block}",
+                    encoding_variable = self.encoding_variable,
+                    encoding = encoding.to_cs_encoding(),
+                    encode_block = self.encoding_blocks[encoding].clone(),
+                ).into()
+            }
+            encodings => {
+                format!("\
+switch ({encoding_variable}.Name)
+{{
+    {encoding_cases}
+    default:
+        throw new InvalidOperationException($\"The {{{encoding_variable}.Name}} is not supported\");
+}}
+",
+encoding_variable = self.encoding_variable,
+encoding_cases = CodeBlock::from(self.encoding_blocks
+                    .iter()
+                    .filter(|(encoding, _)| encodings.contains(encoding))
+                    .map(|(encoding, code)| format!("case \"{}\":\n    {}\n    break;" ,
+                                                    encoding.encoding_name(),
+                                                    code.clone().indent()))
+                    .collect::<Vec<String>>()
+                    .join("\n")).indent()).into()
+            }
+        }
     }
 }

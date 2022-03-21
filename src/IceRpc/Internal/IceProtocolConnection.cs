@@ -137,9 +137,6 @@ namespace IceRpc.Internal
                     Operation = requestHeader.Operation,
                     Path = requestHeader.Path,
                     Payload = requestFrameReader,
-                    PayloadEncoding = Encoding.FromMajorMinor(
-                        requestHeader.EncapsulationHeader.PayloadEncodingMajor,
-                        requestHeader.EncapsulationHeader.PayloadEncodingMinor),
                     ResponseWriter = _payloadWriter,
                 };
 

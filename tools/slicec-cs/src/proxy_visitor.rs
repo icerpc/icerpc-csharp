@@ -193,9 +193,10 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
     let invocation_parameter = escape_parameter_name(&operation.parameters(), "invocation");
     let cancel_parameter = escape_parameter_name(&operation.parameters(), "cancel");
 
-    let sends_classes = operation.sends_classes();
     let void_return = operation.return_type.is_empty();
     let access = operation.parent().unwrap().access_modifier();
+
+    let encoding = operation.encoding.to_cs_encoding();
 
     let mut builder = FunctionBuilder::new(
         &access,
@@ -221,23 +222,19 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
         ));
     }
 
-    let payload_encoding = if sends_classes {
-        "IceRpc.Encoding.Slice11".to_owned()
-    } else {
-        body.writeln("var payloadEncoding = Proxy.GetSliceEncoding();");
-        "payloadEncoding".to_owned()
-    };
-
     let mut invoke_args = vec![
         format!(r#""{}""#, operation.identifier()),
-        payload_encoding.clone(),
     ];
+
+    if void_return {
+        invoke_args.push(encoding.to_owned());
+    }
 
     // The payload argument
     if parameters.is_empty() {
         invoke_args.push(format!(
-            "{payload_encoding}.CreateEmptyPayload(hasStream: {has_stream})",
-            payload_encoding = payload_encoding,
+            "{encoding}.CreateEmptyPayload(hasStream: {has_stream})",
+            encoding = encoding,
             has_stream = if operation.parameters.is_empty() {
                 "false"
             } else {
@@ -245,19 +242,13 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
             }
         ));
     } else {
-        let mut request_helper_args = parameters
-            .iter()
-            .map(|p| p.parameter_name())
-            .collect::<Vec<_>>();
-
-        if !sends_classes {
-            request_helper_args.insert(0, payload_encoding.clone());
-        }
-
         invoke_args.push(format!(
             "Request.{}({})",
             operation_name,
-            request_helper_args.join(", ")
+            parameters
+            .iter()
+            .map(|p| p.parameter_name())
+            .collect::<Vec<_>>().join(", ")
         ));
     }
 
@@ -271,12 +262,12 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
             }
             _ => invoke_args.push(format!(
                 "\
-{payload_encoding}.CreatePayloadSourceStream<{stream_type}>(
+{encoding}.CreatePayloadSourceStream<{stream_type}>(
     {stream_parameter},
     {encode_action})",
                 stream_type = stream_type.to_type_string(namespace, TypeContext::Encode, false),
                 stream_parameter = stream_parameter_name,
-                payload_encoding = payload_encoding,
+                encoding = encoding,
                 encode_action = encode_action(stream_type, TypeContext::Encode, namespace).indent()
             )),
         }
@@ -400,8 +391,6 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
         assert!(!params.is_empty());
 
-        let sends_classes = operation.sends_classes();
-
         let mut builder = FunctionBuilder::new(
             &format!("{} static", access),
             "global::System.IO.Pipelines.PipeReader",
@@ -417,17 +406,6 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             ),
         );
 
-        let encoding = escape_parameter_name(&operation.parameters(), "encoding");
-
-        if !sends_classes {
-            builder.add_parameter(
-                "SliceEncoding",
-                &encoding,
-                None,
-                Some("The encoding of the payload."),
-            );
-        }
-
         for param in &params {
             builder.add_parameter(
                 &param.to_type_string(namespace, TypeContext::Encode, false),
@@ -437,14 +415,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             );
         }
 
-        if sends_classes {
-            builder.add_comment("returns", "The payload encoded with encoding 1.1.");
-        } else {
-            builder.add_comment(
-                "returns",
-                r#"The payload encoded with <paramref name="encoding"/>."#,
-            );
-        }
+        builder.add_comment("returns", &format!("The payload encoded with <see cref=\"{}\"/>.", operation.encoding.to_cs_encoding()));
 
         let body = format!(
             "\
@@ -460,11 +431,7 @@ if ({encoding} != IceRpc.Encoding.Slice11)
 
 pipe_.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
 return pipe_.Reader;",
-            encoding = if sends_classes {
-                "IceRpc.Encoding.Slice11"
-            } else {
-                &encoding
-            },
+            encoding = operation.encoding.to_cs_encoding(),
             class_format = operation.format_type(),
             encode_args = encode_operation(operation, false, "encoder_")
         );
@@ -539,6 +506,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 fn response_operation_body(operation: &Operation) -> CodeBlock {
     let mut code = CodeBlock::new();
     let namespace = &operation.namespace();
+    let encoding = operation.encoding.to_cs_encoding();
 
     if let Some(stream_member) = operation.streamed_return_member() {
         let non_streamed_members = operation.nonstreamed_return_members();
@@ -548,19 +516,22 @@ fn response_operation_body(operation: &Operation) -> CodeBlock {
                 code,
                 "\
 await response.CheckVoidReturnValueAsync(
+    {encoding}
     _defaultActivator,
     hasStream: true,
     cancel).ConfigureAwait(false);
 
-return {}
+return {decode_operation_stream}
 ",
-                decode_operation_stream(stream_member, namespace, false, false)
+    encoding = encoding,
+    decode_operation_stream = decode_operation_stream(stream_member, namespace, false, false)
             );
         } else {
             writeln!(
                 code,
                 "\
 var {return_value} = await response.ToReturnValueAsync(
+    {encoding},
     _defaultActivator,
     {response_decode_func},
     hasStream: true,
@@ -570,6 +541,7 @@ var {return_value} = await response.ToReturnValueAsync(
 
 return {return_value_and_stream};
 ",
+                encoding = encoding,
                 return_value = non_streamed_members.to_argument_tuple("sliceP_"),
                 response_decode_func = response_decode_func(operation).indent(),
                 decode_response_stream =
@@ -582,10 +554,12 @@ return {return_value_and_stream};
             code,
             "\
 await response.ToReturnValueAsync(
+    {encoding},
     _defaultActivator,
     {response_decode_func},
     hasStream: false,
     cancel).ConfigureAwait(false)",
+            encoding = encoding,
             response_decode_func = response_decode_func(operation).indent()
         );
     }

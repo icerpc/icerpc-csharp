@@ -39,9 +39,6 @@ namespace IceRpc
         /// <value>The path of the target service. The default is <c>/</c>.</value>
         public string Path { get; init; } = "/";
 
-        /// <summary>Gets or initializes the encoding of the payload of this request.</summary>
-        public Encoding PayloadEncoding { get; init; } = Encoding.Unknown;
-
         /// <summary>Gets or initializes the pipe writer used by IceRPC to write the response, including the response
         /// header. This is also the outgoing response's payload sink a middleware would see if no middleware decorates
         /// this response's payload sink.</summary>

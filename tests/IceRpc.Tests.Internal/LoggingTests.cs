@@ -180,8 +180,7 @@ namespace IceRpc.Tests.Internal
                               request.Path,
                               request.Operation,
                               connection.NetworkConnectionInformation!.Value.RemoteEndpoint,
-                              connection.NetworkConnectionInformation!.Value.LocalEndpoint,
-                              request.PayloadEncoding);
+                              connection.NetworkConnectionInformation!.Value.LocalEndpoint);
 
             if (twoway)
             {
@@ -264,7 +263,6 @@ namespace IceRpc.Tests.Internal
                 Path = "/dummy",
                 Operation = "foo",
                 Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
-                PayloadEncoding = Encoding.Slice20,
                 ResponseWriter = new DelayedPipeWriterDecorator()
             };
 

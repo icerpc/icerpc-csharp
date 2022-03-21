@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{
-    AttributeBuilder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType,
+    AttributeBuilder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType, EncodingBlockBuilder
 };
 use crate::code_block::CodeBlock;
 use crate::comments::doc_comment_message;
@@ -12,7 +12,7 @@ use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
 use slice::code_gen_util::TypeContext;
-use slice::grammar::{Exception, Member, Type};
+use slice::grammar::{Exception, Member, SliceEncoding};
 use slice::visitor::Visitor;
 
 pub struct ExceptionVisitor<'a> {
@@ -89,36 +89,12 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
             FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody)
                 .add_parameter("ref SliceDecoder", "decoder", None, None)
                 .add_base_parameter("ref decoder")
-                .set_body({
-                    let mut code = CodeBlock::new();
-                    if !has_base && !members.is_empty() && !exception_def.uses_classes() {
-                        writeln!(
-                            code,
-                            "\
-if (decoder.Encoding == IceRpc.Encoding.Slice11)
-{{
-    {initialize_non_nullable_fields}
-}}
-else
-{{
-    {decode_data_members}
-}}
-                        ",
-                            initialize_non_nullable_fields =
-                                initialize_non_nullable_fields(&members, FieldType::Exception)
-                                    .indent(),
-                            decode_data_members =
-                                decode_data_members(&members, namespace, FieldType::Exception)
-                                    .indent()
-                        )
-                    } else {
-                        code.writeln(&initialize_non_nullable_fields(
-                            &members,
-                            FieldType::Exception,
-                        ))
-                    }
-                    code
-                })
+                .set_body(
+                    EncodingBlockBuilder::new("decoder.Encoding", exception_def)
+                    .add_encoding_block(SliceEncoding::Slice11, initialize_non_nullable_fields(&members, FieldType::Exception))
+                    .add_encoding_block(SliceEncoding::Slice2, decode_data_members(&members, namespace, FieldType::Exception))
+                    .build()
+                )
                 .add_never_editor_browsable_attribute()
                 .build(),
         );
@@ -188,42 +164,20 @@ encoder.EncodeVarInt(Slice20Definitions.TagEndMarker);
 }
 
 fn encode_trait_method(exception_def: &Exception) -> CodeBlock {
-    let has_base = exception_def.base.is_some();
-
-    // Exception inheritance is only supported with the 1.1 encoding,
-    // so for 2.0 we only encode the least-derived base exception.
-    let mut body_block = CodeBlock::from(if has_base {
-        r#"
-base.EncodeTrait(ref encoder);
-        "#
-    } else {
-        r#"
-encoder.EncodeString(SliceTypeId);
-this.Encode(ref encoder);
-        "#
-    });
-
-    let body = CodeBlock::from(format!(
-        r#"
-if (encoder.Encoding == IceRpc.Encoding.Slice11)
-{{
-    this.EncodeCore(ref encoder);
-}}
-else
-{{
-    {body_block}
-}}
-        "#,
-        body_block = body_block.indent(),
-    ));
-
     FunctionBuilder::new("public override", "void", "EncodeTrait", FunctionType::BlockBody)
         .add_comment(
             "summary",
             "Encodes this exception as a trait, by encoding its Slice type ID followed by its fields.",
         )
         .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
-        .set_body(body)
+        .set_body(
+            EncodingBlockBuilder::new("encoder.Encoding", exception_def)
+                .add_encoding_block(SliceEncoding::Slice11, "this.EncodeCore(ref encoder);".into())
+                .add_encoding_block(SliceEncoding::Slice2, "\
+encoder.EncodeString(SliceTypeId);
+this.Encode(ref encoder);".into())
+                .build()
+        )
         .build()
 }
 
@@ -242,8 +196,7 @@ if (encoder.Encoding != IceRpc.Encoding.Slice11)
 encoder.StartSlice(SliceTypeId);
 {encode_data_members}
 encoder.EndSlice(lastSlice: {is_last_slice});
-{encode_base}
-        "#,
+{encode_base}"#,
         encode_data_members = &encode_data_members(members, namespace, FieldType::Exception),
         is_last_slice = (!has_base).to_string(),
         encode_base = if has_base { "base.EncodeCore(ref encoder);" } else { "" },

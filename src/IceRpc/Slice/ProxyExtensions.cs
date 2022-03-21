@@ -22,15 +22,9 @@ namespace IceRpc.Slice
                 [RequestFieldKey.Idempotent] = default
             }.ToImmutableDictionary();
 
-        /// <summary>Computes the Slice encoding to use when encoding a Slice-generated request.</summary>
-        public static SliceEncoding GetSliceEncoding(this Proxy proxy) =>
-            proxy.Encoding as SliceEncoding ?? proxy.Protocol?.SliceEncoding ??
-                throw new NotSupportedException($"unknown protocol {proxy.Protocol}");
-
         /// <summary>Sends a request to a service and decodes the response.</summary>
         /// <param name="proxy">A proxy for the remote service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
-        /// <param name="payloadEncoding">The encoding of the request payload.</param>
         /// <param name="payloadSource">The payload source of the request.</param>
         /// <param name="payloadSourceStream">The optional payload source stream of the request.</param>
         /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws a
@@ -45,7 +39,6 @@ namespace IceRpc.Slice
         public static Task<T> InvokeAsync<T>(
             this Proxy proxy,
             string operation,
-            SliceEncoding payloadEncoding,
             PipeReader payloadSource,
             PipeReader? payloadSourceStream,
             ResponseDecodeFunc<T> responseDecodeFunc,
@@ -66,7 +59,6 @@ namespace IceRpc.Slice
                 Fields = idempotent ?
                     _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
                 Operation = operation,
-                PayloadEncoding = payloadEncoding,
                 PayloadSource = payloadSource,
                 PayloadSourceStream = payloadSourceStream
             };
@@ -97,7 +89,7 @@ namespace IceRpc.Slice
         /// <summary>Sends a request to a service and decodes the "void" response.</summary>
         /// <param name="proxy">A proxy for the remote service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
-        /// <param name="payloadEncoding">The encoding of the request payload.</param>
+        /// <param name="sliceEncoding">The encoding of the request payload.</param>
         /// <param name="payloadSource">The payload source of the request.</param>
         /// <param name="payloadSourceStream">The payload source stream of the request.</param>
         /// <param name="defaultActivator">The default activator.</param>
@@ -113,7 +105,7 @@ namespace IceRpc.Slice
         public static Task InvokeAsync(
             this Proxy proxy,
             string operation,
-            SliceEncoding payloadEncoding,
+            SliceEncoding sliceEncoding,
             PipeReader payloadSource,
             PipeReader? payloadSourceStream,
             IActivator defaultActivator,
@@ -129,7 +121,6 @@ namespace IceRpc.Slice
                     _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
                 IsOneway = oneway || (invocation?.IsOneway ?? false),
                 Operation = operation,
-                PayloadEncoding = payloadEncoding,
                 PayloadSource = payloadSource,
                 PayloadSourceStream = payloadSourceStream
             };
@@ -154,6 +145,7 @@ namespace IceRpc.Slice
                 }
 
                 await response.CheckVoidReturnValueAsync(
+                    sliceEncoding,
                     defaultActivator,
                     hasStream: false,
                     cancel).ConfigureAwait(false);

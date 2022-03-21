@@ -181,6 +181,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         let namespace = &operation.namespace();
         let operation_name = &operation.escape_identifier();
         let returns_classes = operation.returns_classes();
+
         let mut builder = FunctionBuilder::new(
             &format!("{} static", access),
             "global::System.IO.Pipelines.PipeReader",
@@ -245,11 +246,7 @@ if ({encoding} != IceRpc.Encoding.Slice11)
 
 pipe_.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
 return pipe_.Reader;",
-                encoding = if returns_classes {
-                    "IceRpc.Encoding.Slice11"
-                } else {
-                    &encoding
-                },
+                encoding = operation.encoding.to_cs_encoding(),
                 class_format = operation.format_type(),
                 encode_returns = encode_operation(operation, true, "encoder_")
             )
@@ -266,6 +263,7 @@ fn request_decode_body(operation: &Operation) -> CodeBlock {
     let mut code = CodeBlock::new();
 
     let namespace = &operation.namespace();
+    let encoding = operation.encoding.to_cs_encoding();
 
     if let Some(stream_member) = operation.streamed_parameter() {
         let non_streamed_parameters = operation.nonstreamed_parameters();
@@ -274,16 +272,18 @@ fn request_decode_body(operation: &Operation) -> CodeBlock {
             writeln!(
                 code,
                 "\
-await request.CheckEmptyArgsAsync(hasStream: true, cancel).ConfigureAwait(false);
+await request.CheckEmptyArgsAsync({encoding}, hasStream: true, cancel).ConfigureAwait(false);
 
-return {}",
-                decode_operation_stream(stream_member, namespace, true, false)
+return {decode_operation_stream}",
+                encoding = encoding,
+                decode_operation_stream = decode_operation_stream(stream_member, namespace, true, false)
             );
         } else {
             writeln!(
                 code,
                 "\
 var {args} = await request.ToArgsAsync(
+    {encoding},
     _defaultActivator,
     {decode_func},
     hasStream: true,
@@ -293,6 +293,7 @@ var {args} = await request.ToArgsAsync(
 
 return {args_and_stream};",
                 args = non_streamed_parameters.to_argument_tuple("sliceP_"),
+                encoding = encoding,
                 decode_func = request_decode_func(operation).indent(),
                 decode_request_stream =
                     decode_operation_stream(stream_member, namespace, true, true,),
@@ -304,11 +305,13 @@ return {args_and_stream};",
             code,
             "\
 await request.ToArgsAsync(
+    {encoding},
     _defaultActivator,
     {decode_func},
     hasStream: false,
     cancel).ConfigureAwait(false)
 ",
+            encoding = encoding,
             decode_func = request_decode_func(operation).indent()
         );
     }
@@ -396,15 +399,13 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
         );
     }
 
-    // temporary way to "compute" the Slice encoding
-    let encoding = "request.GetSliceEncoding()";
+    let encoding = operation.encoding.to_cs_encoding();
 
     match parameters.as_slice() {
         [] => {
             // Verify the payload is indeed empty (it can contain tagged params that we have to skip).
-            check_and_decode.writeln(
-                "\
-await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false);",
+            writeln!(check_and_decode, "\
+await request.CheckEmptyArgsAsync({}, hasStream: false, cancel).ConfigureAwait(false);", encoding
             );
         }
         [parameter] => {
@@ -505,10 +506,11 @@ catch (RemoteException remoteException)
         throw;
     }}
 
-    return request.CreateResponseFromRemoteException(remoteException, request.GetSliceEncoding());
+    return request.CreateResponseFromRemoteException(remoteException, {encoding});
 }}",
     check_and_decode = check_and_decode,
-    dispatch_and_return = dispatch_and_return.indent()
+    dispatch_and_return = dispatch_and_return.indent(),
+    encoding = encoding
     ).into()
 }
 

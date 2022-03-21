@@ -144,8 +144,6 @@ namespace IceRpc.Internal
                     Operation = header.Operation,
                     Path = header.Path,
                     Payload = reader,
-                    PayloadEncoding = header.PayloadEncoding.Length > 0 ?
-                        Encoding.FromString(header.PayloadEncoding) : IceRpcDefinitions.Encoding,
                     ResponseWriter = stream.IsBidirectional ? stream.Output : InvalidPipeWriter.Instance
                 };
 
