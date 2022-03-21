@@ -257,12 +257,8 @@ namespace IceRpc
 
                 return ConnectAsync(
                     networkConnection,
-                    _options.Dispatcher,
                     protocolConnectionFactory,
-                    _options.ConnectTimeout,
-                    _options.IceProtocolOptions,
-                    _options.Fields,
-                    _options.KeepAlive,
+                    new CommonConnectionOptions(_options),
                     closedEventHandler);
             }
         }
@@ -412,25 +408,17 @@ namespace IceRpc
 
         /// <summary>Establishes a connection. This method is used for both client and server connections.</summary>
         /// <param name="networkConnection">The underlying network connection.</param>
-        /// <param name="dispatcher">The dispatcher.</param>
         /// <param name="protocolConnectionFactory">The protocol connection factory.</param>
-        /// <param name="connectTimeout">The connect timeout.</param>
-        /// <param name="iceProtocolOptions">The ice protocol options.</param>
-        /// <param name="localFields">The fields to send to the remote peer.</param>
-        /// <param name="keepAlive">Whether or not to keep the new connection alive.</param>
+        /// <param name="commonConnectionOptions">The common connection options.</param>
         /// <param name="closedEventHandler">A closed event handler added to the connection once the connection is
         /// active.</param>
         internal async Task ConnectAsync<T>(
             T networkConnection,
-            IDispatcher dispatcher,
             IProtocolConnectionFactory<T> protocolConnectionFactory,
-            TimeSpan connectTimeout,
-            IceProtocolOptions? iceProtocolOptions,
-            IDictionary<ConnectionFieldKey, OutgoingFieldValue> localFields,
-            bool keepAlive,
+            CommonConnectionOptions commonConnectionOptions,
             EventHandler<ClosedEventArgs>? closedEventHandler) where T : INetworkConnection
         {
-            using var connectCancellationSource = new CancellationTokenSource(connectTimeout);
+            using var connectCancellationSource = new CancellationTokenSource(commonConnectionOptions.ConnectTimeout);
             try
             {
                 // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
@@ -444,8 +432,7 @@ namespace IceRpc
                 _protocolConnection = await protocolConnectionFactory.CreateProtocolConnectionAsync(
                     networkConnection,
                     NetworkConnectionInformation.Value,
-                    iceProtocolOptions,
-                    localFields,
+                    commonConnectionOptions,
                     IsServer,
                     connectCancellationSource.Token).ConfigureAwait(false);
 
@@ -487,14 +474,18 @@ namespace IceRpc
                     TimeSpan idleTimeout = NetworkConnectionInformation!.Value.IdleTimeout;
                     if (idleTimeout != TimeSpan.MaxValue && idleTimeout != Timeout.InfiniteTimeSpan)
                     {
-                        _timer = new Timer(value => Monitor(keepAlive), null, idleTimeout / 2, idleTimeout / 2);
+                        _timer = new Timer(
+                            value => Monitor(commonConnectionOptions.KeepAlive),
+                            null,
+                            idleTimeout / 2,
+                            idleTimeout / 2);
                     }
 
                     // Start the receive request task. The task accepts new incoming requests and processes them. It
                     // only completes once the connection is closed.
                     IProtocolConnection protocolConnection = _protocolConnection;
                     _ = Task.Run(
-                        () => AcceptIncomingRequestAsync(protocolConnection, dispatcher),
+                        () => AcceptIncomingRequestAsync(protocolConnection, commonConnectionOptions.Dispatcher),
                         CancellationToken.None);
                 }
             }

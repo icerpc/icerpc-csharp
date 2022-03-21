@@ -223,12 +223,8 @@ namespace IceRpc
                     // connection initialization as we wouldn't be able to accept new connections in the meantime.
                     _ = connection.ConnectAsync(
                         networkConnection,
-                        _options.Dispatcher,
                         protocolConnectionFactory,
-                        _options.ConnectTimeout,
-                        _options.IceProtocolOptions,
-                        _options.Fields,
-                        _options.KeepAlive,
+                        new CommonConnectionOptions(_options),
                         closedEventHandler);
                 }
             }
