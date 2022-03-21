@@ -11,10 +11,9 @@ namespace IceRpc.Slice.Tests;
 public class BitSequenceWriterTests
 {
 
-    /// <summary>Provides test case data for
-    /// <see cref="Write_bit_sequence_clears_memory(byte[], byte[], IList<Memory<byte>>?, int)"/> test.
+    /// <summary>Provides test case data for <see cref="Write_fails(byte[], byte[], IList<Memory<byte>>?"/> test.
     /// </summary>
-    private static IEnumerable<TestCaseData> WriteClearsMemorySource
+    private static IEnumerable<TestCaseData> SpanEnumeratorDataSource
     {
         get
         {
@@ -47,6 +46,51 @@ public class BitSequenceWriterTests
                 IList<Memory<byte>>? additionalMemory) in testData)
             {
                 yield return new TestCaseData(firstBytes, secondBytes, additionalMemory);
+            }
+        }
+    }
+
+    /// <summary>Provides test case data for
+    /// <see cref="Write_bit_sequence_clears_memory(byte[], byte[], IList<Memory<byte>>?, int)"/> test.
+    /// </summary>
+    private static IEnumerable<TestCaseData> WriteClearsDataSource
+    {
+        get
+        {
+            (byte[], byte[], IList<Memory<byte>>?, int)[] testData =
+            {
+                (
+                    new byte[] { 1, 2, 3 },
+                    Array.Empty<byte>(),
+                    null,
+                    0
+                ),
+                (
+                    new byte[] { 1, 2, 3 },
+                    new byte[] { 4, 5, 6 },
+                    null,
+                    3
+                ),
+                (
+                    new byte[] { 1, 2, 3 },
+                    new byte[] { 4, 5, 6 },
+                    new Memory<byte>[] { new byte[] { 7, 8, 9 } },
+                    6
+                ),
+                (
+                    new byte[] { 1, 2, 3 },
+                    new byte[] { 4, 5, 6 },
+                    new Memory<byte>[] { new byte[] { 7, 8, 9 }, new byte[] { 10, 11, 12 } },
+                    9
+                ),
+            };
+            foreach ((
+                byte[] firstBytes,
+                byte[] secondBytes,
+                IList<Memory<byte>>? additionalMemory,
+                int writes) in testData)
+            {
+                yield return new TestCaseData(firstBytes, secondBytes, additionalMemory, writes);
             }
         }
     }
@@ -88,65 +132,79 @@ public class BitSequenceWriterTests
     }
 
     /// <summary>Verifies that calling <see cref="BitSequenceWriter.Write"/> correctly zeros the provided spans
-    /// and additional memory</summary>
+    /// and additional memory.</summary>
     /// <param name="firstBytes">The bytes that will be used to create the first span.</param>
     /// <param name="secondBytes">The bytes that will be used to create the second span. (Can be empty)</param>
     /// <param name="additionalMemory">The list of memory used for additional memory. (Optional)</param>
-    [Test, TestCaseSource(nameof(WriteClearsMemorySource))]
+    /// <param name="writes">The number of writes to make to move the SpanEnumerator to the final span.</param>
+    [Test, TestCaseSource(nameof(WriteClearsDataSource))]
     public void Write_bit_sequence_clears_memory(
         byte[] firstBytes,
         byte[] secondBytes,
-        IList<Memory<byte>>? additionalMemory)
-    {
-        int additionalMemSize = additionalMemory != null ? additionalMemory.Sum(m => m.Length) : 0;
-        int size = (firstBytes.Length + secondBytes.Length + additionalMemSize) * 8;
-        var writer = new BitSequenceWriter(new SpanEnumerator(firstBytes.AsSpan(), secondBytes.AsSpan(), additionalMemory));
-
-        for (int i = 0; i < size; ++i)
-        {
-            writer.Write(false);
-        }
-
-        var enumerator = new SpanEnumerator(firstBytes.AsSpan(), secondBytes.AsSpan(), additionalMemory);
-        while (enumerator.MoveNext())
-        {
-            Assert.That(enumerator.Current.ToArray().All(o => o == 0), Is.True);
-        }
-    }
-
-    /// <summary> TODO </summary>
-    [Test]
-    public void Get_bit_sequence_writer_from_slice_encoder(
-        [Values(1, 8, 17, 97, 791)] int bitSize,
-        [Values(0x00, 0x01, 0x12, 0x3C, 0x55, 0xFF)] byte pattern)
+        IList<Memory<byte>>? additionalMemory,
+        int writes)
     {
         // Arrange
-        const int maxBufferSize = 7;
-        using var testPool = new TestMemoryPool(maxBufferSize);
-        var pipe = new Pipe(new PipeOptions(pool: testPool));
-        var encoder = new SliceEncoder(pipe.Writer, Encoding.Slice20);
-        BitSequenceWriter writer = encoder.GetBitSequenceWriter(bitSize);
+        var writer = new BitSequenceWriter(new SpanEnumerator(firstBytes.AsSpan(), secondBytes.AsSpan(), additionalMemory));
+        for (int i = 0; i < writes * 8; ++i)
+        {
+            writer.Write(true);
+        }
 
         // Act
-        for (int i = 0; i < bitSize; ++i)
-        {
-            writer.Write(IsSet(i, pattern));
-        }
-        pipe.Writer.Complete();
-        bool read = pipe.Reader.TryRead(out ReadResult readResult);
-        var reader = new BitSequenceReader(readResult.Buffer);
+        writer.Write(false);
 
         // Assert
-        Assert.That(read, Is.True);
-        Assert.That(readResult.Buffer.IsSingleSegment, Is.EqualTo(bitSize <= maxBufferSize * 8));
-        for (int i = 0; i < bitSize; ++i)
+        var enumerator = new SpanEnumerator(firstBytes.AsSpan(), secondBytes.AsSpan(), additionalMemory);
+        Span<byte> current = default;
+        while (enumerator.MoveNext())
         {
-            Assert.That(reader.Read(), Is.EqualTo(IsSet(i, pattern)));
+            current = enumerator.Current;
         }
-
-        // Cleanup
-        pipe.Reader.Complete();
+        Assert.That(current.ToArray().All(o => o == 0), Is.True);
     }
 
+    /// <summary>Verifies that constructing a <see cref="BitSequenceWriter"/> with a <see cref="SpanEnumerator"/>
+    /// that has already enumerated fully through its spans throws an argument exception.</summary>
+    [Test]
+    public void Construct_bit_sequence_writer_fails()
+    {
+        Assert.That(() =>
+        {
+            // Arrange
+            var enumerator = new SpanEnumerator(default);
+            enumerator.MoveNext();
+
+            // Act
+            var writer = new BitSequenceWriter(enumerator);
+        }, Throws.ArgumentException);
+    }
+
+    /// <summary>Verifies that constructing a <see cref="BitSequenceWriter"/> with a <see cref="SpanEnumerator"/>
+    /// that has already enumerated fully through its spans throws an argument exception.</summary>
+    /// <param name="firstBytes">The bytes that will be used to create the first span.</param>
+    /// <param name="secondBytes">The bytes that will be used to create the second span. (Can be empty)</param>
+    /// <param name="additionalMemory">The list of memory used for additional memory. (Optional)</param>
+    [Test, TestCaseSource(nameof(SpanEnumeratorDataSource))]
+    public void Write_fails(byte[] firstBytes,
+        byte[] secondBytes,
+        IList<Memory<byte>>? additionalMemory)
+    {
+        Assert.That(() =>
+        {
+            // Arrange
+            int additionalMemSize = additionalMemory != null ? additionalMemory.Sum(m => m.Length) : 0;
+            int size = (firstBytes.Length + secondBytes.Length + additionalMemSize) * 8;
+            var writer = new BitSequenceWriter(new SpanEnumerator(firstBytes, secondBytes, additionalMemory));
+            for (int i = 0; i < size; ++i)
+            {
+                writer.Write(true);
+            }
+
+            // Act
+            writer.Write(false);
+
+        }, Throws.InvalidOperationException);
+    }
     private static bool IsSet(int bitIndex, byte pattern) => (pattern & (1 << (bitIndex % 8))) != 0;
 }
