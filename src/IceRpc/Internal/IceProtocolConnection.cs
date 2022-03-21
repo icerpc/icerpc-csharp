@@ -155,7 +155,7 @@ namespace IceRpc.Internal
                 {
                     if (!frameReader.TryRead(out ReadResult readResult))
                     {
-                        throw new InvalidDataException("received request with an empty frame");
+                        throw new InvalidDataException("received invalid request frame");
                     }
 
                     Debug.Assert(readResult.IsCompleted);
@@ -275,9 +275,6 @@ namespace IceRpc.Internal
                             readResult.Buffer.Slice(1, 6),
                             (ref SliceDecoder decoder) => new EncapsulationHeader(ref decoder));
 
-                        // Consume header.
-                        frameReader.AdvanceTo(readResult.Buffer.GetPosition(headerSize));
-
                         // Sanity check
                         int payloadSize = encapsulationHeader.EncapsulationSize - 6;
                         if (payloadSize != readResult.Buffer.Length - headerSize)
@@ -288,6 +285,9 @@ namespace IceRpc.Internal
                         }
 
                         // TODO: check encoding is 1.1. See github proposal.
+
+                        // Consume header.
+                        frameReader.AdvanceTo(readResult.Buffer.GetPosition(headerSize));
                     }
                     else
                     {
@@ -849,7 +849,7 @@ namespace IceRpc.Internal
             // FlushAsync on the underlying SimpleNetworkConnectionPipeWriter is no-op when there is no unflushed byte
             // (typically because one of the WriteAsync above flushed all the bytes).
             // We need to call FlushAsync no matter what in case an interceptor or middleware decides to implement
-            // WriteAsync by sending everything to the unflushed bytes, which is a legitimate implementation.
+            // WriteAsync by writing everything to the unflushed bytes, which is a legitimate implementation.
             flushResult = await payloadSink.FlushAsync(cancel).ConfigureAwait(false);
             CheckFlushResult(flushResult);
 
@@ -899,13 +899,14 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <summary>Receives all incoming frames and returns once a request frame is received.</summary>
+        /// <summary>Receives incoming frames and returns once a request frame is received.</summary>
         /// <returns>The size of the request frame.</returns>
         /// <remarks>When this method returns, only the frame prologue has been read from the network. The caller is
         /// responsible to read the remainder of the request frame from _networkConnectionReader.</remarks>
         private async ValueTask<int> ReceiveFrameAsync()
         {
-            // Reads are not cancelable. This method returns once a frame is read or when the connection is disposed.
+            // Reads are not cancelable. This method returns once a request frame is read or when the connection is
+            // disposed.
             CancellationToken cancel = CancellationToken.None;
 
             while (true)
