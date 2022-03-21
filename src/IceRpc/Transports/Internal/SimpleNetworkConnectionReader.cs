@@ -2,12 +2,11 @@
 
 using IceRpc.Internal;
 using System.Buffers;
-using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>A helper class to efficiently read a simple network connection. It provides PipeReader-like API but
+    /// <summary>A helper class to efficiently read a simple network connection. It provides a PipeReader-like API but
     /// is not a PipeReader.</summary>
     internal class SimpleNetworkConnectionReader
     {
