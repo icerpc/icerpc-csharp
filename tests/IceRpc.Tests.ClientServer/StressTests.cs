@@ -1,5 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -21,6 +22,12 @@ namespace IceRpc.Tests.ClientServer
         {
             _serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher>(_ => _service)
+                .AddTransient<IceProtocolOptions>(
+                    _ => new()
+                    {
+                        MaxIncomingFrameSize = 4 * 1024 * 1024,
+                        MaxOutgoingFrameSize = 4 * 1024 * 1024
+                    })
                 .UseTransport("tcp")
                 .UseProtocol(protocol)
                 .BuildServiceProvider();

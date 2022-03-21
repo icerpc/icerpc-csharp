@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.IO.Pipelines;
+
 namespace IceRpc.Features.Internal
 {
     /// <summary>A feature that specifies the request ID of an Ice outgoing request. It also provides the response task
@@ -10,7 +12,9 @@ namespace IceRpc.Features.Internal
         internal int Id { get; }
 
         /// <summary>The task completion source that will be completed when the response is received.</summary>
-        internal TaskCompletionSource<IncomingResponse> IncomingResponseCompletionSource { get; }
+        /// <remarks>The pipe reader holds the full response frame starting with the reply status and can be read
+        /// synchronously with TryRead.</remarks>
+        internal TaskCompletionSource<PipeReader> IncomingResponseCompletionSource { get; }
 
         internal IceOutgoingRequest(int id)
         {

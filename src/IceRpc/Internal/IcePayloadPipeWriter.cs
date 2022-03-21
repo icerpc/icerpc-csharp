@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports.Internal;
+using System.Buffers;
 using System.IO.Pipelines;
 
 namespace IceRpc.Internal
@@ -10,7 +12,7 @@ namespace IceRpc.Internal
     /// writer.</summary>
     internal sealed class IcePayloadPipeWriter : PipeWriter
     {
-        private readonly PipeWriter _networkConnectionWriter;
+        private readonly SimpleNetworkConnectionPipeWriter _networkConnectionWriter;
 
         public override void Advance(int bytes) => _networkConnectionWriter.Advance(bytes);
 
@@ -28,7 +30,15 @@ namespace IceRpc.Internal
 
         public override Span<byte> GetSpan(int sizeHint = 0) => _networkConnectionWriter.GetSpan(sizeHint);
 
-        internal IcePayloadPipeWriter(PipeWriter networkConnectionWriter) =>
+        public override ValueTask<FlushResult> WriteAsync(
+            ReadOnlyMemory<byte> source,
+            CancellationToken cancellationToken = default) =>
+            _networkConnectionWriter.WriteAsync(source, cancellationToken);
+
+        internal IcePayloadPipeWriter(SimpleNetworkConnectionPipeWriter networkConnectionWriter) =>
             _networkConnectionWriter = networkConnectionWriter;
+
+        internal ValueTask WriteAsync(ReadOnlySequence<byte> source, CancellationToken cancellationToken = default) =>
+           _networkConnectionWriter.WriteAsync(source, cancellationToken);
     }
 }

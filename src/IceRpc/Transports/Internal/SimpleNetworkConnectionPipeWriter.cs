@@ -46,7 +46,7 @@ namespace IceRpc.Transports.Internal
                 new ReadOnlySequence<byte>(source),
                 ReadOnlySequence<byte>.Empty,
                 cancel).ConfigureAwait(false);
-            return new FlushResult();
+            return default;
         }
 
         internal SimpleNetworkConnectionPipeWriter(
@@ -62,9 +62,8 @@ namespace IceRpc.Transports.Internal
                 writerScheduler: PipeScheduler.Inline));
         }
 
-        internal ValueTask WriteAsync(
-            ReadOnlySequence<byte> source,
-            CancellationToken cancel) => WriteAsync(source, ReadOnlySequence<byte>.Empty, cancel);
+        internal ValueTask WriteAsync(ReadOnlySequence<byte> source, CancellationToken cancel) =>
+            WriteAsync(source, ReadOnlySequence<byte>.Empty, cancel);
 
         internal async ValueTask WriteAsync(
             ReadOnlySequence<byte> source1,
@@ -79,7 +78,7 @@ namespace IceRpc.Transports.Internal
             _sendBuffers.Clear();
 
             // First add the data from the internal pipe.
-            SequencePosition consumed = default;
+            SequencePosition? consumed = null;
             if (_pipe.Writer.UnflushedBytes > 0)
             {
                 await _pipe.Writer.FlushAsync(cancel).ConfigureAwait(false);
@@ -108,7 +107,10 @@ namespace IceRpc.Transports.Internal
             }
             finally
             {
-                _pipe.Reader.AdvanceTo(consumed);
+                if (consumed != null)
+                {
+                    _pipe.Reader.AdvanceTo(consumed.Value);
+                }
             }
 
             void AddToSendBuffers(ReadOnlySequence<byte> source)

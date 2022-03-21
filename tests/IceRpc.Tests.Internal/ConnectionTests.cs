@@ -570,6 +570,7 @@ namespace IceRpc.Tests.Internal
                         _serviceProvider.GetService<IDispatcher>() ?? serverConnectionOptions.Dispatcher,
                         protocolConnectionFactory,
                         serverConnectionOptions.ConnectTimeout,
+                        serverConnectionOptions.IceProtocolOptions,
                         serverConnectionOptions.Fields,
                         serverConnectionOptions.KeepAlive,
                         closedEventHandler: null);

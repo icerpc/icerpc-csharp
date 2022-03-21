@@ -235,10 +235,13 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 var pipe_ = new global::System.IO.Pipelines.Pipe(); // TODO: pipe options
 
 var encoder_ = new SliceEncoder(pipe_.Writer, {encoding}, {class_format});
-Span<byte> sizePlaceholder_ = encoder_.GetPlaceholderSpan(4);
+Span<byte> sizePlaceholder_ = {encoding} == IceRpc.Encoding.Slice11 ? default : encoder_.GetPlaceholderSpan(4);
 int startPos_ = encoder_.EncodedByteCount;
 {encode_returns}
-SliceEncoder.EncodeVarULong((ulong)(encoder_.EncodedByteCount - startPos_), sizePlaceholder_);
+if ({encoding} != IceRpc.Encoding.Slice11)
+{{
+    SliceEncoder.EncodeVarULong((ulong)(encoder_.EncodedByteCount - startPos_), sizePlaceholder_);
+}}
 
 pipe_.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
 return pipe_.Reader;",
