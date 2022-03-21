@@ -14,6 +14,7 @@ public sealed class InvokeAsyncTests
 
     /// <summary>Verifies that sending a payload using
     /// <see cref="Connection.InvokeAsync(OutgoingRequest, CancellationToken)"/> works.</summary>
+    /// <param name="endpoint">The server endpoint, used to specify the protocol to test.</param>
     [TestCase("icerpc://colochost")]
     [TestCase("ice://colochost")]
     public async Task Invoke_async_send_payload(string endpoint)
@@ -55,6 +56,7 @@ public sealed class InvokeAsyncTests
 
     /// <summary>Verifies that receiving a payload using
     /// <see cref="Connection.InvokeAsync(OutgoingRequest, CancellationToken)"/> works.</summary>
+    /// <param name="endpoint">The server endpoint, used to specify the protocol to test.</param>
     [TestCase("icerpc://colochost")]
     [TestCase("ice://colochost")]
     public async Task Invoke_async_receive_payload(string endpoint)
@@ -93,7 +95,6 @@ public sealed class InvokeAsyncTests
     private static ConnectionOptions CreateConnectionOptions(Endpoint remoteEndpoint, ColocTransport colocTransport)
     {
         var connectionOptions = new ConnectionOptions { RemoteEndpoint = remoteEndpoint };
-
         if (remoteEndpoint.Protocol == Protocol.Ice)
         {
             connectionOptions.SimpleClientTransport = colocTransport.ClientTransport;
