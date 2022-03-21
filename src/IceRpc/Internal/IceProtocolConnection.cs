@@ -158,6 +158,8 @@ namespace IceRpc.Internal
                         throw new InvalidDataException("received request with an empty frame");
                     }
 
+                    Debug.Assert(readResult.IsCompleted);
+
                     (int requestId, IceRequestHeader requestHeader, int consumed) = DecodeRequestIdAndHeader(
                         readResult.Buffer);
                     frameReader.AdvanceTo(readResult.Buffer.GetPosition(consumed));
@@ -201,9 +203,9 @@ namespace IceRpc.Internal
                     // is closed.
                     await request.CompleteAsync(new ConnectionClosedException()).ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch
                 {
-                    await frameReader.CompleteAsync(ex).ConfigureAwait(false);
+                    await frameReader.CompleteAsync().ConfigureAwait(false);
                 }
             }
 
@@ -253,6 +255,8 @@ namespace IceRpc.Internal
                         throw new InvalidDataException($"received empty response frame for request #{requestId}");
                     }
 
+                    Debug.Assert(readResult.IsCompleted);
+
                     ReplyStatus replyStatus = readResult.Buffer.FirstSpan[0].AsReplyStatus();
 
                     if (replyStatus <= ReplyStatus.UserException)
@@ -288,7 +292,7 @@ namespace IceRpc.Internal
                     {
                         // An ice system exception. The reply status is part of the payload.
 
-                        // Don't consume anything. The examined is irrelevant since frameReader is completed.
+                        // Don't consume anything. The examined is irrelevant since readResult.IsCompleted is true.
                         frameReader.AdvanceTo(readResult.Buffer.Start);
                     }
 
@@ -309,9 +313,9 @@ namespace IceRpc.Internal
                         }
                     };
                 }
-                catch (Exception ex)
+                catch
                 {
-                    await frameReader.CompleteAsync(ex).ConfigureAwait(false);
+                    await frameReader.CompleteAsync().ConfigureAwait(false);
                     throw;
                 }
             }
