@@ -12,53 +12,48 @@ public class BitSequenceWriterTests
 {
 
     /// <summary>Provides test case data for
-    /// <see cref="Write_bit_sequence_clears_memory(byte)"/> test.
+    /// <see cref="Write_bit_sequence_clears_memory(byte[], byte[], IList<Memory<byte>>?, int)"/> test.
     /// </summary>
     private static IEnumerable<TestCaseData> WriteClearsMemorySource
     {
         get
         {
-            (byte[], byte[], IList<Memory<byte>>?, int writes)[] testData =
+            (byte[], byte[], IList<Memory<byte>>?)[] testData =
             {
                 (
                     new byte[] { 1, 2, 3 },
                     Array.Empty<byte>(),
-                    null,
-                    1
+                    null
                 ),
                 (
                     new byte[] { 1, 2, 3 },
                     new byte[] { 4, 5, 6 },
-                    null,
-                    2
+                    null
                 ),
                 (
                     new byte[] { 1, 2, 3 },
                     new byte[] { 4, 5, 6 },
-                    new Memory<byte>[] { new byte[] { 7, 8, 9 } },
-                    3
+                    new Memory<byte>[] { new byte[] { 7, 8, 9 } }
                 ),
                 (
                     new byte[] { 1, 2, 3 },
                     new byte[] { 4, 5, 6 },
-                    new Memory<byte>[] { new byte[] { 7, 8, 9 }, new byte[] { 10, 11, 12 } },
-                    4
+                    new Memory<byte>[] { new byte[] { 7, 8, 9 }, new byte[] { 10, 11, 12 } }
                 ),
             };
             foreach ((
                 byte[] firstBytes,
                 byte[] secondBytes,
-                IList<Memory<byte>>? additionalMemory,
-                int writes) in testData)
+                IList<Memory<byte>>? additionalMemory) in testData)
             {
-                yield return new TestCaseData(firstBytes, secondBytes, additionalMemory, writes);
+                yield return new TestCaseData(firstBytes, secondBytes, additionalMemory);
             }
         }
     }
 
-     /// <summary>Verifies that calling <see cref="BitSequenceWriter.Write"/> correctly writes the specified
-     /// bit sequence to the provided spans and memory.</summary>
-     /// <param name="pattern">The byte pattern to write.</param>
+    /// <summary>Verifies that calling <see cref="BitSequenceWriter.Write"/> correctly writes the specified
+    /// bit sequence to the provided spans and memory.</summary>
+    /// <param name="pattern">The byte pattern to write.</param>
     [TestCase(0)]
     [TestCase(0xFF)]
     [TestCase(0xAA)]
@@ -67,7 +62,7 @@ public class BitSequenceWriterTests
     {
         Span<byte> firstSpan = new byte[3];
         Span<byte> secondSpan = new byte[30];
-        IList<Memory<byte>> additionalMemory = new Memory<byte>[]
+        var additionalMemory = new Memory<byte>[]
         {
             new byte[40],
             new byte[60]
@@ -85,7 +80,8 @@ public class BitSequenceWriterTests
         var enumerator = new SpanEnumerator(firstSpan, secondSpan, additionalMemory);
         while (enumerator.MoveNext())
         {
-            foreach (byte i in enumerator.Current) {
+            foreach (byte i in enumerator.Current)
+            {
                 Assert.That(i, Is.EqualTo(pattern));
             }
         }
@@ -96,30 +92,25 @@ public class BitSequenceWriterTests
     /// <param name="firstBytes">The bytes that will be used to create the first span.</param>
     /// <param name="secondBytes">The bytes that will be used to create the second span. (Can be empty)</param>
     /// <param name="additionalMemory">The list of memory used for additional memory. (Optional)</param>
-    /// <param name="writes">The number of times to call <see cref="BitSequenceWriter.Write"/>.</param>
     [Test, TestCaseSource(nameof(WriteClearsMemorySource))]
     public void Write_bit_sequence_clears_memory(
         byte[] firstBytes,
         byte[] secondBytes,
-        IList<Memory<byte>>? additionalMemory,
-        int writes)
+        IList<Memory<byte>>? additionalMemory)
     {
-        // Arrange
         int additionalMemSize = additionalMemory != null ? additionalMemory.Sum(m => m.Length) : 0;
         int size = (firstBytes.Length + secondBytes.Length + additionalMemSize) * 8;
         var writer = new BitSequenceWriter(new SpanEnumerator(firstBytes.AsSpan(), secondBytes.AsSpan(), additionalMemory));
 
-        // Act
         for (int i = 0; i < size; ++i)
         {
             writer.Write(false);
         }
 
-        // Assert
         var enumerator = new SpanEnumerator(firstBytes.AsSpan(), secondBytes.AsSpan(), additionalMemory);
         while (enumerator.MoveNext())
         {
-            Assert.That(enumerator.Current.ToArray().All(o => o == 0 ), Is.True);
+            Assert.That(enumerator.Current.ToArray().All(o => o == 0), Is.True);
         }
     }
 
