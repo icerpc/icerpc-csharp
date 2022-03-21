@@ -119,7 +119,7 @@ private static readonly global::System.Collections.Generic.HashSet<{underlying}>
             format!("this {}", underlying_type).as_str(),
             "value",
             None,
-            Some("The value being converted"),
+            Some("The value being converted."),
         )
         .add_comment(
             "summary",
