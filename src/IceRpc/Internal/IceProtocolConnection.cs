@@ -62,7 +62,7 @@ namespace IceRpc.Internal
 
         private readonly object _mutex = new();
         private readonly SimpleNetworkConnectionPipeWriter _networkConnectionWriter;
-        private readonly SimpleNetworkConnectionPipeReader _networkConnectionReader;
+        private readonly SimpleNetworkConnectionReader _networkConnectionReader;
         private int _nextRequestId;
         private readonly Configure.IceProtocolOptions _options;
         private readonly IcePayloadPipeWriter _payloadWriter;
@@ -73,6 +73,8 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public void Dispose()
         {
+            _networkConnectionReader.Dispose();
+
             // The connection is disposed, if there are sill pending invocations, it indicates a non-graceful shutdown,
             // we raise ConnectionLostException.
             var exception = new ConnectionLostException();
@@ -718,7 +720,7 @@ namespace IceRpc.Internal
                 simpleNetworkConnection,
                 _memoryPool,
                 _minimumSegmentSize);
-            _networkConnectionReader = new SimpleNetworkConnectionPipeReader(
+            _networkConnectionReader = new SimpleNetworkConnectionReader(
                 simpleNetworkConnection,
                 _memoryPool,
                 _minimumSegmentSize);
@@ -737,12 +739,12 @@ namespace IceRpc.Internal
                 }
                 else
                 {
-                    ReadResult result = await _networkConnectionReader.ReadAtLeastAsync(
+                    ReadOnlySequence<byte> buffer = await _networkConnectionReader.ReadAtLeastAsync(
                         IceDefinitions.PrologueSize,
                         cancel).ConfigureAwait(false);
 
-                    (IcePrologue validateConnectionFrame, long consumed) = DecodeValidateConnectionFrame(result.Buffer);
-                    _networkConnectionReader.AdvanceTo(result.Buffer.GetPosition(consumed), result.Buffer.End);
+                    (IcePrologue validateConnectionFrame, long consumed) = DecodeValidateConnectionFrame(buffer);
+                    _networkConnectionReader.AdvanceTo(buffer.GetPosition(consumed), buffer.End);
 
                     IceDefinitions.CheckPrologue(validateConnectionFrame);
                     if (validateConnectionFrame.FrameSize != IceDefinitions.PrologueSize)
@@ -775,7 +777,7 @@ namespace IceRpc.Internal
         /// fully and buffered into an internal pipe.</summary>
         private static async ValueTask<PipeReader> CreateFrameReaderAsync(
             int size,
-            SimpleNetworkConnectionPipeReader networkConnectionReader,
+            SimpleNetworkConnectionReader networkConnectionReader,
             MemoryPool<byte> pool,
             int minimumSegmentSize,
             CancellationToken cancel)
@@ -911,18 +913,13 @@ namespace IceRpc.Internal
 
             while (true)
             {
-                ReadResult readResult = await _networkConnectionReader.ReadAtLeastAsync(
+                ReadOnlySequence<byte> buffer = await _networkConnectionReader.ReadAtLeastAsync(
                     IceDefinitions.PrologueSize,
                     cancel).ConfigureAwait(false);
 
-                if (readResult.Buffer.Length < IceDefinitions.PrologueSize)
-                {
-                    throw new ConnectionLostException();
-                }
-
                 // First decode and check the prologue.
 
-                ReadOnlySequence<byte> prologueBuffer = readResult.Buffer.Slice(0, IceDefinitions.PrologueSize);
+                ReadOnlySequence<byte> prologueBuffer = buffer.Slice(0, IceDefinitions.PrologueSize);
 
                 IcePrologue prologue = Encoding.Slice11.DecodeBuffer(
                     prologueBuffer,
@@ -937,7 +934,7 @@ namespace IceRpc.Internal
                         $"incoming frame size ({prologue.FrameSize}) is greater than max incoming frame size");
                 }
                 else if (_isUdp &&
-                    (prologue.FrameSize > readResult.Buffer.Length || prologue.FrameSize > UdpUtils.MaxPacketSize))
+                    (prologue.FrameSize > buffer.Length || prologue.FrameSize > UdpUtils.MaxPacketSize))
                 {
                     // Ignore truncated UDP datagram.
                     continue; // while
@@ -1029,7 +1026,7 @@ namespace IceRpc.Internal
                         try
                         {
                             // Read and decode request ID
-                            if (!frameReader.TryRead(out readResult) || readResult.Buffer.Length < 4)
+                            if (!frameReader.TryRead(out ReadResult readResult) || readResult.Buffer.Length < 4)
                             {
                                 throw new ConnectionLostException();
                             }
