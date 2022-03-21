@@ -344,6 +344,8 @@ namespace IceRpc
                 await protocolConnection.ReceiveResponseAsync(request, cancel).ConfigureAwait(false);
 
             response.Connection = this;
+
+            // The caller is responsible for completing the response payload.
             return response;
         }
 

@@ -16,12 +16,14 @@ namespace IceRpc.Tests.Internal
     // TODO: These tests shouldn't need to be internal tests but since they rely on internal APIs for creating
     // requests they need to be internal for now.
     [Parallelizable(ParallelScope.All)]
+    [Timeout(5000)]
     public class LoggingTests
     {
         /// <summary>Check the retry interceptor logging.</summary>
         // TODO: enable again this test once the retry interceptor is fixed.
-        [Ignore("retry interceptor issues, #929")]
+        // [Ignore("retry interceptor issues, #929")]
         [Test]
+        [Log(LogAttributeLevel.Debug)]
         public async Task Logging_RetryInterceptor()
         {
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()

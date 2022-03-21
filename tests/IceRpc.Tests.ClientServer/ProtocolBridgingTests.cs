@@ -11,7 +11,7 @@ namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(ParallelScope.All)]
-    [Timeout(30000)]
+    [Timeout(5000)]
     public sealed class ProtocolBridgingTests
     {
         [TestCase("icerpc", "icerpc", true)]
@@ -22,6 +22,7 @@ namespace IceRpc.Tests.ClientServer
         [TestCase("ice", "icerpc", true)]
         [TestCase("icerpc", "ice", false)]
         [TestCase("ice", "icerpc", false)]
+        [Repeat(2)]
         public async Task ProtocolBridging_Forward(string forwarderProtocol, string targetProtocol, bool colocated)
         {
             var router = new Router();

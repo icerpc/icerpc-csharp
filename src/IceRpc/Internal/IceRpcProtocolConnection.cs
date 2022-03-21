@@ -209,11 +209,9 @@ namespace IceRpc.Internal
             IceRpcResponseHeader header;
             IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields;
 
-            PipeReader responseReader = request.ResponseReader;
-
             try
             {
-                ReadResult readResult = await responseReader.ReadSegmentAsync(cancel).ConfigureAwait(false);
+                ReadResult readResult = await request.ResponseReader.ReadSegmentAsync(cancel).ConfigureAwait(false);
 
                 if (readResult.IsCanceled)
                 {
@@ -244,45 +242,46 @@ namespace IceRpc.Internal
                 }
 
                 (header, fields) = DecodeHeader(readResult.Buffer);
-                responseReader.AdvanceTo(readResult.Buffer.End);
+                request.ResponseReader.AdvanceTo(readResult.Buffer.End);
 
                 RetryPolicy? retryPolicy = fields.DecodeValue(
-                    ResponseFieldKey.RetryPolicy, (ref SliceDecoder decoder) => new RetryPolicy(ref decoder));
+                    ResponseFieldKey.RetryPolicy,
+                    (ref SliceDecoder decoder) => new RetryPolicy(ref decoder));
                 if (retryPolicy != null)
                 {
                     request.Features = request.Features.With(retryPolicy);
                 }
             }
-            catch (MultiplexedStreamAbortedException ex)
+            catch (MultiplexedStreamAbortedException exception)
             {
-                await responseReader.CompleteAsync(ex).ConfigureAwait(false);
-                if (ex.ErrorKind == MultiplexedStreamErrorKind.Protocol)
+                await request.ResponseReader.CompleteAsync(exception).ConfigureAwait(false);
+                if (exception.ErrorKind == MultiplexedStreamErrorKind.Protocol)
                 {
-                    throw ex.ToIceRpcException();
+                    throw exception.ToIceRpcException();
                 }
                 else
                 {
-                    throw new ConnectionLostException(ex);
+                    throw new ConnectionLostException(exception);
                 }
             }
             catch (OperationCanceledException)
             {
                 // Notify the peer that we give up on receiving the response. The peer will cancel the dispatch upon
                 // receiving this notification.
-                await responseReader.CompleteAsync(
+                await request.ResponseReader.CompleteAsync(
                     IceRpcStreamError.InvocationCanceled.ToException()).ConfigureAwait(false);
                 throw;
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                await responseReader.CompleteAsync(ex).ConfigureAwait(false);
+                await request.ResponseReader.CompleteAsync(exception).ConfigureAwait(false);
                 throw;
             }
 
             return new IncomingResponse(request)
             {
                 Fields = fields,
-                Payload = responseReader,
+                Payload = request.ResponseReader,
                 ResultType = header.ResultType
             };
 

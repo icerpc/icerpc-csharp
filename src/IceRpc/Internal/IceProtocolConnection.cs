@@ -125,7 +125,7 @@ namespace IceRpc.Internal
                 {
                     (requestId, requestHeader, payloadReader) = await ReceiveFrameAsync().ConfigureAwait(false);
                 }
-                catch (ConnectionLostException)
+                catch
                 {
                     lock (_mutex)
                     {
@@ -909,10 +909,14 @@ namespace IceRpc.Internal
                             _ => ResultType.Failure
                         };
 
+                        OutgoingRequest? request = null;
+                        bool shutdown;
                         lock (_mutex)
                         {
                             Debug.Assert(requestId != null);
-                            if (_invocations.TryGetValue(requestId.Value, out OutgoingRequest? request))
+                            shutdown = _shutdown;
+                            // If shutting down, invocations are canceled.
+                            if (!_shutdown && _invocations.TryGetValue(requestId.Value, out request))
                             {
                                 // For compatibility with ZeroC Ice "indirect" proxies
                                 if (replyStatus == ReplyStatus.ObjectNotExistException &&
@@ -928,9 +932,19 @@ namespace IceRpc.Internal
                                         ResultType = resultType
                                     });
                             }
-                            else if (!_shutdown)
+                        }
+
+                        if (request == null)
+                        {
+                            if (shutdown)
                             {
-                                throw new InvalidDataException("received ice Reply for unknown invocation");
+                                await payloadReader.CompleteAsync().ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                var exception = new InvalidDataException("received ice Reply for unknown invocation");
+                                await payloadReader.CompleteAsync(exception).ConfigureAwait(false);
+                                throw exception;
                             }
                         }
                         break;

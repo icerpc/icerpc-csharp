@@ -83,14 +83,22 @@ namespace IceRpc
                         // removed all remaining usable endpoints through request.ExcludedEndpoints.
                         return response ?? throw ExceptionUtil.Throw(exception ?? ex);
                     }
-                    catch (OperationCanceledException)
+                    catch (OperationCanceledException ex)
                     {
+                        if (response != null)
+                        {
+                            await response.Payload.CompleteAsync(ex).ConfigureAwait(false);
+                        }
                         // TODO: try other replica in some cases?
                         throw;
                     }
                     catch (Exception ex)
                     {
-                        response = null;
+                        if (response != null)
+                        {
+                            await response.Payload.CompleteAsync(ex).ConfigureAwait(false);
+                            response = null;
+                        }
                         exception = ex;
 
                         // ConnectionClosedException is a graceful connection closure that is always safe to retry.

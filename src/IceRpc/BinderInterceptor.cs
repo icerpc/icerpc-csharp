@@ -25,7 +25,7 @@ namespace IceRpc
             _cacheConnection = cacheConnection;
         }
 
-        Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+        async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
             if (request.Connection == null)
             {
@@ -44,23 +44,26 @@ namespace IceRpc
 
                 if (endpoint == null)
                 {
-                    throw new NoEndpointException(request.Proxy);
+                    var exception = new NoEndpointException(request.Proxy);
+                    await request.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
+                    if (request.PayloadSourceStream != null)
+                    {
+                        await request.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
+                    }
+                    await request.PayloadSink.CompleteAsync(exception).ConfigureAwait(false);
+                    throw exception;
                 }
 
-                return PerformAsync(_connectionProvider.GetConnectionAsync(endpoint.Value, altEndpoints, cancel));
-            }
-            return _next.InvokeAsync(request, cancel);
-
-            async Task<IncomingResponse> PerformAsync(ValueTask<Connection> task)
-            {
-                request.Connection = await task.ConfigureAwait(false);
+                request.Connection = await _connectionProvider.GetConnectionAsync(
+                    endpoint.Value,
+                    altEndpoints,
+                    cancel).ConfigureAwait(false);
                 if (_cacheConnection)
                 {
                     request.Proxy.Connection = request.Connection;
                 }
-
-                return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
             }
+            return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
         }
     }
 }
