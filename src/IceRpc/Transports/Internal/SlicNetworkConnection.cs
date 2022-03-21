@@ -44,7 +44,7 @@ namespace IceRpc.Transports.Internal
         private readonly ISlicFrameReader _reader;
         private readonly AsyncSemaphore _sendSemaphore = new(1, 1);
         private readonly ISimpleNetworkConnection _simpleNetworkConnection;
-        private readonly SimpleNetworkConnectionPipeReader _simpleNetworkConnectionReader;
+        private readonly SimpleNetworkConnectionReader _simpleNetworkConnectionReader;
         private readonly SimpleNetworkConnectionPipeWriter _simpleNetworkConnectionWriter;
         private readonly ConcurrentDictionary<long, SlicMultiplexedStream> _streams = new();
         private readonly int _unidirectionalMaxStreams;
@@ -233,7 +233,7 @@ namespace IceRpc.Transports.Internal
 
             // Close the network connection.
             await _simpleNetworkConnection.DisposeAsync().ConfigureAwait(false);
-            await _simpleNetworkConnectionReader.CompleteAsync(exception).ConfigureAwait(false);
+            _simpleNetworkConnectionReader.Complete();
             await _simpleNetworkConnectionWriter.CompleteAsync(exception).ConfigureAwait(false);
 
             // Unblock requests waiting on the semaphores.
@@ -279,7 +279,7 @@ namespace IceRpc.Transports.Internal
                 slicOptions.Pool,
                 slicOptions.MinimumSegmentSize);
 
-            _simpleNetworkConnectionReader = new SimpleNetworkConnectionPipeReader(
+            _simpleNetworkConnectionReader = new SimpleNetworkConnectionReader(
                 simpleNetworkConnection,
                 slicOptions.Pool,
                 slicOptions.MinimumSegmentSize);
@@ -647,7 +647,7 @@ namespace IceRpc.Transports.Internal
                                     minimumSegmentSize: MinimumSegmentSize,
                                     writerScheduler: PipeScheduler.Inline));
 
-                            await _reader.PipeReader.FillBufferWriterAsync(
+                            await _reader.NetworkConnectionReader.FillBufferWriterAsync(
                                     pipe.Writer,
                                     dataSize - readSize,
                                     cancel).ConfigureAwait(false);
@@ -761,22 +761,19 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel)
         {
             Debug.Assert(size > 0);
-            ReadResult readResult = await _reader.PipeReader.ReadAtLeastAsync(size, cancel).ConfigureAwait(false);
+            ReadOnlySequence<byte> buffer = await _reader.NetworkConnectionReader.ReadAtLeastAsync(
+                size,
+                cancel).ConfigureAwait(false);
 
-            ReadOnlySequence<byte> buffer = readResult.Buffer;
             if (buffer.Length > size)
             {
                 buffer = buffer.Slice(0, size);
-            }
-            else if (buffer.Length < size)
-            {
-                throw new ConnectionLostException();
             }
 
             T decodedFrame = Encoding.Slice20.DecodeBuffer(buffer, decodeFunc);
             if (size > 0)
             {
-                _reader.PipeReader.AdvanceTo(buffer.End);
+                _reader.NetworkConnectionReader.AdvanceTo(buffer.End);
             }
 
             return decodedFrame;

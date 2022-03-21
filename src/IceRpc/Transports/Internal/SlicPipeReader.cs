@@ -10,7 +10,7 @@ namespace IceRpc.Transports.Internal
         private int _examined;
         private Exception? _exception;
         private long _lastExaminedOffset;
-        private readonly SimpleNetworkConnectionPipeReader _networkConnectionReader;
+        private readonly SimpleNetworkConnectionReader _networkConnectionReader;
         private readonly Pipe _pipe;
         private ReadResult _readResult;
         private int _receiveCredit;
@@ -165,7 +165,7 @@ namespace IceRpc.Transports.Internal
             int minimumSegmentSize,
             int resumeThreshold,
             int pauseThreshold,
-            SimpleNetworkConnectionPipeReader networkConnectionReader)
+            SimpleNetworkConnectionReader networkConnectionReader)
         {
             _stream = stream;
             _resumeThreshold = resumeThreshold;

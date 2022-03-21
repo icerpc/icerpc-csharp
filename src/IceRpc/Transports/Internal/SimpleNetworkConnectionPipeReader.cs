@@ -7,57 +7,14 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
-    internal class SimpleNetworkConnectionPipeReader : PipeReader
+    /// <summary>A helper class to efficiently read a simple network connection. It provides PipeReader-like API but
+    /// is not a PipeReader.</summary>
+    internal class SimpleNetworkConnectionReader
     {
         private readonly ISimpleNetworkConnection _connection;
         private readonly Pipe _pipe;
 
-        /// <inheritdoc/>
-        public override void AdvanceTo(SequencePosition consumed) => _pipe.Reader.AdvanceTo(consumed);
-
-        /// <inheritdoc/>
-        public override void AdvanceTo(SequencePosition consumed, SequencePosition examined) =>
-            _pipe.Reader.AdvanceTo(consumed, examined);
-
-        /// <inheritdoc/>
-        public override void CancelPendingRead() =>
-            // Supporting this method would require to create a linked cancellation token source. Since there's no need
-            // for now to support this method, we just throw.
-            throw new NotSupportedException();
-
-        /// <inheritdoc/>
-        public override void Complete(Exception? exception = null)
-        {
-            _pipe.Writer.Complete(exception);
-            _pipe.Reader.Complete(exception);
-        }
-
-        /// <inheritdoc/>
-        public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancel = default)
-        {
-            if (!_pipe.Reader.TryRead(out ReadResult readResult))
-            {
-                // Fill the pipe with data read from the connection.
-                Memory<byte> buffer = _pipe.Writer.GetMemory();
-                int read = await _connection.ReadAsync(buffer, cancel).ConfigureAwait(false);
-                if (read == 0)
-                {
-                    throw new ConnectionLostException();
-                }
-                _pipe.Writer.Advance(read);
-                await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-
-                // Data should now be available unless the read above didn't return any additional data.
-                _pipe.Reader.TryRead(out readResult);
-                Debug.Assert(readResult.Buffer.Length > 0);
-            }
-            return readResult;
-        }
-
-        /// <inheritdoc/>
-        public override bool TryRead(out ReadResult result) => _pipe.Reader.TryRead(out result);
-
-        internal SimpleNetworkConnectionPipeReader(
+        internal SimpleNetworkConnectionReader(
             ISimpleNetworkConnection connection,
             MemoryPool<byte> pool,
             int minimumSegmentSize)
@@ -68,6 +25,17 @@ namespace IceRpc.Transports.Internal
                 minimumSegmentSize: minimumSegmentSize,
                 pauseWriterThreshold: 0,
                 writerScheduler: PipeScheduler.Inline));
+        }
+
+        internal void AdvanceTo(SequencePosition consumed) => _pipe.Reader.AdvanceTo(consumed);
+
+        internal void AdvanceTo(SequencePosition consumed, SequencePosition examined) =>
+            _pipe.Reader.AdvanceTo(consumed, examined);
+
+        internal void Complete()
+        {
+            _pipe.Writer.Complete();
+            _pipe.Reader.Complete();
         }
 
         /// <summary>Writes <paramref name="byteCount"/> bytes read from this pipe reader or its underlying connection
@@ -128,6 +96,53 @@ namespace IceRpc.Transports.Internal
                     bufferWriter.Advance(length);
                     byteCount -= length;
                 } while (byteCount > 0);
+            }
+        }
+
+        internal ValueTask<ReadOnlySequence<byte>> ReadAsync(CancellationToken cancel = default) =>
+            ReadAtLeastAsync(minimumSize: 1, cancel);
+
+        /// <summary>Reads and returns bytes from the underlying network connection. The returned buffer has always
+        /// at least minimumSize bytes.</summary>
+        internal async ValueTask<ReadOnlySequence<byte>> ReadAtLeastAsync(
+            int minimumSize,
+            CancellationToken cancel = default)
+        {
+            if (!_pipe.Reader.TryRead(out ReadResult readResult) || readResult.Buffer.Length < minimumSize)
+            {
+                do
+                {
+                    // Fill the pipe with data read from the connection.
+                    Memory<byte> buffer = _pipe.Writer.GetMemory();
+                    int read = await _connection.ReadAsync(buffer, cancel).ConfigureAwait(false);
+                    if (read == 0)
+                    {
+                        throw new ConnectionLostException();
+                    }
+                    _pipe.Writer.Advance(read);
+                    minimumSize -= read;
+                }
+                while (minimumSize > 0);
+
+                _ = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+
+                _pipe.Reader.TryRead(out readResult);
+            }
+
+            return readResult.Buffer;
+        }
+
+        internal bool TryRead(out ReadOnlySequence<byte> buffer)
+        {
+            if (_pipe.Reader.TryRead(out ReadResult readResult))
+            {
+                buffer = readResult.Buffer;
+                return true;
+            }
+            else
+            {
+                buffer = default;
+                return false;
             }
         }
     }
