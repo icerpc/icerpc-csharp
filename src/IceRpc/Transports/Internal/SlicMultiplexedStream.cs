@@ -72,6 +72,36 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        public Action? WriteCompletionAction
+        {
+            get
+            {
+                lock (_mutex)
+                {
+                    return _writeCompletionAction;
+                }
+            }
+            set
+            {
+                bool alreadyCompleted = false;
+                lock (_mutex)
+                {
+                    if (WritesCompleted)
+                    {
+                        alreadyCompleted = true;
+                    }
+                    else
+                    {
+                        _writeCompletionAction = value;
+                    }
+                }
+                if (alreadyCompleted)
+                {
+                    value?.Invoke();
+                }
+            }
+        }
+
         public PipeWriter Output => !IsRemote || IsBidirectional ?
             _outputPipeWriter :
             throw new InvalidOperationException($"can't get {nameof(Output)} on unidirectional remote stream");
@@ -112,12 +142,13 @@ namespace IceRpc.Transports.Internal
         private readonly SlicPipeReader _inputPipeReader;
         private readonly object _mutex = new();
         private readonly SlicPipeWriter _outputPipeWriter;
+        private long? _resetErrorCode;
         private volatile int _sendCredit = int.MaxValue;
         // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
         private readonly AsyncSemaphore _sendCreditSemaphore = new(1, 1);
         private volatile Action? _shutdownAction;
-        private long? _resetErrorCode;
         private int _state;
+        private Action? _writeCompletionAction;
 
         public void AbortRead(long errorCode)
         {
@@ -317,7 +348,18 @@ namespace IceRpc.Transports.Internal
 
         internal bool TrySetReadCompleted() => TrySetStateAndShutdown(State.ReadCompleted);
 
-        internal bool TrySetWriteCompleted() => TrySetStateAndShutdown(State.WriteCompleted);
+        internal bool TrySetWriteCompleted()
+        {
+            Action? writeCompletionAction;
+            bool stateUpdated;
+            lock (_mutex)
+            {
+                writeCompletionAction = _writeCompletionAction;
+                stateUpdated = TrySetStateAndShutdown(State.WriteCompleted);
+            }
+            writeCompletionAction?.Invoke();
+            return stateUpdated;
+        }
 
         private void Shutdown()
         {

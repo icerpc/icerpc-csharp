@@ -316,6 +316,10 @@ namespace IceRpc.Internal
             {
                 // Create the stream.
                 stream = _networkConnection.CreateStream(!request.IsOneway);
+                if (request.PayloadSourceStream != null)
+                {
+                    stream.WriteCompletionAction = () => request.PayloadSourceStream.CancelPendingRead();
+                }
 
                 // Keep track of the invocation for the shutdown logic.
                 if (!request.IsOneway || request.PayloadSourceStream != null)
@@ -446,6 +450,12 @@ namespace IceRpc.Internal
             {
                 await response.CompleteAsync().ConfigureAwait(false);
                 return;
+            }
+
+            if (response.PayloadSourceStream != null)
+            {
+                // TODO
+                //stream.WriteCompletionAction = () => request.PayloadSourceStream.CancelPendingRead();
             }
 
             try

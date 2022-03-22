@@ -35,136 +35,11 @@ namespace IceRpc.Slice
             IAsyncEnumerable<T> asyncEnumerable,
             EncodeAction<T> encodeAction)
         {
-            if (encoding == IceRpc.Encoding.Slice11)
+            if (encoding == Encoding.Slice11)
             {
                 throw new NotSupportedException("streaming is not supported with encoding 1.1");
             }
-
-            var pipe = new Pipe(); // TODO: pipe options, pipe pooling
-
-            // start writing immediately into background
-            Task.Run(() => FillPipeAsync());
-
-            return pipe.Reader;
-
-            async Task FillPipeAsync()
-            {
-                PipeWriter writer = pipe.Writer;
-
-                using var cancellationSource = new CancellationTokenSource();
-                IAsyncEnumerator<T> asyncEnumerator = asyncEnumerable.GetAsyncEnumerator(cancellationSource.Token);
-                await using var _ = asyncEnumerator.ConfigureAwait(false);
-
-                Memory<byte> sizePlaceholder = StartSegment();
-                int size = 0;
-
-                while (true)
-                {
-                    ValueTask<bool> moveNext = asyncEnumerator.MoveNextAsync();
-                    if (moveNext.IsCompletedSuccessfully)
-                    {
-                        if (moveNext.Result)
-                        {
-                            size += EncodeElement(asyncEnumerator.Current);
-                        }
-                        else
-                        {
-                            if (size > 0)
-                            {
-                                await FinishSegmentAsync(size, sizePlaceholder).ConfigureAwait(false);
-                            }
-                            break; // End iteration
-                        }
-                    }
-                    else
-                    {
-                        // If we already wrote some elements write the segment now and start a new one.
-                        if (size > 0)
-                        {
-                            FlushResult flushResult = await FinishSegmentAsync(
-                                size,
-                                sizePlaceholder).ConfigureAwait(false);
-
-                            // nobody can call CancelPendingFlush on this writer
-                            Debug.Assert(!flushResult.IsCanceled);
-
-                            if (flushResult.IsCompleted) // reader no longer reading
-                            {
-                                cancellationSource.Cancel();
-                                break; // End iteration
-                            }
-
-                            sizePlaceholder = StartSegment();
-                            size = 0;
-                        }
-
-                        if (await moveNext.ConfigureAwait(false))
-                        {
-                            size += EncodeElement(asyncEnumerator.Current);
-                        }
-                        else
-                        {
-                            break; // End iteration
-                        }
-                    }
-
-                    // TODO allow to configure the size limit?
-                    if (size > 32 * 1024)
-                    {
-                        FlushResult flushResult = await FinishSegmentAsync(
-                                size,
-                                sizePlaceholder).ConfigureAwait(false);
-
-                        // nobody can call CancelPendingFlush on this writer
-                        Debug.Assert(!flushResult.IsCanceled);
-
-                        if (flushResult.IsCompleted) // reader no longer reading
-                        {
-                            break; // End iteration
-                        }
-
-                        // TODO: avoid all this duplicated code
-                        sizePlaceholder = StartSegment();
-                        size = 0;
-                    }
-                }
-
-                // Write end of stream
-                await writer.CompleteAsync().ConfigureAwait(false);
-
-                int EncodeElement(T element)
-                {
-                    // TODO: An encoder is very lightweight, however, creating an encoder per element seems extreme
-                    // for tiny elements.
-                    var encoder = new SliceEncoder(writer, encoding);
-                    encodeAction(ref encoder, element);
-                    return encoder.EncodedByteCount;
-                }
-
-                Memory<byte> StartSegment()
-                {
-                    Memory<byte> sizePlaceholder = writer.GetMemory(4)[0..4];
-                    writer.Advance(4);
-                    return sizePlaceholder;
-                }
-
-                async ValueTask<FlushResult> FinishSegmentAsync(
-                    int size,
-                    Memory<byte> sizePlaceholder)
-                {
-                    encoding.EncodeFixedLengthSize(size, sizePlaceholder.Span);
-                    try
-                    {
-                        return await writer.FlushAsync().ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        cancellationSource.Cancel();
-                        await writer.CompleteAsync(ex).ConfigureAwait(false);
-                        throw;
-                    }
-                }
-            }
+            return new PayloadSourceStreamPipeReader<T>(encoding, asyncEnumerable, encodeAction);
         }
 
         /// <summary>Creates the payload of a response from a remote exception.</summary>
@@ -179,7 +54,7 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceholder = encoding == Encoding.Slice11 ? default : encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
 
-            if (encoding == IceRpc.Encoding.Slice11 && exception is DispatchException dispatchException)
+            if (encoding == Encoding.Slice11 && exception is DispatchException dispatchException)
             {
                 encoder.EncodeDispatchExceptionAsSystemException(dispatchException);
             }
@@ -215,6 +90,144 @@ namespace IceRpc.Slice
             else
             {
                 SliceEncoder.EncodeVarULong((ulong)size, into);
+            }
+        }
+
+#pragma warning disable CA1001 // CompleteAsync disposes the cancellation source token.
+        private class PayloadSourceStreamPipeReader<T> : PipeReader
+#pragma warning restore CA1001
+        {
+            private readonly IAsyncEnumerator<T> _asyncEnumerator;
+            private readonly CancellationTokenSource _cancellationSource = new();
+            private readonly EncodeAction<T> _encodeAction;
+            private readonly SliceEncoding _encoding;
+            private readonly int _segmentSizeFlushThreeshold;
+            private Task<bool>? _moveNext;
+            private readonly Pipe _pipe;
+
+            public override void AdvanceTo(SequencePosition consumed) => _pipe.Reader.AdvanceTo(consumed);
+
+            public override void AdvanceTo(SequencePosition consumed, SequencePosition examined) =>
+                _pipe.Reader.AdvanceTo(consumed, examined);
+
+            public override void CancelPendingRead()
+            {
+                _pipe.Reader.CancelPendingRead();
+                _cancellationSource.Cancel();
+            }
+
+            public override ValueTask CompleteAsync(Exception? exception = null)
+            {
+                _cancellationSource.Dispose();
+                _pipe.Reader.Complete(exception);
+                _pipe.Writer.Complete(exception);
+                return _asyncEnumerator.DisposeAsync();
+            }
+
+            public override void Complete(Exception? exception = null) => throw new NotSupportedException();
+
+            public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancel = default)
+            {
+                // If no more buffered data to read, fill the pipe with new data.
+                if (!_pipe.Reader.TryRead(out ReadResult readResult))
+                {
+                    bool completed;
+                    if (_moveNext == null)
+                    {
+                        completed = !await _asyncEnumerator.MoveNextAsync().ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        completed = !await _moveNext.ConfigureAwait(false);
+                        _moveNext = null;
+                    }
+
+                    if (!completed)
+                    {
+                        Memory<byte> sizePlaceholder = _pipe.Writer.GetMemory(4)[0..4];
+                        _pipe.Writer.Advance(4);
+
+                        int size = 0;
+                        ValueTask<bool> moveNext;
+                        while (true)
+                        {
+                            size += EncodeElement(_asyncEnumerator.Current);
+
+                            // If we reached the segment size threeshold, it's time to flush the segment.
+                            // TODO: allow to configure the size limit?
+                            if (size > _segmentSizeFlushThreeshold)
+                            {
+                                break;
+                            }
+
+                            moveNext = _asyncEnumerator.MoveNextAsync();
+
+                            // If we can't get the element synchronously we save the move next task for the next
+                            // ReadAsync call and end the loop to flush the encoded elements.
+                            if (!moveNext.IsCompletedSuccessfully)
+                            {
+                                _moveNext = moveNext.AsTask();
+                                break;
+                            }
+
+                            // If no more elements, we're done!
+                            if (!moveNext.Result)
+                            {
+                                completed = true;
+                                break;
+                            }
+                        }
+
+                        _encoding.EncodeFixedLengthSize(size, sizePlaceholder.Span);
+
+                        if (!completed)
+                        {
+                            await _pipe.Writer.FlushAsync(cancel).ConfigureAwait(false);
+                        }
+                    }
+                    else
+                    {
+                        completed = true;
+                    }
+
+                    if (completed)
+                    {
+                        await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
+                    }
+                }
+
+                return await _pipe.Reader.ReadAsync(cancel).ConfigureAwait(false);
+
+                int EncodeElement(T element)
+                {
+                    // TODO: An encoder is very lightweight, however, creating an encoder per element seems extreme for
+                    // tiny elements. We could instead add the elements to a List<T> and encode elements in batches.
+                    var encoder = new SliceEncoder(_pipe.Writer, _encoding);
+                    _encodeAction(ref encoder, element);
+                    return encoder.EncodedByteCount;
+                }
+            }
+
+            public override bool TryRead(out ReadResult result) => _pipe.Reader.TryRead(out result);
+
+            internal PayloadSourceStreamPipeReader(
+                SliceEncoding encoding,
+                IAsyncEnumerable<T> asyncEnumerable,
+                EncodeAction<T> encodeAction)
+            {
+                // TODO: pipe options, pipe pooling
+                _pipe = new Pipe(new PipeOptions(
+                    pool: MemoryPool<byte>.Shared,
+                    minimumSegmentSize: -1,
+                    pauseWriterThreshold: 0,
+                    writerScheduler: PipeScheduler.Inline));
+
+                // TODO: configure
+                _segmentSizeFlushThreeshold = 32 * 1024;
+                _encodeAction = encodeAction;
+                _encoding = encoding;
+                _cancellationSource = new CancellationTokenSource();
+                _asyncEnumerator = asyncEnumerable.GetAsyncEnumerator(_cancellationSource.Token);
             }
         }
     }

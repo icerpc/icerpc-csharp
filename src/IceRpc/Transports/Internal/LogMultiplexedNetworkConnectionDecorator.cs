@@ -48,6 +48,11 @@ namespace IceRpc.Transports.Internal
             get => _decoratee.ShutdownAction;
             set => _decoratee.ShutdownAction = value;
         }
+        public Action? WriteCompletionAction
+        {
+            get => _decoratee.WriteCompletionAction;
+            set => _decoratee.WriteCompletionAction = value;
+        }
 
         private readonly IMultiplexedStream _decoratee;
         private PipeReader? _input;

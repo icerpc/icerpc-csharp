@@ -20,5 +20,8 @@ namespace IceRpc.Transports
 
         /// <summary>Sets the action which is called when the stream is reset.</summary>
         Action? ShutdownAction { get; set; }
+
+        /// <summary>Sets the action which is called when writes complete.</summary>
+        Action? WriteCompletionAction { get; set; }
     }
 }
