@@ -191,7 +191,6 @@ public sealed class TelemetryInterceptorTests
     public async Task Trace_context_field_not_encoded_if_activity_is_null()
     {
         // Arrange
-
         Activity? invocationActivity = null;
         var invoker = new InlineInvoker((request, cancel) =>
         {

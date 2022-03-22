@@ -141,7 +141,7 @@ public sealed class TelemetryMiddlewareTests
     /// <summary>Verifies that the dispatch activity context is restored from the
     /// <see cref="RequestFieldKey.TraceContext"/> field.</summary>
     [Test]
-    public void Dispatch_activity_decodes_trace_context_field()
+    public async Task Dispatch_activity_decodes_trace_context_field()
     {
         // Arrange
         Activity? dispatchActivity = null;
@@ -153,7 +153,9 @@ public sealed class TelemetryMiddlewareTests
 
         string? encodedActivityId;
         ActivitySpanId? parentSpandId;
-        ReadOnlySequence<byte>? encodedTraceContext = null;
+        ReadOnlySequence<byte>? encodedTraceContext = EncodeTraceContext();
+
+        ReadOnlySequence<byte> EncodeTraceContext()
         {
             // Encode the parent activity context here, in a separate scope, we don't want this activity to be running
             // when we call dispatch on the "sut" as the telemetry middleware interacts with Activity.Current.
@@ -169,7 +171,7 @@ public sealed class TelemetryMiddlewareTests
 
             TelemetryInterceptor.WriteActivityContext(ref encoder, encodedActivity);
 
-            encodedTraceContext = new ReadOnlySequence<byte>(buffer, 0, encoder.EncodedByteCount);
+            return new ReadOnlySequence<byte>(buffer, 0, encoder.EncodedByteCount);
         }
 
         // Add a mock activity listener that allows the activity source to create the dispatch activity.
@@ -192,7 +194,7 @@ public sealed class TelemetryMiddlewareTests
         };
 
         // Act
-        Assert.That(async () => await sut.DispatchAsync(request, default), Throws.Nothing);
+        await sut.DispatchAsync(request, default);
 
         // Assert
         Assert.That(dispatchActivity, Is.Not.Null);
@@ -204,6 +206,42 @@ public sealed class TelemetryMiddlewareTests
         var baggage = dispatchActivity.Baggage.ToDictionary(x => x.Key, x => x.Value);
         Assert.That(baggage.ContainsKey("foo"), Is.True);
         Assert.That(baggage["foo"], Is.EqualTo("bar"));
+    }
+
+    /// <summary>Verifies that the dispatch activity context is restored from the
+    /// <see cref="RequestFieldKey.TraceContext"/> field.</summary>
+    [Test]
+    public void Decoding_empty_trace_context_field_fails()
+    {
+        // Arrange
+        Activity? dispatchActivity = null;
+        var dispatcher = new InlineDispatcher((request, cancel) =>
+        {
+            dispatchActivity = Activity.Current;
+            return new(new OutgoingResponse(request));
+        });
+
+        // Add a mock activity listener that allows the activity source to create the dispatch activity.
+        var activitySource = new ActivitySource("Test Activity Source");
+        using ActivityListener mookActivityListner = CreateMockActivityListener(activitySource);
+        var sut = new TelemetryMiddleware(dispatcher, new Configure.TelemetryOptions()
+        {
+            ActivitySource = activitySource
+        });
+
+        // Create an incoming request that carries an empty trace context field
+        var request = new IncomingRequest(Protocol.IceRpc)
+        {
+            Operation = "Op",
+            Path = "/",
+            Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>()
+            {
+                [RequestFieldKey.TraceContext] = ReadOnlySequence<byte>.Empty
+            }
+        };
+
+        // Act/Assert
+        Assert.That(async () => await sut.DispatchAsync(request, default), Throws.InstanceOf<InvalidDataException>());
     }
 
     private static ActivityListener CreateMockActivityListener(ActivitySource activitySource)
