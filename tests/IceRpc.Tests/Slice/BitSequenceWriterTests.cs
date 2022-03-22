@@ -36,8 +36,7 @@ public class BitSequenceWriterTests
     }
 
     /// <summary>Provides test case data for
-    /// <see cref="Write_bit_sequence_clears_memory(byte[], byte[], IList<Memory<byte>>?, int)"/> test.
-    /// </summary>
+    /// <see cref="Write_bit_sequence_clears_memory(byte[], byte[], IList{Memory{byte}}?, int)"/> test.</summary>
     private static IEnumerable<TestCaseData> WriteClearsDataSource
     {
         get
