@@ -562,6 +562,7 @@ namespace IceRpc.Tests.Internal
 
                     var serverConnectionOptions = new ConnectionOptions
                     {
+                        CloseTimeout = serverOptions.CloseTimeout,
                         ConnectTimeout = serverOptions.ConnectTimeout,
                         Dispatcher = _serviceProvider.GetService<IDispatcher>() ?? serverOptions.Dispatcher,
                         Fields = serverOptions.Fields,
@@ -572,12 +573,11 @@ namespace IceRpc.Tests.Internal
                     var connection = new Connection(
                         networkConnection,
                         listener.Endpoint.Protocol,
-                        serverOptions.CloseTimeout);
+                        serverConnectionOptions);
 
                     await connection.ConnectAsync<T>(
                         networkConnection,
                         protocolConnectionFactory,
-                        serverConnectionOptions,
                         closedEventHandler: null);
                     return connection;
                 }
