@@ -70,6 +70,10 @@ namespace IceRpc.Configure
         /// </value>
         public bool KeepAlive { get; set; }
 
+        /// <summary>Gets or sets the options for the ice protocol.</summary>
+        /// <value>The options for the ice protocol.</value>
+        public IceProtocolOptions? IceProtocolOptions { get; set; }
+
         /// <summary>Gets or sets the logger factory used to create loggers to log connection-related activities.
         /// </summary>
         public ILoggerFactory LoggerFactory { get; set; } = NullLoggerFactory.Instance;

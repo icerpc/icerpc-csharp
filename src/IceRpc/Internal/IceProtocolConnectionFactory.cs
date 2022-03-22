@@ -11,6 +11,7 @@ namespace IceRpc.Internal
         public async Task<IProtocolConnection> CreateProtocolConnectionAsync(
             ISimpleNetworkConnection networkConnection,
             NetworkConnectionInformation connectionInfo,
+            Configure.IceProtocolOptions? iceProtocolOptions,
             IDictionary<ConnectionFieldKey, OutgoingFieldValue> localFields,
             bool isServer,
             CancellationToken cancel)
@@ -19,7 +20,10 @@ namespace IceRpc.Internal
             bool isUdp = connectionInfo.LocalEndpoint.Params.TryGetValue("transport", out string? transport) &&
                 transport == TransportNames.Udp;
 
-            var protocolConnection = new IceProtocolConnection(networkConnection, isUdp);
+            var protocolConnection = new IceProtocolConnection(
+                networkConnection,
+                iceProtocolOptions ?? Configure.IceProtocolOptions.Default,
+                isUdp);
             try
             {
                 await protocolConnection.InitializeAsync(isServer, cancel).ConfigureAwait(false);

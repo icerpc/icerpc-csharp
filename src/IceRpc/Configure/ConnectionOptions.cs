@@ -61,16 +61,9 @@ namespace IceRpc.Configure
         public IDictionary<ConnectionFieldKey, OutgoingFieldValue> Fields { get; set; } =
             ImmutableDictionary<ConnectionFieldKey, OutgoingFieldValue>.Empty;
 
-        /// <summary>Gets or sets the maximum size in bytes of an incoming Ice or IceRpc protocol frame. It can't
-        /// be less than 1KB and the default value is 1MB.</summary>
-        /// <value>The maximum size of incoming frame in bytes.</value>
-        public int IncomingFrameMaxSize
-        {
-            get => _incomingFrameMaxSize;
-            set => _incomingFrameMaxSize = value >= 1024 ? value :
-                value <= 0 ? int.MaxValue :
-                throw new ArgumentException($"{nameof(IncomingFrameMaxSize)} cannot be less than 1KB ", nameof(value));
-        }
+        /// <summary>Gets or sets the options for the ice protocol.</summary>
+        /// <value>The options for the ice protocol.</value>
+        public IceProtocolOptions? IceProtocolOptions { get; set; }
 
         /// <summary>Specifies if the connection can be resumed after being closed.</summary>
         /// <value>When <c>true</c>, the connection will be re-established by the next call to
@@ -123,8 +116,6 @@ namespace IceRpc.Configure
 
         private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
         private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
-        private int _incomingFrameMaxSize = 1024 * 1024;
-
         private Endpoint? _remoteEndpoint;
     }
 }

@@ -8,11 +8,14 @@ namespace IceRpc.Transports.Internal
     /// <summary>A pipe writer implementation to write data over a simple network connection. Writing one the pipe
     /// writer is not supported since it would lead to sending partial data that can't be processed by the
     /// peer.</summary>
-    internal class SimpleNetworkConnectionPipeWriter : PipeWriter
+    internal class SimpleNetworkConnectionPipeWriter : ReadOnlySequencePipeWriter
     {
         private readonly ISimpleNetworkConnection _connection;
         private readonly Pipe _pipe;
         private readonly List<ReadOnlyMemory<byte>> _sendBuffers = new(16);
+
+        /// <inheritdoc/>
+        public override void Advance(int bytes) => _pipe.Writer.Advance(bytes);
 
         /// <inheritdoc/>
         public override void CancelPendingFlush()
@@ -32,19 +35,22 @@ namespace IceRpc.Transports.Internal
             WriteAsync(ReadOnlyMemory<byte>.Empty, cancel);
 
         /// <inheritdoc/>
-        public override void Advance(int bytes) => _pipe.Writer.Advance(bytes);
-
-        /// <inheritdoc/>
         public override Memory<byte> GetMemory(int sizeHint = 0) => _pipe.Writer.GetMemory(sizeHint);
 
         /// <inheritdoc/>
         public override Span<byte> GetSpan(int sizeHint = 0) => _pipe.Writer.GetSpan(sizeHint);
 
         /// <inheritdoc/>
-        public override async ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken _)
+        public override ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancel) =>
+            WriteAsync(new ReadOnlySequence<byte>(source), false, cancel);
+
+        public override async ValueTask<FlushResult> WriteAsync(
+            ReadOnlySequence<byte> source,
+            bool endStream,
+            CancellationToken cancel)
         {
-            await WriteAsync(new ReadOnlySequence<byte>(source), ReadOnlySequence<byte>.Empty).ConfigureAwait(false);
-            return new FlushResult();
+            await WriteAsync(source, ReadOnlySequence<byte>.Empty, cancel).ConfigureAwait(false);
+            return default;
         }
 
         internal SimpleNetworkConnectionPipeWriter(
@@ -60,10 +66,12 @@ namespace IceRpc.Transports.Internal
                 writerScheduler: PipeScheduler.Inline));
         }
 
-        internal ValueTask WriteAsync(ReadOnlySequence<byte> source, CancellationToken _) =>
-            WriteAsync(source, ReadOnlySequence<byte>.Empty);
-
-        internal async ValueTask WriteAsync(ReadOnlySequence<byte> source1, ReadOnlySequence<byte> source2)
+        /// <summary>Writes the two given sources to the underlying simple network connection. The cancellation token
+        /// is ignore because we don't want to want to interrupt the sending.</summary>
+        internal async ValueTask WriteAsync(
+            ReadOnlySequence<byte> source1,
+            ReadOnlySequence<byte> source2,
+            CancellationToken _)
         {
             if (_pipe.Writer.UnflushedBytes == 0 && source1.IsEmpty && source2.IsEmpty)
             {
@@ -73,7 +81,7 @@ namespace IceRpc.Transports.Internal
             _sendBuffers.Clear();
 
             // First add the data from the internal pipe.
-            SequencePosition consumed = default;
+            SequencePosition? consumed = null;
             if (_pipe.Writer.UnflushedBytes > 0)
             {
                 await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
@@ -102,7 +110,10 @@ namespace IceRpc.Transports.Internal
             }
             finally
             {
-                _pipe.Reader.AdvanceTo(consumed);
+                if (consumed != null)
+                {
+                    _pipe.Reader.AdvanceTo(consumed.Value);
+                }
             }
 
             void AddToSendBuffers(ReadOnlySequence<byte> source)
