@@ -223,7 +223,7 @@ public sealed class TelemetryMiddlewareTests
 
         // Add a mock activity listener that allows the activity source to create the dispatch activity.
         var activitySource = new ActivitySource("Test Activity Source");
-        using ActivityListener mookActivityListner = CreateMockActivityListener(activitySource);
+        using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
         var sut = new TelemetryMiddleware(dispatcher, new Configure.TelemetryOptions()
         {
             ActivitySource = activitySource
