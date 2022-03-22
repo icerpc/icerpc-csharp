@@ -28,7 +28,8 @@ namespace IceRpc
             _logger = options.LoggerFactory?.CreateLogger("IceRpc") ?? NullLogger.Instance;
         }
 
-        async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(IncomingRequest request, CancellationToken cancel)
+        /// <inheritdoc/>
+        public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
         {
             if (request.Protocol.HasFields)
             {
@@ -47,7 +48,10 @@ namespace IceRpc
                     activity.AddTag("rpc.method", request.Operation);
                     // TODO add additional attributes
                     // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md#common-remote-procedure-call-conventions
-                    RestoreActivityContext(request, activity);
+                    if (request.Fields.TryGetValue(RequestFieldKey.TraceContext, out ReadOnlySequence<byte> buffer))
+                    {
+                        RestoreActivityContext(buffer, activity);
+                    }
                     activity.Start();
                 }
 
@@ -67,49 +71,46 @@ namespace IceRpc
             }
         }
 
-        private static void RestoreActivityContext(IncomingRequest request, Activity activity)
+        internal static void RestoreActivityContext(ReadOnlySequence<byte> buffer, Activity activity)
         {
-            if (request.Fields.TryGetValue(RequestFieldKey.TraceContext, out ReadOnlySequence<byte> buffer))
-            {
-                var decoder = new SliceDecoder(buffer, Encoding.Slice20);
+            var decoder = new SliceDecoder(buffer, Encoding.Slice20);
 
-                // Read W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,
-                // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
+            // Read W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,
+            // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
 
-                byte traceIdVersion = decoder.DecodeByte();
+            byte traceIdVersion = decoder.DecodeByte();
 
-                using IMemoryOwner<byte> memoryOwner = MemoryPool<byte>.Shared.Rent(16);
-                Span<byte> traceIdSpan = memoryOwner.Memory.Span[0..16];
-                decoder.CopyTo(traceIdSpan);
-                var traceId = ActivityTraceId.CreateFromBytes(traceIdSpan);
+            using IMemoryOwner<byte> memoryOwner = MemoryPool<byte>.Shared.Rent(16);
+            Span<byte> traceIdSpan = memoryOwner.Memory.Span[0..16];
+            decoder.CopyTo(traceIdSpan);
+            var traceId = ActivityTraceId.CreateFromBytes(traceIdSpan);
 
-                Span<byte> spanIdSpan = memoryOwner.Memory.Span[0..8];
-                decoder.CopyTo(spanIdSpan);
-                var spanId = ActivitySpanId.CreateFromBytes(spanIdSpan);
+            Span<byte> spanIdSpan = memoryOwner.Memory.Span[0..8];
+            decoder.CopyTo(spanIdSpan);
+            var spanId = ActivitySpanId.CreateFromBytes(spanIdSpan);
 
-                var traceFlags = (ActivityTraceFlags)decoder.DecodeByte();
+            var traceFlags = (ActivityTraceFlags)decoder.DecodeByte();
 
-                activity.SetParentId(traceId, spanId, traceFlags);
+            activity.SetParentId(traceId, spanId, traceFlags);
 
-                // Read tracestate encoded as a string
-                activity.TraceStateString = decoder.DecodeString();
+            // Read tracestate encoded as a string
+            activity.TraceStateString = decoder.DecodeString();
 
-                // The min element size is 2 bytes for a struct with two empty strings.
-                IEnumerable<(string key, string value)> baggage = decoder.DecodeSequence(
-                    minElementSize: 2,
-                    (ref SliceDecoder decoder) =>
-                    {
-                        string key = decoder.DecodeString();
-                        string value = decoder.DecodeString();
-                        return (key, value);
-                    });
-
-                // Restore in reverse order to keep the order in witch the peer add baggage entries,
-                // this is important when there are duplicate keys.
-                foreach ((string key, string value) in baggage.Reverse())
+            // The min element size is 2 bytes for a struct with two empty strings.
+            IEnumerable<(string key, string value)> baggage = decoder.DecodeSequence(
+                minElementSize: 2,
+                (ref SliceDecoder decoder) =>
                 {
-                    activity.AddBaggage(key, value);
-                }
+                    string key = decoder.DecodeString();
+                    string value = decoder.DecodeString();
+                    return (key, value);
+                });
+
+            // Restore in reverse order to keep the order in witch the peer add baggage entries,
+            // this is important when there are duplicate keys.
+            foreach ((string key, string value) in baggage.Reverse())
+            {
+                activity.AddBaggage(key, value);
             }
         }
 
