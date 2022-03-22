@@ -409,9 +409,6 @@ namespace IceRpc.Internal
                         nameof(request));
                 }
 
-                // If a payload source sink decorator returns a canceled or completed flush result, we have to raise
-                // NotSupportedException. We can't interrupt the sending of a payload since it would lead to a bogus
-                // payload to be sent over the connection.
                 FlushResult flushResult = await request.PayloadSink.WriteAsync(
                     payload,
                     false,
@@ -426,6 +423,9 @@ namespace IceRpc.Internal
                     flushResult = await request.PayloadSink.FlushAsync(cancel).ConfigureAwait(false);
                 }
 
+                // If a payload source sink decorator returns a canceled or completed flush result, we have to raise
+                // NotSupportedException. We can't interrupt the sending of a payload since it would lead to a bogus
+                // payload to be sent over the connection.
                 if (flushResult.IsCanceled || flushResult.IsCompleted)
                 {
                     throw new NotSupportedException("payload sink cancellation or completion is not supported");
@@ -595,6 +595,10 @@ namespace IceRpc.Internal
                     payload,
                     false,
                     cancel).ConfigureAwait(false);
+
+                // If a payload source sink decorator returns a canceled or completed flush result, we have to raise
+                // NotSupportedException. We can't interrupt the sending of a payload since it would lead to a bogus
+                // payload to be sent over the connection.
                 if (flushResult.IsCanceled || flushResult.IsCompleted)
                 {
                     throw new NotSupportedException("payload sink cancellation or completion is not supported");

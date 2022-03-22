@@ -25,9 +25,18 @@ namespace IceRpc
             _cacheConnection = cacheConnection;
         }
 
-        async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+        Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
             if (request.Connection == null)
+            {
+                return CoreAsync();
+            }
+            else
+            {
+                return _next.InvokeAsync(request, cancel);
+            }
+
+            async Task<IncomingResponse> CoreAsync()
             {
                 Endpoint? endpoint;
                 IEnumerable<Endpoint> altEndpoints;
@@ -62,8 +71,9 @@ namespace IceRpc
                 {
                     request.Proxy.Connection = request.Connection;
                 }
+
+                return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
             }
-            return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
         }
     }
 }
