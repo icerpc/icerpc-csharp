@@ -167,7 +167,7 @@ public sealed class TelemetryMiddlewareTests
             var bufferWriter = new MemoryBufferWriter(buffer);
             var encoder = new SliceEncoder(bufferWriter, Encoding.Slice20);
 
-            TelemetryInterceptor.WriteActivityContext(ref encoder);
+            TelemetryInterceptor.WriteActivityContext(ref encoder, encodedActivity);
 
             encodedTraceContext = new ReadOnlySequence<byte>(buffer, 0, encoder.EncodedByteCount);
         }
@@ -199,6 +199,7 @@ public sealed class TelemetryMiddlewareTests
         // The dispatch activity parent matches the activity context encoded in the TraceContext field
         Assert.That(dispatchActivity.ParentId, Is.EqualTo(encodedActivityId));
         Assert.That(dispatchActivity.ParentSpanId, Is.EqualTo(parentSpandId));
+        Assert.That(dispatchActivity.ActivityTraceFlags, Is.EqualTo(ActivityTraceFlags.None));
         Assert.That(dispatchActivity.Baggage, Is.Not.Null);
         var baggage = dispatchActivity.Baggage.ToDictionary(x => x.Key, x => x.Value);
         Assert.That(baggage.ContainsKey("foo"), Is.True);

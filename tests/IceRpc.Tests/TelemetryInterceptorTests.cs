@@ -97,8 +97,8 @@ public sealed class TelemetryInterceptorTests
         Assert.That(request.Fields.ContainsKey(RequestFieldKey.TraceContext), Is.True);
     }
 
-    /// <summary>Verifies that the invocation activity is created if the logger is enabled. This way the activity context
-    /// can enrich the logger scopes.</summary>
+    /// <summary>Verifies that the invocation activity is created if the logger is enabled. This way the activity
+    /// context can enrich the logger scopes.</summary>
     [Test]
     public async Task Invocation_activity_created_if_logger_is_enabled()
     {
@@ -139,7 +139,7 @@ public sealed class TelemetryInterceptorTests
         Assert.That(request.Fields.ContainsKey(RequestFieldKey.TraceContext), Is.True);
     }
 
-    /// <summary>Verifies that the invocation activity context is encoded as a filed with the
+    /// <summary>Verifies that the invocation activity context is encoded as a field with the
     /// <see cref="RequestFieldKey.TraceContext"/> key.</summary>
     [Test]
     public async Task Invocation_activity_encodes_trace_context_field()
@@ -156,7 +156,6 @@ public sealed class TelemetryInterceptorTests
                 invocationActivity.AddBaggage("foo", "bar");
                 decodedActivity = DecodeTraceContextField(request.Fields, "/op");
             }
-
             return Task.FromResult(new IncomingResponse(request));
         });
 
@@ -178,10 +177,40 @@ public sealed class TelemetryInterceptorTests
         Assert.That(decodedActivity, Is.Not.Null);
         // The decode activity parent is the invocation activity
         Assert.That(decodedActivity.ParentId, Is.EqualTo(invocationActivity.Id));
+        Assert.That(decodedActivity.ParentSpanId, Is.EqualTo(invocationActivity.SpanId));
         Assert.That(decodedActivity.Baggage, Is.Not.Null);
+        Assert.That(decodedActivity.ActivityTraceFlags, Is.EqualTo(invocationActivity.ActivityTraceFlags));
         var baggage = decodedActivity.Baggage.ToDictionary(x => x.Key, x => x.Value);
         Assert.That(baggage.ContainsKey("foo"), Is.True);
         Assert.That(baggage["foo"], Is.EqualTo("bar"));
+    }
+
+    /// <summary>Verifies that the trace context field is not added to the request fields when
+    /// the invocation activity is null.</summary>
+    [Test]
+    public async Task Trace_context_field_not_encoded_if_activity_is_null()
+    {
+        // Arrange
+
+        Activity? invocationActivity = null;
+        var invoker = new InlineInvoker((request, cancel) =>
+        {
+            invocationActivity = Activity.Current;
+            return Task.FromResult(new IncomingResponse(request));
+        });
+
+        var sut = new TelemetryInterceptor(invoker, new Configure.TelemetryOptions());
+        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc) { Path = "/" })
+        {
+            Operation = "op"
+        };
+
+        // Act
+        await sut.InvokeAsync(request, default);
+
+        // Assert
+        Assert.That(invocationActivity, Is.Null);
+        Assert.That(request.Fields.ContainsKey(RequestFieldKey.TraceContext), Is.False);
     }
 
     private static ActivityListener CreateMockActivityListener(ActivitySource activitySource)
