@@ -12,7 +12,7 @@ use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
 use slice::code_gen_util::TypeContext;
-use slice::grammar::{Exception, Member, SliceEncoding};
+use slice::grammar::{Exception, Member, SliceEncoding, Type};
 use slice::visitor::Visitor;
 
 pub struct ExceptionVisitor<'a> {
@@ -90,7 +90,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
                 .add_parameter("ref SliceDecoder", "decoder", None, None)
                 .add_base_parameter("ref decoder")
                 .set_body(
-                    EncodingBlockBuilder::new("decoder.Encoding", exception_def)
+                    EncodingBlockBuilder::new("decoder.Encoding", exception_def.supported_encodings())
                     .add_encoding_block(SliceEncoding::Slice11, initialize_non_nullable_fields(&members, FieldType::Exception))
                     .add_encoding_block(SliceEncoding::Slice2, decode_data_members(&members, namespace, FieldType::Exception))
                     .build()
@@ -171,7 +171,7 @@ fn encode_trait_method(exception_def: &Exception) -> CodeBlock {
         )
         .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
         .set_body(
-            EncodingBlockBuilder::new("encoder.Encoding", exception_def)
+            EncodingBlockBuilder::new("encoder.Encoding", exception_def.supported_encodings())
                 .add_encoding_block(SliceEncoding::Slice11, "this.EncodeCore(ref encoder);".into())
                 .add_encoding_block(SliceEncoding::Slice2, "\
 encoder.EncodeString(SliceTypeId);
@@ -198,7 +198,7 @@ encoder.StartSlice(SliceTypeId);
 encoder.EndSlice(lastSlice: {is_last_slice});
 {encode_base}"#,
         encode_data_members = &encode_data_members(members, namespace, FieldType::Exception),
-        is_last_slice = (!has_base).to_string(),
+        is_last_slice = !has_base,
         encode_base = if has_base { "base.EncodeCore(ref encoder);" } else { "" },
     ));
 

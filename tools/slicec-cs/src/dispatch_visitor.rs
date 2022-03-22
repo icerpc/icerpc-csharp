@@ -230,28 +230,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             }
         }
 
-        builder.set_body(
-            format!(
-                "\
-var pipe_ = new global::System.IO.Pipelines.Pipe(); // TODO: pipe options
-
-var encoder_ = new SliceEncoder(pipe_.Writer, {encoding}, {class_format});
-Span<byte> sizePlaceholder_ = {encoding} == IceRpc.Encoding.Slice11 ? default : encoder_.GetPlaceholderSpan(4);
-int startPos_ = encoder_.EncodedByteCount;
-{encode_returns}
-if ({encoding} != IceRpc.Encoding.Slice11)
-{{
-    SliceEncoder.EncodeVarULong((ulong)(encoder_.EncodedByteCount - startPos_), sizePlaceholder_);
-}}
-
-pipe_.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
-return pipe_.Reader;",
-                encoding = operation.encoding.to_cs_encoding(),
-                class_format = operation.format_type(),
-                encode_returns = encode_operation(operation, true, "encoder_")
-            )
-            .into(),
-        );
+        builder.set_body(encode_operation(operation, true));
 
         class_builder.add_block(builder.build());
     }

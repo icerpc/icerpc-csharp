@@ -5,10 +5,9 @@ use slice::grammar::*;
 
 use crate::builders::{CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
 use crate::code_block::CodeBlock;
+use crate::encoding::encode_operation;
 use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
-
-use crate::encoding::encode_operation;
 
 pub fn encoded_result_struct(operation: &Operation) -> CodeBlock {
     assert!(operation.has_encoded_result());
@@ -79,31 +78,7 @@ immediately encodes the return value of operation {operation_name}."#,
         constructor_builder.add_parameter("IceRpc.Slice.Dispatch", &dispatch_parameter, None, None);
     }
 
-    constructor_builder.set_body(
-        format!(
-            "\
-var pipe_ = new global::System.IO.Pipelines.Pipe(); // TODO: pipe options
-
-var encoder_ = new SliceEncoder(pipe_.Writer, {encoding}, {class_format});
-Span<byte> sizePlaceholder_ = {encoding} == IceRpc.Encoding.Slice11 ? default : encoder_.GetPlaceholderSpan(4);
-int startPos_ = encoder_.EncodedByteCount;
-{encode_returns}
-if ({encoding} != IceRpc.Encoding.Slice11)
-{{
-    SliceEncoder.EncodeVarULong((ulong)(encoder_.EncodedByteCount - startPos_), sizePlaceholder_);
-}}
-
-pipe_.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
-Payload = pipe_.Reader;",
-            encoding = match returns_classes {
-                true => "IceRpc.Encoding.Slice11".to_owned(),
-                _ => format!("{}.GetSliceEncoding()", dispatch_parameter),
-            },
-            class_format = operation.format_type(),
-            encode_returns = encode_operation(operation, true, "encoder_")
-        )
-        .into(),
-    );
+    constructor_builder.set_body(encode_operation(operation, true));
 
     container_builder.add_block(constructor_builder.build());
     container_builder.build().into()
