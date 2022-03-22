@@ -8,7 +8,7 @@ namespace IceRpc.Transports.Internal
     /// <summary>The Slic frame writer class writes Slic frames.</summary>
     internal sealed class SlicFrameWriter : ISlicFrameWriter
     {
-        private readonly SimpleNetworkConnectionPipeWriter _writer;
+        private readonly SimpleNetworkConnectionWriter _writer;
 
         public ValueTask WriteFrameAsync(
             FrameType frameType,
@@ -31,6 +31,6 @@ namespace IceRpc.Transports.Internal
             return _writer.WriteAsync(source1, source2, cancel);
         }
 
-        internal SlicFrameWriter(SimpleNetworkConnectionPipeWriter writer) => _writer = writer;
+        internal SlicFrameWriter(SimpleNetworkConnectionWriter writer) => _writer = writer;
     }
 }

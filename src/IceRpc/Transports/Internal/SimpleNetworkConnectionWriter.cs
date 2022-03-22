@@ -5,55 +5,31 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>A pipe writer implementation to write data over a simple network connection. Writing one the pipe
-    /// writer is not supported since it would lead to sending partial data that can't be processed by the
-    /// peer.</summary>
-    internal class SimpleNetworkConnectionPipeWriter : ReadOnlySequencePipeWriter
+    /// <summary>A helper class to write to simple network connection. It provides a PipeWriter-like API but
+    /// is not a PipeWriter.</summary>
+    internal class SimpleNetworkConnectionWriter : IBufferWriter<byte>, IDisposable
     {
         private readonly ISimpleNetworkConnection _connection;
         private readonly Pipe _pipe;
         private readonly List<ReadOnlyMemory<byte>> _sendBuffers = new(16);
 
         /// <inheritdoc/>
-        public override void Advance(int bytes) => _pipe.Writer.Advance(bytes);
+        public void Advance(int bytes) => _pipe.Writer.Advance(bytes);
 
         /// <inheritdoc/>
-        public override void CancelPendingFlush()
+        public void Dispose()
         {
-            // We ignore the cancellation request since we don't want to send partial data.
+            _pipe.Writer.Complete();
+            _pipe.Reader.Complete();
         }
 
         /// <inheritdoc/>
-        public override void Complete(Exception? exception = null)
-        {
-            _pipe.Writer.Complete(exception);
-            _pipe.Reader.Complete(exception);
-        }
+        public Memory<byte> GetMemory(int sizeHint = 0) => _pipe.Writer.GetMemory(sizeHint);
 
         /// <inheritdoc/>
-        public override ValueTask<FlushResult> FlushAsync(CancellationToken cancel = default) =>
-            WriteAsync(ReadOnlyMemory<byte>.Empty, cancel);
+        public Span<byte> GetSpan(int sizeHint = 0) => _pipe.Writer.GetSpan(sizeHint);
 
-        /// <inheritdoc/>
-        public override Memory<byte> GetMemory(int sizeHint = 0) => _pipe.Writer.GetMemory(sizeHint);
-
-        /// <inheritdoc/>
-        public override Span<byte> GetSpan(int sizeHint = 0) => _pipe.Writer.GetSpan(sizeHint);
-
-        /// <inheritdoc/>
-        public override ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancel) =>
-            WriteAsync(new ReadOnlySequence<byte>(source), false, cancel);
-
-        public override async ValueTask<FlushResult> WriteAsync(
-            ReadOnlySequence<byte> source,
-            bool endStream,
-            CancellationToken cancel)
-        {
-            await WriteAsync(source, ReadOnlySequence<byte>.Empty, cancel).ConfigureAwait(false);
-            return default;
-        }
-
-        internal SimpleNetworkConnectionPipeWriter(
+        internal SimpleNetworkConnectionWriter(
             ISimpleNetworkConnection connection,
             MemoryPool<byte> pool,
             int minimumSegmentSize)
@@ -66,8 +42,15 @@ namespace IceRpc.Transports.Internal
                 writerScheduler: PipeScheduler.Inline));
         }
 
-        /// <summary>Writes the two given sources to the underlying simple network connection. The cancellation token
-        /// is ignore because we don't want to want to interrupt the sending.</summary>
+        internal ValueTask FlushAsync(CancellationToken cancel = default) =>
+            WriteAsync(ReadOnlyMemory<byte>.Empty, cancel);
+
+        internal ValueTask WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancel = default) =>
+            WriteAsync(new ReadOnlySequence<byte>(source), ReadOnlySequence<byte>.Empty, cancel);
+
+        internal ValueTask WriteAsync(ReadOnlySequence<byte> source, CancellationToken cancel) =>
+            WriteAsync(source, ReadOnlySequence<byte>.Empty, cancel);
+
         internal async ValueTask WriteAsync(
             ReadOnlySequence<byte> source1,
             ReadOnlySequence<byte> source2,

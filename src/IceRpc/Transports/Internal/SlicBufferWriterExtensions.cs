@@ -2,14 +2,14 @@
 
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
-using System.IO.Pipelines;
+using System.Buffers;
 
 namespace IceRpc.Transports.Internal
 {
-    internal static class SlicPipeWriterExtensions
+    internal static class SlicBufferWriterExtensions
     {
         internal static void EncodeFrame(
-            this PipeWriter writer,
+            this IBufferWriter<byte> writer,
             FrameType frameType,
             long? streamId,
             EncodeAction? encode)
@@ -28,7 +28,7 @@ namespace IceRpc.Transports.Internal
         }
 
         internal static void EncodeStreamFrameHeader(
-            this PipeWriter writer,
+            this IBufferWriter<byte> writer,
             long streamId,
             int length,
             bool endStream)
