@@ -37,8 +37,5 @@ namespace IceRpc.Internal
 
         internal IcePayloadPipeWriter(SimpleNetworkConnectionPipeWriter networkConnectionWriter) =>
             _networkConnectionWriter = networkConnectionWriter;
-
-        internal ValueTask WriteAsync(ReadOnlySequence<byte> source, CancellationToken cancellationToken = default) =>
-           _networkConnectionWriter.WriteAsync(source, cancellationToken);
     }
 }

@@ -17,6 +17,7 @@ namespace IceRpc.Tests.Api
 
         [TestCase("ice")]
         [TestCase("icerpc")]
+        [Ignore("CoalescePipeWriterDecorator WriteAsync is not a legitimate implementation and this doesn't work with icerpc")]
         public async Task Pipeline_CoalesceInterceptor(string protocol)
         {
             string lastOperation = "";

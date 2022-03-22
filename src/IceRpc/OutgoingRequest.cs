@@ -37,7 +37,11 @@ namespace IceRpc
         /// <inheritdoc/>
         public override PipeWriter PayloadSink
         {
-            get => _payloadSink ?? _initialPayloadSink;
+            get
+            {
+                _initialPayloadSink ??= new();
+                return _payloadSink ?? _initialPayloadSink;
+            }
             set => _payloadSink = value;
         }
 
@@ -48,7 +52,7 @@ namespace IceRpc
         /// may not set this property when sending the request.</summary>
         internal PipeReader? ResponseReader { get; set; }
 
-        private readonly DelayedPipeWriterDecorator _initialPayloadSink = new();
+        private DelayedPipeWriterDecorator? _initialPayloadSink;
         private PipeWriter? _payloadSink;
 
         /// <summary>Constructs an outgoing request.</summary>
@@ -60,6 +64,16 @@ namespace IceRpc
             Proxy = proxy;
         }
 
-        internal void SetFinalPayloadSink(PipeWriter writer) => _initialPayloadSink.SetDecoratee(writer);
+        internal void SetFinalPayloadSink(PipeWriter writer)
+        {
+            if (_initialPayloadSink == null)
+            {
+                _payloadSink = writer;
+            }
+            else
+            {
+                 _initialPayloadSink.SetDecoratee(writer);
+            }
+        }
     }
 }

@@ -17,7 +17,7 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel)
         {
             _writer.EncodeFrame(frameType, streamId, encodeAction);
-            return _writer.WriteAsync(ReadOnlySequence<byte>.Empty, cancel);
+            return _writer.WriteAsync(ReadOnlySequence<byte>.Empty, ReadOnlySequence<byte>.Empty, cancel);
         }
 
         public ValueTask WriteStreamFrameAsync(
@@ -25,10 +25,10 @@ namespace IceRpc.Transports.Internal
             ReadOnlySequence<byte> source1,
             ReadOnlySequence<byte> source2,
             bool endStream,
-            CancellationToken _)
+            CancellationToken cancel)
         {
             _writer.EncodeStreamFrameHeader(streamId, (int)(source1.Length + source2.Length), endStream);
-            return _writer.WriteAsync(source1, source2);
+            return _writer.WriteAsync(source1, source2, cancel);
         }
 
         internal SlicFrameWriter(SimpleNetworkConnectionPipeWriter writer) => _writer = writer;

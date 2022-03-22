@@ -427,7 +427,6 @@ namespace IceRpc.Internal
                     throw new NotSupportedException("payload sink cancellation or completion is not supported");
                 }
 
-
                 await request.PayloadSource.CompleteAsync().ConfigureAwait(false);
                 await request.PayloadSink.CompleteAsync().ConfigureAwait(false);
 
