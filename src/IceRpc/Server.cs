@@ -164,6 +164,16 @@ namespace IceRpc
                 IProtocolConnectionFactory<T> protocolConnectionFactory,
                 EventHandler<ClosedEventArgs>? closedEventHandler) where T : INetworkConnection
             {
+                // The common connection options, set through ServerOptions.
+                var connectionOptions = new ConnectionOptions
+                {
+                    ConnectTimeout = _options.ConnectTimeout,
+                    Dispatcher = _options.Dispatcher,
+                    Fields = _options.Fields,
+                    IceProtocolOptions = _options.IceProtocolOptions,
+                    KeepAlive = _options.KeepAlive
+                };
+
                 while (true)
                 {
                     T networkConnection;
@@ -224,7 +234,7 @@ namespace IceRpc
                     _ = connection.ConnectAsync(
                         networkConnection,
                         protocolConnectionFactory,
-                        new CommonConnectionOptions(_options),
+                        connectionOptions,
                         closedEventHandler);
                 }
             }

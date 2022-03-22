@@ -258,7 +258,7 @@ namespace IceRpc
                 return ConnectAsync(
                     networkConnection,
                     protocolConnectionFactory,
-                    new CommonConnectionOptions(_options),
+                    _options,
                     closedEventHandler);
             }
         }
@@ -409,16 +409,16 @@ namespace IceRpc
         /// <summary>Establishes a connection. This method is used for both client and server connections.</summary>
         /// <param name="networkConnection">The underlying network connection.</param>
         /// <param name="protocolConnectionFactory">The protocol connection factory.</param>
-        /// <param name="commonConnectionOptions">The common connection options.</param>
+        /// <param name="connectionOptions">The connection options.</param>
         /// <param name="closedEventHandler">A closed event handler added to the connection once the connection is
         /// active.</param>
         internal async Task ConnectAsync<T>(
             T networkConnection,
             IProtocolConnectionFactory<T> protocolConnectionFactory,
-            CommonConnectionOptions commonConnectionOptions,
+            ConnectionOptions connectionOptions,
             EventHandler<ClosedEventArgs>? closedEventHandler) where T : INetworkConnection
         {
-            using var connectCancellationSource = new CancellationTokenSource(commonConnectionOptions.ConnectTimeout);
+            using var connectCancellationSource = new CancellationTokenSource(connectionOptions.ConnectTimeout);
             try
             {
                 // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
@@ -432,7 +432,7 @@ namespace IceRpc
                 _protocolConnection = await protocolConnectionFactory.CreateProtocolConnectionAsync(
                     networkConnection,
                     NetworkConnectionInformation.Value,
-                    commonConnectionOptions,
+                    connectionOptions,
                     IsServer,
                     connectCancellationSource.Token).ConfigureAwait(false);
 
@@ -475,7 +475,7 @@ namespace IceRpc
                     if (idleTimeout != TimeSpan.MaxValue && idleTimeout != Timeout.InfiniteTimeSpan)
                     {
                         _timer = new Timer(
-                            value => Monitor(commonConnectionOptions.KeepAlive),
+                            value => Monitor(connectionOptions.KeepAlive),
                             null,
                             idleTimeout / 2,
                             idleTimeout / 2);
@@ -485,7 +485,7 @@ namespace IceRpc
                     // only completes once the connection is closed.
                     IProtocolConnection protocolConnection = _protocolConnection;
                     _ = Task.Run(
-                        () => AcceptIncomingRequestAsync(protocolConnection, commonConnectionOptions.Dispatcher),
+                        () => AcceptIncomingRequestAsync(protocolConnection, connectionOptions.Dispatcher),
                         CancellationToken.None);
                 }
             }

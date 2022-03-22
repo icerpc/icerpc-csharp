@@ -559,9 +559,14 @@ namespace IceRpc.Tests.Internal
                     T networkConnection = await listener.AcceptAsync();
 
                     serverOptions ??= new();
-                    serverOptions = serverOptions with
+
+                    var serverConnectionOptions = new ConnectionOptions
                     {
-                        Dispatcher = _serviceProvider.GetService<IDispatcher>() ?? serverOptions.Dispatcher
+                        ConnectTimeout = serverOptions.ConnectTimeout,
+                        Dispatcher = _serviceProvider.GetService<IDispatcher>() ?? serverOptions.Dispatcher,
+                        Fields = serverOptions.Fields,
+                        IceProtocolOptions = serverOptions.IceProtocolOptions,
+                        KeepAlive = serverOptions.KeepAlive
                     };
 
                     var connection = new Connection(
@@ -572,7 +577,7 @@ namespace IceRpc.Tests.Internal
                     await connection.ConnectAsync<T>(
                         networkConnection,
                         protocolConnectionFactory,
-                        new CommonConnectionOptions(serverOptions),
+                        serverConnectionOptions,
                         closedEventHandler: null);
                     return connection;
                 }

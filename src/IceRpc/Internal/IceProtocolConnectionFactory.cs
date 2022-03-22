@@ -11,7 +11,7 @@ namespace IceRpc.Internal
         public async Task<IProtocolConnection> CreateProtocolConnectionAsync(
             ISimpleNetworkConnection networkConnection,
             NetworkConnectionInformation connectionInfo,
-            CommonConnectionOptions commonConnectionOptions,
+            Configure.ConnectionOptions connectionOptions,
             bool isServer,
             CancellationToken cancel)
         {
@@ -21,7 +21,7 @@ namespace IceRpc.Internal
 
             var protocolConnection = new IceProtocolConnection(
                 networkConnection,
-                commonConnectionOptions.IceProtocolOptions ?? Configure.IceProtocolOptions.Default,
+                connectionOptions.IceProtocolOptions ?? Configure.IceProtocolOptions.Default,
                 isUdp);
             try
             {
