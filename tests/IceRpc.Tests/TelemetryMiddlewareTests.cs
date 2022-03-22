@@ -246,16 +246,16 @@ public sealed class TelemetryMiddlewareTests
 
     private static ActivityListener CreateMockActivityListener(ActivitySource activitySource)
     {
-        var mookActivityListner = new ActivityListener();
-        mookActivityListner.ActivityStarted = activity => { };
-        mookActivityListner.ActivityStopped = activity => { };
-        mookActivityListner.ShouldListenTo = source => ReferenceEquals(source, activitySource);
-        mookActivityListner.Sample =
+        var mockActivityListener = new ActivityListener();
+        mockActivityListener.ActivityStarted = activity => { };
+        mockActivityListener.ActivityStopped = activity => { };
+        mockActivityListener.ShouldListenTo = source => ReferenceEquals(source, activitySource);
+        mockActivityListener.Sample =
             (ref ActivityCreationOptions<ActivityContext> activityOptions) => ActivitySamplingResult.AllData;
-        mookActivityListner.SampleUsingParentId =
+        mockActivityListener.SampleUsingParentId =
             (ref ActivityCreationOptions<string> activityOptions) => ActivitySamplingResult.AllData;
-        ActivitySource.AddActivityListener(mookActivityListner);
-        return mookActivityListner;
+        ActivitySource.AddActivityListener(mockActivityListener);
+        return mockActivityListener;
     }
 
     class MockLogger : ILogger
