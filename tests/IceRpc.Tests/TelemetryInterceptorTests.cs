@@ -26,7 +26,7 @@ public sealed class TelemetryInterceptorTests
 
         // Add a mock activity listener that allows the activity source to create the invocation activity.
         var activitySource = new ActivitySource("Test Activity Source");
-        using ActivityListener mookActivityListner = CreateMockActivityListener(activitySource);
+        using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
 
         var sut = new TelemetryInterceptor(invoker, new Configure.TelemetryOptions()
         {
