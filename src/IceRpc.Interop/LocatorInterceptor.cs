@@ -26,7 +26,8 @@ namespace IceRpc
             _locationResolver = locationResolver;
         }
 
-        async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+        /// <inheritdoc/>
+        public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
             if (request.Connection == null && request.Protocol == Protocol.Ice)
             {
@@ -84,8 +85,7 @@ namespace IceRpc
                         {
                             if (!fromCache && !request.Features.IsReadOnly)
                             {
-                                // No need to resolve this location again since we are not returning a cached
-                                // value.
+                                // No need to resolve this location again since we are not returning a cached value.
                                 request.Features.Set<CachedResolutionFeature>(null);
                             }
                         }

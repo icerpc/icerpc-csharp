@@ -58,7 +58,6 @@ namespace IceRpc
                 {
                     request.Proxy.Connection = request.Connection;
                 }
-
                 return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
             }
         }
