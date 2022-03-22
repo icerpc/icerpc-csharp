@@ -64,8 +64,8 @@ public class BitSequenceWriterTests
         }
     }
 
-    /// <summary>Verifies that calling <see cref="BitSequenceWriter.Write"/> correctly writes the specified
-    /// bit sequence to the provided spans and memory.</summary>
+    /// <summary>Verifies that calling <see cref="BitSequenceWriter.Write"/> correctly writes the specified bit
+    /// sequence to the provided spans and memory.</summary>
     /// <param name="pattern">The byte pattern to write.</param>
     [TestCase(0)]
     [TestCase(0xFF)]
