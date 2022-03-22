@@ -85,6 +85,7 @@ namespace IceRpc
                     }
                     catch (OperationCanceledException ex)
                     {
+                        // Previous response is discarded so we make sure to complete its payload.
                         if (response != null)
                         {
                             await response.Payload.CompleteAsync(ex).ConfigureAwait(false);
@@ -94,6 +95,7 @@ namespace IceRpc
                     }
                     catch (Exception ex)
                     {
+                        // Previous response is discarded so we make sure to complete its payload.
                         if (response != null)
                         {
                             await response.Payload.CompleteAsync(ex).ConfigureAwait(false);

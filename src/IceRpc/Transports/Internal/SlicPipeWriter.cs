@@ -44,7 +44,6 @@ namespace IceRpc.Transports.Internal
                     }
                     else
                     {
-                        Console.Error.WriteLine($"XXXX {exception}");
                         _stream.AbortWrite(SlicStreamError.UnexpectedError.ToError());
                     }
                 }

@@ -341,9 +341,6 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            // First set the final payload sink to the stateless payload writer.
-            request.SetFinalPayloadSink(_payloadWriter);
-
             bool acquiredSemaphore = false;
             try
             {
@@ -355,6 +352,9 @@ namespace IceRpc.Internal
                 {
                     throw new NotSupportedException("PayloadSourceStream must be null with the ice protocol");
                 }
+
+                // Set the final payload sink to the stateless payload writer.
+                request.SetFinalPayloadSink(_payloadWriter);
 
                 // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue to
                 // serialize the sending of frames.

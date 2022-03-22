@@ -39,8 +39,15 @@ namespace IceRpc
         {
             get
             {
-                _initialPayloadSink ??= new();
-                return _payloadSink ?? _initialPayloadSink;
+                if (_payloadSink == null)
+                {
+                    _initialPayloadSink ??= new();
+                    return _initialPayloadSink;
+                }
+                else
+                {
+                    return _payloadSink;
+                }
             }
             set => _payloadSink = value;
         }
@@ -72,7 +79,7 @@ namespace IceRpc
             }
             else
             {
-                 _initialPayloadSink.SetDecoratee(writer);
+                _initialPayloadSink.SetDecoratee(writer);
             }
         }
     }

@@ -9,7 +9,7 @@ using System.Collections.Immutable;
 
 namespace IceRpc.Tests.ClientServer
 {
-    [Timeout(30000)]
+    [Timeout(5000)]
     [Parallelizable(ParallelScope.All)]
     [Ignore("retry interceptor issues, #929")]
     public class RetryTests
@@ -22,14 +22,14 @@ namespace IceRpc.Tests.ClientServer
             RetryTest service = serviceProvider.GetRequiredService<RetryTest>();
             RetryTestPrx retry = new(serviceProvider.GetRequiredService<Proxy>());
 
-            // No retries before timeout kicks-in because the delay specified in the AfterDelay retry policy
-            // is greater than the invocation timeout.
+            // No retries before timeout kicks-in because the delay specified in the AfterDelay retry policy is greater
+            // than the invocation timeout.
             var invocation = new Invocation { Timeout = TimeSpan.FromMilliseconds(100) };
             Assert.CatchAsync<OperationCanceledException>(
                 async () => await retry.OpRetryAfterDelayAsync(1, 10000, invocation));
 
-            // The second attempt succeed, the elapsed time between attempts must be greater than the delay
-            // specify in the AfterDelay retry policy.
+            // The second attempt succeed, the elapsed time between attempts must be greater than the delay specified in
+            // the AfterDelay retry policy.
             service.Attempts = 0;
             invocation.Timeout = Timeout.InfiniteTimeSpan;
             await retry.OpRetryAfterDelayAsync(1, 100, invocation);
