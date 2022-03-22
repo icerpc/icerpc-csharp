@@ -414,15 +414,6 @@ namespace IceRpc.Internal
                     false,
                     cancel).ConfigureAwait(false);
 
-                // We need to call FlushAsync no matter what in case an interceptor or middleware decides to implement
-                // WriteAsync by writing everything to the unflushed bytes, which is a legitimate implementation.
-                // TODO: according to PipeWriter.WriteAsync documentation it's not a legitimate implementation since
-                // it's suppose to make the data available to the reader.
-                if (!flushResult.IsCompleted && !flushResult.IsCanceled)
-                {
-                    flushResult = await request.PayloadSink.FlushAsync(cancel).ConfigureAwait(false);
-                }
-
                 // If a payload source sink decorator returns a canceled or completed flush result, we have to raise
                 // NotSupportedException. We can't interrupt the sending of a payload since it would lead to a bogus
                 // payload to be sent over the connection.
