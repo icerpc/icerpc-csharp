@@ -8,7 +8,7 @@ namespace IceRpc.Slice.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class BitSequenceWriterTests
 {
-    /// <summary>Provides test case data for <see cref="Write_fails(byte[], byte[], IList<Memory<byte>>?"/> test.
+    /// <summary>Provides test case data for <see cref="Write_fails(byte[], byte[], IList{Memory{byte}}?)"/> test.
     /// </summary>
     private static IEnumerable<TestCaseData> WriteFailsDataSource
     {
