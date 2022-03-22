@@ -162,5 +162,6 @@ public class BitSequenceWriterTests
 
         }, Throws.InvalidOperationException);
     }
+
     private static bool IsSet(int bitIndex, byte pattern) => (pattern & (1 << (bitIndex % 8))) != 0;
 }
