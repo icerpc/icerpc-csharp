@@ -139,7 +139,8 @@ public class BitSequenceWriterTests
     /// <param name="secondBytes">The bytes that will be used to create the second span. (Can be empty)</param>
     /// <param name="additionalMemory">The list of memory used for additional memory. (Optional)</param>
     [Test, TestCaseSource(nameof(WriteFailsDataSource))]
-    public void Write_fails(byte[] firstBytes,
+    public void Write_fails(
+        byte[] firstBytes,
         byte[] secondBytes,
         IList<Memory<byte>>? additionalMemory)
     {
