@@ -148,7 +148,7 @@ public class BitSequenceWriterTests
         Assert.That(() =>
         {
             // Arrange
-            int additionalMemSize = additionalMemory != null ? additionalMemory.Sum(m => m.Length) : 0;
+            int additionalMemSize = additionalMemory?.Sum(m => m.Length) ?? 0;
             int size = (firstBytes.Length + secondBytes.Length + additionalMemSize) * 8;
             var writer = new BitSequenceWriter(firstBytes, secondBytes, additionalMemory);
             for (int i = 0; i < size; ++i)
