@@ -10,39 +10,37 @@ namespace IceRpc.Tests;
 
 public sealed class InvokeAsyncTests
 {
+    private static readonly byte[] _expectedPayload = { 0xAA, 0xBB, 0xCC };
+
     /// <summary>Verifies that sending a payload using
     /// <see cref="Connection.InvokeAsync(OutgoingRequest, CancellationToken)"/> works.</summary>
-    [Test]
-    public async Task Invoke_async_send_payload()
+    /// <param name="endpoint">The server endpoint, used to specify the protocol to test.</param>
+    [TestCase("icerpc://colochost")]
+    [TestCase("ice://colochost")]
+    public async Task Invoke_async_send_payload(string endpoint)
     {
         // Arrange
         var colocTransport = new ColocTransport();
 
-        byte[]? payload = null;
-        byte[] expectedPayload = new byte[] { 0xAA, 0xBB, 0xCC };
-        await using var server = new Server(new ServerOptions()
-        {
-            Dispatcher = new InlineDispatcher(async (request, cancel) =>
-            {
-                ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
-                payload = readResult.Buffer.ToArray();
-                await request.Payload.CompleteAsync(); // done with payload
-                return new OutgoingResponse(request);
-            }),
-            MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
-        });
-        server.Listen();
+        var serverOptions = CreateServerOptions(endpoint, colocTransport);
 
-        await using var connection = new Connection(new ConnectionOptions()
+        byte[]? payload = null;
+        serverOptions.Dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
-            RemoteEndpoint = server.Endpoint,
-            MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport)
+            ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
+            payload = readResult.Buffer.ToArray();
+            await request.Payload.CompleteAsync(); // done with payload
+            return new OutgoingResponse(request);
         });
-        var proxy = Proxy.FromConnection(connection, "/");
+
+        await using var server = new Server(serverOptions);
+        server.Listen();
+        await using var connection = new Connection(CreateConnectionOptions(server.Endpoint, colocTransport));
+        var proxy = Proxy.FromConnection(connection, "/name");
 
         var request = new OutgoingRequest(proxy)
         {
-            PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(expectedPayload))
+            PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(_expectedPayload))
         };
 
         // Act
@@ -51,40 +49,35 @@ public sealed class InvokeAsyncTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(payload, Is.EqualTo(expectedPayload));
+            Assert.That(payload, Is.EqualTo(_expectedPayload));
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
         });
     }
 
     /// <summary>Verifies that receiving a payload using
     /// <see cref="Connection.InvokeAsync(OutgoingRequest, CancellationToken)"/> works.</summary>
-    [Test]
-    public async Task Invoke_async_receive_payload()
+    /// <param name="endpoint">The server endpoint, used to specify the protocol to test.</param>
+    [TestCase("icerpc://colochost")]
+    [TestCase("ice://colochost")]
+    public async Task Invoke_async_receive_payload(string endpoint)
     {
         // Arrange
         var colocTransport = new ColocTransport();
-        byte[] expectedPayload = new byte[] { 0xAA, 0xBB, 0xCC };
-
-        await using var server = new Server(new ServerOptions()
+        var serverOptions = CreateServerOptions(endpoint, colocTransport);
+        serverOptions.Dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
-            Dispatcher = new InlineDispatcher(async (request, cancel) =>
+            await request.Payload.CompleteAsync();
+            return new OutgoingResponse(request)
             {
-                await request.Payload.CompleteAsync();
-                return new OutgoingResponse(request)
-                {
-                    PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(expectedPayload)),
-                };
-            }),
-            MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+                PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(_expectedPayload)),
+            };
         });
+
+        await using var server = new Server(serverOptions);
         server.Listen();
 
-        await using var connection = new Connection(new ConnectionOptions()
-        {
-            RemoteEndpoint = server.Endpoint,
-            MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport)
-        });
-        var proxy = Proxy.FromConnection(connection, "/");
+        await using var connection = new Connection(CreateConnectionOptions(server.Endpoint, colocTransport));
+        var proxy = Proxy.FromConnection(connection, "/name");
 
         // Act
         IncomingResponse response = await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy), default);
@@ -94,8 +87,36 @@ public sealed class InvokeAsyncTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(responsePayload, Is.EqualTo(expectedPayload));
+            Assert.That(responsePayload, Is.EqualTo(_expectedPayload));
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
         });
+    }
+
+    private static ConnectionOptions CreateConnectionOptions(Endpoint remoteEndpoint, ColocTransport colocTransport)
+    {
+        var connectionOptions = new ConnectionOptions { RemoteEndpoint = remoteEndpoint };
+        if (remoteEndpoint.Protocol == Protocol.Ice)
+        {
+            connectionOptions.SimpleClientTransport = colocTransport.ClientTransport;
+        }
+        else
+        {
+            connectionOptions.MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport);
+        }
+        return connectionOptions;
+    }
+
+    private static ServerOptions CreateServerOptions(Endpoint endpoint, ColocTransport colocTransport)
+    {
+        var serverOptions = new ServerOptions { Endpoint = endpoint };
+        if (endpoint.Protocol == Protocol.Ice)
+        {
+            serverOptions.SimpleServerTransport = colocTransport.ServerTransport;
+        }
+        else
+        {
+            serverOptions.MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport);
+        }
+        return serverOptions;
     }
 }

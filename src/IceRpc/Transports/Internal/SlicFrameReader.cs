@@ -9,7 +9,7 @@ namespace IceRpc.Transports.Internal
     /// <summary>The Slic frame reader class reads Slic frames from a simple network connection pipe reader.</summary>
     internal sealed class SlicFrameReader : ISlicFrameReader
     {
-        public SimpleNetworkConnectionPipeReader PipeReader { get; }
+        public SimpleNetworkConnectionReader NetworkConnectionReader { get; }
 
         public async ValueTask<(FrameType FrameType, int FrameSize, long? StreamId)> ReadFrameHeaderAsync(
             CancellationToken cancel)
@@ -17,22 +17,22 @@ namespace IceRpc.Transports.Internal
             while (true)
             {
                 // Read data from the pipe reader.
-                if (!PipeReader.TryRead(out ReadResult readResult))
+                if (!NetworkConnectionReader.TryRead(out ReadOnlySequence<byte> buffer))
                 {
-                    readResult = await PipeReader.ReadAsync(cancel).ConfigureAwait(false);
+                    buffer = await NetworkConnectionReader.ReadAsync(cancel).ConfigureAwait(false);
                 }
 
                 if (TryDecodeHeader(
-                    readResult.Buffer,
+                    buffer,
                     out (FrameType FrameType, int FrameSize, long? StreamId) header,
                     out int consumed))
                 {
-                    PipeReader.AdvanceTo(readResult.Buffer.GetPosition(consumed));
+                    NetworkConnectionReader.AdvanceTo(buffer.GetPosition(consumed));
                     return header;
                 }
                 else
                 {
-                    PipeReader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                    NetworkConnectionReader.AdvanceTo(buffer.Start, buffer.End);
                 }
             }
 
@@ -71,6 +71,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal SlicFrameReader(SimpleNetworkConnectionPipeReader reader) => PipeReader = reader;
+        internal SlicFrameReader(SimpleNetworkConnectionReader reader) => NetworkConnectionReader = reader;
     }
 }
