@@ -535,9 +535,12 @@ namespace IceRpc.Slice
             EncodedByteCount += span.Length;
         }
 
-        internal SliceEncoder(MemoryBufferWriter memoryWriter, SliceEncoding encoding, FormatType classFormat = default)
-            : this((IBufferWriter<byte>)memoryWriter, encoding, classFormat)
+        internal SliceEncoder(IBufferWriter<byte> bufferWriter, SliceEncoding encoding, FormatType classFormat = default)
+            : this()
         {
+            Encoding = encoding;
+            _bufferWriter = bufferWriter;
+            _classContext = new ClassContext(classFormat);
         }
 
         internal static void EncodeInt(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
@@ -603,14 +606,6 @@ namespace IceRpc.Slice
                 ulong i when i <= uint.MaxValue => 2,
                 _ => 3
             };
-        }
-
-        private SliceEncoder(IBufferWriter<byte> bufferWriter, SliceEncoding encoding, FormatType classFormat)
-            : this()
-        {
-            Encoding = encoding;
-            _bufferWriter = bufferWriter;
-            _classContext = new ClassContext(classFormat);
         }
 
         private void Advance(int count)

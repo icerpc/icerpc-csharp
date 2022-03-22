@@ -61,8 +61,9 @@ namespace IceRpc.Internal
         private readonly int _minimumSegmentSize;
 
         private readonly object _mutex = new();
-        private readonly SimpleNetworkConnectionPipeWriter _networkConnectionWriter;
         private readonly SimpleNetworkConnectionReader _networkConnectionReader;
+        private readonly SimpleNetworkConnectionWriter _networkConnectionWriter;
+
         private int _nextRequestId;
         private readonly Configure.IceProtocolOptions _options;
         private readonly IcePayloadPipeWriter _payloadWriter;
@@ -74,6 +75,7 @@ namespace IceRpc.Internal
         public void Dispose()
         {
             _networkConnectionReader.Dispose();
+            _networkConnectionWriter.Dispose();
 
             // The connection is disposed, if there are sill pending invocations, it indicates a non-graceful shutdown,
             // we raise ConnectionLostException.
@@ -106,7 +108,7 @@ namespace IceRpc.Internal
                 _sendSemaphore.Release();
             }
 
-            static void EncodeValidateConnectionFrame(PipeWriter writer)
+            static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
             {
                 var encoder = new SliceEncoder(writer, Encoding.Slice11);
                 IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
@@ -442,7 +444,11 @@ namespace IceRpc.Internal
                 throw;
             }
 
-            static int EncodeHeader(PipeWriter output, OutgoingRequest request, int requestId, int payloadSize)
+            static int EncodeHeader(
+                SimpleNetworkConnectionWriter output,
+                OutgoingRequest request,
+                int requestId,
+                int payloadSize)
             {
                 var encoder = new SliceEncoder(output, Encoding.Slice11);
 
@@ -595,7 +601,11 @@ namespace IceRpc.Internal
                 }
             }
 
-            static int EncodeHeader(PipeWriter writer, int requestId, int payloadSize, ReplyStatus replyStatus)
+            static int EncodeHeader(
+                SimpleNetworkConnectionWriter writer,
+                int requestId,
+                int payloadSize,
+                ReplyStatus replyStatus)
             {
                 var encoder = new SliceEncoder(writer, Encoding.Slice11);
 
@@ -693,7 +703,7 @@ namespace IceRpc.Internal
                 await _pendingClose.Task.ConfigureAwait(false);
             }
 
-            static void EncodeCloseConnectionFrame(PipeWriter writer)
+            static void EncodeCloseConnectionFrame(SimpleNetworkConnectionWriter writer)
             {
                 var encoder = new SliceEncoder(writer, Encoding.Slice11);
                 IceDefinitions.CloseConnectionFrame.Encode(ref encoder);
@@ -716,7 +726,7 @@ namespace IceRpc.Internal
             _memoryPool = MemoryPool<byte>.Shared;
             _minimumSegmentSize = 4096;
 
-            _networkConnectionWriter = new SimpleNetworkConnectionPipeWriter(
+            _networkConnectionWriter = new SimpleNetworkConnectionWriter(
                 simpleNetworkConnection,
                 _memoryPool,
                 _minimumSegmentSize);
@@ -760,7 +770,7 @@ namespace IceRpc.Internal
                 }
             }
 
-            static void EncodeValidateConnectionFrame(PipeWriter writer)
+            static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
             {
                 var encoder = new SliceEncoder(writer, Encoding.Slice11);
                 IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
