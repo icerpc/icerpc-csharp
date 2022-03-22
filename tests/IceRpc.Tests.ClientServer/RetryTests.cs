@@ -11,7 +11,7 @@ namespace IceRpc.Tests.ClientServer
 {
     [Timeout(5000)]
     [Parallelizable(ParallelScope.All)]
-    [Ignore("retry interceptor issues, #929")]
+    // [Ignore("retry interceptor issues, #929")]
     public class RetryTests
     {
         [Test]

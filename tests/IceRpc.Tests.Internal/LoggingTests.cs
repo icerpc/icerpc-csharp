@@ -20,7 +20,6 @@ namespace IceRpc.Tests.Internal
     public class LoggingTests
     {
         /// <summary>Check the retry interceptor logging.</summary>
-        [Ignore("retry interceptor issues, #929")]
         [Test]
         public async Task Logging_RetryInterceptor()
         {
@@ -45,7 +44,9 @@ namespace IceRpc.Tests.Internal
                 request.Features = request.Features.With(policy);
                 return response;
             }));
-            await pipeline.InvokeAsync(request);
+
+            IncomingResponse response = await pipeline.InvokeAsync(request);
+            await response.Payload.CompleteAsync().ConfigureAwait(false);
 
             Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc"));
             Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(2));

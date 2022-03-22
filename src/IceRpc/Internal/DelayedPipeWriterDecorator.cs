@@ -1,4 +1,4 @@
-// Copyright (c) ZeroC, Inc. All rights reserved.
+    // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
 using System.Buffers;
@@ -46,16 +46,8 @@ namespace IceRpc.Internal
         // We use the default implementation for CopyFromAsync: it's protected as a result we can't forward
         // it to Decoratee.
 
-        internal void SetDecoratee(PipeWriter decoratee)
-        {
-            // TODO: we currently set and reset this decoratee several times when retrying (resending the exact same
-            // OutgoingRequest). Is this correct?
-
-            // if (_decoratee != null)
-            // {
-            //    throw new InvalidOperationException("pipe writer already set");
-            // }
+        internal void SetDecoratee(PipeWriter decoratee) =>
+            // Overriding the previous decoratee can occur if a request is being retried.
             _decoratee = decoratee;
-        }
     }
 }
