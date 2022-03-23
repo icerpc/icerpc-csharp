@@ -16,9 +16,12 @@ public class CompressorInterceptorTests
     private static readonly ReadOnlySequence<byte> _deflateEncodedCompressionFormatValue =
         new(new byte[] { (byte)CompressionFormat.Deflate });
 
-    private static readonly ReadOnlySequence<byte> _gzipEncodedCompressionFormatValue =
+    private static readonly ReadOnlySequence<byte> _unknownEncodedCompressionFormatValue =
         new(new byte[] { 255 });
 
+    /// <summary>Verifies that when the request carries the compress payload feature, the compress interceptor wraps
+    /// the payload sink pipe writer with a pipe writer that compresses the input using the deflate compression format.
+    /// </summary>
     [Test]
     public async Task Compress_request_payload()
     {
@@ -36,9 +39,10 @@ public class CompressorInterceptorTests
         await sut.InvokeAsync(request, default);
 
         // Assert
-        await request.PayloadSink.WriteAsync(_payload);
-        Assert.That(outStream.Position, Is.InRange(0, 2048));
 
+        await request.PayloadSink.WriteAsync(_payload);
+        // Rewind the output stream used to create the payload sink and check that the contents were correctly
+        // compressed.
         outStream.Seek(0, SeekOrigin.Begin);
         using var deflateStream = new DeflateStream(outStream, CompressionMode.Decompress);
         var decompressedPayload = new byte[4096];
@@ -47,6 +51,8 @@ public class CompressorInterceptorTests
         await request.PayloadSink.CompleteAsync();
     }
 
+    /// <summary>Verifies that when the request feature doesn't carry the compress payload feature the compress
+    /// interceptor doesn't wrap the payload sink,</summary>
     [Test]
     public async Task Compress_interceptor_without_compress_feature_does_not_update_the_payload_sink()
     {
@@ -60,6 +66,8 @@ public class CompressorInterceptorTests
         Assert.That(request.PayloadSink, Is.EqualTo(initialPayloadSing));
     }
 
+    /// <summary>Verifies that the compress interceptor does not update the payload sink if the request is already
+    /// compressed (the request already has a compression format field).</summary>
     [Test]
     public async Task Compress_interceptor_does_not_update_the_payload_sink_if_request_is_already_compressed()
     {
@@ -70,33 +78,31 @@ public class CompressorInterceptorTests
         request.Fields = request.Fields.With(
             RequestFieldKey.CompressionFormat,
             _deflateEncodedCompressionFormatValue);
-        var initialPayloadSing = request.PayloadSink;
+        PipeWriter initialPayloadSing = request.PayloadSink;
 
         await sut.InvokeAsync(request, default);
 
         Assert.That(request.PayloadSink, Is.EqualTo(initialPayloadSing));
     }
 
+    /// <summary>Verifies that the compressor interceptor doesn't update the response payload when the compression
+    /// format is not supported, and lets the response pass throw unchanged.</summary>
     [Test]
     public async Task Compress_interceptor_lets_responses_with_unsupported_compression_format_pass_throw()
     {
         PipeReader? initialPayload = null;
         var invoker = new InlineInvoker((request, cancel) =>
         {
-            var response = new IncomingResponse(request)
-            {
-                Fields = new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>> 
-                { 
-                    [ResponseFieldKey.CompressionFormat] = _gzipEncodedCompressionFormatValue
-                }.ToImmutableDictionary()
-            };
+            IncomingResponse response = CreateResponseWitCompressionFormatField(
+                request,
+                _unknownEncodedCompressionFormatValue);
             initialPayload = response.Payload;
             return Task.FromResult(response);
         });
         var sut = new CompressorInterceptor(invoker);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
 
-        var response = await sut.InvokeAsync(request, default);
+        IncomingResponse response = await sut.InvokeAsync(request, default);
 
         Assert.That(response.Payload, Is.EqualTo(initialPayload));
     }
@@ -104,29 +110,43 @@ public class CompressorInterceptorTests
     [Test]
     public async Task Decompress_response_payload()
     {
-        var invoker = new InlineInvoker(async (request, cancel) =>
+        var invoker = new InlineInvoker((request, cancel) =>
         {
-            var response = new IncomingResponse(request)
-            {
-                Fields = new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
-                {
-                    [ResponseFieldKey.CompressionFormat] = _deflateEncodedCompressionFormatValue
-                }.ToImmutableDictionary()
-            };
-            var payloadStream = new MemoryStream();
-            var deflateStream = new DeflateStream(payloadStream, CompressionMode.Compress);
-            await deflateStream.WriteAsync(_payload, default);
-            payloadStream.Seek(0, SeekOrigin.Begin);
-            response.Payload = PipeReader.Create(payloadStream);
-            return response;
+            IncomingResponse response = CreateResponseWitCompressionFormatField(
+                request,
+                _deflateEncodedCompressionFormatValue);
+            response.Payload = PipeReader.Create(CreateCompressedPayload(_payload));
+            return Task.FromResult(response);
         });
         var sut = new CompressorInterceptor(invoker);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
 
-        var response = await sut.InvokeAsync(request, default);
-        
-        var readResult = await response.Payload.ReadAsync();
+        IncomingResponse response = await sut.InvokeAsync(request, default);
 
+        ReadResult readResult = await response.Payload.ReadAsync();
         Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(_payload));
+    }
+
+    private static IncomingResponse CreateResponseWitCompressionFormatField(
+        OutgoingRequest request,
+        ReadOnlySequence<byte> compressionFormatField) =>
+        new(request)
+        {
+            Fields = new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
+            {
+                [ResponseFieldKey.CompressionFormat] = compressionFormatField
+            }.ToImmutableDictionary()
+        };
+
+    private static Stream CreateCompressedPayload(byte[] data)
+    {
+        var outStream = new MemoryStream();
+        {
+            using var deflateStream = new DeflateStream(outStream, CompressionMode.Compress, true);
+            using var payload = new MemoryStream(data);
+            payload.CopyTo(deflateStream);
+        }
+        outStream.Seek(0, SeekOrigin.Begin);
+        return outStream;
     }
 }
