@@ -612,7 +612,7 @@ return pipe_.Reader;",
         size_placeholder_and_start_position = match operation.encoding {
             SliceEncoding::Slice11 => "",
             _ => "\
-Span<byte> sizePlaceholder_ = encoder_.GetPlaceholderSpan(4)
+Span<byte> sizePlaceholder_ = encoder_.GetPlaceholderSpan(4);
 int startPos_ = encoder_.EncodedByteCount;",
         },
         rewrite_size = match operation.encoding {

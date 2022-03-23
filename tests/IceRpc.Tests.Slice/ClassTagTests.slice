@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+encoding = 1.1;
+
 module IceRpc::Tests::Slice;
 
 class OneTagged
@@ -16,13 +18,6 @@ class MultiTagged
     mLong: tag(5) long?,
     mFloat: tag(6) float?,
     mDouble: tag(7) double?,
-    mUShort: tag(8) ushort?,
-    mUInt: tag(9) uint?,
-    mULong: tag(10) ulong?,
-    mVarInt: tag(11) varint?,
-    mVarLong: tag(12) varlong?,
-    mVarUInt: tag(13) varuint?,
-    mVarULong: tag(14) varulong?,
     mString: tag(15) string?,
 
     mMyEnum: tag(20) MyEnum?,
@@ -38,9 +33,6 @@ class MultiTagged
 
     mIntDict: tag(40) IntDict?,
     mStringDict: tag(41) StringDict?,
-    mUShortSeq: tag(42) UShortSeq?,
-    mVarULongSeq: tag(43) VarULongSeq?,
-    mVarIntSeq: tag(44) VarIntSeq?,
 
     mByteDict: tag(50) ByteDict?,
     mMyCompactStructDict: tag(51) MyCompactStructDict?,

@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-encoding=1.1;
-
 [cs:internal]
 module IceRpc::Internal;
 

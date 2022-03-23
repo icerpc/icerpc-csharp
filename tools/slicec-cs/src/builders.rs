@@ -418,7 +418,7 @@ impl CommentBuilder for FunctionBuilder {
 
 pub struct EncodingBlockBuilder {
     encoding_blocks: HashMap<SliceEncoding, CodeBlock>,
-    supported_encoding: SupportedEncodings,
+    supported_encodings: SupportedEncodings,
     encoding_variable: String
 }
 
@@ -426,7 +426,7 @@ impl EncodingBlockBuilder {
     pub fn new(encoding_variable: &str, supported_encodings: SupportedEncodings) -> Self {
         Self {
             encoding_blocks: HashMap::new(),
-            supported_encoding: supported_encodings,
+            supported_encodings,
             encoding_variable: encoding_variable.to_owned(),
         }
     }
@@ -437,7 +437,7 @@ impl EncodingBlockBuilder {
     }
 
     pub fn build(&mut self) -> CodeBlock {
-        match self.supported_encoding.iter().collect::<Vec<_>>().as_slice() {
+        match &self.supported_encodings[..] {
             [] => panic!("No supported encodings"),
             [encoding] => {
                 format!("\

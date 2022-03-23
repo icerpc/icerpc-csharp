@@ -1,11 +1,14 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+// TODO: should we remove 1.1 encoding and get rid of classes here?
+encoding = 1.1;
+
 module IceRpc::Slice::TypeIdAttributeTests
 {
     class MyClass {}
     interface MyInterface {}
     exception MyException {}
-    struct MyStruct {}
+    compact struct MyStruct {}
 
     /// The constructs in the inner module doesn't use the same case convention that
     /// the corresponding C# generated types, the type ID shouldn't be affected by the
@@ -15,6 +18,6 @@ module IceRpc::Slice::TypeIdAttributeTests
         class myClass {}
         interface myInterface {}
         exception myException {}
-        struct myStruct {}
+        compact struct myStruct {}
     }
 }
