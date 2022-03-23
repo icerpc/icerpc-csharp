@@ -7,7 +7,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Slice.Tests;
 
-/// <summary>Test encoding of built-in types with the supported Slice encodings.</summary>
+/// <summary>Test decoding built-in types with the supported Slice encodings.</summary>
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 [TestFixture("1.1")]
 [TestFixture("2.0")]
