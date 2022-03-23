@@ -188,7 +188,6 @@ public class EncodingBuiltInTypesTests
         encoder.EncodeString(p1);
 
         var writtenBytes = buffer[0..bufferWriter.WrittenMemory.Length];
-        Console.WriteLine(BitConverter.ToString(writtenBytes));
         Assert.That(System.Text.Encoding.UTF8.GetString(writtenBytes), Is.EqualTo("\0"));
     }
 }
