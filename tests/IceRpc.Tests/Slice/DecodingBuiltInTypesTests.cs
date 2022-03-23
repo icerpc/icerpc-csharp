@@ -63,7 +63,7 @@ public class DecodingBuiltInTypesTests
         _encoding = SliceEncoding.FromString(encoding);
     }
 
-    /// <summary>Test the encoding of a fixed size numeric type.</summary>
+    /// <summary>Test the decoding of a fixed size numeric type.</summary>
     /// <param name="encodedBytes">The encoded hexadecimal representation of a long to decode.</param>
     /// <param name="expected">The expected long to be decoded.</param>
     [TestCase(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 }, long.MinValue)]
@@ -78,7 +78,7 @@ public class DecodingBuiltInTypesTests
         Assert.That(decoder.Consumed, Is.EqualTo(sizeof(long)));
     }
 
-    /// <summary>Test the encoding of a variable size numeric type.</summary>
+    /// <summary>Test the decoding of a variable size numeric type.</summary>
     /// <param name="encodedBytes">The encoded hexadecimal representation of a varlong to decode.</param>
     /// <param name="expected">The expected ulong to be decoded.</param>
     [TestCase(new byte[] { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 }, SliceEncoder.VarLongMinValue)]
