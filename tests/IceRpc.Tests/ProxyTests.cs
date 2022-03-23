@@ -282,7 +282,7 @@ public class ProxyTests
     {
         // Arrange
         await using var networkConnection = new MockNetworkConnection();
-        await using var serverConnection = new Connection(networkConnection, Protocol.IceRpc, TimeSpan.FromSeconds(1));
+        await using var serverConnection = new Connection(networkConnection, Protocol.IceRpc, new ConnectionOptions());
 
         // Act
         var proxy = Proxy.FromConnection(serverConnection, "/");

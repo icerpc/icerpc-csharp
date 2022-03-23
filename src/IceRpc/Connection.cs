@@ -68,7 +68,7 @@ namespace IceRpc
 
         /// <summary><c>true</c> for a connection accepted by a server and <c>false</c> for a connection created by a
         /// client.</summary>
-        public bool IsServer => _options == null;
+        public bool IsServer { get; }
 
         /// <summary>The network connection information or <c>null</c> if the connection is not connected.</summary>
         public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
@@ -100,8 +100,6 @@ namespace IceRpc
 
         private EventHandler<ClosedEventArgs>? _closed;
 
-        private readonly TimeSpan _closeTimeout;
-
         // True once DisposeAsync is called. Once disposed the connection can't be resumed.
         private bool _disposed;
 
@@ -110,8 +108,7 @@ namespace IceRpc
 
         private INetworkConnection? _networkConnection;
 
-        // _options is null for server connections and non-null for client connections.
-        private readonly ConnectionOptions? _options;
+        private readonly ConnectionOptions _options;
 
         private IProtocolConnection? _protocolConnection;
 
@@ -131,8 +128,6 @@ namespace IceRpc
         {
             Protocol = options.RemoteEndpoint is Endpoint remoteEndpoint ? remoteEndpoint.Protocol :
                 throw new ArgumentException($"options.RemoteEndpoint must be set to a non-null value", nameof(options));
-
-            _closeTimeout = options.CloseTimeout;
             _options = options;
         }
 
@@ -179,7 +174,7 @@ namespace IceRpc
                         // Only the application can call ConnectAsync on a server connection (which is ok but not
                         // particularly useful), and in this case, the connection state can only be active or >=
                         // closing.
-                        Debug.Assert(_options != null);
+                        Debug.Assert(!IsServer);
 
                         Debug.Assert(
                             _networkConnection == null &&
@@ -255,15 +250,7 @@ namespace IceRpc
                 _networkConnection = networkConnection;
                 _state = ConnectionState.Connecting;
 
-                return ConnectAsync(
-                    networkConnection,
-                    _options.Dispatcher,
-                    protocolConnectionFactory,
-                    _options.ConnectTimeout,
-                    _options.IceProtocolOptions,
-                    _options.Fields,
-                    _options.KeepAlive,
-                    closedEventHandler);
+                return ConnectAsync(networkConnection, protocolConnectionFactory, closedEventHandler);
             }
         }
 
@@ -402,35 +389,26 @@ namespace IceRpc
         public override string ToString() => _networkConnection?.ToString() ?? "";
 
         /// <summary>Constructs a server connection from an accepted network connection.</summary>
-        internal Connection(INetworkConnection connection, Protocol protocol, TimeSpan closeTimeout)
+        internal Connection(INetworkConnection connection, Protocol protocol, ConnectionOptions options)
         {
+            IsServer = true;
             Protocol = protocol;
             _networkConnection = connection;
-            _closeTimeout = closeTimeout;
+            _options = options;
             _state = ConnectionState.Connecting;
         }
 
         /// <summary>Establishes a connection. This method is used for both client and server connections.</summary>
         /// <param name="networkConnection">The underlying network connection.</param>
-        /// <param name="dispatcher">The dispatcher.</param>
         /// <param name="protocolConnectionFactory">The protocol connection factory.</param>
-        /// <param name="connectTimeout">The connect timeout.</param>
-        /// <param name="iceProtocolOptions">The ice protocol options.</param>
-        /// <param name="localFields">The fields to send to the remote peer.</param>
-        /// <param name="keepAlive">Whether or not to keep the new connection alive.</param>
         /// <param name="closedEventHandler">A closed event handler added to the connection once the connection is
         /// active.</param>
         internal async Task ConnectAsync<T>(
             T networkConnection,
-            IDispatcher dispatcher,
             IProtocolConnectionFactory<T> protocolConnectionFactory,
-            TimeSpan connectTimeout,
-            IceProtocolOptions? iceProtocolOptions,
-            IDictionary<ConnectionFieldKey, OutgoingFieldValue> localFields,
-            bool keepAlive,
             EventHandler<ClosedEventArgs>? closedEventHandler) where T : INetworkConnection
         {
-            using var connectCancellationSource = new CancellationTokenSource(connectTimeout);
+            using var connectCancellationSource = new CancellationTokenSource(_options.ConnectTimeout);
             try
             {
                 // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
@@ -444,8 +422,7 @@ namespace IceRpc
                 _protocolConnection = await protocolConnectionFactory.CreateProtocolConnectionAsync(
                     networkConnection,
                     NetworkConnectionInformation.Value,
-                    iceProtocolOptions,
-                    localFields,
+                    _options,
                     IsServer,
                     connectCancellationSource.Token).ConfigureAwait(false);
 
@@ -487,14 +464,18 @@ namespace IceRpc
                     TimeSpan idleTimeout = NetworkConnectionInformation!.Value.IdleTimeout;
                     if (idleTimeout != TimeSpan.MaxValue && idleTimeout != Timeout.InfiniteTimeSpan)
                     {
-                        _timer = new Timer(value => Monitor(keepAlive), null, idleTimeout / 2, idleTimeout / 2);
+                        _timer = new Timer(
+                            value => Monitor(_options.KeepAlive),
+                            null,
+                            idleTimeout / 2,
+                            idleTimeout / 2);
                     }
 
                     // Start the receive request task. The task accepts new incoming requests and processes them. It
                     // only completes once the connection is closed.
                     IProtocolConnection protocolConnection = _protocolConnection;
                     _ = Task.Run(
-                        () => AcceptIncomingRequestAsync(protocolConnection, dispatcher),
+                        () => AcceptIncomingRequestAsync(protocolConnection, _options.Dispatcher),
                         CancellationToken.None);
                 }
             }
@@ -781,7 +762,7 @@ namespace IceRpc
             // is assigned before any synchronous continuations are ran.
             await Task.Yield();
 
-            using var closeCancellationSource = new CancellationTokenSource(_closeTimeout);
+            using var closeCancellationSource = new CancellationTokenSource(_options.CloseTimeout);
             Exception exception;
             try
             {
