@@ -28,7 +28,8 @@ namespace IceRpc
             _logger = options.LoggerFactory?.CreateLogger("IceRpc") ?? NullLogger.Instance;
         }
 
-        async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+        /// <inheritdoc/>
+        public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
             if (request.Protocol.HasFields)
             {
@@ -48,9 +49,10 @@ namespace IceRpc
                     // TODO add additional attributes
                     // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md#common-remote-procedure-call-conventions
                     activity.Start();
-                }
 
-                WriteActivityContext(request);
+                    request.Fields = request.Fields.With(RequestFieldKey.TraceContext,
+                        (ref SliceEncoder encoder) => WriteActivityContext(ref encoder, activity));
+                }
 
                 try
                 {
@@ -68,74 +70,66 @@ namespace IceRpc
             }
         }
 
-        private static void WriteActivityContext(OutgoingRequest request)
+        internal static void WriteActivityContext(ref SliceEncoder encoder, Activity activity)
         {
-            if (Activity.Current is Activity activity && activity.Id != null)
+            if (activity.IdFormat != ActivityIdFormat.W3C)
             {
-                if (activity.IdFormat != ActivityIdFormat.W3C)
-                {
-                    throw new ArgumentException("only W3C ID format is supported with IceRpc", nameof(activity));
-                }
-
-                if (activity.Id == null)
-                {
-                    throw new ArgumentException("invalid null activity ID", nameof(activity));
-                }
-
-                // The activity context is written to the field value, as if it has the following Slice definition
-                //
-                // struct BaggageEntry
-                // {
-                //    string key;
-                //    string value;
-                // }
-                // sequence<BaggageEntry> Baggage;
-                //
-                // struct ActivityContext
-                // {
-                //    // ActivityID version 1 byte
-                //    byte version;
-                //    // ActivityTraceId 16 bytes
-                //    ulong activityTraceId0;
-                //    ulong activityTraceId1;
-                //    // ActivitySpanId 8 bytes
-                //    ulong activitySpanId
-                //    // ActivityTraceFlags 1 byte
-                //    byte ActivityTraceFlags;
-                //    string traceStateString;
-                //    Baggage baggage;
-                // }
-
-                request.FieldsOverrides = request.FieldsOverrides.With(
-                    (int)FieldKey.TraceContext,
-                    (ref SliceEncoder encoder) =>
-                    {
-                        // W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,
-                        // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
-                        encoder.EncodeByte(0);
-
-                        // Unfortunately we can't use stackalloc.
-                        using IMemoryOwner<byte> memoryOwner = MemoryPool<byte>.Shared.Rent(16);
-                        Span<byte> buffer = memoryOwner.Memory.Span[0..16];
-                        activity.TraceId.CopyTo(buffer);
-                        encoder.WriteByteSpan(buffer);
-                        activity.SpanId.CopyTo(buffer[0..8]);
-                        encoder.WriteByteSpan(buffer[0..8]);
-                        encoder.EncodeByte((byte)activity.ActivityTraceFlags);
-
-                        // Tracestate encoded as an string
-                        encoder.EncodeString(activity.TraceStateString ?? "");
-
-                        // Baggage encoded as a sequence<BaggageEntry>
-                        encoder.EncodeSequence(
-                            activity.Baggage,
-                            (ref SliceEncoder encoder, KeyValuePair<string, string?> entry) =>
-                        {
-                            encoder.EncodeString(entry.Key);
-                            encoder.EncodeString(entry.Value ?? "");
-                        });
-                    });
+                throw new ArgumentException("only W3C ID format is supported with IceRpc", nameof(activity));
             }
+
+            if (activity.Id == null)
+            {
+                throw new ArgumentException("invalid null activity ID", nameof(activity));
+            }
+
+            // The activity context is written to the field value, as if it has the following Slice definition
+            //
+            // struct BaggageEntry
+            // {
+            //    string key;
+            //    string value;
+            // }
+            // sequence<BaggageEntry> Baggage;
+            //
+            // struct ActivityContext
+            // {
+            //    // ActivityID version 1 byte
+            //    byte version;
+            //    // ActivityTraceId 16 bytes
+            //    ulong activityTraceId0;
+            //    ulong activityTraceId1;
+            //    // ActivitySpanId 8 bytes
+            //    ulong activitySpanId
+            //    // ActivityTraceFlags 1 byte
+            //    byte ActivityTraceFlags;
+            //    string traceStateString;
+            //    Baggage baggage;
+            // }
+
+            // W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,
+            // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
+            encoder.EncodeByte(0);
+
+            // Unfortunately we can't use stackalloc.
+            using IMemoryOwner<byte> memoryOwner = MemoryPool<byte>.Shared.Rent(16);
+            Span<byte> buffer = memoryOwner.Memory.Span[0..16];
+            activity.TraceId.CopyTo(buffer);
+            encoder.WriteByteSpan(buffer);
+            activity.SpanId.CopyTo(buffer[0..8]);
+            encoder.WriteByteSpan(buffer[0..8]);
+            encoder.EncodeByte((byte)activity.ActivityTraceFlags);
+
+            // Tracestate encoded as an string
+            encoder.EncodeString(activity.TraceStateString ?? "");
+
+            // Baggage encoded as a sequence<BaggageEntry>
+            encoder.EncodeSequence(
+                activity.Baggage,
+                (ref SliceEncoder encoder, KeyValuePair<string, string?> entry) =>
+                {
+                    encoder.EncodeString(entry.Key);
+                    encoder.EncodeString(entry.Value ?? "");
+                });
         }
     }
 }

@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
@@ -172,7 +171,7 @@ namespace IceRpc.Transports.Internal
 
         internal void ReceivedStopSendingFrame(long error)
         {
-            // TODO: Look into cancelling the _stream.SendStreamFrameAsync() call if it's pending?
+            // TODO: Look into canceling the _stream.SendStreamFrameAsync() call if it's pending?
             if (_state.TrySetFlag(State.PipeReaderCompleted))
             {
                 _exception = error.ToSlicError() == SlicStreamError.NoError ?

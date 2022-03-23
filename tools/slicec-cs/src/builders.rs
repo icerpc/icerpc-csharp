@@ -45,6 +45,14 @@ pub trait AttributeBuilder {
 
 pub trait CommentBuilder {
     fn add_comment(&mut self, tag: &str, content: &str) -> &mut Self;
+
+    fn add_comment_with_attribute(
+        &mut self,
+        tag: &str,
+        attribute_name: &str,
+        attribute_value: &str,
+        content: &str,
+    ) -> &mut Self;
 }
 
 #[derive(Clone, Debug)]
@@ -131,6 +139,22 @@ impl CommentBuilder for ContainerBuilder {
         self.comments.push(CommentTag::new(tag, content));
         self
     }
+
+    fn add_comment_with_attribute(
+        &mut self,
+        tag: &str,
+        attribute_name: &str,
+        attribute_value: &str,
+        content: &str,
+    ) -> &mut Self {
+        self.comments.push(CommentTag::with_tag_attribute(
+            tag,
+            attribute_name,
+            attribute_value,
+            content,
+        ));
+        self
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -175,27 +199,6 @@ impl FunctionBuilder {
             function_type,
             inherit_doc: false,
         }
-    }
-
-    pub fn add_comment(&mut self, tag: &str, content: &str) -> &mut Self {
-        self.comments.push(CommentTag::new(tag, content));
-        self
-    }
-
-    fn add_comment_with_attribute(
-        &mut self,
-        tag: &str,
-        attribute_name: &str,
-        attribute_value: &str,
-        content: &str,
-    ) -> &mut Self {
-        self.comments.push(CommentTag::with_tag_attribute(
-            tag,
-            attribute_name,
-            attribute_value,
-            content,
-        ));
-        self
     }
 
     pub fn add_parameter(
@@ -391,6 +394,22 @@ impl AttributeBuilder for FunctionBuilder {
 impl CommentBuilder for FunctionBuilder {
     fn add_comment(&mut self, tag: &str, content: &str) -> &mut Self {
         self.comments.push(CommentTag::new(tag, content));
+        self
+    }
+
+    fn add_comment_with_attribute(
+        &mut self,
+        tag: &str,
+        attribute_name: &str,
+        attribute_value: &str,
+        content: &str,
+    ) -> &mut Self {
+        self.comments.push(CommentTag::with_tag_attribute(
+            tag,
+            attribute_name,
+            attribute_value,
+            content,
+        ));
         self
     }
 }

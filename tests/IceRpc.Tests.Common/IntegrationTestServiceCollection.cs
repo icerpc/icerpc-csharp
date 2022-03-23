@@ -30,7 +30,9 @@ namespace IceRpc.Tests
                     LoggerFactory = serviceProvider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance,
                     MultiplexedServerTransport = multiplexedServerTransport,
                     SimpleServerTransport = simpleServerTransport,
-                    IncomingFrameMaxSize = 2048 * 1024 // TODO: temporary, for stress test
+                    // Use 60s timeout otherwise tests causing connection shutdown issues might silently succeed.
+                    CloseTimeout = TimeSpan.FromSeconds(60),
+                    IceProtocolOptions = serviceProvider.GetService<IceProtocolOptions>()
                 });
 
                 server.Listen();
@@ -55,7 +57,9 @@ namespace IceRpc.Tests
                     MultiplexedClientTransport = multiplexedClientTransport,
                     LoggerFactory = serviceProvider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance,
                     IsResumable = serviceProvider.GetService<ResumableConnection>() != null,
-                    IncomingFrameMaxSize = 2048 * 1024 // TODO: temporary, for stress test
+                    // Use 60s timeout otherwise tests causing connection shutdown issues might silently succeed.
+                    CloseTimeout = TimeSpan.FromSeconds(60),
+                    IceProtocolOptions = serviceProvider.GetService<IceProtocolOptions>()
                 };
             });
 

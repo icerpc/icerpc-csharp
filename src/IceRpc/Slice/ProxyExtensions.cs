@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Buffers;
 using System.Collections.Immutable;
 using System.IO.Pipelines;
 
@@ -17,10 +16,10 @@ namespace IceRpc.Slice
     /// <summary>Provides extension methods for class Proxy.</summary>
     public static class ProxyExtensions
     {
-        private static readonly IDictionary<int, ReadOnlySequence<byte>> _idempotentFields =
-            new Dictionary<int, ReadOnlySequence<byte>>
+        private static readonly IDictionary<RequestFieldKey, OutgoingFieldValue> _idempotentFields =
+            new Dictionary<RequestFieldKey, OutgoingFieldValue>
             {
-                [(int)FieldKey.Idempotent] = default
+                [RequestFieldKey.Idempotent] = default
             }.ToImmutableDictionary();
 
         /// <summary>Computes the Slice encoding to use when encoding a Slice-generated request.</summary>
@@ -64,7 +63,8 @@ namespace IceRpc.Slice
             var request = new OutgoingRequest(proxy)
             {
                 Features = invocation?.Features ?? FeatureCollection.Empty,
-                Fields = idempotent ? _idempotentFields : ImmutableDictionary<int, ReadOnlySequence<byte>>.Empty,
+                Fields = idempotent ?
+                    _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
                 Operation = operation,
                 PayloadEncoding = payloadEncoding,
                 PayloadSource = payloadSource,
@@ -74,8 +74,8 @@ namespace IceRpc.Slice
             IInvoker invoker = proxy.Invoker;
             if (invocation != null)
             {
-                ConfigureTimeout(ref invoker, invocation);
                 CheckCancellationToken(invocation, cancel);
+                ConfigureTimeout(ref invoker, invocation, request);
             }
 
             // We perform as much work as possible in a non async method to throw exceptions synchronously.
@@ -125,7 +125,8 @@ namespace IceRpc.Slice
             var request = new OutgoingRequest(proxy)
             {
                 Features = invocation?.Features ?? FeatureCollection.Empty,
-                Fields = idempotent ? _idempotentFields : ImmutableDictionary<int, ReadOnlySequence<byte>>.Empty,
+                Fields = idempotent ?
+                    _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
                 IsOneway = oneway || (invocation?.IsOneway ?? false),
                 Operation = operation,
                 PayloadEncoding = payloadEncoding,
@@ -136,8 +137,8 @@ namespace IceRpc.Slice
             IInvoker invoker = proxy.Invoker;
             if (invocation != null)
             {
-                ConfigureTimeout(ref invoker, invocation);
                 CheckCancellationToken(invocation, cancel);
+                ConfigureTimeout(ref invoker, invocation, request);
             }
 
             // We perform as much work as possible in a non async method to throw exceptions synchronously.
@@ -160,20 +161,30 @@ namespace IceRpc.Slice
         }
 
         /// <summary>When <paramref name="invocation"/> does not carry a deadline but sets a timeout, adds the
-        /// <see cref="TimeoutInterceptor"/> to <paramref name="invoker"/> with the invocation's timeout.
-        /// </summary>
-        private static void ConfigureTimeout(ref IInvoker invoker, Invocation invocation)
+        /// <see cref="TimeoutInterceptor"/> to <paramref name="invoker"/> with the invocation's timeout. Otherwise
+        /// if the request carries a deadline add it to the request fields.</summary>
+        private static void ConfigureTimeout(ref IInvoker invoker, Invocation invocation, OutgoingRequest request)
         {
-            if (invocation.Deadline == DateTime.MaxValue && invocation.Timeout != Timeout.InfiniteTimeSpan)
+            if (invocation.Deadline == DateTime.MaxValue)
             {
-                invoker = new TimeoutInterceptor(invoker, invocation.Timeout);
+                if (invocation.Timeout != Timeout.InfiniteTimeSpan)
+                {
+                    invoker = new TimeoutInterceptor(invoker, invocation.Timeout);
+                }
+            }
+            else
+            {
+                long deadline = (long)(invocation.Deadline - DateTime.UnixEpoch).TotalMilliseconds;
+                request.Fields = request.Fields.With(
+                    RequestFieldKey.Deadline,
+                    (ref SliceEncoder encoder) => encoder.EncodeVarLong(deadline));
             }
         }
 
         /// <summary>Verifies that when <paramref name="invocation"/> carries a deadline, <paramref name="cancel"/> is
-        /// cancellable.</summary>
+        /// cancelable.</summary>
         /// <exception cref="ArgumentException">Thrown when the invocation carries a deadline but
-        /// <paramref name="cancel"/> is not cancellable.</exception>
+        /// <paramref name="cancel"/> is not cancelable.</exception>
         private static void CheckCancellationToken(Invocation invocation, CancellationToken cancel)
         {
             if (invocation.Deadline != DateTime.MaxValue && !cancel.CanBeCanceled)

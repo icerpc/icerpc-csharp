@@ -4,7 +4,6 @@ using IceRpc.Configure;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System.Collections.Immutable;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
@@ -44,10 +43,10 @@ namespace IceRpc.Tests
                GetTransport(serviceProvider.GetRequiredService<Endpoint>()) switch
                {
                    "udp" => new SlicServerTransportOptions(), // i.e. invalid
-                    _ => new SlicServerTransportOptions
+                   _ => new SlicServerTransportOptions
                    {
                        SimpleServerTransport =
-                           serviceProvider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()
+                          serviceProvider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()
                    }
                });
 
@@ -104,31 +103,6 @@ namespace IceRpc.Tests
             ColocTransport transport,
             int port) =>
             collection.AddScoped(_ => transport).UseEndpoint("coloc", host: "coloctest", port);
-
-        public static IServiceCollection UseTls(
-            this IServiceCollection collection,
-            string caFile = "cacert.der",
-            string certificateFile = "server.p12")
-        {
-            collection.AddScoped(serviceProvider => new SslClientAuthenticationOptions()
-            {
-                RemoteCertificateValidationCallback =
-                    CertificateValidaton.GetServerCertificateValidationCallback(
-                        certificateAuthorities: new X509Certificate2Collection
-                        {
-                            new X509Certificate2(Path.Combine(Environment.CurrentDirectory, "certs", caFile))
-                        })
-            });
-
-            collection.AddScoped(_ => new SslServerAuthenticationOptions()
-            {
-                ServerCertificate = new X509Certificate2(
-                    Path.Combine(Environment.CurrentDirectory, "certs", certificateFile),
-                    "password")
-            });
-
-            return collection;
-        }
 
         public static IServiceCollection UseTransport(this IServiceCollection collection, string transport) =>
             collection.UseEndpoint(transport, "[::1]", 0);

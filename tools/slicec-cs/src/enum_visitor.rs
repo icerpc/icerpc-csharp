@@ -1,4 +1,6 @@
-use crate::builders::{AttributeBuilder, CommentBuilder, ContainerBuilder};
+use crate::builders::{
+    AttributeBuilder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType,
+};
 use crate::code_block::CodeBlock;
 use crate::comments::{doc_comment_message, CommentTag};
 use crate::generated_code::GeneratedCode;
@@ -106,47 +108,63 @@ private static readonly global::System.Collections.Generic.HashSet<{underlying}>
         );
     }
 
-    let mut as_enum: CodeBlock = if enum_def.is_unchecked {
-        format!("({})value", escaped_identifier).into()
-    } else {
-        format!(
-            r#"
+    let mut as_enum_block = FunctionBuilder::new(
+        format!("{} static", access).as_str(),
+        &escaped_identifier,
+        format!("As{}", enum_def.identifier()).as_str(),
+        FunctionType::ExpressionBody,
+    );
+    as_enum_block
+        .add_parameter(
+            format!("this {}", underlying_type).as_str(),
+            "value",
+            None,
+            Some("The value being converted."),
+        )
+        .add_comment(
+            "summary",
+            format!(
+                r#"
+Converts a <see cref="{underlying_type}"/> into the corresponding <see cref="{escaped_identifier}"/>
+enumerator."#,
+                underlying_type = underlying_type,
+                escaped_identifier = escaped_identifier
+            )
+            .as_str(),
+        )
+        .add_comment("returns", "The enumerator.")
+        .set_body(if enum_def.is_unchecked {
+            format!("({})value", escaped_identifier).into()
+        } else {
+            format!(
+                r#"
 {check_enum} ?
     ({escaped_identifier})value :
     throw new IceRpc.InvalidDataException($"invalid enumerator value '{{value}}' for {scoped}")"#,
-            check_enum = match use_set {
-                true => "_enumeratorValues.Contains(value)".to_owned(),
-                false => format!(
-                    "{min_value} <= value && value <= {max_value}",
-                    min_value = min_max_values.unwrap().0,
-                    max_value = min_max_values.unwrap().1,
-                ),
-            },
-            escaped_identifier = escaped_identifier,
-            scoped = enum_def.escape_scoped_identifier(namespace),
-        )
-        .into()
-    };
+                check_enum = match use_set {
+                    true => "_enumeratorValues.Contains(value)".to_owned(),
+                    false => format!(
+                        "{min_value} <= value && value <= {max_value}",
+                        min_value = min_max_values.unwrap().0,
+                        max_value = min_max_values.unwrap().1,
+                    ),
+                },
+                escaped_identifier = escaped_identifier,
+                scoped = enum_def.escape_scoped_identifier(namespace),
+            )
+            .into()
+        });
 
-    builder.add_block(
-        format!(
-            r#"
-/// <summary>Converts a <see cref="{underlying_type}"/> into the corresponding <see cref="{escaped_identifier}"/>
-/// enumerator.</summary>
-/// <param name="value">The value being converted.</param>
-/// <returns>The enumerator.</returns>
-/// <exception cref="IceRpc.InvalidDataException">Thrown when the value does not correspond to one of the enumerators.
-/// </exception>
-{access} static {escaped_identifier} As{identifier}(this {underlying_type} value) =>
-    {as_enum};"#,
-            access = access,
-            identifier = enum_def.identifier(),
-            escaped_identifier = escaped_identifier,
-            underlying_type = underlying_type,
-            as_enum = as_enum.indent()
-        )
-        .into(),
-    );
+    if !enum_def.is_unchecked {
+        as_enum_block.add_comment_with_attribute(
+            "exception",
+            "cref",
+            "IceRpc.InvalidDataException",
+            "Thrown when the value does not correspond to one of the enumerators.",
+        );
+    }
+
+    builder.add_block(as_enum_block.build());
 
     builder.build().into()
 }

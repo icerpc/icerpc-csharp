@@ -3,6 +3,7 @@
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Collections.Immutable;
 using System.Net.Security;
 
 namespace IceRpc.Configure
@@ -18,84 +19,77 @@ namespace IceRpc.Configure
         public static IServerTransport<ISimpleNetworkConnection> DefaultSimpleServerTransport { get; } =
             new CompositeSimpleServerTransport().UseTcp().UseUdp();
 
-        /// <summary>Gets or initializes the SSL server authentication options.</summary>
+        /// <summary>Gets or sets the SSL server authentication options.</summary>
         /// <value>The SSL server authentication options. When not null, the server will accept only secure connections.
         /// </value>
-        public SslServerAuthenticationOptions? AuthenticationOptions { get; init; }
+        public SslServerAuthenticationOptions? AuthenticationOptions { get; set; }
 
-        /// <summary>Gets or initializes the connection close timeout. This timeout is used when gracefully closing a
+        /// <summary>Gets or sets the connection close timeout. This timeout is used when gracefully closing a
         /// connection to wait for the peer connection closure. If the peer doesn't close its side of the connection
         /// within the timeout timeframe, the connection is forcefully closed.</summary>
         /// <value>The close timeout value. The default is 10s.</value>
         public TimeSpan CloseTimeout
         {
             get => _closeTimeout;
-            init => _closeTimeout = value != TimeSpan.Zero ? value :
+            set => _closeTimeout = value != TimeSpan.Zero ? value :
                 throw new ArgumentException($"0 is not a valid value for {nameof(CloseTimeout)}", nameof(value));
         }
 
-        /// <summary>Gets or initializes the connection establishment timeout.</summary>
+        /// <summary>Gets or sets the connection establishment timeout.</summary>
         /// <value>The connection establishment timeout value. The default is 10s.</value>
         public TimeSpan ConnectTimeout
         {
             get => _connectTimeout;
-            init => _connectTimeout = value != TimeSpan.Zero ? value :
+            set => _connectTimeout = value != TimeSpan.Zero ? value :
                 throw new ArgumentException($"0 is not a valid value for {nameof(ConnectTimeout)}", nameof(value));
         }
 
-        /// <summary>Gets or initializes the server's dispatcher.</summary>
+        /// <summary>Gets or sets the server's dispatcher.</summary>
         /// <seealso cref="IDispatcher"/>
         /// <seealso cref="Router"/>
-        public IDispatcher Dispatcher { get; init; } = ConnectionOptions.DefaultDispatcher;
+        public IDispatcher Dispatcher { get; set; } = ConnectionOptions.DefaultDispatcher;
 
-        /// <summary>Gets or initializes the server's endpoint. The endpoint's host is usually an IP address, and it
+        /// <summary>Gets or sets the server's endpoint. The endpoint's host is usually an IP address, and it
         /// cannot be a DNS name.</summary>
         public Endpoint Endpoint
         {
             get => _endpoint;
-            init => _endpoint = value.Protocol.IsSupported ? value :
-                throw new NotSupportedException($"cannot initialize endpoint with protocol '{value.Protocol}'");
+            set => _endpoint = value.Protocol.IsSupported ? value :
+                throw new NotSupportedException($"cannot set endpoint with protocol '{value.Protocol}'");
         }
 
-        /// <summary>Gets or initializes the maximum size in bytes of an incoming Ice or IceRpc protocol frame. It's
-        /// important to specify
-        /// a reasonable value for this size since it limits the size of the buffer allocated by IceRPC to receive
-        /// a request or response. It can't be less than 1KB and the default value is 1MB.</summary>
-        /// <value>The maximum size of incoming frame in bytes.</value>
-        // TODO: replace
-        public int IncomingFrameMaxSize
-        {
-            get => _incomingFrameMaxSize;
-            init => _incomingFrameMaxSize = value >= 1024 ? value :
-                value <= 0 ? int.MaxValue :
-                throw new ArgumentException($"{nameof(IncomingFrameMaxSize)} cannot be less than 1KB ", nameof(value));
-        }
+        /// <summary>Gets or sets the connection fields to send to the clients.</summary>
+        public IDictionary<ConnectionFieldKey, OutgoingFieldValue> Fields { get; set; } =
+            ImmutableDictionary<ConnectionFieldKey, OutgoingFieldValue>.Empty;
 
-        /// <summary>Gets or initializes the connection's keep alive. If a connection is kept alive, the connection
+        /// <summary>Gets or sets the connection's keep alive. If a connection is kept alive, the connection
         /// monitoring will send keep alive frames to ensure the peer doesn't close the connection in the period defined
         /// by its idle timeout. How often keep alive frames are sent depends on the peer's IdleTimeout configuration.
         /// </summary>
         /// <value><c>true</c>to enable connection keep alive. <c>false</c> to disable it. The default is <c>false</c>.
         /// </value>
-        public bool KeepAlive { get; init; }
+        public bool KeepAlive { get; set; }
 
-        /// <summary>Gets or initializes the logger factory used to create loggers to log connection-related activities.
+        /// <summary>Gets or sets the options for the ice protocol.</summary>
+        /// <value>The options for the ice protocol.</value>
+        public IceProtocolOptions? IceProtocolOptions { get; set; }
+
+        /// <summary>Gets or sets the logger factory used to create loggers to log connection-related activities.
         /// </summary>
-        public ILoggerFactory LoggerFactory { get; init; } = NullLoggerFactory.Instance;
+        public ILoggerFactory LoggerFactory { get; set; } = NullLoggerFactory.Instance;
 
-        /// <summary>Gets or initializes <see cref="IServerTransport{IMultiplexedNetworkConnection}"/> used by the
+        /// <summary>Gets or sets <see cref="IServerTransport{IMultiplexedNetworkConnection}"/> used by the
         /// server to accept multiplexed connections.</summary>
-        public IServerTransport<IMultiplexedNetworkConnection> MultiplexedServerTransport { get; init; } =
+        public IServerTransport<IMultiplexedNetworkConnection> MultiplexedServerTransport { get; set; } =
             DefaultMultiplexedServerTransport;
 
-        /// <summary>Gets or initializes the <see cref="IServerTransport{ISimpleNetworkConnection}"/> used by the server
+        /// <summary>Gets or sets the <see cref="IServerTransport{ISimpleNetworkConnection}"/> used by the server
         /// to accept simple connections.</summary>
-        public IServerTransport<ISimpleNetworkConnection> SimpleServerTransport { get; init; } =
+        public IServerTransport<ISimpleNetworkConnection> SimpleServerTransport { get; set; } =
             DefaultSimpleServerTransport;
 
         private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
         private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
         private Endpoint _endpoint = new(Protocol.IceRpc);
-        private int _incomingFrameMaxSize = 1024 * 1024;
     }
 }

@@ -34,8 +34,8 @@ namespace IceRpc.Tests.ClientServer
                             OutgoingResponse response = await next.DispatchAsync(request, cancel);
                             if (response.Protocol == Protocol.IceRpc && request.Features.Get<string>() is string value)
                             {
-                                response.FieldsOverrides = response.FieldsOverrides.With(
-                                    1,
+                                response.Fields = response.Fields.With(
+                                    (ResponseFieldKey)1000,
                                     (ref SliceEncoder encoder) => encoder.EncodeString(value));
                             }
                             return response;
@@ -49,7 +49,8 @@ namespace IceRpc.Tests.ClientServer
                         new InlineInvoker(async (request, cancel) =>
                         {
                             IncomingResponse response = await next.InvokeAsync(request, cancel);
-                            if (response.Fields.DecodeValue(1, (ref SliceDecoder decoder) => decoder.DecodeString())
+                            if (response.Fields.DecodeValue((ResponseFieldKey)1000,
+                                (ref SliceDecoder decoder) => decoder.DecodeString())
                                 is string stringValue)
                             {
                                 request.Features = request.Features.With(stringValue);

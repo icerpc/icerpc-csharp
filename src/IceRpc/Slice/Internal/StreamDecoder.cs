@@ -240,7 +240,7 @@ namespace IceRpc.Slice.Internal
             }
         }
 
-        /// <summary>Completes the reader. This method is called by ReadAsync when its cancellation token is cancelled.
+        /// <summary>Completes the reader. This method is called by ReadAsync when its cancellation token is canceled.
         /// </summary>
         private void CompleteReader()
         {

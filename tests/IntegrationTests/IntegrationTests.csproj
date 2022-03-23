@@ -23,6 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\IceRpc.Tests.Common\IceRpc.Tests.Common.csproj" />
     <ProjectReference Include="..\..\src\IceRpc\IceRpc.csproj" />
     <ProjectReference Include="..\..\src\IceRpc.Coloc\IceRpc.Coloc.csproj" />
     <ProjectReference Include="..\..\src\IceRpc.Interop\IceRpc.Interop.csproj" />

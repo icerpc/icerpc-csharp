@@ -15,48 +15,6 @@ namespace IceRpc.Tests.Api
     {
         private const string Message = "hello, world";
 
-        [Test]
-        public async Task Pipeline_UseWithAsync()
-        {
-            int value = 0;
-            Func<int> nextValue = () => ++value; // value is captured by reference
-
-            // Make sure interceptors are called in the correct order
-            var pipeline = new Pipeline();
-            pipeline.Use(CheckValue(nextValue, 1), CheckValue(nextValue, 2), CheckValue(nextValue, 3));
-
-            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-                .AddTransient<IDispatcher, Greeter>()
-                .BuildServiceProvider();
-
-            var service = ServicePrx.FromConnection(
-                serviceProvider.GetRequiredService<Connection>(),
-                GreeterPrx.DefaultPath);
-            service.Proxy.Invoker = pipeline;
-
-            Assert.That(value, Is.EqualTo(0));
-            Assert.That(async () => await new ServicePrx(service.Proxy).IcePingAsync(), Throws.Nothing);
-            Assert.That(value, Is.EqualTo(3));
-
-            // Verify we can't add an extra interceptor now
-            Assert.That(() => pipeline.Use(next => next), Throws.InvalidOperationException);
-
-            // Add more interceptors with With
-            var service2 = new ServicePrx(service.Proxy with
-            {
-                Invoker = pipeline.With(CheckValue(nextValue, 4), CheckValue(nextValue, 5))
-            });
-
-            value = 0;
-            Assert.That(async () => await new ServicePrx(service.Proxy).IcePingAsync(), Throws.Nothing);
-            Assert.That(value, Is.EqualTo(3)); // did not change the prx pipeline
-
-            value = 0;
-            Assert.That(async () => await service2.IcePingAsync(), Throws.Nothing);
-            Assert.That(value, Is.EqualTo(5)); // 2 more interceptors executed with prx2
-
-        }
-
         [TestCase("ice")]
         [TestCase("icerpc")]
         public async Task Pipeline_CoalesceInterceptor(string protocol)
@@ -86,15 +44,6 @@ namespace IceRpc.Tests.Api
             await greeter.SayHelloAsync(Message);
             Assert.That(lastOperation, Is.EqualTo("sayHello"));
         }
-
-        // A simple interceptor
-        private static Func<IInvoker, IInvoker> CheckValue(Func<int> nextValue, int count) => next =>
-            new InlineInvoker((request, cancel) =>
-            {
-                int value = nextValue();
-                Assert.That(value, Is.EqualTo(count));
-                return next.InvokeAsync(request, cancel);
-            });
 
         // TODO: move to shared location?
         public class Greeter : Service, IGreeter

@@ -5,6 +5,7 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using System.Buffers;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
@@ -37,20 +38,25 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
+        public ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>> PeerFields { get; private set; } =
+            ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>>.Empty;
+
+        /// <inheritdoc/>
         public event Action<string>? PeerShutdownInitiated;
 
         private IMultiplexedStream? _controlStream;
         private readonly HashSet<IncomingRequest> _dispatches = new();
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly int _incomingFrameMaxSize;
+
         private readonly HashSet<IMultiplexedStream> _invocations = new();
         private long _lastRemoteBidirectionalStreamId = -1;
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
         private long _lastRemoteUnidirectionalStreamId = -1;
+        private readonly IDictionary<ConnectionFieldKey, OutgoingFieldValue> _localFields;
+
         private readonly object _mutex = new();
         private readonly IMultiplexedNetworkConnection _networkConnection;
-        private int? _peerIncomingFrameMaxSize;
         private IMultiplexedStream? _remoteControlStream;
         private readonly CancellationTokenSource _shutdownCancellationSource = new();
         private bool _shutdownCanceled;
@@ -61,7 +67,7 @@ namespace IceRpc.Internal
         public void Dispose() => _shutdownCancellationSource.Dispose();
 
         public Task PingAsync(CancellationToken cancel) =>
-            SendControlFrameAsync(IceRpcControlFrameType.Ping, null, cancel);
+            SendControlFrameAsync(IceRpcControlFrameType.Ping, encodeAction: null, cancel).AsTask();
 
         /// <inheritdoc/>
         public async Task<IncomingRequest> ReceiveRequestAsync()
@@ -89,12 +95,14 @@ namespace IceRpc.Internal
                 }
 
                 IceRpcRequestHeader header;
-                IDictionary<int, ReadOnlySequence<byte>> fields;
+                IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields;
                 FeatureCollection features = FeatureCollection.Empty;
                 PipeReader reader = stream.Input;
                 try
                 {
-                    ReadResult readResult = await reader.ReadSegmentAsync(CancellationToken.None).ConfigureAwait(false);
+                    ReadResult readResult = await reader.ReadSegmentAsync(
+                        Encoding.Slice20,
+                        CancellationToken.None).ConfigureAwait(false);
 
                     if (readResult.Buffer.IsEmpty)
                     {
@@ -106,7 +114,7 @@ namespace IceRpc.Internal
 
                     // Decode Context from Fields and set corresponding feature.
                     if (fields.DecodeValue(
-                        (int)FieldKey.Context,
+                        RequestFieldKey.Context,
                         (ref SliceDecoder decoder) => decoder.DecodeDictionary(
                             minKeySize: 1,
                             minValueSize: 1,
@@ -121,23 +129,24 @@ namespace IceRpc.Internal
                 catch (Exception ex)
                 {
                     await stream.Input.CompleteAsync(ex).ConfigureAwait(false);
-                    await stream.Output.CompleteAsync(ex).ConfigureAwait(false);
+                    if (stream.IsBidirectional)
+                    {
+                        await stream.Output.CompleteAsync(ex).ConfigureAwait(false);
+                    }
                     throw;
                 }
 
-                var request = new IncomingRequest(
-                    Protocol.IceRpc,
-                    path: header.Path,
-                    fragment: "", // no fragment with icerpc
-                    operation: header.Operation,
-                    payload: reader,
-                    payloadEncoding: header.PayloadEncoding.Length > 0 ?
-                        Encoding.FromString(header.PayloadEncoding) : IceRpcDefinitions.Encoding,
-                    responseWriter: stream.IsBidirectional ? stream.Output : InvalidPipeWriter.Instance)
+                var request = new IncomingRequest(Protocol.IceRpc)
                 {
-                    IsOneway = !stream.IsBidirectional,
                     Features = features,
-                    Fields = fields
+                    Fields = fields,
+                    IsOneway = !stream.IsBidirectional,
+                    Operation = header.Operation,
+                    Path = header.Path,
+                    Payload = reader,
+                    PayloadEncoding = header.PayloadEncoding.Length > 0 ?
+                        Encoding.FromString(header.PayloadEncoding) : IceRpcDefinitions.Encoding,
+                    ResponseWriter = stream.IsBidirectional ? stream.Output : InvalidPipeWriter.Instance
                 };
 
                 lock (_mutex)
@@ -178,11 +187,14 @@ namespace IceRpc.Internal
                     }
                 }
 
-                static (IceRpcRequestHeader, IDictionary<int, ReadOnlySequence<byte>>) DecodeHeader(
+                static (IceRpcRequestHeader, IDictionary<RequestFieldKey, ReadOnlySequence<byte>>) DecodeHeader(
                     ReadOnlySequence<byte> buffer)
                 {
                     var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                    var header = (new IceRpcRequestHeader(ref decoder), decoder.DecodeFieldDictionary());
+                    var header =
+                        (new IceRpcRequestHeader(ref decoder),
+                        decoder.DecodeFieldDictionary((ref SliceDecoder decoder) => decoder.DecodeRequestFieldKey()));
+
                     decoder.CheckEndOfBuffer(skipTaggedParams: false);
                     return header;
                 }
@@ -197,13 +209,15 @@ namespace IceRpc.Internal
             Debug.Assert(!request.IsOneway);
 
             IceRpcResponseHeader header;
-            IDictionary<int, ReadOnlySequence<byte>> fields;
+            IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields;
 
             PipeReader responseReader = request.ResponseReader;
 
             try
             {
-                ReadResult readResult = await responseReader.ReadSegmentAsync(cancel).ConfigureAwait(false);
+                ReadResult readResult = await responseReader.ReadSegmentAsync(
+                    Encoding.Slice20,
+                    cancel).ConfigureAwait(false);
 
                 if (readResult.IsCanceled)
                 {
@@ -216,7 +230,7 @@ namespace IceRpc.Internal
                         }
                         else if (_shuttingDown)
                         {
-                            // It shutdown isn't canceled, the cancelation indicates that the peer didn't dispatch the
+                            // If shutdown isn't canceled, the cancellation indicates that the peer didn't dispatch the
                             // invocation.
                             throw new ConnectionClosedException("connection shutdown by peer");
                         }
@@ -237,7 +251,7 @@ namespace IceRpc.Internal
                 responseReader.AdvanceTo(readResult.Buffer.End);
 
                 RetryPolicy? retryPolicy = fields.DecodeValue(
-                    (int)FieldKey.RetryPolicy, (ref SliceDecoder decoder) => new RetryPolicy(ref decoder));
+                    ResponseFieldKey.RetryPolicy, (ref SliceDecoder decoder) => new RetryPolicy(ref decoder));
                 if (retryPolicy != null)
                 {
                     request.Features = request.Features.With(retryPolicy);
@@ -269,19 +283,21 @@ namespace IceRpc.Internal
                 throw;
             }
 
-            return new IncomingResponse(
-                request,
-                header.ResultType,
-                payload: responseReader)
+            return new IncomingResponse(request)
             {
                 Fields = fields,
+                Payload = responseReader,
+                ResultType = header.ResultType
             };
 
-            static (IceRpcResponseHeader, IDictionary<int, ReadOnlySequence<byte>>) DecodeHeader(
+            static (IceRpcResponseHeader, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>>) DecodeHeader(
                 ReadOnlySequence<byte> buffer)
             {
                 var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                var header = (new IceRpcResponseHeader(ref decoder), decoder.DecodeFieldDictionary());
+                var header =
+                    (new IceRpcResponseHeader(ref decoder),
+                    decoder.DecodeFieldDictionary((ref SliceDecoder decoder) => decoder.DecodeResponseFieldKey()));
+
                 decoder.CheckEndOfBuffer(skipTaggedParams: false);
                 return header;
             }
@@ -362,17 +378,15 @@ namespace IceRpc.Internal
             }
             catch (Exception ex)
             {
-                await request.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
-                if (request.PayloadSourceStream != null)
-                {
-                    await request.PayloadSourceStream.CompleteAsync(ex).ConfigureAwait(false);
-                }
-                await request.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                await request.CompleteAsync(ex).ConfigureAwait(false);
 
                 if (stream != null)
                 {
-                    await stream.Input.CompleteAsync(ex).ConfigureAwait(false);
                     await stream.Output.CompleteAsync(ex).ConfigureAwait(false);
+                    if (stream.IsBidirectional)
+                    {
+                        await stream.Input.CompleteAsync(ex).ConfigureAwait(false);
+                    }
                 }
                 throw;
             }
@@ -392,22 +406,19 @@ namespace IceRpc.Internal
 
                 header.Encode(ref encoder);
 
-                // If the context feature is set, convert it into a FieldsOverrides entry. This will overwrite any
-                // existing entry.
                 // We cannot use request.Features.GetContext here because it doesn't distinguish between empty and not
                 // set context.
                 if (request.Features.Get<Context>()?.Value is IDictionary<string, string> context)
                 {
                     if (context.Count == 0)
                     {
-                        // make sure it's not set anywhere
-                        request.Fields = request.Fields.Without((int)FieldKey.Context);
-                        request.FieldsOverrides = request.FieldsOverrides.Without((int)FieldKey.Context);
+                        // make sure it's not set.
+                        request.Fields = request.Fields.Without(RequestFieldKey.Context);
                     }
                     else
                     {
-                        request.FieldsOverrides = request.FieldsOverrides.With(
-                            (int)FieldKey.Context,
+                        request.Fields = request.Fields.With(
+                            RequestFieldKey.Context,
                             (ref SliceEncoder encoder) => encoder.EncodeDictionary(
                                 context,
                                 (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
@@ -415,7 +426,10 @@ namespace IceRpc.Internal
                     }
                 }
 
-                encoder.EncodeFieldDictionary(request.FieldsOverrides, request.Fields);
+                encoder.EncodeDictionary(
+                    request.Fields,
+                    (ref SliceEncoder encoder, RequestFieldKey key) => encoder.EncodeRequestFieldKey(key),
+                    (ref SliceEncoder encoder, OutgoingFieldValue value) => value.Encode(ref encoder));
 
                 // We're done with the header encoding, write the header size.
                 Slice20Encoding.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
@@ -430,8 +444,7 @@ namespace IceRpc.Internal
         {
             if (request.IsOneway)
             {
-                await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
-                await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                await response.CompleteAsync().ConfigureAwait(false);
                 return;
             }
 
@@ -442,12 +455,7 @@ namespace IceRpc.Internal
             }
             catch (Exception ex)
             {
-                await response.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
-                if (response.PayloadSourceStream != null)
-                {
-                    await response.PayloadSourceStream.CompleteAsync(ex).ConfigureAwait(false);
-                }
-                await response.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                await response.CompleteAsync(ex).ConfigureAwait(false);
                 throw;
             }
 
@@ -460,7 +468,11 @@ namespace IceRpc.Internal
                 int headerStartPos = encoder.EncodedByteCount;
 
                 new IceRpcResponseHeader(response.ResultType).Encode(ref encoder);
-                encoder.EncodeFieldDictionary(response.FieldsOverrides, response.Fields);
+
+                encoder.EncodeDictionary(
+                    response.Fields,
+                    (ref SliceEncoder encoder, ResponseFieldKey key) => encoder.EncodeResponseFieldKey(key),
+                    (ref SliceEncoder encoder, OutgoingFieldValue value) => value.Encode(ref encoder));
 
                 // We're done with the header encoding, write the header size.
                 Slice20Encoding.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
@@ -495,7 +507,7 @@ namespace IceRpc.Internal
             // Send GoAway frame.
             await SendControlFrameAsync(
                 IceRpcControlFrameType.GoAway,
-                (ref SliceEncoder encoder) => new IceRpcGoAwayBody(
+                (ref SliceEncoder encoder) => new IceRpcGoAway(
                     _lastRemoteBidirectionalStreamId,
                     _lastRemoteUnidirectionalStreamId,
                     message).Encode(ref encoder),
@@ -546,24 +558,24 @@ namespace IceRpc.Internal
             // We are done with the shutdown, notify the peer that shutdown completed on our side.
             await SendControlFrameAsync(
                 IceRpcControlFrameType.GoAwayCompleted,
-                frameEncodeAction: null,
+                encodeAction: null,
                 CancellationToken.None).ConfigureAwait(false);
 
             // Wait for the peer to complete its side of the shutdown.
-            ReadOnlyMemory<byte> buffer = await ReceiveControlFrameAsync(
+            await ReceiveControlFrameHeaderAsync(
                 IceRpcControlFrameType.GoAwayCompleted,
                 CancellationToken.None).ConfigureAwait(false);
-            if (!buffer.IsEmpty)
-            {
-                throw new InvalidDataException($"{nameof(IceRpcControlFrameType.GoAwayCompleted)} frame is not empty");
-            }
+
+            // GoAwayCompleted has no body
         }
 
         /// <inheritdoc/>
-        internal IceRpcProtocolConnection(IMultiplexedNetworkConnection networkConnection, int incomingFrameMaxSize)
+        internal IceRpcProtocolConnection(
+            IMultiplexedNetworkConnection networkConnection,
+            IDictionary<ConnectionFieldKey, OutgoingFieldValue> localFields)
         {
             _networkConnection = networkConnection;
-            _incomingFrameMaxSize = incomingFrameMaxSize;
+            _localFields = localFields;
         }
 
         internal async Task InitializeAsync(CancellationToken cancel)
@@ -574,137 +586,111 @@ namespace IceRpc.Internal
             await SendControlFrameAsync(
                 IceRpcControlFrameType.Initialize,
                 (ref SliceEncoder encoder) =>
-                {
-                    // Encode the transport parameters as Fields
-                    encoder.EncodeSize(1);
-
-                    encoder.EncodeVarInt((int)IceRpcParameterKey.IncomingFrameMaxSize);
-                    Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
-                    int startPos = encoder.EncodedByteCount;
-                    encoder.EncodeVarULong((ulong)_incomingFrameMaxSize);
-                    Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
-                },
+                    encoder.EncodeDictionary(
+                        _localFields,
+                        (ref SliceEncoder encoder, ConnectionFieldKey key) => encoder.EncodeConnectionFieldKey(key),
+                        (ref SliceEncoder encoder, OutgoingFieldValue value) => value.Encode(ref encoder)),
                 cancel).ConfigureAwait(false);
 
             // Wait for the remote control stream to be accepted and read the protocol initialize frame
             _remoteControlStream = await _networkConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
 
-            ReadOnlyMemory<byte> buffer = await ReceiveControlFrameAsync(
-                IceRpcControlFrameType.Initialize,
-                cancel).ConfigureAwait(false);
+            await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.Initialize, cancel).ConfigureAwait(false);
 
-            // Read the protocol parameters which are encoded as IceRpc.Fields.
-            _peerIncomingFrameMaxSize = DecodePeerIncomingFrameMaxSize(buffer);
+            PeerFields = await ReceiveControlFrameBodyAsync(
+                (ref SliceDecoder decoder) => decoder.DecodeFieldDictionary(
+                    (ref SliceDecoder decoder) => decoder.DecodeConnectionFieldKey()).ToImmutableDictionary(),
+                cancel).ConfigureAwait(false);
 
             // Start a task to wait to receive the go away frame to initiate shutdown.
             _ = Task.Run(() => WaitForGoAwayAsync(), CancellationToken.None);
+        }
 
-            static int DecodePeerIncomingFrameMaxSize(ReadOnlyMemory<byte> buffer)
+        private async ValueTask<T> ReceiveControlFrameBodyAsync<T>(
+            DecodeFunc<T> decodeFunc,
+            CancellationToken cancel)
+        {
+            PipeReader input = _remoteControlStream!.Input;
+            ReadResult readResult = await input.ReadSegmentAsync(Encoding.Slice20, cancel).ConfigureAwait(false);
+            if (readResult.IsCanceled)
             {
-                var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                int dictionarySize = decoder.DecodeSize();
+                throw new OperationCanceledException();
+            }
 
-                for (int i = 0; i < dictionarySize; ++i)
+            try
+            {
+                return Encoding.Slice20.DecodeBuffer(readResult.Buffer, decodeFunc);
+            }
+            finally
+            {
+                if (!readResult.Buffer.IsEmpty)
                 {
-                    int key = decoder.DecodeVarInt();
-                    if (key == (int)IceRpcParameterKey.IncomingFrameMaxSize)
-                    {
-                        decoder.SkipSize();
-
-                        int peerIncomingFrameMaxSize = checked((int)decoder.DecodeVarUInt());
-
-                        if (peerIncomingFrameMaxSize < 1024)
-                        {
-                            throw new InvalidDataException($@"the peer's IncomingFrameMaxSize ({
-                                peerIncomingFrameMaxSize} bytes) value is inferior to 1KB");
-                        }
-                        return peerIncomingFrameMaxSize;
-                    }
-                    else
-                    {
-                        // Ignore unsupported parameters.
-                        decoder.Skip(decoder.DecodeSize());
-                    }
+                    input.AdvanceTo(readResult.Buffer.End);
                 }
-
-                throw new InvalidDataException("missing IncomingFrameMaxSize IceRpc connection parameter");
             }
         }
 
-        private async ValueTask<ReadOnlyMemory<byte>> ReceiveControlFrameAsync(
+        private async ValueTask ReceiveControlFrameHeaderAsync(
             IceRpcControlFrameType expectedFrameType,
             CancellationToken cancel)
         {
+            Debug.Assert(expectedFrameType != IceRpcControlFrameType.Ping);
+            PipeReader input = _remoteControlStream!.Input;
+
             while (true)
             {
-                ReadResult readResult = await _remoteControlStream!.Input.ReadSegmentAsync(
-                    cancel).ConfigureAwait(false);
+                ReadResult readResult = await input.ReadAsync(cancel).ConfigureAwait(false);
                 if (readResult.IsCanceled)
                 {
                     throw new OperationCanceledException();
                 }
-
-                try
+                if (readResult.Buffer.IsEmpty)
                 {
-                    if (readResult.Buffer.Length == 0)
-                    {
-                        throw new InvalidDataException("invalid empty control frame");
-                    }
-
-                    IceRpcControlFrameType frameType = readResult.Buffer.FirstSpan[0].AsIceRpcControlFrameType();
-                    if (frameType == IceRpcControlFrameType.Ping)
-                    {
-                        // expected, nothing to do
-                        if (readResult.Buffer.Length > 1)
-                        {
-                            throw new InvalidDataException("invalid non-empty ping control frame");
-                        }
-                    }
-                    else if (frameType != expectedFrameType)
-                    {
-                        throw new InvalidDataException(
-                            $"received frame type {frameType} but expected {expectedFrameType}");
-                    }
-                    else
-                    {
-                        return readResult.Buffer.Slice(1).ToArray();
-                    }
+                    throw new InvalidDataException("invalid empty control frame");
                 }
-                finally
+
+                IceRpcControlFrameType frameType = readResult.Buffer.FirstSpan[0].AsIceRpcControlFrameType();
+                input.AdvanceTo(readResult.Buffer.GetPosition(1));
+
+                if (frameType == IceRpcControlFrameType.Ping)
                 {
-                    _remoteControlStream!.Input.AdvanceTo(readResult.Buffer.End);
+                    continue;
+                }
+
+                if (frameType != expectedFrameType)
+                {
+                    throw new InvalidDataException(
+                       $"received frame type {frameType} but expected {expectedFrameType}");
+                }
+                else
+                {
+                    // Received expected frame type, returning.
+                    break; // while
                 }
             }
         }
 
-        private async Task SendControlFrameAsync(
+        private ValueTask<FlushResult> SendControlFrameAsync(
             IceRpcControlFrameType frameType,
-            EncodeAction? frameEncodeAction,
+            EncodeAction? encodeAction,
             CancellationToken cancel)
         {
-            EncodeFrame(_controlStream!.Output);
+            PipeWriter output = _controlStream!.Output;
+            output.GetSpan()[0] = (byte)frameType;
+            output.Advance(1);
 
-            if (frameType == IceRpcControlFrameType.GoAwayCompleted)
+            if (encodeAction != null)
             {
-                await _controlStream!.Output.WriteAsync(
-                    ReadOnlySequence<byte>.Empty,
-                    completeWhenDone: true,
-                    cancel).ConfigureAwait(false);
-            }
-            else
-            {
-                await _controlStream!.Output.FlushAsync(cancel).ConfigureAwait(false);
-            }
-
-            void EncodeFrame(PipeWriter writer)
-            {
-                var encoder = new SliceEncoder(writer, Encoding.Slice20);
-                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4); // TODO: reduce bytes?
+                var encoder = new SliceEncoder(output, Encoding.Slice20);
+                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2); // TODO: switch to MaxHeaderSize
                 int startPos = encoder.EncodedByteCount; // does not include the size
-                encoder.EncodeByte((byte)frameType);
-                frameEncodeAction?.Invoke(ref encoder);
+                encodeAction?.Invoke(ref encoder);
                 Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
             }
+
+            return frameType == IceRpcControlFrameType.GoAwayCompleted ?
+                output.WriteAsync(ReadOnlySequence<byte>.Empty, completeWhenDone: true, cancel) :
+                output.FlushAsync(cancel);
         }
 
         /// <summary>Sends the payload source and payload source stream of an outgoing frame.</summary>
@@ -718,8 +704,6 @@ namespace IceRpc.Internal
                 outgoingFrame.PayloadSourceStream == null,
                 cancel).ConfigureAwait(false);
 
-            await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
-
             Debug.Assert(!flushResult.IsCanceled); // not implemented yet
 
             if (flushResult.IsCompleted)
@@ -730,11 +714,15 @@ namespace IceRpc.Internal
                 throw new OperationCanceledException("peer stopped reading the payload");
             }
 
-            // The caller calls CompleteAsync on the payload source/sink if an exception is thrown by CopyFromAsync
-            // above.
-
-            if (outgoingFrame.PayloadSourceStream != null)
+            if (outgoingFrame.PayloadSourceStream == null)
             {
+                await outgoingFrame.CompleteAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                // Just complete the payload source for now.
+                await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
+
                 // Send payloadSourceStream in the background
                 _ = Task.Run(
                     async () =>
@@ -746,13 +734,11 @@ namespace IceRpc.Internal
                                 completeWhenDone: true,
                                 CancellationToken.None).ConfigureAwait(false);
 
-                            await outgoingFrame.PayloadSourceStream.CompleteAsync().ConfigureAwait(false);
+                            await outgoingFrame.CompleteAsync().ConfigureAwait(false);
                         }
                         catch (Exception ex)
                         {
-                            await outgoingFrame.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
-                            await outgoingFrame.PayloadSourceStream.CompleteAsync(ex).ConfigureAwait(false);
-
+                            await outgoingFrame.CompleteAsync(ex).ConfigureAwait(false);
                         }
                     },
                     cancel);
@@ -764,11 +750,14 @@ namespace IceRpc.Internal
             try
             {
                 // Receive and decode GoAway frame
-                ReadOnlyMemory<byte> buffer = await ReceiveControlFrameAsync(
+
+                await ReceiveControlFrameHeaderAsync(
                     IceRpcControlFrameType.GoAway,
                     CancellationToken.None).ConfigureAwait(false);
 
-                IceRpcGoAwayBody goAwayFrame = DecodeIceRpcGoAwayBody(buffer);
+                IceRpcGoAway goAwayFrame = await ReceiveControlFrameBodyAsync(
+                    (ref SliceDecoder decoder) => new IceRpcGoAway(ref decoder),
+                    CancellationToken.None).ConfigureAwait(false);
 
                 // Raise the peer shutdown initiated event.
                 try
@@ -808,12 +797,6 @@ namespace IceRpc.Internal
             finally
             {
                 _waitForGoAwayCompleted.SetResult();
-            }
-
-            static IceRpcGoAwayBody DecodeIceRpcGoAwayBody(ReadOnlyMemory<byte> buffer)
-            {
-                var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                return new IceRpcGoAwayBody(ref decoder);
             }
         }
     }

@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice.Internal;
-using System.Buffers;
 using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 
@@ -58,60 +56,6 @@ namespace IceRpc.Slice
                     }
                 }
             }
-        }
-
-        /// <summary>Encodes a fields dictionary.</summary>
-        /// <param name="encoder">This Slice encoder.</param>
-        /// <param name="fieldsOverrides">The fields overrides.</param>
-        /// <param name="fields">The fields.</param>
-        public static void EncodeFieldDictionary(
-            this ref SliceEncoder encoder,
-            IDictionary<int, EncodeAction> fieldsOverrides,
-            IDictionary<int, ReadOnlySequence<byte>> fields)
-        {
-            // can be larger than necessary, which is fine
-            int sizeLength = encoder.GetSizeLength(fields.Count + fieldsOverrides.Count);
-
-            Span<byte> countPlaceholder = encoder.GetPlaceholderSpan(sizeLength);
-
-            int count = 0; // the number of fields
-
-            // Encode the fields overrides then the actual fields.
-
-            foreach ((int key, EncodeAction action) in fieldsOverrides)
-            {
-                encoder.EncodeVarInt(key);
-                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
-                int startPos = encoder.EncodedByteCount;
-                action(ref encoder);
-                encoder.Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
-                count++;
-            }
-
-            foreach ((int key, ReadOnlySequence<byte> value) in fields)
-            {
-                if (!fieldsOverrides.ContainsKey(key))
-                {
-                    encoder.EncodeVarInt(key);
-                    encoder.EncodeSize(checked((int)value.Length));
-
-                    if (value.IsSingleSegment)
-                    {
-                        encoder.WriteByteSpan(value.FirstSpan);
-                    }
-                    else
-                    {
-                        // TODO: for now the fields are backed by a single byte[] so this can't happen.
-                        foreach (ReadOnlyMemory<byte> buffer in value)
-                        {
-                            encoder.WriteByteSpan(buffer.Span);
-                        }
-                    }
-                    count++;
-                }
-            }
-
-            encoder.Encoding.EncodeSize(count, countPlaceholder);
         }
 
         /// <summary>Encodes a sequence of fixed-size numeric values, such as int and long.</summary>

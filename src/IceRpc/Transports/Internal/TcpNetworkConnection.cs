@@ -3,7 +3,6 @@
 using IceRpc.Configure;
 using IceRpc.Internal;
 using System.Buffers;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
@@ -79,11 +78,6 @@ namespace IceRpc.Transports.Internal
             catch (IOException ex)
             {
                 throw ex.ToTransportException(cancel);
-            }
-
-            if (received == 0)
-            {
-                throw new ConnectionLostException();
             }
 
             Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
@@ -261,8 +255,10 @@ namespace IceRpc.Transports.Internal
                 if (authenticationOptions != null)
                 {
                     // This can only be created with a connected socket.
-                    _sslStream = new SslStream(new System.Net.Sockets.NetworkStream(Socket, false), false);
-                    await _sslStream.AuthenticateAsClientAsync(authenticationOptions, cancel).ConfigureAwait(false);
+                    _sslStream = new SslStream(new NetworkStream(Socket, false), false);
+                    await _sslStream.AuthenticateAsClientAsync(
+                        authenticationOptions,
+                        cancel).WaitAsync(cancel).ConfigureAwait(false);
                 }
 
                 var ipEndPoint = (IPEndPoint)Socket.LocalEndPoint!;
@@ -304,24 +300,6 @@ namespace IceRpc.Transports.Internal
             SslClientAuthenticationOptions? authenticationOptions,
             TcpClientTransportOptions options)
         {
-            _ = remoteEndpoint.ParseTcpParams(); // sanity check
-
-            if (remoteEndpoint.Params.TryGetValue("transport", out string? endpointTransport))
-            {
-                if (endpointTransport == TransportNames.Ssl)
-                {
-                    // With ssl, we always "turn on" SSL
-                    authenticationOptions ??= new SslClientAuthenticationOptions();
-                }
-            }
-            else
-            {
-                remoteEndpoint = remoteEndpoint with
-                {
-                    Params = remoteEndpoint.Params.Add("transport", TransportNames.Tcp)
-                };
-            }
-
             _remoteEndpoint = remoteEndpoint;
 
             _addr = IPAddress.TryParse(_remoteEndpoint.Host, out IPAddress? ipAddress) ?
@@ -390,8 +368,10 @@ namespace IceRpc.Transports.Internal
                 if (_authenticationOptions != null)
                 {
                     // This can only be created with a connected socket.
-                    _sslStream = new SslStream(new System.Net.Sockets.NetworkStream(Socket, false), false);
-                    await _sslStream.AuthenticateAsServerAsync(_authenticationOptions, cancel).ConfigureAwait(false);
+                    _sslStream = new SslStream(new NetworkStream(Socket, false), false);
+                    await _sslStream.AuthenticateAsServerAsync(
+                        _authenticationOptions,
+                        cancel).WaitAsync(cancel).ConfigureAwait(false);
                 }
 
                 var ipEndPoint = (IPEndPoint)Socket.RemoteEndPoint!;

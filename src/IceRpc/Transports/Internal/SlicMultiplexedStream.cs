@@ -116,7 +116,6 @@ namespace IceRpc.Transports.Internal
         // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
         private readonly AsyncSemaphore _sendCreditSemaphore = new(1, 1);
         private volatile Action? _shutdownAction;
-        private TaskCompletionSource? _shutdownCompletedTaskSource;
         private long? _resetErrorCode;
         private int _state;
 
@@ -137,6 +136,7 @@ namespace IceRpc.Transports.Internal
             else
             {
                 TrySetReadCompleted();
+                _inputPipeReader.CancelPendingRead();
             }
 
             async Task SendStopSendingFrameAndShutdownAsync()
@@ -154,6 +154,7 @@ namespace IceRpc.Transports.Internal
                     // Ignore.
                 }
                 TrySetReadCompleted();
+                _inputPipeReader.CancelPendingRead();
             }
         }
 
@@ -189,19 +190,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public async Task WaitForShutdownAsync(CancellationToken cancel)
-        {
-            lock (_mutex)
-            {
-                if (IsShutdown)
-                {
-                    return;
-                }
-                _shutdownCompletedTaskSource ??= new(TaskCreationOptions.RunContinuationsAsynchronously);
-            }
-            await _shutdownCompletedTaskSource.Task.WaitAsync(cancel).ConfigureAwait(false);
-        }
-
         /// <inheritdoc/>
         public override string ToString() => $"{base.ToString()} (ID={Id})";
 
@@ -224,7 +212,7 @@ namespace IceRpc.Transports.Internal
                 _connection.MinimumSegmentSize,
                 _connection.ResumeWriterThreshold,
                 _connection.PauseWriterThreshold,
-                _frameReader.ReadFrameDataAsync);
+                _frameReader.NetworkConnectionReader);
 
             _outputPipeWriter = new SlicPipeWriter(this, _connection.Pool, _connection.MinimumSegmentSize);
 
@@ -241,22 +229,6 @@ namespace IceRpc.Transports.Internal
                     // Read-side of local unidirectional stream is marked as completed.
                     TrySetReadCompleted();
                 }
-            }
-        }
-
-        internal void Abort()
-        {
-            // Abort the stream without notifying the peer. This is used for Slic streams which are still registered
-            // with the Slic connection when the connection is disposed.
-            if (!IsShutdown)
-            {
-                // Shutdown the stream.
-                TrySetStateAndShutdown(State.ReadCompleted | State.WriteCompleted);
-
-                // Ensure the Slic pipe reader and writer are completed.
-                var exception = new ConnectionLostException();
-                _inputPipeReader.Complete(exception);
-                _outputPipeWriter.Complete(exception);
             }
         }
 
@@ -354,7 +326,6 @@ namespace IceRpc.Transports.Internal
             lock (_mutex)
             {
                 shutdownAction = _shutdownAction;
-                _shutdownCompletedTaskSource?.SetResult();
             }
 
             try

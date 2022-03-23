@@ -1,41 +1,97 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using NUnit.Framework;
 
-namespace IceRpc.Internal.Tests;
+namespace IceRpc.Tests;
 
 [Parallelizable(ParallelScope.All)]
 public class EndpointCacheTests
 {
     [Test]
-    public void EndpointCache_SetRemove()
+    public void Get_known_location_from_endpoint_cache()
     {
-        var proxy = Proxy.Parse("ice:/dummy");
+        var expected = Proxy.Parse("ice:/dummy");
+        var location = new Location { IsAdapterId = true, Value = "hello" };
+        IEndpointCache endpointCache = new EndpointCache(10);
+        endpointCache.Set(location, expected);
 
-        var endpointCacheImpl = new EndpointCache(10);
-        IEndpointCache endpointCache = endpointCacheImpl;
+        bool cached = endpointCache.TryGetValue(location, out (TimeSpan InsertionTime, Proxy Proxy) resolved);
 
-        for (int i = 0; i < 100; ++i)
-        {
-            endpointCache.Set(new Location { IsAdapterId = true, Value = $"{i}" }, proxy);
-        }
-        Assert.That(endpointCacheImpl.Count, Is.EqualTo(10));
+        Assert.That(resolved.Proxy, Is.EqualTo(expected));
+        Assert.That(cached, Is.True);
+    }
 
-        // Make sure we kept the 10 most recent entries:
-        for (int i = 90; i < 100; ++i)
-        {
-            Assert.That(
-                endpointCache.TryGetValue(
-                    new Location { IsAdapterId = true, Value = $"{i}" },
-                    out var _),
-                Is.True);
-        }
+    [Test]
+    public void Get_unknown_location_from_endpoint_cache()
+    {
+        var location = new Location { IsAdapterId = true, Value = "hello" };
+        IEndpointCache endpointCache = new EndpointCache(10);
 
-        // Make sure removing an existing entry reduces the Count
+        bool cached = endpointCache.TryGetValue(location, out (TimeSpan InsertionTime, Proxy Proxy) resolved);
 
-        endpointCache.Remove(new Location { IsAdapterId = true, Value = "20" });
-        Assert.That(endpointCacheImpl.Count, Is.EqualTo(10)); // was not there
-        endpointCache.Remove(new Location { IsAdapterId = true, Value = "95" });
-        Assert.That(endpointCacheImpl.Count, Is.EqualTo(9)); // was not there
+        Assert.That(resolved.Proxy, Is.Null);
+        Assert.That(cached, Is.False);
+    }
+
+    [Test]
+    public void Remove_location_entry_from_endpoint_cache()
+    {
+        // Arrange
+        IEndpointCache endpointCache = new EndpointCache(10);
+        endpointCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, Proxy.Parse("ice:/dummy1"));
+
+        // Act
+        endpointCache.Remove(new Location { IsAdapterId = true, Value = "hello-1" });
+
+        // Assert
+        bool cached = endpointCache.TryGetValue(
+            new Location { IsAdapterId = true, Value = "hello-1" },
+            out (TimeSpan InsertionTime, Proxy Proxy) resolved);
+
+        Assert.That(resolved.Proxy, Is.Null);
+        Assert.That(cached, Is.False);
+    }
+
+    [Test]
+    public void Endpoint_cache_prunes_oldest_entries_when_cache_reaches_max_cache_size()
+    {
+        // Arrange
+        var expected = Proxy.Parse("ice:/dummy");
+        IEndpointCache endpointCache = new EndpointCache(2);
+
+        endpointCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, expected);
+        endpointCache.Set(new Location { IsAdapterId = true, Value = "hello-2" }, expected);
+
+        // Act
+        endpointCache.Set(new Location { IsAdapterId = true, Value = "hello-3" }, expected);
+
+        // Assert
+        bool cached = endpointCache.TryGetValue(
+            new Location { IsAdapterId = true, Value = "hello-1" },
+            out (TimeSpan InsertionTime, Proxy Proxy) resolved);
+
+        Assert.That(resolved.Proxy, Is.Null);
+        Assert.That(cached, Is.False);
+    }
+
+    [Test]
+    public void Updatate_existing_location_entry()
+    {
+        // Arrange
+        var expected = Proxy.Parse("ice:/expected");
+        IEndpointCache endpointCache = new EndpointCache(10);
+        endpointCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, Proxy.Parse("ice:/dummy1"));
+
+        // Act
+        endpointCache.Set(new Location { IsAdapterId = true, Value = "hello-1" }, expected);
+
+        // Assert
+        bool cached = endpointCache.TryGetValue(
+            new Location { IsAdapterId = true, Value = "hello-1" },
+            out (TimeSpan InsertionTime, Proxy Proxy) resolved);
+
+        Assert.That(resolved.Proxy, Is.EqualTo(expected));
+        Assert.That(cached, Is.True);
     }
 }

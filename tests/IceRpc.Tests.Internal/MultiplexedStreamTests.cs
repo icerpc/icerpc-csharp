@@ -8,7 +8,7 @@ using System.Buffers;
 using System.IO.Pipelines;
 namespace IceRpc.Tests.Internal
 {
-    [Timeout(10000)]
+    [Timeout(5000)]
     [Parallelizable(ParallelScope.All)]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public class MultiplexedStreamTests
@@ -136,14 +136,14 @@ namespace IceRpc.Tests.Internal
             await _clientConnection!.DisposeAsync();
 
             // Can't read/write once the writer/reader is completed.
-            Assert.ThrowsAsync<InvalidOperationException>(() => ClientStream.Input.ReadAsync().AsTask());
-            Assert.ThrowsAsync<InvalidOperationException>(
+            Assert.ThrowsAsync<MultiplexedStreamAbortedException>(() => ClientStream.Input.ReadAsync().AsTask());
+            Assert.ThrowsAsync<MultiplexedStreamAbortedException>(
                 () => ClientStream.Output.WriteAsync(ReadOnlyMemory<byte>.Empty).AsTask());
 
             await _serverConnection!.DisposeAsync();
 
-            Assert.ThrowsAsync<InvalidOperationException>(() => ServerStream.Input.ReadAsync().AsTask());
-            Assert.ThrowsAsync<InvalidOperationException>(
+            Assert.ThrowsAsync<MultiplexedStreamAbortedException>(() => ServerStream.Input.ReadAsync().AsTask());
+            Assert.ThrowsAsync<MultiplexedStreamAbortedException>(
                 () => ServerStream.Output.WriteAsync(ReadOnlyMemory<byte>.Empty).AsTask());
         }
 

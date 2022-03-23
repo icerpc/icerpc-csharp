@@ -51,8 +51,8 @@ namespace IceRpc.Slice
             {
                 PipeWriter writer = pipe.Writer;
 
-                using var cancelationSource = new CancellationTokenSource();
-                IAsyncEnumerator<T> asyncEnumerator = asyncEnumerable.GetAsyncEnumerator(cancelationSource.Token);
+                using var cancellationSource = new CancellationTokenSource();
+                IAsyncEnumerator<T> asyncEnumerator = asyncEnumerable.GetAsyncEnumerator(cancellationSource.Token);
                 await using var _ = asyncEnumerator.ConfigureAwait(false);
 
                 Memory<byte> sizePlaceholder = StartSegment();
@@ -90,7 +90,7 @@ namespace IceRpc.Slice
 
                             if (flushResult.IsCompleted) // reader no longer reading
                             {
-                                cancelationSource.Cancel();
+                                cancellationSource.Cancel();
                                 break; // End iteration
                             }
 
@@ -159,7 +159,7 @@ namespace IceRpc.Slice
                     }
                     catch (Exception ex)
                     {
-                        cancelationSource.Cancel();
+                        cancellationSource.Cancel();
                         await writer.CompleteAsync(ex).ConfigureAwait(false);
                         throw;
                     }
@@ -176,7 +176,7 @@ namespace IceRpc.Slice
             var pipe = new Pipe(); // TODO: pipe options
 
             var encoder = new SliceEncoder(pipe.Writer, encoding);
-            Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+            Span<byte> sizePlaceholder = encoding == Encoding.Slice11 ? default : encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
 
             if (encoding == IceRpc.Encoding.Slice11 && exception is DispatchException dispatchException)
@@ -188,7 +188,10 @@ namespace IceRpc.Slice
                 exception.EncodeTrait(ref encoder);
             }
 
-            Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+            if (encoding != Encoding.Slice11)
+            {
+                Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+            }
 
             pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;

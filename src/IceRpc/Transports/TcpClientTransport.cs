@@ -11,6 +11,9 @@ namespace IceRpc.Transports
     /// </summary>
     public class TcpClientTransport : IClientTransport<ISimpleNetworkConnection>
     {
+        /// <inheritdoc/>
+        public string Name => TransportNames.Tcp;
+
         private readonly TcpClientTransportOptions _options;
 
         /// <summary>Constructs a <see cref="TcpClientTransport"/>.</summary>
@@ -31,6 +34,22 @@ namespace IceRpc.Transports
         {
             // This is the composition root of the tcp client transport, where we install log decorators when logging
             // is enabled.
+
+            _ = remoteEndpoint.ParseTcpParams(); // sanity check
+
+            if (remoteEndpoint.Params.TryGetValue("transport", out string? endpointTransport))
+            {
+                if (endpointTransport == TransportNames.Ssl)
+                {
+                    // With ssl, we always "turn on" SSL
+                    authenticationOptions ??= new SslClientAuthenticationOptions();
+                }
+            }
+            else
+            {
+                remoteEndpoint = remoteEndpoint with { Params = remoteEndpoint.Params.Add("transport", Name) };
+            }
+
             var clientConnection = new TcpClientNetworkConnection(
                 remoteEndpoint,
                 authenticationOptions,

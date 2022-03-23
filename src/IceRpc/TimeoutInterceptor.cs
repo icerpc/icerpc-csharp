@@ -31,11 +31,11 @@ namespace IceRpc
             _timeout = timeout;
         }
 
-        async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+        /// <inheritdoc/>
+        public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
             // If the deadline field is already set, we don't do anything
-            if (request.Fields.ContainsKey((int)FieldKey.Deadline) ||
-                request.FieldsOverrides.ContainsKey((int)FieldKey.Deadline))
+            if (request.Fields.ContainsKey(RequestFieldKey.Deadline))
             {
                 return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
             }
@@ -50,8 +50,8 @@ namespace IceRpc
                 long deadline = (long)(DateTime.UtcNow + _timeout - DateTime.UnixEpoch).TotalMilliseconds;
                 Debug.Assert(deadline > 0);
 
-                request.FieldsOverrides = request.FieldsOverrides.With(
-                    (int)FieldKey.Deadline,
+                request.Fields = request.Fields.With(
+                    RequestFieldKey.Deadline,
                     (ref SliceEncoder encoder) => encoder.EncodeVarLong(deadline));
 
                 return await _next.InvokeAsync(request, linkedTokenSource.Token).ConfigureAwait(false);

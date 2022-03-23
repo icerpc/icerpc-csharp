@@ -164,6 +164,17 @@ namespace IceRpc
                 IProtocolConnectionFactory<T> protocolConnectionFactory,
                 EventHandler<ClosedEventArgs>? closedEventHandler) where T : INetworkConnection
             {
+                // The common connection options, set through ServerOptions.
+                var connectionOptions = new ConnectionOptions
+                {
+                    CloseTimeout = _options.CloseTimeout,
+                    ConnectTimeout = _options.ConnectTimeout,
+                    Dispatcher = _options.Dispatcher,
+                    Fields = _options.Fields,
+                    IceProtocolOptions = _options.IceProtocolOptions,
+                    KeepAlive = _options.KeepAlive
+                };
+
                 while (true)
                 {
                     T networkConnection;
@@ -189,7 +200,7 @@ namespace IceRpc
 
                     // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                    var connection = new Connection(networkConnection, Endpoint.Protocol, _options.CloseTimeout);
+                    var connection = new Connection(networkConnection, Endpoint.Protocol, connectionOptions);
 #pragma warning restore CA2000
 
                     lock (_mutex)
@@ -221,14 +232,7 @@ namespace IceRpc
                     // such as TLS based transports where the handshake requires few round trips between the client
                     // and server. Waiting could also cause a security issue if the client doesn't respond to the
                     // connection initialization as we wouldn't be able to accept new connections in the meantime.
-                    _ = connection.ConnectAsync(
-                        networkConnection,
-                        _options.Dispatcher,
-                        protocolConnectionFactory,
-                        _options.ConnectTimeout,
-                        _options.IncomingFrameMaxSize,
-                        _options.KeepAlive,
-                        closedEventHandler);
+                    _ = connection.ConnectAsync(networkConnection, protocolConnectionFactory, closedEventHandler);
                 }
             }
         }

@@ -48,37 +48,6 @@ namespace IceRpc.Internal
                     }
                 }
             }
-            else if (sink is AsyncCompletePipeWriter asyncWriter)
-            {
-                while (true)
-                {
-                    ReadResult readResult = await source.ReadAsync(cancel).ConfigureAwait(false);
-                    try
-                    {
-                        flushResult = await asyncWriter.WriteAsync(
-                            readResult.Buffer,
-                            completeWhenDone && readResult.IsCompleted,
-                            cancel).ConfigureAwait(false);
-                    }
-                    finally
-                    {
-                        source.AdvanceTo(readResult.Buffer.End); // always fully consumed
-                    }
-
-                    // TODO: can the sink or source actually be canceled?
-                    if (readResult.IsCompleted || flushResult.IsCompleted ||
-                        readResult.IsCanceled || flushResult.IsCanceled)
-                    {
-                        // The source is consumed or the sink is completed.
-                        break;
-                    }
-                }
-
-                if (completeWhenDone)
-                {
-                    await sink.CompleteAsync().ConfigureAwait(false);
-                }
-            }
             else
             {
                 ReadResult readResult;
@@ -177,40 +146,6 @@ namespace IceRpc.Internal
                 }
                 return result;
             }
-        }
-
-        /// <summary>Writes a read only sequence of bytes to this writer.</summary>
-        /// <param name="writer">The pipe writer.</param>
-        /// <param name="source">The source sequence.</param>
-        /// <param name="cancel">The cancellation token.</param>
-        /// <returns>The flush result.</returns>
-        internal static async ValueTask<FlushResult> WriteAsync(
-            this PipeWriter writer,
-            ReadOnlySequence<byte> source,
-            CancellationToken cancel)
-        {
-            FlushResult result = default;
-
-            if (source.IsSingleSegment)
-            {
-                result = await writer.WriteAsync(source.First, cancel).ConfigureAwait(false);
-            }
-            else
-            {
-                SequencePosition position = source.Start;
-
-                // This executes at least twice.
-                while (source.TryGet(ref position, out ReadOnlyMemory<byte> memory))
-                {
-                    result = await writer.WriteAsync(memory, cancel).ConfigureAwait(false);
-
-                    if (result.IsCompleted || result.IsCanceled)
-                    {
-                        break; // while
-                    }
-                }
-            }
-            return result;
         }
     }
 }

@@ -10,11 +10,11 @@ namespace IceRpc.Internal
         public async Task<IProtocolConnection> CreateProtocolConnectionAsync(
             IMultiplexedNetworkConnection networkConnection,
             NetworkConnectionInformation connectionInfo,
-            int incomingFrameMaxSize,
+            Configure.ConnectionOptions connectionOptions,
             bool _,
             CancellationToken cancel)
         {
-            var protocolConnection = new IceRpcProtocolConnection(networkConnection, incomingFrameMaxSize);
+            var protocolConnection = new IceRpcProtocolConnection(networkConnection, connectionOptions.Fields);
             try
             {
                 await protocolConnection.InitializeAsync(cancel).ConfigureAwait(false);

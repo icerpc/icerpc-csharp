@@ -11,19 +11,22 @@ namespace IceRpc.Transports
     /// client transport.</summary>
     public class SlicClientTransport : IClientTransport<IMultiplexedNetworkConnection>
     {
+        /// <inheritdoc/>
+        public string Name => _simpleClientTransport.Name;
+
         private static readonly Func<ISlicFrameReader, ISlicFrameReader> _defaultSlicFrameReaderDecorator =
             reader => reader;
         private static readonly Func<ISlicFrameWriter, ISlicFrameWriter> _defaultSlicFrameWriterDecorator =
             writer => writer;
         private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
-        private readonly SlicTransportOptions _slicOptions;
+        private readonly SlicTransportOptions _slicTransportOptions;
 
         /// <summary>Constructs a Slic client transport.</summary>
         public SlicClientTransport(SlicClientTransportOptions options)
         {
             _simpleClientTransport = options.SimpleClientTransport ?? throw new ArgumentException(
                 $"{nameof(options.SimpleClientTransport)} is null", nameof(options));
-            _slicOptions = options;
+            _slicTransportOptions = options;
         }
 
         /// <summary>Constructs a Slic client transport.</summary>
@@ -61,7 +64,7 @@ namespace IceRpc.Transports
                                              isServer: false,
                                              slicFrameReaderDecorator,
                                              slicFrameWriterDecorator,
-                                             _slicOptions);
+                                             _slicTransportOptions);
         }
     }
 }

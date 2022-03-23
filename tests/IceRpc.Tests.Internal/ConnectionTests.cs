@@ -132,10 +132,6 @@ namespace IceRpc.Tests.Internal
                 serviceCollection.UseProtocol("ice");
             }
 
-            if (secure)
-            {
-                serviceCollection.UseTls();
-            }
             serviceCollection.UseEndpoint(transport, host: "127.0.0.1", port: 0);
             await using var factory = new ConnectionFactory(serviceCollection);
 
@@ -155,13 +151,6 @@ namespace IceRpc.Tests.Internal
             }
             Assert.That(factory.ClientConnection.IsServer, Is.False);
             Assert.That(factory.ServerConnection.IsServer, Is.True);
-
-            if (secure)
-            {
-                Assert.That(transport, Is.EqualTo("tcp"));
-                Assert.That(clientInformation?.RemoteCertificate, Is.Not.Null);
-                Assert.That(serverInformation?.RemoteCertificate, Is.Null);
-            }
         }
 
         [TestCase("ice")]
@@ -214,7 +203,7 @@ namespace IceRpc.Tests.Internal
                 {
                     KeepAlive = heartbeatOnClient
                 },
-                serverConnectionOptions: new()
+                serverOptions: new()
                 {
                     KeepAlive = !heartbeatOnClient
                 });
@@ -470,7 +459,7 @@ namespace IceRpc.Tests.Internal
                 {
                     CloseTimeout = closeClientSide ? TimeSpan.FromSeconds(1) : TimeSpan.FromSeconds(60)
                 },
-                serverConnectionOptions: new()
+                serverOptions: new()
                 {
                     CloseTimeout = closeClientSide ? TimeSpan.FromSeconds(60) : TimeSpan.FromSeconds(1)
                 });
@@ -542,7 +531,7 @@ namespace IceRpc.Tests.Internal
             internal ConnectionFactory(
                 IServiceCollection serviceCollection,
                 ConnectionOptions? clientConnectionOptions = null,
-                ConnectionOptions? serverConnectionOptions = null) // TODO: should not use client options for server
+                ServerOptions? serverOptions = null)
             {
                 _serviceProvider = serviceCollection.BuildServiceProvider();
 
@@ -569,20 +558,26 @@ namespace IceRpc.Tests.Internal
                 {
                     T networkConnection = await listener.AcceptAsync();
 
-                    serverConnectionOptions ??= new();
+                    serverOptions ??= new();
+
+                    var serverConnectionOptions = new ConnectionOptions
+                    {
+                        CloseTimeout = serverOptions.CloseTimeout,
+                        ConnectTimeout = serverOptions.ConnectTimeout,
+                        Dispatcher = _serviceProvider.GetService<IDispatcher>() ?? serverOptions.Dispatcher,
+                        Fields = serverOptions.Fields,
+                        IceProtocolOptions = serverOptions.IceProtocolOptions,
+                        KeepAlive = serverOptions.KeepAlive
+                    };
 
                     var connection = new Connection(
                         networkConnection,
                         listener.Endpoint.Protocol,
-                        serverConnectionOptions.CloseTimeout);
+                        serverConnectionOptions);
 
                     await connection.ConnectAsync<T>(
                         networkConnection,
-                        _serviceProvider.GetService<IDispatcher>() ?? serverConnectionOptions.Dispatcher,
                         protocolConnectionFactory,
-                        serverConnectionOptions.ConnectTimeout,
-                        serverConnectionOptions.IncomingFrameMaxSize,
-                        serverConnectionOptions.KeepAlive,
                         closedEventHandler: null);
                     return connection;
                 }

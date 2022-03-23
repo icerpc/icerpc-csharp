@@ -13,7 +13,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task SlicNetworkConnectionTests_Options()
         {
-             var colocTransport = new ColocTransport();
+            var colocTransport = new ColocTransport();
 
             var clientOptions = new SlicClientTransportOptions
             {

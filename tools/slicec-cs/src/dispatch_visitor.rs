@@ -235,10 +235,13 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 var pipe_ = new global::System.IO.Pipelines.Pipe(); // TODO: pipe options
 
 var encoder_ = new SliceEncoder(pipe_.Writer, {encoding}, {class_format});
-Span<byte> sizePlaceholder_ = encoder_.GetPlaceholderSpan(4);
+Span<byte> sizePlaceholder_ = {encoding} == IceRpc.Encoding.Slice11 ? default : encoder_.GetPlaceholderSpan(4);
 int startPos_ = encoder_.EncodedByteCount;
 {encode_returns}
-SliceEncoder.EncodeVarULong((ulong)(encoder_.EncodedByteCount - startPos_), sizePlaceholder_);
+if ({encoding} != IceRpc.Encoding.Slice11)
+{{
+    SliceEncoder.EncodeVarULong((ulong)(encoder_.EncodedByteCount - startPos_), sizePlaceholder_);
+}}
 
 pipe_.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
 return pipe_.Reader;",
@@ -381,14 +384,14 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
     let parameters = operation.parameters();
     let return_parameters = operation.return_members();
 
-    let mut code = CodeBlock::new();
+    let mut check_and_decode = CodeBlock::new();
 
     if !operation.is_idempotent {
-        code.writeln("request.CheckNonIdempotent();");
+        check_and_decode.writeln("request.CheckNonIdempotent();");
     }
 
     if operation.compress_return() {
-        code.writeln(
+        check_and_decode.writeln(
             "request.Features = request.Features.With(IceRpc.Features.CompressPayload.Yes);",
         );
     }
@@ -399,14 +402,14 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
     match parameters.as_slice() {
         [] => {
             // Verify the payload is indeed empty (it can contain tagged params that we have to skip).
-            code.writeln(
+            check_and_decode.writeln(
                 "\
 await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false);",
             );
         }
         [parameter] => {
             writeln!(
-                code,
+                check_and_decode,
                 "var {var_name} = await Request.{async_operation_name}(request, cancel).ConfigureAwait(false);",
                 var_name = parameter.parameter_name_with_prefix("sliceP_"),
                 async_operation_name = async_operation_name,
@@ -415,12 +418,14 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
         _ => {
             // > 1 parameter
             writeln!(
-                code,
+                check_and_decode,
                 "var args = await Request.{async_operation_name}(request, cancel).ConfigureAwait(false);",
                 async_operation_name = async_operation_name,
             )
         }
     };
+
+    let mut dispatch_and_return = CodeBlock::new();
 
     if operation.has_encoded_result() {
         // TODO: support for stream param with encoded result?
@@ -441,14 +446,14 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
         args.push("cancel".to_owned());
 
         writeln!(
-            code,
+            dispatch_and_return,
             "var returnValue = await target.{name}({args}).ConfigureAwait(false);",
             name = async_operation_name,
             args = args.join(", ")
         );
 
         writeln!(
-            code,
+            dispatch_and_return,
             "return new IceRpc.OutgoingResponse(request) {{ PayloadSource = returnValue.Payload }};"
         );
     } else {
@@ -463,7 +468,7 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
         args.push("cancel".to_owned());
 
         writeln!(
-            code,
+            dispatch_and_return,
             "{return_value}await target.{async_operation_name}({args}).ConfigureAwait(false);",
             return_value = if !return_parameters.is_empty() {
                 "var returnValue = "
@@ -475,14 +480,36 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
         );
 
         writeln!(
-            code,
-            "return new IceRpc.OutgoingResponse(request) {{ PayloadSource = {payload_source}, PayloadSourceStream = {payload_source_stream} }};",
+            dispatch_and_return,
+            "\
+return new IceRpc.OutgoingResponse(request)
+{{
+    PayloadSource = {payload_source},
+    PayloadSourceStream = {payload_source_stream}
+}};",
             payload_source = dispatch_return_payload(operation, encoding),
             payload_source_stream = payload_source_stream(operation, encoding)
         );
     }
 
-    code
+    format!("
+{check_and_decode}
+try
+{{
+    {dispatch_and_return}
+}}
+catch (RemoteException remoteException)
+{{
+    if (remoteException is DispatchException || remoteException.ConvertToUnhandled)
+    {{
+        throw;
+    }}
+
+    return request.CreateResponseFromRemoteException(remoteException, request.GetSliceEncoding());
+}}",
+    check_and_decode = check_and_decode,
+    dispatch_and_return = dispatch_and_return.indent()
+    ).into()
 }
 
 fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {

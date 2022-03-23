@@ -10,7 +10,7 @@ namespace IceRpc.Internal
         Task<IProtocolConnection> CreateProtocolConnectionAsync(
             T networkConnection,
             NetworkConnectionInformation connectionInformation,
-            int incomingFrameMaxSize,
+            Configure.ConnectionOptions connectionOptions,
             bool isServer,
             CancellationToken cancel);
     }
