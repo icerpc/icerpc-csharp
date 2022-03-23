@@ -206,7 +206,6 @@ public sealed class ConnectionPoolTests
             new Endpoint[] { server2.Endpoint },
             default);
 
-
         // Assert
         Assert.That(connection2.State, Is.EqualTo(ConnectionState.Active));
         Assert.That(connection2.RemoteEndpoint, Is.EqualTo(server2.Endpoint));

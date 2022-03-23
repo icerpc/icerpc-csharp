@@ -188,7 +188,7 @@ public sealed class TelemetryMiddlewareTests
             Operation = "Op",
             Path = "/",
             Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>()
-            { 
+            {
                 [RequestFieldKey.TraceContext] = encodedTraceContext.Value
             }
         };
