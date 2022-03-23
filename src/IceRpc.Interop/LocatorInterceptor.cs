@@ -89,6 +89,7 @@ namespace IceRpc
 
                         if (proxy != null)
                         {
+                            // A well behaved location resolver should never return a non-null proxy with a null endpoint.
                             Debug.Assert(proxy.Endpoint != null);
                             endpointSelection.Endpoint = proxy.Endpoint;
                             endpointSelection.AltEndpoints = proxy.AltEndpoints;
