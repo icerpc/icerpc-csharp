@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
@@ -78,7 +79,37 @@ namespace IceRpc.Transports.Internal
             // Writing an empty buffer completes the stream.
             WriteAsync(new ReadOnlySequence<byte>(source), endStream: source.Length == 0, cancel);
 
-        public override async ValueTask<FlushResult> WriteAsync(
+        internal SlicPipeWriter(SlicMultiplexedStream stream, MemoryPool<byte> pool, int minimumSegmentSize)
+        {
+            _stream = stream;
+
+            // Create a pipe that never pauses on flush or write. The SlicePipeWriter will pause the flush or write if
+            // the Slic flow control doesn't permit sending more data. We also use an inline pipe scheduler for write to
+            // avoid thread context switches when FlushAsync is called on the internal pipe writer.
+            _pipe = new(new PipeOptions(
+                pool: pool,
+                minimumSegmentSize: minimumSegmentSize,
+                pauseWriterThreshold: 0,
+                writerScheduler: PipeScheduler.Inline));
+        }
+
+        internal void ReceivedStopSendingFrame(long error)
+        {
+            // TODO: Look into canceling the _stream.SendStreamFrameAsync() call if it's pending?
+            if (_state.TrySetFlag(State.PipeReaderCompleted))
+            {
+                _exception = error.ToSlicError() == SlicStreamError.NoError ?
+                    null :
+                    new MultiplexedStreamAbortedException(error);
+
+                if (!_state.HasFlag(State.PipeReaderCompleted))
+                {
+                    _pipe.Reader.Complete(_exception);
+                }
+            }
+        }
+
+        internal override async ValueTask<FlushResult> WriteAsync(
             ReadOnlySequence<byte> source,
             bool endStream,
             CancellationToken cancel)
@@ -167,36 +198,6 @@ namespace IceRpc.Transports.Internal
                 // deflate compressor might do this.
                 return new FlushResult(isCanceled: false, isCompleted: false);
             }
-        }
-
-        internal void ReceivedStopSendingFrame(long error)
-        {
-            // TODO: Look into canceling the _stream.SendStreamFrameAsync() call if it's pending?
-            if (_state.TrySetFlag(State.PipeReaderCompleted))
-            {
-                _exception = error.ToSlicError() == SlicStreamError.NoError ?
-                    null :
-                    new MultiplexedStreamAbortedException(error);
-
-                if (!_state.HasFlag(State.PipeReaderCompleted))
-                {
-                    _pipe.Reader.Complete(_exception);
-                }
-            }
-        }
-
-        internal SlicPipeWriter(SlicMultiplexedStream stream, MemoryPool<byte> pool, int minimumSegmentSize)
-        {
-            _stream = stream;
-
-            // Create a pipe that never pauses on flush or write. The SlicePipeWriter will pause the flush or write if
-            // the Slic flow control doesn't permit sending more data. We also use an inline pipe scheduler for write to
-            // avoid thread context switches when FlushAsync is called on the internal pipe writer.
-            _pipe = new(new PipeOptions(
-                pool: pool,
-                minimumSegmentSize: minimumSegmentSize,
-                pauseWriterThreshold: 0,
-                writerScheduler: PipeScheduler.Inline));
         }
 
         private void CheckIfCompleted()

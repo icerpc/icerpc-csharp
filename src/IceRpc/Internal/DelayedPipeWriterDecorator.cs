@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports;
 using System.Buffers;
 using System.IO.Pipelines;
 
@@ -37,17 +36,14 @@ namespace IceRpc.Internal
             ReadOnlyMemory<byte> source,
             CancellationToken cancellationToken) => Decoratee.WriteAsync(source, cancellationToken);
 
-        public override ValueTask<FlushResult> WriteAsync(
+        internal void SetDecoratee(PipeWriter decoratee) =>
+            // Overriding the previous decoratee can occur if a request is being retried.
+            _decoratee = decoratee;
+
+        internal override ValueTask<FlushResult> WriteAsync(
             ReadOnlySequence<byte> source,
             bool endStream,
             CancellationToken cancel) =>
             Decoratee.WriteAsync(source, endStream, cancel);
-
-        // We use the default implementation for CopyFromAsync: it's protected as a result we can't forward
-        // it to Decoratee.
-
-        internal void SetDecoratee(PipeWriter decoratee) =>
-            // Overriding the previous decoratee can occur if a request is being retried.
-            _decoratee = decoratee;
     }
 }
