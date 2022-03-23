@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
+using System.IO.Compression;
 
 namespace IceRpc.Configure
 {
@@ -8,19 +9,14 @@ namespace IceRpc.Configure
     /// </summary>
     public static class RouterExtensions
     {
-        /// <summary>Adds a <see cref="CompressorMiddleware"/> that uses the default <see cref="CompressOptions"/> to
-        /// the router.</summary>
-        /// <param name="router">The router being configured.</param>
-        /// <returns>The router being configured.</returns>
-        public static Router UseCompressor(this Router router) =>
-            router.UseCompressor(new CompressOptions());
-
         /// <summary>Adds a <see cref="CompressorMiddleware"/> to the router.</summary>
         /// <param name="router">The router being configured.</param>
-        /// <param name="options">The options to configure the <see cref="CompressorMiddleware"/>.</param>
+        /// <param name="compressionLevel">The compression level for the compress operation.</param>
         /// <returns>The router being configured.</returns>
-        public static Router UseCompressor(this Router router, CompressOptions options) =>
-            router.Use(next => new CompressorMiddleware(next, options));
+        public static Router UseCompressor(
+            this Router router,
+            CompressionLevel compressionLevel = CompressionLevel.Fastest) =>
+            router.Use(next => new CompressorMiddleware(next, compressionLevel));
 
         /// <summary>Adds a middleware that sets a feature in all requests.</summary>
         /// <paramtype name="T">The type of the feature.</paramtype>

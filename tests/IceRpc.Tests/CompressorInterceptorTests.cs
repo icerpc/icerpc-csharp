@@ -104,8 +104,7 @@ public class CompressorInterceptorTests
     [Test]
     public async Task Decompress_response_payload()
     {
-        PipeReader? initialPayload = null;
-        var invoker = new InlineInvoker((request, cancel) =>
+        var invoker = new InlineInvoker(async (request, cancel) =>
         {
             var response = new IncomingResponse(request)
             {
@@ -114,30 +113,20 @@ public class CompressorInterceptorTests
                     [ResponseFieldKey.CompressionFormat] = _deflateEncodedCompressionFormatValue
                 }.ToImmutableDictionary()
             };
-            initialPayload = response.Payload;
-            return Task.FromResult(response);
+            var payloadStream = new MemoryStream();
+            var deflateStream = new DeflateStream(payloadStream, CompressionMode.Compress);
+            await deflateStream.WriteAsync(_payload, default);
+            payloadStream.Seek(0, SeekOrigin.Begin);
+            response.Payload = PipeReader.Create(payloadStream);
+            return response;
         });
         var sut = new CompressorInterceptor(invoker);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
 
         var response = await sut.InvokeAsync(request, default);
+        
+        var readResult = await response.Payload.ReadAsync();
 
-        Assert.That(response.Payload, Is.EqualTo(initialPayload));
-    }
-
-    private static IInvoker CreateInvokerReturningCompressedResponse(
-        ReadOnlySequence<byte> compressionFormat)
-    {
-        return new InlineInvoker((request, cancel) =>
-        {
-            var response = new IncomingResponse(request)
-            {
-                Fields = new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
-                {
-                    [ResponseFieldKey.CompressionFormat] = compressionFormat
-                }.ToImmutableDictionary()
-            };
-            return Task.FromResult(response);
-        });
+        Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(_payload));
     }
 }
