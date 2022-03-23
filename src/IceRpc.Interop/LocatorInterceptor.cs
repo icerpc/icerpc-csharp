@@ -7,10 +7,9 @@ using System.Diagnostics;
 
 namespace IceRpc
 {
-    /// <summary>A locator interceptor intercepts ice requests that have no connection and have either no endpoint or
-    /// an endpoint with the "loc" transport, and attempts to assign a usable endpoint (and alt-endpoints) to such
-    /// requests. This interceptor must be installed between <see cref="RetryInterceptor"/> and
-    /// <see cref="BinderInterceptor"/>.</summary>
+    /// <summary>A locator interceptor intercepts ice requests that have no connection and have either no endpoint, and
+    /// attempts to assign a usable endpoint (and alt-endpoints) to such requests. This interceptor must be installed
+    /// between <see cref="RetryInterceptor"/> and <see cref="BinderInterceptor"/>.</summary>
     public class LocatorInterceptor : IInvoker
     {
         private readonly IInvoker _next;

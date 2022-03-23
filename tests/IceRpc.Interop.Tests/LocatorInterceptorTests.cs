@@ -19,17 +19,15 @@ public class LocatorInterceptorTests
         });
         var locationResolver = new NotCalledLocationResolver();
         var sut = new LocatorInterceptor(invoker, locationResolver);
-        var request = new OutgoingRequest(new Proxy(Protocol.Ice) { Path = "/path" })
-        {
-            Connection = connection
-        };
+        var proxy = Proxy.FromConnection(connection, "/path");
+        var request = new OutgoingRequest(proxy);
 
         await sut.InvokeAsync(request, default);
 
         Assert.That(locationResolver.Called, Is.False);
     }
 
-    /// <summary>Verifies that the locator interceptor can correctly resolver an adapter-id using the given location
+    /// <summary>Verifies that the locator interceptor correctly resolves an adapter-id using the given location
     /// resolver.</summary>
     [Test]
     public async Task Resolve_adapter_id()
@@ -51,7 +49,7 @@ public class LocatorInterceptorTests
         Assert.That(endpointSelection.Endpoint, Is.EqualTo(expected.Endpoint));
     }
 
-    /// <summary>Verifies that the locator interceptor can correctly resolver a well-known proxy using the given
+    /// <summary>Verifies that the locator interceptor correctly resolves a well-known proxy using the given
     /// location resolver.</summary>
     [Test]
     public async Task Resolve_well_known_proxy()
@@ -77,9 +75,7 @@ public class LocatorInterceptorTests
     {
         // Arrange
         var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request)));
-        var cached = Proxy.Parse("ice://cached.loc:10000/foo");
-        var fresh = Proxy.Parse("ice://fresh.loc:10000/foo");
-        var locationResolver = new MockCachedLocationResolver(cached, fresh);
+        var locationResolver = new MockCachedLocationResolver();
         var sut = new LocatorInterceptor(invoker, locationResolver);
         var proxy = new Proxy(Protocol.Ice) { Path = "/foo" };
         var request = new OutgoingRequest(proxy);
@@ -90,9 +86,7 @@ public class LocatorInterceptorTests
         await sut.InvokeAsync(request, default);
 
         // Assert
-        EndpointSelection? endpointSelection = request.Features.Get<EndpointSelection>();
-        Assert.That(endpointSelection, Is.Not.Null);
-        Assert.That(endpointSelection.Endpoint, Is.EqualTo(fresh.Endpoint));
+        Assert.That(locationResolver.RefreshCache, Is.True);
     }
 
     /// <summary>Verifies that the locator interceptor does not set the refresh cache parameter on the second attempt
@@ -102,9 +96,7 @@ public class LocatorInterceptorTests
     {
         // Arrange
         var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request)));
-        var cached = Proxy.Parse("ice://cached.loc:10000/foo");
-        var fresh = Proxy.Parse("ice://fresh.loc:10000/foo");
-        var locationResolver = new MockCachedLocationResolver2(cached, fresh);
+        var locationResolver = new MockNonCachedLocationResolver();
         var sut = new LocatorInterceptor(invoker, locationResolver);
         var proxy = new Proxy(Protocol.Ice) { Path = "/foo" };
         var request = new OutgoingRequest(proxy);
@@ -115,9 +107,7 @@ public class LocatorInterceptorTests
         await sut.InvokeAsync(request, default);
 
         // Assert
-        EndpointSelection? endpointSelection = request.Features.Get<EndpointSelection>();
-        Assert.That(endpointSelection, Is.Not.Null);
-        Assert.That(endpointSelection.Endpoint, Is.EqualTo(cached.Endpoint));
+        Assert.That(locationResolver.RefreshCache, Is.False);
     }
 
     // A mock location resolver that remember if it was called
@@ -153,39 +143,37 @@ public class LocatorInterceptorTests
             CancellationToken cancel) => new((_adapterId == location.IsAdapterId ? _proxy : null, false));
     }
 
-    // A mock location resolver that return cached and non cached proxy depending on the refreshCache parameter
+    // A mock location resolver that return cached and non cached endpoints depending on the refreshCache parameter
     private class MockCachedLocationResolver : ILocationResolver
     {
-        private readonly Proxy _cached;
-        private readonly Proxy _fresh;
-
-        public MockCachedLocationResolver(Proxy cached, Proxy fresh)
-        {
-            _cached = cached;
-            _fresh = fresh;
-        }
+        /// <summary>True if the last call asked to refresh the cache otherwise, false.</summary>
+        public bool RefreshCache { get; set; }
+        private readonly Proxy _proxy = Proxy.Parse("ice://localhost:10000/foo");
 
         public ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(
             Location location,
             bool refreshCache,
-            CancellationToken cancel) => new((refreshCache ? _fresh : _cached, !refreshCache));
+            CancellationToken cancel)
+        {
+            RefreshCache = refreshCache;
+            return new((_proxy, !refreshCache));
+        }
     }
 
-    // A mock location resolver that return cached and non cached proxy depending on the refreshCache parameter
-    private class MockCachedLocationResolver2 : ILocationResolver
+    // A mock location resolver that always return non cached endpoints
+    private class MockNonCachedLocationResolver : ILocationResolver
     {
-        private readonly Proxy _cached;
-        private readonly Proxy _fresh;
-
-        public MockCachedLocationResolver2(Proxy cached, Proxy fresh)
-        {
-            _cached = cached;
-            _fresh = fresh;
-        }
+        /// <summary>True if the last call asked to refresh the cache otherwise, false.</summary>
+        public bool RefreshCache { get; set; }
+        private readonly Proxy _proxy = Proxy.Parse("ice://localhost:10000/foo");
 
         public ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(
             Location location,
             bool refreshCache,
-            CancellationToken cancel) => new((refreshCache ? _fresh : _cached, false));
+            CancellationToken cancel)
+        {
+            RefreshCache = refreshCache;
+            return new((_proxy, false));
+        }
     }
 }
