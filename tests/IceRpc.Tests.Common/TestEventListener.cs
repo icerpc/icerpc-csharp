@@ -21,11 +21,11 @@ public class TestEventListener : EventListener
         _sourceName = sourceName;
     }
 
-    public async Task WaitForCounterEventsAsync(CancellationToken cancel)
+    public async Task WaitForCounterEventsAsync()
     {
         for (int i = 0; i < ExpectedEventCounters.Count; ++i)
         {
-            await _semaphore.WaitAsync(cancel);
+            await _semaphore.WaitAsync();
         }
     }
 
