@@ -11,7 +11,7 @@ namespace IceRpc.Internal
     /// writes to the network connection pipe writer. The network connection pipe writer can't be used directly as the
     /// output sink because we don't want the completion of the output sink to complete the network pipe
     /// writer.</summary>
-    internal sealed class IcePayloadPipeWriter : PipeWriter
+    internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
     {
         private readonly SimpleNetworkConnectionWriter _networkConnectionWriter;
 
@@ -35,18 +35,20 @@ namespace IceRpc.Internal
 
         public override Span<byte> GetSpan(int sizeHint = 0) => _networkConnectionWriter.GetSpan(sizeHint);
 
-        public override async ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancel)
-        {
-            await WriteAsync(new ReadOnlySequence<byte>(source), cancel).ConfigureAwait(false);
-            return default;
-        }
+        public override ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancel) =>
+            // The write can't be canceled because it would lead to the writing of an incomplete payload.
+            _networkConnectionWriter.WriteAsync(new ReadOnlySequence<byte>(source), CancellationToken.None);
+
+        /// <summary>Write the source to the simple network connection. <paramref name="endStream"/> is ignored because
+        /// the simple network connection has no use for it.</summary>
+        public override ValueTask<FlushResult> WriteAsync(
+            ReadOnlySequence<byte> source,
+            bool endStream,
+            CancellationToken cancel) =>
+            // The write can't be canceled because it would lead to the writing of an incomplete payload.
+            _networkConnectionWriter.WriteAsync(source, CancellationToken.None);
 
         internal IcePayloadPipeWriter(SimpleNetworkConnectionWriter networkConnectionWriter) =>
             _networkConnectionWriter = networkConnectionWriter;
-
-        /// <summary>Writes the source to the simple network connection writer.</summary>
-        internal ValueTask WriteAsync(ReadOnlySequence<byte> source, CancellationToken _) =>
-            // The write can't be canceled because it would lead to the writing of an incomplete payload.
-            _networkConnectionWriter.WriteAsync(source, ReadOnlySequence<byte>.Empty, CancellationToken.None);
     }
 }

@@ -397,7 +397,10 @@ namespace IceRpc.Internal
                         nameof(request));
                 }
 
-                FlushResult flushResult = await request.PayloadSink.WriteAsync(payload, cancel).ConfigureAwait(false);
+                FlushResult flushResult = await request.PayloadSink.WriteAsync(
+                    payload,
+                    endStream: false,
+                    cancel).ConfigureAwait(false);
 
                 // If a payload source sink decorator returns a canceled or completed flush result, we have to raise
                 // NotSupportedException. We can't interrupt the sending of a payload since it would lead to a bogus
@@ -548,7 +551,10 @@ namespace IceRpc.Internal
                 }
 
                 // Write the payload and complete the source.
-                FlushResult flushResult = await response.PayloadSink.WriteAsync(payload, cancel).ConfigureAwait(false);
+                FlushResult flushResult = await response.PayloadSink.WriteAsync(
+                    payload,
+                    endStream: false,
+                    cancel).ConfigureAwait(false);
 
                 // If a payload sink decorator returns a canceled or completed flush result, we have to raise
                 // NotSupportedException. We can't interrupt the sending of a payload since it would lead to a bogus
