@@ -59,14 +59,7 @@ namespace IceRpc
                     else
                     {
                         // Well-known proxy
-                        try
-                        {
-                            location = new Location { Value = request.Proxy.Path };
-                        }
-                        catch (FormatException)
-                        {
-                            // ignore path that can't be converted, location remains default
-                        }
+                        location = new Location { Value = request.Proxy.Path };
                     }
                 }
                 // else it could be a retry where the first attempt provided non-cached endpoint(s)
