@@ -101,7 +101,8 @@ namespace IceRpc.Internal
             try
             {
                 EncodeValidateConnectionFrame(_networkConnectionWriter);
-                await _networkConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
+                // The flush can't be canceled because it would lead to the writing of an incomplete frame.
+                await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
             }
             finally
             {
@@ -346,17 +347,22 @@ namespace IceRpc.Internal
             bool acquiredSemaphore = false;
             try
             {
-                if (_isUdp && !request.IsOneway)
-                {
-                    throw new InvalidOperationException("cannot send twoway request over UDP");
-                }
                 if (request.PayloadSourceStream != null)
                 {
                     throw new NotSupportedException("PayloadSourceStream must be null with the ice protocol");
                 }
 
-                // Set the final payload sink to the stateless payload writer.
-                request.SetFinalPayloadSink(_payloadWriter);
+                if (_isUdp && !request.IsOneway)
+                {
+                    throw new InvalidOperationException("cannot send twoway request over UDP");
+                }
+
+                // Set the transport payload sink to the stateless payload writer.
+                request.SetTransportPayloadSink(_payloadWriter);
+
+                // Read the full payload source. This can take some time so this needs to be done before acquiring the
+                // send semaphore.
+                ReadResult readResult = await ReadFullPayloadAsync(request.PayloadSource, cancel).ConfigureAwait(false);
 
                 // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue to
                 // serialize the sending of frames.
@@ -380,24 +386,6 @@ namespace IceRpc.Internal
                     }
                 }
 
-                // Read payload source until IsCompleted is true.
-
-                ReadResult readResult = await request.PayloadSource.ReadAtLeastAsync(
-                    _options.MaxOutgoingFrameSize + 1,
-                    cancel).ConfigureAwait(false);
-
-                if (readResult.IsCanceled)
-                {
-                    throw new OperationCanceledException();
-                }
-
-                if (!readResult.IsCompleted)
-                {
-                    throw new ArgumentException(
-                        "payload size is greater than the max outgoing frame size",
-                        nameof(request));
-                }
-
                 ReadOnlySequence<byte> payload = readResult.Buffer;
                 int payloadSize = checked((int)payload.Length);
 
@@ -411,7 +399,7 @@ namespace IceRpc.Internal
 
                 FlushResult flushResult = await request.PayloadSink.WriteAsync(
                     payload,
-                    false,
+                    endStream: false,
                     cancel).ConfigureAwait(false);
 
                 // If a payload source sink decorator returns a canceled or completed flush result, we have to raise
@@ -422,8 +410,8 @@ namespace IceRpc.Internal
                     throw new NotSupportedException("payload sink cancellation or completion is not supported");
                 }
 
-                await request.PayloadSource.CompleteAsync().ConfigureAwait(false);
                 await request.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                await request.PayloadSource.CompleteAsync().ConfigureAwait(false);
 
                 request.IsSent = true;
             }
@@ -504,20 +492,15 @@ namespace IceRpc.Internal
             bool acquiredSemaphore = false;
             try
             {
-                if (request.IsOneway)
-                {
-                    await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
-                    await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
-                    if (response.PayloadSourceStream != null)
-                    {
-                        await response.PayloadSourceStream.CompleteAsync().ConfigureAwait(false);
-                    }
-                    return;
-                }
-
                 if (response.PayloadSourceStream != null)
                 {
                     throw new NotSupportedException("PayloadSourceStream must be null with the ice protocol");
+                }
+
+                if (request.IsOneway)
+                {
+                    await CompleteResponseAsync().ConfigureAwait(false);
+                    return;
                 }
 
                 Debug.Assert(!_isUdp); // udp is oneway-only so no response
@@ -527,28 +510,14 @@ namespace IceRpc.Internal
                     throw new InvalidOperationException("request ID feature is not set");
                 }
 
+                // Read the full payload source. This can take some time so this needs to be done before acquiring the
+                // send semaphore.
+                ReadResult readResult = await ReadFullPayloadAsync(response.PayloadSource, cancel).ConfigureAwait(false);
+
                 // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue to
                 // serialize the sending of frames.
                 await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
                 acquiredSemaphore = true;
-
-                // Read payload source until IsCompleted is true.
-
-                ReadResult readResult = await response.PayloadSource.ReadAtLeastAsync(
-                    _options.MaxOutgoingFrameSize + 1,
-                    cancel).ConfigureAwait(false);
-
-                if (readResult.IsCanceled)
-                {
-                    throw new OperationCanceledException();
-                }
-
-                if (!readResult.IsCompleted)
-                {
-                    throw new ArgumentException(
-                        "payload size is greater than the max outgoing frame size",
-                        nameof(response));
-                }
 
                 ReadOnlySequence<byte> payload = readResult.Buffer;
                 int payloadSize = checked((int)payload.Length);
@@ -584,10 +553,10 @@ namespace IceRpc.Internal
                 // Write the payload and complete the source.
                 FlushResult flushResult = await response.PayloadSink.WriteAsync(
                     payload,
-                    false,
+                    endStream: false,
                     cancel).ConfigureAwait(false);
 
-                // If a payload source sink decorator returns a canceled or completed flush result, we have to raise
+                // If a payload sink decorator returns a canceled or completed flush result, we have to raise
                 // NotSupportedException. We can't interrupt the sending of a payload since it would lead to a bogus
                 // payload to be sent over the connection.
                 if (flushResult.IsCanceled || flushResult.IsCompleted)
@@ -600,12 +569,7 @@ namespace IceRpc.Internal
             }
             catch (Exception exception)
             {
-                await response.PayloadSink.CompleteAsync(exception).ConfigureAwait(false);
-                await response.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
-                if (response.PayloadSourceStream != null)
-                {
-                    await response.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
-                }
+                await CompleteResponseAsync(exception).ConfigureAwait(false);
                 throw;
             }
             finally
@@ -628,6 +592,16 @@ namespace IceRpc.Internal
                             _dispatchesAndInvocationsCompleted.TrySetResult();
                         }
                     }
+                }
+            }
+
+            async Task CompleteResponseAsync(Exception? exception = null)
+            {
+                await response.PayloadSink.CompleteAsync(exception).ConfigureAwait(false);
+                await response.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
+                if (response.PayloadSourceStream != null)
+                {
+                    await response.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
                 }
             }
 
@@ -724,6 +698,8 @@ namespace IceRpc.Internal
 
                     // Send the CloseConnection frame once all the dispatches are done.
                     EncodeCloseConnectionFrame(_networkConnectionWriter);
+
+                    // The flush can't be canceled because it would lead to the writing of an incomplete frame.
                     await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
                 }
 
@@ -775,7 +751,9 @@ namespace IceRpc.Internal
                 if (isServer)
                 {
                     EncodeValidateConnectionFrame(_networkConnectionWriter);
-                    await _networkConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
+
+                    // The flush can't be canceled because it would lead to the writing of an incomplete frame.
+                    await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
                 }
                 else
                 {
@@ -810,6 +788,41 @@ namespace IceRpc.Internal
             {
                 var decoder = new SliceDecoder(buffer, Encoding.Slice11);
                 return (new IcePrologue(ref decoder), decoder.Consumed);
+            }
+        }
+
+        private void CancelDispatches()
+        {
+            IEnumerable<IncomingRequest> dispatches;
+            lock (_mutex)
+            {
+                dispatches = _dispatches.ToArray();
+            }
+
+            foreach (IncomingRequest request in dispatches)
+            {
+                try
+                {
+                    request.CancelDispatchSource!.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Ignore, the dispatch completed concurrently.
+                }
+            }
+        }
+
+        private void CancelInvocations(Exception exception)
+        {
+            IEnumerable<OutgoingRequest> invocations;
+            lock (_mutex)
+            {
+                invocations = _invocations.Values.ToArray();
+            }
+
+            foreach (OutgoingRequest request in invocations)
+            {
+                request.Features.Get<IceOutgoingRequest>()!.IncomingResponseCompletionSource.TrySetException(exception);
             }
         }
 
@@ -848,39 +861,26 @@ namespace IceRpc.Internal
             return pipe.Reader;
         }
 
-        private void CancelDispatches()
+        /// <summary>Reads the full Ice payload from the given payload source.</summary>
+        private async Task<ReadResult> ReadFullPayloadAsync(PipeReader payloadSource, CancellationToken cancel)
         {
-            IEnumerable<IncomingRequest> dispatches;
-            lock (_mutex)
+            ReadResult readResult = await payloadSource.ReadAtLeastAsync(
+                _options.MaxOutgoingFrameSize + 1,
+                cancel).ConfigureAwait(false);
+
+            if (readResult.IsCanceled)
             {
-                dispatches = _dispatches.ToArray();
+                throw new OperationCanceledException();
             }
 
-            foreach (IncomingRequest request in dispatches)
+            if (!readResult.IsCompleted)
             {
-                try
-                {
-                    request.CancelDispatchSource!.Cancel();
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Ignore, the dispatch completed concurrently.
-                }
-            }
-        }
-
-        private void CancelInvocations(Exception exception)
-        {
-            IEnumerable<OutgoingRequest> invocations;
-            lock (_mutex)
-            {
-                invocations = _invocations.Values.ToArray();
+                throw new ArgumentException(
+                    "payload size is greater than the max outgoing frame size",
+                    nameof(payloadSource));
             }
 
-            foreach (OutgoingRequest request in invocations)
-            {
-                request.Features.Get<IceOutgoingRequest>()!.IncomingResponseCompletionSource.TrySetException(exception);
-            }
+            return readResult;
         }
 
         /// <summary>Receives incoming frames and returns once a request frame is received.</summary>

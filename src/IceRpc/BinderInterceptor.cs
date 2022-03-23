@@ -29,47 +29,47 @@ namespace IceRpc
         {
             if (request.Connection == null)
             {
-                return CoreAsync();
+                if (request.Features.Get<EndpointSelection>() is EndpointSelection endpointSelection)
+                {
+                    return PerformBindAsync(endpointSelection.Endpoint, endpointSelection.AltEndpoints);
+                }
+                else
+                {
+                    return PerformBindAsync(request.Proxy.Endpoint, request.Proxy.AltEndpoints);
+                }
             }
             else
             {
                 return _next.InvokeAsync(request, cancel);
             }
 
-            async Task<IncomingResponse> CoreAsync()
+            async Task<IncomingResponse> PerformBindAsync(Endpoint? endpoint, IEnumerable<Endpoint> altEndpoints)
             {
-                Endpoint? endpoint;
-                IEnumerable<Endpoint> altEndpoints;
-                if (request.Features.Get<EndpointSelection>() is EndpointSelection endpointSelection)
+                try
                 {
-                    endpoint = endpointSelection.Endpoint;
-                    altEndpoints = endpointSelection.AltEndpoints;
-                }
-                else
-                {
-                    endpoint = request.Proxy.Endpoint;
-                    altEndpoints = request.Proxy.AltEndpoints;
-                }
+                    if (endpoint == null)
+                    {
+                        throw new NoEndpointException(request.Proxy);
+                    }
 
-                if (endpoint == null)
+                    request.Connection = await _connectionProvider.GetConnectionAsync(
+                        endpoint.Value,
+                        altEndpoints,
+                        cancel).ConfigureAwait(false);
+                    if (_cacheConnection)
+                    {
+                        request.Proxy.Connection = request.Connection;
+                    }
+                }
+                catch (Exception exception)
                 {
-                    var exception = new NoEndpointException(request.Proxy);
                     await request.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
                     if (request.PayloadSourceStream != null)
                     {
                         await request.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
                     }
                     await request.PayloadSink.CompleteAsync(exception).ConfigureAwait(false);
-                    throw exception;
-                }
-
-                request.Connection = await _connectionProvider.GetConnectionAsync(
-                    endpoint.Value,
-                    altEndpoints,
-                    cancel).ConfigureAwait(false);
-                if (_cacheConnection)
-                {
-                    request.Proxy.Connection = request.Connection;
+                    throw;
                 }
 
                 return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);

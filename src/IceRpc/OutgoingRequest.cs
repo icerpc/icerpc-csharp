@@ -37,18 +37,7 @@ namespace IceRpc
         /// <inheritdoc/>
         public override PipeWriter PayloadSink
         {
-            get
-            {
-                if (_payloadSink == null)
-                {
-                    _initialPayloadSink ??= new();
-                    return _initialPayloadSink;
-                }
-                else
-                {
-                    return _payloadSink;
-                }
-            }
+            get => _payloadSink ?? (_initialPayloadSink ??= new());
             set => _payloadSink = value;
         }
 
@@ -71,7 +60,11 @@ namespace IceRpc
             Proxy = proxy;
         }
 
-        internal void SetFinalPayloadSink(PipeWriter writer)
+        /// <summary>Sets the final transport payload sink. If the initial payload sink is null, it indicates that the
+        /// application didn't set payload sink decorator. In this case, we can just assign the request payload sink to
+        /// transport payload sink. Otherwise, we set it as the decoratee of the DelayedPipeWriterDecorator initial
+        /// sink.</summary>
+        internal void SetTransportPayloadSink(PipeWriter writer)
         {
             if (_initialPayloadSink == null)
             {

@@ -192,12 +192,12 @@ namespace IceRpc.Internal
                     ReadOnlySequence<byte> buffer)
                 {
                     var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                    (IceRpcRequestHeader, IDictionary<RequestFieldKey, ReadOnlySequence<byte>>) header =
-                        (new IceRpcRequestHeader(ref decoder),
-                        decoder.DecodeFieldDictionary((ref SliceDecoder decoder) => decoder.DecodeRequestFieldKey()));
+                    var header = new IceRpcRequestHeader(ref decoder);
+                    IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields = decoder.DecodeFieldDictionary(
+                        (ref SliceDecoder decoder) => decoder.DecodeRequestFieldKey());
 
                     decoder.CheckEndOfBuffer(skipTaggedParams: false);
-                    return header;
+                    return (header, fields);
                 }
             }
         }
@@ -294,12 +294,12 @@ namespace IceRpc.Internal
                 ReadOnlySequence<byte> buffer)
             {
                 var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                (IceRpcResponseHeader, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>>) header =
-                    (new IceRpcResponseHeader(ref decoder),
-                    decoder.DecodeFieldDictionary((ref SliceDecoder decoder) => decoder.DecodeResponseFieldKey()));
+                var header = new IceRpcResponseHeader(ref decoder);
+                IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields =
+                    decoder.DecodeFieldDictionary((ref SliceDecoder decoder) => decoder.DecodeResponseFieldKey());
 
                 decoder.CheckEndOfBuffer(skipTaggedParams: false);
-                return header;
+                return (header, fields);
             }
         }
 
@@ -314,12 +314,12 @@ namespace IceRpc.Internal
                 }
 
                 // Create the stream.
-                IMultiplexedStream stream = _networkConnection.CreateStream(!request.IsOneway);
+                IMultiplexedStream stream = _networkConnection.CreateStream(bidirectional: !request.IsOneway);
 
-                // Set the final payload sink to the stream output and the response reader to the stream input. It's
+                // Set the transport payload sink to the stream output and the response reader to the stream input. It's
                 // important to do this right after the stream creation. In case of failures, the stream intput/output
                 // will correctly be completed.
-                request.SetFinalPayloadSink(stream.Output);
+                request.SetTransportPayloadSink(stream.Output);
                 if (!request.IsOneway)
                 {
                     request.ResponseReader = stream.Input;
@@ -356,7 +356,7 @@ namespace IceRpc.Internal
                 }
 
                 EncodeHeader(stream.Output);
-                // SendPayloadSink takes care of the completion of the payload sink / sources when it's successfull.
+                // SendPayloadSink takes care of the completion of the payload sink / sources when it's successful.
                 await SendPayloadAsync(request, cancel).ConfigureAwait(false);
                 request.IsSent = true;
             }
@@ -435,7 +435,7 @@ namespace IceRpc.Internal
             try
             {
                 EncodeHeader();
-                // SendPayloadSink takes care of the completion of the payload sink / sources when it's successfull.
+                // SendPayloadSink takes care of the completion of the payload sink / sources when it's successful.
                 await SendPayloadAsync(response, cancel).ConfigureAwait(false);
             }
             catch (Exception exception)

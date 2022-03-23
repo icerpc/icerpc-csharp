@@ -14,10 +14,15 @@ namespace IceRpc.Transports.Internal
             FrameType frameType,
             long? streamId,
             EncodeAction? encodeAction,
-            CancellationToken cancel)
+            CancellationToken _)
         {
             _writer.EncodeFrame(frameType, streamId, encodeAction);
-            return _writer.WriteAsync(ReadOnlySequence<byte>.Empty, ReadOnlySequence<byte>.Empty, cancel);
+
+            // The write can't be canceled because it would lead to the writing of an incomplete Slic frame.
+            return _writer.WriteAsync(
+                ReadOnlySequence<byte>.Empty,
+                ReadOnlySequence<byte>.Empty,
+                CancellationToken.None);
         }
 
         public ValueTask WriteStreamFrameAsync(
@@ -28,7 +33,9 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel)
         {
             _writer.EncodeStreamFrameHeader(streamId, (int)(source1.Length + source2.Length), endStream);
-            return _writer.WriteAsync(source1, source2, cancel);
+
+            // The write can't be canceled because it would lead to the writing of an incomplete Slic frame.
+            return _writer.WriteAsync(source1, source2, CancellationToken.None);
         }
 
         internal SlicFrameWriter(SimpleNetworkConnectionWriter writer) => _writer = writer;
