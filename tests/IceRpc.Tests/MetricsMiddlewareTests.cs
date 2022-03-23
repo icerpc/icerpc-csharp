@@ -12,7 +12,6 @@ public sealed class MetricsMiddlewareTests
     [Test]
     public async Task Canceled_dispatch_publishes_start_cancel_and_stop_events()
     {
-        // Arrange
         const string name = "Test.Canceled.Dispatch.EventSource";
         var dispatcher = new InlineDispatcher((request, cancel) => throw new OperationCanceledException());
         using var eventListener = new TestEventListener(
@@ -24,7 +23,6 @@ public sealed class MetricsMiddlewareTests
         var request = new IncomingRequest(Protocol.IceRpc);
         var sut = new MetricsMiddleware(dispatcher, eventSource);
 
-        // Act
         try
         {
             await sut.DispatchAsync(request, default);
@@ -33,10 +31,8 @@ public sealed class MetricsMiddlewareTests
         {
         }
 
-        // Assert
         using var cancellationSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
         await eventListener.WaitForCounterEventsAsync(cancellationSource.Token);
-
         Assert.That(eventListener.ReceivedEventCounters, Is.EquivalentTo(eventListener.ExpectedEventCounters));
     }
 
@@ -57,7 +53,6 @@ public sealed class MetricsMiddlewareTests
         var request = new IncomingRequest(Protocol.IceRpc);
         var sut = new MetricsMiddleware(dispatcher, eventSource);
 
-        // Act
         try
         {
             await sut.DispatchAsync(request, default);
@@ -66,10 +61,8 @@ public sealed class MetricsMiddlewareTests
         {
         }
 
-        // Assert
         using var cancellationSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
         await eventListener.WaitForCounterEventsAsync(cancellationSource.Token);
-
         Assert.That(eventListener.ReceivedEventCounters, Is.EquivalentTo(eventListener.ExpectedEventCounters));
     }
 
@@ -78,7 +71,6 @@ public sealed class MetricsMiddlewareTests
     [Test]
     public async Task Successful_dispatch_publishes_start_and_stop_events()
     {
-        // Arrange
         const string name = "Test.Successful.Dispatch.EventSource";
         var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
         using var eventListener = new TestEventListener(
@@ -89,10 +81,8 @@ public sealed class MetricsMiddlewareTests
         var request = new IncomingRequest(Protocol.IceRpc);
         var sut = new MetricsMiddleware(dispatcher, eventSource);
 
-        // Act
         await sut.DispatchAsync(request, default);
 
-        // Assert
         using var cancellationSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
         await eventListener.WaitForCounterEventsAsync(cancellationSource.Token);
         Assert.That(eventListener.ReceivedEventCounters, Is.EquivalentTo(eventListener.ExpectedEventCounters));
