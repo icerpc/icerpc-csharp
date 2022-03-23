@@ -19,9 +19,9 @@ public class CompressorInterceptorTests
     private static readonly ReadOnlySequence<byte> _unknownEncodedCompressionFormatValue =
         new(new byte[] { 255 });
 
-    /// <summary>Verifies that when the request carries the compress payload feature, the compress interceptor wraps
-    /// the payload sink pipe writer with a pipe writer that compresses the input using the deflate compression format.
-    /// </summary>
+    /// <summary>Verifies that the compressor interceptor wraps the payload sink pipe writer with a pipe writer that
+    /// compresses the input using the deflate compression format when the request carries the compress payload
+    /// feature.</summary>
     [Test]
     public async Task Compress_request_payload()
     {
@@ -51,10 +51,10 @@ public class CompressorInterceptorTests
         await request.PayloadSink.CompleteAsync();
     }
 
-    /// <summary>Verifies that when the request feature doesn't carry the compress payload feature the compress
-    /// interceptor doesn't wrap the payload sink,</summary>
+    /// <summary>Verifies that the compressor interceptor does not update the payload sink if the request does
+    /// not contain the compress feature.</summary>
     [Test]
-    public async Task Compress_interceptor_without_compress_feature_does_not_update_the_payload_sink()
+    public async Task Compressor_interceptor_without_compress_feature_does_not_update_the_payload_sink()
     {
         var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request)));
         var sut = new CompressorInterceptor(invoker);
@@ -66,10 +66,10 @@ public class CompressorInterceptorTests
         Assert.That(request.PayloadSink, Is.EqualTo(initialPayloadSing));
     }
 
-    /// <summary>Verifies that the compress interceptor does not update the payload sink if the request is already
+    /// <summary>Verifies that the compressor interceptor does not update the payload sink if the request is already
     /// compressed (the request already has a compression format field).</summary>
     [Test]
-    public async Task Compress_interceptor_does_not_update_the_payload_sink_if_request_is_already_compressed()
+    public async Task Compressor_interceptor_does_not_update_the_payload_sink_if_request_is_already_compressed()
     {
         var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request)));
         var sut = new CompressorInterceptor(invoker);
@@ -85,10 +85,10 @@ public class CompressorInterceptorTests
         Assert.That(request.PayloadSink, Is.EqualTo(initialPayloadSing));
     }
 
-    /// <summary>Verifies that the compressor interceptor doesn't update the response payload when the compression
+    /// <summary>Verifies that the compressor interceptor does not update the response payload when the compression
     /// format is not supported, and lets the response pass throw unchanged.</summary>
     [Test]
-    public async Task Compress_interceptor_lets_responses_with_unsupported_compression_format_pass_throw()
+    public async Task Compressor_interceptor_lets_responses_with_unsupported_compression_format_pass_throw()
     {
         PipeReader? initialPayload = null;
         var invoker = new InlineInvoker((request, cancel) =>
@@ -107,6 +107,8 @@ public class CompressorInterceptorTests
         Assert.That(response.Payload, Is.EqualTo(initialPayload));
     }
 
+    /// <summary>Verifies that the compressor interceptor wraps the response payload with a pipe reader that
+    /// decompress it, when the response carries a deflate compression format field.</summary>
     [Test]
     public async Task Decompress_response_payload()
     {

@@ -26,7 +26,10 @@ namespace IceRpc
             _compressionLevel = compressionLevel;
         }
 
-        async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(IncomingRequest request, CancellationToken cancel)
+        /// <inheritdoc/>
+        public async ValueTask<OutgoingResponse> DispatchAsync(
+            IncomingRequest request,
+            CancellationToken cancel = default)
         {
             if (request.Protocol.HasFields && request.Fields.ContainsKey(RequestFieldKey.CompressionFormat))
             {
