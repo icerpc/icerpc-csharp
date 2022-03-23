@@ -16,6 +16,7 @@ public class DecodingBuiltInTypesTests
 {
     private readonly SliceEncoding _encoding;
 
+    /// <summary>Provides test case data for <see cref="Decoding_string(string, byte[], byte[])"/> test.</summary>
     private static IEnumerable<TestCaseData> StringDecodingDataSource
     {
         get
@@ -63,8 +64,8 @@ public class DecodingBuiltInTypesTests
     }
 
     /// <summary>Test the encoding of a fixed size numeric type.</summary>
-    /// <param name="p1">The value to be encoded.</param>
-    /// <param name="expected">The expected hexadecimal representation of the encoded value.</param>
+    /// <param name="encodedBytes">The encoded hexadecimal representation of a long to decode.</param>
+    /// <param name="expected">The expected long to be decoded.</param>
     [TestCase(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 }, long.MinValue)]
     [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F }, long.MaxValue)]
     public void Decoding_long(byte[] encodedBytes, long expected)
@@ -78,11 +79,11 @@ public class DecodingBuiltInTypesTests
     }
 
     /// <summary>Test the encoding of a variable size numeric type.</summary>
-    /// <param name="p1">The value to be encoded.</param>
-    /// <param name="expected">The expected hexadecimal representation of the encoded value.</param>
+    /// <param name="encodedBytes">The encoded hexadecimal representation of a varlong to decode.</param>
+    /// <param name="expected">The expected ulong to be decoded.</param>
     [TestCase(new byte[] { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 }, SliceEncoder.VarLongMinValue)]
     [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F }, SliceEncoder.VarLongMaxValue)]
-    public void Decoding_varLong(byte[] encodedBytes, long expected)
+    public void Decoding_var_long(byte[] encodedBytes, long expected)
     {
         var decoder = new SliceDecoder(encodedBytes, _encoding);
 
@@ -92,9 +93,9 @@ public class DecodingBuiltInTypesTests
         Assert.That(decoder.Consumed, Is.EqualTo(sizeof(long)));
     }
 
-    /// <summary>Test the encoding of a variable size numeric type.</summary>
-    /// <param name="p1">The value to be encoded.</param>
-    /// <param name="expected">The expected hexadecimal representation of the encoded value.</param>
+    /// <summary>Test the decoding of a variable size numeric type.</summary>
+    /// <param name="encodedBytes">The encoded hexadecimal representation of a ulong to decode.</param>
+    /// <param name="expected">The expected ulong to be decoded.</param>
     [TestCase(new byte[] { 0x00 }, SliceEncoder.VarULongMinValue)]
     [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, SliceEncoder.VarULongMaxValue)]
     public void Decoding_var_u_long(byte[] encodedBytes, ulong expected)
@@ -107,6 +108,10 @@ public class DecodingBuiltInTypesTests
         Assert.That(decoder.Consumed, Is.EqualTo(encodedBytes.Length));
     }
 
+    /// <summary>Test the decoding of a string.</summary>
+    /// <param name="sizeBytes11">The hexadecimal representation of expected encoded size if using 1.1 encoding.</param>
+    /// <param name="sizeBytes20">The hexadecimal representation of expected encoded size if using 2.0 encoding.</param>
+    /// <param name="expected">The expected value of the decoded string.</param>
     [Test, TestCaseSource(nameof(StringDecodingDataSource))]
     public void Decoding_string(byte[] sizeBytes11, byte[] sizeBytes20, String expected)
     {
@@ -118,6 +123,5 @@ public class DecodingBuiltInTypesTests
         string r1 = decoder.DecodeString();
 
         Assert.That(r1, Is.EqualTo(expected));
-
     }
 }

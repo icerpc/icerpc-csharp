@@ -13,9 +13,7 @@ public class EncodingBuiltInTypesTests
 {
     private readonly SliceEncoding _encoding;
 
-    /// <summary>Provides test case data for
-    /// <see cref="Encode_string(string, byte[], byte[])"/> test.
-    /// </summary>
+    /// <summary>Provides test case data for <see cref="Encoding_string(string, byte[], byte[])"/> test.</summary>
     private static IEnumerable<TestCaseData> StringEncodingDataSource
     {
         get
@@ -62,7 +60,7 @@ public class EncodingBuiltInTypesTests
     /// <param name="expected">The expected hexadecimal representation of the encoded value.</param>
     [TestCase(long.MinValue, new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 })]
     [TestCase(long.MaxValue, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F })]
-    public void Encode_long(long p1, byte[] expected)
+    public void Encoding_long(long p1, byte[] expected)
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
@@ -80,7 +78,7 @@ public class EncodingBuiltInTypesTests
     /// <param name="expected">The expected hexadecimal representation of the encoded value.</param>
     [TestCase(SliceEncoder.VarLongMinValue, new byte[] { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 })]
     [TestCase(SliceEncoder.VarLongMaxValue, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F })]
-    public void Encode_var_long(long p1, byte[] expected)
+    public void Encoding_var_long(long p1, byte[] expected)
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
@@ -99,7 +97,7 @@ public class EncodingBuiltInTypesTests
     /// <param name="expected">The expected hexadecimal representation of the encoded value.</param>
     [TestCase(SliceEncoder.VarLongMinValue - 1)]
     [TestCase(SliceEncoder.VarLongMaxValue + 1)]
-    public void Encode_var_long_throws_out_of_range(long p1)
+    public void Encoding_var_long_throws_out_of_range(long p1)
     {
         // Due to limitations on ref types, we cannot setup the arrange outside of the assertion. This is a result of
         // being unable to use ref local inside anonymous methods, lambda expressions, or query expressions.
@@ -120,7 +118,7 @@ public class EncodingBuiltInTypesTests
     /// <param name="expected">The expected hexadecimal representation of the encoded value.</param>
     [TestCase(SliceEncoder.VarULongMinValue, new byte[] { 0x00 })]
     [TestCase(SliceEncoder.VarULongMaxValue, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF })]
-    public void Encode_var_u_long(ulong p1, byte[] expected)
+    public void Encoding_var_u_long(ulong p1, byte[] expected)
     {
         // Arrange
         var buffer = new byte[256];
@@ -139,7 +137,7 @@ public class EncodingBuiltInTypesTests
     /// if the parameter is larger than the max value of a varulong.</summary>
     /// <param name="p1">The value to be encoded.</param>
     [TestCase(SliceEncoder.VarULongMaxValue + 1)]
-    public void Encode_var_u_long_throws_out_of_range(ulong p1)
+    public void Encoding_var_u_long_throws_out_of_range(ulong p1)
     {
         // Due to limitations on ref types, we cannot setup the arrange outside of the assertion. This is a result of
         // being unable to use ref local inside anonymous methods, lambda expressions, or query expressions.
@@ -162,7 +160,7 @@ public class EncodingBuiltInTypesTests
     /// <param name="sizeBytes20">The expected hexadecimal representation of the encoded value if using 1.1 encoding.
     /// </param>
     [Test, TestCaseSource(nameof(StringEncodingDataSource))]
-    public void Encode_string(string p1, byte[] sizeBytes11, byte[] sizeBytes20)
+    public void Encoding_string(string p1, byte[] sizeBytes11, byte[] sizeBytes20)
     {
         var expectedSizeBytes = _encoding.ToString() == "1.1" ? sizeBytes11 : sizeBytes20;
         var buffer = new byte[256];
@@ -180,7 +178,7 @@ public class EncodingBuiltInTypesTests
 
     /// <summary>Verifying encoding an empty string uses <see cref="SliceEncoder.EncodeSize"/> with value 0.</summary>
     [Test]
-    public void Encode_empty_string()
+    public void Encoding_empty_string()
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
