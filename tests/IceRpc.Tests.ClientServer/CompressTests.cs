@@ -129,7 +129,7 @@ namespace IceRpc.Tests.ClientServer
                 }));
 #endif
 
-            pipeline.UseCompressor(new CompressOptions { CompressionLevel = CompressionLevel.Fastest });
+            pipeline.UseCompressor();
 
 #if LOG_PIPE_WRITER
             pipeline.Use(next => new InlineInvoker(

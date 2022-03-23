@@ -1,6 +1,7 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
+using System.IO.Compression;
 
 namespace IceRpc.Configure
 {
@@ -20,18 +21,14 @@ namespace IceRpc.Configure
             bool cacheConnection = true) =>
             pipeline.Use(next => new BinderInterceptor(next, connectionProvider, cacheConnection));
 
-        /// <summary>Adds a <see cref="CompressorInterceptor"/> that uses the default <see cref="CompressOptions"/> to
-        /// the pipeline.</summary>
-        /// <param name="pipeline">The pipeline being configured.</param>
-        public static Pipeline UseCompressor(this Pipeline pipeline) =>
-            pipeline.UseCompressor(new CompressOptions());
-
         /// <summary>Adds a <see cref="CompressorInterceptor"/> to the pipeline.</summary>
         /// <param name="pipeline">The pipeline being configured.</param>
-        /// <param name="options">The options to configure the <see cref="CompressorInterceptor"/>.</param>
+        /// <param name="compressionLevel">The compression level for the compress operation.</param>
         /// <returns>The pipeline being configured.</returns>
-        public static Pipeline UseCompressor(this Pipeline pipeline, CompressOptions options) =>
-            pipeline.Use(next => new CompressorInterceptor(next, options));
+        public static Pipeline UseCompressor(
+            this Pipeline pipeline,
+            CompressionLevel compressionLevel = CompressionLevel.Fastest) =>
+            pipeline.Use(next => new CompressorInterceptor(next, compressionLevel));
 
         /// <summary>Adds an interceptor that sets a feature in all requests.</summary>
         /// <paramtype name="T">The type of the feature.</paramtype>
