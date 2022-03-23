@@ -362,12 +362,7 @@ namespace IceRpc.Internal
             }
             catch (Exception exception)
             {
-                await request.PayloadSink.CompleteAsync(exception).ConfigureAwait(false);
-                await request.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
-                if (request.PayloadSourceStream != null)
-                {
-                    await request.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
-                }
+                await request.CompleteAsync(exception).ConfigureAwait(false);
                 if (request.ResponseReader != null)
                 {
                     await request.ResponseReader.CompleteAsync(exception).ConfigureAwait(false);
@@ -428,7 +423,7 @@ namespace IceRpc.Internal
         {
             if (request.IsOneway)
             {
-                await CompleteResponseAsync().ConfigureAwait(false);
+                await response.CompleteAsync().ConfigureAwait(false);
                 return;
             }
 
@@ -440,18 +435,8 @@ namespace IceRpc.Internal
             }
             catch (Exception exception)
             {
-                await CompleteResponseAsync(exception).ConfigureAwait(false);
+                await response.CompleteAsync(exception).ConfigureAwait(false);
                 throw;
-            }
-
-            async Task CompleteResponseAsync(Exception? exception = null)
-            {
-                await response.PayloadSink.CompleteAsync(exception).ConfigureAwait(false);
-                await response.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
-                if (response.PayloadSourceStream != null)
-                {
-                    await response.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
-                }
             }
 
             void EncodeHeader()

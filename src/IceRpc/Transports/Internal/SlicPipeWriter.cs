@@ -169,6 +169,20 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        internal SlicPipeWriter(SlicMultiplexedStream stream, MemoryPool<byte> pool, int minimumSegmentSize)
+        {
+            _stream = stream;
+
+            // Create a pipe that never pauses on flush or write. The SlicePipeWriter will pause the flush or write if
+            // the Slic flow control doesn't permit sending more data. We also use an inline pipe scheduler for write to
+            // avoid thread context switches when FlushAsync is called on the internal pipe writer.
+            _pipe = new(new PipeOptions(
+                pool: pool,
+                minimumSegmentSize: minimumSegmentSize,
+                pauseWriterThreshold: 0,
+                writerScheduler: PipeScheduler.Inline));
+        }
+
         internal void ReceivedStopSendingFrame(long error)
         {
             // TODO: Look into canceling the _stream.SendStreamFrameAsync() call if it's pending?
@@ -183,20 +197,6 @@ namespace IceRpc.Transports.Internal
                     _pipe.Reader.Complete(_exception);
                 }
             }
-        }
-
-        internal SlicPipeWriter(SlicMultiplexedStream stream, MemoryPool<byte> pool, int minimumSegmentSize)
-        {
-            _stream = stream;
-
-            // Create a pipe that never pauses on flush or write. The SlicePipeWriter will pause the flush or write if
-            // the Slic flow control doesn't permit sending more data. We also use an inline pipe scheduler for write to
-            // avoid thread context switches when FlushAsync is called on the internal pipe writer.
-            _pipe = new(new PipeOptions(
-                pool: pool,
-                minimumSegmentSize: minimumSegmentSize,
-                pauseWriterThreshold: 0,
-                writerScheduler: PipeScheduler.Inline));
         }
 
         private void CheckIfCompleted()

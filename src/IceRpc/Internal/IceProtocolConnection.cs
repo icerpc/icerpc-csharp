@@ -362,7 +362,10 @@ namespace IceRpc.Internal
 
                 // Read the full payload source. This can take some time so this needs to be done before acquiring the
                 // send semaphore.
-                ReadResult readResult = await ReadFullPayloadAsync(request.PayloadSource, cancel).ConfigureAwait(false);
+                ReadOnlySequence<byte> payload = await ReadFullPayloadAsync(
+                    request.PayloadSource,
+                    cancel).ConfigureAwait(false);
+                int payloadSize = checked((int)payload.Length);
 
                 // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue to
                 // serialize the sending of frames.
@@ -370,7 +373,8 @@ namespace IceRpc.Internal
                 acquiredSemaphore = true;
 
                 // Assign the request ID for twoway invocations and keep track of the invocation for receiving the
-                // response.
+                // response. The request ID is only assigned once the send semaphore is acquired. We don't want a
+                // canceled request to allocate a request ID that won't be used.
                 int requestId = 0;
                 if (!request.IsOneway)
                 {
@@ -385,9 +389,6 @@ namespace IceRpc.Internal
                         request.Features = request.Features.With(new IceOutgoingRequest(requestId));
                     }
                 }
-
-                ReadOnlySequence<byte> payload = readResult.Buffer;
-                int payloadSize = checked((int)payload.Length);
 
                 int frameSize = EncodeHeader(_networkConnectionWriter, request, requestId, payloadSize);
                 if (frameSize > _options.MaxOutgoingFrameSize)
@@ -407,6 +408,8 @@ namespace IceRpc.Internal
                 // payload to be sent over the connection.
                 if (flushResult.IsCanceled || flushResult.IsCompleted)
                 {
+                    // TODO: throwing here after sending the request is wrong since ReceiveResponse won't be called see
+                    // #828 for a solution.
                     throw new NotSupportedException("payload sink cancellation or completion is not supported");
                 }
 
@@ -424,12 +427,7 @@ namespace IceRpc.Internal
                 {
                     exception = new ConnectionLostException(exception);
                 }
-                await request.PayloadSink.CompleteAsync(exception).ConfigureAwait(false);
-                await request.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
-                if (request.PayloadSourceStream != null)
-                {
-                    await request.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
-                }
+                await request.CompleteAsync(exception).ConfigureAwait(false);
                 throw;
             }
             finally
@@ -499,7 +497,7 @@ namespace IceRpc.Internal
 
                 if (request.IsOneway)
                 {
-                    await CompleteResponseAsync().ConfigureAwait(false);
+                    await response.CompleteAsync().ConfigureAwait(false);
                     return;
                 }
 
@@ -512,15 +510,15 @@ namespace IceRpc.Internal
 
                 // Read the full payload source. This can take some time so this needs to be done before acquiring the
                 // send semaphore.
-                ReadResult readResult = await ReadFullPayloadAsync(response.PayloadSource, cancel).ConfigureAwait(false);
+                ReadOnlySequence<byte> payload = await ReadFullPayloadAsync(
+                    response.PayloadSource,
+                    cancel).ConfigureAwait(false);
+                int payloadSize = checked((int)payload.Length);
 
                 // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue to
                 // serialize the sending of frames.
                 await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
                 acquiredSemaphore = true;
-
-                ReadOnlySequence<byte> payload = readResult.Buffer;
-                int payloadSize = checked((int)payload.Length);
 
                 ReplyStatus replyStatus = ReplyStatus.OK;
 
@@ -569,7 +567,7 @@ namespace IceRpc.Internal
             }
             catch (Exception exception)
             {
-                await CompleteResponseAsync(exception).ConfigureAwait(false);
+                await response.CompleteAsync(exception).ConfigureAwait(false);
                 throw;
             }
             finally
@@ -592,16 +590,6 @@ namespace IceRpc.Internal
                             _dispatchesAndInvocationsCompleted.TrySetResult();
                         }
                     }
-                }
-            }
-
-            async Task CompleteResponseAsync(Exception? exception = null)
-            {
-                await response.PayloadSink.CompleteAsync(exception).ConfigureAwait(false);
-                await response.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
-                if (response.PayloadSourceStream != null)
-                {
-                    await response.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
                 }
             }
 
@@ -862,7 +850,9 @@ namespace IceRpc.Internal
         }
 
         /// <summary>Reads the full Ice payload from the given payload source.</summary>
-        private async Task<ReadResult> ReadFullPayloadAsync(PipeReader payloadSource, CancellationToken cancel)
+        private async Task<ReadOnlySequence<byte>> ReadFullPayloadAsync(
+            PipeReader payloadSource,
+            CancellationToken cancel)
         {
             ReadResult readResult = await payloadSource.ReadAtLeastAsync(
                 _options.MaxOutgoingFrameSize + 1,
@@ -880,7 +870,7 @@ namespace IceRpc.Internal
                     nameof(payloadSource));
             }
 
-            return readResult;
+            return readResult.Buffer;
         }
 
         /// <summary>Receives incoming frames and returns once a request frame is received.</summary>
