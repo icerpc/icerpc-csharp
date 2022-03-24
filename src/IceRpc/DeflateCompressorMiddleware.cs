@@ -7,9 +7,9 @@ using System.IO.Pipelines;
 
 namespace IceRpc
 {
-    /// <summary>A middleware that compresses the 2.0 encoded payload of a response when
-    /// <see cref="Features.CompressPayload.Yes"/> is present in the response features.</summary>
-    public class CompressorMiddleware : IDispatcher
+    /// <summary>A middleware that applies the deflate compression algorithm to the 2.0 encoded payload of a response
+    /// when <see cref="Features.CompressPayload.Yes"/> is present in the response features.</summary>
+    public class DeflateCompressorMiddleware : IDispatcher
     {
         private static readonly ReadOnlySequence<byte> _encodedCompressionFormatValue =
             new(new byte[] { (byte)CompressionFormat.Deflate });
@@ -20,7 +20,9 @@ namespace IceRpc
         /// <summary>Constructs a compressor middleware.</summary>
         /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
         /// <param name="compressionLevel">The compression level for the compress operation.</param>
-        public CompressorMiddleware(IDispatcher next, CompressionLevel compressionLevel = CompressionLevel.Fastest)
+        public DeflateCompressorMiddleware(
+            IDispatcher next,
+            CompressionLevel compressionLevel = CompressionLevel.Fastest)
         {
             _next = next;
             _compressionLevel = compressionLevel;

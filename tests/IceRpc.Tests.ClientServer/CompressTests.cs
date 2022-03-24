@@ -67,7 +67,7 @@ namespace IceRpc.Tests.ClientServer
                             return await next.DispatchAsync(request, cancel);
                         }));
 
-                    router.UseCompressor();
+                    router.UseDeflateCompressor();
 
                     router.Map("/", new InlineDispatcher(
                         async (request, cancel) =>
@@ -129,7 +129,7 @@ namespace IceRpc.Tests.ClientServer
                 }));
 #endif
 
-            pipeline.UseCompressor();
+            pipeline.UseDeflateCompressor();
 
 #if LOG_PIPE_WRITER
             pipeline.Use(next => new InlineInvoker(
@@ -156,7 +156,7 @@ namespace IceRpc.Tests.ClientServer
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher>(_ =>
                 {
-                    Router router = new Router().UseCompressor();
+                    Router router = new Router().UseDeflateCompressor();
 
                     if (compressPayload)
                     {
@@ -183,7 +183,7 @@ namespace IceRpc.Tests.ClientServer
 
             int uncompressedLength = withStream ? _mainPayload.Length + _streamPayload.Length : _mainPayload.Length;
 
-            Pipeline pipeline = new Pipeline().UseCompressor();
+            Pipeline pipeline = new Pipeline().UseDeflateCompressor();
             pipeline.Use(next => new InlineInvoker(
                 async (request, cancel) =>
                 {

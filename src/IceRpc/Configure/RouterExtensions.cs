@@ -9,14 +9,14 @@ namespace IceRpc.Configure
     /// </summary>
     public static class RouterExtensions
     {
-        /// <summary>Adds a <see cref="CompressorMiddleware"/> to the router.</summary>
+        /// <summary>Adds a <see cref="DeflateCompressorMiddleware"/> to the router.</summary>
         /// <param name="router">The router being configured.</param>
         /// <param name="compressionLevel">The compression level for the compress operation.</param>
         /// <returns>The router being configured.</returns>
-        public static Router UseCompressor(
+        public static Router UseDeflateCompressor(
             this Router router,
             CompressionLevel compressionLevel = CompressionLevel.Fastest) =>
-            router.Use(next => new CompressorMiddleware(next, compressionLevel));
+            router.Use(next => new DeflateCompressorMiddleware(next, compressionLevel));
 
         /// <summary>Adds a middleware that sets a feature in all requests.</summary>
         /// <paramtype name="T">The type of the feature.</paramtype>

@@ -27,7 +27,7 @@ public class CompressorInterceptorTests
     {
         // Arrange
         var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request)));
-        var sut = new CompressorInterceptor(invoker);
+        var sut = new DeflateCompressorInterceptor(invoker);
         var outStream = new MemoryStream();
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
         {
@@ -57,7 +57,7 @@ public class CompressorInterceptorTests
     public async Task Compressor_interceptor_without_compress_feature_does_not_update_the_payload_sink()
     {
         var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request)));
-        var sut = new CompressorInterceptor(invoker);
+        var sut = new DeflateCompressorInterceptor(invoker);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
         var initialPayloadSink = request.PayloadSink;
 
@@ -72,7 +72,7 @@ public class CompressorInterceptorTests
     public async Task Compressor_interceptor_does_not_update_the_payload_sink_if_request_is_already_compressed()
     {
         var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request)));
-        var sut = new CompressorInterceptor(invoker);
+        var sut = new DeflateCompressorInterceptor(invoker);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
         request.Features = request.Features.With(Features.CompressPayload.Yes);
         request.Fields = request.Fields.With(
@@ -99,7 +99,7 @@ public class CompressorInterceptorTests
             initialPayload = response.Payload;
             return Task.FromResult(response);
         });
-        var sut = new CompressorInterceptor(invoker);
+        var sut = new DeflateCompressorInterceptor(invoker);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
 
         IncomingResponse response = await sut.InvokeAsync(request, default);
@@ -120,7 +120,7 @@ public class CompressorInterceptorTests
             response.Payload = PipeReader.Create(CreateCompressedPayload(_payload));
             return Task.FromResult(response);
         });
-        var sut = new CompressorInterceptor(invoker);
+        var sut = new DeflateCompressorInterceptor(invoker);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
 
         IncomingResponse response = await sut.InvokeAsync(request, default);

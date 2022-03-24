@@ -33,7 +33,7 @@ public class CompressorMiddlewareTests
             response.PayloadSink = PipeWriter.Create(outStream);
             return new(response);
         });
-        var sut = new CompressorMiddleware(dispatcher);
+        var sut = new DeflateCompressorMiddleware(dispatcher);
 
         // Act
         OutgoingResponse response = await sut.DispatchAsync(new IncomingRequest(Protocol.IceRpc));
@@ -62,7 +62,7 @@ public class CompressorMiddlewareTests
             initialPayloadSink = response.PayloadSink;
             return new(response);
         });
-        var sut = new CompressorMiddleware(dispatcher);
+        var sut = new DeflateCompressorMiddleware(dispatcher);
 
         OutgoingResponse response = await sut.DispatchAsync(new IncomingRequest(Protocol.IceRpc));
 
@@ -85,7 +85,7 @@ public class CompressorMiddlewareTests
             initialPayloadSink = response.PayloadSink;
             return new(response);
         });
-        var sut = new CompressorMiddleware(dispatcher);
+        var sut = new DeflateCompressorMiddleware(dispatcher);
 
         var response = await sut.DispatchAsync(new IncomingRequest(Protocol.IceRpc), default);
 
@@ -103,7 +103,7 @@ public class CompressorMiddlewareTests
             requestPayload = request.Payload;
             return new(new OutgoingResponse(request));
         });
-        var sut = new CompressorMiddleware(dispatcher);
+        var sut = new DeflateCompressorMiddleware(dispatcher);
         IncomingRequest request = CreateRequestWitCompressionFormatField(_unknownEncodedCompressionFormatValue);
 
         await sut.DispatchAsync(request, default);
@@ -117,7 +117,7 @@ public class CompressorMiddlewareTests
     public async Task Decompress_request_payload()
     {
         var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
-        var sut = new CompressorMiddleware(dispatcher);
+        var sut = new DeflateCompressorMiddleware(dispatcher);
         IncomingRequest request = CreateRequestWitCompressionFormatField(_deflateEncodedCompressionFormatValue);
         request.Payload = PipeReader.Create(CreateCompressedPayload(_payload));
 
