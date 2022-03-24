@@ -30,8 +30,8 @@ namespace IceRpc.Configure
         /// <summary>Gets or sets the logger factory used to create the IceRpc logger.</summary>
         public ILoggerFactory LoggerFactory { get; set; } = NullLoggerFactory.Instance;
 
-        /// <summary>Gets or sets the refresh threshold. When the age of a cache entry is <see cref="RefreshThreshold"/>
-        /// or less, it's considered up to date and won't be updated even when the caller requests a refresh.</summary>
+        /// <summary>Gets or sets the refresh threshold. When the age of a cache entry is less than or equal to this
+        /// value, it's considered up to date and won't be updated even when the caller requests a refresh.</summary>
         /// <value>The refresh threshold. The default is 1 second.</value>
         public TimeSpan RefreshThreshold { get; set; } = TimeSpan.FromSeconds(1);
 
