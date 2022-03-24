@@ -21,7 +21,7 @@ namespace IceRpc.Configure
         {
             // This location resolver can be shared by multiple location interceptor/pipelines, in particular
             // sub-pipelines created with Pipeline.With.
-            var locationResolver = ILocationResolver.FromLocator(options);
+            var locationResolver = new LocatorLocationResolver(options);
             return pipeline.Use(next => new LocatorInterceptor(next, locationResolver));
         }
     }
