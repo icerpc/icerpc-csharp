@@ -17,8 +17,8 @@ namespace IceRpc
 
         /// <summary>Constructs a locator interceptor.</summary>
         /// <param name="next">The next invoker in the invocation pipeline.</param>
-        /// <param name="locationResolver">The location resolver. It is usually created by
-        /// <see cref="ILocationResolver.FromLocator"/>.</param>
+        /// <param name="locationResolver">The location resolver. It is usually a <see cref="LocatorLocationResolver"/>.
+        /// </param>
         public LocatorInterceptor(IInvoker next, ILocationResolver locationResolver)
         {
             _next = next;
@@ -96,9 +96,13 @@ namespace IceRpc
                         }
                         // else, resolution failed and we don't update anything
                     }
-                    catch
+                    catch (Slice.RemoteException)
                     {
-                        // Ignore any exception from the location resolver. It should have been logged earlier.
+                        // Ignore any remote exception from the location resolver. It should have been logged earlier.
+                    }
+                    catch (InvalidDataException)
+                    {
+                        // Ignored.
                     }
                 }
             }
@@ -111,69 +115,6 @@ namespace IceRpc
 
             internal CachedResolutionFeature(Location location) => Location = location;
         }
-    }
-
-    /// <summary>A location resolver resolves a location into a list of endpoints carried by a dummy proxy, and
-    /// optionally maintains a cache for these resolutions. It's consumed by <see cref="LocatorInterceptor"/>
-    /// and typically uses an <see cref="IEndpointFinder"/> and an <see cref="IEndpointCache"/> in its implementation.
-    /// When the dummy proxy returned by ResolveAsync is not null, its Endpoint property is guaranteed to be not null.
-    /// </summary>
-    public interface ILocationResolver
-    {
-        /// <summary>Creates a new location resolver.</summary>
-        /// <param name="options">The configuration options for this locator-based location resolver.</param>
-        /// <returns>A new location resolver.</returns>
-        public static ILocationResolver FromLocator(Configure.LocatorOptions options)
-        {
-            if (options.Locator is not ILocatorPrx locator)
-            {
-                throw new ArgumentException($"{nameof(options.Locator)} is null", nameof(options));
-            }
-
-            if (options.Ttl != Timeout.InfiniteTimeSpan && options.JustRefreshedAge >= options.Ttl)
-            {
-                throw new ArgumentException(
-                    $"{nameof(options.JustRefreshedAge)} must be smaller than {nameof(options.Ttl)}",
-                    nameof(options));
-            }
-
-            ILogger logger = options.LoggerFactory.CreateLogger("IceRpc");
-
-            // Create and decorate endpoint cache (if caching enabled):
-            IEndpointCache? endpointCache = options.Ttl != TimeSpan.Zero && options.CacheMaxSize > 0 ?
-                new LogEndpointCacheDecorator(new EndpointCache(options.CacheMaxSize), logger) : null;
-
-            // Create an decorate endpoint finder:
-            IEndpointFinder endpointFinder = new LocatorEndpointFinder(locator);
-            endpointFinder = new LogEndpointFinderDecorator(endpointFinder, logger);
-            if (endpointCache != null)
-            {
-                endpointFinder = new CacheUpdateEndpointFinderDecorator(endpointFinder, endpointCache);
-            }
-            endpointFinder = new CoalesceEndpointFinderDecorator(endpointFinder);
-
-            // Create and decorate location resolver:
-            return new LogLocationResolverDecorator(
-                endpointCache == null ? new CacheLessLocationResolver(endpointFinder) :
-                    new LocationResolver(endpointFinder,
-                                         endpointCache,
-                                         options.Background,
-                                         options.JustRefreshedAge,
-                                         options.Ttl),
-                logger);
-        }
-
-        /// <summary>Resolves a location into a list of endpoints carried by a dummy proxy.</summary>
-        /// <param name="location">The location.</param>
-        /// <param name="refreshCache">When <c>true</c>, requests a cache refresh.</param>
-        /// <param name="cancel">The cancellation token.</param>
-        /// <returns>A tuple with a nullable dummy proxy that holds the endpoint(s) (if resolved), and a bool that
-        /// indicates whether these endpoints were retrieved from the implementation's cache. Proxy is null when
-        /// the location resolver fails to resolve a location.</returns>
-        ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(
-            Location location,
-            bool refreshCache,
-            CancellationToken cancel);
     }
 
     /// <summary>A location is either an adapter ID or a path.</summary>
@@ -189,5 +130,83 @@ namespace IceRpc
 
         /// <inheritdoc/>
         public override string ToString() => Value;
+    }
+
+    /// <summary>A location resolver resolves a location into one or more endpoints carried by a dummy proxy, and
+    /// optionally maintains a cache for these resolutions. It's consumed by <see cref="LocatorInterceptor"/>.
+    /// </summary>
+    public interface ILocationResolver
+    {
+        /// <summary>Resolves a location into one or more endpoints carried by a dummy proxy.</summary>
+        /// <param name="location">The location.</param>
+        /// <param name="refreshCache">When <c>true</c>, requests a cache refresh.</param>
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>A tuple with a nullable dummy proxy that holds the endpoint(s) (if resolved), and a bool that
+        /// indicates whether these endpoints were retrieved from the implementation's cache. Proxy is null when
+        /// the location resolver fails to resolve a location. When Proxy is not null, its Endpoint must be not null.
+        /// </returns>
+        ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(
+            Location location,
+            bool refreshCache,
+            CancellationToken cancel);
+    }
+
+    /// <summary>Implements <see cref="ILocationResolver"/> using a locator proxy.</summary>
+    public class LocatorLocationResolver : ILocationResolver
+    {
+        private readonly Lazy<ILocationResolver> _locationResolver;
+
+        /// <summary>Constructs a locator location resolver.</summary>
+        /// <param name="options">The locator options.</param>
+        public LocatorLocationResolver(Configure.LocatorOptions options)
+        {
+            _locationResolver = new(() =>
+            {
+                // This is the composition root of this locator location resolver. We execute it lazily to allow the
+                // application to change (configure) options after construction.
+
+                if (options.Locator is not ILocatorPrx locator)
+                {
+                    throw new InvalidOperationException($"{nameof(options.Locator)} is null");
+                }
+
+                if (options.Ttl != Timeout.InfiniteTimeSpan && options.RefreshThreshold >= options.Ttl)
+                {
+                    throw new InvalidOperationException(
+                        $"{nameof(options.RefreshThreshold)} must be smaller than {nameof(options.Ttl)}");
+                }
+
+                ILogger logger = options.LoggerFactory.CreateLogger("IceRpc");
+
+                // Create and decorate endpoint cache (if caching enabled):
+                IEndpointCache? endpointCache = options.Ttl != TimeSpan.Zero && options.CacheMaxSize > 0 ?
+                    new LogEndpointCacheDecorator(new EndpointCache(options.CacheMaxSize), logger) : null;
+
+                // Create an decorate endpoint finder:
+                IEndpointFinder endpointFinder = new LocatorEndpointFinder(locator);
+                endpointFinder = new LogEndpointFinderDecorator(endpointFinder, logger);
+                if (endpointCache != null)
+                {
+                    endpointFinder = new CacheUpdateEndpointFinderDecorator(endpointFinder, endpointCache);
+                }
+                endpointFinder = new CoalesceEndpointFinderDecorator(endpointFinder);
+
+                // Create and decorate location resolver:
+                return new LogLocationResolverDecorator(
+                    endpointCache == null ? new CacheLessLocationResolver(endpointFinder) :
+                        new LocationResolver(
+                            endpointFinder,
+                            endpointCache,
+                            options.Background,
+                            options.RefreshThreshold,
+                            options.Ttl),
+                    logger);
+            });
+        }
+
+        ValueTask<(Proxy? Proxy, bool FromCache)> ILocationResolver.ResolveAsync(
+            Location location,
+            bool refreshCache,
+            CancellationToken cancel) => _locationResolver.Value.ResolveAsync(location, refreshCache, cancel);
     }
 }

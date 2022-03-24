@@ -39,8 +39,8 @@ namespace IceRpc.Internal
     {
         private readonly bool _background;
         private readonly IEndpointCache _endpointCache;
-        private readonly TimeSpan _justRefreshedAge;
         private readonly IEndpointFinder _endpointFinder;
+        private readonly TimeSpan _refreshThreshold;
 
         private readonly TimeSpan _ttl;
 
@@ -48,13 +48,13 @@ namespace IceRpc.Internal
             IEndpointFinder endpointFinder,
             IEndpointCache endpointCache,
             bool background,
-            TimeSpan justRefreshedAge,
+            TimeSpan refreshThreshold,
             TimeSpan ttl)
         {
             _endpointFinder = endpointFinder;
             _endpointCache = endpointCache;
             _background = background;
-            _justRefreshedAge = justRefreshedAge;
+            _refreshThreshold = refreshThreshold;
             _ttl = ttl;
         }
 
@@ -78,7 +78,7 @@ namespace IceRpc.Internal
                 proxy = entry.Proxy;
                 TimeSpan cacheEntryAge = Time.Elapsed - entry.InsertionTime;
                 expired = _ttl != Timeout.InfiniteTimeSpan && cacheEntryAge > _ttl;
-                justRefreshed = cacheEntryAge <= _justRefreshedAge;
+                justRefreshed = cacheEntryAge <= _refreshThreshold;
             }
 
             if (proxy == null || (!_background && expired) || (refreshCache && !justRefreshed))
