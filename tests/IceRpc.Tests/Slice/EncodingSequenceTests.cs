@@ -17,6 +17,22 @@ public class EncodingSequenceTests
     private readonly SliceEncoding _encoding;
     private readonly MemoryBufferWriter _bufferWriter;
 
+    /// <summary>Provides test case data for <see cref="EncodingSequence_Long(IEnumerable<long>)"/> test.</summary>
+    private static IEnumerable<TestCaseData> SequenceLongData
+    {
+        get
+        {
+            foreach (int size in new int[] { 0, 256 })
+            {
+                var p1 = Enumerable.Range(0, size).Select(i => (long)i);
+                yield return new TestCaseData(p1);
+                yield return new TestCaseData(ImmutableArray.CreateRange(p1));
+                yield return new TestCaseData(new ArraySegment<long>(p1.ToArray()));
+                yield return new TestCaseData(p1.ToArray());
+            };
+        }
+    }
+
     public EncodingSequenceTests(string encoding)
     {
         _encoding = SliceEncoding.FromString(encoding);
@@ -69,37 +85,17 @@ public class EncodingSequenceTests
     /// the <see cref="T[]"/>, <see cref="ImmutableArray{T}"/>, and <see cref="ArraySegment{T}"/>
     /// cases for <see cref="SliceEncoderExtensions.EncodeSequence"/>. Finally, covers
     /// <see cref="SliceDecoder.DecodeLong"/>.</summary>
-    /// <param name="size">An int used to specify how many elements to generate in the sequence.</param>
-    [TestCase(0)]
-    [TestCase(256)]
-    public void EncodingSequence_Long(int size)
+    /// <param name="p1">The IEnumerable<long> to be encoded.</param>
+    [Test, TestCaseSource(nameof(SequenceLongData))]
+    public void EncodingSequence_Long(IEnumerable<long> p1)
     {
         var encoder = new SliceEncoder(_bufferWriter, _encoding);
         var decoder = new SliceDecoder(_buffer, _encoding);
 
-        IEnumerable<long> p1 = Enumerable.Range(0, size).Select(i => (long)i);
-        ImmutableArray<long> p2 = ImmutableArray.CreateRange(p1);
-        ArraySegment<long> p3 = new ArraySegment<long>(p1.ToArray());
-        long[] p4 = p1.ToArray();
-
         encoder.EncodeSequence(p1);
-        encoder.EncodeSequence(p2);
-        encoder.EncodeSequence(p3);
-        encoder.EncodeSequence(p4);
 
         long[] r1 = decoder.DecodeSequence(minElementSize: 1, (ref SliceDecoder decoder) => decoder.DecodeLong());
-        long[] r2 = decoder.DecodeSequence(minElementSize: 1, (ref SliceDecoder decoder) => decoder.DecodeLong());
-        long[] r3 = decoder.DecodeSequence(minElementSize: 1, (ref SliceDecoder decoder) => decoder.DecodeLong());
-        List<long> r4 = decoder.DecodeSequence(
-            minElementSize: 1,
-            (int i) => new List<long>(i),
-            (ref SliceDecoder decoder) => decoder.DecodeLong());
-
         Assert.That(p1, Is.EqualTo(r1));
-        Assert.That(p2, Is.EqualTo(r2));
-        Assert.That(p3, Is.EqualTo(r3));
-        Assert.That(p4, Is.EqualTo(r4));
-
         Assert.That(decoder.Consumed, Is.EqualTo(_bufferWriter.WrittenMemory.Length));
     }
 }
