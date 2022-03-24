@@ -1,9 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice.Internal;
-using IceRpc.Tests;
 using NUnit.Framework;
-using System.IO.Pipelines;
 
 namespace IceRpc.Slice.Tests;
 
@@ -28,9 +26,9 @@ public class DecodingBuiltInTypesTests
         Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
     }
 
-    /// <summary>Test the decoding of a variable length long. NOt/summary>
-    /// <param name="encodedBytes">T>An encoded byte array to decode.</param>
-    /// <param name="expected">The expected ulong to be decoded.</param>
+    /// <summary>Test the decoding of variable size long.</summary>
+    /// <param name="encodedBytes">An encoded byte array to decode.</param>
+    /// <param name="expected">The expected long to be decoded.</param>
     [TestCase(new byte[] { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 }, SliceEncoder.VarLongMinValue)]
     [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F }, SliceEncoder.VarLongMaxValue)]
     [TestCase(new byte[] { 0x00 }, 0)]
@@ -45,9 +43,9 @@ public class DecodingBuiltInTypesTests
         Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
     }
 
-    /// <summary>Test the decoding of a variable length long. NOt/summary>
-    /// <param name="encodedBytes">T>An encoded byte array to decode.</param>
-    /// <param name="expected">The expected ulong to be decoded.</param>
+    /// <summary>Test the decoding of a variable length int.</summary>
+    /// <param name="encodedBytes">An encoded byte array to decode.</param>
+    /// <param name="expected">The expected int to be decoded.</param>
     [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0x01, 0x00, 0x00, 0x00 }, Int32.MaxValue)]
     [TestCase(new byte[] { 0xFE, 0xFF, 0xFF, 0x3F }, (int)Int32.MaxValue / 8)]
     [TestCase(new byte[] { 0x00 }, 0)]
@@ -61,9 +59,9 @@ public class DecodingBuiltInTypesTests
         Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
     }
 
-    /// <summary>Test the decoding of a variable length long. NOt/summary>
-    /// <param name="encodedBytes">T>An encoded byte array to decode.</param>
-    /// <param name="expected">The expected ulong to be decoded.</param>
+    /// <summary>Test that attempting to decode a variable length int that that is out of bound throws
+    /// an <see cref="InvalidDataException"/>.</summary>
+    /// <param name="p1">A long to encode into a byte array that will fail to be decoded into an int.</param>
     [TestCase((long)Int32.MaxValue + 1)]
     [TestCase((long)Int32.MinValue - 1)]
     public void Fail_to_decode_varint(long p1)
@@ -81,9 +79,9 @@ public class DecodingBuiltInTypesTests
         }, Throws.InstanceOf<InvalidDataException>());
     }
 
-    /// <summary>Test the decoding of a variable size unsigned lonf.</summary>
+    /// <summary>Test the decoding of a variable size signed long.</summary>
     /// <param name="encodedBytes">>An encoded byte array to decode.</param>
-    /// <param name="expected">The expected varulong to be decoded.</param>
+    /// <param name="expected">The expected ulong to be decoded.</param>
     [TestCase(new byte[] { 0x00 }, SliceEncoder.VarULongMinValue)]
     [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, SliceEncoder.VarULongMaxValue)]
     public void Decoding_varulong(byte[] encodedBytes, ulong expected)
@@ -96,7 +94,9 @@ public class DecodingBuiltInTypesTests
         Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
     }
 
-    /// <summary>Test the decoding of a variable size numeric type.</summary>
+    /// <summary>Test the decoding of a variable length unsigned int.</summary>
+    /// <param name="encodedBytes">An encoded byte array to decode.</param>
+    /// <param name="expected">The expected uint to be decoded.</param>
     [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0x03, 0x00, 0x00, 0x00 }, uint.MaxValue)]
     [TestCase(new byte[] { 0xFE, 0xFF, 0xFF, 0x7F }, (uint)uint.MaxValue / 8)]
     [TestCase(new byte[] { 0x00 }, uint.MinValue)]
@@ -104,15 +104,15 @@ public class DecodingBuiltInTypesTests
     {
         var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice20);
 
-        long r1 = sut.DecodeVarUInt();
+        uint r1 = sut.DecodeVarUInt();
 
         Assert.That(r1, Is.EqualTo(expected));
         Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
     }
 
-    /// <summary>Test the decoding of a variable length long. </summary>
-    /// <param name="encodedBytes">T>An encoded byte array to decode.</param>
-    /// <param name="expected">The expected ulong to be decoded.</param>
+    /// <summary>Test that attempting to decode a variable length unisgned int that that is out of bound throws
+    /// an <see cref="InvalidDataException"/>.</summary>
+    /// <param name="p1">A long to encode into a byte array that will fail to be decoded into an uint.</param>
     [TestCase((ulong)UInt32.MaxValue + 1)]
     public void Fail_to_decode_varuint(ulong p1)
     {
