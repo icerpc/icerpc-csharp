@@ -466,10 +466,10 @@ namespace IceRpc.Internal
                     request.Fields.ContainsKey(RequestFieldKey.Idempotent) ?
                         OperationMode.Idempotent : OperationMode.Normal,
                     request.Features.GetContext(),
-                    new EncapsulationHeader(encapsulationSize: payloadSize + 6, encodingMajor, encodingMinor));
+                    new EncapsulationHeader(encapsulationSize: checked(payloadSize + 6), encodingMajor, encodingMinor));
                 requestHeader.Encode(ref encoder);
 
-                int frameSize = encoder.EncodedByteCount + payloadSize;
+                int frameSize = checked(encoder.EncodedByteCount + payloadSize);
                 SliceEncoder.EncodeInt(frameSize, sizePlaceholder.Span);
                 return frameSize;
             }
@@ -607,14 +607,14 @@ namespace IceRpc.Internal
                     // possibly use to decode the response payload is 1.1 or 1.0, and we don't care about interop with
                     // 1.0.
                     var encapsulationHeader = new EncapsulationHeader(
-                        encapsulationSize: payloadSize + 6,
+                        encapsulationSize: checked(payloadSize + 6),
                         payloadEncodingMajor: 1,
                         payloadEncodingMinor: 1);
                     encapsulationHeader.Encode(ref encoder);
                 }
                 // else the reply status (> UserException) is part of the payload
 
-                int frameSize = encoder.EncodedByteCount + payloadSize;
+                int frameSize = checked(encoder.EncodedByteCount + payloadSize);
                 SliceEncoder.EncodeInt(frameSize, sizePlaceholder.Span);
                 return frameSize;
             }
