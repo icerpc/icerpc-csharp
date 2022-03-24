@@ -391,12 +391,6 @@ namespace IceRpc.Internal
                 }
 
                 int frameSize = EncodeHeader(_networkConnectionWriter, request, requestId, payloadSize);
-                if (frameSize > _options.MaxOutgoingFrameSize)
-                {
-                    throw new ArgumentException(
-                        "request frame size is greater than the max outgoing frame size",
-                        nameof(request));
-                }
 
                 FlushResult flushResult = await request.PayloadSink.WriteAsync(
                     payload,
@@ -541,12 +535,6 @@ namespace IceRpc.Internal
                 }
 
                 int frameSize = EncodeHeader(_networkConnectionWriter, requestFeature!.Id, payloadSize, replyStatus);
-                if (frameSize > _options.MaxOutgoingFrameSize)
-                {
-                    throw new ArgumentException(
-                        "response frame size is greater than the max outgoing frame size",
-                        nameof(response));
-                }
 
                 // Write the payload and complete the source.
                 FlushResult flushResult = await response.PayloadSink.WriteAsync(
@@ -850,27 +838,21 @@ namespace IceRpc.Internal
         }
 
         /// <summary>Reads the full Ice payload from the given payload source.</summary>
-        private async Task<ReadOnlySequence<byte>> ReadFullPayloadAsync(
+        private static async ValueTask<ReadOnlySequence<byte>> ReadFullPayloadAsync(
             PipeReader payloadSource,
             CancellationToken cancel)
         {
-            ReadResult readResult = await payloadSource.ReadAtLeastAsync(
-                _options.MaxOutgoingFrameSize + 1,
-                cancel).ConfigureAwait(false);
+            // We use ReadAtLeastAsync instead of ReadAsync to bypass the PauseWriterThreshold when the payloadSource
+            // is backed by a Pipe.
+            ReadResult readResult = await payloadSource.ReadAtLeastAsync(int.MaxValue, cancel).ConfigureAwait(false);
 
             if (readResult.IsCanceled)
             {
                 throw new OperationCanceledException();
             }
 
-            if (!readResult.IsCompleted)
-            {
-                throw new ArgumentException(
-                    "payload size is greater than the max outgoing frame size",
-                    nameof(payloadSource));
-            }
-
-            return readResult.Buffer;
+            return readResult.IsCompleted ? readResult.Buffer :
+                throw new ArgumentException("the payload size is greater than int.MaxValue", nameof(payloadSource));
         }
 
         /// <summary>Receives incoming frames and returns once a request frame is received.</summary>
