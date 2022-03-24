@@ -304,37 +304,49 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+        public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            // A connection can be closed concurrently so as long as ConnectAsync succeeds, we loop to get the
-            // protocol connection.
-            IProtocolConnection protocolConnection;
-            while (true)
+            IProtocolConnection? protocolConnection = null;
+            lock (_mutex)
             {
-                lock (_mutex)
+                if (_state == ConnectionState.Active)
                 {
-                    if (_state == ConnectionState.Active)
-                    {
-                        protocolConnection = _protocolConnection!;
-                        break; // while
-                    }
+                    protocolConnection = _protocolConnection!;
                 }
-
-                await ConnectAsync(cancel).ConfigureAwait(false);
             }
 
-            // SendRequestAsync is responsible for completing the payload sources and sink.
-            await protocolConnection.SendRequestAsync(request, cancel).ConfigureAwait(false);
+            // SendRequestAsync is responsible for completing the payload sources and sink. The caller is responsible
+            // for completing the response payload.
+            if (protocolConnection == null)
+            {
+                return PerformConnectAndSendRequest();
+            }
+            else
+            {
+                return protocolConnection.SendRequestAsync(this, request, cancel);
+            }
 
-            // Wait for the response if it's a two-way request, otherwise return a response with an empty payload.
-            IncomingResponse response = request.IsOneway ?
-                new IncomingResponse(request) :
-                await protocolConnection.ReceiveResponseAsync(request, cancel).ConfigureAwait(false);
+            async Task<IncomingResponse> PerformConnectAndSendRequest()
+            {
+                // A connection can be closed concurrently so as long as ConnectAsync succeeds, we loop to get the
+                // protocol connection.
+                IProtocolConnection protocolConnection;
+                while (true)
+                {
+                    lock (_mutex)
+                    {
+                        if (_state == ConnectionState.Active)
+                        {
+                            protocolConnection = _protocolConnection!;
+                            break;
+                        }
+                    }
 
-            response.Connection = this;
+                    await ConnectAsync(cancel).ConfigureAwait(false);
+                }
 
-            // The caller is responsible for completing the response payload.
-            return response;
+                return await protocolConnection.SendRequestAsync(this, request, cancel).ConfigureAwait(false);
+            }
         }
 
         /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
@@ -472,12 +484,32 @@ namespace IceRpc
                             idleTimeout / 2);
                     }
 
-                    // Start the receive request task. The task accepts new incoming requests and processes them. It
-                    // only completes once the connection is closed.
+                    // Start accepting requests. We capture the protocol connection to run the task to ensure we accept
+                    // requests on the new connection.
                     IProtocolConnection protocolConnection = _protocolConnection;
-                    _ = Task.Run(
-                        () => AcceptIncomingRequestAsync(protocolConnection, _options.Dispatcher),
-                        CancellationToken.None);
+                    _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await protocolConnection.AcceptRequestsAsync(
+                                    this,
+                                    _options.Dispatcher).ConfigureAwait(false);
+                            }
+                            catch (Exception exception)
+                            {
+                                // TODO: it's very painful to just eat this exception
+                                // Console.WriteLine($"ReceiveRequestAsync exception: {exception}");
+
+                                // Unexpected exception, if the connection hasn't been resumed already, close the connection.
+                                lock (_mutex)
+                                {
+                                    if (protocolConnection == _protocolConnection)
+                                    {
+                                        _ = CloseAsync(exception);
+                                    }
+                                }
+                            }
+                        });
                 }
             }
             catch (OperationCanceledException)
@@ -533,125 +565,6 @@ namespace IceRpc
                     // Note that this doesn't imply that we are sending 4 heartbeats per timeout period because Monitor
                     // is still only called every (IdleTimeout / 2) period.
                     _ = _protocolConnection.PingAsync(CancellationToken.None);
-                }
-            }
-        }
-
-        /// <summary>Accepts an incoming request and dispatch it. As soon as new incoming request is accepted but before
-        /// it's dispatched, a new accept incoming request task is started to allow multiple incoming requests to be
-        /// dispatched. The protocol implementation can limit the number of concurrent dispatch by no longer accepting a
-        /// new request when a limit is reached.</summary>
-        private async Task AcceptIncomingRequestAsync(IProtocolConnection protocolConnection, IDispatcher dispatcher)
-        {
-            IncomingRequest request;
-            try
-            {
-                request = await protocolConnection.ReceiveRequestAsync().ConfigureAwait(false);
-            }
-            catch (Exception exception)
-            {
-                // TODO: it's very painful to just eat this exception
-                // Console.WriteLine($"ReceiveRequestAsync exception: {exception}");
-
-                // Unexpected exception, if the connection hasn't been resumed already, close the connection.
-                lock (_mutex)
-                {
-                    if (protocolConnection == _protocolConnection)
-                    {
-                        _ = CloseAsync(exception);
-                    }
-                }
-                return;
-            }
-
-            // Start a new task to accept a new incoming request before dispatching this one.
-            _ = Task.Run(() => AcceptIncomingRequestAsync(protocolConnection, dispatcher));
-
-            OutgoingResponse response;
-
-            // Dispatch the request and get the response.
-            try
-            {
-                CancellationToken cancel = request.CancelDispatchSource?.Token ?? default;
-                request.Connection = this;
-
-                // The dispatcher is responsible for completing the incoming request payload source.
-                response = await dispatcher.DispatchAsync(request, cancel).ConfigureAwait(false);
-            }
-            catch (Exception exception)
-            {
-                // If we catch an exception, we return a failure response with a Slice-encoded payload.
-
-                if (exception is OperationCanceledException)
-                {
-                    // TODO: we shouldn't have this protocol specific handling of OperationCanceledException here.
-                    if (Protocol == Protocol.Ice)
-                    {
-                        exception = new DispatchException("dispatch canceled by peer", DispatchErrorCode.Canceled);
-                    }
-                    else
-                    {
-                        // The dispatcher completes the incoming request payload even on failures. We just complete the
-                        // response writer here.
-                        await request.ResponseWriter.CompleteAsync(
-                            IceRpcStreamError.DispatchCanceled.ToException()).ConfigureAwait(false);
-
-                        // We're done since the completion of the response writer aborts the stream, we don't send a
-                        // response.
-                        return;
-                    }
-                }
-
-                // With the ice protocol, a ResultType = Failure exception must be an ice system exception.
-                if (exception is not RemoteException remoteException ||
-                    remoteException.ConvertToUnhandled ||
-                    (Protocol == Protocol.Ice && remoteException is not DispatchException))
-                {
-                    remoteException = new DispatchException(
-                        message: null,
-                        exception is InvalidDataException ?
-                            DispatchErrorCode.InvalidData : DispatchErrorCode.UnhandledException,
-                        exception);
-                }
-
-                SliceEncoding sliceEncoding = request.Protocol.SliceEncoding!;
-
-                response = new OutgoingResponse(request)
-                {
-                    PayloadSource = sliceEncoding.CreatePayloadFromRemoteException(remoteException),
-                    ResultType = ResultType.Failure
-                };
-
-                if (Protocol.HasFields && remoteException.RetryPolicy != RetryPolicy.NoRetry)
-                {
-                    RetryPolicy retryPolicy = remoteException.RetryPolicy;
-                    response.Fields = response.Fields.With(
-                        ResponseFieldKey.RetryPolicy,
-                        (ref SliceEncoder encoder) => retryPolicy.Encode(ref encoder));
-                }
-            }
-
-            try
-            {
-                // SendResponseAsync is responsible for completing the response payload sources and sink.
-                await protocolConnection.SendResponseAsync(
-                    response,
-                    request,
-                    CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (MultiplexedStreamAbortedException)
-            {
-                // Ignore, the peer aborted the stream and at this point, there's not much we can do to report it.
-            }
-            catch (Exception exception)
-            {
-                lock (_mutex)
-                {
-                    // Unexpected exception, if the connection hasn't been resumed already, close the connection.
-                    if (protocolConnection == _protocolConnection)
-                    {
-                        _ = CloseAsync(exception);
-                    }
                 }
             }
         }

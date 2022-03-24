@@ -44,10 +44,6 @@ namespace IceRpc
         /// <summary>Returns the proxy that is sending this request.</summary>
         public Proxy Proxy { get; }
 
-        /// <summary>Returns the pipe reader used to read the response. The protocol connection implementation may or
-        /// may not set this property when sending the request.</summary>
-        internal PipeReader? ResponseReader { get; set; }
-
         private DelayedPipeWriterDecorator? _initialPayloadSink;
         private PipeWriter? _payloadSink;
 
