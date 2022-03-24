@@ -20,23 +20,23 @@ class MultiTagged
     mDouble: tag(7) double?,
     mString: tag(15) string?,
 
-    mMyEnum: tag(20) MyEnum?,
-    mMyCompactStruct: tag(21) MyCompactStruct?,
-    mAnotherCompactStruct: tag(22) AnotherCompactStruct?,
-
-    mByteSeq: tag(30) ByteSeq?,
-    mStringSeq: tag(31) StringSeq?,
-    mShortSeq: tag(32) ShortSeq?,
-    mMyEnumSeq: tag(33) MyEnumSeq?,
-    mMyCompactStructSeq: tag(34) MyCompactStructSeq?,
-    mAnotherCompactStructSeq: tag(35) AnotherCompactStructSeq?,
-
-    mIntDict: tag(40) IntDict?,
-    mStringDict: tag(41) StringDict?,
-
-    mByteDict: tag(50) ByteDict?,
-    mMyCompactStructDict: tag(51) MyCompactStructDict?,
-    mAnotherCompactStructDict: tag(52) AnotherCompactStructDict?,
+//    mMyEnum: tag(20) MyEnum?,
+//    mMyCompactStruct: tag(21) MyCompactStruct?,
+//    mAnotherCompactStruct: tag(22) AnotherCompactStruct?,
+//
+//    mByteSeq: tag(30) ByteSeq?,
+//    mStringSeq: tag(31) StringSeq?,
+//    mShortSeq: tag(32) ShortSeq?,
+//    mMyEnumSeq: tag(33) MyEnumSeq?,
+//    mMyCompactStructSeq: tag(34) MyCompactStructSeq?,
+//    mAnotherCompactStructSeq: tag(35) AnotherCompactStructSeq?,
+//
+//    mIntDict: tag(40) IntDict?,
+//    mStringDict: tag(41) StringDict?,
+//
+//    mByteDict: tag(50) ByteDict?,
+//    mMyCompactStructDict: tag(51) MyCompactStructDict?,
+//    mAnotherCompactStructDict: tag(52) AnotherCompactStructDict?,
 }
 
 class A
@@ -62,8 +62,8 @@ class C : B
 
 class TaggedWithCustom
 {
-    mMyCompactStructList: tag(1) MyCompactStructList?,
-    mAnotherCompactStructList: tag(2) AnotherCompactStructList?,
+    // mMyCompactStructList: tag(1) MyCompactStructList?,
+    // mAnotherCompactStructList: tag(2) AnotherCompactStructList?,
 }
 
 interface ClassTag

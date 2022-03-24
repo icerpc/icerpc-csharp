@@ -90,7 +90,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
                 .add_parameter("ref SliceDecoder", "decoder", None, None)
                 .add_base_parameter("ref decoder")
                 .set_body(
-                    EncodingBlockBuilder::new("decoder.Encoding", exception_def.supported_encodings())
+                    EncodingBlockBuilder::new("decoder.Encoding", &exception_name, exception_def.supported_encodings())
                     .add_encoding_block(SliceEncoding::Slice11, initialize_non_nullable_fields(&members, FieldType::Exception))
                     .add_encoding_block(SliceEncoding::Slice2, decode_data_members(&members, namespace, FieldType::Exception))
                     .build()
@@ -171,7 +171,7 @@ fn encode_trait_method(exception_def: &Exception) -> CodeBlock {
         )
         .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
         .set_body(
-            EncodingBlockBuilder::new("encoder.Encoding", exception_def.supported_encodings())
+            EncodingBlockBuilder::new("encoder.Encoding", &exception_def.escape_identifier(), exception_def.supported_encodings())
                 .add_encoding_block(SliceEncoding::Slice11, "this.EncodeCore(ref encoder);".into())
                 .add_encoding_block(SliceEncoding::Slice2, "\
 encoder.EncodeString(SliceTypeId);

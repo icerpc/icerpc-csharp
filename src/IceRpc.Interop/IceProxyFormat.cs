@@ -249,7 +249,6 @@ namespace IceRpc
                     Path = path,
                     Fragment = Uri.EscapeDataString(facet),
                     Invoker = invoker ?? Proxy.DefaultInvoker,
-                    Encoding = encoding,
                 };
             }
 
@@ -332,7 +331,6 @@ namespace IceRpc
                     Invoker = invoker ?? Proxy.DefaultInvoker,
                     Endpoint = endpoint,
                     AltEndpoints = altEndpoints,
-                    Encoding = encoding,
                 };
             }
             else if (s[beg] == '@')
@@ -383,7 +381,6 @@ namespace IceRpc
                     Path = path,
                     Fragment = Uri.EscapeDataString(facet),
                     Invoker = invoker ?? Proxy.DefaultInvoker,
-                    Encoding = encoding,
                     Params = ImmutableDictionary<string, string>.Empty.Add("adapter-id", adapterId)
                 };
             }
@@ -449,7 +446,7 @@ namespace IceRpc
             // Always print the encoding version to ensure a stringified proxy will convert back to a proxy with the
             // same encoding with StringToProxy. (Only needed for backwards compatibility).
             sb.Append(" -e ");
-            sb.Append(proxy.Encoding);
+            sb.Append("1.1"); //TODO: encoding version
 
             if (proxy.Endpoint == null)
             {

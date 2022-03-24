@@ -48,9 +48,7 @@ namespace IceRpc.Tests.Slice
 
             Connection connection = _serviceProvider.GetRequiredService<Connection>();
             _prx = ClassOperationsPrx.FromConnection(connection);
-            _prx.Proxy.Encoding = Encoding.Slice11; // TODO: should not be necessary
             _prxUnexpectedClass = ClassOperationsUnexpectedClassPrx.FromConnection(connection);
-            _prxUnexpectedClass.Proxy.Encoding = Encoding.Slice11;
         }
 
         [OneTimeTearDown]
@@ -116,21 +114,12 @@ namespace IceRpc.Tests.Slice
             Assert.That(d1!.A3!.Name, Is.EqualTo("a3"));
             Assert.That(d1!.A4!.Name, Is.EqualTo("a4"));
 
-            if (_prx.Proxy.Encoding == Encoding.Slice11)
-            {
-                MyDerivedException? ex = Assert.ThrowsAsync<MyDerivedException>(
-                    async () => await _prx.ThrowMyDerivedExceptionAsync());
-                Assert.That(ex!.A1!.Name, Is.EqualTo("a1"));
-                Assert.That(ex!.A2!.Name, Is.EqualTo("a2"));
-                Assert.That(ex!.A3!.Name, Is.EqualTo("a3"));
-                Assert.That(ex!.A4!.Name, Is.EqualTo("a4"));
-            }
-            else if (_prx.Proxy.Encoding == Encoding.Slice20)
-            {
-                // The method throws an exception with classes that gets sliced to the first 2.0-encodable base class,
-                // RemoteException.
-                Assert.ThrowsAsync<RemoteException>(async () => await _prx.ThrowMyDerivedExceptionAsync());
-            }
+            MyDerivedException? ex = Assert.ThrowsAsync<MyDerivedException>(
+                async () => await _prx.ThrowMyDerivedExceptionAsync());
+            Assert.That(ex!.A1!.Name, Is.EqualTo("a1"));
+            Assert.That(ex!.A2!.Name, Is.EqualTo("a2"));
+            Assert.That(ex!.A3!.Name, Is.EqualTo("a3"));
+            Assert.That(ex!.A4!.Name, Is.EqualTo("a4"));
 
             (MyClassE e1, MyClassE e2) =
                 await _prx.OpEAsync(new MyClassE(theB: new MyClassB(), theC: new MyClassC()), 42);

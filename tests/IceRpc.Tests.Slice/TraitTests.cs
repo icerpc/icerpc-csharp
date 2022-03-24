@@ -80,6 +80,7 @@ namespace IceRpc.Tests.Slice
             // Let's decode the exception. TODO: we should provide a more obvious exception-decoding API.
             var dispatchException = Assert.ThrowsAsync<DispatchException>(() =>
                 response.CheckVoidReturnValueAsync(
+                    Encoding.Slice20,
                     SliceDecoder.GetActivator(typeof(TraitTests).Assembly),
                     hasStream: false,
                     cancel: default).AsTask());

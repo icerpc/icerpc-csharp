@@ -7,7 +7,7 @@ module WithNamespace
 {
     module N1::N2
     {
-        struct S1
+        compact struct S1
         {
             i: int,
         }
@@ -40,7 +40,7 @@ module M0
 {
     module M2::M3
     {
-        struct S2
+        compact struct S2
         {
             i: int,
         }

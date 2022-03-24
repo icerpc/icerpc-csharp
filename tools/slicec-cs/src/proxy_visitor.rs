@@ -417,7 +417,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
         builder.add_comment("returns", &format!("The payload encoded with <see cref=\"{}\"/>.", operation.encoding.to_cs_encoding()));
 
-        builder.set_body(encode_operation(operation, false));
+        builder.set_body(encode_operation(operation, false, "return"));
 
         class_builder.add_block(builder.build());
     }
@@ -497,7 +497,7 @@ fn response_operation_body(operation: &Operation) -> CodeBlock {
                 code,
                 "\
 await response.CheckVoidReturnValueAsync(
-    {encoding}
+    {encoding},
     _defaultActivator,
     hasStream: true,
     cancel).ConfigureAwait(false);
@@ -505,7 +505,7 @@ await response.CheckVoidReturnValueAsync(
 return {decode_operation_stream}
 ",
     encoding = encoding,
-    decode_operation_stream = decode_operation_stream(stream_member, namespace, false, false)
+    decode_operation_stream = decode_operation_stream(operation, stream_member, namespace, false, false)
             );
         } else {
             writeln!(
@@ -526,7 +526,7 @@ return {return_value_and_stream};
                 return_value = non_streamed_members.to_argument_tuple("sliceP_"),
                 response_decode_func = response_decode_func(operation).indent(),
                 decode_response_stream =
-                    decode_operation_stream(stream_member, namespace, false, true),
+                    decode_operation_stream(operation, stream_member, namespace, false, true),
                 return_value_and_stream = operation.return_members().to_argument_tuple("sliceP_")
             );
         }

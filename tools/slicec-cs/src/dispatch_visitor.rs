@@ -230,7 +230,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             }
         }
 
-        builder.set_body(encode_operation(operation, true));
+        builder.set_body(encode_operation(operation, true, "return"));
 
         class_builder.add_block(builder.build());
     }
@@ -255,7 +255,7 @@ await request.CheckEmptyArgsAsync({encoding}, hasStream: true, cancel).Configure
 
 return {decode_operation_stream}",
                 encoding = encoding,
-                decode_operation_stream = decode_operation_stream(stream_member, namespace, true, false)
+                decode_operation_stream = decode_operation_stream(operation, stream_member, namespace, true, false)
             );
         } else {
             writeln!(
@@ -275,7 +275,7 @@ return {args_and_stream};",
                 encoding = encoding,
                 decode_func = request_decode_func(operation).indent(),
                 decode_request_stream =
-                    decode_operation_stream(stream_member, namespace, true, true,),
+                    decode_operation_stream(operation, stream_member, namespace, true, true,),
                 args_and_stream = operation.parameters().to_argument_tuple("sliceP_")
             );
         }

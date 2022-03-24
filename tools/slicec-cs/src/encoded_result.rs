@@ -78,7 +78,7 @@ immediately encodes the return value of operation {operation_name}."#,
         constructor_builder.add_parameter("IceRpc.Slice.Dispatch", &dispatch_parameter, None, None);
     }
 
-    constructor_builder.set_body(encode_operation(operation, true));
+    constructor_builder.set_body(encode_operation(operation, true, "Payload ="));
 
     container_builder.add_block(constructor_builder.build());
     container_builder.build().into()

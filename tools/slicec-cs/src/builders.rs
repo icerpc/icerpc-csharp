@@ -2,8 +2,9 @@
 
 use std::collections::HashMap;
 
-use slice::code_gen_util::{TypeContext, SupportedEncodings};
+use slice::code_gen_util::TypeContext;
 use slice::grammar::{Attributable, Class, Entity, NamedSymbol, Operation, SliceEncoding};
+use slice::supported_encodings::SupportedEncodings;
 
 use crate::code_block::CodeBlock;
 use crate::comments::{operation_parameter_doc_comment, CommentTag};
@@ -419,15 +420,17 @@ impl CommentBuilder for FunctionBuilder {
 pub struct EncodingBlockBuilder {
     encoding_blocks: HashMap<SliceEncoding, CodeBlock>,
     supported_encodings: SupportedEncodings,
-    encoding_variable: String
+    encoding_variable: String,
+    identifier: String,
 }
 
 impl EncodingBlockBuilder {
-    pub fn new(encoding_variable: &str, supported_encodings: SupportedEncodings) -> Self {
+    pub fn new(encoding_variable: &str, identifier: &str, supported_encodings: SupportedEncodings) -> Self {
         Self {
             encoding_blocks: HashMap::new(),
             supported_encodings,
             encoding_variable: encoding_variable.to_owned(),
+            identifier: identifier.to_owned(),
         }
     }
 
@@ -443,10 +446,11 @@ impl EncodingBlockBuilder {
                 format!("\
 if ({encoding_variable} != {encoding})
 {{
-    throw new InvalidOperationException(\"can only be encoded with the {encoding} encoding.\");
+    throw new InvalidOperationException(\"{identifier} can only be encoded with the {encoding} encoding.\");
 }}
 
 {encode_block}",
+                    identifier = self.identifier,
                     encoding_variable = self.encoding_variable,
                     encoding = encoding.to_cs_encoding(),
                     encode_block = self.encoding_blocks[encoding].clone(),
@@ -458,7 +462,7 @@ switch ({encoding_variable}.Name)
 {{
     {encoding_cases}
     default:
-        throw new InvalidOperationException($\"The {{{encoding_variable}.Name}} is not supported\");
+        throw new InvalidOperationException($\"The {{{encoding_variable}.Name}} encoding is not supported\");
 }}
 ",
 encoding_variable = self.encoding_variable,

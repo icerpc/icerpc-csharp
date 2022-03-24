@@ -30,7 +30,6 @@ namespace IceRpc.Tests.Slice
                 .BuildServiceProvider();
 
             _prx = OperationTagPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
-            _prx.Proxy.Encoding = Encoding.FromString(encoding);
         }
 
         [OneTimeTearDown]
@@ -40,7 +39,6 @@ namespace IceRpc.Tests.Slice
         public async Task OperationTag_Double()
         {
             var doublePrx = OperationTagDoublePrx.FromConnection(_prx.Proxy.Connection!);
-            doublePrx.Proxy.Encoding = _prx.Proxy.Encoding;
 
             {
                 (byte? r1, byte? r2) = await doublePrx.OpByteAsync(null);
@@ -442,7 +440,6 @@ namespace IceRpc.Tests.Slice
         public async Task OperationTag_EncodedResult()
         {
             var encodedResultPrx = OperationTagEncodedResultPrx.FromConnection(_prx.Proxy.Connection!);
-            encodedResultPrx.Proxy.Encoding = _prx.Proxy.Encoding;
 
             {
                 MyCompactStruct? r1 = await encodedResultPrx.OpMyCompactStructAsync(null);
@@ -479,13 +476,13 @@ namespace IceRpc.Tests.Slice
             var request = new OutgoingRequest(_prx.Proxy)
             {
                 Operation = "opVoid",
-                PayloadEncoding = _prx.Proxy.Encoding,
                 PayloadSource = requestPayload
             };
 
             IncomingResponse response = await _prx.Proxy.Invoker.InvokeAsync(request);
 
             Assert.DoesNotThrowAsync(async () => await response.CheckVoidReturnValueAsync(
+                Encoding.Slice20,
                 SliceDecoder.GetActivator(typeof(OperationTagTests).Assembly),
                 hasStream: false,
                 default));
@@ -494,8 +491,8 @@ namespace IceRpc.Tests.Slice
             {
                 // Build a request payload with 2 tagged values
                 var pipe = new Pipe(); // TODO: pipe options
-                SliceEncoding encoding = _prx.Proxy.GetSliceEncoding();
-                var encoder = new SliceEncoder(pipe.Writer, encoding, default);
+
+                var encoder = new SliceEncoder(pipe.Writer, Encoding.Slice20, default);
                 Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
                 int startPos = encoder.EncodedByteCount;
 

@@ -70,12 +70,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The encoding that a caller should use when encoding request parameters when such a caller supports
-        /// multiple encodings. Its value is usually the encoding of the protocol.</summary>
-        // TODO: remove
-        // Note: if we kept it, it should use an _encoding field and clear OriginalUri in set
-        public Encoding Encoding { get; set; } = Encoding.Unknown;
-
         /// <summary>Gets or sets the main endpoint of this proxy.</summary>
         /// <value>The main endpoint of this proxy, or null if this proxy has no endpoint.</value>
         public Endpoint? Endpoint
@@ -268,7 +262,6 @@ namespace IceRpc
             if (protocol.IsSupported || protocol == Protocol.Relative)
             {
                 Protocol = protocol;
-                Encoding = Protocol.SliceEncoding ?? Encoding.Unknown;
             }
             else
             {
@@ -296,14 +289,6 @@ namespace IceRpc
                     }
 
                     (ImmutableDictionary<string, string> queryParams, string? altEndpointValue) = uri.ParseQuery();
-
-                    // temporary
-                    Encoding = Protocol.SliceEncoding!; // default value
-                    if (queryParams.TryGetValue("encoding", out string? encoding))
-                    {
-                        Encoding = Encoding.FromString(encoding);
-                        queryParams = queryParams.Remove("encoding");
-                    }
 
                     if (uri.Authority.Length > 0)
                     {
@@ -395,11 +380,6 @@ namespace IceRpc
             }
 
             // else non-relative proxies with a supported protocol
-
-            if (Encoding != other.Encoding)
-            {
-                return false;
-            }
 
             if (Path != other.Path)
             {
@@ -527,7 +507,6 @@ namespace IceRpc
             IInvoker invoker)
         {
             Protocol = protocol;
-            Encoding = protocol.SliceEncoding!;
             _path = path;
             _endpoint = endpoint;
             _altEndpoints = altEndpoints;

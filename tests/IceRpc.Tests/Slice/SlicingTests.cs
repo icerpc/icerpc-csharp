@@ -266,7 +266,7 @@ public class SlicingTests
         var encoder = new SliceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
 
         var p2 = new MyPreservedDerivedClass1("p2-m1", "p2-m2", new MyBaseClass("base"));
-        var p1 = new MyPreservedDerivedClass1("p1-m1", "p1-m2", p2);
+    var p1 = new MyPreservedDerivedClass1("p1-m1", "p1-m2", p2);
         encoder.EncodeClass(p1);
         buffer = bufferWriter.WrittenMemory;
 

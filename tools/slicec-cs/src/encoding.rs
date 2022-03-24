@@ -595,7 +595,7 @@ fn encode_operation_parameters(
     code
 }
 
-pub fn encode_operation(operation: &Operation, return_type: bool) -> CodeBlock {
+pub fn encode_operation(operation: &Operation, return_type: bool, assign_pipe_reader: &str) -> CodeBlock {
     format!(
         "\
 var pipe_ = new global::System.IO.Pipelines.Pipe(); // TODO: pipe options
@@ -608,7 +608,7 @@ var encoder_ = new SliceEncoder(pipe_.Writer, {encoding}, {class_format});
 {rewrite_size}
 
 pipe_.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
-return pipe_.Reader;",
+{assign_pipe_reader} pipe_.Reader;",
         size_placeholder_and_start_position = match operation.encoding {
             SliceEncoding::Slice11 => "",
             _ => "\
@@ -621,7 +621,8 @@ int startPos_ = encoder_.EncodedByteCount;",
         },
         encoding = operation.encoding.to_cs_encoding(),
         class_format = operation.format_type(),
-        encode_returns = encode_operation_parameters(operation, return_type, "encoder_")
+        encode_returns = encode_operation_parameters(operation, return_type, "encoder_"),
+        assign_pipe_reader = assign_pipe_reader
     )
     .into()
 }

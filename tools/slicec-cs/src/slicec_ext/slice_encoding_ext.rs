@@ -17,7 +17,7 @@ impl SliceEncodingExt for SliceEncoding {
 
     fn encoding_name(&self) -> &str {
         match self {
-            SliceEncoding::Slice11 => "1.0",
+            SliceEncoding::Slice11 => "1.1",
             SliceEncoding::Slice2 => "2.0",
         }
     }
