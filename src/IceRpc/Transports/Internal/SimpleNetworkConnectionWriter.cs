@@ -42,15 +42,11 @@ namespace IceRpc.Transports.Internal
                 writerScheduler: PipeScheduler.Inline));
         }
 
-        internal ValueTask FlushAsync(CancellationToken cancel = default) =>
-            WriteAsync(ReadOnlyMemory<byte>.Empty, cancel);
+        /// <summary>Flush the buffered data.</summary>
+        internal ValueTask FlushAsync(CancellationToken cancel) =>
+            WriteAsync(ReadOnlySequence<byte>.Empty, ReadOnlySequence<byte>.Empty, cancel);
 
-        internal ValueTask WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancel = default) =>
-            WriteAsync(new ReadOnlySequence<byte>(source), ReadOnlySequence<byte>.Empty, cancel);
-
-        internal ValueTask WriteAsync(ReadOnlySequence<byte> source, CancellationToken cancel) =>
-            WriteAsync(source, ReadOnlySequence<byte>.Empty, cancel);
-
+        /// <summary>Writes the two sources to the simple network connection.</summary>
         internal async ValueTask WriteAsync(
             ReadOnlySequence<byte> source1,
             ReadOnlySequence<byte> source2,
@@ -81,8 +77,8 @@ namespace IceRpc.Transports.Internal
 
             try
             {
-                ValueTask task = _connection.WriteAsync(_sendBuffers, CancellationToken.None);
-                if (task.IsCompleted || !cancel.CanBeCanceled)
+                ValueTask task = _connection.WriteAsync(_sendBuffers, cancel);
+                if (task.IsCompleted)
                 {
                     await task.ConfigureAwait(false);
                 }
@@ -117,6 +113,21 @@ namespace IceRpc.Transports.Internal
                     }
                 }
             }
+        }
+    }
+
+    internal static class SimpleNetworkConnectionWriterExtensions
+    {
+        /// <summary>A WriteAsync convenience extension method. Since <see
+        /// cref="SimpleNetworkConnectionWriter.WriteAsync(ReadOnlySequence{byte}, ReadOnlySequence{byte},
+        /// CancellationToken)"/> can never be canceled or completed, we return a default flush result.</summary>
+        internal static async ValueTask<FlushResult> WriteAsync(
+            this SimpleNetworkConnectionWriter writer,
+            ReadOnlySequence<byte> source,
+            CancellationToken cancel)
+        {
+            await writer.WriteAsync(source, ReadOnlySequence<byte>.Empty, cancel).ConfigureAwait(false);
+            return default;
         }
     }
 }

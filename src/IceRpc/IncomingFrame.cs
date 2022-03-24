@@ -27,8 +27,5 @@ namespace IceRpc
         /// <summary>Constructs an incoming frame.</summary>
         /// <param name="protocol">The protocol used to receive the frame.</param>
         protected IncomingFrame(Protocol protocol) => Protocol = protocol;
-
-        /// <summary>Completes the frame payload pipe reader.</summary>
-        internal ValueTask CompleteAsync(Exception? exception = null) => Payload.CompleteAsync(exception);
     }
 }

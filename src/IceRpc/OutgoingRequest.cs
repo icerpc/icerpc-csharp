@@ -37,25 +37,18 @@ namespace IceRpc
         /// <inheritdoc/>
         public override PipeWriter PayloadSink
         {
-            get
-            {
-                InitialPayloadSink ??= new DelayedPipeWriterDecorator();
-                return _payloadSink ?? InitialPayloadSink;
-            }
+            get => _payloadSink ?? (_initialPayloadSink ??= new());
             set => _payloadSink = value;
         }
 
         /// <summary>Returns the proxy that is sending this request.</summary>
         public Proxy Proxy { get; }
 
-        /// <summary>Returns the payload sink that an interceptor would see unless some other interceptor decorates it.
-        /// </summary>
-        internal DelayedPipeWriterDecorator? InitialPayloadSink { get; private set; }
-
         /// <summary>Returns the pipe reader used to read the response. The protocol connection implementation may or
         /// may not set this property when sending the request.</summary>
         internal PipeReader? ResponseReader { get; set; }
 
+        private DelayedPipeWriterDecorator? _initialPayloadSink;
         private PipeWriter? _payloadSink;
 
         /// <summary>Constructs an outgoing request.</summary>
@@ -67,12 +60,19 @@ namespace IceRpc
             Proxy = proxy;
         }
 
-        internal override async ValueTask CompleteAsync(Exception? exception = null)
+        /// <summary>Sets the final transport payload sink. If the initial payload sink is null, it indicates that the
+        /// application didn't set payload sink decorator. In this case, we can just assign the transport payload sink
+        /// to the request payload sink. Otherwise, we set it as the decoratee of the DelayedPipeWriterDecorator
+        /// initial sink.</summary>
+        internal void SetTransportPayloadSink(PipeWriter writer)
         {
-            await base.CompleteAsync(exception).ConfigureAwait(false);
-            if (_payloadSink != null)
+            if (_initialPayloadSink == null)
             {
-                await _payloadSink.CompleteAsync(exception).ConfigureAwait(false);
+                _payloadSink = writer;
+            }
+            else
+            {
+                _initialPayloadSink.SetDecoratee(writer);
             }
         }
     }

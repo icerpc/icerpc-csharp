@@ -11,7 +11,7 @@ namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(ParallelScope.All)]
-    [Timeout(30000)]
+    [Timeout(5000)]
     public sealed class ProtocolBridgingTests
     {
         [TestCase("icerpc", "icerpc", true)]

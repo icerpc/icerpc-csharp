@@ -101,7 +101,8 @@ namespace IceRpc.Internal
             try
             {
                 EncodeValidateConnectionFrame(_networkConnectionWriter);
-                await _networkConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
+                // The flush can't be canceled because it would lead to the writing of an incomplete frame.
+                await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
             }
             finally
             {
@@ -128,7 +129,7 @@ namespace IceRpc.Internal
                 {
                     frameSize = await ReceiveFrameAsync().ConfigureAwait(false);
                 }
-                catch (ConnectionLostException)
+                catch
                 {
                     lock (_mutex)
                     {
@@ -205,7 +206,7 @@ namespace IceRpc.Internal
 
                     // If shutting down, ignore the incoming request and continue receiving frames until the connection
                     // is closed.
-                    await request.CompleteAsync(new ConnectionClosedException()).ConfigureAwait(false);
+                    await request.Payload.CompleteAsync(new ConnectionClosedException()).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -343,105 +344,98 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            if (_isUdp && !request.IsOneway)
-            {
-                throw new InvalidOperationException("cannot send twoway request over UDP");
-            }
-            if (request.PayloadSourceStream != null)
-            {
-                throw new NotSupportedException("PayloadSourceStream must be null with the ice protocol");
-            }
-
+            bool acquiredSemaphore = false;
             try
             {
-                // Read payload source until IsCompleted is true.
+                if (request.PayloadSourceStream != null)
+                {
+                    throw new NotSupportedException("PayloadSourceStream must be null with the ice protocol");
+                }
 
-                ReadResult readResult = await request.PayloadSource.ReadAtLeastAsync(
-                    _options.MaxOutgoingFrameSize + 1,
+                if (_isUdp && !request.IsOneway)
+                {
+                    throw new InvalidOperationException("cannot send twoway request over UDP");
+                }
+
+                // Set the transport payload sink to the stateless payload writer.
+                request.SetTransportPayloadSink(_payloadWriter);
+
+                // Read the full payload source. This can take some time so this needs to be done before acquiring the
+                // send semaphore.
+                ReadOnlySequence<byte> payload = await ReadFullPayloadAsync(
+                    request.PayloadSource,
                     cancel).ConfigureAwait(false);
-
-                if (readResult.IsCanceled)
-                {
-                    throw new OperationCanceledException();
-                }
-
-                if (!readResult.IsCompleted)
-                {
-                    throw new ArgumentException(
-                        "payload size is greater than the max outgoing frame size",
-                        nameof(request));
-                }
-
-                ReadOnlySequence<byte> payload = readResult.Buffer;
                 int payloadSize = checked((int)payload.Length);
 
                 // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue to
                 // serialize the sending of frames.
                 await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+                acquiredSemaphore = true;
 
-                try
+                // Assign the request ID for twoway invocations and keep track of the invocation for receiving the
+                // response. The request ID is only assigned once the send semaphore is acquired. We don't want a
+                // canceled request to allocate a request ID that won't be used.
+                int requestId = 0;
+                if (!request.IsOneway)
                 {
-                    // Assign the request ID for twoway invocations and keep track of the invocation for receiving the
-                    // response.
-                    int requestId = 0;
-                    if (!request.IsOneway)
+                    lock (_mutex)
                     {
-                        lock (_mutex)
+                        if (_shutdown)
                         {
-                            if (_shutdown)
-                            {
-                                throw new ConnectionClosedException();
-                            }
-                            requestId = ++_nextRequestId;
-                            _invocations[requestId] = request;
-                            request.Features = request.Features.With(new IceOutgoingRequest(requestId));
+                            throw new ConnectionClosedException();
                         }
+                        requestId = ++_nextRequestId;
+                        _invocations[requestId] = request;
+                        request.Features = request.Features.With(new IceOutgoingRequest(requestId));
                     }
-
-                    // If the application sets the payload sink, the initial payload sink is set and we need to set the
-                    // stream output on the delayed pipe writer decorator. Otherwise, we directly use the stream output.
-                    PipeWriter payloadSink;
-                    if (request.InitialPayloadSink == null)
-                    {
-                        payloadSink = _payloadWriter;
-                    }
-                    else
-                    {
-                        request.InitialPayloadSink.SetDecoratee(_payloadWriter);
-                        payloadSink = request.PayloadSink;
-                    }
-
-                    int frameSize = EncodeHeader(_networkConnectionWriter, request, requestId, payloadSize);
-                    if (frameSize > _options.MaxOutgoingFrameSize)
-                    {
-                        throw new ArgumentException(
-                            "request frame size is greater than the max outgoing frame size",
-                            nameof(request));
-                    }
-
-                    await SendPayloadAsync(payload, request.PayloadSource, payloadSink, cancel).ConfigureAwait(false);
-                    request.IsSent = true;
                 }
-                finally
+
+                int frameSize = EncodeHeader(_networkConnectionWriter, request, requestId, payloadSize);
+                if (frameSize > _options.MaxOutgoingFrameSize)
                 {
-                    // None of the CompleteAsync later on can write to the network.
+                    throw new ArgumentException(
+                        "request frame size is greater than the max outgoing frame size",
+                        nameof(request));
+                }
+
+                FlushResult flushResult = await request.PayloadSink.WriteAsync(
+                    payload,
+                    endStream: false,
+                    cancel).ConfigureAwait(false);
+
+                // If a payload source sink decorator returns a canceled or completed flush result, we have to raise
+                // NotSupportedException. We can't interrupt the sending of a payload since it would lead to a bogus
+                // payload to be sent over the connection.
+                if (flushResult.IsCanceled || flushResult.IsCompleted)
+                {
+                    // TODO: throwing here after sending the request is wrong since ReceiveResponse won't be called see
+                    // #828 for a solution.
+                    throw new NotSupportedException("payload sink cancellation or completion is not supported");
+                }
+
+                await request.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                await request.PayloadSource.CompleteAsync().ConfigureAwait(false);
+
+                request.IsSent = true;
+            }
+            catch (Exception exception)
+            {
+                // If the network connection has been disposed, we raise ConnectionLostException to ensure the request
+                // is retried by the retry interceptor. The retry interceptor only retries a request if the exception is
+                // a transport exception.
+                if (exception is ObjectDisposedException)
+                {
+                    exception = new ConnectionLostException(exception);
+                }
+                await request.CompleteAsync(exception).ConfigureAwait(false);
+                throw;
+            }
+            finally
+            {
+                if (acquiredSemaphore)
+                {
                     _sendSemaphore.Release();
                 }
-            }
-            catch (ObjectDisposedException exception)
-            {
-                // If the network connection has been disposed, we raise ConnectionLostException to ensure the
-                // request is retried by the retry interceptor.
-                // TODO: this is clunky but required for retries to work because the retry interceptor only retries
-                // a request if the exception is a transport exception.
-                var ex = new ConnectionLostException(exception);
-                await request.CompleteAsync(ex).ConfigureAwait(false);
-                throw ex;
-            }
-            catch (Exception ex)
-            {
-                await request.CompleteAsync(ex).ConfigureAwait(false);
-                throw;
             }
 
             static int EncodeHeader(
@@ -493,98 +487,96 @@ namespace IceRpc.Internal
             IncomingRequest request,
             CancellationToken cancel)
         {
-            if (request.IsOneway)
-            {
-                await response.CompleteAsync().ConfigureAwait(false);
-                return;
-            }
-            if (response.PayloadSourceStream != null)
-            {
-                throw new NotSupportedException("PayloadSourceStream must be null with the ice protocol");
-            }
-
-            Debug.Assert(!_isUdp); // udp is oneway-only so no response
-
-            if (request.Features.Get<IceIncomingRequest>() is not IceIncomingRequest requestFeature)
-            {
-                throw new InvalidOperationException("request ID feature is not set");
-            }
-
+            bool acquiredSemaphore = false;
             try
             {
-                // Read payload source until IsCompleted is true.
+                if (response.PayloadSourceStream != null)
+                {
+                    throw new NotSupportedException("PayloadSourceStream must be null with the ice protocol");
+                }
 
-                ReadResult readResult = await response.PayloadSource.ReadAtLeastAsync(
-                    _options.MaxOutgoingFrameSize + 1,
+                if (request.IsOneway)
+                {
+                    await response.CompleteAsync().ConfigureAwait(false);
+                    return;
+                }
+
+                Debug.Assert(!_isUdp); // udp is oneway-only so no response
+
+                if (request.Features.Get<IceIncomingRequest>() is not IceIncomingRequest requestFeature)
+                {
+                    throw new InvalidOperationException("request ID feature is not set");
+                }
+
+                // Read the full payload source. This can take some time so this needs to be done before acquiring the
+                // send semaphore.
+                ReadOnlySequence<byte> payload = await ReadFullPayloadAsync(
+                    response.PayloadSource,
                     cancel).ConfigureAwait(false);
-
-                if (readResult.IsCanceled)
-                {
-                    throw new OperationCanceledException();
-                }
-
-                if (!readResult.IsCompleted)
-                {
-                    throw new ArgumentException(
-                        "payload size is greater than the max outgoing frame size",
-                        nameof(response));
-                }
-
-                ReadOnlySequence<byte> payload = readResult.Buffer;
                 int payloadSize = checked((int)payload.Length);
 
                 // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue to
                 // serialize the sending of frames.
                 await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+                acquiredSemaphore = true;
 
-                try
+                ReplyStatus replyStatus = ReplyStatus.OK;
+
+                if (response.ResultType != ResultType.Success)
                 {
-                    ReplyStatus replyStatus = ReplyStatus.OK;
-
-                    if (response.ResultType != ResultType.Success)
+                    if (response.ResultType == ResultType.Failure)
                     {
-                        if (response.ResultType == ResultType.Failure)
-                        {
-                            replyStatus = payload.FirstSpan[0].AsReplyStatus();
+                        replyStatus = payload.FirstSpan[0].AsReplyStatus();
 
-                            if (replyStatus <= ReplyStatus.UserException)
-                            {
-                                throw new InvalidDataException(
-                                    $"unexpected reply status value '{replyStatus}' in payload");
-                            }
-                        }
-                        else
+                        if (replyStatus <= ReplyStatus.UserException)
                         {
-                            replyStatus = ReplyStatus.UserException;
+                            throw new InvalidDataException(
+                                $"unexpected reply status value '{replyStatus}' in payload");
                         }
                     }
-
-                    int frameSize = EncodeHeader(_networkConnectionWriter, requestFeature.Id, payloadSize, replyStatus);
-                    if (frameSize > _options.MaxOutgoingFrameSize)
+                    else
                     {
-                        throw new ArgumentException(
-                            "response frame size is greater than the max outgoing frame size",
-                            nameof(response));
+                        replyStatus = ReplyStatus.UserException;
                     }
+                }
 
-                    await SendPayloadAsync(
-                        payload,
-                        response.PayloadSource,
-                        response.PayloadSink,
-                        cancel).ConfigureAwait(false);
-                }
-                finally
+                int frameSize = EncodeHeader(_networkConnectionWriter, requestFeature!.Id, payloadSize, replyStatus);
+                if (frameSize > _options.MaxOutgoingFrameSize)
                 {
-                    _sendSemaphore.Release();
+                    throw new ArgumentException(
+                        "response frame size is greater than the max outgoing frame size",
+                        nameof(response));
                 }
+
+                // Write the payload and complete the source.
+                FlushResult flushResult = await response.PayloadSink.WriteAsync(
+                    payload,
+                    endStream: false,
+                    cancel).ConfigureAwait(false);
+
+                // If a payload sink decorator returns a canceled or completed flush result, we have to raise
+                // NotSupportedException. We can't interrupt the sending of a payload since it would lead to a bogus
+                // payload to be sent over the connection.
+                if (flushResult.IsCanceled || flushResult.IsCompleted)
+                {
+                    throw new NotSupportedException("payload sink cancellation or completion is not supported");
+                }
+
+                await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
+                await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                await response.CompleteAsync(ex).ConfigureAwait(false);
+                await response.CompleteAsync(exception).ConfigureAwait(false);
                 throw;
             }
             finally
             {
+                if (acquiredSemaphore)
+                {
+                    _sendSemaphore.Release();
+                }
+
                 lock (_mutex)
                 {
                     // Dispatch is done, remove the cancellation token source for the dispatch.
@@ -694,6 +686,8 @@ namespace IceRpc.Internal
 
                     // Send the CloseConnection frame once all the dispatches are done.
                     EncodeCloseConnectionFrame(_networkConnectionWriter);
+
+                    // The flush can't be canceled because it would lead to the writing of an incomplete frame.
                     await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
                 }
 
@@ -745,7 +739,9 @@ namespace IceRpc.Internal
                 if (isServer)
                 {
                     EncodeValidateConnectionFrame(_networkConnectionWriter);
-                    await _networkConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
+
+                    // The flush can't be canceled because it would lead to the writing of an incomplete frame.
+                    await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
                 }
                 else
                 {
@@ -780,6 +776,41 @@ namespace IceRpc.Internal
             {
                 var decoder = new SliceDecoder(buffer, Encoding.Slice11);
                 return (new IcePrologue(ref decoder), decoder.Consumed);
+            }
+        }
+
+        private void CancelDispatches()
+        {
+            IEnumerable<IncomingRequest> dispatches;
+            lock (_mutex)
+            {
+                dispatches = _dispatches.ToArray();
+            }
+
+            foreach (IncomingRequest request in dispatches)
+            {
+                try
+                {
+                    request.CancelDispatchSource!.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Ignore, the dispatch completed concurrently.
+                }
+            }
+        }
+
+        private void CancelInvocations(Exception exception)
+        {
+            IEnumerable<OutgoingRequest> invocations;
+            lock (_mutex)
+            {
+                invocations = _invocations.Values.ToArray();
+            }
+
+            foreach (OutgoingRequest request in invocations)
+            {
+                request.Features.Get<IceOutgoingRequest>()!.IncomingResponseCompletionSource.TrySetException(exception);
             }
         }
 
@@ -818,97 +849,28 @@ namespace IceRpc.Internal
             return pipe.Reader;
         }
 
-        /// <summary>Sends the payload source of an outgoing frame alongside any header previously buffered.</summary>
-        private static async ValueTask SendPayloadAsync(
-            ReadOnlySequence<byte> payload,
+        /// <summary>Reads the full Ice payload from the given payload source.</summary>
+        private async Task<ReadOnlySequence<byte>> ReadFullPayloadAsync(
             PipeReader payloadSource,
-            PipeWriter payloadSink,
             CancellationToken cancel)
         {
-            FlushResult flushResult;
+            ReadResult readResult = await payloadSource.ReadAtLeastAsync(
+                _options.MaxOutgoingFrameSize + 1,
+                cancel).ConfigureAwait(false);
 
-            try
+            if (readResult.IsCanceled)
             {
-                if (payload.Length > 0)
-                {
-                    if (payload.IsSingleSegment)
-                    {
-                        flushResult = await payloadSink.WriteAsync(payload.First, cancel).ConfigureAwait(false);
-                        CheckFlushResult(flushResult);
-                    }
-                    else if (payloadSink is IcePayloadPipeWriter icePayloadPipeWriter)
-                    {
-                        await icePayloadPipeWriter.WriteAsync(payload, cancel).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        // TODO: If readResult.Buffer.Length is small, it might be better to Write these buffers (i.e.
-                        // copy them to the unflushed bytes) instead of calling multiple times WriteAsync that can end
-                        // up in multiple network calls.
-                        foreach (ReadOnlyMemory<byte> memory in payload)
-                        {
-                            flushResult = await payloadSink.WriteAsync(memory, cancel).ConfigureAwait(false);
-                            CheckFlushResult(flushResult);
-                        }
-                    }
-                }
-            }
-            finally
-            {
-                await payloadSource.CompleteAsync().ConfigureAwait(false);
+                throw new OperationCanceledException();
             }
 
-            // FlushAsync on the underlying SimpleNetworkConnectionPipeWriter is no-op when there is no unflushed byte
-            // (typically because one of the WriteAsync above flushed all the bytes).
-            // We need to call FlushAsync no matter what in case an interceptor or middleware decides to implement
-            // WriteAsync by writing everything to the unflushed bytes, which is a legitimate implementation.
-            flushResult = await payloadSink.FlushAsync(cancel).ConfigureAwait(false);
-            CheckFlushResult(flushResult);
-
-            await payloadSink.CompleteAsync().ConfigureAwait(false);
-
-            static void CheckFlushResult(FlushResult flushResult)
+            if (!readResult.IsCompleted)
             {
-                if (flushResult.IsCanceled || flushResult.IsCompleted)
-                {
-                    throw new NotSupportedException("unexpected flush result");
-                }
-            }
-        }
-
-        private void CancelDispatches()
-        {
-            IEnumerable<IncomingRequest> dispatches;
-            lock (_mutex)
-            {
-                dispatches = _dispatches.ToArray();
+                throw new ArgumentException(
+                    "payload size is greater than the max outgoing frame size",
+                    nameof(payloadSource));
             }
 
-            foreach (IncomingRequest request in dispatches)
-            {
-                try
-                {
-                    request.CancelDispatchSource!.Cancel();
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Ignore, the dispatch completed concurrently.
-                }
-            }
-        }
-
-        private void CancelInvocations(Exception exception)
-        {
-            IEnumerable<OutgoingRequest> invocations;
-            lock (_mutex)
-            {
-                invocations = _invocations.Values.ToArray();
-            }
-
-            foreach (OutgoingRequest request in invocations)
-            {
-                request.Features.Get<IceOutgoingRequest>()!.IncomingResponseCompletionSource.TrySetException(exception);
-            }
+            return readResult.Buffer;
         }
 
         /// <summary>Receives incoming frames and returns once a request frame is received.</summary>

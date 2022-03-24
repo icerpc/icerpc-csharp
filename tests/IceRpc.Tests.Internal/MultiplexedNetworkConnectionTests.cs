@@ -2,6 +2,7 @@
 
 using IceRpc.Configure;
 using IceRpc.Internal;
+using IceRpc.Tests;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -133,7 +134,7 @@ namespace IceRpc.Tests.Internal
                 clientStream = _clientConnection.CreateStream(true);
                 clientStreams.Add(clientStream);
 
-                await clientStream.Output.WriteAsync(new byte[10], completeWhenDone: true, default);
+                await clientStream.Output.WriteAsync(new byte[10], endStream: true, default);
 
                 serverStream = await _serverConnection.AcceptStreamAsync(default);
                 serverStreams.Add(serverStream);
@@ -155,7 +156,7 @@ namespace IceRpc.Tests.Internal
             Assert.That(acceptTask.IsCompleted, Is.False);
 
             // Close one stream by sending EOS after receiving the payload.
-            await serverStreams.Last().Output.WriteAsync(new byte[10], completeWhenDone: true, default);
+            await serverStreams.Last().Output.WriteAsync(new byte[10], endStream: true, default);
 
             if (complete)
             {
@@ -203,7 +204,7 @@ namespace IceRpc.Tests.Internal
 
             async Task SendAndReceiveAsync(IMultiplexedStream stream)
             {
-                await stream.Output.WriteAsync(new byte[10], completeWhenDone: true, default);
+                await stream.Output.WriteAsync(new byte[10], endStream: true, default);
 
                 Assert.That(Thread.VolatileRead(ref streamCount), Is.LessThanOrEqualTo(maxCount));
 
@@ -239,7 +240,7 @@ namespace IceRpc.Tests.Internal
 
                 if (bidirectional)
                 {
-                    await stream.Output.WriteAsync(new byte[10], completeWhenDone: true, default);
+                    await stream.Output.WriteAsync(new byte[10], endStream: true, default);
                 }
             }
         }
@@ -254,13 +255,13 @@ namespace IceRpc.Tests.Internal
             {
                 IMultiplexedStream stream = _clientConnection.CreateStream(false);
                 clientStreams.Add(stream);
-                await stream.Output.WriteAsync(new byte[10], completeWhenDone: true, default);
+                await stream.Output.WriteAsync(new byte[10], endStream: true, default);
             }
 
             IMultiplexedStream clientStream = _clientConnection.CreateStream(false);
             ValueTask<FlushResult> sendTask = clientStream.Output.WriteAsync(
                 new byte[10],
-                completeWhenDone: true,
+                endStream: true,
                 default);
 
             // Accept a new unidirectional stream. This shouldn't allow the new stream send to complete since

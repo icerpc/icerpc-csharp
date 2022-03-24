@@ -30,11 +30,5 @@ namespace IceRpc
             Request = request;
             PayloadSink = request.ResponseWriter;
         }
-
-        internal override async ValueTask CompleteAsync(Exception? exception = null)
-        {
-            await base.CompleteAsync(exception).ConfigureAwait(false);
-            await PayloadSink.CompleteAsync(exception).ConfigureAwait(false);
-        }
     }
 }
