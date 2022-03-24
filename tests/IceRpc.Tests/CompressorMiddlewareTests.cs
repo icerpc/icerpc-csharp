@@ -22,7 +22,7 @@ public class CompressorMiddlewareTests
     /// compresses the input using the deflate compression format when the request carries the compress payload
     /// feature.</summary>
     [Test]
-    public async Task Compress_respose_payload()
+    public async Task Compress_response_payload()
     {
         // Arrange
         var outStream = new MemoryStream();
@@ -93,7 +93,7 @@ public class CompressorMiddlewareTests
     }
 
     /// <summary>Verifies that the compressor middleware does not update the request payload when the compression
-    /// format is not supported, and lets the request pass throw unchanged.</summary>
+    /// format is not supported, and lets the request pass through unchanged.</summary>
     [Test]
     public async Task Compressor_middleware_lets_requests_with_unsupported_compression_format_pass_throw()
     {

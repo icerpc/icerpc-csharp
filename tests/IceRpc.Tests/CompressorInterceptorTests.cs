@@ -59,11 +59,11 @@ public class CompressorInterceptorTests
         var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request)));
         var sut = new CompressorInterceptor(invoker);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
-        var initialPayloadSing = request.PayloadSink;
+        var initialPayloadSink = request.PayloadSink;
 
         await sut.InvokeAsync(request, default);
 
-        Assert.That(request.PayloadSink, Is.EqualTo(initialPayloadSing));
+        Assert.That(request.PayloadSink, Is.EqualTo(initialPayloadSink));
     }
 
     /// <summary>Verifies that the compressor interceptor does not update the payload sink if the request is already
@@ -78,22 +78,22 @@ public class CompressorInterceptorTests
         request.Fields = request.Fields.With(
             RequestFieldKey.CompressionFormat,
             _deflateEncodedCompressionFormatValue);
-        PipeWriter initialPayloadSing = request.PayloadSink;
+        PipeWriter initialPayloadSink = request.PayloadSink;
 
         await sut.InvokeAsync(request, default);
 
-        Assert.That(request.PayloadSink, Is.EqualTo(initialPayloadSing));
+        Assert.That(request.PayloadSink, Is.EqualTo(initialPayloadSink));
     }
 
     /// <summary>Verifies that the compressor interceptor does not update the response payload when the compression
-    /// format is not supported, and lets the response pass throw unchanged.</summary>
+    /// format is not supported, and lets the response pass through unchanged.</summary>
     [Test]
     public async Task Compressor_interceptor_lets_responses_with_unsupported_compression_format_pass_throw()
     {
         PipeReader? initialPayload = null;
         var invoker = new InlineInvoker((request, cancel) =>
         {
-            IncomingResponse response = CreateResponseWitCompressionFormatField(
+            IncomingResponse response = CreateResponseWithCompressionFormatField(
                 request,
                 _unknownEncodedCompressionFormatValue);
             initialPayload = response.Payload;
@@ -114,7 +114,7 @@ public class CompressorInterceptorTests
     {
         var invoker = new InlineInvoker((request, cancel) =>
         {
-            IncomingResponse response = CreateResponseWitCompressionFormatField(
+            IncomingResponse response = CreateResponseWithCompressionFormatField(
                 request,
                 _deflateEncodedCompressionFormatValue);
             response.Payload = PipeReader.Create(CreateCompressedPayload(_payload));
@@ -129,7 +129,7 @@ public class CompressorInterceptorTests
         Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(_payload));
     }
 
-    private static IncomingResponse CreateResponseWitCompressionFormatField(
+    private static IncomingResponse CreateResponseWithCompressionFormatField(
         OutgoingRequest request,
         ReadOnlySequence<byte> compressionFormatField) =>
         new(request)
