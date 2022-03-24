@@ -139,7 +139,7 @@ namespace IceRpc
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>A tuple with a nullable dummy proxy that holds the endpoint(s) (if resolved), and a bool that
         /// indicates whether these endpoints were retrieved from the implementation's cache. Proxy is null when
-        /// the location resolver fails to resolve a location. When Proxy is not null, its Endpoint is not null.
+        /// the location resolver fails to resolve a location. When Proxy is not null, its Endpoint must be not null.
         /// </returns>
         ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(
             Location location,
