@@ -7,10 +7,9 @@ using System.Diagnostics;
 
 namespace IceRpc
 {
-    /// <summary>A locator interceptor intercepts ice requests that have no connection and have either no endpoint or
-    /// an endpoint with the "loc" transport, and attempts to assign a usable endpoint (and alt-endpoints) to such
-    /// requests. This interceptor must be installed between <see cref="RetryInterceptor"/> and
-    /// <see cref="BinderInterceptor"/>.</summary>
+    /// <summary>A locator interceptor intercepts ice requests that have no connection and have either no endpoint, and
+    /// attempts to assign a usable endpoint (and alt-endpoints) to such requests. This interceptor must be installed
+    /// between <see cref="RetryInterceptor"/> and <see cref="BinderInterceptor"/>.</summary>
     public class LocatorInterceptor : IInvoker
     {
         private readonly IInvoker _next;
@@ -26,7 +25,8 @@ namespace IceRpc
             _locationResolver = locationResolver;
         }
 
-        async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+        /// <inheritdoc/>
+        public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
             if (request.Connection == null && request.Protocol == Protocol.Ice)
             {
@@ -59,14 +59,7 @@ namespace IceRpc
                     else
                     {
                         // Well-known proxy
-                        try
-                        {
-                            location = new Location { Value = request.Proxy.Path };
-                        }
-                        catch (FormatException)
-                        {
-                            // ignore path that can't be converted, location remains default
-                        }
+                        location = new Location { Value = request.Proxy.Path };
                     }
                 }
                 // else it could be a retry where the first attempt provided non-cached endpoint(s)
@@ -84,8 +77,7 @@ namespace IceRpc
                         {
                             if (!fromCache && !request.Features.IsReadOnly)
                             {
-                                // No need to resolve this location again since we are not returning a cached
-                                // value.
+                                // No need to resolve this location again since we are not returning a cached value.
                                 request.Features.Set<CachedResolutionFeature>(null);
                             }
                         }
@@ -97,6 +89,7 @@ namespace IceRpc
 
                         if (proxy != null)
                         {
+                            // A well behaved location resolver should never return a non-null proxy with a null endpoint.
                             Debug.Assert(proxy.Endpoint != null);
                             endpointSelection.Endpoint = proxy.Endpoint;
                             endpointSelection.AltEndpoints = proxy.AltEndpoints;

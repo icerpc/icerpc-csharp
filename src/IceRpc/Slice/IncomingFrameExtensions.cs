@@ -56,13 +56,13 @@ namespace IceRpc.Slice
                     // If there are actually additional bytes on the pipe reader, we ignore them. It's possible the
                     // sender operation Slice definition specifies a stream parameter that is not specified on the
                     // operation local Slice definition.
-                    await frame.CompleteAsync().ConfigureAwait(false);
+                    await frame.Payload.CompleteAsync().ConfigureAwait(false);
                 }
                 return result;
             }
             catch (Exception exception)
             {
-                await frame.CompleteAsync(exception).ConfigureAwait(false);
+                await frame.Payload.CompleteAsync(exception).ConfigureAwait(false);
                 throw;
             }
 
@@ -113,12 +113,12 @@ namespace IceRpc.Slice
                     // If there are actually additional bytes on the pipe reader, we ignore them. It's possible the
                     // sender operation Slice definition specifies a stream parameter that is not specified on the
                     // operation local Slice definition.
-                    await frame.CompleteAsync().ConfigureAwait(false);
+                    await frame.Payload.CompleteAsync().ConfigureAwait(false);
                 }
             }
             catch (Exception exception)
             {
-                await frame.CompleteAsync(exception).ConfigureAwait(false);
+                await frame.Payload.CompleteAsync(exception).ConfigureAwait(false);
                 throw;
             }
 
@@ -194,7 +194,7 @@ namespace IceRpc.Slice
                     catch (Exception ex)
                     {
                         streamDecoder.CompleteWriter();
-                        await frame.CompleteAsync(ex).ConfigureAwait(false);
+                        await frame.Payload.CompleteAsync(ex).ConfigureAwait(false);
                         break; // done
                     }
 
@@ -203,7 +203,7 @@ namespace IceRpc.Slice
                         streamDecoder.CompleteWriter();
 
                         var ex = new OperationCanceledException();
-                        await frame.CompleteAsync(ex).ConfigureAwait(false);
+                        await frame.Payload.CompleteAsync(ex).ConfigureAwait(false);
                         break; // done
                     }
 
@@ -222,7 +222,7 @@ namespace IceRpc.Slice
                         catch (Exception ex)
                         {
                             streamDecoder.CompleteWriter();
-                            await frame.CompleteAsync(ex).ConfigureAwait(false);
+                            await frame.Payload.CompleteAsync(ex).ConfigureAwait(false);
                             break;
                         }
                     }
@@ -230,7 +230,7 @@ namespace IceRpc.Slice
                     if (streamReaderCompleted || readResult.IsCompleted)
                     {
                         streamDecoder.CompleteWriter();
-                        await frame.CompleteAsync().ConfigureAwait(false);
+                        await frame.Payload.CompleteAsync().ConfigureAwait(false);
                         break;
                     }
                 }

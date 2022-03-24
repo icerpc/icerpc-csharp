@@ -99,7 +99,6 @@ namespace IceRpc.Tests.Slice
         }
 
         [Test]
-        [Ignore("missing completion of the incoming request on dispatcher failure, issue #929")]
         public async Task Operations_OperationNotFoundExceptionAsync()
         {
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()

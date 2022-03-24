@@ -183,6 +183,7 @@ namespace IceRpc.Internal
                                 }
                             }
                         };
+
                         return request;
                     }
                 }
@@ -191,12 +192,12 @@ namespace IceRpc.Internal
                     ReadOnlySequence<byte> buffer)
                 {
                     var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                    var header =
-                        (new IceRpcRequestHeader(ref decoder),
-                        decoder.DecodeFieldDictionary((ref SliceDecoder decoder) => decoder.DecodeRequestFieldKey()));
+                    var header = new IceRpcRequestHeader(ref decoder);
+                    IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields = decoder.DecodeFieldDictionary(
+                        (ref SliceDecoder decoder) => decoder.DecodeRequestFieldKey());
 
                     decoder.CheckEndOfBuffer(skipTaggedParams: false);
-                    return header;
+                    return (header, fields);
                 }
             }
         }
@@ -211,11 +212,9 @@ namespace IceRpc.Internal
             IceRpcResponseHeader header;
             IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields;
 
-            PipeReader responseReader = request.ResponseReader;
-
             try
             {
-                ReadResult readResult = await responseReader.ReadSegmentAsync(
+                ReadResult readResult = await request.ResponseReader.ReadSegmentAsync(
                     Encoding.Slice20,
                     cancel).ConfigureAwait(false);
 
@@ -248,45 +247,46 @@ namespace IceRpc.Internal
                 }
 
                 (header, fields) = DecodeHeader(readResult.Buffer);
-                responseReader.AdvanceTo(readResult.Buffer.End);
+                request.ResponseReader.AdvanceTo(readResult.Buffer.End);
 
                 RetryPolicy? retryPolicy = fields.DecodeValue(
-                    ResponseFieldKey.RetryPolicy, (ref SliceDecoder decoder) => new RetryPolicy(ref decoder));
+                    ResponseFieldKey.RetryPolicy,
+                    (ref SliceDecoder decoder) => new RetryPolicy(ref decoder));
                 if (retryPolicy != null)
                 {
                     request.Features = request.Features.With(retryPolicy);
                 }
             }
-            catch (MultiplexedStreamAbortedException ex)
+            catch (MultiplexedStreamAbortedException exception)
             {
-                await responseReader.CompleteAsync(ex).ConfigureAwait(false);
-                if (ex.ErrorKind == MultiplexedStreamErrorKind.Protocol)
+                await request.ResponseReader.CompleteAsync(exception).ConfigureAwait(false);
+                if (exception.ErrorKind == MultiplexedStreamErrorKind.Protocol)
                 {
-                    throw ex.ToIceRpcException();
+                    throw exception.ToIceRpcException();
                 }
                 else
                 {
-                    throw new ConnectionLostException(ex);
+                    throw new ConnectionLostException(exception);
                 }
             }
             catch (OperationCanceledException)
             {
                 // Notify the peer that we give up on receiving the response. The peer will cancel the dispatch upon
                 // receiving this notification.
-                await responseReader.CompleteAsync(
+                await request.ResponseReader.CompleteAsync(
                     IceRpcStreamError.InvocationCanceled.ToException()).ConfigureAwait(false);
                 throw;
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                await responseReader.CompleteAsync(ex).ConfigureAwait(false);
+                await request.ResponseReader.CompleteAsync(exception).ConfigureAwait(false);
                 throw;
             }
 
             return new IncomingResponse(request)
             {
                 Fields = fields,
-                Payload = responseReader,
+                Payload = request.ResponseReader,
                 ResultType = header.ResultType
             };
 
@@ -294,38 +294,45 @@ namespace IceRpc.Internal
                 ReadOnlySequence<byte> buffer)
             {
                 var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                var header =
-                    (new IceRpcResponseHeader(ref decoder),
-                    decoder.DecodeFieldDictionary((ref SliceDecoder decoder) => decoder.DecodeResponseFieldKey()));
+                var header = new IceRpcResponseHeader(ref decoder);
+                IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields =
+                    decoder.DecodeFieldDictionary((ref SliceDecoder decoder) => decoder.DecodeResponseFieldKey());
 
                 decoder.CheckEndOfBuffer(skipTaggedParams: false);
-                return header;
+                return (header, fields);
             }
         }
 
         /// <inheritdoc/>
         public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            if (request.Proxy.Fragment.Length > 0)
-            {
-                throw new NotSupportedException("the icerpc protocol does not support fragments");
-            }
-
-            IMultiplexedStream? stream = null;
             try
             {
+                if (request.Proxy.Fragment.Length > 0)
+                {
+                    throw new NotSupportedException("the icerpc protocol does not support fragments");
+                }
+
                 // Create the stream.
-                stream = _networkConnection.CreateStream(!request.IsOneway);
+                IMultiplexedStream stream = _networkConnection.CreateStream(bidirectional: !request.IsOneway);
+
+                // Set the transport payload sink to the stream output and the response reader to the stream input. It's
+                // important to do this right after the stream creation. In case of failures, the stream intput/output
+                // will correctly be completed.
+                request.SetTransportPayloadSink(stream.Output);
+                if (!request.IsOneway)
+                {
+                    request.ResponseReader = stream.Input;
+                }
 
                 // Keep track of the invocation for the shutdown logic.
                 if (!request.IsOneway || request.PayloadSourceStream != null)
                 {
-                    bool shutdown = false;
                     lock (_mutex)
                     {
                         if (_shuttingDown)
                         {
-                            shutdown = true;
+                            throw new ConnectionClosedException("connection shutdown");
                         }
                         else
                         {
@@ -346,47 +353,19 @@ namespace IceRpc.Internal
                             };
                         }
                     }
-
-                    if (shutdown)
-                    {
-                        throw new ConnectionClosedException("connection shutdown");
-                    }
-                }
-
-                // If the application sets the payload sink, the initial payload sink is set and we need to set the
-                // stream output on the delayed pipe writer decorator. Otherwise, we directly use the stream output.
-                PipeWriter payloadSink;
-                if (request.InitialPayloadSink == null)
-                {
-                    payloadSink = stream.Output;
-                }
-                else
-                {
-                    request.InitialPayloadSink.SetDecoratee(stream.Output);
-                    payloadSink = request.PayloadSink;
                 }
 
                 EncodeHeader(stream.Output);
-                await SendPayloadAsync(request, payloadSink, cancel).ConfigureAwait(false);
-
+                // SendPayloadSink takes care of the completion of the payload sink / sources when it's successful.
+                await SendPayloadAsync(request, cancel).ConfigureAwait(false);
                 request.IsSent = true;
-
-                if (!request.IsOneway)
-                {
-                    request.ResponseReader = stream.Input;
-                }
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                await request.CompleteAsync(ex).ConfigureAwait(false);
-
-                if (stream != null)
+                await request.CompleteAsync(exception).ConfigureAwait(false);
+                if (request.ResponseReader != null)
                 {
-                    await stream.Output.CompleteAsync(ex).ConfigureAwait(false);
-                    if (stream.IsBidirectional)
-                    {
-                        await stream.Input.CompleteAsync(ex).ConfigureAwait(false);
-                    }
+                    await request.ResponseReader.CompleteAsync(exception).ConfigureAwait(false);
                 }
                 throw;
             }
@@ -451,11 +430,12 @@ namespace IceRpc.Internal
             try
             {
                 EncodeHeader();
-                await SendPayloadAsync(response, response.PayloadSink, cancel).ConfigureAwait(false);
+                // SendPayloadSink takes care of the completion of the payload sink / sources when it's successful.
+                await SendPayloadAsync(response, cancel).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                await response.CompleteAsync(ex).ConfigureAwait(false);
+                await response.CompleteAsync(exception).ConfigureAwait(false);
                 throw;
             }
 
@@ -689,59 +669,94 @@ namespace IceRpc.Internal
             }
 
             return frameType == IceRpcControlFrameType.GoAwayCompleted ?
-                output.WriteAsync(ReadOnlySequence<byte>.Empty, completeWhenDone: true, cancel) :
+                output.WriteAsync(ReadOnlySequence<byte>.Empty, endStream: true, cancel) :
                 output.FlushAsync(cancel);
         }
 
-        /// <summary>Sends the payload source and payload source stream of an outgoing frame.</summary>
+        /// <summary>Sends the payload source and payload source stream of an outgoing frame. SendPayloadAsync completes
+        /// the payload source if successful. It completes the payload sink only if there's no payload source stream.
+        /// Otherwise, the streaming task is responsible for completing the payload sink and payload source stream.
+        /// </summary>
         private static async ValueTask SendPayloadAsync(
             OutgoingFrame outgoingFrame,
-            PipeWriter payloadSink,
             CancellationToken cancel)
         {
-            FlushResult flushResult = await payloadSink.CopyFromAsync(
+            await CopySourceToSinkAsync(
                 outgoingFrame.PayloadSource,
-                outgoingFrame.PayloadSourceStream == null,
+                outgoingFrame.PayloadSink,
+                endStream: outgoingFrame.PayloadSourceStream == null,
                 cancel).ConfigureAwait(false);
 
-            Debug.Assert(!flushResult.IsCanceled); // not implemented yet
-
-            if (flushResult.IsCompleted)
-            {
-                // The remote reader gracefully complete the stream input pipe. TODO: which exception should we
-                // throw here? We throw OperationCanceledException... which implies that if the frame is an outgoing
-                // request is won't be retried.
-                throw new OperationCanceledException("peer stopped reading the payload");
-            }
+            await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
 
             if (outgoingFrame.PayloadSourceStream == null)
             {
-                await outgoingFrame.CompleteAsync().ConfigureAwait(false);
+                await outgoingFrame.PayloadSink.CompleteAsync().ConfigureAwait(false);
             }
             else
             {
-                // Just complete the payload source for now.
-                await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
-
-                // Send payloadSourceStream in the background
+                // Send payloadSourceStream in the background.
                 _ = Task.Run(
                     async () =>
                     {
                         try
                         {
-                            _ = await payloadSink.CopyFromAsync(
+                            await CopySourceToSinkAsync(
                                 outgoingFrame.PayloadSourceStream,
-                                completeWhenDone: true,
+                                outgoingFrame.PayloadSink,
+                                endStream: true,
                                 CancellationToken.None).ConfigureAwait(false);
 
-                            await outgoingFrame.CompleteAsync().ConfigureAwait(false);
+                            await outgoingFrame.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                            await outgoingFrame.PayloadSourceStream.CompleteAsync().ConfigureAwait(false);
                         }
-                        catch (Exception ex)
+                        catch (Exception exception)
                         {
-                            await outgoingFrame.CompleteAsync(ex).ConfigureAwait(false);
+                            await outgoingFrame.PayloadSink.CompleteAsync(exception).ConfigureAwait(false);
+                            await outgoingFrame.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
                         }
                     },
                     cancel);
+            }
+
+            static async Task CopySourceToSinkAsync(
+                PipeReader source,
+                PipeWriter sink,
+                bool endStream,
+                CancellationToken cancel)
+            {
+                FlushResult flushResult;
+                ReadResult readResult;
+                do
+                {
+                    readResult = await source.ReadAsync(cancel).ConfigureAwait(false);
+                    try
+                    {
+                        flushResult = await sink.WriteAsync(
+                            readResult.Buffer,
+                            readResult.IsCompleted && endStream,
+                            cancel).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        source.AdvanceTo(readResult.Buffer.End);
+                    }
+                } while (!readResult.IsCompleted && !readResult.IsCanceled &&
+                         !flushResult.IsCompleted && !flushResult.IsCanceled);
+
+                // An application payload sink decorator can return a canceled flush result.
+                if (flushResult.IsCanceled)
+                {
+                    throw new OperationCanceledException("payload sink canceled");
+                }
+
+                // The remote reader gracefully complete the stream input pipe. TODO: which exception should we throw
+                // here? We throw OperationCanceledException... which implies that if the frame is an outgoing request
+                // is won't be retried.
+                if (flushResult.IsCompleted)
+                {
+                    throw new OperationCanceledException("peer stopped reading the payload");
+                }
             }
         }
 

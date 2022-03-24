@@ -212,6 +212,7 @@ namespace IceRpc.Tests.Slice.Stream
             semaphore.Release(20);
             await _servant.EnumerableReceived.WaitAsync();
             Assert.That(_servant.MyStructs.Count, Is.EqualTo(20));
+            await canceled.Task;
         }
 
         [Test]

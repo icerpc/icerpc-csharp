@@ -17,7 +17,8 @@ namespace IceRpc
             _eventSource = eventSource;
         }
 
-        async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(IncomingRequest request, CancellationToken cancel)
+        /// <inheritdoc/>
+        public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
         {
             _eventSource.RequestStart(request);
             try
