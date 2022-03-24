@@ -10,8 +10,8 @@ namespace IceRpc.Internal
         /// <param name="exception">The completion exception.</param>
         internal static async ValueTask CompleteAsync(this OutgoingFrame frame, Exception? exception = null)
         {
-            await frame.CompleteAsync(exception).ConfigureAwait(false);
-            await frame.CompleteAsync(exception).ConfigureAwait(false);
+            await frame.PayloadSink.CompleteAsync(exception).ConfigureAwait(false);
+            await frame.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
             if (frame.PayloadSourceStream != null)
             {
                 await frame.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
