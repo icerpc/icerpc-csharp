@@ -46,7 +46,11 @@ namespace IceRpc.Transports.Internal
         internal ValueTask FlushAsync(CancellationToken cancel) =>
             WriteAsync(ReadOnlySequence<byte>.Empty, ReadOnlySequence<byte>.Empty, cancel);
 
-        /// <summary>Writes the two sources to the simple network connection.</summary>
+        /// <summary>Writes a sequence of bytes.</summary>
+        internal ValueTask WriteAsync(ReadOnlySequence<byte> source, CancellationToken cancel) =>
+            WriteAsync(source, ReadOnlySequence<byte>.Empty, cancel);
+
+        /// <summary>Writes two sequences of bytes.</summary>
         internal async ValueTask WriteAsync(
             ReadOnlySequence<byte> source1,
             ReadOnlySequence<byte> source2,
@@ -113,21 +117,6 @@ namespace IceRpc.Transports.Internal
                     }
                 }
             }
-        }
-    }
-
-    internal static class SimpleNetworkConnectionWriterExtensions
-    {
-        /// <summary>A WriteAsync convenience extension method. Since <see
-        /// cref="SimpleNetworkConnectionWriter.WriteAsync(ReadOnlySequence{byte}, ReadOnlySequence{byte},
-        /// CancellationToken)"/> can never be canceled or completed, we return a default flush result.</summary>
-        internal static async ValueTask<FlushResult> WriteAsync(
-            this SimpleNetworkConnectionWriter writer,
-            ReadOnlySequence<byte> source,
-            CancellationToken cancel)
-        {
-            await writer.WriteAsync(source, ReadOnlySequence<byte>.Empty, cancel).ConfigureAwait(false);
-            return default;
         }
     }
 }
