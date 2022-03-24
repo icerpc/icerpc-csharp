@@ -96,9 +96,13 @@ namespace IceRpc
                         }
                         // else, resolution failed and we don't update anything
                     }
-                    catch
+                    catch (Slice.RemoteException)
                     {
-                        // Ignore any exception from the location resolver. It should have been logged earlier.
+                        // Ignore any remote exception from the location resolver. It should have been logged earlier.
+                    }
+                    catch (InvalidDataException)
+                    {
+                        // Ignored.
                     }
                 }
             }
