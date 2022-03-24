@@ -8,120 +8,170 @@ using System.IO.Pipelines;
 namespace IceRpc.Slice.Tests;
 
 /// <summary>Test decoding built-in types with the supported Slice encodings.</summary>
-[FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-[TestFixture("1.1")]
-[TestFixture("2.0")]
 [Parallelizable(scope: ParallelScope.All)]
 public class DecodingBuiltInTypesTests
 {
-    private readonly SliceEncoding _encoding;
 
-    /// <summary>Provides test case data for <see cref="Decoding_string(string, byte[], byte[])"/> test.</summary>
-    private static IEnumerable<TestCaseData> StringDecodingDataSource
-    {
-        get
-        {
-            (byte[], byte[], String)[] testData =
-            {
-                (
-                    new byte[] {0x00},
-                    new byte[] {0x00},
-                    ""
-                ),
-                (
-                    new byte[] {0xFF, 0x57, 0x00 ,0x00 , 0x00},
-                    new byte[] {0x5D, 0x01},
-                    "Lorem ipsum dolor sit amet, no explicari repudiare vis, an dicant legimus ponderum sit."
-                ),
-                (
-                    new byte[] { 0x9A },
-                    new byte[] { 0x69, 0x02 },
-                    "국민경제의 발전을 위한 중요정책의 수립에 관하여 대통령의 자문에 응하기 위하여 국민경제자문회의를 둘 수 있다" // Korean
-                ),
-                (
-                    new byte[] { 0x9C },
-                    new byte[] { 0x71, 0x02 },
-                    "旅ロ京青利セムレ弱改フヨス波府かばぼ意送でぼ調掲察たス日西重ケアナ住橋ユムミク順待ふかんぼ人奨貯鏡すびそ" // Japanese
-                ),
-                (
-                    new byte[] { 0x40 },
-                    new byte[] { 0x01, 0x01 },
-                    "😁😂😃😄😅😆😉😊😋😌😍😏😒😓😔😖"
-                )
-            };
-            foreach ((byte[] sizeBytes11, byte[] sizeBytes20, String expected) in testData)
-            {
-                yield return new TestCaseData(sizeBytes11, sizeBytes20, expected);
-            }
-        }
-    }
-
-    // Initializes a local field with the encoding from the fixture. Done for tests that need to make some distinction
-    // between the 1.1 and 2.0 encodings.
-    public DecodingBuiltInTypesTests(string encoding)
-    {
-        _encoding = SliceEncoding.FromString(encoding);
-    }
-
-    /// <summary>Test the decoding of a fixed size numeric type.</summary>
-    /// <param name="encodedBytes">The encoded hexadecimal representation of a long to decode.</param>
+    /// <summary>Test the decoding of long. Decoding any fixed size numeric is handled the same way by the SliceDecoder,
+    /// as such it is sufficient to just test decoding a long.</summary>
+    /// <param name="encodedBytes">An encoded byte array to decode.</param>
     /// <param name="expected">The expected long to be decoded.</param>
     [TestCase(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 }, long.MinValue)]
     [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F }, long.MaxValue)]
     public void Decoding_long(byte[] encodedBytes, long expected)
     {
-        var decoder = new SliceDecoder(encodedBytes, _encoding);
+        var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice20);
 
-        long r1 = decoder.DecodeLong();
+        long r1 = sut.DecodeLong();
 
         Assert.That(r1, Is.EqualTo(expected));
-        Assert.That(decoder.Consumed, Is.EqualTo(sizeof(long)));
+        Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
     }
 
-    /// <summary>Test the decoding of a variable size numeric type.</summary>
-    /// <param name="encodedBytes">The encoded hexadecimal representation of a varlong to decode.</param>
+    /// <summary>Test the decoding of a variable length long. NOt/summary>
+    /// <param name="encodedBytes">T>An encoded byte array to decode.</param>
     /// <param name="expected">The expected ulong to be decoded.</param>
     [TestCase(new byte[] { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 }, SliceEncoder.VarLongMinValue)]
     [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F }, SliceEncoder.VarLongMaxValue)]
-    public void Decoding_var_long(byte[] encodedBytes, long expected)
+    [TestCase(new byte[] { 0x00 }, 0)]
+    [TestCase(new byte[] { 0x01, 0x04 }, 256)]
+    public void Decoding_varlong(byte[] encodedBytes, long expected)
     {
-        var decoder = new SliceDecoder(encodedBytes, _encoding);
+        var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice20);
 
-        long r1 = decoder.DecodeVarLong();
+        long r1 = sut.DecodeVarLong();
 
         Assert.That(r1, Is.EqualTo(expected));
-        Assert.That(decoder.Consumed, Is.EqualTo(sizeof(long)));
+        Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
+    }
+
+    /// <summary>Test the decoding of a variable length long. NOt/summary>
+    /// <param name="encodedBytes">T>An encoded byte array to decode.</param>
+    /// <param name="expected">The expected ulong to be decoded.</param>
+    [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0x01, 0x00, 0x00, 0x00 }, Int32.MaxValue)]
+    [TestCase(new byte[] { 0xFE, 0xFF, 0xFF, 0x3F }, (int)Int32.MaxValue / 8)]
+    [TestCase(new byte[] { 0x00 }, 0)]
+    public void Decoding_varint(byte[] encodedBytes, int expected)
+    {
+        var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice20);
+
+        int r1 = sut.DecodeVarInt();
+
+        Assert.That(r1, Is.EqualTo(expected));
+        Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
+    }
+
+    /// <summary>Test the decoding of a variable length long. NOt/summary>
+    /// <param name="encodedBytes">T>An encoded byte array to decode.</param>
+    /// <param name="expected">The expected ulong to be decoded.</param>
+    [TestCase((long)Int32.MaxValue + 1)]
+    [TestCase((long)Int32.MinValue - 1)]
+    public void Fail_to_decode_varint(long p1)
+    {
+        Assert.That(() =>
+        {
+            var buffer = new byte[256];
+            var bufferWriter = new MemoryBufferWriter(buffer);
+            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice20);
+            encoder.EncodeVarLong(p1);
+            var encodedBytes = buffer[0..bufferWriter.WrittenMemory.Length];
+            var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice20);
+
+            sut.DecodeVarInt();
+        }, Throws.InstanceOf<InvalidDataException>());
+    }
+
+    /// <summary>Test the decoding of a variable size unsigned lonf.</summary>
+    /// <param name="encodedBytes">>An encoded byte array to decode.</param>
+    /// <param name="expected">The expected varulong to be decoded.</param>
+    [TestCase(new byte[] { 0x00 }, SliceEncoder.VarULongMinValue)]
+    [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, SliceEncoder.VarULongMaxValue)]
+    public void Decoding_varulong(byte[] encodedBytes, ulong expected)
+    {
+        var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice20);
+
+        ulong r1 = sut.DecodeVarULong();
+
+        Assert.That(r1, Is.EqualTo(expected));
+        Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
     }
 
     /// <summary>Test the decoding of a variable size numeric type.</summary>
-    /// <param name="encodedBytes">The encoded hexadecimal representation of a ulong to decode.</param>
-    /// <param name="expected">The expected ulong to be decoded.</param>
-    [TestCase(new byte[] { 0x00 }, SliceEncoder.VarULongMinValue)]
-    [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, SliceEncoder.VarULongMaxValue)]
-    public void Decoding_var_u_long(byte[] encodedBytes, ulong expected)
+    [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0x03, 0x00, 0x00, 0x00 }, uint.MaxValue)]
+    [TestCase(new byte[] { 0xFE, 0xFF, 0xFF, 0x7F }, (uint)uint.MaxValue / 8)]
+    [TestCase(new byte[] { 0x00 }, uint.MinValue)]
+    public void Decoding_varuint(byte[] encodedBytes, uint expected)
     {
-        var decoder = new SliceDecoder(encodedBytes, _encoding);
+        var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice20);
 
-        ulong r1 = decoder.DecodeVarULong();
+        long r1 = sut.DecodeVarUInt();
 
         Assert.That(r1, Is.EqualTo(expected));
-        Assert.That(decoder.Consumed, Is.EqualTo(encodedBytes.Length));
+        Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
     }
 
-    /// <summary>Test the decoding of a string.</summary>
-    /// <param name="sizeBytes11">The hexadecimal representation of expected encoded size if using 1.1 encoding.</param>
-    /// <param name="sizeBytes20">The hexadecimal representation of expected encoded size if using 2.0 encoding.</param>
-    /// <param name="expected">The expected value of the decoded string.</param>
-    [Test, TestCaseSource(nameof(StringDecodingDataSource))]
-    public void Decoding_string(byte[] sizeBytes11, byte[] sizeBytes20, String expected)
+    /// <summary>Test the decoding of a variable length long. </summary>
+    /// <param name="encodedBytes">T>An encoded byte array to decode.</param>
+    /// <param name="expected">The expected ulong to be decoded.</param>
+    [TestCase((ulong)UInt32.MaxValue + 1)]
+    public void Fail_to_decode_varuint(ulong p1)
     {
-        var sizeBytes = _encoding.ToString() == "1.1" ? sizeBytes11 : sizeBytes20;
-        var utf8Bytes = System.Text.Encoding.UTF8.GetBytes(expected);
-        var encodedBytes = sizeBytes.Concat(utf8Bytes).ToArray();
-        var decoder = new SliceDecoder(encodedBytes, _encoding);
+        Assert.That(() =>
+        {
+            var buffer = new byte[256];
+            var bufferWriter = new MemoryBufferWriter(buffer);
+            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice20);
+            encoder.EncodeVarULong(p1);
+            var encodedBytes = buffer[0..bufferWriter.WrittenMemory.Length];
+            var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice20);
 
-        string r1 = decoder.DecodeString();
+            sut.DecodeVarUInt();
+        }, Throws.InstanceOf<InvalidDataException>());
+    }
 
+    /// <summary>Tests decoding the size bytes.</summary>
+    /// <param name="encodedBytes">The encoded byte array to decode.</param>
+    /// <param name="encoding">The encoding to use to decode the byte array.</param>
+    /// <param name="expected">The expected size to be decoded.</param>
+    [TestCase(new byte[] { 0xFF, 0x57, 0x00, 0x00, 0x00 }, "1.1", 87)]
+    [TestCase(new byte[] { 0x5D, 0x01 }, "2.0", 87)]
+    [TestCase(new byte[] { 0x9A }, "1.1", 154)]
+    [TestCase(new byte[] { 0x69, 0x02 }, "2.0", 154)]
+    [TestCase(new byte[] { 0x9C }, "1.1", 156)]
+    [TestCase(new byte[] { 0x71, 0x02 }, "2.0", 156)]
+    [TestCase(new byte[] { 0x40 }, "1.1", 64)]
+    [TestCase(new byte[] { 0x01, 0x01 }, "2.0", 64)]
+    public void Decoding_size(byte[] encodedBytes, string encoding, int expected)
+    {
+        var sut = new SliceDecoder(encodedBytes, SliceEncoding.FromString(encoding));
+
+        var r1 = sut.DecodeSize();
+
+        Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
         Assert.That(r1, Is.EqualTo(expected));
+    }
+
+    /// <summary>Tests the decoding of a string. The only difference between decoding strings with the 1.1 encoding and
+    /// the 2.0 encoding is how the size gets encoded. Since <see cref="Decoding_size(string, byte[], byte[])"/>
+    /// tests the size encoding, this test only needs to verify how strings are decoded with 2.0. </summary>
+    /// <param name="testString">The string to be decoded.</param>
+    [TestCase("")]
+    [TestCase("Lorem ipsum dolor sit amet, no explicari repudiare vis, an dicant legimus ponderum sit.")]
+    [TestCase("국민경제의 발전을 위한 중요정책의 수립에 관하여 대통령의 자문에 응하기 위하여 국민경제자문회의를 둘 수 있다")] // Korean
+    [TestCase("旅ロ京青利セムレ弱改フヨス波府かばぼ意送でぼ調掲察たス日西重ケアナ住橋ユムミク順待ふかんぼ人奨貯鏡すびそ")]  // Japanese
+    [TestCase("😁😂😃😄😅😆😉😊😋😌😍😏😒😓😔😖")]
+    public void Decoding_string(string testString)
+    {
+        var buffer = new byte[256];
+        var bufferWriter = new MemoryBufferWriter(buffer);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice20);
+        encoder.EncodeString(testString);
+        byte[] encodedString = buffer[0..bufferWriter.WrittenMemory.Length];
+        var sut = new SliceDecoder(encodedString, SliceEncoding.Slice20);
+
+        var r1 = sut.DecodeString();
+
+        Assert.That(r1, Is.EqualTo(testString));
+        Assert.That(sut.Consumed, Is.EqualTo(encodedString.Length));
     }
 }

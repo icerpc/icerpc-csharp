@@ -78,6 +78,8 @@ public class EncodingBuiltInTypesTests
     /// <param name="expected">The expected hexadecimal representation of the encoded value.</param>
     [TestCase(SliceEncoder.VarLongMinValue, new byte[] { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 })]
     [TestCase(SliceEncoder.VarLongMaxValue, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F })]
+    [TestCase(0, new byte[] { 0x00 })]
+    [TestCase(256, new byte[] { 0x01, 0x04 })]
     public void Encoding_var_long(long p1, byte[] expected)
     {
         var buffer = new byte[256];
@@ -86,9 +88,9 @@ public class EncodingBuiltInTypesTests
 
         encoder.EncodeVarLong(p1);
 
-        Assert.That(encoder.EncodedByteCount, Is.EqualTo(sizeof(long)));
-        Assert.That(bufferWriter.WrittenMemory.Length, Is.EqualTo(sizeof(long)));
-        Assert.That(new ArraySegment<Byte>(buffer, 0, sizeof(long)), Is.EqualTo(expected));
+        Assert.That(encoder.EncodedByteCount, Is.EqualTo(expected.Length));
+        Assert.That(bufferWriter.WrittenMemory.Length, Is.EqualTo(expected.Length));
+        Assert.That(buffer[0..bufferWriter.WrittenMemory.Length], Is.EqualTo(expected));
     }
 
     /// <summary>Verifies that <see cref="SliceEncoder.EncodeVarLong"/> will throw an ArgumentOutOfRangeException
