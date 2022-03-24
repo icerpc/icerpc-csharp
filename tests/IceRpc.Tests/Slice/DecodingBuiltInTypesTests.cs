@@ -133,7 +133,7 @@ public class DecodingBuiltInTypesTests
     /// <param name="encodedBytes">The encoded byte array to decode.</param>
     /// <param name="encoding">The encoding to use to decode the byte array.</param>
     /// <param name="expected">The expected size to be decoded.</param>
-    [TestCase(new byte[] { 0xFF, 0x57, 0x00, 0x00, 0x00 }, "1.1", 87)]
+    [TestCase(new byte[] { 0x57 }, "1.1", 87)]
     [TestCase(new byte[] { 0x5D, 0x01 }, "2.0", 87)]
     [TestCase(new byte[] { 0x9A }, "1.1", 154)]
     [TestCase(new byte[] { 0x69, 0x02 }, "2.0", 154)]
