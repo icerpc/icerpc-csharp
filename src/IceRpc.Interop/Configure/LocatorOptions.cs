@@ -28,7 +28,7 @@ namespace IceRpc.Configure
         public ILocatorPrx? Locator { get; set; }
 
         /// <summary>Gets or sets the logger factory used to create the IceRpc logger.</summary>
-        public ILoggerFactory LoggerFactory { get; init; } = NullLoggerFactory.Instance;
+        public ILoggerFactory LoggerFactory { get; set; } = NullLoggerFactory.Instance;
 
         /// <summary>Gets or sets the refresh threshold. When the age of a cache entry is <see cref="RefreshThreshold"/>
         /// or less, it's considered up to date and won't be updated even when the caller requests a refresh.</summary>
