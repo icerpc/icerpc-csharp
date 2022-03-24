@@ -28,12 +28,12 @@ public class TcpTransportTests
             RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true,
         };
 
-        private static SslServerAuthenticationOptions DefaultSslServerAuthenticationOptions { get; } =
-            new SslServerAuthenticationOptions
-            {
-                ClientCertificateRequired = false,
-                ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
-            };
+    private static SslServerAuthenticationOptions DefaultSslServerAuthenticationOptions { get; } =
+        new SslServerAuthenticationOptions
+        {
+            ClientCertificateRequired = false,
+            ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
+        };
 
     /// <summary>Verifies that the transport can accept tcp network connections.</summary>
     [Test]

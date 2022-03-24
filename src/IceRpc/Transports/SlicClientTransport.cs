@@ -35,7 +35,9 @@ namespace IceRpc.Transports
         {
         }
 
-        IMultiplexedNetworkConnection IClientTransport<IMultiplexedNetworkConnection>.CreateConnection(
+
+        /// <inheritdoc/>
+        public IMultiplexedNetworkConnection CreateConnection(
             Endpoint remoteEndpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             ILogger logger)

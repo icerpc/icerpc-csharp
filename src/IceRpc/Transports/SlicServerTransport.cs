@@ -36,7 +36,8 @@ namespace IceRpc.Transports
         {
         }
 
-        IListener<IMultiplexedNetworkConnection> IServerTransport<IMultiplexedNetworkConnection>.Listen(
+        /// <inheritdoc/>
+        public IListener<IMultiplexedNetworkConnection> Listen(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
             ILogger logger)
