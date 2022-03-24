@@ -49,9 +49,11 @@ public sealed class SlicNetworkConnectionTests
         Assert.That(sut.IdleTimeout, Is.EqualTo(TimeSpan.FromSeconds(15)));
     }
 
-    [TestCase(10)]
+    [TestCase(1)]
+    [TestCase(1024)]
     public async Task Max_concurrent_bidirectional_streams(int maxStreamCount)
     {
+        // Arrange
         await using IListener<IMultiplexedNetworkConnection> listener = CreateListener(
             options: new SlicServerTransportOptions
             {
@@ -74,10 +76,13 @@ public sealed class SlicNetworkConnectionTests
             await stream.Output.WriteAsync(payload);
         }
 
+        // Act
         IMultiplexedStream lastStream = sut.CreateStream(bidirectional: true);
-        streams.Add(lastStream);
 
-        // The stream will not be accepted as we have already rich the max concurrent streams
+        // Assert
+
+        // The last stream cannot start as we have already rich the max concurrent streams
+        streams.Add(lastStream);
         Assert.That(async () =>
             {
                 var cancellationSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
