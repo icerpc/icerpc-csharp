@@ -27,6 +27,13 @@ namespace IceRpc.Internal
         private readonly bool _isServer;
         private readonly ILogger _logger;
 
+        async Task IProtocolConnection.AcceptRequestsAsync(Connection connection, IDispatcher dispatcher)
+        {
+            using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
+            _logger.LogAcceptRequests();
+            await _decoratee.AcceptRequestsAsync(connection, dispatcher).ConfigureAwait(false);
+        }
+
         void IDisposable.Dispose()
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
@@ -41,45 +48,19 @@ namespace IceRpc.Internal
             _logger.LogPing();
         }
 
-        async Task<IncomingRequest> IProtocolConnection.ReceiveRequestAsync()
-        {
-            using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
-            IncomingRequest request = await _decoratee.ReceiveRequestAsync().ConfigureAwait(false);
-            _logger.LogReceiveRequest(request.Path, request.Operation, request.PayloadEncoding);
-            return request;
-        }
-
-        async Task<IncomingResponse> IProtocolConnection.ReceiveResponseAsync(
+        async Task<IncomingResponse> IProtocolConnection.SendRequestAsync(
+            Connection connection,
             OutgoingRequest request,
             CancellationToken cancel)
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
-            using IDisposable _ = _logger.StartReceiveResponseScope(request);
-            IncomingResponse response = await _decoratee.ReceiveResponseAsync(
+            using IDisposable _ = _logger.StartSendRequestScope(request);
+            IncomingResponse response = await _decoratee.SendRequestAsync(
+                connection,
                 request,
                 cancel).ConfigureAwait(false);
-
-            _logger.LogReceiveResponse(response.ResultType);
-            return response;
-        }
-
-        async Task IProtocolConnection.SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
-        {
-            using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
-            using IDisposable _ = _logger.StartSendRequestScope(request);
-            await _decoratee.SendRequestAsync(request, cancel).ConfigureAwait(false);
             _logger.LogSendRequest(request.PayloadEncoding);
-        }
-
-        async Task IProtocolConnection.SendResponseAsync(
-            OutgoingResponse response,
-            IncomingRequest request,
-            CancellationToken cancel)
-        {
-            using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
-            using IDisposable _ = _logger.StartSendResponseScope(response, request);
-            await _decoratee.SendResponseAsync(response, request, cancel).ConfigureAwait(false);
-            _logger.LogSendResponse();
+            return response;
         }
 
         async Task IProtocolConnection.ShutdownAsync(string message, CancellationToken cancel)
