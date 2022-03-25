@@ -7,30 +7,33 @@ using System.IO.Pipelines;
 
 namespace IceRpc
 {
-    /// <summary>A middleware that compresses the 2.0 encoded payload of a response when
-    /// <see cref="Features.CompressPayload.Yes"/> is present in the response features.</summary>
-    public class CompressorMiddleware : IDispatcher
+    /// <summary>A middleware that applies the deflate compression algorithm to the 2.0 encoded payload of a response
+    /// when <see cref="Features.CompressPayload.Yes"/> is present in the response features.</summary>
+    public class DeflateMiddleware : IDispatcher
     {
         private static readonly ReadOnlySequence<byte> _encodedCompressionFormatValue =
             new(new byte[] { (byte)CompressionFormat.Deflate });
 
         private readonly IDispatcher _next;
-        private readonly Configure.CompressOptions _options;
+        private readonly CompressionLevel _compressionLevel;
 
         /// <summary>Constructs a compressor middleware.</summary>
         /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
-        /// <param name="options">The options to configure the compressor middleware.</param>
-        public CompressorMiddleware(IDispatcher next, Configure.CompressOptions options)
+        /// <param name="compressionLevel">The compression level for the compress operation.</param>
+        public DeflateMiddleware(
+            IDispatcher next,
+            CompressionLevel compressionLevel = CompressionLevel.Fastest)
         {
             _next = next;
-            _options = options;
+            _compressionLevel = compressionLevel;
         }
 
-        async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(IncomingRequest request, CancellationToken cancel)
+        /// <inheritdoc/>
+        public async ValueTask<OutgoingResponse> DispatchAsync(
+            IncomingRequest request,
+            CancellationToken cancel = default)
         {
-            if (request.Protocol.HasFields &&
-                _options.DecompressPayload &&
-                request.Features.Get<Features.DecompressPayload>() != Features.DecompressPayload.No)
+            if (request.Protocol.HasFields && request.Fields.ContainsKey(RequestFieldKey.CompressionFormat))
             {
                 CompressionFormat compressionFormat = request.Fields.DecodeValue(
                     RequestFieldKey.CompressionFormat,
@@ -49,13 +52,12 @@ namespace IceRpc
             // The CompressPayload feature is typically set through the Slice compress attribute.
 
             if (request.Protocol.HasFields &&
-                _options.CompressPayload &&
                 response.ResultType == ResultType.Success &&
                 request.Features.Get<Features.CompressPayload>() == Features.CompressPayload.Yes &&
                 !response.Fields.ContainsKey(ResponseFieldKey.CompressionFormat))
             {
                 response.PayloadSink = PipeWriter.Create(
-                    new DeflateStream(response.PayloadSink.ToPayloadSinkStream(), _options.CompressionLevel));
+                    new DeflateStream(response.PayloadSink.ToPayloadSinkStream(), _compressionLevel));
 
                 response.Fields = response.Fields.With(
                     ResponseFieldKey.CompressionFormat,
