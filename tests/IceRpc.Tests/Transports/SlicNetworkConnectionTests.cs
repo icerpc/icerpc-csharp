@@ -4,6 +4,7 @@ using IceRpc.Configure;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
+using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Tests;
 
@@ -11,9 +12,9 @@ namespace IceRpc.Transports.Tests;
 [Timeout(30000)]
 public sealed class SlicNetworkConnectionTests
 {
-    private static ReadOnlyMemory<byte> _oneBytePayload = new(new byte[] { 0xFF });
+    private static readonly ReadOnlyMemory<byte> _oneBytePayload = new(new byte[] { 0xFF });
 
-    private static ReadOnlyMemory<byte> _oneMbPayload = new(
+    private static readonly ReadOnlyMemory<byte> _oneMbPayload = new(
         Enumerable.Range(0, 1024 * 1024).Select(i => (byte)(i % 256)).ToArray());
 
     [Test]
@@ -80,31 +81,97 @@ public sealed class SlicNetworkConnectionTests
         await using IMultiplexedNetworkConnection sut = await ConnectAsync(clientConnection, listener);
 
         using var cancelationSource = new CancellationTokenSource();
-        var acceptTask = sut.AcceptStreamAsync(cancelationSource.Token);
+        ValueTask<IMultiplexedStream> acceptTask = sut.AcceptStreamAsync(cancelationSource.Token);
 
         cancelationSource.Cancel();
 
         Assert.That(async () => await acceptTask, Throws.TypeOf<OperationCanceledException>());
     }
 
+    /// <summary>Verify that after a stream consumed all the send credit, writes calls on the stream start blocking.
+    /// </summary>
     [Test]
-    public async Task Write_threshold()
+    public async Task Stream_write_blocks_after_consuming_the_send_credit()
     {
+        // Arrange
         await using IListener<IMultiplexedNetworkConnection> listener = CreateListener(
             options: new SlicServerTransportOptions
             {
                 PauseWriterThreshold = 1024 * 1024,
             });
-        await using IMultiplexedNetworkConnection clientConnection = CreateConnection(listener.Endpoint);
-        await using IMultiplexedNetworkConnection sut = await ConnectAsync(clientConnection, listener);
-
-        var serverConnection = await ConnectAsync(sut, listener);
-
+        await using IMultiplexedNetworkConnection sut = CreateConnection(listener.Endpoint);
+        await using IMultiplexedNetworkConnection serverConnection = await ConnectAsync(sut, listener);
         IMultiplexedStream stream = sut.CreateStream(bidirectional: true);
-        var writeTask = stream.Output.WriteAsync(_oneMbPayload, default);
+        FlushResult result = await stream.Output.WriteAsync(_oneMbPayload, default);
 
+        // Previous write call consumed all send credit this call cannot succeed
+        ValueTask<FlushResult> writeTask = stream.Output.WriteAsync(_oneMbPayload, default);
+
+        // Assert
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
         Assert.That(writeTask.IsCompleted, Is.False);
-        await clientConnection.DisposeAsync();
+    }
+
+    /// <summary>Verify that the writes calls of other streams on the same connection aren't affected by a stream
+    /// that consumed all its send credit. We create two streams on the same connection, write data to stream1 until
+    /// we consume all its credits and writes start to block, a second stream is created and we ensure that its writes
+    /// can proceed unaffected.</summary>
+    [Test]
+    public async Task Stream_write_blocking_does_not_affect_concurrent_streams()
+    {
+        // Arrange
+        await using IListener<IMultiplexedNetworkConnection> listener = CreateListener(
+            options: new SlicServerTransportOptions
+            {
+                PauseWriterThreshold = 1024 * 1024,
+            });
+        await using IMultiplexedNetworkConnection sut = CreateConnection(listener.Endpoint);
+        await using IMultiplexedNetworkConnection serverConnection = await ConnectAsync(sut, listener);
+        IMultiplexedStream stream1 = sut.CreateStream(bidirectional: true);
+        IMultiplexedStream stream2 = sut.CreateStream(bidirectional: true);
+
+        FlushResult result = await stream1.Output.WriteAsync(_oneMbPayload, default);
+        ValueTask<FlushResult> writeTask = stream1.Output.WriteAsync(_oneMbPayload, default);
+
+        // Act
+
+        // stream1 consumed all its send credit, this shouldn't affect stream2
+        result = await stream2.Output.WriteAsync(_oneMbPayload, default);
+
+        // Assert
+        var serverStream1 = await serverConnection.AcceptStreamAsync(default);
+        var serverStream2 = await serverConnection.AcceptStreamAsync(default);
+        Assert.That(stream2.Id, Is.EqualTo(serverStream2.Id));
+        var readResult = await serverStream2.Input.ReadAtLeastAsync(1024 * 1024);
+        Assert.That(readResult.IsCanceled, Is.False);
+        serverStream2.Input.AdvanceTo(readResult.Buffer.End);
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
+        Assert.That(writeTask.IsCompleted, Is.False);
+    }
+
+    [Test]
+    public async Task Can_resume_write_after_reaching_the_resume_writer_threshold()
+    {
+        await using IListener<IMultiplexedNetworkConnection> listener = CreateListener(
+            options: new SlicServerTransportOptions
+            {
+                PauseWriterThreshold = 1024 * 1024,
+                ResumeWriterThreshold = 1024 * 512
+            });
+        await using IMultiplexedNetworkConnection sut = CreateConnection(listener.Endpoint);
+        await using IMultiplexedNetworkConnection serverConnection = await ConnectAsync(sut, listener);
+        
+        IMultiplexedStream stream = sut.CreateStream(bidirectional: true);
+
+        FlushResult result = await stream.Output.WriteAsync(_oneMbPayload, default);
+        IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
+        ValueTask<FlushResult> writeTask = stream.Output.WriteAsync(_oneMbPayload, default);
+        ReadResult readResult = await serverStream.Input.ReadAtLeastAsync(1024 * 1024, default);
+
+        // Act
+        serverStream.Input.AdvanceTo(readResult.Buffer.GetPosition(1024 * 1024));
+
+        Assert.That(async () => await writeTask, Throws.Nothing);
     }
 
     [Test]
