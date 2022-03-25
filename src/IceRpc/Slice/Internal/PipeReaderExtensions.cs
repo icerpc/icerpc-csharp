@@ -113,8 +113,43 @@ namespace IceRpc.Slice.Internal
 
         internal static bool TryReadSegment(this PipeReader reader, SliceEncoding encoding, out ReadResult readResult)
         {
-            readResult = default;
-            return false;
+            // TODO: make maxSegmentSize configurable
+            const int maxSegmentSize = 4 * 1024 * 1024;
+
+            if (encoding == Encoding.Slice11)
+            {
+                if (reader.TryRead(out readResult))
+                {
+                    if (readResult.IsCanceled)
+                    {
+                        return true; // and the buffer does not matter
+                    }
+
+                    if (readResult.Buffer.Length > maxSegmentSize)
+                    {
+                        throw new InvalidDataException(
+                            $"segment size '{readResult.Buffer.Length}' exceeds maximum value");
+                    }
+
+                    if (readResult.IsCompleted)
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        // don't consume anything and fall through
+                        reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                    }
+                }
+
+                readResult = default;
+                return false;
+            }
+            else
+            {
+                readResult = default;
+                return false;
+            }
         }
 
         private static bool TryDecodeSize(ReadOnlySequence<byte> buffer, out int size, out long consumed)
