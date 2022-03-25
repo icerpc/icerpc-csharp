@@ -9,7 +9,7 @@ namespace IceRpc
 {
     /// <summary>A middleware that applies the deflate compression algorithm to the 2.0 encoded payload of a response
     /// when <see cref="Features.CompressPayload.Yes"/> is present in the response features.</summary>
-    public class DeflateCompressorMiddleware : IDispatcher
+    public class DeflateMiddleware : IDispatcher
     {
         private static readonly ReadOnlySequence<byte> _encodedCompressionFormatValue =
             new(new byte[] { (byte)CompressionFormat.Deflate });
@@ -20,7 +20,7 @@ namespace IceRpc
         /// <summary>Constructs a compressor middleware.</summary>
         /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
         /// <param name="compressionLevel">The compression level for the compress operation.</param>
-        public DeflateCompressorMiddleware(
+        public DeflateMiddleware(
             IDispatcher next,
             CompressionLevel compressionLevel = CompressionLevel.Fastest)
         {

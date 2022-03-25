@@ -9,7 +9,7 @@ namespace IceRpc
 {
     /// <summary>An interceptor that applies the deflate compression algorithm to the 2.0 encoded payload of a request,
     /// when <see cref="Features.CompressPayload.Yes"/> is present in the request features.</summary>
-    public class DeflateCompressorInterceptor : IInvoker
+    public class DeflateInterceptor : IInvoker
     {
         private static readonly ReadOnlySequence<byte> _encodedCompressionFormatValue =
             new(new byte[] { (byte)CompressionFormat.Deflate });
@@ -20,7 +20,7 @@ namespace IceRpc
         /// <summary>Constructs a compressor interceptor.</summary>
         /// <param name="next">The next invoker in the invocation pipeline.</param>
         /// <param name="compressionLevel">The compression level for the compress operation.</param>
-        public DeflateCompressorInterceptor(IInvoker next, CompressionLevel compressionLevel = CompressionLevel.Fastest)
+        public DeflateInterceptor(IInvoker next, CompressionLevel compressionLevel = CompressionLevel.Fastest)
         {
             _next = next;
             _compressionLevel = compressionLevel;

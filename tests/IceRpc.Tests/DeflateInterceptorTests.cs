@@ -8,7 +8,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Interop.Tests;
 
-public class CompressorInterceptorTests
+public class DeflateInterceptorTests
 {
     private static readonly byte[] _payload =
         Enumerable.Range(0, 4096).Select(i => (byte)(i % 256)).ToArray();
@@ -19,7 +19,7 @@ public class CompressorInterceptorTests
     private static readonly ReadOnlySequence<byte> _unknownEncodedCompressionFormatValue =
         new(new byte[] { 255 });
 
-    /// <summary>Verifies that the compressor interceptor wraps the payload sink pipe writer with a pipe writer that
+    /// <summary>Verifies that the deflate interceptor wraps the payload sink pipe writer with a pipe writer that
     /// compresses the input using the deflate compression format when the request carries the compress payload
     /// feature.</summary>
     [Test]
@@ -27,7 +27,7 @@ public class CompressorInterceptorTests
     {
         // Arrange
         var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request)));
-        var sut = new DeflateCompressorInterceptor(invoker);
+        var sut = new DeflateInterceptor(invoker);
         var outStream = new MemoryStream();
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
         {
@@ -51,13 +51,13 @@ public class CompressorInterceptorTests
         await request.PayloadSink.CompleteAsync();
     }
 
-    /// <summary>Verifies that the compressor interceptor does not update the payload sink if the request does
-    /// not contain the compress feature.</summary>
+    /// <summary>Verifies that the deflate interceptor does not update the payload sink if the request does
+    /// not contain the compress payload feature.</summary>
     [Test]
     public async Task Compressor_interceptor_without_compress_feature_does_not_update_the_payload_sink()
     {
         var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request)));
-        var sut = new DeflateCompressorInterceptor(invoker);
+        var sut = new DeflateInterceptor(invoker);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
         var initialPayloadSink = request.PayloadSink;
 
@@ -66,13 +66,13 @@ public class CompressorInterceptorTests
         Assert.That(request.PayloadSink, Is.EqualTo(initialPayloadSink));
     }
 
-    /// <summary>Verifies that the compressor interceptor does not update the payload sink if the request is already
+    /// <summary>Verifies that the deflate interceptor does not update the payload sink if the request is already
     /// compressed (the request already has a compression format field).</summary>
     [Test]
     public async Task Compressor_interceptor_does_not_update_the_payload_sink_if_request_is_already_compressed()
     {
         var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request)));
-        var sut = new DeflateCompressorInterceptor(invoker);
+        var sut = new DeflateInterceptor(invoker);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
         request.Features = request.Features.With(Features.CompressPayload.Yes);
         request.Fields = request.Fields.With(
@@ -85,7 +85,7 @@ public class CompressorInterceptorTests
         Assert.That(request.PayloadSink, Is.EqualTo(initialPayloadSink));
     }
 
-    /// <summary>Verifies that the compressor interceptor does not update the response payload when the compression
+    /// <summary>Verifies that the deflate interceptor does not update the response payload when the compression
     /// format is not supported, and lets the response pass through unchanged.</summary>
     [Test]
     public async Task Compressor_interceptor_lets_responses_with_unsupported_compression_format_pass_throw()
@@ -99,7 +99,7 @@ public class CompressorInterceptorTests
             initialPayload = response.Payload;
             return Task.FromResult(response);
         });
-        var sut = new DeflateCompressorInterceptor(invoker);
+        var sut = new DeflateInterceptor(invoker);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
 
         IncomingResponse response = await sut.InvokeAsync(request, default);
@@ -107,7 +107,7 @@ public class CompressorInterceptorTests
         Assert.That(response.Payload, Is.EqualTo(initialPayload));
     }
 
-    /// <summary>Verifies that the compressor interceptor wraps the response payload with a pipe reader that
+    /// <summary>Verifies that the deflate interceptor wraps the response payload with a pipe reader that
     /// decompress it, when the response carries a deflate compression format field.</summary>
     [Test]
     public async Task Decompress_response_payload()
@@ -120,7 +120,7 @@ public class CompressorInterceptorTests
             response.Payload = PipeReader.Create(CreateCompressedPayload(_payload));
             return Task.FromResult(response);
         });
-        var sut = new DeflateCompressorInterceptor(invoker);
+        var sut = new DeflateInterceptor(invoker);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
 
         IncomingResponse response = await sut.InvokeAsync(request, default);
