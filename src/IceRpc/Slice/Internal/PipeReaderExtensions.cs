@@ -122,5 +122,11 @@ namespace IceRpc.Slice.Internal
                 }
             }
         }
+
+        internal static bool TryReadSegment(this PipeReader reader, SliceEncoding encoding, out ReadResult readResult)
+        {
+            readResult = default;
+            return false;
+        }
     }
 }
