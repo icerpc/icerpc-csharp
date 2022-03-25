@@ -98,19 +98,19 @@ namespace IceRpc.Internal
                     }
                 }
 
-                // Read the request frame and decode its header.
+                // Read the request frame.
+                PipeReader requestFrameReader = await CreateFrameReaderAsync(
+                    requestFrameSize - IceDefinitions.PrologueSize,
+                    _networkConnectionReader,
+                    _memoryPool,
+                    _minimumSegmentSize,
+                    CancellationToken.None).ConfigureAwait(false);
+
+                // Decode its header.
                 int requestId;
                 IceRequestHeader requestHeader;
-                PipeReader? requestFrameReader = null;
                 try
                 {
-                    requestFrameReader = await CreateFrameReaderAsync(
-                        requestFrameSize - IceDefinitions.PrologueSize,
-                        _networkConnectionReader,
-                        _memoryPool,
-                        _minimumSegmentSize,
-                        CancellationToken.None).ConfigureAwait(false);
-
                     if (!requestFrameReader.TryRead(out ReadResult readResult))
                     {
                         throw new InvalidDataException("received invalid request frame");
@@ -118,16 +118,12 @@ namespace IceRpc.Internal
 
                     Debug.Assert(readResult.IsCompleted);
 
-                    (requestId, requestHeader, int consumed) = DecodeRequestIdAndHeader(
-                        readResult.Buffer);
+                    (requestId, requestHeader, int consumed) = DecodeRequestIdAndHeader(readResult.Buffer);
                     requestFrameReader.AdvanceTo(readResult.Buffer.GetPosition(consumed));
                 }
                 catch
                 {
-                    if (requestFrameReader != null)
-                    {
-                        await requestFrameReader.CompleteAsync().ConfigureAwait(false);
-                    }
+                    await requestFrameReader.CompleteAsync().ConfigureAwait(false);
                     throw;
                 }
 
@@ -135,7 +131,7 @@ namespace IceRpc.Internal
                 {
                     Connection = connection,
                     Fields = requestHeader.OperationMode == OperationMode.Normal ?
-                            ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields,
+                        ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields,
                     Fragment = requestHeader.Fragment,
                     IsOneway = requestId == 0,
                     Operation = requestHeader.Operation,
@@ -195,6 +191,7 @@ namespace IceRpc.Internal
                 catch (Exception exception)
                 {
                     // If we catch an exception, we return a failure response with a Slice-encoded payload.
+
                     if (exception is OperationCanceledException)
                     {
                         exception = new DispatchException("dispatch canceled by peer", DispatchErrorCode.Canceled);

@@ -66,7 +66,7 @@ namespace IceRpc.Internal
 
         public async Task AcceptRequestsAsync(Connection connection, IDispatcher dispatcher)
         {
-            while(true)
+            while (true)
             {
                 // Accepts a new stream.
                 IMultiplexedStream stream;
@@ -100,7 +100,7 @@ namespace IceRpc.Internal
 
                     if (readResult.Buffer.IsEmpty)
                     {
-                        throw new InvalidDataException($"received icerpc request with empty header");
+                        throw new InvalidDataException("received icerpc request with empty header");
                     }
 
                     (header, fields) = DecodeHeader(readResult.Buffer);
