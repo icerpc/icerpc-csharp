@@ -25,8 +25,7 @@ namespace IceRpc.Tests.ClientServer
                 .AddTransient<IceProtocolOptions>(
                     _ => new()
                     {
-                        MaxIncomingFrameSize = 4 * 1024 * 1024,
-                        MaxOutgoingFrameSize = 4 * 1024 * 1024
+                        MaxIncomingFrameSize = 4 * 1024 * 1024
                     })
                 .UseTransport("tcp")
                 .UseProtocol(protocol)

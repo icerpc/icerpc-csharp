@@ -79,7 +79,7 @@ namespace IceRpc.Internal
                 int requestFrameSize; // the total size of the request frame
                 try
                 {
-                    requestFrameSize = await ReceiveFrameAsync(connection.IsServer).ConfigureAwait(false);
+                    requestFrameSize = await ReceiveFrameAsync().ConfigureAwait(false);
                 }
                 catch
                 {
@@ -270,18 +270,7 @@ namespace IceRpc.Internal
                         }
                     }
 
-                    int responseFrameSize = EncodeResponseHeader(
-                        _networkConnectionWriter,
-                        requestId,
-                        payloadSize,
-                        replyStatus);
-                    if (responseFrameSize > _options.MaxOutgoingFrameSize)
-                    {
-                        // TODO: remove
-                        // throw new ArgumentException(
-                        //     "response frame size is greater than the max outgoing frame size",
-                        //     nameof(response));
-                    }
+                    EncodeResponseHeader(_networkConnectionWriter, requestId, payloadSize, replyStatus);
 
                     // Write the payload and complete the source.
                     FlushResult flushResult = await response.PayloadSink.WriteAsync(
@@ -327,7 +316,7 @@ namespace IceRpc.Internal
                     }
                 }
 
-                static int EncodeResponseHeader(
+                static void EncodeResponseHeader(
                     SimpleNetworkConnectionWriter writer,
                     int requestId,
                     int payloadSize,
@@ -362,7 +351,6 @@ namespace IceRpc.Internal
 
                     int frameSize = encoder.EncodedByteCount + payloadSize;
                     SliceEncoder.EncodeInt(frameSize, sizePlaceholder.Span);
-                    return frameSize;
                 }
             }
 
@@ -482,14 +470,7 @@ namespace IceRpc.Internal
                     }
                 }
 
-                int requestFrameSize = EncodeRequestHeader(_networkConnectionWriter, request, requestId, payloadSize);
-                if (requestFrameSize > _options.MaxOutgoingFrameSize)
-                {
-                    // TODO: remove
-                    // throw new ArgumentException(
-                    //     "request frame size is greater than the max outgoing frame size",
-                    //     nameof(request));
-                }
+                EncodeRequestHeader(_networkConnectionWriter, request, requestId, payloadSize);
 
                 FlushResult flushResult = await request.PayloadSink.WriteAsync(
                     payload,
@@ -633,7 +614,7 @@ namespace IceRpc.Internal
                 }
             }
 
-            static int EncodeRequestHeader(
+            static void EncodeRequestHeader(
                 SimpleNetworkConnectionWriter output,
                 OutgoingRequest request,
                 int requestId,
@@ -670,9 +651,8 @@ namespace IceRpc.Internal
                     new EncapsulationHeader(encapsulationSize: payloadSize + 6, encodingMajor, encodingMinor));
                 requestHeader.Encode(ref encoder);
 
-                int frameSize = encoder.EncodedByteCount + payloadSize;
+                int frameSize = checked(encoder.EncodedByteCount + payloadSize);
                 SliceEncoder.EncodeInt(frameSize, sizePlaceholder.Span);
-                return frameSize;
             }
         }
 
@@ -894,34 +874,28 @@ namespace IceRpc.Internal
         }
 
         /// <summary>Reads the full Ice payload from the given payload source.</summary>
-        private async Task<ReadOnlySequence<byte>> ReadFullPayloadAsync(
+        private static async ValueTask<ReadOnlySequence<byte>> ReadFullPayloadAsync(
             PipeReader payloadSource,
             CancellationToken cancel)
         {
-            ReadResult readResult = await payloadSource.ReadAtLeastAsync(
-                _options.MaxOutgoingFrameSize + 1,
-                cancel).ConfigureAwait(false);
+            // We use ReadAtLeastAsync instead of ReadAsync to bypass the PauseWriterThreshold when the payloadSource
+            // is backed by a Pipe.
+            ReadResult readResult = await payloadSource.ReadAtLeastAsync(int.MaxValue, cancel).ConfigureAwait(false);
 
             if (readResult.IsCanceled)
             {
                 throw new OperationCanceledException();
             }
 
-            if (!readResult.IsCompleted)
-            {
-                throw new ArgumentException(
-                    "payload size is greater than the max outgoing frame size",
-                    nameof(payloadSource));
-            }
-
-            return readResult.Buffer;
+            return readResult.IsCompleted ? readResult.Buffer :
+                throw new ArgumentException("the payload size is greater than int.MaxValue", nameof(payloadSource));
         }
 
         /// <summary>Receives incoming frames and returns once a request frame is received.</summary>
         /// <returns>The size of the request frame.</returns>
         /// <remarks>When this method returns, only the frame prologue has been read from the network. The caller is
         /// responsible to read the remainder of the request frame from _networkConnectionReader.</remarks>
-        private async ValueTask<int> ReceiveFrameAsync(bool isServer)
+        private async ValueTask<int> ReceiveFrameAsync()
         {
             // Reads are not cancelable. This method returns once a request frame is read or when the connection is
             // disposed.
