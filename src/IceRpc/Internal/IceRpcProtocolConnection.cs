@@ -130,6 +130,11 @@ namespace IceRpc.Internal
                     throw;
                 }
 
+                // TODO: Should we remove IncomingRequest.ResponseWriter for consistency with the removal of
+                // OutgoingRequest.ResponseReader? We could instead use the same mechanism as OutgoingRequest to set the
+                // transport payload sink with SetTransportPayloadSink which would be moved to the OutgoingFrame base
+                // class
+
                 var request = new IncomingRequest(Protocol.IceRpc)
                 {
                     Connection = connection,
@@ -173,10 +178,24 @@ namespace IceRpc.Internal
 
                         stream.ShutdownAction = () =>
                         {
-                            cancelDispatchSource.Cancel();
+                            // TODO: review stream shutdown (see #930)
+
+                            try
+                            {
+                                cancelDispatchSource.Cancel();
+                            }
+                            catch (ObjectDisposedException)
+                            {
+                                // TODO: we shouldn't have to catch this exception here (related to #930).
+                            }
 
                             lock (_mutex)
                             {
+                                // TODO: we need to decouple the completion of a dispatch from it's cancellation token
+                                // source. A dispatch ends once the stream param receive or send terminates. We should
+                                // probably keep the stream + cancelDispatchSource in _dispatches. To be able to cancel
+                                // pending reads on request.Payload, pending reads on response.PayloadSourceStream and
+                                // pending flushes on response.PayloadSink.
                                 _dispatches.Remove(cancelDispatchSource);
 
                                 // If no more invocations or dispatches and shutting down, shutdown can complete.
@@ -343,6 +362,8 @@ namespace IceRpc.Internal
 
                             stream.ShutdownAction = () =>
                             {
+                                // TODO: review stream shutdown (see #930)
+
                                 lock (_mutex)
                                 {
                                     _invocations.Remove(stream);

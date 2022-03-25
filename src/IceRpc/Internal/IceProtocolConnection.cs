@@ -73,13 +73,13 @@ namespace IceRpc.Internal
 
         public async Task AcceptRequestsAsync(Connection connection, IDispatcher dispatcher)
         {
-            while(true)
+            while (true)
             {
                 // Wait for a request frame to be received.
                 int requestFrameSize; // the total size of the request frame
                 try
                 {
-                    requestFrameSize = await ReceiveFrameAsync().ConfigureAwait(false);
+                    requestFrameSize = await ReceiveFrameAsync(connection.IsServer).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -180,7 +180,6 @@ namespace IceRpc.Internal
                     // If shutting down, ignore the incoming request.
                     // TODO: replace with payload exception and error code
                     var exception = new ConnectionClosedException();
-                    await request.ResponseWriter.CompleteAsync(exception).ConfigureAwait(false);
                     await request.Payload.CompleteAsync(exception).ConfigureAwait(false);
                     return;
                 }
@@ -474,7 +473,7 @@ namespace IceRpc.Internal
                             throw new ConnectionClosedException();
                         }
                         requestId = ++_nextRequestId;
-                        responseCompletionSource = new();
+                        responseCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
                         _invocations[requestId] = responseCompletionSource;
                     }
                 }
@@ -609,9 +608,9 @@ namespace IceRpc.Internal
                         }
                     };
                 }
-                catch
+                catch (Exception exception)
                 {
-                    await frameReader.CompleteAsync().ConfigureAwait(false);
+                    await frameReader.CompleteAsync(exception).ConfigureAwait(false);
                     throw;
                 }
             }
@@ -918,7 +917,7 @@ namespace IceRpc.Internal
         /// <returns>The size of the request frame.</returns>
         /// <remarks>When this method returns, only the frame prologue has been read from the network. The caller is
         /// responsible to read the remainder of the request frame from _networkConnectionReader.</remarks>
-        private async ValueTask<int> ReceiveFrameAsync()
+        private async ValueTask<int> ReceiveFrameAsync(bool isServer)
         {
             // Reads are not cancelable. This method returns once a request frame is read or when the connection is
             // disposed.
@@ -946,8 +945,7 @@ namespace IceRpc.Internal
                     throw new InvalidDataException(
                         $"incoming frame size ({prologue.FrameSize}) is greater than max incoming frame size");
                 }
-                else if (_isUdp &&
-                    (prologue.FrameSize > buffer.Length || prologue.FrameSize > UdpUtils.MaxPacketSize))
+                else if (_isUdp && (prologue.FrameSize > buffer.Length || prologue.FrameSize > UdpUtils.MaxPacketSize))
                 {
                     // Ignore truncated UDP datagram.
                     continue; // while

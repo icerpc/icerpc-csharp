@@ -484,8 +484,8 @@ namespace IceRpc
                             idleTimeout / 2);
                     }
 
-                    // Start accepting requests. We capture the protocol connection to run the task to ensure we accept
-                    // requests on the new connection.
+                    // Start accepting requests. _protocolConnection might be updated before the task is ran so we
+                    // capture the protocol connection to ensure we accept requests on this new connection.
                     IProtocolConnection protocolConnection = _protocolConnection;
                     _ = Task.Run(async () =>
                         {
@@ -500,7 +500,8 @@ namespace IceRpc
                                 // TODO: it's very painful to just eat this exception
                                 // Console.WriteLine($"ReceiveRequestAsync exception: {exception}");
 
-                                // Unexpected exception, if the connection hasn't been resumed already, close the connection.
+                                // Unexpected exception, if the connection hasn't been resumed already, close the
+                                // connection.
                                 lock (_mutex)
                                 {
                                     if (protocolConnection == _protocolConnection)

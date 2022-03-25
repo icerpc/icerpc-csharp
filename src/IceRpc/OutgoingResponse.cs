@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System.Collections.Immutable;
 using System.IO.Pipelines;
 
@@ -13,7 +14,7 @@ namespace IceRpc
             ImmutableDictionary<ResponseFieldKey, OutgoingFieldValue>.Empty;
 
         /// <inheritdoc/>
-        public override PipeWriter PayloadSink { get; set; }
+        public override PipeWriter PayloadSink { get; set; } = InvalidPipeWriter.Instance;
 
         /// <summary>Returns the corresponding incoming request.</summary>
         public IncomingRequest Request { get; }

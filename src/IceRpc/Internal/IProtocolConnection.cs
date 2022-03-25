@@ -23,7 +23,7 @@ namespace IceRpc.Internal
         /// <summary>This event is raised when the protocol connection is notified of the peer shutdown.</summary>
         event Action<string>? PeerShutdownInitiated;
 
-        /// <summary>Accepting requests. This method terminates when the connection is closed.</summary>
+        /// <summary>Accepts requests and returns once the connection is closed or the shutdown completes.</summary>
         /// <param name="connection">The connection owning this protocol connection. This is used to assign <see
         /// cref="IncomingFrame.Connection"/>.</param>
         /// <param name="dispatcher">The dispatcher to dispatch the requests.</param>
