@@ -388,6 +388,11 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel)
         {
             Debug.Assert(!source1.IsEmpty || endStream);
+            if (_bidirectionalStreamSemaphore == null)
+            {
+                throw new InvalidDataException("cannot create a streams before calling ConnectAsync");
+            }
+
             do
             {
                 // Check if writes completed, the stream might have been reset by the peer. Don't send the data and
@@ -515,12 +520,13 @@ namespace IceRpc.Transports.Internal
         private Dictionary<int, IList<byte>> GetParameters()
         {
             var parameters = new List<KeyValuePair<int, IList<byte>>>
-                {
-                    EncodeParameter(ParameterKey.MaxBidirectionalStreams, (ulong)_bidirectionalMaxStreams),
-                    EncodeParameter(ParameterKey.MaxUnidirectionalStreams, (ulong)_unidirectionalMaxStreams),
-                    EncodeParameter(ParameterKey.PacketMaxSize, (ulong)_packetMaxSize),
-                    EncodeParameter(ParameterKey.PauseWriterThreshold, (ulong)PauseWriterThreshold)
-                };
+            {
+                EncodeParameter(ParameterKey.MaxBidirectionalStreams, (ulong)_bidirectionalMaxStreams),
+                EncodeParameter(ParameterKey.MaxUnidirectionalStreams, (ulong)_unidirectionalMaxStreams),
+                EncodeParameter(ParameterKey.PacketMaxSize, (ulong)_packetMaxSize),
+                EncodeParameter(ParameterKey.PauseWriterThreshold, (ulong)PauseWriterThreshold)
+            };
+
             if (IdleTimeout != TimeSpan.MaxValue && IdleTimeout != Timeout.InfiniteTimeSpan)
             {
                 parameters.Add(EncodeParameter(ParameterKey.IdleTimeout, (ulong)IdleTimeout.TotalMilliseconds));
