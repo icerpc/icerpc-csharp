@@ -147,7 +147,6 @@ public class TcpTransportTests
         Assert.That(connection.Socket.DualMode, ipv6only ? Is.False : Is.True);
     }
 
-
     /// <summary>Verifies that setting the <see cref="TcpClientTransportOptions.LocalEndPoint"/> properties, sets
     /// the socket local endpoint.</summary>
     [Test]

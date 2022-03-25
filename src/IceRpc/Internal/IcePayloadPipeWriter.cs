@@ -35,18 +35,26 @@ namespace IceRpc.Internal
 
         public override Span<byte> GetSpan(int sizeHint = 0) => _networkConnectionWriter.GetSpan(sizeHint);
 
-        public override ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancel) =>
+        public override async ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancel)
+        {
             // The write can't be canceled because it would lead to the writing of an incomplete payload.
-            _networkConnectionWriter.WriteAsync(new ReadOnlySequence<byte>(source), CancellationToken.None);
+            await _networkConnectionWriter.WriteAsync(
+                new ReadOnlySequence<byte>(source),
+                CancellationToken.None).ConfigureAwait(false);
+            return default;
+        }
 
-        /// <summary>Write the source to the simple network connection. <paramref name="endStream"/> is ignored because
+        /// <summary>Writes the source to the simple network connection. <paramref name="endStream"/> is ignored because
         /// the simple network connection has no use for it.</summary>
-        public override ValueTask<FlushResult> WriteAsync(
+        public override async ValueTask<FlushResult> WriteAsync(
             ReadOnlySequence<byte> source,
             bool endStream,
-            CancellationToken cancel) =>
+            CancellationToken cancel)
+        {
             // The write can't be canceled because it would lead to the writing of an incomplete payload.
-            _networkConnectionWriter.WriteAsync(source, CancellationToken.None);
+            await _networkConnectionWriter.WriteAsync(source, CancellationToken.None).ConfigureAwait(false);
+            return default;
+        }
 
         internal IcePayloadPipeWriter(SimpleNetworkConnectionWriter networkConnectionWriter) =>
             _networkConnectionWriter = networkConnectionWriter;

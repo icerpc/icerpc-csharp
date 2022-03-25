@@ -111,7 +111,7 @@ public class TlsConfigurationTests
     /// are used during the tls handshake.</summary>
     /// <returns></returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Security", 
+        "Security",
         "CA5359:Do Not Disable Certificate Validation",
         Justification = "Certificate validation is not required for this test")]
     [Test]
