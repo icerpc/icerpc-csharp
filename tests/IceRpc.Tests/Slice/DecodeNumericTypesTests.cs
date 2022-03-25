@@ -7,7 +7,7 @@ namespace IceRpc.Slice.Tests;
 
 /// <summary>Test decoding built-in types with the supported Slice encodings.</summary>
 [Parallelizable(scope: ParallelScope.All)]
-public class DecodingBuiltInTypesTests
+public class DecodeNumericTypesTests
 {
     /// <summary>Tests the decoding of long. Decoding any fixed size numeric is handled the same way by the SliceDecoder,
     /// as such it is sufficient to just test decoding a long.</summary>
@@ -58,15 +58,13 @@ public class DecodingBuiltInTypesTests
     {
         Assert.That(() =>
         {
-            // Arrange
             var sut = new SliceDecoder(encodedBytes, Encoding.Slice20);
 
-            // Act
             sut.DecodeVarInt();
         }, Throws.InstanceOf<InvalidDataException>());
     }
 
-    /// <summary>Test the decoding of a variable size signed long.</summary>
+    /// <summary>Test the decoding of a variable size unsigned long.</summary>
     /// <param name="encodedBytes">>An encoded byte array to decode.</param>
     /// <param name="expected">The expected ulong to be decoded.</param>
     [TestCase(new byte[] { 0x00 }, SliceEncoder.VarULongMinValue)]

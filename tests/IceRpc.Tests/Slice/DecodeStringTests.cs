@@ -7,7 +7,7 @@ namespace IceRpc.Slice.Tests;
 
 /// <summary>Test decoding strings with the supported Slice encodings.</summary>
 [Parallelizable(scope: ParallelScope.All)]
-public class DecodingStringTests
+public class DecodeStringTests
 {
     /// <summary>Tests the decoding of a string. The only difference between decoding strings with the 1.1 encoding and
     /// the 2.0 encoding is how the size gets encoded. Since <see cref="Decoding_size(string, byte[], byte[])"/>

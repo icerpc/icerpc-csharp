@@ -6,7 +6,7 @@ namespace IceRpc.Slice.Tests;
 
 /// <summary>Test encoding of built-in types with the supported Slice encodings.</summary>
 [Parallelizable(scope: ParallelScope.All)]
-public class EncodingBuiltInTypesTests
+public class EncodeNumericTypesTests
 {
     /// <summary>Tests the encoding of a long.</summary>
     /// <param name="value">The long to be encoded.</param>
