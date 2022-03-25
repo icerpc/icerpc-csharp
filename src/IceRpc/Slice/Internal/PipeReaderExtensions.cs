@@ -84,7 +84,6 @@ namespace IceRpc.Slice.Internal
                     }
                     else if (readResult.IsCompleted)
                     {
-                        reader.AdvanceTo(readResult.Buffer.End);
                         throw new InvalidDataException("received invalid segment size");
                     }
                     else
@@ -147,8 +146,54 @@ namespace IceRpc.Slice.Internal
             }
             else
             {
-                readResult = default;
-                return false;
+                if (reader.TryRead(out readResult))
+                {
+                    if (readResult.IsCanceled)
+                    {
+                        return true; // and buffer does not matter
+                    }
+
+                    if (readResult.Buffer.IsEmpty)
+                    {
+                        Debug.Assert(readResult.IsCompleted);
+                        return true; // size == 0, the caller will AdvanceTo on this buffer.
+                    }
+
+                    if (TryDecodeSize(readResult.Buffer, out int segmentSize, out long consumed))
+                    {
+                        if (segmentSize > maxSegmentSize)
+                        {
+                            throw new InvalidDataException($"segment size '{segmentSize}' exceeds maximum value");
+                        }
+
+                        if (readResult.IsCompleted && consumed + segmentSize > readResult.Buffer.Length)
+                        {
+                            throw new InvalidDataException(
+                                $"payload stream has fewer than '{segmentSize}' bytes");
+                        }
+
+                        // When segmentSize is 0, the code below returns an empty buffer.
+                        if (readResult.Buffer.Length >= segmentSize + consumed)
+                        {
+                            readResult = new ReadResult(
+                                readResult.Buffer.Slice(readResult.Buffer.GetPosition(consumed), segmentSize),
+                                isCanceled: false,
+                                isCompleted: readResult.IsCompleted &&
+                                    readResult.Buffer.Length == consumed + segmentSize);
+
+                            return true;
+                        }
+                        // else fall back as if TryDecodeSize returned false
+                    }
+
+                    reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                    readResult = default;
+                    return false;
+                }
+                else
+                {
+                    return false;
+                }
             }
         }
 
