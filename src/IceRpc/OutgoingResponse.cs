@@ -14,7 +14,7 @@ namespace IceRpc
             ImmutableDictionary<ResponseFieldKey, OutgoingFieldValue>.Empty;
 
         /// <inheritdoc/>
-        public override PipeWriter PayloadSink { get; set; } = InvalidPipeWriter.Instance;
+        public override PipeWriter PayloadSink { get; set; }
 
         /// <summary>Returns the corresponding incoming request.</summary>
         public IncomingRequest Request { get; }

@@ -270,7 +270,11 @@ namespace IceRpc.Internal
                         }
                     }
 
-                    int responseFrameSize = EncodeHeader(_networkConnectionWriter, requestId, payloadSize, replyStatus);
+                    int responseFrameSize = EncodeResponseHeader(
+                        _networkConnectionWriter,
+                        requestId,
+                        payloadSize,
+                        replyStatus);
                     if (responseFrameSize > _options.MaxOutgoingFrameSize)
                     {
                         // TODO: remove
@@ -323,7 +327,7 @@ namespace IceRpc.Internal
                     }
                 }
 
-                static int EncodeHeader(
+                static int EncodeResponseHeader(
                     SimpleNetworkConnectionWriter writer,
                     int requestId,
                     int payloadSize,
@@ -478,8 +482,8 @@ namespace IceRpc.Internal
                     }
                 }
 
-                int frameSize = EncodeHeader(_networkConnectionWriter, request, requestId, payloadSize);
-                if (frameSize > _options.MaxOutgoingFrameSize)
+                int requestFrameSize = EncodeRequestHeader(_networkConnectionWriter, request, requestId, payloadSize);
+                if (requestFrameSize > _options.MaxOutgoingFrameSize)
                 {
                     // TODO: remove
                     // throw new ArgumentException(
@@ -629,7 +633,7 @@ namespace IceRpc.Internal
                 }
             }
 
-            static int EncodeHeader(
+            static int EncodeRequestHeader(
                 SimpleNetworkConnectionWriter output,
                 OutgoingRequest request,
                 int requestId,

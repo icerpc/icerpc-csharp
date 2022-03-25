@@ -313,6 +313,10 @@ namespace IceRpc
                 {
                     protocolConnection = _protocolConnection!;
                 }
+                else if (_state > ConnectionState.Active && !_options.IsResumable)
+                {
+                    throw new ConnectionClosedException();
+                }
             }
 
             // SendRequestAsync is responsible for completing the payload sources and sink. The caller is responsible
@@ -328,23 +332,21 @@ namespace IceRpc
 
             async Task<IncomingResponse> PerformConnectAndSendRequest()
             {
-                // A connection can be closed concurrently so as long as ConnectAsync succeeds, we loop to get the
-                // protocol connection.
+                await ConnectAsync(cancel).ConfigureAwait(false);
+
                 IProtocolConnection protocolConnection;
-                while (true)
+                lock (_mutex)
                 {
-                    lock (_mutex)
+                    if (_state == ConnectionState.Active)
                     {
-                        if (_state == ConnectionState.Active)
-                        {
-                            protocolConnection = _protocolConnection!;
-                            break;
-                        }
+                        protocolConnection = _protocolConnection!;
                     }
-
-                    await ConnectAsync(cancel).ConfigureAwait(false);
+                    else
+                    {
+                        // The connection was closed right after the successful connect.
+                        throw new ConnectionClosedException();
+                    }
                 }
-
                 return await protocolConnection.SendRequestAsync(this, request, cancel).ConfigureAwait(false);
             }
         }
@@ -497,9 +499,6 @@ namespace IceRpc
                             }
                             catch (Exception exception)
                             {
-                                // TODO: it's very painful to just eat this exception
-                                // Console.WriteLine($"ReceiveRequestAsync exception: {exception}");
-
                                 // Unexpected exception, if the connection hasn't been resumed already, close the
                                 // connection.
                                 lock (_mutex)
