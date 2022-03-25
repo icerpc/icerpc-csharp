@@ -108,9 +108,9 @@ namespace IceRpc.Tests.ClientServer
                 new LocatorOptions
                 {
                     CacheMaxSize = cacheMaxSize,
-                    JustRefreshedAge = TimeSpan.Zero,
                     Locator = locator,
-                    LoggerFactory = LogAttributeLoggerFactory.Instance
+                    LoggerFactory = LogAttributeLoggerFactory.Instance,
+                    RefreshThreshold = TimeSpan.Zero,
                 });
             _pipeline.Use(next => new InlineInvoker(
                 (request, cancel) =>

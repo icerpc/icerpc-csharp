@@ -19,7 +19,6 @@ public class ServerTests
         Assert.Throws<NotSupportedException>(() => server.Listen());
     }
 
-
     /// <summary>Verifies that calling <see cref="Server.Listen"/> more than once fails with
     /// <see cref="InvalidOperationException"/> exception.</summary>
     [Test]
@@ -41,7 +40,6 @@ public class ServerTests
 
         Assert.Throws<ObjectDisposedException>(() => server.Listen());
     }
-
 
     /// <summary>Verifies that <see cref="Server.ShutdownComplete"/> task is completed after
     /// <see cref="Server.ShutdownAsync(CancellationToken)"/> completed.</summary>

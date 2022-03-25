@@ -27,6 +27,21 @@ public class LocatorInterceptorTests
         Assert.That(locationResolver.Called, Is.False);
     }
 
+    /// <summary>Verifies that the locator interceptor requires a non-null locator proxy.</summary>
+    [Test]
+    public void Locator_interceptor_requires_non_null_locator_proxy()
+    {
+        var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request)));
+
+        var locationResolver = new LocatorLocationResolver(new Configure.LocatorOptions());
+        var sut = new LocatorInterceptor(invoker, locationResolver);
+        var request = new OutgoingRequest(new Proxy(Protocol.Ice));
+
+        Assert.That(
+            async () => await sut.InvokeAsync(request, default),
+            Throws.InstanceOf<InvalidOperationException>());
+    }
+
     /// <summary>Verifies that the locator interceptor correctly resolves an adapter-id using the given location
     /// resolver.</summary>
     [Test]
