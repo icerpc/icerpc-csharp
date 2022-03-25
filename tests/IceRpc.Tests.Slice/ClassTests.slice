@@ -4,6 +4,12 @@ encoding = 1.1;
 
 module IceRpc::Tests::Slice;
 
+compact struct MyClassCompactStruct {
+{
+    i: int,
+    j: int,
+}
+
 class MyClassA
 {
     theB: MyClassB?,
@@ -89,7 +95,7 @@ typealias ClassMap = dictionary<string, AnyClass?>;
 
 class MyClassM
 {
-    v: dictionary<MyCompactStruct, MyClassL>,
+    v: dictionary<MyClassCompactStruct, MyClassL>,
 }
 
 class MyBaseClass1
