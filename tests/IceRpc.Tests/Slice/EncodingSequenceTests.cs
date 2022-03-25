@@ -17,7 +17,7 @@ public class EncodingSequenceTests
     private readonly SliceEncoding _encoding;
     private readonly MemoryBufferWriter _bufferWriter;
 
-    /// <summary>Provides test case data for <see cref="EncodingSequence_Long(IEnumerable<long>)"/> test.</summary>
+    /// <summary>Provides test case data for <see cref="EncodingSequence_Long(IEnumerable{long})"/> test.</summary>
     private static IEnumerable<TestCaseData> SequenceLongData
     {
         get
