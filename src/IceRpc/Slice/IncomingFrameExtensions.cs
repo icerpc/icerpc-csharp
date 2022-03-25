@@ -69,10 +69,7 @@ namespace IceRpc.Slice
                 T value = decodeFunc(ref decoder);
                 decoder.CheckEndOfBuffer(skipTaggedParams: true);
 
-                if (!readResult.Buffer.IsEmpty) // TODO: currently required but sounds like a bug
-                {
-                    frame.Payload.AdvanceTo(readResult.Buffer.End);
-                }
+                frame.Payload.AdvanceTo(readResult.Buffer.End);
 
                 if (!hasStream)
                 {
@@ -123,8 +120,8 @@ namespace IceRpc.Slice
                 if (!readResult.Buffer.IsEmpty)
                 {
                     Decode(readResult.Buffer);
-                    frame.Payload.AdvanceTo(readResult.Buffer.End);
                 }
+                frame.Payload.AdvanceTo(readResult.Buffer.End);
 
                 if (!hasStream)
                 {
