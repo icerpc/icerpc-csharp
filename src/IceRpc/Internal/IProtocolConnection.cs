@@ -23,30 +23,27 @@ namespace IceRpc.Internal
         /// <summary>This event is raised when the protocol connection is notified of the peer shutdown.</summary>
         event Action<string>? PeerShutdownInitiated;
 
+        /// <summary>Accepts requests and returns once the connection is closed or the shutdown completes.</summary>
+        /// <param name="connection">The connection owning this protocol connection. This is used to assign <see
+        /// cref="IncomingFrame.Connection"/>.</param>
+        /// <param name="dispatcher">The dispatcher to dispatch the requests.</param>
+        Task AcceptRequestsAsync(Connection connection, IDispatcher dispatcher);
+
         /// <summary>Sends a ping frame to defer the idle timeout.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         Task PingAsync(CancellationToken cancel);
 
-        /// <summary>Receives a request.</summary>
-        /// <returns>The incoming request.</returns>
-        Task<IncomingRequest> ReceiveRequestAsync();
-
-        /// <summary>Receives a response for a given request.</summary>
-        /// <param name="request">The outgoing request associated to the response to receive.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The incoming response.</returns>
-        Task<IncomingResponse> ReceiveResponseAsync(OutgoingRequest request, CancellationToken cancel);
-
-        /// <summary>Sends a request. The implementation must complete the request payload sources and sink.</summary>
+        /// <summary>Sends a request and returns the response. The implementation must complete the request payload
+        /// sources and sink.</summary>
+        /// <param name="connection">The connection owning this protocol connection. This is used to assign <see
+        /// cref="IncomingFrame.Connection"/>.</param>
         /// <param name="request">The outgoing request to send.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel);
-
-        /// <summary>Sends a response. The implementation must complete the response payload sources and sink.</summary>
-        /// <param name="response">The outgoing response to send.</param>
-        /// <param name="request">The incoming request associated to the response to send.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        Task SendResponseAsync(OutgoingResponse response, IncomingRequest request, CancellationToken cancel);
+        /// <returns>The received response.</returns>
+        Task<IncomingResponse> SendRequestAsync(
+            Connection connection,
+            OutgoingRequest request,
+            CancellationToken cancel);
 
         /// <summary>Shutdowns gracefully the connection.</summary>
         /// <param name="message">The reason of the connection shutdown.</param>
