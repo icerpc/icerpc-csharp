@@ -96,13 +96,16 @@ namespace IceRpc
                         }
                         // else, resolution failed and we don't update anything
                     }
-                    catch (Slice.RemoteException)
+                    catch (Exception exception)
                     {
-                        // Ignore any remote exception from the location resolver. It should have been logged earlier.
-                    }
-                    catch (InvalidDataException)
-                    {
-                        // Ignored.
+                        // Clean-up request
+                        await request.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
+                        if (request.PayloadSourceStream != null)
+                        {
+                            await request.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
+                        }
+                        await request.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                        throw;
                     }
                 }
             }
