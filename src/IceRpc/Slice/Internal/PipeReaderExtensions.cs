@@ -46,51 +46,28 @@ namespace IceRpc.Slice.Internal
                 {
                     readResult = await reader.ReadAsync(cancel).ConfigureAwait(false);
 
-                    if (readResult.IsCanceled)
+                    if (TryReadSegment(ref readResult, out segmentSize, out long consumed))
                     {
                         return readResult;
                     }
-                    if (readResult.Buffer.IsEmpty)
+                    else if (segmentSize >= 0)
                     {
-                        Debug.Assert(readResult.IsCompleted);
-                        return readResult; // size == 0, the caller will AdvanceTo on this buffer.
-                    }
+                        Debug.Assert(segmentSize > 0);
+                        Debug.Assert(consumed > 0);
 
-                    if (TryDecodeSize(readResult.Buffer, out segmentSize, out long consumed))
-                    {
-                        if (segmentSize > MaxSegmentSize)
-                        {
-                            throw new InvalidDataException($"segment size '{segmentSize}' exceeds maximum value");
-                        }
-
-                        // When segmentSize is 0, the code below returns an empty buffer.
-                        if (readResult.Buffer.Length >= segmentSize + consumed)
-                        {
-                            return new ReadResult(
-                                readResult.Buffer.Slice(readResult.Buffer.GetPosition(consumed), segmentSize),
-                                isCanceled: false,
-                                isCompleted: readResult.IsCompleted &&
-                                    readResult.Buffer.Length == consumed + segmentSize);
-                        }
-
-                        if (readResult.IsCompleted && consumed + segmentSize > readResult.Buffer.Length)
-                        {
-                            throw new InvalidDataException(
-                                $"payload stream has fewer than '{segmentSize}' bytes");
-                        }
-
-                        // We examined the whole buffer and it was not sufficient.
+                        // We decoded the segmentSize and examined the whole buffer but it was not sufficient.
                         reader.AdvanceTo(readResult.Buffer.GetPosition(consumed), readResult.Buffer.End);
-                        break;
+                        break; // while
                     }
                     else if (readResult.IsCompleted)
                     {
+                        // no point is looping to get more data to decode the segment size
                         throw new InvalidDataException("received invalid segment size");
                     }
                     else
                     {
                         reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                        // and continue loop
+                        // and continue loop with at least one additional byte
                     }
                 }
 
@@ -146,54 +123,68 @@ namespace IceRpc.Slice.Internal
             {
                 if (reader.TryRead(out readResult))
                 {
-                    if (readResult.IsCanceled)
+                    if (TryReadSegment(ref readResult, out int _, out long _))
                     {
-                        return true; // and buffer does not matter
+                        return true;
                     }
-
-                    if (readResult.Buffer.IsEmpty)
+                    else
                     {
-                        Debug.Assert(readResult.IsCompleted);
-                        return true; // size == 0, the caller will AdvanceTo on this buffer.
+                        // we don't consume anything but examined the whole buffer since it's not sufficient.
+                        reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                        readResult = default;
+                        return false;
                     }
-
-                    if (TryDecodeSize(readResult.Buffer, out int segmentSize, out long consumed))
-                    {
-                        if (segmentSize > MaxSegmentSize)
-                        {
-                            throw new InvalidDataException($"segment size '{segmentSize}' exceeds maximum value");
-                        }
-
-                        if (readResult.IsCompleted && consumed + segmentSize > readResult.Buffer.Length)
-                        {
-                            throw new InvalidDataException(
-                                $"payload stream has fewer than '{segmentSize}' bytes");
-                        }
-
-                        // When segmentSize is 0, the code below returns an empty buffer.
-                        if (readResult.Buffer.Length >= segmentSize + consumed)
-                        {
-                            readResult = new ReadResult(
-                                readResult.Buffer.Slice(readResult.Buffer.GetPosition(consumed), segmentSize),
-                                isCanceled: false,
-                                isCompleted: readResult.IsCompleted &&
-                                    readResult.Buffer.Length == consumed + segmentSize);
-
-                            return true;
-                        }
-                        // else fall back as if TryDecodeSize returned false
-                    }
-
-                    // we don't consume anything but examined the whole buffer since it's not sufficient.
-                    reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                    readResult = default;
-                    return false;
                 }
                 else
                 {
                     return false;
                 }
             }
+        }
+
+        private static bool TryReadSegment(ref ReadResult readResult, out int segmentSize, out long consumed)
+        {
+            consumed = 0;
+            segmentSize = -1;
+
+            if (readResult.IsCanceled)
+            {
+                return true; // and buffer does not matter
+            }
+
+            if (readResult.Buffer.IsEmpty)
+            {
+                Debug.Assert(readResult.IsCompleted);
+                return true; // size == 0, the caller will AdvanceTo on this buffer.
+            }
+
+            if (TryDecodeSize(readResult.Buffer, out segmentSize, out consumed))
+            {
+                if (segmentSize > MaxSegmentSize)
+                {
+                    throw new InvalidDataException($"segment size '{segmentSize}' exceeds maximum value");
+                }
+
+                // When segmentSize is 0, the code below returns an empty buffer.
+                if (readResult.Buffer.Length >= segmentSize + consumed)
+                {
+                    readResult = new ReadResult(
+                        readResult.Buffer.Slice(readResult.Buffer.GetPosition(consumed), segmentSize),
+                        isCanceled: false,
+                        isCompleted: readResult.IsCompleted &&
+                            readResult.Buffer.Length == consumed + segmentSize);
+
+                    return true;
+                }
+
+                if (readResult.IsCompleted && consumed + segmentSize > readResult.Buffer.Length)
+                {
+                    throw new InvalidDataException(
+                        $"payload has fewer than '{segmentSize}' bytes");
+                }
+                // else fall back as if TryDecodeSize returned false
+            }
+            return false;
         }
 
         private static bool TryDecodeSize(ReadOnlySequence<byte> buffer, out int size, out long consumed)
