@@ -32,27 +32,25 @@ namespace IceRpc.Slice
             bool hasStream,
             CancellationToken cancel)
         {
-            if (frame.Payload.TryReadSegment(encoding, out ReadResult readResult))
+            try
             {
-                try
+                if (frame.Payload.TryReadSegment(encoding, out ReadResult readResult))
                 {
-                    return new(DecodeReadResult(readResult));
+                    return new(DecodeSegment(readResult));
                 }
-                catch (Exception exception)
-                {
+            }
+            catch (Exception exception)
+            {
 #pragma warning disable CA1849
-                    frame.Payload.Complete(exception);
+                frame.Payload.Complete(exception);
 #pragma warning restore CA1849
-
-                    throw;
-                }
-            }
-            else
-            {
-                return PerformDecodeAsync();
+                throw;
             }
 
-            T DecodeReadResult(ReadResult readResult)
+            return PerformDecodeAsync();
+
+            // All the logic is in this local function except the completion of Payload when an exception is thrown.
+            T DecodeSegment(ReadResult readResult)
             {
                 if (readResult.IsCanceled)
                 {
@@ -86,7 +84,7 @@ namespace IceRpc.Slice
                         encoding,
                         cancel).ConfigureAwait(false);
 
-                    return DecodeReadResult(readResult);
+                    return DecodeSegment(readResult);
                 }
                 catch (Exception exception)
                 {
@@ -108,28 +106,26 @@ namespace IceRpc.Slice
             bool hasStream,
             CancellationToken cancel)
         {
-            if (frame.Payload.TryReadSegment(encoding, out ReadResult readResult))
+            try
             {
-                try
+                if (frame.Payload.TryReadSegment(encoding, out ReadResult readResult))
                 {
-                    DecodeReadResult(readResult);
+                    DecodeSegment(readResult);
                     return default;
                 }
-                catch (Exception exception)
-                {
-#pragma warning disable CA1849
-                    frame.Payload.Complete(exception);
-#pragma warning restore CA1849
-
-                    throw;
-                }
             }
-            else
+            catch (Exception exception)
             {
-                return PerformDecodeAsync();
+#pragma warning disable CA1849
+                frame.Payload.Complete(exception);
+#pragma warning restore CA1849
+                throw;
             }
 
-            void DecodeReadResult(ReadResult readResult)
+            return PerformDecodeAsync();
+
+            // All the logic is in this local function except the completion of Payload when an exception is thrown.
+            void DecodeSegment(ReadResult readResult)
             {
                 if (readResult.IsCanceled)
                 {
@@ -157,7 +153,7 @@ namespace IceRpc.Slice
                         encoding,
                         cancel).ConfigureAwait(false);
 
-                    DecodeReadResult(readResult);
+                    DecodeSegment(readResult);
                 }
                 catch (Exception exception)
                 {
