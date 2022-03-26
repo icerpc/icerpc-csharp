@@ -36,7 +36,7 @@ namespace IceRpc.Slice
             {
                 try
                 {
-                    return new(Decode(readResult));
+                    return new(DecodeReadResult(readResult));
                 }
                 catch (Exception exception)
                 {
@@ -52,7 +52,7 @@ namespace IceRpc.Slice
                 return PerformDecodeAsync();
             }
 
-            T Decode(ReadResult readResult)
+            T DecodeReadResult(ReadResult readResult)
             {
                 if (readResult.IsCanceled)
                 {
@@ -86,7 +86,7 @@ namespace IceRpc.Slice
                         encoding,
                         cancel).ConfigureAwait(false);
 
-                    return Decode(readResult);
+                    return DecodeReadResult(readResult);
                 }
                 catch (Exception exception)
                 {
@@ -102,16 +102,35 @@ namespace IceRpc.Slice
         /// <param name="hasStream"><c>true</c> if this void value is followed by a stream parameter; otherwise,
         /// <c>false</c>.</param>
         /// <param name="cancel">The cancellation token.</param>
-        internal static async ValueTask DecodeVoidAsync(
+        internal static ValueTask DecodeVoidAsync(
             this IncomingFrame frame,
             SliceEncoding encoding,
             bool hasStream,
             CancellationToken cancel)
         {
-            try
+            if (frame.Payload.TryReadSegment(encoding, out ReadResult readResult))
             {
-                ReadResult readResult = await frame.Payload.ReadSegmentAsync(encoding, cancel).ConfigureAwait(false);
+                try
+                {
+                    DecodeReadResult(readResult);
+                    return default;
+                }
+                catch (Exception exception)
+                {
+#pragma warning disable CA1849
+                    frame.Payload.Complete(exception);
+#pragma warning restore CA1849
 
+                    throw;
+                }
+            }
+            else
+            {
+                return PerformDecodeAsync();
+            }
+
+            void DecodeReadResult(ReadResult readResult)
+            {
                 if (readResult.IsCanceled)
                 {
                     throw new OperationCanceledException();
@@ -119,28 +138,32 @@ namespace IceRpc.Slice
 
                 if (!readResult.Buffer.IsEmpty)
                 {
-                    Decode(readResult.Buffer);
+                    var decoder = new SliceDecoder(readResult.Buffer, encoding);
+                    decoder.CheckEndOfBuffer(skipTaggedParams: true);
                 }
                 frame.Payload.AdvanceTo(readResult.Buffer.End);
 
                 if (!hasStream)
                 {
-                    // If there are actually additional bytes on the pipe reader, we ignore them. It's possible the
-                    // sender operation Slice definition specifies a stream parameter that is not specified on the
-                    // operation local Slice definition.
-                    await frame.Payload.CompleteAsync().ConfigureAwait(false);
+                    frame.Payload.Complete();
                 }
             }
-            catch (Exception exception)
-            {
-                await frame.Payload.CompleteAsync(exception).ConfigureAwait(false);
-                throw;
-            }
 
-            void Decode(ReadOnlySequence<byte> buffer)
+            async ValueTask PerformDecodeAsync()
             {
-                var decoder = new SliceDecoder(buffer, encoding);
-                decoder.CheckEndOfBuffer(skipTaggedParams: true);
+               try
+                {
+                    ReadResult readResult = await frame.Payload.ReadSegmentAsync(
+                        encoding,
+                        cancel).ConfigureAwait(false);
+
+                    DecodeReadResult(readResult);
+                }
+                catch (Exception exception)
+                {
+                    await frame.Payload.CompleteAsync(exception).ConfigureAwait(false);
+                    throw;
+                }
             }
         }
 
