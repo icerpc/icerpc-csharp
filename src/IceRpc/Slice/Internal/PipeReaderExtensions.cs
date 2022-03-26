@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
@@ -28,6 +27,9 @@ namespace IceRpc.Slice.Internal
             SliceEncoding encoding,
             CancellationToken cancel)
         {
+            // This method does not attempt to read the reader synchronously. A caller that wants a sync attempt can
+            // call TryReadSegment.
+
             if (encoding == Encoding.Slice11)
             {
                 // We read everything up to the MaxSegmentSize + 1.
@@ -57,7 +59,7 @@ namespace IceRpc.Slice.Internal
 
                     try
                     {
-                        if (TryReadSegment(ref readResult, out segmentSize, out long consumed))
+                        if (IsCompleteSegment(ref readResult, out segmentSize, out long consumed))
                         {
                             return readResult;
                         }
@@ -83,6 +85,8 @@ namespace IceRpc.Slice.Internal
                     }
                     catch
                     {
+                        // A ReadAsync or TryRead method that throws an exception should not leave the reader in a
+                        // "reading" state.
                         reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
                         throw;
                     }
@@ -99,7 +103,7 @@ namespace IceRpc.Slice.Internal
                 {
                     Debug.Assert(readResult.IsCompleted);
                     reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                    throw new InvalidDataException($"too few bytes in segment with {segmentSize} bytes");
+                    throw new InvalidDataException($"payload has fewer than '{segmentSize}' bytes");
                 }
 
                 return readResult.Buffer.Length == segmentSize ? readResult :
@@ -157,7 +161,7 @@ namespace IceRpc.Slice.Internal
                 {
                     try
                     {
-                        if (TryReadSegment(ref readResult, out int _, out long _))
+                        if (IsCompleteSegment(ref readResult, out int _, out long _))
                         {
                             return true;
                         }
@@ -182,47 +186,41 @@ namespace IceRpc.Slice.Internal
             }
         }
 
-        private static bool TryDecodeSize(ReadOnlySequence<byte> buffer, out int size, out long consumed)
-        {
-            var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-            if (decoder.TryDecodeSize(out size))
-            {
-                consumed = decoder.Consumed;
-                return true;
-            }
-            else
-            {
-                consumed = 0;
-                return false;
-            }
-        }
-
-        private static bool TryReadSegment(ref ReadResult readResult, out int segmentSize, out long consumed)
+        /// <summary>Checks if a read result holds a complete Slice segment.</summary>
+        /// <returns><c>true</c> when <paramref name="readResult"/> holds a complete segment or is canceled; otherwise,
+        /// <c>false</c>.</returns>
+        /// <remarks><paramref name="segmentSize"/> and <paramref name="consumed"/> can be set when this method returns
+        /// <c>false</c>. In this case, both segmentSize and consumed are greater than 0.</remarks>
+        private static bool IsCompleteSegment(ref ReadResult readResult, out int segmentSize, out long consumed)
         {
             consumed = 0;
             segmentSize = -1;
 
             if (readResult.IsCanceled)
             {
-                return true; // and buffer does not matter
+                return true; // and buffer etc. does not matter
             }
 
             if (readResult.Buffer.IsEmpty)
             {
                 Debug.Assert(readResult.IsCompleted);
-                return true; // size == 0, the caller will AdvanceTo on this buffer.
+                segmentSize = 0;
+                return true; // the caller will call AdvanceTo on this buffer.
             }
 
-            if (TryDecodeSize(readResult.Buffer, out segmentSize, out consumed))
+            var decoder = new SliceDecoder(readResult.Buffer, Encoding.Slice20);
+            if (decoder.TryDecodeSize(out segmentSize))
             {
+                consumed = decoder.Consumed;
+
                 if (segmentSize > MaxSegmentSize)
                 {
                     throw new InvalidDataException($"segment size '{segmentSize}' exceeds maximum value");
                 }
 
-                // When segmentSize is 0, the code below returns an empty buffer.
-                if (readResult.Buffer.Length >= segmentSize + consumed)
+                if (readResult.Buffer.Length >= consumed + segmentSize)
                 {
+                    // When segmentSize is 0, we return a read result with an empty buffer.
                     readResult = new ReadResult(
                         readResult.Buffer.Slice(readResult.Buffer.GetPosition(consumed), segmentSize),
                         isCanceled: false,
@@ -234,12 +232,16 @@ namespace IceRpc.Slice.Internal
 
                 if (readResult.IsCompleted && consumed + segmentSize > readResult.Buffer.Length)
                 {
-                    throw new InvalidDataException(
-                        $"payload has fewer than '{segmentSize}' bytes");
+                    throw new InvalidDataException($"payload has fewer than '{segmentSize}' bytes");
                 }
-                // else fall back as if TryDecodeSize returned false
+
+                // segmentSize and consumed are set and can be used by the caller.
+                return false;
             }
-            return false;
+            else
+            {
+                return false;
+            }
         }
     }
 }
