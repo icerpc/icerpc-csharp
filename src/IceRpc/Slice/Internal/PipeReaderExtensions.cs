@@ -59,18 +59,19 @@ namespace IceRpc.Slice.Internal
 
                     if (TryDecodeSize(readResult.Buffer, out segmentSize, out long consumed))
                     {
-                        if (segmentSize == 0)
-                        {
-                            // The caller must consume this empty buffer.
-                            return new ReadResult(
-                                readResult.Buffer.Slice(readResult.Buffer.GetPosition(consumed), 0),
-                                isCanceled: false,
-                                isCompleted: readResult.IsCompleted && readResult.Buffer.Length == consumed);
-                        }
-
                         if (segmentSize > maxSegmentSize)
                         {
                             throw new InvalidDataException($"segment size '{segmentSize}' exceeds maximum value");
+                        }
+
+                        // When segmentSize is 0, the code below returns an empty buffer.
+                        if (readResult.Buffer.Length >= segmentSize + consumed)
+                        {
+                            return new ReadResult(
+                                readResult.Buffer.Slice(readResult.Buffer.GetPosition(consumed), segmentSize),
+                                isCanceled: false,
+                                isCompleted: readResult.IsCompleted &&
+                                    readResult.Buffer.Length == consumed + segmentSize);
                         }
 
                         if (readResult.IsCompleted && consumed + segmentSize > readResult.Buffer.Length)
@@ -79,7 +80,8 @@ namespace IceRpc.Slice.Internal
                                 $"payload stream has fewer than '{segmentSize}' bytes");
                         }
 
-                        reader.AdvanceTo(readResult.Buffer.GetPosition(consumed));
+                        // We examined the whole buffer and it was not sufficient.
+                        reader.AdvanceTo(readResult.Buffer.GetPosition(consumed), readResult.Buffer.End);
                         break;
                     }
                     else if (readResult.IsCompleted)
@@ -136,7 +138,7 @@ namespace IceRpc.Slice.Internal
                     }
                     else
                     {
-                        // don't consume anything and fall through
+                        // don't consume anything but mark the whole buffer as examined - we need more.
                         reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
                     }
                 }
@@ -186,6 +188,7 @@ namespace IceRpc.Slice.Internal
                         // else fall back as if TryDecodeSize returned false
                     }
 
+                    // we don't consume anything but examined the whole buffer since it's not sufficient.
                     reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
                     readResult = default;
                     return false;
