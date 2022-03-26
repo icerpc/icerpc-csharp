@@ -151,7 +151,7 @@ namespace IceRpc.Slice
 
             async ValueTask PerformDecodeAsync()
             {
-               try
+                try
                 {
                     ReadResult readResult = await frame.Payload.ReadSegmentAsync(
                         encoding,
