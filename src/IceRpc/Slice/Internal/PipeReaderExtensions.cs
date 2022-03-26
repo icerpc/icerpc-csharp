@@ -9,6 +9,8 @@ namespace IceRpc.Slice.Internal
     /// <summary>Extension methods to decode payloads carried by a PipeReader.</summary>
     internal static class PipeReaderExtensions
     {
+        private const int MaxSegmentSize = 4 * 1024 * 1024; // TODO: make MaxSegmentSize configurable
+
         /// <summary>Reads a Slice segment from a pipe reader.</summary>
         /// <param name="reader">The pipe reader.</param>
         /// <param name="encoding">The encoding.</param>
@@ -24,18 +26,15 @@ namespace IceRpc.Slice.Internal
             SliceEncoding encoding,
             CancellationToken cancel)
         {
-            // TODO: make maxSegmentSize configurable
-            const int maxSegmentSize = 4 * 1024 * 1024;
-
             if (encoding == Encoding.Slice11)
             {
-                // We read everything up to the maxSegmentSize + 1.
-                // It's maxSegmentSize + 1 and not maxSegmentSize because if the segment's size is maxSegmentSize,
+                // We read everything up to the MaxSegmentSize + 1.
+                // It's MaxSegmentSize + 1 and not MaxSegmentSize because if the segment's size is MaxSegmentSize,
                 // we could get readResult.IsCompleted == false even though the full segment was read.
 
-                ReadResult readResult = await reader.ReadAtLeastAsync(maxSegmentSize + 1, cancel).ConfigureAwait(false);
+                ReadResult readResult = await reader.ReadAtLeastAsync(MaxSegmentSize + 1, cancel).ConfigureAwait(false);
 
-                return readResult.IsCompleted && readResult.Buffer.Length <= maxSegmentSize ? readResult :
+                return readResult.IsCompleted && readResult.Buffer.Length <= MaxSegmentSize ? readResult :
                     throw new InvalidDataException("segment size exceeds maximum value");
             }
             else
@@ -59,7 +58,7 @@ namespace IceRpc.Slice.Internal
 
                     if (TryDecodeSize(readResult.Buffer, out segmentSize, out long consumed))
                     {
-                        if (segmentSize > maxSegmentSize)
+                        if (segmentSize > MaxSegmentSize)
                         {
                             throw new InvalidDataException($"segment size '{segmentSize}' exceeds maximum value");
                         }
@@ -114,9 +113,6 @@ namespace IceRpc.Slice.Internal
 
         internal static bool TryReadSegment(this PipeReader reader, SliceEncoding encoding, out ReadResult readResult)
         {
-            // TODO: make maxSegmentSize configurable
-            const int maxSegmentSize = 4 * 1024 * 1024;
-
             if (encoding == Encoding.Slice11)
             {
                 if (reader.TryRead(out readResult))
@@ -126,7 +122,7 @@ namespace IceRpc.Slice.Internal
                         return true; // and the buffer does not matter
                     }
 
-                    if (readResult.Buffer.Length > maxSegmentSize)
+                    if (readResult.Buffer.Length > MaxSegmentSize)
                     {
                         throw new InvalidDataException(
                             $"segment size '{readResult.Buffer.Length}' exceeds maximum value");
@@ -163,7 +159,7 @@ namespace IceRpc.Slice.Internal
 
                     if (TryDecodeSize(readResult.Buffer, out int segmentSize, out long consumed))
                     {
-                        if (segmentSize > maxSegmentSize)
+                        if (segmentSize > MaxSegmentSize)
                         {
                             throw new InvalidDataException($"segment size '{segmentSize}' exceeds maximum value");
                         }
