@@ -72,13 +72,9 @@ namespace IceRpc.Slice.Internal
                             reader.AdvanceTo(readResult.Buffer.GetPosition(consumed), readResult.Buffer.End);
                             break; // while
                         }
-                        else if (readResult.IsCompleted)
-                        {
-                            // no point is looping to get more data to decode the segment size
-                            throw new InvalidDataException("received invalid segment size");
-                        }
                         else
                         {
+                            Debug.Assert(!readResult.IsCompleted); // see IsCompleteSegment
                             reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
                             // and continue loop with at least one additional byte
                         }
@@ -238,8 +234,13 @@ namespace IceRpc.Slice.Internal
                 // segmentSize and consumed are set and can be used by the caller.
                 return false;
             }
+            else if (readResult.IsCompleted)
+            {
+                throw new InvalidDataException("received Slice segment with truncated size");
+            }
             else
             {
+                segmentSize = -1;
                 return false;
             }
         }
