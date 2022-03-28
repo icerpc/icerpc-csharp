@@ -29,7 +29,7 @@ public class DecodeNumericTypesTests
     }
 
     /// <summary>Test the decoding of variable size long.</summary>
-    /// <param name="encodedBytes">An encoded byte array to decode.</param>
+    /// <param name="encodedBytes">The encoded value.</param>
     /// <param name="expected">The expected value.</param>
     [TestCase(new byte[] { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 }, SliceEncoder.VarLongMinValue)]
     [TestCase(new byte[] { 0x02, 0x00, 0xFF, 0xFF }, -16384)]
