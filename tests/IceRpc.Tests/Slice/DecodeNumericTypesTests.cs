@@ -65,7 +65,7 @@ public class DecodeNumericTypesTests
     }
 
     /// <summary>Test the decoding of a variable size unsigned long.</summary>
-    /// <param name="encodedBytes">>An encoded byte array to decode.</param>
+    /// <param name="encodedBytes">The encoded value.</param>
     /// <param name="expected">The expected ulong to be decoded.</param>
     [TestCase(new byte[] { 0x00 }, SliceEncoder.VarULongMinValue)]
     [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, SliceEncoder.VarULongMaxValue)]
