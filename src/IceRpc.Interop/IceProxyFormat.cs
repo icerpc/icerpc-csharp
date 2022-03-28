@@ -214,7 +214,7 @@ namespace IceRpc
                         }
                         if (argument != "1.1")
                         {
-                            throw new FormatException($"argument for -e option in '{s}' is not in 1.1");
+                            throw new FormatException($"argument for -e option in '{s}' is not 1.1");
                         }
                         break;
 
