@@ -20,6 +20,7 @@ class MultiTagged
     mDouble: tag(7) double?,
     mString: tag(15) string?,
 
+// TODO: These types and 2.0 only. We should either delete these or create our own copy for this test.
 //    mMyEnum: tag(20) MyEnum?,
 //    mMyCompactStruct: tag(21) MyCompactStruct?,
 //    mAnotherCompactStruct: tag(22) AnotherCompactStruct?,
