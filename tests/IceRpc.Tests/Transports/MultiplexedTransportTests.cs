@@ -7,7 +7,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Tests;
 
-/// <summary>Conformance tests for the multiplexed transport.</summary>
+/// <summary>Conformance tests for the multiplexed transports.</summary>
 [Timeout(30000)]
 [Parallelizable(ParallelScope.All)]
 public abstract class MultiplexedTransportConformanceTests
@@ -32,7 +32,6 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.That(serverStream.Id, Is.EqualTo(clientStream.Id));
     }
 
-    /// <summary>Verifies that a server connection can accept streams started by the server.</summary>
     [Test]
     public async Task Accept_stream_from_server_to_client()
     {
@@ -121,13 +120,13 @@ public abstract class MultiplexedTransportConformanceTests
         IMultiplexedStream lastStream = sut.CreateStream(bidirectional);
 
         // Assert
-        Assert.That(async () =>
-        {
-            var cancellationSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
-            await lastStream.Output.WriteAsync(_oneBytePayload, cancellationSource.Token);
-        },
+        Assert.That(
+            async () =>
+            {
+                var cancellationSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
+                await lastStream.Output.WriteAsync(_oneBytePayload, cancellationSource.Token);
+            },
             Throws.TypeOf<OperationCanceledException>());
-
         await CompleteStreamsAsync(streams);
     }
 
@@ -197,10 +196,6 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.That(writeTask.IsCompleted, Is.False);
     }
 
-    /// <summary>Verify that the writes calls of other streams on the same connection aren't affected by a stream
-    /// that consumed all its send credit. We create two streams on the same connection, write data to stream1 until
-    /// we consume all its credits and writes start to block, a second stream is created and we ensure that its writes
-    /// can proceed unaffected.</summary>
     [Test]
     public async Task Stream_write_blocking_does_not_affect_concurrent_streams()
     {
@@ -222,10 +217,10 @@ public abstract class MultiplexedTransportConformanceTests
         result = await stream2.Output.WriteAsync(_oneMbPayload, default);
 
         // Assert
-        var serverStream1 = await serverConnection.AcceptStreamAsync(default);
-        var serverStream2 = await serverConnection.AcceptStreamAsync(default);
+        IMultiplexedStream serverStream1 = await serverConnection.AcceptStreamAsync(default);
+        IMultiplexedStream serverStream2 = await serverConnection.AcceptStreamAsync(default);
         Assert.That(stream2.Id, Is.EqualTo(serverStream2.Id));
-        var readResult = await serverStream2.Input.ReadAtLeastAsync(1024 * 1024);
+        ReadResult readResult = await serverStream2.Input.ReadAtLeastAsync(1024 * 1024);
         Assert.That(readResult.IsCanceled, Is.False);
         serverStream2.Input.AdvanceTo(readResult.Buffer.End);
         await Task.Delay(TimeSpan.FromMilliseconds(50));
