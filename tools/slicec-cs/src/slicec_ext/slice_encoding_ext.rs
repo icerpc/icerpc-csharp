@@ -15,6 +15,7 @@ impl EncodingExt for Encoding {
         }
     }
 
+    // TODO: this can be removed once we rename the Slice2 encoding to "2"
     fn encoding_name(&self) -> &str {
         match self {
             Encoding::Slice11 => "1.1",

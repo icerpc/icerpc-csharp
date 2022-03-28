@@ -162,8 +162,7 @@ namespace IceRpc.Slice
 
                 var decoder = new SliceDecoder(
                     buffer,
-                    resultType == SliceResultType.Failure ?
-                        response.Protocol.SliceEncoding! : sliceEncoding,
+                    resultType == SliceResultType.Failure ? response.Protocol.SliceEncoding! : sliceEncoding,
                     response.Connection,
                     decodePayloadOptions.ProxyInvoker ?? response.Request.Proxy.Invoker,
                     decodePayloadOptions.Activator ?? defaultActivator,

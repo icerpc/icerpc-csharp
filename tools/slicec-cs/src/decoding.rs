@@ -521,9 +521,9 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
 }
 
 pub fn decode_operation_stream(
-    operation: &Operation,
     stream_member: &Parameter,
     namespace: &str,
+    cs_encoding: &str,
     dispatch: bool,
     assign_to_variable: bool,
 ) -> CodeBlock {
@@ -548,7 +548,7 @@ request.ToAsyncEnumerable<{param_type}>(
     {encoding},
     _defaultActivator,
     {decode_func});",
-                    encoding = operation.encoding.to_cs_encoding(),
+                    encoding = cs_encoding,
                     param_type = param_type_str,
                     decode_func = decode_func(param_type, namespace).indent()
                 )
@@ -560,7 +560,7 @@ response.ToAsyncEnumerable<{param_type}>(
     {encoding},
     _defaultActivator,
     {decode_func});",
-                    encoding = operation.encoding.to_cs_encoding(),
+                    encoding = cs_encoding,
                     param_type = param_type_str,
                     decode_func = decode_func(param_type, namespace).indent()
                 )

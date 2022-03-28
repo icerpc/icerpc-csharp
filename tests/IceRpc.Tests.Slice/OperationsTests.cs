@@ -72,32 +72,33 @@ namespace IceRpc.Tests.Slice
         }
 
         // TODO fix this currently fails
-        // [TestCase("icerpc://host:1000/identity?foo=bar")]
-        // [TestCase("identity:tcp -h host -p 10000")]
-        // [TestCase("identity:opaque -t 99 -e 1.1 -v abcd")] // 99 = unknown and -t -e -v in this order
-        // [TestCase("identity:opaque -t 99 -e 1.0 -v CTEyNy4wLjAuMeouAAAQJwAAAA==")]
-        // [TestCase("identity:opaque -t 1 -e 1.1 -v CTEyNy4wLjAuMeouAAAQJwAAAA==",
-        //           "identity:tcp -h 127.0.0.1 -p 12010 -t 10000")]
-        // [TestCase("identity:opaque -t 1 -e 1.0 -v CTEyNy4wLjAuMeouAAAQJwAAAA==",
-        //           "identity:tcp -h 127.0.0.1 -p 12010 -t 10000")]
-        // public async Task Operations_ServiceAsync(string proxy, string? actualIceProxy = null)
-        // {
-        //     IProxyFormat? format = proxy.StartsWith("ice", StringComparison.Ordinal) ?
-        //         null : IceProxyFormat.Default;
+        [TestCase("icerpc://host:1000/identity?foo=bar")]
+        [TestCase("identity:tcp -h host -p 10000")]
+        [TestCase("identity:opaque -t 99 -e 1.1 -v abcd")] // 99 = unknown and -t -e -v in this order
+        [TestCase("identity:opaque -t 99 -e 1.0 -v CTEyNy4wLjAuMeouAAAQJwAAAA==")]
+        [TestCase("identity:opaque -t 1 -e 1.1 -v CTEyNy4wLjAuMeouAAAQJwAAAA==",
+                  "identity:tcp -h 127.0.0.1 -p 12010 -t 10000")]
+        [TestCase("identity:opaque -t 1 -e 1.0 -v CTEyNy4wLjAuMeouAAAQJwAAAA==",
+                  "identity:tcp -h 127.0.0.1 -p 12010 -t 10000")]
+        [Ignore("This test currently fails when actualIceProxy is not null")]
+        public async Task Operations_ServiceAsync(string proxy, string? actualIceProxy = null)
+        {
+            IProxyFormat? format = proxy.StartsWith("ice", StringComparison.Ordinal) ?
+                null : IceProxyFormat.Default;
 
-        //     var service = ServicePrx.Parse(proxy, format: format);
-        //     ServicePrx result = await _prx.OpServiceAsync(service);
+            var service = ServicePrx.Parse(proxy, format: format);
+            ServicePrx result = await _prx.OpServiceAsync(service);
 
-        //     if (_prx.Proxy.Protocol == Protocol.Ice && actualIceProxy != null)
-        //     {
-        //         var actual = ServicePrx.Parse(actualIceProxy, format: format);
-        //         Assert.That(result, Is.EqualTo(actual));
-        //     }
-        //     else
-        //     {
-        //         Assert.That(result, Is.EqualTo(service));
-        //     }
-        // }
+            if (_prx.Proxy.Protocol == Protocol.Ice && actualIceProxy != null)
+            {
+                var actual = ServicePrx.Parse(actualIceProxy, format: format);
+                Assert.That(result, Is.EqualTo(actual));
+            }
+            else
+            {
+                Assert.That(result, Is.EqualTo(service));
+            }
+        }
 
         [Test]
         public async Task Operations_OperationNotFoundExceptionAsync()

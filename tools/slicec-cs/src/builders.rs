@@ -446,13 +446,14 @@ impl EncodingBlockBuilder {
                 format!("\
 if ({encoding_variable} != {encoding})
 {{
-    throw new InvalidOperationException(\"{identifier} can only be encoded with the {encoding} encoding.\");
+    throw new InvalidOperationException(\"{identifier} can only be encoded with the Slice {encoding_name} encoding.\");
 }}
 
 {encode_block}",
                     identifier = self.identifier,
                     encoding_variable = self.encoding_variable,
                     encoding = encoding.to_cs_encoding(),
+                    encoding_name = encoding.encoding_name(),
                     encode_block = self.encoding_blocks[encoding].clone(),
                 ).into()
             }
@@ -462,7 +463,7 @@ switch ({encoding_variable}.Name)
 {{
     {encoding_cases}
     default:
-        throw new InvalidOperationException($\"The {{{encoding_variable}.Name}} encoding is not supported\");
+        throw new InvalidOperationException($\"the {{{encoding_variable}.Name}} encoding is not supported\");
 }}
 ",
 encoding_variable = self.encoding_variable,

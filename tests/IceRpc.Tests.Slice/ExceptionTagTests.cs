@@ -90,7 +90,7 @@ namespace IceRpc.Tests.Slice
         //     Assert.That(result.MString, Is.EqualTo("foo"));
         // }
 
-//TODO: split into multiples tests for 1.1 and 2.0 features
+        //TODO: split into multiples tests for 1.1 and 2.0 features
         // [Test]
         // public void ExceptionTag_Throw()
         // {

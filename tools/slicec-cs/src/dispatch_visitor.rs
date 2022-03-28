@@ -255,7 +255,7 @@ await request.CheckEmptyArgsAsync({encoding}, hasStream: true, cancel).Configure
 
 return {decode_operation_stream}",
                 encoding = encoding,
-                decode_operation_stream = decode_operation_stream(operation, stream_member, namespace, true, false)
+                decode_operation_stream = decode_operation_stream(stream_member, namespace, encoding, true, false)
             );
         } else {
             writeln!(
@@ -275,7 +275,7 @@ return {args_and_stream};",
                 encoding = encoding,
                 decode_func = request_decode_func(operation).indent(),
                 decode_request_stream =
-                    decode_operation_stream(operation, stream_member, namespace, true, true,),
+                    decode_operation_stream(stream_member, namespace, encoding, true, true,),
                 args_and_stream = operation.parameters().to_argument_tuple("sliceP_")
             );
         }
