@@ -70,7 +70,6 @@ namespace IceRpc.Tests.Slice
             {
                 Operation = "opNestedTraitStruct",
                 PayloadSource = CreatePayload(),
-                PayloadEncoding = Encoding.Slice20
             };
 
             IncomingResponse response = await Proxy.DefaultInvoker.InvokeAsync(request);

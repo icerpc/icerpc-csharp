@@ -486,10 +486,7 @@ namespace IceRpc.Internal
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
                 int headerStartPos = encoder.EncodedByteCount; // does not include the size
 
-                var header = new IceRpcRequestHeader(
-                    request.Proxy.Path,
-                    request.Operation,
-                    request.PayloadEncoding == IceRpcDefinitions.Encoding ? "" : request.PayloadEncoding.ToString());
+                var header = new IceRpcRequestHeader(request.Proxy.Path, request.Operation);
 
                 header.Encode(ref encoder);
 

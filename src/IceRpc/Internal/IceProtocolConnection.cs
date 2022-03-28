@@ -250,7 +250,7 @@ namespace IceRpc.Internal
                     {
                         if (response.ResultType == ResultType.Failure)
                         {
-                            replyStatus = payload.FirstSpan[0].AsReplyStatus();
+                            replyStatus = ((int)payload.FirstSpan[0]).AsReplyStatus();
 
                             if (replyStatus <= ReplyStatus.UserException)
                             {
@@ -530,7 +530,7 @@ namespace IceRpc.Internal
 
                     Debug.Assert(readResult.IsCompleted);
 
-                    ReplyStatus replyStatus = readResult.Buffer.FirstSpan[0].AsReplyStatus();
+                    ReplyStatus replyStatus = ((int)readResult.Buffer.FirstSpan[0]).AsReplyStatus();
 
                     if (replyStatus <= ReplyStatus.UserException)
                     {
@@ -627,13 +627,6 @@ namespace IceRpc.Internal
 
                 byte encodingMajor = 1;
                 byte encodingMinor = 1;
-
-                // TODO: temporary
-                if (request.PayloadEncoding is SliceEncoding payloadEncoding)
-                {
-                    (encodingMajor, encodingMinor) = payloadEncoding.ToMajorMinor();
-                }
-                // else remain 1.1
 
                 var requestHeader = new IceRequestHeader(
                     request.Proxy.Path,

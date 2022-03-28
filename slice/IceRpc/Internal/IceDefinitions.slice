@@ -1,12 +1,14 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+encoding = 1.1;
+
 [cs:internal]
 module IceRpc::Internal;
 
 // These definitions help with the encoding of ice frames.
 
 /// Each ice frame has a type identified by this enumeration.
-enum IceFrameType : byte
+enum IceFrameType
 {
     Request = 0,
     RequestBatch = 1,
@@ -34,7 +36,7 @@ compact struct IcePrologue
 
 /// Determines the retry behavior an invocation in case of a (potentially) recoverable error. OperationMode is
 /// sent with each ice request to allow the server to verify the assumptions made by the caller.
-enum OperationMode : byte
+enum OperationMode
 {
     /// Ordinary operations have <code>Normal</code> mode. These operations can modify object state; invoking such
     /// an operation twice in a row may have different semantics than invoking it once. The Ice run time guarantees
@@ -84,7 +86,7 @@ compact struct IceRequestHeader
 /// - a reply status
 /// - when reply status is OK or UserException, an encapsulation header followed by a response payload, with
 /// encapsulationSize - 6 bytes
-enum ReplyStatus : byte
+enum ReplyStatus
 {
     /// A successful reply message.
     OK = 0,

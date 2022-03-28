@@ -100,8 +100,7 @@ namespace IceRpc.Tests.Internal
                               request.Proxy.Path,
                               request.Operation,
                               connection.NetworkConnectionInformation!.Value.LocalEndpoint,
-                              connection.NetworkConnectionInformation!.Value.RemoteEndpoint,
-                              request.PayloadEncoding);
+                              connection.NetworkConnectionInformation!.Value.RemoteEndpoint);
 
             if (twoway)
             {
@@ -237,7 +236,6 @@ namespace IceRpc.Tests.Internal
             string operation,
             Endpoint localEndpoint,
             Endpoint remoteEndpoint,
-            Encoding? payloadEncoding = null,
             Exception? exception = null)
         {
             Assert.That(entry.EventId.Id, Is.EqualTo(eventId));
@@ -246,11 +244,6 @@ namespace IceRpc.Tests.Internal
             Assert.That(entry.State["RemoteEndpoint"], Is.EqualTo(remoteEndpoint.ToString()));
             Assert.That(entry.State["Path"], Is.EqualTo(path));
             Assert.That(entry.State["Operation"], Is.EqualTo(operation));
-
-            if (payloadEncoding is Encoding encoding)
-            {
-                Assert.That(entry.State["PayloadEncoding"], Is.EqualTo(encoding));
-            }
             Assert.That(entry.Message, Does.StartWith(messagePrefix));
             Assert.That(entry.Exception, Is.EqualTo(exception));
         }
@@ -278,7 +271,6 @@ namespace IceRpc.Tests.Internal
                 IsOneway = !twoway,
                 Operation = "foo",
                 PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
-                PayloadEncoding = Encoding.Slice20
             };
 
         private static OutgoingResponse CreateOutgoingResponse(IncomingRequest request) =>
