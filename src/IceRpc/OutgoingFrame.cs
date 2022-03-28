@@ -8,23 +8,22 @@ namespace IceRpc
     /// <summary>Base class for outgoing frames.</summary>
     public abstract class OutgoingFrame
     {
-        /// <summary>Gets or sets the payload source of this frame. The payload source is sent together with the frame
-        /// header and the sending operation awaits until the payload source is fully sent.</summary>
-        /// <value>The payload source of this frame. The default is an empty pipe reader.</value>
-        public PipeReader PayloadSource { get; set; } = EmptyPipeReader.Instance;
+        /// <summary>Gets or sets the payload of this frame. The payload is sent together with the frame header and the
+        /// sending operation awaits until the payload is fully sent.</summary>
+        /// <value>The payload of this frame. The default is an empty pipe reader.</value>
+        public PipeReader Payload { get; set; } = EmptyPipeReader.Instance;
 
-        /// <summary>Gets or sets the payload source stream of this frame. The payload source stream (if specified) is
-        /// sent after the payload source. It's sent in the background: the sending operation does not await it.
-        /// </summary>
-        public PipeReader? PayloadSourceStream { get; set; }
+        /// <summary>Gets or sets the payload stream of this frame. The payload stream is sent after the payload, in the
+        /// background: the sending operation does not await it.</summary>
+        public PipeReader? PayloadStream { get; set; }
 
         /// <summary>Returns the Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }
 
         /// <summary>Adds a payload writer interceptor. This interceptor is executed just before sending
-        /// <see cref="PayloadSource"/>, and is typically used to compress both <see cref="PayloadSource"/> and
-        /// <see cref="PayloadSourceStream"/>.</summary>
-        /// <param name="payloadWriterInterceptor">The new payload writer interceptor.</param>
+        /// <see cref="Payload"/>, and is typically used to compress both <see cref="Payload"/> and
+        /// <see cref="PayloadStream"/>.</summary>
+        /// <param name="payloadWriterInterceptor">The payload writer interceptor to add.</param>
         /// <returns>This outgoing frame.</returns>
         public OutgoingFrame Use(Func<PipeWriter, PipeWriter> payloadWriterInterceptor)
         {

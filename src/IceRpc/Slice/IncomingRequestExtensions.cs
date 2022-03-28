@@ -53,7 +53,7 @@ namespace IceRpc.Slice
             var response = new OutgoingResponse(request)
             {
                 ResultType = (ResultType)SliceResultType.ServiceFailure,
-                PayloadSource = requestPayloadEncoding.CreatePayloadFromRemoteException(remoteException)
+                Payload = requestPayloadEncoding.CreatePayloadFromRemoteException(remoteException)
             };
 
             if (response.Protocol.HasFields && remoteException.RetryPolicy != RetryPolicy.NoRetry)

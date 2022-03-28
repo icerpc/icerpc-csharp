@@ -11,10 +11,10 @@ namespace IceRpc.Internal
         // TODO: convert to sync method
         internal static async ValueTask CompleteAsync(this OutgoingFrame frame, Exception? exception = null)
         {
-            await frame.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
-            if (frame.PayloadSourceStream != null)
+            await frame.Payload.CompleteAsync(exception).ConfigureAwait(false);
+            if (frame.PayloadStream != null)
             {
-                await frame.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
+                await frame.PayloadStream.CompleteAsync(exception).ConfigureAwait(false);
             }
         }
     }

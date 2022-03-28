@@ -480,7 +480,7 @@ namespace IceRpc.Tests.Slice
             {
                 Operation = "opVoid",
                 PayloadEncoding = _prx.Proxy.Encoding,
-                PayloadSource = requestPayload
+                Payload = requestPayload
             };
 
             IncomingResponse response = await _prx.Proxy.Invoker.InvokeAsync(request);

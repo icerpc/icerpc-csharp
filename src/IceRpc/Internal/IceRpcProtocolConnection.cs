@@ -188,8 +188,8 @@ namespace IceRpc.Internal
                                 // TODO: we need to decouple the completion of a dispatch from its cancellation token
                                 // source. A dispatch ends once the stream param receive or send terminates. We should
                                 // probably keep the stream + cancelDispatchSource in _dispatches. To be able to cancel
-                                // pending reads on request.Payload, pending reads on response.PayloadSourceStream and
-                                // pending flushes on output / payload writer.
+                                // pending reads on request.Payload, pending reads on response.PayloadStream and pending
+                                // flushes on output / payload writer.
                                 _dispatches.Remove(cancelDispatchSource);
 
                                 // If no more invocations or dispatches and shutting down, shutdown can complete.
@@ -247,7 +247,7 @@ namespace IceRpc.Internal
 
                     response = new OutgoingResponse(request)
                     {
-                        PayloadSource = Encoding.Slice20.CreatePayloadFromRemoteException(remoteException),
+                        Payload = Encoding.Slice20.CreatePayloadFromRemoteException(remoteException),
                         ResultType = ResultType.Failure
                     };
 
@@ -331,7 +331,7 @@ namespace IceRpc.Internal
                 }
 
                 // Keep track of the invocation for the shutdown logic.
-                if (!request.IsOneway || request.PayloadSourceStream != null)
+                if (!request.IsOneway || request.PayloadStream != null)
                 {
                     lock (_mutex)
                     {
@@ -747,37 +747,37 @@ namespace IceRpc.Internal
             try
             {
                 await CopySourceToWriterAsync(
-                    outgoingFrame.PayloadSource,
+                    outgoingFrame.Payload,
                     payloadWriter,
-                    endStream: outgoingFrame.PayloadSourceStream == null,
+                    endStream: outgoingFrame.PayloadStream == null,
                     cancel).ConfigureAwait(false);
 
-                await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
+                await outgoingFrame.Payload.CompleteAsync().ConfigureAwait(false);
 
-                if (outgoingFrame.PayloadSourceStream == null)
+                if (outgoingFrame.PayloadStream == null)
                 {
                     await payloadWriter.CompleteAsync().ConfigureAwait(false);
                 }
                 else
                 {
-                    // Send payloadSourceStream in the background.
+                    // Send payloadStream in the background.
                     _ = Task.Run(
                         async () =>
                         {
                             try
                             {
                                 await CopySourceToWriterAsync(
-                                    outgoingFrame.PayloadSourceStream,
+                                    outgoingFrame.PayloadStream,
                                     payloadWriter,
                                     endStream: true,
                                     CancellationToken.None).ConfigureAwait(false);
 
-                                await outgoingFrame.PayloadSourceStream.CompleteAsync().ConfigureAwait(false);
+                                await outgoingFrame.PayloadStream.CompleteAsync().ConfigureAwait(false);
                                 await payloadWriter.CompleteAsync().ConfigureAwait(false);
                             }
                             catch (Exception exception)
                             {
-                                await outgoingFrame.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
+                                await outgoingFrame.PayloadStream.CompleteAsync(exception).ConfigureAwait(false);
                                 await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
                             }
                         },

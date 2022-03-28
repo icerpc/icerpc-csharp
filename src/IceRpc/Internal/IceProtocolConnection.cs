@@ -209,7 +209,7 @@ namespace IceRpc.Internal
 
                     response = new OutgoingResponse(request)
                     {
-                        PayloadSource = Encoding.Slice11.CreatePayloadFromRemoteException(remoteException),
+                        Payload = Encoding.Slice11.CreatePayloadFromRemoteException(remoteException),
                         ResultType = ResultType.Failure
                     };
                 }
@@ -222,9 +222,9 @@ namespace IceRpc.Internal
 
                 try
                 {
-                    if (response.PayloadSourceStream != null)
+                    if (response.PayloadStream != null)
                     {
-                        throw new NotSupportedException("PayloadSourceStream must be null with the ice protocol");
+                        throw new NotSupportedException("PayloadStream must be null with the ice protocol");
                     }
 
                     if (request.IsOneway)
@@ -235,10 +235,10 @@ namespace IceRpc.Internal
 
                     Debug.Assert(!_isUdp); // udp is oneway-only so no response
 
-                    // Read the full payload source. This can take some time so this needs to be done before acquiring
-                    // the send semaphore.
+                    // Read the full payload. This can take some time so this needs to be done before acquiring the send
+                    // semaphore.
                     ReadOnlySequence<byte> payload = await ReadFullPayloadAsync(
-                        response.PayloadSource,
+                        response.Payload,
                         cancel).ConfigureAwait(false);
                     int payloadSize = checked((int)payload.Length);
 
@@ -286,7 +286,7 @@ namespace IceRpc.Internal
                             "payload writer cancellation or completion is not supported with the ice protocol");
                     }
 
-                    await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
+                    await response.Payload.CompleteAsync().ConfigureAwait(false);
                     await payloadWriter.CompleteAsync().ConfigureAwait(false);
                 }
                 catch (Exception exception)
@@ -429,9 +429,9 @@ namespace IceRpc.Internal
             PipeWriter payloadWriter = _payloadWriter;
             try
             {
-                if (request.PayloadSourceStream != null)
+                if (request.PayloadStream != null)
                 {
-                    throw new NotSupportedException("PayloadSourceStream must be null with the ice protocol");
+                    throw new NotSupportedException("PayloadStream must be null with the ice protocol");
                 }
 
                 if (_isUdp && !request.IsOneway)
@@ -442,7 +442,7 @@ namespace IceRpc.Internal
                 // Read the full payload source. This can take some time so this needs to be done before acquiring the
                 // send semaphore.
                 ReadOnlySequence<byte> payload = await ReadFullPayloadAsync(
-                    request.PayloadSource,
+                    request.Payload,
                     cancel).ConfigureAwait(false);
                 int payloadSize = checked((int)payload.Length);
 
@@ -488,7 +488,7 @@ namespace IceRpc.Internal
                         "payload writer cancellation or completion is not supported with the ice protocol");
                 }
 
-                await request.PayloadSource.CompleteAsync().ConfigureAwait(false);
+                await request.Payload.CompleteAsync().ConfigureAwait(false);
                 await payloadWriter.CompleteAsync().ConfigureAwait(false);
             }
             catch (Exception exception)

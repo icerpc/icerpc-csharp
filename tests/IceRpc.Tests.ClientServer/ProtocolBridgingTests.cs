@@ -173,7 +173,7 @@ namespace IceRpc.Tests.ClientServer
                     IsOneway = incomingRequest.IsOneway,
                     Operation = incomingRequest.Operation,
                     PayloadEncoding = incomingRequest.PayloadEncoding,
-                    PayloadSource = incomingRequest.Payload
+                    Payload = incomingRequest.Payload
                 };
 
                 // Then invoke
@@ -213,7 +213,7 @@ namespace IceRpc.Tests.ClientServer
                 return new OutgoingResponse(incomingRequest)
                 {
                     Fields = fields,
-                    PayloadSource = incomingResponse.Payload,
+                    Payload = incomingResponse.Payload,
                     ResultType = incomingResponse.ResultType
                 };
             }

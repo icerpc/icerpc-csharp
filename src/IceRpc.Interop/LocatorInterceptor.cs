@@ -99,10 +99,10 @@ namespace IceRpc
                     catch (Exception exception)
                     {
                         // Clean-up request
-                        await request.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
-                        if (request.PayloadSourceStream != null)
+                        await request.Payload.CompleteAsync(exception).ConfigureAwait(false);
+                        if (request.PayloadStream != null)
                         {
-                            await request.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
+                            await request.PayloadStream.CompleteAsync(exception).ConfigureAwait(false);
                         }
                         throw;
                     }
