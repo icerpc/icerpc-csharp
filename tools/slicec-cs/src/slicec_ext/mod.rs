@@ -16,4 +16,4 @@ pub use member_ext::{MemberExt, ParameterExt, ParameterSliceExt};
 pub use operation_ext::OperationExt;
 pub use primitive_ext::PrimitiveExt;
 pub use type_ref_ext::TypeRefExt;
-pub use slice_encoding_ext::SliceEncodingExt;
+pub use slice_encoding_ext::EncodingExt;

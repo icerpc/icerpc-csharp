@@ -12,7 +12,7 @@ use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
 use slice::code_gen_util::TypeContext;
-use slice::grammar::{Exception, Member, SliceEncoding, Type};
+use slice::grammar::{Exception, Member, Encoding, Type};
 use slice::visitor::Visitor;
 
 pub struct ExceptionVisitor<'a> {
@@ -91,8 +91,8 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
                 .add_base_parameter("ref decoder")
                 .set_body(
                     EncodingBlockBuilder::new("decoder.Encoding", &exception_name, exception_def.supported_encodings())
-                    .add_encoding_block(SliceEncoding::Slice11, initialize_non_nullable_fields(&members, FieldType::Exception))
-                    .add_encoding_block(SliceEncoding::Slice2, decode_data_members(&members, namespace, FieldType::Exception))
+                    .add_encoding_block(Encoding::Slice11, initialize_non_nullable_fields(&members, FieldType::Exception))
+                    .add_encoding_block(Encoding::Slice2, decode_data_members(&members, namespace, FieldType::Exception))
                     .build()
                 )
                 .add_never_editor_browsable_attribute()
@@ -172,8 +172,8 @@ fn encode_trait_method(exception_def: &Exception) -> CodeBlock {
         .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
         .set_body(
             EncodingBlockBuilder::new("encoder.Encoding", &exception_def.escape_identifier(), exception_def.supported_encodings())
-                .add_encoding_block(SliceEncoding::Slice11, "this.EncodeCore(ref encoder);".into())
-                .add_encoding_block(SliceEncoding::Slice2, "\
+                .add_encoding_block(Encoding::Slice11, "this.EncodeCore(ref encoder);".into())
+                .add_encoding_block(Encoding::Slice2, "\
 encoder.EncodeString(SliceTypeId);
 this.Encode(ref encoder);".into())
                 .build()

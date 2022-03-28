@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use slice::code_gen_util::TypeContext;
-use slice::grammar::{Attributable, Class, Entity, NamedSymbol, Operation, SliceEncoding};
+use slice::grammar::{Attributable, Class, Entity, NamedSymbol, Operation, Encoding};
 use slice::supported_encodings::SupportedEncodings;
 
 use crate::code_block::CodeBlock;
@@ -418,7 +418,7 @@ impl CommentBuilder for FunctionBuilder {
 }
 
 pub struct EncodingBlockBuilder {
-    encoding_blocks: HashMap<SliceEncoding, CodeBlock>,
+    encoding_blocks: HashMap<Encoding, CodeBlock>,
     supported_encodings: SupportedEncodings,
     encoding_variable: String,
     identifier: String,
@@ -434,7 +434,7 @@ impl EncodingBlockBuilder {
         }
     }
 
-    pub fn add_encoding_block(&mut self, encoding: SliceEncoding, code: CodeBlock) -> &mut Self {
+    pub fn add_encoding_block(&mut self, encoding: Encoding, code: CodeBlock) -> &mut Self {
         self.encoding_blocks.insert(encoding, code);
         self
     }

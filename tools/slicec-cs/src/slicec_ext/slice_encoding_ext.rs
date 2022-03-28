@@ -1,24 +1,24 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use slice::grammar::SliceEncoding;
+use slice::grammar::Encoding;
 
-pub trait SliceEncodingExt {
+pub trait EncodingExt {
     fn to_cs_encoding(&self) -> &str;
     fn encoding_name(&self) -> &str;
 }
 
-impl SliceEncodingExt for SliceEncoding {
+impl EncodingExt for Encoding {
     fn to_cs_encoding(&self) -> &str {
         match self {
-            SliceEncoding::Slice11 => "IceRpc.Encoding.Slice11",
-            SliceEncoding::Slice2 => "IceRpc.Encoding.Slice20",
+            Encoding::Slice11 => "IceRpc.Encoding.Slice11",
+            Encoding::Slice2 => "IceRpc.Encoding.Slice20",
         }
     }
 
     fn encoding_name(&self) -> &str {
         match self {
-            SliceEncoding::Slice11 => "1.1",
-            SliceEncoding::Slice2 => "2.0",
+            Encoding::Slice11 => "1.1",
+            Encoding::Slice2 => "2.0",
         }
     }
 }

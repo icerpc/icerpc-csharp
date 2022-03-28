@@ -610,13 +610,13 @@ var encoder_ = new SliceEncoder(pipe_.Writer, {encoding}, {class_format});
 pipe_.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
 {assign_pipe_reader} pipe_.Reader;",
         size_placeholder_and_start_position = match operation.encoding {
-            SliceEncoding::Slice11 => "",
+            Encoding::Slice11 => "",
             _ => "\
 Span<byte> sizePlaceholder_ = encoder_.GetPlaceholderSpan(4);
 int startPos_ = encoder_.EncodedByteCount;",
         },
         rewrite_size = match operation.encoding {
-            SliceEncoding::Slice11 => "",
+            Encoding::Slice11 => "",
             _ => "SliceEncoder.EncodeVarULong((ulong)(encoder_.EncodedByteCount - startPos_), sizePlaceholder_);",
         },
         encoding = operation.encoding.to_cs_encoding(),
