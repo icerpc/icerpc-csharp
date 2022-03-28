@@ -174,7 +174,17 @@ namespace IceRpc.Slice
                 string result;
                 if (_reader.UnreadSpan.Length >= size)
                 {
-                    result = _utf8.GetString(_reader.UnreadSpan[0..size]);
+                    try
+                    {
+                        result = _utf8.GetString(_reader.UnreadSpan[0..size]);
+                    }
+                    catch
+                    {
+                        // The two exceptions that can be thrown by GetString are ArgumentException and
+                        // DecoderFallbackException. Both of which are a result of malformed data. As such, we can just
+                        // throw an InvalidDataException.
+                        throw new InvalidDataException("Invalid UTF-8 string");
+                    }
                 }
                 else
                 {
@@ -183,7 +193,14 @@ namespace IceRpc.Slice
                     {
                         throw new EndOfBufferException();
                     }
-                    result = _utf8.GetString(bytes.Slice(0, size));
+                    try
+                    {
+                        result = _utf8.GetString(bytes.Slice(0, size));
+                    }
+                    catch
+                    {
+                        throw new InvalidDataException("Invalid UTF-8 string");
+                    }
                 }
 
                 _reader.Advance(size);
