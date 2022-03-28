@@ -390,7 +390,7 @@ namespace IceRpc.Transports.Internal
             Debug.Assert(!source1.IsEmpty || endStream);
             if (_bidirectionalStreamSemaphore == null)
             {
-                throw new InvalidDataException("cannot create a streams before calling ConnectAsync");
+                throw new InvalidOperationException("cannot send a stream before calling ConnectAsync");
             }
 
             do

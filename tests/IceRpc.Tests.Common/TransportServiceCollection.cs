@@ -4,8 +4,6 @@ using IceRpc.Configure;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Tests
 {
