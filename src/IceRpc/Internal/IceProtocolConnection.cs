@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Features.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
@@ -140,7 +139,6 @@ namespace IceRpc.Internal
                     PayloadEncoding = Encoding.FromMajorMinor(
                         requestHeader.EncapsulationHeader.PayloadEncodingMajor,
                         requestHeader.EncapsulationHeader.PayloadEncodingMinor),
-                    ResponseWriter = _payloadWriter,
                 };
 
                 if (requestHeader.Context.Count > 0)
@@ -219,7 +217,9 @@ namespace IceRpc.Internal
                 // The sending of the response can't be canceled. This would lead to invalid protocol behavior.
                 CancellationToken cancel = CancellationToken.None;
 
+                PipeWriter payloadWriter = _payloadWriter;
                 bool acquiredSemaphore = false;
+
                 try
                 {
                     if (response.PayloadSourceStream != null)
@@ -269,27 +269,30 @@ namespace IceRpc.Internal
 
                     EncodeResponseHeader(_networkConnectionWriter, requestId, payloadSize, replyStatus);
 
+                    payloadWriter = response.GetPayloadWriter(payloadWriter);
+
                     // Write the payload and complete the source.
-                    FlushResult flushResult = await response.PayloadSink.WriteAsync(
+                    FlushResult flushResult = await payloadWriter.WriteAsync(
                         payload,
                         endStream: false,
                         cancel).ConfigureAwait(false);
 
-                    // If a payload sink decorator returns a canceled or completed flush result, we have to raise
+                    // If a payload writer decorator returns a canceled or completed flush result, we have to throw
                     // NotSupportedException. We can't interrupt the sending of a payload since it would lead to a bogus
                     // payload to be sent over the connection.
                     if (flushResult.IsCanceled || flushResult.IsCompleted)
                     {
                         throw new NotSupportedException(
-                            "payload sink cancellation or completion is not supported with the ice protocol");
+                            "payload writer cancellation or completion is not supported with the ice protocol");
                     }
 
                     await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
-                    await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                    await payloadWriter.CompleteAsync().ConfigureAwait(false);
                 }
                 catch (Exception exception)
                 {
                     await response.CompleteAsync(exception).ConfigureAwait(false);
+                    await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
                     throw;
                 }
                 finally
@@ -423,6 +426,7 @@ namespace IceRpc.Internal
             bool acquiredSemaphore = false;
             int requestId = 0;
             TaskCompletionSource<PipeReader>? responseCompletionSource = null;
+            PipeWriter payloadWriter = _payloadWriter;
             try
             {
                 if (request.PayloadSourceStream != null)
@@ -434,9 +438,6 @@ namespace IceRpc.Internal
                 {
                     throw new InvalidOperationException("cannot send twoway request over UDP");
                 }
-
-                // Set the transport payload sink to the stateless payload writer.
-                request.SetTransportPayloadSink(_payloadWriter);
 
                 // Read the full payload source. This can take some time so this needs to be done before acquiring the
                 // send semaphore.
@@ -469,12 +470,14 @@ namespace IceRpc.Internal
 
                 EncodeRequestHeader(_networkConnectionWriter, request, requestId, payloadSize);
 
-                FlushResult flushResult = await request.PayloadSink.WriteAsync(
+                payloadWriter = request.GetPayloadWriter(payloadWriter);
+
+                FlushResult flushResult = await payloadWriter.WriteAsync(
                     payload,
                     endStream: false,
                     cancel).ConfigureAwait(false);
 
-                // If a payload source sink decorator returns a canceled or completed flush result, we have to raise
+                // If a payload writer decorator returns a canceled or completed flush result, we have to throw
                 // NotSupportedException. We can't interrupt the sending of a payload since it would lead to a bogus
                 // payload to be sent over the connection.
                 if (flushResult.IsCanceled || flushResult.IsCompleted)
@@ -482,11 +485,11 @@ namespace IceRpc.Internal
                     // TODO: throwing here after sending the request is wrong since ReceiveResponse won't be called see
                     // #828 for a solution.
                     throw new NotSupportedException(
-                        "payload sink cancellation or completion is not supported with the ice protocol");
+                        "payload writer cancellation or completion is not supported with the ice protocol");
                 }
 
-                await request.PayloadSink.CompleteAsync().ConfigureAwait(false);
                 await request.PayloadSource.CompleteAsync().ConfigureAwait(false);
+                await payloadWriter.CompleteAsync().ConfigureAwait(false);
             }
             catch (Exception exception)
             {
@@ -498,6 +501,7 @@ namespace IceRpc.Internal
                     exception = new ConnectionLostException(exception);
                 }
                 await request.CompleteAsync(exception).ConfigureAwait(false);
+                await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
                 throw;
             }
             finally

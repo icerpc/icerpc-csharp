@@ -264,8 +264,7 @@ namespace IceRpc.Tests.Internal
                 Path = "/dummy",
                 Operation = "foo",
                 Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
-                PayloadEncoding = Encoding.Slice20,
-                ResponseWriter = new DelayedPipeWriterDecorator()
+                PayloadEncoding = Encoding.Slice20
             };
 
         private static IncomingResponse CreateIncomingResponse(OutgoingRequest request) => new(request)

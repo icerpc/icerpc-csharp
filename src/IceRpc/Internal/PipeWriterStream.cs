@@ -8,6 +8,7 @@ namespace IceRpc.Internal
     /// <remarks>This is not a general-purpose Stream implementation. This stream is only called indirectly by
     /// <see cref="IceProtocolConnection"/> and <see cref="IceRpcProtocolConnection"/> when they copy the payload
     /// source of an outgoing frame to the payload sink of that frame.</remarks>
+    // TODO: remove alongside ToPayloadStream
     internal class PipeWriterStream : Stream
     {
         public override bool CanRead => false;

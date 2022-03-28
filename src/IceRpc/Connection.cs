@@ -319,8 +319,8 @@ namespace IceRpc
                 }
             }
 
-            // SendRequestAsync is responsible for completing the payload sources and sink. The caller is responsible
-            // for completing the response payload.
+            // SendRequestAsync is responsible for completing the payload sources. The caller is responsible for
+            // completing the response payload.
             if (protocolConnection == null)
             {
                 return PerformConnectAndSendRequest();

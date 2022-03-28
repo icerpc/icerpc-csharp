@@ -163,8 +163,8 @@ namespace IceRpc.Transports.Internal
             }
             else
             {
-                // WriteAsync is called with an empty buffer and completeWhenDone = false. Some sinks such as the
-                // deflate compressor might do this.
+                // WriteAsync is called with an empty buffer and completeWhenDone = false. Some payload writes such as
+                // the deflate compressor might do this.
                 return new FlushResult(isCanceled: false, isCompleted: false);
             }
         }

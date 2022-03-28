@@ -33,8 +33,8 @@ namespace IceRpc.Internal
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         Task PingAsync(CancellationToken cancel);
 
-        /// <summary>Sends a request and returns the response. The implementation must complete the request payload
-        /// sources and sink.</summary>
+        /// <summary>Sends a request and returns the response. The implementation must complete the request payloads.
+        /// </summary>
         /// <param name="connection">The connection owning this protocol connection. This is used to assign <see
         /// cref="IncomingFrame.Connection"/>.</param>
         /// <param name="request">The outgoing request to send.</param>

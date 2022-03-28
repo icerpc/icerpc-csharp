@@ -104,7 +104,6 @@ namespace IceRpc
                         {
                             await request.PayloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
                         }
-                        await request.PayloadSink.CompleteAsync().ConfigureAwait(false);
                         throw;
                     }
                 }
