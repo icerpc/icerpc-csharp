@@ -178,12 +178,16 @@ namespace IceRpc.Slice
                     {
                         result = _utf8.GetString(_reader.UnreadSpan[0..size]);
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // The two exceptions that can be thrown by GetString are ArgumentException and
-                        // DecoderFallbackException. Both of which are a result of malformed data. As such, we can just
-                        // throw an InvalidDataException.
-                        throw new InvalidDataException("Invalid UTF-8 string");
+                        if (ex is ArgumentException || ex is DecoderFallbackException)
+                        {
+                            // The two exceptions that can be thrown by GetString are ArgumentException and
+                            // DecoderFallbackException. Both of which are a result of malformed data. As such, we can just
+                            // throw an InvalidDataException.
+                            throw new InvalidDataException("invalid UTF-8 string");
+                        }
+                        throw;
                     }
                 }
                 else
@@ -197,9 +201,16 @@ namespace IceRpc.Slice
                     {
                         result = _utf8.GetString(bytes.Slice(0, size));
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        throw new InvalidDataException("Invalid UTF-8 string");
+                        if (ex is ArgumentException || ex is DecoderFallbackException)
+                        {
+                            // The two exceptions that can be thrown by GetString are ArgumentException and
+                            // DecoderFallbackException. Both of which are a result of malformed data. As such, we can just
+                            // throw an InvalidDataException.
+                            throw new InvalidDataException("invalid UTF-8 string");
+                        }
+                        throw;
                     }
                 }
 

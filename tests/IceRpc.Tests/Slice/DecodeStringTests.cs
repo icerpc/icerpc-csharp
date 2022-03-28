@@ -42,7 +42,7 @@ public class DecodeStringTests
     {
         Assert.That(() =>
         {
-            var encodedString = new byte[] { 4, 0xFD, 0xFF }; // Byte array for unicode char \uD800
+            var encodedString = new byte[] { 0x08, 0xFD, 0xFF }; // Byte array for unicode char \uD800
             var sut = new SliceDecoder(encodedString, Encoding.Slice20);
 
             sut.DecodeString();
