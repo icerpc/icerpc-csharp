@@ -215,7 +215,7 @@ namespace IceRpc.Internal
                 OutgoingResponse response;
                 try
                 {
-                    // The dispatcher is responsible for completing the incoming request payload source.
+                    // The dispatcher is responsible for completing the incoming request payloads.
                     response = await dispatcher.DispatchAsync(
                         request,
                         cancelDispatchSource.Token).ConfigureAwait(false);
@@ -734,7 +734,7 @@ namespace IceRpc.Internal
                 output.FlushAsync(cancel);
         }
 
-        /// <summary>Sends the payload and payload source of an outgoing frame. SendPayloadAsync completes the payload
+        /// <summary>Sends the payload and payload stream of an outgoing frame. SendPayloadAsync completes the payload
         /// if successful. It completes the output only if there's no payload stream. Otherwise, it starts a streaming
         /// task that is responsible for completing the payload stream and the output.</summary>
         private static async ValueTask SendPayloadAsync(

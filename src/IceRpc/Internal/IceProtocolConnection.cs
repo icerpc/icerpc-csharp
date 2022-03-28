@@ -181,7 +181,7 @@ namespace IceRpc.Internal
                 OutgoingResponse response;
                 try
                 {
-                    // The dispatcher is responsible for completing the incoming request payload source.
+                    // The dispatcher is responsible for completing the incoming request payload.
                     response = await dispatcher.DispatchAsync(
                         request,
                         cancelDispatchSource.Token).ConfigureAwait(false);
@@ -439,8 +439,8 @@ namespace IceRpc.Internal
                     throw new InvalidOperationException("cannot send twoway request over UDP");
                 }
 
-                // Read the full payload source. This can take some time so this needs to be done before acquiring the
-                // send semaphore.
+                // Read the full payload. This can take some time so this needs to be done before acquiring the send
+                // semaphore.
                 ReadOnlySequence<byte> payload = await ReadFullPayloadAsync(
                     request.Payload,
                     cancel).ConfigureAwait(false);
@@ -874,14 +874,14 @@ namespace IceRpc.Internal
             return pipe.Reader;
         }
 
-        /// <summary>Reads the full Ice payload from the given payload source.</summary>
+        /// <summary>Reads the full Ice payload from the given pipe reader.</summary>
         private static async ValueTask<ReadOnlySequence<byte>> ReadFullPayloadAsync(
-            PipeReader payloadSource,
+            PipeReader payload,
             CancellationToken cancel)
         {
-            // We use ReadAtLeastAsync instead of ReadAsync to bypass the PauseWriterThreshold when the payloadSource
-            // is backed by a Pipe.
-            ReadResult readResult = await payloadSource.ReadAtLeastAsync(int.MaxValue, cancel).ConfigureAwait(false);
+            // We use ReadAtLeastAsync instead of ReadAsync to bypass the PauseWriterThreshold when the payload is
+            // backed by a Pipe.
+            ReadResult readResult = await payload.ReadAtLeastAsync(int.MaxValue, cancel).ConfigureAwait(false);
 
             if (readResult.IsCanceled)
             {
@@ -889,7 +889,7 @@ namespace IceRpc.Internal
             }
 
             return readResult.IsCompleted ? readResult.Buffer :
-                throw new ArgumentException("the payload size is greater than int.MaxValue", nameof(payloadSource));
+                throw new ArgumentException("the payload size is greater than int.MaxValue", nameof(payload));
         }
 
         /// <summary>Receives incoming frames and returns once a request frame is received.</summary>
