@@ -323,9 +323,10 @@ public abstract class MultiplexedTransportConformanceTests
             int? resumeWriterThreshold = null,
             int? bidirectionalStreamMaxCount = null,
             int? unidirectionalStreamMaxCount = null);
+
         /// <summary>Creates a connection using the underlying multiplexed client transport.</summary>
-        /// <param name="endpoint">The listener endpoint</param>
-        /// <returns>The listener.</returns>
+        /// <param name="endpoint">The connection endpoint.</param>
+        /// <returns>The connection.</returns>
         IMultiplexedNetworkConnection CreateConnection(Endpoint endpoint);
     }
 
@@ -408,7 +409,7 @@ public class SlicOverTcpConformanceTests : MultiplexedTransportConformanceTests
 
 [Timeout(30000)]
 [Parallelizable(ParallelScope.All)]
-public class SlicOverColcConformanceTests : MultiplexedTransportConformanceTests
+public class SlicOverColocConformanceTests : MultiplexedTransportConformanceTests
 {
     /// <summary>The multiplexed transports for conformance testing.</summary>
     public override IMultiplexedTransportTestFixture CreateMultiplexedTransportTestFixture()
