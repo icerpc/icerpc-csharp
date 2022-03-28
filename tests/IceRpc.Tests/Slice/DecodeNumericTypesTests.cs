@@ -9,8 +9,8 @@ namespace IceRpc.Slice.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class DecodeNumericTypesTests
 {
-    /// <summary>Tests the decoding of long. Decoding any fixed size numeric is handled the same way by the SliceDecoder,
-    /// as such it is sufficient to just test decoding a long.</summary>
+    /// <summary>Tests the decoding of long. Decoding any fixed size numeric is handled the same way by the
+    /// SliceDecoder, as such it is sufficient to just test decoding a long.</summary>
     /// <param name="encodedBytes">An encoded byte array to decode.</param>
     /// <param name="expected">The expected long to be decoded.</param>
     [TestCase(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 }, long.MinValue)]
@@ -28,14 +28,14 @@ public class DecodeNumericTypesTests
         Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
     }
 
-    /// <summary>Test the decoding of variable size long.</summary>
-    /// <param name="encodedBytes">The encoded value.</param>
-    /// <param name="expected">The expected value.</param>
+    /// <summary>Tests the decoding of variable size long.</summary>
+    /// <param name="encodedBytes">An encoded byte array to decode.</param>
+    /// <param name="expected">The expected long to be decoded.</param>
     [TestCase(new byte[] { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 }, SliceEncoder.VarLongMinValue)]
     [TestCase(new byte[] { 0x02, 0x00, 0xFF, 0xFF }, -16384)]
     [TestCase(new byte[] { 0x01, 0xFC }, -256)]
     [TestCase(new byte[] { 0x00 }, 0)]
-    [TestCase(new byte[] { 0x16, 0x00, 0x00, 0x00 }, 5)]
+    [TestCase(new byte[] { (5 << 2) + 0x02, 0x00, 0x00, 0x00 }, 5)]
     [TestCase(new byte[] { 0x01, 0x04 }, 256)]
     [TestCase(new byte[] { 0x02, 0x00, 0x01, 0x00 }, 16384)]
     [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F }, SliceEncoder.VarLongMaxValue)]
@@ -49,7 +49,7 @@ public class DecodeNumericTypesTests
         Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
     }
 
-    /// <summary>Test that attempting to decode a variable length int that that is out of bound throws
+    /// <summary>Tests that attempting to decode a variable size int that that is out of bound throws
     /// an <see cref="InvalidDataException"/>.</summary>
     /// <param name="value">An encoded long that will fail to be decoded into an int.</param>
     [TestCase(new byte[] { 0x03, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00 })]
@@ -64,9 +64,9 @@ public class DecodeNumericTypesTests
         }, Throws.InstanceOf<InvalidDataException>());
     }
 
-    /// <summary>Test the decoding of a variable size unsigned long.</summary>
-    /// <param name="encodedBytes">The encoded value.</param>
-    /// <param name="expected">The expected value.</param>
+    /// <summary>Tests the decoding of a variable size unsigned long.</summary>
+    /// <param name="encodedBytes">>An encoded byte array to decode.</param>
+    /// <param name="expected">The expected ulong to be decoded.</param>
     [TestCase(new byte[] { 0x00 }, SliceEncoder.VarULongMinValue)]
     [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, SliceEncoder.VarULongMaxValue)]
     [TestCase(new byte[] { 0x16, 0x00, 0x00, 0x00 }, (ulong)5)]
@@ -82,7 +82,7 @@ public class DecodeNumericTypesTests
         Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
     }
 
-    /// <summary>Test that attempting to decode a variable length unisgned int that that is out of bound throws
+    /// <summary>Tests that attempting to decode a variable length unisgned int that that is out of bound throws
     /// an <see cref="InvalidDataException"/>.</summary>
     /// <param name="value">A long to encode into a byte array that will fail to be decoded into an uint.</param>
     [TestCase((ulong)UInt32.MaxValue + 1)]
@@ -101,7 +101,7 @@ public class DecodeNumericTypesTests
         }, Throws.InstanceOf<InvalidDataException>());
     }
 
-    /// <summary>Tests decoding the size bytes.</summary>
+    /// <summary>Tests decoding the size bytes with the 1.1 encoding.</summary>
     /// <param name="encodedBytes">The encoded byte array to decode.</param>
     /// <param name="encoding">The encoding to use to decode the byte array.</param>
     /// <param name="expected">The expected size to be decoded.</param>

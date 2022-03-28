@@ -27,8 +27,8 @@ public class EncodeStringTests
         encoder.EncodeString(value);
 
         var utf8ByteCount = System.Text.Encoding.UTF8.GetByteCount(value);
-        var writtenBytes = buffer[0..bufferWriter.WrittenMemory.Length];
-        var utf8Bytes = buffer[(writtenBytes.Length - utf8ByteCount)..writtenBytes.Length];
+        var writtenBytes = bufferWriter.WrittenMemory.ToArray();
+        var utf8Bytes = writtenBytes[(writtenBytes.Length - utf8ByteCount)..];
         Assert.That(encoder.EncodedByteCount, Is.EqualTo(bufferWriter.WrittenMemory.Length));
         Assert.That(value, Is.EqualTo(System.Text.Encoding.UTF8.GetString(utf8Bytes)));
     }

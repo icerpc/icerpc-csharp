@@ -25,10 +25,10 @@ public class EncodeNumericTypesTests
         encoder.EncodeLong(value);
 
         Assert.That(encoder.EncodedByteCount, Is.EqualTo(sizeof(long)));
-        Assert.That(buffer[0..sizeof(long)], Is.EqualTo(expected));
+        Assert.That(buffer[0..bufferWriter.WrittenMemory.Length], Is.EqualTo(expected));
     }
 
-    /// <summary>Test the encoding of a variable size long.</summary>
+    /// <summary>Tests the encoding of a variable size long.</summary>
     /// <param name="value">The long to be encoded.</param>
     /// <param name="expected">The expected byte array produced from encoding value.</param>
     [TestCase(SliceEncoder.VarLongMinValue, new byte[] { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 })]
@@ -50,12 +50,12 @@ public class EncodeNumericTypesTests
         Assert.That(buffer[0..bufferWriter.WrittenMemory.Length], Is.EqualTo(expected));
     }
 
-    /// <summary>Verifies that <see cref="SliceEncoder.EncodeVarLong"/> will throw an ArgumentOutOfRangeException
+    /// <summary>Tests that <see cref="SliceEncoder.EncodeVarLong"/> will throw an ArgumentOutOfRangeException
     /// if the parameter is larger than the max value of a varlong or smaller than the min value of a varlong.</summary>
     /// <param name="value">The varlong to be encoded.</param>
     [TestCase(SliceEncoder.VarLongMinValue - 1)]
     [TestCase(SliceEncoder.VarLongMaxValue + 1)]
-    public void Encode_varlong_value_throws_out_of_range(long value)
+    public void Encode_varlong_out_of_range_value_fails(long value)
     {
         // Due to limitations on ref types, we cannot setup the arrange outside of the assertion. This is a result of
         // being unable to use ref local inside anonymous methods, lambda expressions, or query expressions.
@@ -71,7 +71,7 @@ public class EncodeNumericTypesTests
         }, Throws.InstanceOf<ArgumentOutOfRangeException>());
     }
 
-    /// <summary>Test the encoding of a variable size unsigned long.</summary>
+    /// <summary>Tests the encoding of a variable size unsigned long.</summary>
     /// <param name="value">The ulong to be encoded.</param>
     /// <param name="expected">The expected byte array produced from encoding value.</param>
     [TestCase(SliceEncoder.VarULongMinValue, new byte[] { 0x00 })]
@@ -90,7 +90,7 @@ public class EncodeNumericTypesTests
         Assert.That(buffer[0..bufferWriter.WrittenMemory.Length], Is.EqualTo(expected));
     }
 
-    /// <summary>Verifies that <see cref="SliceEncoder.EncodeVarULong"/> will throw an ArgumentOutOfRangeException
+    /// <summary>Tests that <see cref="SliceEncoder.EncodeVarULong"/> will throw an ArgumentOutOfRangeException
     /// if the parameter is larger than the max value of a varulong.</summary>
     /// <param name="value">The value to be encoded.</param>
     [TestCase(SliceEncoder.VarULongMaxValue + 1)]
@@ -108,7 +108,7 @@ public class EncodeNumericTypesTests
         }, Throws.InstanceOf<ArgumentOutOfRangeException>());
     }
 
-    /// <summary>Tests the encoding of sizes.</summary>
+    /// <summary>Tests the encoding of sizes with the 1.1 encoding.</summary>
     /// <param name="size">The size to encode.</param>
     /// <param name="expected">The expected byte array produced by encoding size.</param>
     [TestCase(64, new byte[] { 0x40 })]
@@ -118,7 +118,7 @@ public class EncodeNumericTypesTests
     [TestCase(254, new byte[] { 0xFE })]
     [TestCase(255, new byte[] { 0xFF, 0xFF, 0x00, 0x00, 0x00 })]
     [TestCase(1000, new byte[] { 0xFF, 0xE8, 0x03, 0x00, 0x00 })]
-    public void Encode_size(int size, byte[] expected)
+    public void Encode_size_with_1_1(int size, byte[] expected)
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
