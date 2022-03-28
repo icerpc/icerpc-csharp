@@ -427,6 +427,7 @@ namespace IceRpc.Internal
             int requestId = 0;
             TaskCompletionSource<PipeReader>? responseCompletionSource = null;
             PipeWriter payloadWriter = _payloadWriter;
+
             try
             {
                 if (request.PayloadStream != null)

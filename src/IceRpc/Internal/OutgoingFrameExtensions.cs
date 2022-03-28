@@ -2,7 +2,7 @@
 
 namespace IceRpc.Internal
 {
-    /// <summary>Extension methods to complete an outgoing frame payloads.</summary>
+    /// <summary>Extension methods to complete an outgoing frame payload and payload stream.</summary>
     internal static class OutgoingFrameExtensions
     {
         /// <summary>Completes the payloads of the outgoing frame.</summary>

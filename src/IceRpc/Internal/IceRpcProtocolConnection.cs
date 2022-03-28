@@ -215,7 +215,7 @@ namespace IceRpc.Internal
                 OutgoingResponse response;
                 try
                 {
-                    // The dispatcher is responsible for completing the incoming request payloads.
+                    // The dispatcher is responsible for completing the incoming request payload and payload stream.
                     response = await dispatcher.DispatchAsync(
                         request,
                         cancelDispatchSource.Token).ConfigureAwait(false);
@@ -268,7 +268,7 @@ namespace IceRpc.Internal
 
                 EncodeHeader();
 
-                // SendPayloadAsync takes care of the completion of the payloads and stream output.
+                // SendPayloadAsync takes care of the completion of the payload, payload stream and stream output.
                 await SendPayloadAsync(response, stream.Output, CancellationToken.None).ConfigureAwait(false);
 
                 void EncodeHeader()
@@ -746,7 +746,7 @@ namespace IceRpc.Internal
 
             try
             {
-                await CopySourceToWriterAsync(
+                await CopyReaderToWriterAsync(
                     outgoingFrame.Payload,
                     payloadWriter,
                     endStream: outgoingFrame.PayloadStream == null,
@@ -766,7 +766,7 @@ namespace IceRpc.Internal
                         {
                             try
                             {
-                                await CopySourceToWriterAsync(
+                                await CopyReaderToWriterAsync(
                                     outgoingFrame.PayloadStream,
                                     payloadWriter,
                                     endStream: true,
@@ -790,8 +790,8 @@ namespace IceRpc.Internal
                 throw;
             }
 
-            static async Task CopySourceToWriterAsync(
-                PipeReader source,
+            static async Task CopyReaderToWriterAsync(
+                PipeReader reader,
                 PipeWriter writer,
                 bool endStream,
                 CancellationToken cancel)
@@ -800,7 +800,7 @@ namespace IceRpc.Internal
                 ReadResult readResult;
                 do
                 {
-                    readResult = await source.ReadAsync(cancel).ConfigureAwait(false);
+                    readResult = await reader.ReadAsync(cancel).ConfigureAwait(false);
                     try
                     {
                         flushResult = await writer.WriteAsync(
@@ -810,7 +810,7 @@ namespace IceRpc.Internal
                     }
                     finally
                     {
-                        source.AdvanceTo(readResult.Buffer.End);
+                        reader.AdvanceTo(readResult.Buffer.End);
                     }
                 } while (!readResult.IsCompleted && !readResult.IsCanceled &&
                          !flushResult.IsCompleted && !flushResult.IsCanceled);
