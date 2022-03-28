@@ -11,7 +11,7 @@ namespace IceRpc.Slice.Tests;
 public class PipeReaderTests
 {
     [Test]
-    public async Task Call_advance_to_on_empty_segment()
+    public async Task Calling_advance_to_on_an_empty_segment()
     {
         var pipe = new Pipe();
         await pipe.Writer.WriteAsync(new byte[] { 0 }); // empty segment
@@ -25,7 +25,7 @@ public class PipeReaderTests
     }
 
     [Test]
-    public async Task Read_segment_piecemeal()
+    public async Task Reading_a_segment_piecemeal()
     {
         var pipe = new Pipe();
         await pipe.Writer.WriteAsync(new byte[] { 21 }); // first byte of size "5" encoded on 2 bytes
@@ -43,28 +43,29 @@ public class PipeReaderTests
     }
 
     [Test]
-    public void Read_segment_with_invalid_size_throws_exception()
+    public void Reading_a_segment_with_an_invalid_size_fails()
     {
         var pipeReader = PipeReader.Create(new ReadOnlySequence<byte>(new byte[] { 0xAA, 0xBB, 0xCC })); // invalid size
 
         Assert.That(
             async () => await pipeReader.ReadSegmentAsync(Encoding.Slice20, default),
-            Throws.InstanceOf<InvalidDataException>());
+            Throws.TypeOf<InvalidDataException>());
     }
 
+    /// <summary>Reads an invalid segment which does not contain enough bytes.</summary>
     [Test]
-    public void Read_short_segment_throws_exception()
+    public void Reading_a_short_segment_fails()
     {
         // 20 = 4 * 5 means the payload size is 5
         var pipeReader = PipeReader.Create(new ReadOnlySequence<byte>(new byte[] { 20, 1, 2, 3, 4 }));
 
         Assert.That(
             async () => await pipeReader.ReadSegmentAsync(Encoding.Slice20, default),
-            Throws.InstanceOf<InvalidDataException>());
+            Throws.TypeOf<InvalidDataException>());
     }
 
     [Test]
-    public async Task Try_read_incomplete_segment()
+    public async Task Trying_to_read_an_incomplete_segment_returns_false()
     {
         var pipe = new Pipe();
         await pipe.Writer.WriteAsync(new byte[] { 20, 1, 2, 3, 4 });
@@ -77,7 +78,7 @@ public class PipeReaderTests
     }
 
     [Test]
-    public async Task Try_read_good_segment()
+    public async Task Trying_to_read_a_complete_segment()
     {
         var pipe = new Pipe();
         await pipe.Writer.WriteAsync(new byte[] { 20, 1, 2, 3, 4, 5 });
@@ -92,23 +93,23 @@ public class PipeReaderTests
     }
 
     [Test]
-    public void Try_read_segment_with_invalid_size_throws_exception()
+    public void Trying_to_read_a_segment_with_an_invalid_size_fails()
     {
         var pipeReader = PipeReader.Create(new ReadOnlySequence<byte>(new byte[] { 0xAA, 0xBB, 0xCC })); // invalid size
 
         Assert.That(
             () => _ = pipeReader.TryReadSegment(Encoding.Slice20, out ReadResult readResult),
-            Throws.InstanceOf<InvalidDataException>());
+            Throws.TypeOf<InvalidDataException>());
     }
 
     [Test]
-    public void Try_read_short_segment_throws_exception()
+    public void Trying_to_read_a_short_segment_fails()
     {
         // 20 = 4 * 5 means the payload size is 5
         var pipeReader = PipeReader.Create(new ReadOnlySequence<byte>(new byte[] { 20, 1, 2, 3, 4 }));
 
         Assert.That(
             () => _ = pipeReader.TryReadSegment(Encoding.Slice20, out ReadResult readResult),
-            Throws.InstanceOf<InvalidDataException>());
+            Throws.TypeOf<InvalidDataException>());
     }
 }
