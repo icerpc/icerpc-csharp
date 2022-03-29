@@ -142,7 +142,7 @@ fn encode_method(exception_def: &Exception) -> CodeBlock {
 
     let body = CodeBlock::from(format!(
         r#"
-if (encoder.Encoding == IceRpc.Encoding.Slice11)
+if (encoder.Encoding == SliceEncoding.Slice11)
 {{
     throw new InvalidOperationException("encoding an exception by its fields isn't supported with the 1.1 encoding");
 }}
@@ -188,7 +188,7 @@ fn encode_core_method(exception_def: &Exception) -> CodeBlock {
 
     let body = CodeBlock::from(format!(
         r#"
-if (encoder.Encoding != IceRpc.Encoding.Slice11)
+if (encoder.Encoding != SliceEncoding.Slice11)
 {{
     throw new InvalidOperationException("encoding an exception in slices is only supported with the 1.1 encoding");
 }}

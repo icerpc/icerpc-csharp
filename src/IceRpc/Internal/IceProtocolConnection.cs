@@ -206,7 +206,7 @@ namespace IceRpc.Internal
 
                     response = new OutgoingResponse(request)
                     {
-                        Payload = Encoding.Slice11.CreatePayloadFromRemoteException(remoteException),
+                        Payload = SliceEncoding.Slice11.CreatePayloadFromRemoteException(remoteException),
                         ResultType = ResultType.Failure
                     };
                 }
@@ -319,14 +319,14 @@ namespace IceRpc.Internal
                     int payloadSize,
                     ReplyStatus replyStatus)
                 {
-                    var encoder = new SliceEncoder(writer, Encoding.Slice11);
+                    var encoder = new SliceEncoder(writer, SliceEncoding.Slice11);
 
                     // Write the response header.
 
                     encoder.WriteByteSpan(IceDefinitions.FramePrologue);
                     encoder.EncodeIceFrameType(IceFrameType.Reply);
                     encoder.EncodeByte(0); // compression status
-                    Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
+                    Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
 
                     encoder.EncodeInt(requestId);
 
@@ -347,14 +347,14 @@ namespace IceRpc.Internal
                     // else the reply status (> UserException) is part of the payload
 
                     int frameSize = encoder.EncodedByteCount + payloadSize;
-                    SliceEncoder.EncodeInt(frameSize, sizePlaceholder.Span);
+                    SliceEncoder.EncodeInt(frameSize, sizePlaceholder);
                 }
             }
 
             static (int RequestId, IceRequestHeader Header, int Consumed) DecodeRequestIdAndHeader(
                 ReadOnlySequence<byte> buffer)
             {
-                var decoder = new SliceDecoder(buffer, Encoding.Slice11);
+                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice11);
 
                 int requestId = decoder.DecodeInt();
                 var requestHeader = new IceRequestHeader(ref decoder);
@@ -418,7 +418,7 @@ namespace IceRpc.Internal
 
             static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
             {
-                var encoder = new SliceEncoder(writer, Encoding.Slice11);
+                var encoder = new SliceEncoder(writer, SliceEncoding.Slice11);
                 IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
             }
         }
@@ -554,7 +554,7 @@ namespace IceRpc.Internal
                             throw new ConnectionLostException();
                         }
 
-                        EncapsulationHeader encapsulationHeader = Encoding.Slice11.DecodeBuffer(
+                        EncapsulationHeader encapsulationHeader = SliceEncoding.Slice11.DecodeBuffer(
                             readResult.Buffer.Slice(1, 6),
                             (ref SliceDecoder decoder) => new EncapsulationHeader(ref decoder));
 
@@ -625,14 +625,14 @@ namespace IceRpc.Internal
                 int requestId,
                 int payloadSize)
             {
-                var encoder = new SliceEncoder(output, Encoding.Slice11);
+                var encoder = new SliceEncoder(output, SliceEncoding.Slice11);
 
                 // Write the request header.
                 encoder.WriteByteSpan(IceDefinitions.FramePrologue);
                 encoder.EncodeIceFrameType(IceFrameType.Request);
                 encoder.EncodeByte(0); // compression status
 
-                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
+                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
 
                 encoder.EncodeInt(requestId);
 
@@ -650,7 +650,7 @@ namespace IceRpc.Internal
                 requestHeader.Encode(ref encoder);
 
                 int frameSize = checked(encoder.EncodedByteCount + payloadSize);
-                SliceEncoder.EncodeInt(frameSize, sizePlaceholder.Span);
+                SliceEncoder.EncodeInt(frameSize, sizePlaceholder);
             }
         }
 
@@ -721,7 +721,7 @@ namespace IceRpc.Internal
 
             static void EncodeCloseConnectionFrame(SimpleNetworkConnectionWriter writer)
             {
-                var encoder = new SliceEncoder(writer, Encoding.Slice11);
+                var encoder = new SliceEncoder(writer, SliceEncoding.Slice11);
                 IceDefinitions.CloseConnectionFrame.Encode(ref encoder);
             }
         }
@@ -790,13 +790,13 @@ namespace IceRpc.Internal
 
             static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
             {
-                var encoder = new SliceEncoder(writer, Encoding.Slice11);
+                var encoder = new SliceEncoder(writer, SliceEncoding.Slice11);
                 IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
             }
 
             static (IcePrologue, long) DecodeValidateConnectionFrame(ReadOnlySequence<byte> buffer)
             {
-                var decoder = new SliceDecoder(buffer, Encoding.Slice11);
+                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice11);
                 return (new IcePrologue(ref decoder), decoder.Consumed);
             }
         }
@@ -909,7 +909,7 @@ namespace IceRpc.Internal
 
                 ReadOnlySequence<byte> prologueBuffer = buffer.Slice(0, IceDefinitions.PrologueSize);
 
-                IcePrologue prologue = Encoding.Slice11.DecodeBuffer(
+                IcePrologue prologue = SliceEncoding.Slice11.DecodeBuffer(
                     prologueBuffer,
                     (ref SliceDecoder decoder) => new IcePrologue(ref decoder));
 
@@ -1019,7 +1019,7 @@ namespace IceRpc.Internal
                             }
 
                             ReadOnlySequence<byte> requestIdBuffer = readResult.Buffer.Slice(0, 4);
-                            int requestId = Encoding.Slice11.DecodeBuffer(
+                            int requestId = SliceEncoding.Slice11.DecodeBuffer(
                                 requestIdBuffer,
                                 (ref SliceDecoder decoder) => decoder.DecodeInt());
                             replyFrameReader.AdvanceTo(requestIdBuffer.End);

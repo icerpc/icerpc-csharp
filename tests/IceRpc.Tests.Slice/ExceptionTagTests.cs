@@ -102,7 +102,7 @@ namespace IceRpc.Tests.Slice
         //         Assert.ThrowsAsync<TaggedException>(async () => await prx.ThrowTaggedExceptionAsync(null, "foo", ts));
         //     CheckException(ex);
 
-        //     if (prx.Proxy.Encoding == Encoding.Slice11)
+        //     if (prx.Proxy.Encoding == SliceEncoding.Slice11)
         //     {
         //         DerivedException derivedEx = Assert.ThrowsAsync<DerivedException>(
         //             async () => await prx.ThrowDerivedExceptionAsync(null, "foo", ts));

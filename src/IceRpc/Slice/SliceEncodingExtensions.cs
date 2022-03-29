@@ -1,14 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Slice
 {
-    /// <summary>Extension methods for class <see cref="SliceEncoding"/>.</summary>
+    /// <summary>Extension methods for <see cref="SliceEncoding"/>.</summary>
     public static class SliceEncodingExtensions
     {
         private static readonly ReadOnlySequence<byte> _payloadWithZeroSize = new(new byte[] { 0 });
@@ -20,7 +19,7 @@ namespace IceRpc.Slice
         /// <returns>A new empty payload.</returns>
         public static PipeReader CreateEmptyPayload(this SliceEncoding encoding, bool hasStream = false)
         {
-            if (hasStream && encoding == Encoding.Slice11)
+            if (hasStream && encoding == SliceEncoding.Slice11)
             {
                 throw new ArgumentException(
                     $"{nameof(hasStream)} must be false when encoding is 1.1", nameof(hasStream));
@@ -35,7 +34,7 @@ namespace IceRpc.Slice
             IAsyncEnumerable<T> asyncEnumerable,
             EncodeAction<T> encodeAction)
         {
-            if (encoding == IceRpc.Encoding.Slice11)
+            if (encoding == SliceEncoding.Slice11)
             {
                 throw new NotSupportedException("streaming is not supported with encoding 1.1");
             }
@@ -152,7 +151,7 @@ namespace IceRpc.Slice
                     int size,
                     Memory<byte> sizePlaceholder)
                 {
-                    encoding.EncodeFixedLengthSize(size, sizePlaceholder.Span);
+                    SliceEncoder.EncodeVarULong((ulong)size, sizePlaceholder.Span);
                     try
                     {
                         return await writer.FlushAsync().ConfigureAwait(false);
@@ -176,10 +175,10 @@ namespace IceRpc.Slice
             var pipe = new Pipe(); // TODO: pipe options
 
             var encoder = new SliceEncoder(pipe.Writer, encoding);
-            Span<byte> sizePlaceholder = encoding == Encoding.Slice11 ? default : encoder.GetPlaceholderSpan(4);
+            Span<byte> sizePlaceholder = encoding == SliceEncoding.Slice11 ? default : encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
 
-            if (encoding == Encoding.Slice11 && exception is DispatchException dispatchException)
+            if (encoding == SliceEncoding.Slice11 && exception is DispatchException dispatchException)
             {
                 encoder.EncodeDispatchExceptionAsSystemException(dispatchException);
             }
@@ -188,34 +187,13 @@ namespace IceRpc.Slice
                 exception.EncodeTrait(ref encoder);
             }
 
-            if (encoding != Encoding.Slice11)
+            if (encoding != SliceEncoding.Slice11)
             {
-                Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+                SliceEncoder.EncodeVarULong((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
             }
 
             pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
-        }
-
-        /// <summary>Encodes a fixed-length size into a span.</summary>
-        /// <param name="encoding">The Slice encoding.</param>
-        /// <param name="size">The size to encode.</param>
-        /// <param name="into">The destination span. This method uses all its bytes.</param>
-        public static void EncodeFixedLengthSize(this SliceEncoding encoding, int size, Span<byte> into)
-        {
-            if (size < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(size), "size must be positive");
-            }
-
-            if (encoding == Encoding.Slice11)
-            {
-                SliceEncoder.EncodeInt(size, into);
-            }
-            else
-            {
-                SliceEncoder.EncodeVarULong((ulong)size, into);
-            }
         }
     }
 }

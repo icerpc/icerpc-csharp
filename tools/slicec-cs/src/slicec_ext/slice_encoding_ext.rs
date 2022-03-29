@@ -10,8 +10,8 @@ pub trait EncodingExt {
 impl EncodingExt for Encoding {
     fn to_cs_encoding(&self) -> &str {
         match self {
-            Encoding::Slice11 => "IceRpc.Encoding.Slice11",
-            Encoding::Slice2 => "IceRpc.Encoding.Slice20",
+            Encoding::Slice11 => "SliceEncoding.Slice11",
+            Encoding::Slice2 => "SliceEncoding.Slice20",
         }
     }
 

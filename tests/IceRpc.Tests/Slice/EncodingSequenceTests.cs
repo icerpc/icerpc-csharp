@@ -8,8 +8,8 @@ using System.Collections.Immutable;
 namespace IceRpc.Slice.Tests;
 
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-[TestFixture("1.1")]
-[TestFixture("2.0")]
+[TestFixture(SliceEncoding.Slice11)]
+[TestFixture(SliceEncoding.Slice20)]
 [Parallelizable(scope: ParallelScope.All)]
 public class EncodingSequenceTests
 {
@@ -33,9 +33,9 @@ public class EncodingSequenceTests
         }
     }
 
-    public EncodingSequenceTests(string encoding)
+    public EncodingSequenceTests(SliceEncoding encoding)
     {
-        _encoding = SliceEncoding.FromString(encoding);
+        _encoding = encoding;
         _buffer = new byte[1024 * 1024];
         _bufferWriter = new MemoryBufferWriter(_buffer);
     }

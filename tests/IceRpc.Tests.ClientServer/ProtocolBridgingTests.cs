@@ -188,7 +188,7 @@ namespace IceRpc.Tests.ClientServer
                     try
                     {
                         await incomingResponse.CheckVoidReturnValueAsync(
-                            Encoding.Slice20,
+                            SliceEncoding.Slice20,
                             _activator,
                             hasStream: false,
                             cancel).ConfigureAwait(false);

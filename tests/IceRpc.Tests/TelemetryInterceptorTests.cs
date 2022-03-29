@@ -234,9 +234,9 @@ public sealed class TelemetryInterceptorTests
         {
             var buffer = new byte[1024];
             var bufferWriter = new MemoryBufferWriter(buffer);
-            var encoder = new SliceEncoder(bufferWriter, Encoding.Slice20);
+            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice20);
             traceContextField.Encode(ref encoder);
-            var decoder = new SliceDecoder(buffer, Encoding.Slice20);
+            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice20);
             decoder.SkipSize();
 
             var activity = new Activity(operationName);

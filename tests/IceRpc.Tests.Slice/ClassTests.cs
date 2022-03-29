@@ -36,7 +36,7 @@ namespace IceRpc.Tests.Slice
                                 {
                                     var pipe = new System.IO.Pipelines.Pipe(); // TODO: pipe options
 
-                                    var encoder = new SliceEncoder(pipe.Writer, Encoding.Slice11, default);
+                                    var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice11, default);
                                     encoder.EncodeClass(new MyClassAlsoEmpty());
                                     pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
                                     return pipe.Reader;
