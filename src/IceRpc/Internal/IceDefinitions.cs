@@ -9,7 +9,7 @@ namespace IceRpc.Internal
     {
         // The encoding of the header for ice frames. It is nominally 1.0, but in practice it is identical to 1.1
         // for the subset of the encoding used by the ice headers.
-        internal static readonly Encoding Encoding = SliceEncoding.Slice11;
+        internal static readonly SliceEncoding Encoding = SliceEncoding.Slice11;
 
         // Size of an ice frame prologue:
         // Magic number (4 bytes)

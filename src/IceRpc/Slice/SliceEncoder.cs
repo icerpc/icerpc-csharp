@@ -145,7 +145,7 @@ namespace IceRpc.Slice
                 }
             }
 
-            static void EncodeSizeIntoPlaceholder(Encoding encoding, int size, Span<byte> into)
+            static void EncodeSizeIntoPlaceholder(SliceEncoding encoding, int size, Span<byte> into)
             {
                 if (encoding == SliceEncoding.Slice11)
                 {

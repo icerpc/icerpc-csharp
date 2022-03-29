@@ -8,6 +8,6 @@ namespace IceRpc.Internal
 
     internal static class IceRpcDefinitions
     {
-        internal static readonly Encoding Encoding = SliceEncoding.Slice20;
+        internal static readonly SliceEncoding Encoding = SliceEncoding.Slice20;
     }
 }
