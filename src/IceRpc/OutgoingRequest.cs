@@ -34,18 +34,8 @@ namespace IceRpc
         /// <summary>Returns the encoding of the payload of this request.</summary>
         public Encoding PayloadEncoding { get; init; } = Encoding.Unknown;
 
-        /// <inheritdoc/>
-        public override PipeWriter PayloadSink
-        {
-            get => _payloadSink ?? (_initialPayloadSink ??= new());
-            set => _payloadSink = value;
-        }
-
         /// <summary>Returns the proxy that is sending this request.</summary>
         public Proxy Proxy { get; }
-
-        private DelayedPipeWriterDecorator? _initialPayloadSink;
-        private PipeWriter? _payloadSink;
 
         /// <summary>Constructs an outgoing request.</summary>
         /// <param name="proxy">The <see cref="Proxy"/> used to send the request.</param>
@@ -54,22 +44,6 @@ namespace IceRpc
         {
             Connection = proxy.Connection;
             Proxy = proxy;
-        }
-
-        /// <summary>Sets the final transport payload sink. If the initial payload sink is null, it indicates that the
-        /// application didn't set payload sink decorator. In this case, we can just assign the transport payload sink
-        /// to the request payload sink. Otherwise, we set it as the decoratee of the DelayedPipeWriterDecorator
-        /// initial sink.</summary>
-        internal void SetTransportPayloadSink(PipeWriter writer)
-        {
-            if (_initialPayloadSink == null)
-            {
-                _payloadSink = writer;
-            }
-            else
-            {
-                _initialPayloadSink.SetDecoratee(writer);
-            }
         }
     }
 }

@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Features.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
@@ -140,7 +139,6 @@ namespace IceRpc.Internal
                     PayloadEncoding = Encoding.FromMajorMinor(
                         requestHeader.EncapsulationHeader.PayloadEncodingMajor,
                         requestHeader.EncapsulationHeader.PayloadEncodingMinor),
-                    ResponseWriter = _payloadWriter,
                 };
 
                 if (requestHeader.Context.Count > 0)
@@ -183,7 +181,7 @@ namespace IceRpc.Internal
                 OutgoingResponse response;
                 try
                 {
-                    // The dispatcher is responsible for completing the incoming request payload source.
+                    // The dispatcher is responsible for completing the incoming request payload.
                     response = await dispatcher.DispatchAsync(
                         request,
                         cancelDispatchSource.Token).ConfigureAwait(false);
@@ -211,7 +209,7 @@ namespace IceRpc.Internal
 
                     response = new OutgoingResponse(request)
                     {
-                        PayloadSource = Encoding.Slice11.CreatePayloadFromRemoteException(remoteException),
+                        Payload = Encoding.Slice11.CreatePayloadFromRemoteException(remoteException),
                         ResultType = ResultType.Failure
                     };
                 }
@@ -219,12 +217,14 @@ namespace IceRpc.Internal
                 // The sending of the response can't be canceled. This would lead to invalid protocol behavior.
                 CancellationToken cancel = CancellationToken.None;
 
+                PipeWriter payloadWriter = _payloadWriter;
                 bool acquiredSemaphore = false;
+
                 try
                 {
-                    if (response.PayloadSourceStream != null)
+                    if (response.PayloadStream != null)
                     {
-                        throw new NotSupportedException("PayloadSourceStream must be null with the ice protocol");
+                        throw new NotSupportedException("PayloadStream must be null with the ice protocol");
                     }
 
                     if (request.IsOneway)
@@ -235,10 +235,10 @@ namespace IceRpc.Internal
 
                     Debug.Assert(!_isUdp); // udp is oneway-only so no response
 
-                    // Read the full payload source. This can take some time so this needs to be done before acquiring
-                    // the send semaphore.
+                    // Read the full payload. This can take some time so this needs to be done before acquiring the send
+                    // semaphore.
                     ReadOnlySequence<byte> payload = await ReadFullPayloadAsync(
-                        response.PayloadSource,
+                        response.Payload,
                         cancel).ConfigureAwait(false);
                     int payloadSize = checked((int)payload.Length);
 
@@ -269,27 +269,30 @@ namespace IceRpc.Internal
 
                     EncodeResponseHeader(_networkConnectionWriter, requestId, payloadSize, replyStatus);
 
+                    payloadWriter = response.GetPayloadWriter(payloadWriter);
+
                     // Write the payload and complete the source.
-                    FlushResult flushResult = await response.PayloadSink.WriteAsync(
+                    FlushResult flushResult = await payloadWriter.WriteAsync(
                         payload,
                         endStream: false,
                         cancel).ConfigureAwait(false);
 
-                    // If a payload sink decorator returns a canceled or completed flush result, we have to raise
+                    // If a payload writer decorator returns a canceled or completed flush result, we have to throw
                     // NotSupportedException. We can't interrupt the sending of a payload since it would lead to a bogus
                     // payload to be sent over the connection.
                     if (flushResult.IsCanceled || flushResult.IsCompleted)
                     {
                         throw new NotSupportedException(
-                            "payload sink cancellation or completion is not supported with the ice protocol");
+                            "payload writer cancellation or completion is not supported with the ice protocol");
                     }
 
-                    await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
-                    await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                    await response.Payload.CompleteAsync().ConfigureAwait(false);
+                    await payloadWriter.CompleteAsync().ConfigureAwait(false);
                 }
                 catch (Exception exception)
                 {
                     await response.CompleteAsync(exception).ConfigureAwait(false);
+                    await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
                     throw;
                 }
                 finally
@@ -423,11 +426,13 @@ namespace IceRpc.Internal
             bool acquiredSemaphore = false;
             int requestId = 0;
             TaskCompletionSource<PipeReader>? responseCompletionSource = null;
+            PipeWriter payloadWriter = _payloadWriter;
+
             try
             {
-                if (request.PayloadSourceStream != null)
+                if (request.PayloadStream != null)
                 {
-                    throw new NotSupportedException("PayloadSourceStream must be null with the ice protocol");
+                    throw new NotSupportedException("PayloadStream must be null with the ice protocol");
                 }
 
                 if (_isUdp && !request.IsOneway)
@@ -435,13 +440,10 @@ namespace IceRpc.Internal
                     throw new InvalidOperationException("cannot send twoway request over UDP");
                 }
 
-                // Set the transport payload sink to the stateless payload writer.
-                request.SetTransportPayloadSink(_payloadWriter);
-
-                // Read the full payload source. This can take some time so this needs to be done before acquiring the
-                // send semaphore.
+                // Read the full payload. This can take some time so this needs to be done before acquiring the send
+                // semaphore.
                 ReadOnlySequence<byte> payload = await ReadFullPayloadAsync(
-                    request.PayloadSource,
+                    request.Payload,
                     cancel).ConfigureAwait(false);
                 int payloadSize = checked((int)payload.Length);
 
@@ -469,24 +471,24 @@ namespace IceRpc.Internal
 
                 EncodeRequestHeader(_networkConnectionWriter, request, requestId, payloadSize);
 
-                FlushResult flushResult = await request.PayloadSink.WriteAsync(
+                payloadWriter = request.GetPayloadWriter(payloadWriter);
+
+                FlushResult flushResult = await payloadWriter.WriteAsync(
                     payload,
                     endStream: false,
                     cancel).ConfigureAwait(false);
 
-                // If a payload source sink decorator returns a canceled or completed flush result, we have to raise
+                // If a payload writer decorator returns a canceled or completed flush result, we have to throw
                 // NotSupportedException. We can't interrupt the sending of a payload since it would lead to a bogus
                 // payload to be sent over the connection.
                 if (flushResult.IsCanceled || flushResult.IsCompleted)
                 {
-                    // TODO: throwing here after sending the request is wrong since ReceiveResponse won't be called see
-                    // #828 for a solution.
                     throw new NotSupportedException(
-                        "payload sink cancellation or completion is not supported with the ice protocol");
+                        "payload writer cancellation or completion is not supported with the ice protocol");
                 }
 
-                await request.PayloadSink.CompleteAsync().ConfigureAwait(false);
-                await request.PayloadSource.CompleteAsync().ConfigureAwait(false);
+                await request.Payload.CompleteAsync().ConfigureAwait(false);
+                await payloadWriter.CompleteAsync().ConfigureAwait(false);
             }
             catch (Exception exception)
             {
@@ -498,6 +500,7 @@ namespace IceRpc.Internal
                     exception = new ConnectionLostException(exception);
                 }
                 await request.CompleteAsync(exception).ConfigureAwait(false);
+                await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
                 throw;
             }
             finally
@@ -870,14 +873,14 @@ namespace IceRpc.Internal
             return pipe.Reader;
         }
 
-        /// <summary>Reads the full Ice payload from the given payload source.</summary>
+        /// <summary>Reads the full Ice payload from the given pipe reader.</summary>
         private static async ValueTask<ReadOnlySequence<byte>> ReadFullPayloadAsync(
-            PipeReader payloadSource,
+            PipeReader payload,
             CancellationToken cancel)
         {
-            // We use ReadAtLeastAsync instead of ReadAsync to bypass the PauseWriterThreshold when the payloadSource
-            // is backed by a Pipe.
-            ReadResult readResult = await payloadSource.ReadAtLeastAsync(int.MaxValue, cancel).ConfigureAwait(false);
+            // We use ReadAtLeastAsync instead of ReadAsync to bypass the PauseWriterThreshold when the payload is
+            // backed by a Pipe.
+            ReadResult readResult = await payload.ReadAtLeastAsync(int.MaxValue, cancel).ConfigureAwait(false);
 
             if (readResult.IsCanceled)
             {
@@ -885,7 +888,7 @@ namespace IceRpc.Internal
             }
 
             return readResult.IsCompleted ? readResult.Buffer :
-                throw new ArgumentException("the payload size is greater than int.MaxValue", nameof(payloadSource));
+                throw new ArgumentException("the payload size is greater than int.MaxValue", nameof(payload));
         }
 
         /// <summary>Receives incoming frames and returns once a request frame is received.</summary>

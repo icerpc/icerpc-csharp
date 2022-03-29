@@ -98,7 +98,7 @@ namespace IceRpc.Tests.ClientServer
             var request = new OutgoingRequest(proxy)
             {
                 Operation = "compressRequestPayload",
-                PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(_mainPayload))
+                Payload = PipeReader.Create(new ReadOnlySequence<byte>(_mainPayload))
             };
             if (compressPayload)
             {
@@ -106,7 +106,7 @@ namespace IceRpc.Tests.ClientServer
             }
             if (withStream)
             {
-                request.PayloadSourceStream = PipeReader.Create(new ReadOnlySequence<byte>(_streamPayload));
+                request.PayloadStream = PipeReader.Create(new ReadOnlySequence<byte>(_streamPayload));
             }
 
             var pipeline = new Pipeline();
@@ -167,8 +167,8 @@ namespace IceRpc.Tests.ClientServer
                         (request, cancel) => new(
                             new OutgoingResponse(request)
                             {
-                                PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(_mainPayload)),
-                                PayloadSourceStream = PipeReader.Create(withStream ?
+                                Payload = PipeReader.Create(new ReadOnlySequence<byte>(_mainPayload)),
+                                PayloadStream = PipeReader.Create(withStream ?
                                     new ReadOnlySequence<byte>(_streamPayload) :
                                     ReadOnlySequence<byte>.Empty)
                             })));

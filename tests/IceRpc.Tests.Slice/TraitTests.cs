@@ -69,7 +69,7 @@ namespace IceRpc.Tests.Slice
             var request = new OutgoingRequest(_prx.Proxy)
             {
                 Operation = "opNestedTraitStruct",
-                PayloadSource = CreatePayload(),
+                Payload = CreatePayload(),
                 PayloadEncoding = Encoding.Slice20
             };
 

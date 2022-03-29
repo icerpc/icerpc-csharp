@@ -11,7 +11,7 @@ namespace IceRpc.Internal
         /// <summary>Writes a read only sequence of bytes to this writer.</summary>
         /// <param name="writer">The pipe writer.</param>
         /// <param name="source">The source sequence.</param>
-        /// <param name="endStream">When true, no more data will be written to the sink.</param>
+        /// <param name="endStream">When true, no more data will be written to the writer.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The flush result.</returns>
         internal static async ValueTask<FlushResult> WriteAsync(
@@ -38,7 +38,7 @@ namespace IceRpc.Internal
                 else
                 {
                     // TODO: If readResult.Buffer.Length is small, it might be better to call a single
-                    // sink.WriteAsync(readResult.Buffer.ToArray()) instead of calling multiple times WriteAsync
+                    // writer.WriteAsync(readResult.Buffer.ToArray()) instead of calling multiple times WriteAsync
                     // that will end up in multiple network calls?
                     foreach (ReadOnlyMemory<byte> buffer in source)
                     {

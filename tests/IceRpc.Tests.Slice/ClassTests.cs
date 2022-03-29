@@ -29,7 +29,7 @@ namespace IceRpc.Tests.Slice
                             {
                                 return new(new OutgoingResponse(request)
                                 {
-                                    PayloadSource = Encode()
+                                    Payload = Encode()
                                 });
 
                                 static System.IO.Pipelines.PipeReader Encode()
