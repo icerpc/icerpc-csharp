@@ -274,7 +274,7 @@ namespace IceRpc.Internal
                     var encoder = new SliceEncoder(stream.Output, Encoding.Slice20);
 
                     // Write the IceRpc response header.
-                    Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
+                    Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
                     int headerStartPos = encoder.EncodedByteCount;
 
                     new IceRpcResponseHeader(response.ResultType).Encode(ref encoder);
@@ -285,7 +285,7 @@ namespace IceRpc.Internal
                         (ref SliceEncoder encoder, OutgoingFieldValue value) => value.Encode(ref encoder));
 
                     // We're done with the header encoding, write the header size.
-                    Slice20Encoding.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
+                    SliceEncoder.EncodeVarULong((ulong)(encoder.EncodedByteCount - headerStartPos), sizePlaceholder);
                 }
             }
 
@@ -466,7 +466,7 @@ namespace IceRpc.Internal
                 var encoder = new SliceEncoder(writer, Encoding.Slice20);
 
                 // Write the IceRpc request header.
-                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
+                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
                 int headerStartPos = encoder.EncodedByteCount; // does not include the size
 
                 var header = new IceRpcRequestHeader(request.Proxy.Path, request.Operation);
@@ -499,7 +499,7 @@ namespace IceRpc.Internal
                     (ref SliceEncoder encoder, OutgoingFieldValue value) => value.Encode(ref encoder));
 
                 // We're done with the header encoding, write the header size.
-                Slice20Encoding.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
+                SliceEncoder.EncodeVarULong((ulong)(encoder.EncodedByteCount - headerStartPos), sizePlaceholder);
             }
 
             static (IceRpcResponseHeader, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>>) DecodeHeader(
@@ -718,10 +718,10 @@ namespace IceRpc.Internal
             if (encodeAction != null)
             {
                 var encoder = new SliceEncoder(output, Encoding.Slice20);
-                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2); // TODO: switch to MaxHeaderSize
+                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2); // TODO: switch to MaxHeaderSize
                 int startPos = encoder.EncodedByteCount; // does not include the size
                 encodeAction?.Invoke(ref encoder);
-                Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
+                SliceEncoder.EncodeVarULong((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
             }
 
             return frameType == IceRpcControlFrameType.GoAwayCompleted ?

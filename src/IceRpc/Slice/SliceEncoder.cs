@@ -120,7 +120,7 @@ namespace IceRpc.Slice
                 {
                     // Encode directly into currentSpan
                     int size = _utf8.GetBytes(v, currentSpan);
-                    Encoding.EncodeSize(size, sizePlaceholder);
+                    EncodeSizeIntoPlaceholder(Encoding, size, sizePlaceholder);
                     Advance(size);
                 }
                 else
@@ -141,7 +141,29 @@ namespace IceRpc.Slice
                     Debug.Assert(completed); // completed is always true when flush is true
                     int size = checked((int)bytesUsed);
                     EncodedByteCount += size;
-                    Encoding.EncodeSize(size, sizePlaceholder);
+                    EncodeSizeIntoPlaceholder(Encoding, size, sizePlaceholder);
+                }
+            }
+
+            static void EncodeSizeIntoPlaceholder(Encoding encoding, int size, Span<byte> into)
+            {
+                if (encoding == IceRpc.Encoding.Slice11)
+                {
+                    if (into.Length == 1)
+                    {
+                        Debug.Assert(size < 255);
+                        into[0] = (byte)size;
+                    }
+                    else
+                    {
+                        Debug.Assert(into.Length == 5);
+                        into[0] = 255;
+                        EncodeInt(size, into[1..]);
+                    }
+                }
+                else
+                {
+                    EncodeVarULong((ulong)size, into);
                 }
             }
         }
@@ -368,7 +390,7 @@ namespace IceRpc.Slice
                 Span<byte> sizePlaceholder = GetPlaceholderSpan(4);
                 int startPos = EncodedByteCount;
                 encodeAction(ref this, v);
-                Slice20Encoding.EncodeSize(EncodedByteCount - startPos, sizePlaceholder);
+                EncodeVarULong((ulong)(EncodedByteCount - startPos), sizePlaceholder);
             }
         }
 

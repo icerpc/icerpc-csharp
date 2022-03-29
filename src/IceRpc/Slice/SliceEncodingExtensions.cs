@@ -35,7 +35,7 @@ namespace IceRpc.Slice
             IAsyncEnumerable<T> asyncEnumerable,
             EncodeAction<T> encodeAction)
         {
-            if (encoding == IceRpc.Encoding.Slice11)
+            if (encoding == Encoding.Slice11)
             {
                 throw new NotSupportedException("streaming is not supported with encoding 1.1");
             }
@@ -152,7 +152,7 @@ namespace IceRpc.Slice
                     int size,
                     Memory<byte> sizePlaceholder)
                 {
-                    encoding.EncodeFixedLengthSize(size, sizePlaceholder.Span);
+                    SliceEncoder.EncodeVarULong((ulong)size, sizePlaceholder.Span);
                     try
                     {
                         return await writer.FlushAsync().ConfigureAwait(false);
@@ -190,32 +190,11 @@ namespace IceRpc.Slice
 
             if (encoding != Encoding.Slice11)
             {
-                Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+                SliceEncoder.EncodeVarULong((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
             }
 
             pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
-        }
-
-        /// <summary>Encodes a fixed-length size into a span.</summary>
-        /// <param name="encoding">The Slice encoding.</param>
-        /// <param name="size">The size to encode.</param>
-        /// <param name="into">The destination span. This method uses all its bytes.</param>
-        public static void EncodeFixedLengthSize(this SliceEncoding encoding, int size, Span<byte> into)
-        {
-            if (size < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(size), "size must be positive");
-            }
-
-            if (encoding == Encoding.Slice11)
-            {
-                SliceEncoder.EncodeInt(size, into);
-            }
-            else
-            {
-                SliceEncoder.EncodeVarULong((ulong)size, into);
-            }
         }
     }
 }

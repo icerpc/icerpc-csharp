@@ -46,7 +46,7 @@ namespace IceRpc
                 Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
                 int startPos = encoder.EncodedByteCount;
                 encodeAction(ref encoder);
-                encoder.Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+                SliceEncoder.EncodeVarULong((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
             }
             else
             {
