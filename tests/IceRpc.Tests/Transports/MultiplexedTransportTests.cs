@@ -80,6 +80,8 @@ public abstract class MultiplexedTransportConformanceTests
         stream.Output.Advance(buffer.Length);
 
         Assert.That(async () => await stream.Output.CompleteAsync(), Throws.TypeOf<NotSupportedException>());
+
+        await stream.Input.CompleteAsync();
     }
 
     /// <summary>Creates the test fixture that provides the multiplexed transport to test with.</summary>
