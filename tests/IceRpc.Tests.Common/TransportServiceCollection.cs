@@ -32,21 +32,16 @@ namespace IceRpc.Tests
                 {
                     "tcp" => new TcpServerTransport(serviceProvider.GetService<TcpServerTransportOptions>() ?? new()),
                     "ssl" => new TcpServerTransport(serviceProvider.GetService<TcpServerTransportOptions>() ?? new()),
-                    "udp" => new UdpServerTransport(serviceProvider.GetService<UdpServerTransportOptions>() ?? new()),
                     "coloc" => serviceProvider.GetRequiredService<ColocTransport>().ServerTransport,
                     _ => ServerOptions.DefaultSimpleServerTransport
                 });
 
             this.AddScoped(serviceProvider =>
-               GetTransport(serviceProvider.GetRequiredService<Endpoint>()) switch
-               {
-                   "udp" => new SlicServerTransportOptions(), // i.e. invalid
-                   _ => new SlicServerTransportOptions
-                   {
-                       SimpleServerTransport =
-                          serviceProvider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()
-                   }
-               });
+                new SlicServerTransportOptions
+                {
+                   SimpleServerTransport =
+                      serviceProvider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()
+                });
 
             // The default multiplexed server transport is Slic.
             this.AddScoped<IServerTransport<IMultiplexedNetworkConnection>>(serviceProvider =>
@@ -63,20 +58,15 @@ namespace IceRpc.Tests
                 {
                     "tcp" => new TcpClientTransport(serviceProvider.GetService<TcpClientTransportOptions>() ?? new()),
                     "ssl" => new TcpClientTransport(serviceProvider.GetService<TcpClientTransportOptions>() ?? new()),
-                    "udp" => new UdpClientTransport(serviceProvider.GetService<UdpClientTransportOptions>() ?? new()),
                     "coloc" => serviceProvider.GetRequiredService<ColocTransport>().ClientTransport,
                     _ => ConnectionOptions.DefaultSimpleClientTransport
                 });
 
             this.AddScoped(serviceProvider =>
-                GetTransport(serviceProvider.GetRequiredService<Endpoint>()) switch
+                new SlicClientTransportOptions
                 {
-                    "udp" => new SlicClientTransportOptions(), // i.e. invalid
-                    _ => new SlicClientTransportOptions
-                    {
-                        SimpleClientTransport =
-                            serviceProvider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()
-                    }
+                    SimpleClientTransport =
+                        serviceProvider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()
                 });
 
             // The default multiplexed client transport is Slic.

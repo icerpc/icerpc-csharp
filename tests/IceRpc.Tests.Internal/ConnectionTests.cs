@@ -123,14 +123,9 @@ namespace IceRpc.Tests.Internal
 
         [TestCase("tcp", false)]
         [TestCase("tcp", true)]
-        [TestCase("udp", false)]
         public async Task Connection_InformationAsync(string transport, bool secure)
         {
             var serviceCollection = new InternalTestServiceCollection();
-            if (transport == "udp")
-            {
-                serviceCollection.UseProtocol("ice");
-            }
 
             serviceCollection.UseEndpoint(transport, host: "127.0.0.1", port: 0);
             await using var factory = new ConnectionFactory(serviceCollection);
@@ -144,11 +139,9 @@ namespace IceRpc.Tests.Internal
             Assert.That(clientInformation?.LocalEndpoint.Host, Is.EqualTo("127.0.0.1"));
             Assert.That(clientInformation?.RemoteEndpoint.Host, Is.EqualTo("127.0.0.1"));
             Assert.That(clientInformation?.RemoteEndpoint!.Port, Is.EqualTo(serverInformation?.LocalEndpoint!.Port));
-            if (transport != "udp")
-            {
-                Assert.That(clientInformation?.LocalEndpoint!.Port, Is.EqualTo(serverInformation?.RemoteEndpoint!.Port));
-                Assert.That(clientInformation?.RemoteEndpoint!.Host, Is.EqualTo("127.0.0.1"));
-            }
+            Assert.That(clientInformation?.LocalEndpoint!.Port, Is.EqualTo(serverInformation?.RemoteEndpoint!.Port));
+            Assert.That(clientInformation?.RemoteEndpoint!.Host, Is.EqualTo("127.0.0.1"));
+
             Assert.That(factory.ClientConnection.IsServer, Is.False);
             Assert.That(factory.ServerConnection.IsServer, Is.True);
         }

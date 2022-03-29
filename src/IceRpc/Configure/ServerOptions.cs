@@ -17,7 +17,7 @@ namespace IceRpc.Configure
 
         /// <summary>Returns the default value for <see cref="SimpleServerTransport"/>.</summary>
         public static IServerTransport<ISimpleNetworkConnection> DefaultSimpleServerTransport { get; } =
-            new CompositeSimpleServerTransport().UseTcp().UseUdp();
+            new CompositeSimpleServerTransport().UseTcp();
 
         /// <summary>Gets or sets the SSL server authentication options.</summary>
         /// <value>The SSL server authentication options. When not null, the server will accept only secure connections.

@@ -12,8 +12,8 @@ namespace IceRpc.Tests.SliceInternal
     {
         [TestCase(SliceEncoding.Slice20, "icerpc://localhost:10000/foo?alt-endpoint=localhost:10001")]
         [TestCase(SliceEncoding.Slice11, "icerpc://localhost:10000/foo?alt-endpoint=localhost:10001")]
-        [TestCase(SliceEncoding.Slice20, "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
-        [TestCase(SliceEncoding.Slice11, "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
+        [TestCase(SliceEncoding.Slice20, "foo -f facet:tcp -h localhost -p 10000:tcp -h localhost -p 20000")]
+        [TestCase(SliceEncoding.Slice11, "foo -f facet:tcp -h localhost -p 10000:tcp -h localhost -p 20000")]
         public async Task Proxy_EncodingVersioning(SliceEncoding encoding, string str)
         {
             Memory<byte> buffer = new byte[256];

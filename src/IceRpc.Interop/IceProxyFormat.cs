@@ -425,16 +425,8 @@ namespace IceRpc
                 }
             }
 
-            if (proxy.Endpoint is Endpoint endpoint &&
-                endpoint.Params.TryGetValue("transport", out string? transport) &&
-                transport == TransportNames.Udp)
-            {
-                sb.Append(" -d");
-            }
-            else
-            {
-                sb.Append(" -t");
-            }
+            // TODO: should we just remove it since it's the default?
+            sb.Append(" -t");
 
             if (proxy.Endpoint == null)
             {
