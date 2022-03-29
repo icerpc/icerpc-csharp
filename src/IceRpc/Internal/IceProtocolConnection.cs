@@ -326,7 +326,7 @@ namespace IceRpc.Internal
                     encoder.WriteByteSpan(IceDefinitions.FramePrologue);
                     encoder.EncodeIceFrameType(IceFrameType.Reply);
                     encoder.EncodeByte(0); // compression status
-                    Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
+                    Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
 
                     encoder.EncodeInt(requestId);
 
@@ -347,7 +347,7 @@ namespace IceRpc.Internal
                     // else the reply status (> UserException) is part of the payload
 
                     int frameSize = encoder.EncodedByteCount + payloadSize;
-                    SliceEncoder.EncodeInt(frameSize, sizePlaceholder.Span);
+                    SliceEncoder.EncodeInt(frameSize, sizePlaceholder);
                 }
             }
 
@@ -632,7 +632,7 @@ namespace IceRpc.Internal
                 encoder.EncodeIceFrameType(IceFrameType.Request);
                 encoder.EncodeByte(0); // compression status
 
-                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
+                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
 
                 encoder.EncodeInt(requestId);
 
@@ -650,7 +650,7 @@ namespace IceRpc.Internal
                 requestHeader.Encode(ref encoder);
 
                 int frameSize = checked(encoder.EncodedByteCount + payloadSize);
-                SliceEncoder.EncodeInt(frameSize, sizePlaceholder.Span);
+                SliceEncoder.EncodeInt(frameSize, sizePlaceholder);
             }
         }
 
