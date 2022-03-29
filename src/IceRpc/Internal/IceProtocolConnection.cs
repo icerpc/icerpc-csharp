@@ -356,6 +356,14 @@ namespace IceRpc.Internal
                 int requestId = decoder.DecodeInt();
                 var requestHeader = new IceRequestHeader(ref decoder);
 
+                if (requestHeader.EncapsulationHeader.PayloadEncodingMajor != 1 ||
+                    requestHeader.EncapsulationHeader.PayloadEncodingMinor != 1)
+                {
+                    throw new InvalidDataException(
+                        @$"unsupported payload encoding '{requestHeader.EncapsulationHeader.PayloadEncodingMajor
+                        }.{requestHeader.EncapsulationHeader.PayloadEncodingMinor}'");
+                }
+
                 int payloadSize = requestHeader.EncapsulationHeader.EncapsulationSize - 6;
                 if (payloadSize != (buffer.Length - decoder.Consumed))
                 {
