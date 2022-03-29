@@ -103,7 +103,7 @@ namespace IceRpc.Tests.Internal
         [TestCase("icerpc")]
         public async Task Connection_ConnectTimeoutAsync(string protocol)
         {
-            await using ServiceProvider serviceProvider = new InternalTestServiceCollection()
+            await using ServiceProvider serviceProvider = new TransportServiceCollection()
                 .UseTransport("tcp")
                 .UseProtocol(protocol)
                 .BuildServiceProvider();
@@ -126,7 +126,7 @@ namespace IceRpc.Tests.Internal
         [TestCase("udp", false)]
         public async Task Connection_InformationAsync(string transport, bool secure)
         {
-            var serviceCollection = new InternalTestServiceCollection();
+            var serviceCollection = new TransportServiceCollection();
             if (transport == "udp")
             {
                 serviceCollection.UseProtocol("ice");
@@ -492,7 +492,7 @@ namespace IceRpc.Tests.Internal
             semaphore.Release();
         }
 
-        private class ConnectionTestServiceCollection : InternalTestServiceCollection
+        private class ConnectionTestServiceCollection : TransportServiceCollection
         {
             internal ConnectionTestServiceCollection(
                 string transport = "coloc",

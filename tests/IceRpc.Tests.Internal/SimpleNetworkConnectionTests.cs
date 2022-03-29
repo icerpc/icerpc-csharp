@@ -19,7 +19,7 @@ namespace IceRpc.Tests.Internal
 
         public SimpleNetworkConnectionTests(string transport)
         {
-            _serviceProvider = new InternalTestServiceCollection().UseTransport(transport).BuildServiceProvider();
+            _serviceProvider = new TransportServiceCollection().UseTransport(transport).BuildServiceProvider();
 
             Task<ISimpleNetworkConnection> serverTask = _serviceProvider.GetSimpleServerConnectionAsync();
             _clientConnection = _serviceProvider.GetSimpleClientConnectionAsync().Result;
