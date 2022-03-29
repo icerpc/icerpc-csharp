@@ -10,45 +10,49 @@ namespace IceRpc.Configure
     public sealed class Pipeline : IInvoker
     {
         private IInvoker? _invoker;
-        private ImmutableList<Func<IInvoker, IInvoker>> _interceptorList =
-            ImmutableList<Func<IInvoker, IInvoker>>.Empty;
+        private readonly List<Func<IInvoker, IInvoker>> _interceptorList = new();
+
+        /// <summary>Constructs an empty pipeline.</summary>
+        public Pipeline() => _interceptorList = new();
 
         /// <inheritdoc/>
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default) =>
             (_invoker ??= CreateInvokerPipeline()).InvokeAsync(request, cancel);
 
-        /// <summary>Installs one or more interceptors.</summary>
-        /// <param name="interceptor">One or more interceptors.</param>
+        /// <summary>Installs an interceptor at the end of the pipeline.</summary>
+        /// <param name="interceptor">The interceptor to install.</param>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the first call to
         /// <see cref="InvokeAsync"/>.</exception>
-        public Pipeline Use(params Func<IInvoker, IInvoker>[] interceptor)
+        public Pipeline Use(Func<IInvoker, IInvoker> interceptor)
         {
             if (_invoker != null)
             {
                 throw new InvalidOperationException(
                     "interceptors must be installed before the first call to InvokeAsync");
             }
-            _interceptorList = _interceptorList.AddRange(interceptor);
+            _interceptorList.Insert(0, interceptor);
             return this;
         }
 
-        /// <summary>Creates a new pipeline with this pipeline's interceptor stack plus the specified interceptors.
-        /// </summary>
-        /// <param name="interceptor">One or more interceptors.</param>
-        /// <remarks>This method can be called after calling <see cref="InvokeAsync"/>.</remarks>
-        public Pipeline With(params Func<IInvoker, IInvoker>[] interceptor) =>
-            new() { _interceptorList = _interceptorList.AddRange(interceptor) };
+        /// <summary>Creates a new pipeline with this pipeline's interceptors plus the specified interceptor.</summary>
+        /// <param name="interceptor">The additional interceptor.</param>
+        /// <returns>The new pipeline.</returns>
+        /// <remarks>This method can be called after calling <see cref="InvokeAsync"/> since it creates a new pipeline.
+        /// </remarks>
+        public Pipeline With(Func<IInvoker, IInvoker> interceptor) => new Pipeline(_interceptorList).Use(interceptor);
 
-        /// <summary>Creates a pipeline of invokers by starting with the last invoker and applying all interceptors in
-        /// reverse order of installation. This method is called by the first call to <see cref="InvokeAsync"/>.
+        private Pipeline(IEnumerable<Func<IInvoker, IInvoker>> interceptorList) =>
+            _interceptorList = new(interceptorList);
+
+        /// <summary>Creates a pipeline of invokers by starting with the last invoker installed. This method is called
+        /// by the first call to <see cref="InvokeAsync"/>.
         /// </summary>
         /// <returns>The pipeline of invokers.</returns>
         private IInvoker CreateInvokerPipeline()
         {
             IInvoker pipeline = Proxy.DefaultInvoker;
 
-            IEnumerable<Func<IInvoker, IInvoker>> interceptorEnumerable = _interceptorList;
-            foreach (Func<IInvoker, IInvoker> interceptor in interceptorEnumerable.Reverse())
+            foreach (Func<IInvoker, IInvoker> interceptor in _interceptorList)
             {
                 pipeline = interceptor(pipeline);
             }
