@@ -120,6 +120,19 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str) -> CodeBloc
         TypeRefs::Trait(_) => {
             write!(code, "decoder.DecodeTrait<{}>()", type_string);
         }
+        TypeRefs::CustomType(custom_type_ref) => {
+            write!(
+                code,
+                "{decoder_extensions_class}.Decode{name}(ref decoder)",
+                decoder_extensions_class = custom_type_ref
+                    .escape_scoped_identifier_with_prefix_and_suffix(
+                        "SliceDecoder",
+                        "Extensions",
+                        namespace
+                    ),
+                name = fix_case(custom_type_ref.identifier(), CaseStyle::Pascal)
+            );
+        }
     }
 
     if data_type.is_optional {
@@ -432,6 +445,18 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
             format!(
                 "(ref SliceDecoder decoder) => decoder.DecodeTrait<{}>()",
                 type_name
+            )
+        }
+        TypeRefs::CustomType(custom_type_ref) => {
+            format!(
+                "(ref SliceDecoder decoder) => {decoder_extensions_class}.Decode{name}(ref decoder)",
+                decoder_extensions_class = custom_type_ref
+                    .escape_scoped_identifier_with_prefix_and_suffix(
+                        "SliceDecoder",
+                        "Extensions",
+                        namespace
+                    ),
+                name = fix_case(custom_type_ref.identifier(), CaseStyle::Pascal)
             )
         }
         TypeRefs::Class(_) => panic!("unexpected, see is_class_type above"),
