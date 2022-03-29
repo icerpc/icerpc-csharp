@@ -196,5 +196,14 @@ namespace IceRpc.Slice
             pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
         }
+
+        /// <summary>Returns the name of this Slice encoding.</summary>
+        // TODO: remove?
+        public static string GetName(this SliceEncoding encoding) => encoding switch
+        {
+            SliceEncoding.Slice11 => "1.1",
+            SliceEncoding.Slice20 => "2.0",
+            _ => $"{encoding}"
+        };
     }
 }

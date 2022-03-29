@@ -1,16 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice;
-
 namespace IceRpc.Internal
 {
     // Definitions for the ice protocol.
     internal static class IceDefinitions
     {
-        // The encoding of the header for ice frames. It is nominally 1.0, but in practice it is identical to 1.1
-        // for the subset of the encoding used by the ice headers.
-        internal static readonly SliceEncoding Encoding = SliceEncoding.Slice11;
-
         // Size of an ice frame prologue:
         // Magic number (4 bytes)
         // Protocol bytes (4 bytes)

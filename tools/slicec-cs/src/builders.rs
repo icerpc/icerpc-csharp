@@ -459,19 +459,19 @@ r#"if ({encoding_variable} != {encoding})
             }
             encodings => {
                 format!("\
-switch ({encoding_variable}.Name)
+switch ({encoding_variable})
 {{
     {encoding_cases}
     default:
-        throw new InvalidOperationException($\"the {{{encoding_variable}.Name}} encoding is not supported\");
+        throw new InvalidOperationException($\"the {{{encoding_variable}}} encoding is not supported\");
 }}
 ",
 encoding_variable = self.encoding_variable,
 encoding_cases = CodeBlock::from(self.encoding_blocks
                     .iter()
                     .filter(|(encoding, _)| encodings.contains(encoding))
-                    .map(|(encoding, code)| format!("case \"{}\":\n    {}\n    break;" ,
-                                                    encoding.encoding_name(),
+                    .map(|(encoding, code)| format!("case {}:\n    {}\n    break;" ,
+                                                    encoding.to_cs_encoding(),
                                                     code.clone().indent()))
                     .collect::<Vec<String>>()
                     .join("\n")).indent()).into()

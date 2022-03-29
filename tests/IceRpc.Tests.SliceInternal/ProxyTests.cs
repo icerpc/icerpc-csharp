@@ -10,15 +10,14 @@ namespace IceRpc.Tests.SliceInternal
     [Parallelizable(ParallelScope.All)]
     public sealed class ProxyTests
     {
-        [TestCase("2.0", "icerpc://localhost:10000/foo?alt-endpoint=localhost:10001")]
-        [TestCase("1.1", "icerpc://localhost:10000/foo?alt-endpoint=localhost:10001")]
-        [TestCase("2.0", "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
-        [TestCase("1.1", "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
-        public async Task Proxy_EncodingVersioning(string encodingStr, string str)
+        [TestCase(SliceEncoding.Slice20, "icerpc://localhost:10000/foo?alt-endpoint=localhost:10001")]
+        [TestCase(SliceEncoding.Slice11, "icerpc://localhost:10000/foo?alt-endpoint=localhost:10001")]
+        [TestCase(SliceEncoding.Slice20, "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
+        [TestCase(SliceEncoding.Slice11, "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
+        public async Task Proxy_EncodingVersioning(SliceEncoding encoding, string str)
         {
             Memory<byte> buffer = new byte[256];
             var bufferWriter = new MemoryBufferWriter(buffer);
-            var encoding = SliceEncoding.FromString(encodingStr);
 
             IProxyFormat? format = str.StartsWith("ice", StringComparison.Ordinal) ? null : IceProxyFormat.Default;
             var proxy = Proxy.Parse(str, format: format);
