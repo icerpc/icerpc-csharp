@@ -8,7 +8,7 @@ namespace IceRpc.Slice
         /// <summary>Returns a supported Slice encoding with the given name.</summary>
         /// <param name="name">The name of the encoding.</param>
         /// <returns>A supported Slice encoding.</returns>
-        public static new SliceEncoding FromString(string name) =>
+        public static SliceEncoding FromString(string name) =>
             name switch
             {
                 Slice11Name => Slice11,

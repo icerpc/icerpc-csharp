@@ -778,9 +778,10 @@ namespace IceRpc.Slice
             // Remove 6 bytes from the encapsulation size (4 for encapsulation size, 2 for encoding).
             size -= 6;
 
-            var encoding = IceRpc.Encoding.FromMajorMinor(DecodeByte(), DecodeByte());
+            byte encodingMajor = DecodeByte();
+            byte encodingMinor = DecodeByte();
 
-            if (encoding == IceRpc.Encoding.Slice11 || encoding == IceRpc.Encoding.Slice10)
+            if (encodingMajor == 1 && encodingMinor <= 1)
             {
                 long oldPos = _reader.Consumed;
 
@@ -878,7 +879,6 @@ namespace IceRpc.Slice
                             var builder = ImmutableDictionary.CreateBuilder<string, string>();
                             builder.Add("transport", TransportNames.Opaque);
                             builder.Add("t", ((short)transportCode).ToString(CultureInfo.InvariantCulture));
-                            builder.Add("e", encoding.ToString());
                             builder.Add("v", Convert.ToBase64String(vSpan));
 
                             endpoint = new Endpoint(
@@ -918,7 +918,7 @@ namespace IceRpc.Slice
                 throw new InvalidDataException(
                     @$"cannot decode endpoint for protocol '{protocol
                     }' and transport '{transportCode.ToString().ToLowerInvariant()
-                    }' with endpoint encapsulation encoded with encoding '{encoding}'");
+                    }' with endpoint encapsulation encoded with encoding '{encodingMajor}.{encodingMinor}'");
             }
 
             return endpoint.Value;
