@@ -7,11 +7,8 @@ namespace IceRpc.Configure
     /// <see cref="ArgumentNullException"/> if this connection is null.</summary>
     public sealed class Pipeline : IInvoker
     {
+        private readonly Stack<Func<IInvoker, IInvoker>> _interceptorStack = new();
         private IInvoker? _invoker;
-        private readonly List<Func<IInvoker, IInvoker>> _interceptorList = new();
-
-        /// <summary>Constructs an empty pipeline.</summary>
-        public Pipeline() => _interceptorList = new();
 
         /// <inheritdoc/>
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default) =>
@@ -28,19 +25,9 @@ namespace IceRpc.Configure
                 throw new InvalidOperationException(
                     "interceptors must be installed before the first call to InvokeAsync");
             }
-            _interceptorList.Insert(0, interceptor);
+            _interceptorStack.Push(interceptor);
             return this;
         }
-
-        /// <summary>Creates a new pipeline with this pipeline's interceptors plus the specified interceptor.</summary>
-        /// <param name="interceptor">The additional interceptor.</param>
-        /// <returns>The new pipeline.</returns>
-        /// <remarks>This method can be called after calling <see cref="InvokeAsync"/> since it creates a new pipeline.
-        /// </remarks>
-        public Pipeline With(Func<IInvoker, IInvoker> interceptor) => new Pipeline(_interceptorList).Use(interceptor);
-
-        private Pipeline(IEnumerable<Func<IInvoker, IInvoker>> interceptorList) =>
-            _interceptorList = new(interceptorList);
 
         /// <summary>Creates a pipeline of invokers by starting with the last invoker installed. This method is called
         /// by the first call to <see cref="InvokeAsync"/>.
@@ -50,7 +37,7 @@ namespace IceRpc.Configure
         {
             IInvoker pipeline = Proxy.DefaultInvoker;
 
-            foreach (Func<IInvoker, IInvoker> interceptor in _interceptorList)
+            foreach (Func<IInvoker, IInvoker> interceptor in _interceptorStack)
             {
                 pipeline = interceptor(pipeline);
             }

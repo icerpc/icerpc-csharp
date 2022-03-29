@@ -81,13 +81,12 @@ public class PipelineTests
                 {
                     calls.Add("invoker-2");
                     return next.InvokeAsync(request, cancel);
+                }))
+            .Use(next => new InlineInvoker((request, cancel) =>
+                {
+                    calls.Add("invoker-3");
+                    return Task.FromResult(new IncomingResponse(request));
                 }));
-
-        pipeline = pipeline.With(next => new InlineInvoker((request, cancel) =>
-            {
-                calls.Add("invoker-3");
-                return Task.FromResult(new IncomingResponse(request));
-            }));
 
         pipeline.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
 

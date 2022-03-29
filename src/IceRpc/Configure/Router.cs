@@ -20,11 +20,10 @@ namespace IceRpc.Configure
         // results in numerous unsuccessful lookups.
         private const int MaxSegments = 10;
 
+        private IDispatcher? _dispatcher;
         private readonly IDictionary<string, IDispatcher> _exactMatchRoutes = new Dictionary<string, IDispatcher>();
 
-        private readonly List<Func<IDispatcher, IDispatcher>> _middlewareList = new();
-
-        private IDispatcher? _dispatcher;
+        private readonly Stack<Func<IDispatcher, IDispatcher>> _middlewareStack = new();
 
         private readonly IDictionary<string, IDispatcher> _prefixMatchRoutes = new Dictionary<string, IDispatcher>();
 
@@ -126,7 +125,7 @@ namespace IceRpc.Configure
                 throw new InvalidOperationException(
                     $"all middleware must be registered before calling {nameof(IDispatcher.DispatchAsync)}");
             }
-            _middlewareList.Insert(0, middleware);
+            _middlewareStack.Push(middleware);
             return this;
         }
 
@@ -219,7 +218,7 @@ namespace IceRpc.Configure
                     }
                 });
 
-            foreach (Func<IDispatcher, IDispatcher> middleware in _middlewareList)
+            foreach (Func<IDispatcher, IDispatcher> middleware in _middlewareStack)
             {
                 dispatchPipeline = middleware(dispatchPipeline);
             }
