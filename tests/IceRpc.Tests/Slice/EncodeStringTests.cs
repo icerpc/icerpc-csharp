@@ -20,7 +20,7 @@ public class EncodeStringTests
     [TestCase("국민경제의 발전을 위한 중요정책의 수립에 관하여 대통령의 자문에 응하기 위하여 국민경제자문회의를 둘 수 있다")] // Korean
     [TestCase("旅ロ京青利セムレ弱改フヨス波府かばぼ意送でぼ調掲察たス日西重ケアナ住橋ユムミク順待ふかんぼ人奨貯鏡すびそ")]  // Japanese
     [TestCase("😁😂😃😄😅😆😉😊😋😌😍😏😒😓😔😖")]
-    public void Encoding_string(string value)
+    public void Encode_single_segment_string(string value)
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
@@ -42,7 +42,7 @@ public class EncodeStringTests
     [TestCase("국민경제의 발전을 위한 중요정책의 수립에 관하여 대통령의 자문에 응하기 위하여 국민경제자문회의를 둘 수 있다")] // Korean
     [TestCase("旅ロ京青利セムレ弱改フヨス波府かばぼ意送でぼ調掲察たス日西重ケアナ住橋ユムミク順待ふかんぼ人奨貯鏡すびそ")]  // Japanese
     [TestCase("😁😂😃😄😅😆😉😊😋😌😍😏😒😓😔😖")]
-    public void Encoding_string_with_custom_memory_pool(string value)
+    public void Encode_multi_segment_string(string value)
     {
         // Arrange
         // now with a custom memory pool with a tiny max buffer size
