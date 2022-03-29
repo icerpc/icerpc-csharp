@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice.Internal;
-
 namespace IceRpc.Slice
 {
     /// <summary>The versions of the Slice encoding supported by this IceRPC runtime.</summary>

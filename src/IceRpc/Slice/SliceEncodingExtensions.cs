@@ -1,14 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Slice
 {
-    /// <summary>Extension methods for class <see cref="SliceEncoding"/>.</summary>
+    /// <summary>Extension methods for <see cref="SliceEncoding"/>.</summary>
     public static class SliceEncodingExtensions
     {
         private static readonly ReadOnlySequence<byte> _payloadWithZeroSize = new(new byte[] { 0 });
@@ -196,14 +195,5 @@ namespace IceRpc.Slice
             pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
         }
-
-        /// <summary>Returns the name of this Slice encoding.</summary>
-        // TODO: remove?
-        public static string GetName(this SliceEncoding encoding) => encoding switch
-        {
-            SliceEncoding.Slice11 => "1.1",
-            SliceEncoding.Slice20 => "2.0",
-            _ => $"{encoding}"
-        };
     }
 }
