@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Collections.Immutable;
-
 namespace IceRpc.Configure
 {
     /// <summary>A pipeline is an invoker created from zero or more interceptors installed by calling <see cref="Use"/>.

@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice;
-using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace IceRpc.Configure
@@ -23,8 +22,7 @@ namespace IceRpc.Configure
 
         private readonly IDictionary<string, IDispatcher> _exactMatchRoutes = new Dictionary<string, IDispatcher>();
 
-        private ImmutableList<Func<IDispatcher, IDispatcher>> _middlewareList =
-            ImmutableList<Func<IDispatcher, IDispatcher>>.Empty;
+        private readonly List<Func<IDispatcher, IDispatcher>> _middlewareList = new();
 
         private IDispatcher? _dispatcher;
 
@@ -115,19 +113,20 @@ namespace IceRpc.Configure
             return subRouter;
         }
 
-        /// <summary>Installs one or more middleware in this router. A middleware must be installed before calling
+        /// <summary>Installs a middleware in this router. A middleware must be installed before calling
         /// <see cref="IDispatcher.DispatchAsync"/>.</summary>
-        /// <param name="middleware">One or more middleware.</param>
+        /// <param name="middleware">The middleware to install.</param>
+        /// <returns>This router.</returns>
         /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync"/> was already
         /// called on this router.</exception>
-        public Router Use(params Func<IDispatcher, IDispatcher>[] middleware)
+        public Router Use(Func<IDispatcher, IDispatcher> middleware)
         {
             if (_dispatcher != null)
             {
                 throw new InvalidOperationException(
                     $"all middleware must be registered before calling {nameof(IDispatcher.DispatchAsync)}");
             }
-            _middlewareList = _middlewareList.AddRange(middleware);
+            _middlewareList.Insert(0, middleware);
             return this;
         }
 
@@ -220,8 +219,7 @@ namespace IceRpc.Configure
                     }
                 });
 
-            IEnumerable<Func<IDispatcher, IDispatcher>> middlewareEnumerable = _middlewareList;
-            foreach (Func<IDispatcher, IDispatcher> middleware in middlewareEnumerable.Reverse())
+            foreach (Func<IDispatcher, IDispatcher> middleware in _middlewareList)
             {
                 dispatchPipeline = middleware(dispatchPipeline);
             }
