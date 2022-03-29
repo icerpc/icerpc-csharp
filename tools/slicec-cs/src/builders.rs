@@ -443,13 +443,13 @@ impl EncodingBlockBuilder {
         match &self.supported_encodings[..] {
             [] => panic!("No supported encodings"),
             [encoding] => {
-                format!("\
-if ({encoding_variable} != {encoding})
+                format!(
+r#"if ({encoding_variable} != {encoding})
 {{
-    throw new InvalidOperationException(\"{identifier} can only be encoded with the Slice {encoding_name} encoding.\");
+    throw new InvalidOperationException("{identifier} can only be encoded with the Slice {encoding_name} encoding.");
 }}
 
-{encode_block}",
+{encode_block}"#,
                     identifier = self.identifier,
                     encoding_variable = self.encoding_variable,
                     encoding = encoding.to_cs_encoding(),
