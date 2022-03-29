@@ -17,7 +17,7 @@ namespace IceRpc
         /// background: the sending operation does not await it.</summary>
         public PipeReader? PayloadStream { get; set; }
 
-        /// <summary>Returns the Ice protocol of this frame.</summary>
+        /// <summary>Returns the protocol of this frame.</summary>
         public Protocol Protocol { get; }
 
         /// <summary>Installs a payload writer interceptor in this outgoing frame. This interceptor is executed just
@@ -27,14 +27,12 @@ namespace IceRpc
         /// <returns>This outgoing frame.</returns>
         public OutgoingFrame Use(Func<PipeWriter, PipeWriter> payloadWriterInterceptor)
         {
-            _payloadWriterInterceptorList ??= new();
-
-            // the first element in the list is the most recently "used" interceptor
-            _payloadWriterInterceptorList.Insert(0, payloadWriterInterceptor);
+            _payloadWriterInterceptorStack ??= new();
+            _payloadWriterInterceptorStack.Push(payloadWriterInterceptor);
             return this;
         }
 
-        private List<Func<PipeWriter, PipeWriter>>? _payloadWriterInterceptorList;
+        private Stack<Func<PipeWriter, PipeWriter>>? _payloadWriterInterceptorStack;
 
         /// <summary>Constructs an outgoing frame.</summary>
         /// <param name="protocol">The protocol used to send the frame.</param>
@@ -58,9 +56,9 @@ namespace IceRpc
         /// <summary>Returns the payload writer to use when sending the payload.</summary>
         internal PipeWriter GetPayloadWriter(PipeWriter writer)
         {
-            if (_payloadWriterInterceptorList != null)
+            if (_payloadWriterInterceptorStack != null)
             {
-                foreach (Func<PipeWriter, PipeWriter> interceptor in _payloadWriterInterceptorList)
+                foreach (Func<PipeWriter, PipeWriter> interceptor in _payloadWriterInterceptorStack)
                 {
                     writer = interceptor(writer);
                 }

@@ -483,8 +483,6 @@ namespace IceRpc.Internal
                 // payload to be sent over the connection.
                 if (flushResult.IsCanceled || flushResult.IsCompleted)
                 {
-                    // TODO: throwing here after sending the request is wrong since ReceiveResponse won't be called see
-                    // #828 for a solution.
                     throw new NotSupportedException(
                         "payload writer cancellation or completion is not supported with the ice protocol");
                 }

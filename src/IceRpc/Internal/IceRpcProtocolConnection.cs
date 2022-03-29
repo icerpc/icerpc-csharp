@@ -751,43 +751,43 @@ namespace IceRpc.Internal
                     payloadWriter,
                     endStream: outgoingFrame.PayloadStream == null,
                     cancel).ConfigureAwait(false);
-
-                await outgoingFrame.Payload.CompleteAsync().ConfigureAwait(false);
-
-                if (outgoingFrame.PayloadStream == null)
-                {
-                    await payloadWriter.CompleteAsync().ConfigureAwait(false);
-                }
-                else
-                {
-                    // Send payloadStream in the background.
-                    _ = Task.Run(
-                        async () =>
-                        {
-                            try
-                            {
-                                await CopyReaderToWriterAsync(
-                                    outgoingFrame.PayloadStream,
-                                    payloadWriter,
-                                    endStream: true,
-                                    CancellationToken.None).ConfigureAwait(false);
-
-                                await outgoingFrame.PayloadStream.CompleteAsync().ConfigureAwait(false);
-                                await payloadWriter.CompleteAsync().ConfigureAwait(false);
-                            }
-                            catch (Exception exception)
-                            {
-                                await outgoingFrame.PayloadStream.CompleteAsync(exception).ConfigureAwait(false);
-                                await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
-                            }
-                        },
-                        cancel);
-                }
             }
             catch (Exception exception)
             {
                 await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
                 throw;
+            }
+
+            await outgoingFrame.Payload.CompleteAsync().ConfigureAwait(false);
+
+            if (outgoingFrame.PayloadStream == null)
+            {
+                await payloadWriter.CompleteAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                // Send payloadStream in the background.
+                _ = Task.Run(
+                    async () =>
+                    {
+                        try
+                        {
+                            await CopyReaderToWriterAsync(
+                                outgoingFrame.PayloadStream,
+                                payloadWriter,
+                                endStream: true,
+                                CancellationToken.None).ConfigureAwait(false);
+
+                            await outgoingFrame.PayloadStream.CompleteAsync().ConfigureAwait(false);
+                            await payloadWriter.CompleteAsync().ConfigureAwait(false);
+                        }
+                        catch (Exception exception)
+                        {
+                            await outgoingFrame.PayloadStream.CompleteAsync(exception).ConfigureAwait(false);
+                            await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
+                        }
+                    },
+                    cancel);
             }
 
             static async Task CopyReaderToWriterAsync(
@@ -817,6 +817,7 @@ namespace IceRpc.Internal
 
                 // An application payload writer decorator can return a canceled flush result.
                 // TODO: is this really possible?
+                // See https://github.com/zeroc-ice/icerpc-csharp/pull/977#discussion_r837440210
                 if (flushResult.IsCanceled)
                 {
                     throw new OperationCanceledException("payload writer canceled");
