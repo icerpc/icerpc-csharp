@@ -58,7 +58,7 @@ namespace IceRpc
             {
                 // TODO: do we really need this ToPayloadSinkStream?
                 response.Use(
-                    writer => PipeWriter.Create(new DeflateStream(writer.ToPayloadSinkStream(), _compressionLevel)));
+                    next => PipeWriter.Create(new DeflateStream(next.ToPayloadSinkStream(), _compressionLevel)));
 
                 response.Fields = response.Fields.With(
                     ResponseFieldKey.CompressionFormat,

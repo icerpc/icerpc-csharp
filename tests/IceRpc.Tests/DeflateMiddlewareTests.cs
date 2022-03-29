@@ -41,7 +41,7 @@ public class CompressorMiddlewareTests
         PipeWriter payloadWriter = response.GetPayloadWriter(output);
         await payloadWriter.WriteAsync(_payload);
 
-        // Rewind the out stream check that it was correctly compressed.
+        // Rewind the out stream and check that it was correctly compressed.
         outStream.Seek(0, SeekOrigin.Begin);
         using var deflateStream = new DeflateStream(outStream, CompressionMode.Decompress);
         byte[] decompressedPayload = new byte[4096];
