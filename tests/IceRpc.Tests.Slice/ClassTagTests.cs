@@ -52,6 +52,7 @@ namespace IceRpc.Tests.Slice
             multiTagged.MLong = 1;
             multiTagged.MDouble = 1.0;
             multiTagged.MString = "1";
+            // TODO: These types and 2.0 only. We should either delete these or create our own copy for this test.
             // multiTagged.MMyEnum = MyEnum.enum1;
             // multiTagged.MAnotherCompactStruct = new AnotherCompactStruct(
             //     "hello",
