@@ -5,7 +5,6 @@ using IceRpc.Slice;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System.IO.Pipelines;
 
 namespace IceRpc.Tests.ClientServer
 {
@@ -13,8 +12,6 @@ namespace IceRpc.Tests.ClientServer
     [Parallelizable(ParallelScope.All)]
     public class UdpTests
     {
-        private const string Message = "hello, world";
-
         [Test]
         public async Task Udp_Invoke()
         {
@@ -88,69 +85,6 @@ namespace IceRpc.Tests.ClientServer
 
             await using var connection = new Connection(server.Endpoint);
             Assert.ThrowsAsync<UnknownTransportException>(async () => await connection.ConnectAsync());
-        }
-
-        [Test]
-        public async Task Udp_SplitInTwo()
-        {
-            var source = new TaskCompletionSource<string>();
-
-            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-                .UseProtocol("ice")
-                .UseTransport("udp")
-                .AddTransient<IDispatcher, Greeter>()
-                .AddTransient<IInvoker>(_ =>
-                {
-                    var pipeline = new Pipeline();
-                    pipeline.Use(next => new InlineInvoker((request, cancel) =>
-                    {
-                        source.TrySetResult(request.Operation);
-                        request.PayloadSink = new SplitInTwoPipeWriterDecorator(request.PayloadSink);
-                        return next.InvokeAsync(request, cancel);
-                    }));
-                    return pipeline;
-                })
-                .BuildServiceProvider();
-
-            _ = new Greeter(); // TODO: otherwise, the compiler does not see the ussable from AddTransient above
-
-            GreeterPrx proxy = serviceProvider.GetProxy<GreeterPrx>();
-            await proxy.SayHelloAsync(Message, new Invocation { IsOneway = true });
-            Assert.That(await source.Task.WaitAsync(TimeSpan.FromSeconds(1)), Is.EqualTo("sayHello"));
-        }
-
-        private class Greeter : Service, IGreeter
-        {
-            public ValueTask SayHelloAsync(string message, Dispatch dispatch, CancellationToken cancel)
-            {
-                Assert.That(message, Is.EqualTo(Message));
-                return default;
-            }
-        }
-
-        private class SplitInTwoPipeWriterDecorator : PipeWriterDecorator
-        {
-            public SplitInTwoPipeWriterDecorator(PipeWriter decoratee)
-                : base(decoratee)
-            {
-            }
-
-            // We split the WriteAsync in 2 WriteAsync when there are at least 2 bytes
-            public override async ValueTask<FlushResult> WriteAsync(
-                ReadOnlyMemory<byte> source,
-                CancellationToken cancellationToken)
-            {
-                if (source.Length >= 2)
-                {
-                    int split = source.Length / 2;
-                    _ = await Decoratee.WriteAsync(source[0..split], cancellationToken);
-                    return await Decoratee.WriteAsync(source[split..], cancellationToken);
-                }
-                else
-                {
-                    return await Decoratee.WriteAsync(source, cancellationToken);
-                }
-            }
         }
     }
 }

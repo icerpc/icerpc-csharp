@@ -51,10 +51,10 @@ namespace IceRpc.Tests.SliceInternal
 
             pipeline1.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
+                ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
 
                 DecodeBefore(readResult.Buffer);
-                request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
+                request.Payload.AdvanceTo(readResult.Buffer.Start);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 readResult = await response.Payload.ReadAllAsync(cancel);
                 DecodeAfter(readResult.Buffer);
@@ -90,9 +90,9 @@ namespace IceRpc.Tests.SliceInternal
             var prx2 = new CompactFormatOperationsPrx(_compact.Proxy with { Invoker = pipeline2 });
             pipeline2.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
+                ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
                 DecodeBefore(readResult.Buffer);
-                request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
+                request.Payload.AdvanceTo(readResult.Buffer.Start);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 readResult = await response.Payload.ReadAllAsync(cancel);
                 DecodeAfter(readResult.Buffer);
@@ -127,9 +127,9 @@ namespace IceRpc.Tests.SliceInternal
             var prx3 = new ClassFormatOperationsPrx(_classformat.Proxy with { Invoker = pipeline3 });
             pipeline3.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
+                ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
                 DecodeBefore(readResult.Buffer);
-                request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
+                request.Payload.AdvanceTo(readResult.Buffer.Start);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 readResult = await response.Payload.ReadAllAsync(cancel);
                 DecodeAfter(readResult.Buffer);
@@ -164,9 +164,9 @@ namespace IceRpc.Tests.SliceInternal
             prx3.Proxy.Invoker = pipeline4;
             pipeline4.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
+                ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
                 DecodeBefore(readResult.Buffer);
-                request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
+                request.Payload.AdvanceTo(readResult.Buffer.Start);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 readResult = await response.Payload.ReadAllAsync(cancel);
                 DecodeAfter(readResult.Buffer);

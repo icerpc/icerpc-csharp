@@ -256,7 +256,6 @@ namespace IceRpc.Tests.Internal
                 Path = "/dummy",
                 Operation = "foo",
                 Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
-                ResponseWriter = new DelayedPipeWriterDecorator()
             };
 
         private static IncomingResponse CreateIncomingResponse(OutgoingRequest request) => new(request)
@@ -270,13 +269,13 @@ namespace IceRpc.Tests.Internal
                 Connection = connection,
                 IsOneway = !twoway,
                 Operation = "foo",
-                PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
+                Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
             };
 
         private static OutgoingResponse CreateOutgoingResponse(IncomingRequest request) =>
             new(request)
             {
-                PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(new byte[10]))
+                Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[10]))
             };
     }
 }

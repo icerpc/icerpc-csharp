@@ -157,29 +157,29 @@ public class RouterTests
         var calls = new List<string>();
 
         var router = new Router();
-        router.Use(
-            next => new InlineDispatcher((request, cancel) =>
-            {
-                calls.Add("middleware-1");
-                return next.DispatchAsync(request, cancel);
-            }),
-            next => new InlineDispatcher((request, cancel) =>
-            {
-                calls.Add("middleware-2");
-                return next.DispatchAsync(request, cancel);
-            }));
+        router
+            .Use(next => new InlineDispatcher((request, cancel) =>
+                {
+                    calls.Add("middleware-1");
+                    return next.DispatchAsync(request, cancel);
+                }))
+            .Use(next => new InlineDispatcher((request, cancel) =>
+                {
+                    calls.Add("middleware-2");
+                    return next.DispatchAsync(request, cancel);
+                }));
 
-        router.Use(
-            next => new InlineDispatcher((request, cancel) =>
-            {
-                calls.Add("middleware-3");
-                return next.DispatchAsync(request, cancel);
-            }),
-            next => new InlineDispatcher((request, cancel) =>
-            {
-                calls.Add("middleware-4");
-                return new(new OutgoingResponse(request));
-            }));
+        router
+            .Use(next => new InlineDispatcher((request, cancel) =>
+                {
+                    calls.Add("middleware-3");
+                    return next.DispatchAsync(request, cancel);
+                }))
+            .Use(next => new InlineDispatcher((request, cancel) =>
+                {
+                    calls.Add("middleware-4");
+                    return new(new OutgoingResponse(request));
+                }));
 
         // Act
         _ = await router.DispatchAsync(new IncomingRequest(Protocol.IceRpc));

@@ -51,10 +51,10 @@ namespace IceRpc
 
             bool tryAgain;
 
-            var decorator = new ResettablePipeReaderDecorator(request.PayloadSource);
+            var decorator = new ResettablePipeReaderDecorator(request.Payload);
             await using var _ = decorator.ConfigureAwait(false);
 
-            request.PayloadSource = decorator;
+            request.Payload = decorator;
 
             try
             {

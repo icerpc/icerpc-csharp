@@ -476,7 +476,7 @@ namespace IceRpc.Tests.Slice
             var request = new OutgoingRequest(_prx.Proxy)
             {
                 Operation = "opVoid",
-                PayloadSource = requestPayload
+                Payload = requestPayload
             };
 
             IncomingResponse response = await _prx.Proxy.Invoker.InvokeAsync(request);

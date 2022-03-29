@@ -13,9 +13,6 @@ namespace IceRpc
         public IDictionary<ResponseFieldKey, OutgoingFieldValue> Fields { get; set; } =
             ImmutableDictionary<ResponseFieldKey, OutgoingFieldValue>.Empty;
 
-        /// <inheritdoc/>
-        public override PipeWriter PayloadSink { get; set; }
-
         /// <summary>Returns the corresponding incoming request.</summary>
         public IncomingRequest Request { get; }
 
@@ -26,10 +23,6 @@ namespace IceRpc
         /// <summary>Constructs an outgoing response.</summary>
         /// <param name="request">The incoming request.</param>
         public OutgoingResponse(IncomingRequest request)
-            : base(request.Protocol)
-        {
-            Request = request;
-            PayloadSink = request.ResponseWriter;
-        }
+            : base(request.Protocol) => Request = request;
     }
 }

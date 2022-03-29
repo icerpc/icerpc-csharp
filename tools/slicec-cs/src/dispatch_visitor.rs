@@ -434,7 +434,7 @@ await request.CheckEmptyArgsAsync({}, hasStream: false, cancel).ConfigureAwait(f
 
         writeln!(
             dispatch_and_return,
-            "return new IceRpc.OutgoingResponse(request) {{ PayloadSource = returnValue.Payload }};"
+            "return new IceRpc.OutgoingResponse(request) {{ Payload = returnValue.Payload }};"
         );
     } else {
         let mut args = match parameters.as_slice() {
@@ -464,11 +464,11 @@ await request.CheckEmptyArgsAsync({}, hasStream: false, cancel).ConfigureAwait(f
             "\
 return new IceRpc.OutgoingResponse(request)
 {{
-    PayloadSource = {payload_source},
-    PayloadSourceStream = {payload_source_stream}
+    Payload = {payload},
+    PayloadStream = {payload_stream}
 }};",
-            payload_source = dispatch_return_payload(operation, encoding),
-            payload_source_stream = payload_source_stream(operation, encoding)
+            payload = dispatch_return_payload(operation, encoding),
+            payload_stream = payload_stream(operation, encoding)
         );
     }
 
@@ -530,7 +530,7 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
     .into()
 }
 
-fn payload_source_stream(operation: &Operation, encoding: &str) -> CodeBlock {
+fn payload_stream(operation: &Operation, encoding: &str) -> CodeBlock {
     let namespace = &operation.namespace();
     let return_values = operation.return_members();
 
@@ -554,7 +554,7 @@ fn payload_source_stream(operation: &Operation, encoding: &str) -> CodeBlock {
                 }
                 _ => format!(
                     "\
-{encoding}.CreatePayloadSourceStream<{stream_type}>(
+{encoding}.CreatePayloadStream<{stream_type}>(
     {stream_arg},
     {encode_action})",
                     stream_type = stream_type.to_type_string(namespace, TypeContext::Encode, false),

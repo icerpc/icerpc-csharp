@@ -39,11 +39,6 @@ namespace IceRpc
         /// <value>The path of the target service. The default is <c>/</c>.</value>
         public string Path { get; init; } = "/";
 
-        /// <summary>Gets or initializes the pipe writer used by IceRPC to write the response, including the response
-        /// header. This is also the outgoing response's payload sink a middleware would see if no middleware decorates
-        /// this response's payload sink.</summary>
-        internal PipeWriter ResponseWriter { get; init; } = InvalidPipeWriter.Instance;
-
         private readonly string _fragment = "";
 
         /// <summary>Constructs an incoming request.</summary>

@@ -262,7 +262,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
             }
             _ => invoke_args.push(format!(
                 "\
-{encoding}.CreatePayloadSourceStream<{stream_type}>(
+{encoding}.CreatePayloadStream<{stream_type}>(
     {stream_parameter},
     {encode_action})",
                 stream_type = stream_type.to_type_string(namespace, TypeContext::Encode, false),
@@ -272,7 +272,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
             )),
         }
     } else {
-        invoke_args.push("payloadSourceStream: null".to_owned());
+        invoke_args.push("payloadStream: null".to_owned());
     }
 
     if void_return && stream_return.is_none() {
