@@ -56,9 +56,7 @@ namespace IceRpc
                 request.Features.Get<Features.CompressPayload>() == Features.CompressPayload.Yes &&
                 !response.Fields.ContainsKey(ResponseFieldKey.CompressionFormat))
             {
-                // TODO: do we really need this ToPayloadSinkStream?
-                response.Use(
-                    next => PipeWriter.Create(new DeflateStream(next.ToPayloadSinkStream(), _compressionLevel)));
+                response.Use(next => PipeWriter.Create(new DeflateStream(next.AsStream(), _compressionLevel)));
 
                 response.Fields = response.Fields.With(
                     ResponseFieldKey.CompressionFormat,
