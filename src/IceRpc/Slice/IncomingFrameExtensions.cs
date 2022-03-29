@@ -22,7 +22,7 @@ namespace IceRpc.Slice
         /// <c>false</c>.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The decode value.</returns>
-        internal static async ValueTask<T> DecodeValueAsync<T>(
+        internal static ValueTask<T> DecodeValueAsync<T>(
             this IncomingFrame frame,
             SliceEncoding encoding,
             SliceDecodePayloadOptions decodePayloadOptions,
@@ -34,42 +34,31 @@ namespace IceRpc.Slice
         {
             try
             {
-                ReadResult readResult = await frame.Payload.ReadSegmentAsync(encoding, cancel).ConfigureAwait(false);
+                if (frame.Payload.TryReadSegment(encoding, out ReadResult readResult))
+                {
+                    return new(DecodeSegment(readResult));
+                }
+            }
+            catch (Exception exception)
+            {
+#pragma warning disable CA1849
+                frame.Payload.Complete(exception);
+#pragma warning restore CA1849
+                throw;
+            }
 
+            return PerformDecodeAsync();
+
+            // All the logic is in this local function except the completion of Payload when an exception is thrown.
+            T DecodeSegment(ReadResult readResult)
+            {
                 if (readResult.IsCanceled)
                 {
                     throw new OperationCanceledException();
                 }
 
-                // The segment can be empty, for example args with only tagged parameters where the sender does not know
-                // any tagged param or all the tagged params are null. We still decode such an empty segment to make
-                // sure decodeFunc is fine with it.
-                T result = Decode(readResult.Buffer);
-
-                if (!readResult.Buffer.IsEmpty)
-                {
-                    frame.Payload.AdvanceTo(readResult.Buffer.End);
-                }
-
-                if (!hasStream)
-                {
-                    // If there are actually additional bytes on the pipe reader, we ignore them. It's possible the
-                    // sender operation Slice definition specifies a stream parameter that is not specified on the
-                    // operation local Slice definition.
-                    await frame.Payload.CompleteAsync().ConfigureAwait(false);
-                }
-                return result;
-            }
-            catch (Exception exception)
-            {
-                await frame.Payload.CompleteAsync(exception).ConfigureAwait(false);
-                throw;
-            }
-
-            T Decode(ReadOnlySequence<byte> buffer)
-            {
                 var decoder = new SliceDecoder(
-                    buffer,
+                    readResult.Buffer,
                     encoding,
                     frame.Connection,
                     decodePayloadOptions.ProxyInvoker ?? defaultInvoker,
@@ -77,7 +66,31 @@ namespace IceRpc.Slice
                     decodePayloadOptions.MaxDepth);
                 T value = decodeFunc(ref decoder);
                 decoder.CheckEndOfBuffer(skipTaggedParams: true);
+
+                frame.Payload.AdvanceTo(readResult.Buffer.End);
+
+                if (!hasStream)
+                {
+                    frame.Payload.Complete();
+                }
                 return value;
+            }
+
+            async ValueTask<T> PerformDecodeAsync()
+            {
+                try
+                {
+                    ReadResult readResult = await frame.Payload.ReadSegmentAsync(
+                        encoding,
+                        cancel).ConfigureAwait(false);
+
+                    return DecodeSegment(readResult);
+                }
+                catch (Exception exception)
+                {
+                    await frame.Payload.CompleteAsync(exception).ConfigureAwait(false);
+                    throw;
+                }
             }
         }
 
@@ -87,7 +100,7 @@ namespace IceRpc.Slice
         /// <param name="hasStream"><c>true</c> if this void value is followed by a stream parameter; otherwise,
         /// <c>false</c>.</param>
         /// <param name="cancel">The cancellation token.</param>
-        internal static async ValueTask DecodeVoidAsync(
+        internal static ValueTask DecodeVoidAsync(
             this IncomingFrame frame,
             SliceEncoding encoding,
             bool hasStream,
@@ -95,8 +108,25 @@ namespace IceRpc.Slice
         {
             try
             {
-                ReadResult readResult = await frame.Payload.ReadSegmentAsync(encoding, cancel).ConfigureAwait(false);
+                if (frame.Payload.TryReadSegment(encoding, out ReadResult readResult))
+                {
+                    DecodeSegment(readResult);
+                    return default;
+                }
+            }
+            catch (Exception exception)
+            {
+#pragma warning disable CA1849
+                frame.Payload.Complete(exception);
+#pragma warning restore CA1849
+                throw;
+            }
 
+            return PerformDecodeAsync();
+
+            // All the logic is in this local function except the completion of Payload when an exception is thrown.
+            void DecodeSegment(ReadResult readResult)
+            {
                 if (readResult.IsCanceled)
                 {
                     throw new OperationCanceledException();
@@ -104,28 +134,32 @@ namespace IceRpc.Slice
 
                 if (!readResult.Buffer.IsEmpty)
                 {
-                    Decode(readResult.Buffer);
-                    frame.Payload.AdvanceTo(readResult.Buffer.End);
+                    var decoder = new SliceDecoder(readResult.Buffer, encoding);
+                    decoder.CheckEndOfBuffer(skipTaggedParams: true);
                 }
+                frame.Payload.AdvanceTo(readResult.Buffer.End);
 
                 if (!hasStream)
                 {
-                    // If there are actually additional bytes on the pipe reader, we ignore them. It's possible the
-                    // sender operation Slice definition specifies a stream parameter that is not specified on the
-                    // operation local Slice definition.
-                    await frame.Payload.CompleteAsync().ConfigureAwait(false);
+                    frame.Payload.Complete();
                 }
             }
-            catch (Exception exception)
-            {
-                await frame.Payload.CompleteAsync(exception).ConfigureAwait(false);
-                throw;
-            }
 
-            void Decode(ReadOnlySequence<byte> buffer)
+            async ValueTask PerformDecodeAsync()
             {
-                var decoder = new SliceDecoder(buffer, encoding);
-                decoder.CheckEndOfBuffer(skipTaggedParams: true);
+                try
+                {
+                    ReadResult readResult = await frame.Payload.ReadSegmentAsync(
+                        encoding,
+                        cancel).ConfigureAwait(false);
+
+                    DecodeSegment(readResult);
+                }
+                catch (Exception exception)
+                {
+                    await frame.Payload.CompleteAsync(exception).ConfigureAwait(false);
+                    throw;
+                }
             }
         }
 
