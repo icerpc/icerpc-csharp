@@ -178,16 +178,12 @@ namespace IceRpc.Slice
                     {
                         result = _utf8.GetString(_reader.UnreadSpan[0..size]);
                     }
-                    catch (Exception ex)
+                    catch (Exception ex) when (ex is ArgumentException || ex is DecoderFallbackException)
                     {
-                        if (ex is ArgumentException || ex is DecoderFallbackException)
-                        {
-                            // The two exceptions that can be thrown by GetString are ArgumentException and
-                            // DecoderFallbackException. Both of which are a result of malformed data. As such, we can just
-                            // throw an InvalidDataException.
-                            throw new InvalidDataException("invalid UTF-8 string");
-                        }
-                        throw;
+                        // The two exceptions that can be thrown by GetString are ArgumentException and
+                        // DecoderFallbackException. Both of which are a result of malformed data. As such, we can just
+                        // throw an InvalidDataException.
+                        throw new InvalidDataException("invalid UTF-8 string", ex);
                     }
                 }
                 else
