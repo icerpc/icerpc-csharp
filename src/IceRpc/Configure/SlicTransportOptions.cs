@@ -87,7 +87,7 @@ namespace IceRpc.Configure
 
         private int _bidirectionalStreamMaxCount = 100;
         private int _minimumSegmentSize = 4096;
-        // The default packet size matches the SSL record maximum data size to avoid fragramentation of the Slic packet
+        // The default packet size matches the SSL record maximum data size to avoid fragmentation of the Slic packet
         // when using SSL.
         private int _packetMaxSize = 16384;
         private int _pauseWriterThreshold = 65536;
