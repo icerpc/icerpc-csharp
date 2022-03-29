@@ -82,7 +82,6 @@ namespace IceRpc
             // Parsing the identity string may throw FormatException.
             string path = IdentityToPath(identityString);
             string facet = "";
-            Encoding encoding = IceDefinitions.Encoding;
             Endpoint? endpoint = null;
             var altEndpoints = ImmutableList<Endpoint>.Empty;
 
@@ -213,15 +212,9 @@ namespace IceRpc
                         {
                             throw new FormatException($"no argument provided for -e option in '{s}'");
                         }
-                        encoding = Encoding.FromString(argument);
-                        try
+                        if (argument != "1.1")
                         {
-                            _ = encoding.ToMajorMinor();
-                        }
-                        catch (NotSupportedException ex)
-                        {
-                            throw new FormatException(
-                                $"argument for -e option in '{s}' is not in major.minor format", ex);
+                            throw new FormatException($"argument for -e option in '{s}' is not 1.1");
                         }
                         break;
 
@@ -249,7 +242,6 @@ namespace IceRpc
                     Path = path,
                     Fragment = Uri.EscapeDataString(facet),
                     Invoker = invoker ?? Proxy.DefaultInvoker,
-                    Encoding = encoding,
                 };
             }
 
@@ -332,7 +324,6 @@ namespace IceRpc
                     Invoker = invoker ?? Proxy.DefaultInvoker,
                     Endpoint = endpoint,
                     AltEndpoints = altEndpoints,
-                    Encoding = encoding,
                 };
             }
             else if (s[beg] == '@')
@@ -383,7 +374,6 @@ namespace IceRpc
                     Path = path,
                     Fragment = Uri.EscapeDataString(facet),
                     Invoker = invoker ?? Proxy.DefaultInvoker,
-                    Encoding = encoding,
                     Params = ImmutableDictionary<string, string>.Empty.Add("adapter-id", adapterId)
                 };
             }
@@ -445,11 +435,6 @@ namespace IceRpc
             {
                 sb.Append(" -t");
             }
-
-            // Always print the encoding version to ensure a stringified proxy will convert back to a proxy with the
-            // same encoding with StringToProxy. (Only needed for backwards compatibility).
-            sb.Append(" -e ");
-            sb.Append(proxy.Encoding);
 
             if (proxy.Endpoint == null)
             {

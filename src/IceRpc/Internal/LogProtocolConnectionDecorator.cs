@@ -59,7 +59,7 @@ namespace IceRpc.Internal
                 connection,
                 request,
                 cancel).ConfigureAwait(false);
-            _logger.LogSendRequest(request.PayloadEncoding);
+            _logger.LogSendRequest();
             return response;
         }
 

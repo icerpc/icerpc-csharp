@@ -14,6 +14,7 @@ namespace IceRpc.Slice
     {
         /// <summary>Verifies that a response payload carries no return value or only tagged return values.</summary>
         /// <param name="response">The incoming response.</param>
+         /// <param name="sliceEncoding">The Slice encoding of the response payload.</param>
         /// <param name="defaultActivator">The default activator.</param>
         /// <param name="hasStream"><c>true</c> if this void value is followed by a stream parameter; otherwise,
         /// <c>false</c>.</param>
@@ -23,6 +24,7 @@ namespace IceRpc.Slice
         /// response.</remarks>
         public static ValueTask CheckVoidReturnValueAsync(
             this IncomingResponse response,
+            SliceEncoding sliceEncoding,
             IActivator defaultActivator,
             bool hasStream,
             CancellationToken cancel)
@@ -30,7 +32,7 @@ namespace IceRpc.Slice
             if (response.ResultType == ResultType.Success)
             {
                 return response.DecodeVoidAsync(
-                    (SliceEncoding)response.Request.PayloadEncoding,
+                    sliceEncoding,
                     hasStream,
                     cancel);
             }
@@ -42,6 +44,7 @@ namespace IceRpc.Slice
             async ValueTask ThrowRemoteExceptionAsync()
             {
                 throw await response.ToRemoteExceptionAsync(
+                    sliceEncoding,
                     response.Request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
                     defaultActivator,
                     cancel).ConfigureAwait(false);
@@ -51,15 +54,17 @@ namespace IceRpc.Slice
         /// <summary>Creates an async enumerable over the payload reader of an incoming response to decode streamed
         /// members.</summary>
         /// <param name="response">The incoming response.</param>
+        /// <param name="sliceEncoding">The Slice encoding of the response payload.</param>
         /// <param name="defaultActivator">The default activator.</param>
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
         /// <returns>The async enumerable to decode and return the streamed members.</returns>
         public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this IncomingResponse response,
+            SliceEncoding sliceEncoding,
             IActivator defaultActivator,
             DecodeFunc<T> decodeFunc) =>
             response.ToAsyncEnumerable(
-                (SliceEncoding)response.Request.PayloadEncoding,
+                sliceEncoding,
                 response.Request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
                 defaultActivator,
                 defaultInvoker: response.Request.Proxy.Invoker,
@@ -68,6 +73,7 @@ namespace IceRpc.Slice
         /// <summary>Decodes a response payload.</summary>
         /// <paramtype name="T">The type of the return value.</paramtype>
         /// <param name="response">The incoming response.</param>
+        /// <param name="sliceEncoding">The Slice encoding of the response payload.</param>
         /// <param name="defaultActivator">The default activator.</param>
         /// <param name="decodeFunc">The decode function for the return value.</param>
         /// <param name="hasStream"><c>true</c> if the value is followed by a stream parameter; otherwise,
@@ -79,6 +85,7 @@ namespace IceRpc.Slice
         /// response.</remarks>
         public static ValueTask<T> ToReturnValueAsync<T>(
             this IncomingResponse response,
+            SliceEncoding sliceEncoding,
             IActivator defaultActivator,
             DecodeFunc<T> decodeFunc,
             bool hasStream,
@@ -87,7 +94,7 @@ namespace IceRpc.Slice
             if (response.ResultType == ResultType.Success)
             {
                 return response.DecodeValueAsync(
-                    (SliceEncoding)response.Request.PayloadEncoding,
+                    sliceEncoding,
                     response.Request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
                     defaultActivator,
                     defaultInvoker: response.Request.Proxy.Invoker,
@@ -103,6 +110,7 @@ namespace IceRpc.Slice
             async ValueTask<T> ThrowRemoteExceptionAsync()
             {
                 throw await response.ToRemoteExceptionAsync(
+                    sliceEncoding,
                     response.Request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
                     defaultActivator,
                     cancel).ConfigureAwait(false);
@@ -111,6 +119,7 @@ namespace IceRpc.Slice
 
         private static async ValueTask<RemoteException> ToRemoteExceptionAsync(
             this IncomingResponse response,
+            SliceEncoding sliceEncoding,
             SliceDecodePayloadOptions decodePayloadOptions,
             IActivator defaultActivator,
             CancellationToken cancel)
@@ -121,8 +130,7 @@ namespace IceRpc.Slice
             if (resultType is SliceResultType.Failure or SliceResultType.ServiceFailure)
             {
                 SliceEncoding encoding = resultType == SliceResultType.Failure ?
-                    response.Protocol.SliceEncoding! :
-                    (SliceEncoding)response.Request.PayloadEncoding;
+                    response.Protocol.SliceEncoding! : sliceEncoding;
 
                 ReadResult readResult = await response.Payload.ReadSegmentAsync(
                     encoding,
@@ -154,8 +162,7 @@ namespace IceRpc.Slice
 
                 var decoder = new SliceDecoder(
                     buffer,
-                    resultType == SliceResultType.Failure ?
-                        response.Protocol.SliceEncoding! : (SliceEncoding)response.Request.PayloadEncoding,
+                    resultType == SliceResultType.Failure ? response.Protocol.SliceEncoding! : sliceEncoding,
                     response.Connection,
                     decodePayloadOptions.ProxyInvoker ?? response.Request.Proxy.Invoker,
                     decodePayloadOptions.Activator ?? defaultActivator,

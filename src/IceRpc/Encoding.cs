@@ -83,45 +83,6 @@ namespace IceRpc
                 _ => FromString($"{major}.{minor}")
             };
 
-        /// <summary>Returns the major and minor byte versions of this encoding.</summary>
-        /// <exception cref="NotSupportedException">Thrown when this encoding's name is not in the major.minor format.
-        /// </exception>
-        internal (byte Major, byte Minor) ToMajorMinor()
-        {
-            switch (Name)
-            {
-                case Slice10Name:
-                    return ((byte)1, (byte)0);
-
-                case Slice11Name:
-                    return ((byte)1, (byte)1);
-
-                case Slice20Name:
-                    return ((byte)2, (byte)0);
-
-                default:
-                    if (Name.Length == 3 && Name[1] == '.')
-                    {
-                        try
-                        {
-                            byte major = byte.Parse(Name.AsSpan(0, 1));
-                            byte minor = byte.Parse(Name.AsSpan(2, 1));
-                            return (major, minor);
-                        }
-                        catch (FormatException ex)
-                        {
-                            throw new NotSupportedException(
-                                $"cannot convert encoding '{this}' to major/minor bytes", ex);
-                        }
-                    }
-                    else
-                    {
-                        throw new NotSupportedException(
-                            $"cannot convert encoding '{this}' to major/minor bytes");
-                    }
-            }
-        }
-
         private protected Encoding(string name) => Name = name;
     }
 }

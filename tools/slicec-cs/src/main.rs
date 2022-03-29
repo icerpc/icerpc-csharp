@@ -159,9 +159,6 @@ fn preamble(slice_file: &SliceFile) -> CodeBlock {
 
 #pragma warning disable 1591 // Missing XML Comment
 
-// TODO: remove once Slice-driven encoding is implemented
-#pragma warning disable 1718 // Comparison made to same variable; did you mean to compare something else?
-
 using IceRpc.Slice;
 
 [assembly:IceRpc.Slice.Slice("{file}.slice")]"#,

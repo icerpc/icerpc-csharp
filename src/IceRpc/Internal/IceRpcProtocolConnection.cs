@@ -139,8 +139,6 @@ namespace IceRpc.Internal
                     Operation = header.Operation,
                     Path = header.Path,
                     Payload = reader,
-                    PayloadEncoding = header.PayloadEncoding.Length > 0 ?
-                        Encoding.FromString(header.PayloadEncoding) : IceRpcDefinitions.Encoding
                 };
 
                 _ = Task.Run(() => DispatchRequestAsync(request, stream));
@@ -471,10 +469,7 @@ namespace IceRpc.Internal
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
                 int headerStartPos = encoder.EncodedByteCount; // does not include the size
 
-                var header = new IceRpcRequestHeader(
-                    request.Proxy.Path,
-                    request.Operation,
-                    request.PayloadEncoding == IceRpcDefinitions.Encoding ? "" : request.PayloadEncoding.ToString());
+                var header = new IceRpcRequestHeader(request.Proxy.Path, request.Operation);
 
                 header.Encode(ref encoder);
 

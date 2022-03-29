@@ -136,9 +136,6 @@ namespace IceRpc.Internal
                     Operation = requestHeader.Operation,
                     Path = requestHeader.Path,
                     Payload = requestFrameReader,
-                    PayloadEncoding = Encoding.FromMajorMinor(
-                        requestHeader.EncapsulationHeader.PayloadEncodingMajor,
-                        requestHeader.EncapsulationHeader.PayloadEncodingMinor),
                 };
 
                 if (requestHeader.Context.Count > 0)
@@ -253,7 +250,7 @@ namespace IceRpc.Internal
                     {
                         if (response.ResultType == ResultType.Failure)
                         {
-                            replyStatus = payload.FirstSpan[0].AsReplyStatus();
+                            replyStatus = ((int)payload.FirstSpan[0]).AsReplyStatus();
 
                             if (replyStatus <= ReplyStatus.UserException)
                             {
@@ -361,6 +358,14 @@ namespace IceRpc.Internal
 
                 int requestId = decoder.DecodeInt();
                 var requestHeader = new IceRequestHeader(ref decoder);
+
+                if (requestHeader.EncapsulationHeader.PayloadEncodingMajor != 1 ||
+                    requestHeader.EncapsulationHeader.PayloadEncodingMinor != 1)
+                {
+                    throw new InvalidDataException(
+                        @$"unsupported payload encoding '{requestHeader.EncapsulationHeader.PayloadEncodingMajor
+                        }.{requestHeader.EncapsulationHeader.PayloadEncodingMinor}'");
+                }
 
                 int payloadSize = requestHeader.EncapsulationHeader.EncapsulationSize - 6;
                 if (payloadSize != (buffer.Length - decoder.Consumed))
@@ -536,7 +541,7 @@ namespace IceRpc.Internal
 
                     Debug.Assert(readResult.IsCompleted);
 
-                    ReplyStatus replyStatus = readResult.Buffer.FirstSpan[0].AsReplyStatus();
+                    ReplyStatus replyStatus = ((int)readResult.Buffer.FirstSpan[0]).AsReplyStatus();
 
                     if (replyStatus <= ReplyStatus.UserException)
                     {
@@ -633,13 +638,6 @@ namespace IceRpc.Internal
 
                 byte encodingMajor = 1;
                 byte encodingMinor = 1;
-
-                // TODO: temporary
-                if (request.PayloadEncoding is SliceEncoding payloadEncoding)
-                {
-                    (encodingMajor, encodingMinor) = payloadEncoding.ToMajorMinor();
-                }
-                // else remain 1.1
 
                 var requestHeader = new IceRequestHeader(
                     request.Proxy.Path,
