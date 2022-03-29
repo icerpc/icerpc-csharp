@@ -26,10 +26,10 @@ public class DecodeStringTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, Encoding.Slice20);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice20);
         encoder.EncodeString(testString);
         byte[] encodedString = buffer[0..bufferWriter.WrittenMemory.Length];
-        var sut = new SliceDecoder(encodedString, Encoding.Slice20);
+        var sut = new SliceDecoder(encodedString, SliceEncoding.Slice20);
 
         var r1 = sut.DecodeString();
 
@@ -43,7 +43,7 @@ public class DecodeStringTests
         Assert.That(() =>
         {
             var encodedString = new byte[] { 0x08, 0xFD, 0xFF }; // Byte array for unicode char \uD800
-            var sut = new SliceDecoder(encodedString, Encoding.Slice20);
+            var sut = new SliceDecoder(encodedString, SliceEncoding.Slice20);
 
             sut.DecodeString();
         }, Throws.InstanceOf<InvalidDataException>());

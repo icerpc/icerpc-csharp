@@ -9,12 +9,6 @@ namespace IceRpc
     /// usually the Slice 2.0 encoding named "2.0".</summary>
     public class Encoding : IEquatable<Encoding>
     {
-        /// <summary>Version 1.1 of the Slice encoding, supported by IceRPC and Ice 3.5 or greater.</summary>
-        public static readonly SliceEncoding Slice11 = Slice11Encoding.Instance;
-
-        /// <summary>Version 2.0 of the Slice encoding, supported by IceRPC.</summary>
-        public static readonly SliceEncoding Slice20 = Slice20Encoding.Instance;
-
         /// <summary>The name of this encoding, for example "2.0" for the Slice 2.0 encoding.</summary>
         public string Name { get; }
 

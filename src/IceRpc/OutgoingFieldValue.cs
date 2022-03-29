@@ -35,7 +35,7 @@ namespace IceRpc
         /// <summary>Encodes this field value using a Slice encoder.</summary>
         public void Encode(ref SliceEncoder encoder)
         {
-            if (encoder.Encoding == Encoding.Slice11)
+            if (encoder.Encoding == SliceEncoding.Slice11)
             {
                 throw new NotSupportedException(
                     $"cannot encode am {nameof(OutgoingFieldValue)} using the 1.1 encoding");

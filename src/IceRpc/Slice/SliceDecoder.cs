@@ -282,7 +282,7 @@ namespace IceRpc.Slice
         // (resultType = Failure) and one for user exceptions (resultType = ServiceFailure).
         public RemoteException DecodeException(ResultType resultType)
         {
-            if (Encoding == IceRpc.Encoding.Slice11)
+            if (Encoding == SliceEncoding.Slice11)
             {
                 return DecodeExceptionClass(resultType);
             }
@@ -310,7 +310,7 @@ namespace IceRpc.Slice
         /// <returns>The decoded trait.</returns>
         public T DecodeTrait<T>()
         {
-            if (Encoding == IceRpc.Encoding.Slice11)
+            if (Encoding == SliceEncoding.Slice11)
             {
                 throw new InvalidOperationException(
                     $"{nameof(DecodeTrait)} is not compatible with encoding {Encoding}");
@@ -347,7 +347,7 @@ namespace IceRpc.Slice
         /// <returns>The decoded proxy, or null.</returns>
         public Proxy? DecodeNullableProxy(ref BitSequenceReader bitSequenceReader)
         {
-            if (Encoding == IceRpc.Encoding.Slice11)
+            if (Encoding == SliceEncoding.Slice11)
             {
                 string path = this.DecodeIdentityPath();
                 return path != "/" ? DecodeProxy(path) : null;
@@ -362,7 +362,7 @@ namespace IceRpc.Slice
         /// <returns>The decoded proxy</returns>
         public Proxy DecodeProxy()
         {
-            if (Encoding == IceRpc.Encoding.Slice11)
+            if (Encoding == SliceEncoding.Slice11)
             {
                 string path = this.DecodeIdentityPath();
                 return path != "/" ? DecodeProxy(path) :
@@ -424,7 +424,7 @@ namespace IceRpc.Slice
         /// <remarks>When T is a value type, it should be a nullable value type such as int?.</remarks>
         public T DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<T> decodeFunc)
         {
-            if (Encoding == IceRpc.Encoding.Slice11)
+            if (Encoding == SliceEncoding.Slice11)
             {
                 if (DecodeTaggedParamHeader(tag, tagFormat))
                 {
@@ -589,7 +589,7 @@ namespace IceRpc.Slice
         /// <returns>The size decoded by this decoder.</returns>
         internal int DecodeFixedLengthSize()
         {
-            if (Encoding == IceRpc.Encoding.Slice11)
+            if (Encoding == SliceEncoding.Slice11)
             {
                 int size = DecodeInt();
                 if (size < 0)
@@ -618,7 +618,7 @@ namespace IceRpc.Slice
 
         internal void SkipSize()
         {
-            if (Encoding == IceRpc.Encoding.Slice11)
+            if (Encoding == SliceEncoding.Slice11)
             {
                 byte b = DecodeByte();
                 if (b == 255)
@@ -653,7 +653,7 @@ namespace IceRpc.Slice
         /// <c>false</c> otherwise.</returns>
         internal bool TryDecodeSize(out int size)
         {
-            if (Encoding == IceRpc.Encoding.Slice11)
+            if (Encoding == SliceEncoding.Slice11)
             {
                 if (TryDecodeByte(out byte firstByte))
                 {
@@ -755,7 +755,7 @@ namespace IceRpc.Slice
         /// <returns>The endpoint decoded by this decoder.</returns>
         private Endpoint DecodeEndpoint(Protocol protocol)
         {
-            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
+            Debug.Assert(Encoding == SliceEncoding.Slice11);
 
             // The Slice 1.1 encoding of ice endpoints is transport-specific, and hard-coded here and in the
             // SliceEncoder. The preferred and fallback encoding for new transports is TransportCode.Uri.
@@ -930,7 +930,7 @@ namespace IceRpc.Slice
         /// <returns>True if the tagged parameter is present; otherwise, false.</returns>
         private bool DecodeTaggedParamHeader(int tag, TagFormat expectedFormat)
         {
-            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
+            Debug.Assert(Encoding == SliceEncoding.Slice11);
 
             bool withTagEndMarker = false;
 
@@ -1004,7 +1004,7 @@ namespace IceRpc.Slice
         /// <summary>Skips the remaining tagged parameters, return value _or_ data members.</summary>
         public void SkipTaggedParams()
         {
-            if (Encoding == IceRpc.Encoding.Slice11)
+            if (Encoding == SliceEncoding.Slice11)
             {
                 bool withTagEndMarker = _classContext.Current.InstanceType != InstanceType.None;
 
@@ -1126,7 +1126,7 @@ namespace IceRpc.Slice
 
         private void SkipTaggedValue(TagFormat format)
         {
-            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
+            Debug.Assert(Encoding == SliceEncoding.Slice11);
 
             switch (format)
             {

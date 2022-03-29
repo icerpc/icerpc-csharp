@@ -20,7 +20,7 @@ public class SliceEncoderTests
         const int maxBufferSize = 7;
         using var testPool = new TestMemoryPool(maxBufferSize);
         var pipe = new Pipe(new PipeOptions(pool: testPool));
-        var encoder = new SliceEncoder(pipe.Writer, Encoding.Slice20);
+        var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice20);
         BitSequenceWriter writer = encoder.GetBitSequenceWriter(bitSize);
 
         // Act

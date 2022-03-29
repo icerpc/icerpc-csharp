@@ -30,7 +30,7 @@ namespace IceRpc.Slice.Internal
             // This method does not attempt to read the reader synchronously. A caller that wants a sync attempt can
             // call TryReadSegment.
 
-            if (encoding == Encoding.Slice11)
+            if (encoding == SliceEncoding.Slice11)
             {
                 // We read everything up to the MaxSegmentSize + 1.
                 // It's MaxSegmentSize + 1 and not MaxSegmentSize because if the segment's size is MaxSegmentSize,
@@ -121,7 +121,7 @@ namespace IceRpc.Slice.Internal
         /// the caller must call <see cref="ReadSegmentAsync"/>.</remarks>
         internal static bool TryReadSegment(this PipeReader reader, SliceEncoding encoding, out ReadResult readResult)
         {
-            if (encoding == Encoding.Slice11)
+            if (encoding == SliceEncoding.Slice11)
             {
                 if (reader.TryRead(out readResult))
                 {
@@ -204,7 +204,7 @@ namespace IceRpc.Slice.Internal
                 return true; // the caller will call AdvanceTo on this buffer.
             }
 
-            var decoder = new SliceDecoder(readResult.Buffer, Encoding.Slice20);
+            var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice20);
             if (decoder.TryDecodeSize(out segmentSize))
             {
                 consumed = decoder.Consumed;

@@ -14,7 +14,7 @@ namespace IceRpc.Transports.Internal
             long? streamId,
             EncodeAction? encode)
         {
-            var encoder = new SliceEncoder(writer, Encoding.Slice20);
+            var encoder = new SliceEncoder(writer, SliceEncoding.Slice20);
             encoder.EncodeByte((byte)frameType);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
@@ -33,7 +33,7 @@ namespace IceRpc.Transports.Internal
             int length,
             bool endStream)
         {
-            var encoder = new SliceEncoder(writer, Encoding.Slice20);
+            var encoder = new SliceEncoder(writer, SliceEncoding.Slice20);
             encoder.EncodeByte((byte)(endStream ? FrameType.StreamLast : FrameType.Stream));
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;

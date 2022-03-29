@@ -15,7 +15,7 @@ namespace IceRpc.Tests.Slice
         {
             IActivator activator = SliceDecoder.GetActivator(typeof(SliceDecoder).Assembly);
 
-            var decoder = new SliceDecoder(ReadOnlyMemory<byte>.Empty, Encoding.Slice11);
+            var decoder = new SliceDecoder(ReadOnlyMemory<byte>.Empty, SliceEncoding.Slice11);
 
             // The default activator doesn't know about types defined in separated assemblies
             Assert.That(activator.CreateInstance(ClassA.SliceTypeId, ref decoder), Is.Null);

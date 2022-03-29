@@ -70,14 +70,14 @@ namespace IceRpc.Tests.SliceInternal
             void EncodeProxy()
             {
                 // Encodes the relative proxy
-                var encoder = new SliceEncoder(bufferWriter, Encoding.Slice20);
+                var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice20);
                 encoder.EncodeProxy(endpointLess);
             }
 
             Proxy DecodeProxy()
             {
                 // Decodes the relative proxy using the client connection. We get back a 1-endpoint proxy
-                var decoder = new SliceDecoder(buffer, Encoding.Slice20, connection);
+                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice20, connection);
 
                 Proxy p = decoder.DecodeProxy();
                 decoder.CheckEndOfBuffer(skipTaggedParams: false);

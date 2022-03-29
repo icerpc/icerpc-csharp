@@ -83,7 +83,7 @@ namespace IceRpc.Slice
         /// <param name="v">The size to encode.</param>
         public void EncodeSize(int v)
         {
-            if (Encoding == IceRpc.Encoding.Slice11)
+            if (Encoding == SliceEncoding.Slice11)
             {
                 if (v < 255)
                 {
@@ -147,7 +147,7 @@ namespace IceRpc.Slice
 
             static void EncodeSizeIntoPlaceholder(Encoding encoding, int size, Span<byte> into)
             {
-                if (encoding == IceRpc.Encoding.Slice11)
+                if (encoding == SliceEncoding.Slice11)
                 {
                     if (into.Length == 1)
                     {
@@ -223,7 +223,7 @@ namespace IceRpc.Slice
         /// <param name="proxy">The proxy to encode, or null.</param>
         public void EncodeNullableProxy(ref BitSequenceWriter bitSequenceWriter, Proxy? proxy)
         {
-            if (Encoding == IceRpc.Encoding.Slice11)
+            if (Encoding == SliceEncoding.Slice11)
             {
                 if (proxy != null)
                 {
@@ -253,7 +253,7 @@ namespace IceRpc.Slice
                 throw new InvalidOperationException("cannot encode a proxy bound to a server connection");
             }
 
-            if (Encoding == IceRpc.Encoding.Slice11)
+            if (Encoding == SliceEncoding.Slice11)
             {
                 this.EncodeIdentityPath(proxy.Path);
                 const byte encodingMajor = 1;
@@ -362,7 +362,7 @@ namespace IceRpc.Slice
             T v,
             EncodeAction<T> encodeAction) where T : notnull
         {
-            if (Encoding == IceRpc.Encoding.Slice11)
+            if (Encoding == SliceEncoding.Slice11)
             {
                 if (tagFormat == TagFormat.FSize)
                 {
@@ -410,7 +410,7 @@ namespace IceRpc.Slice
         {
             int startPos;
 
-            if (Encoding == IceRpc.Encoding.Slice11)
+            if (Encoding == SliceEncoding.Slice11)
             {
                 Debug.Assert(tagFormat != TagFormat.FSize);
                 Debug.Assert(size > 0);
@@ -547,7 +547,7 @@ namespace IceRpc.Slice
         /// <summary>Computes the minimum number of bytes needed to encode a variable-length size.</summary>
         /// <param name="size">The size.</param>
         /// <returns>The minimum number of bytes.</returns>
-        public int GetSizeLength(int size) => Encoding == IceRpc.Encoding.Slice11 ?
+        public int GetSizeLength(int size) => Encoding == SliceEncoding.Slice11 ?
             (size < 255 ? 1 : 5) : GetVarULongEncodedSize(checked((ulong)size));
 
         /// <summary>Copies a span of bytes to the underlying buffer writer.</summary>
@@ -641,7 +641,7 @@ namespace IceRpc.Slice
         /// <param name="endpoint">The endpoint to encode.</param>
         private void EncodeEndpoint(Endpoint endpoint)
         {
-            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
+            Debug.Assert(Encoding == SliceEncoding.Slice11);
 
             // If there is no transport parameter, we default to TCP.
             if (!endpoint.Params.TryGetValue("transport", out string? transport))
@@ -738,7 +738,7 @@ namespace IceRpc.Slice
         /// <param name="format">The tag format.</param>
         private void EncodeTaggedParamHeader(int tag, TagFormat format)
         {
-            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
+            Debug.Assert(Encoding == SliceEncoding.Slice11);
             Debug.Assert(format != TagFormat.VInt && format != TagFormat.OVSize); // VInt/OVSize cannot be encoded
 
             int v = (int)format;

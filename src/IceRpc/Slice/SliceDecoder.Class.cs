@@ -24,7 +24,7 @@ namespace IceRpc.Slice
         /// <returns>The class instance, or null.</returns>
         public T? DecodeNullableClass<T>() where T : class
         {
-            if (Encoding != IceRpc.Encoding.Slice11)
+            if (Encoding != SliceEncoding.Slice11)
             {
                 throw new InvalidOperationException(
                     $"{nameof(DecodeNullableClass)} is not compatible with encoding {Encoding}");
@@ -50,7 +50,7 @@ namespace IceRpc.Slice
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void EndSlice()
         {
-            if (Encoding != IceRpc.Encoding.Slice11)
+            if (Encoding != SliceEncoding.Slice11)
             {
                 throw new InvalidOperationException(
                     $"{nameof(EndSlice)} is not compatible with encoding {Encoding}");
@@ -78,7 +78,7 @@ namespace IceRpc.Slice
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void StartSlice()
         {
-            if (Encoding != IceRpc.Encoding.Slice11)
+            if (Encoding != SliceEncoding.Slice11)
             {
                 throw new InvalidOperationException(
                     $"{nameof(StartSlice)} is not compatible with encoding {Encoding}");
@@ -100,7 +100,7 @@ namespace IceRpc.Slice
         /// <returns>The class instance. Can be null.</returns>
         private AnyClass? DecodeAnyClass()
         {
-            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
+            Debug.Assert(Encoding == SliceEncoding.Slice11);
 
             int index = DecodeSize();
             if (index < 0)
@@ -135,7 +135,7 @@ namespace IceRpc.Slice
 
         private RemoteException DecodeExceptionClass(ResultType resultType)
         {
-            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
+            Debug.Assert(Encoding == SliceEncoding.Slice11);
 
             ReplyStatus replyStatus = ReplyStatus.UserException;
 
