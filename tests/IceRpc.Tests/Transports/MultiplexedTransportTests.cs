@@ -8,52 +8,57 @@ using System.IO.Pipelines;
 namespace IceRpc.Transports.Tests;
 
 /// <summary>Conformance tests for the multiplexed transports.</summary>
-[Timeout(30000)]
+[Timeout(5000)]
 [Parallelizable(ParallelScope.All)]
 public abstract class MultiplexedTransportConformanceTests
 {
     private static readonly ReadOnlyMemory<byte> _oneBytePayload = new(new byte[] { 0xFF });
 
-    private static readonly ReadOnlyMemory<byte> _oneMbPayload = new(
-        Enumerable.Range(0, 1024 * 1024).Select(i => (byte)(i % 256)).ToArray());
-
     [Test]
-    public async Task Accept_stream_from_client_to_server()
+    public async Task Accept_a_stream_initiated_by_the_server_connection()
     {
-        IMultiplexedTransportTestFixture testFixture = CreateMultiplexedTransportTestFixture();
-        await using IListener<IMultiplexedNetworkConnection> listener = testFixture.CreateListener();
-        await using IMultiplexedNetworkConnection clientConnection = testFixture.CreateConnection(listener.Endpoint);
-        await using IMultiplexedNetworkConnection serverConnection = await ConnectAsync(clientConnection, listener);
+        IMultiplexedTransportProvider transportProvider = CreateMultiplexedTransportProvider();
+        await using IListener<IMultiplexedNetworkConnection> listener = transportProvider.CreateListener();
+        await using IMultiplexedNetworkConnection sut = transportProvider.CreateConnection(listener.Endpoint);
+        await using IMultiplexedNetworkConnection serverConnection = await ConnectAndAcceptAsync(sut, listener);
         IMultiplexedStream serverStream = serverConnection.CreateStream(true);
         await serverStream.Output.WriteAsync(_oneBytePayload, default);
 
-        IMultiplexedStream clientStream = await clientConnection.AcceptStreamAsync(default);
+        IMultiplexedStream clientStream = await sut.AcceptStreamAsync(default);
 
         Assert.That(serverStream.Id, Is.EqualTo(clientStream.Id));
+
+        await CompleteStreamAsync(clientStream);
+        await CompleteStreamAsync(serverStream);
     }
 
     [Test]
-    public async Task Accept_stream_from_server_to_client()
+    public async Task Accept_a_stream_initiated_by_the_client_connection()
     {
-        IMultiplexedTransportTestFixture testFixture = CreateMultiplexedTransportTestFixture();
-        await using IListener<IMultiplexedNetworkConnection> listener = testFixture.CreateListener();
-        await using IMultiplexedNetworkConnection clientConnection = testFixture.CreateConnection(listener.Endpoint);
-        await using IMultiplexedNetworkConnection sut = await ConnectAsync(clientConnection, listener);
+        IMultiplexedTransportProvider transportProvider = CreateMultiplexedTransportProvider();
+        await using IListener<IMultiplexedNetworkConnection> listener = transportProvider.CreateListener();
+        await using IMultiplexedNetworkConnection clientConnection =
+            transportProvider.CreateConnection(listener.Endpoint);
+        await using IMultiplexedNetworkConnection sut = await ConnectAndAcceptAsync(clientConnection, listener);
         IMultiplexedStream clientStream = clientConnection.CreateStream(true);
         await clientStream.Output.WriteAsync(_oneBytePayload, default);
 
         IMultiplexedStream serverStream = await sut.AcceptStreamAsync(default);
 
         Assert.That(serverStream.Id, Is.EqualTo(clientStream.Id));
+
+        await CompleteStreamAsync(clientStream);
+        await CompleteStreamAsync(serverStream);
     }
 
     [Test]
-    public async Task Accept_stream_canceled()
+    public async Task Cancel_accept_stream()
     {
-        IMultiplexedTransportTestFixture testFixture = CreateMultiplexedTransportTestFixture();
-        await using IListener<IMultiplexedNetworkConnection> listener = testFixture.CreateListener();
-        await using IMultiplexedNetworkConnection clientConnection = testFixture.CreateConnection(listener.Endpoint);
-        await using IMultiplexedNetworkConnection sut = await ConnectAsync(clientConnection, listener);
+        IMultiplexedTransportProvider transportProvider = CreateMultiplexedTransportProvider();
+        await using IListener<IMultiplexedNetworkConnection> listener = transportProvider.CreateListener();
+        await using IMultiplexedNetworkConnection clientConnection =
+            transportProvider.CreateConnection(listener.Endpoint);
+        await using IMultiplexedNetworkConnection sut = await ConnectAndAcceptAsync(clientConnection, listener);
         using var cancellationSource = new CancellationTokenSource();
         ValueTask<IMultiplexedStream> acceptTask = sut.AcceptStreamAsync(cancellationSource.Token);
 
@@ -65,11 +70,10 @@ public abstract class MultiplexedTransportConformanceTests
     [Test]
     public async Task Complete_stream_with_unflused_bytes_fails()
     {
-        IMultiplexedTransportTestFixture testFixture = CreateMultiplexedTransportTestFixture();
-        await using IListener<IMultiplexedNetworkConnection> listener = testFixture.CreateListener(
-            pauseWriterThreshold: 1024 * 1024);
-        await using IMultiplexedNetworkConnection sut = testFixture.CreateConnection(listener.Endpoint);
-        await using IMultiplexedNetworkConnection serverConnection = await ConnectAsync(sut, listener);
+        IMultiplexedTransportProvider transportProvider = CreateMultiplexedTransportProvider();
+        await using IListener<IMultiplexedNetworkConnection> listener = transportProvider.CreateListener();
+        await using IMultiplexedNetworkConnection sut = transportProvider.CreateConnection(listener.Endpoint);
+        await using IMultiplexedNetworkConnection serverConnection = await ConnectAndAcceptAsync(sut, listener);
         IMultiplexedStream stream = sut.CreateStream(bidirectional: true);
 
         Memory<byte> buffer = stream.Output.GetMemory();
@@ -79,21 +83,22 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     /// <summary>Creates the test fixture that provides the multiplexed transport to test with.</summary>
-    public abstract IMultiplexedTransportTestFixture CreateMultiplexedTransportTestFixture();
+    public abstract IMultiplexedTransportProvider CreateMultiplexedTransportProvider();
 
     [Test]
     public async Task Disposing_the_connection_aborts_the_streams()
     {
-        IMultiplexedTransportTestFixture testFixture = CreateMultiplexedTransportTestFixture();
-        await using IListener<IMultiplexedNetworkConnection> listener = testFixture.CreateListener();
-        await using IMultiplexedNetworkConnection sut = testFixture.CreateConnection(listener.Endpoint);
-        await using IMultiplexedNetworkConnection serverConnection = await ConnectAsync(sut, listener);
+        IMultiplexedTransportProvider transportProvider = CreateMultiplexedTransportProvider();
+        await using IListener<IMultiplexedNetworkConnection> listener = transportProvider.CreateListener();
+        await using IMultiplexedNetworkConnection sut = transportProvider.CreateConnection(listener.Endpoint);
+        await using IMultiplexedNetworkConnection serverConnection = await ConnectAndAcceptAsync(sut, listener);
         IMultiplexedStream clientStream = sut.CreateStream(true);
         await clientStream.Output.WriteAsync(_oneBytePayload);
 
         await sut.DisposeAsync();
 
         Assert.ThrowsAsync<MultiplexedStreamAbortedException>(async () => await clientStream.Input.ReadAsync());
+        await CompleteStreamAsync(clientStream);
     }
 
     [Test]
@@ -102,13 +107,13 @@ public abstract class MultiplexedTransportConformanceTests
         [Values(true, false)] bool bidirectional)
     {
         // Arrange
-        IMultiplexedTransportTestFixture testFixture = CreateMultiplexedTransportTestFixture();
-        await using IListener<IMultiplexedNetworkConnection> listener = testFixture.CreateListener(
+        IMultiplexedTransportProvider transportProvider = CreateMultiplexedTransportProvider();
+        await using IListener<IMultiplexedNetworkConnection> listener = transportProvider.CreateListener(
             bidirectionalStreamMaxCount: bidirectional ? maxStreamCount : null,
             unidirectionalStreamMaxCount: bidirectional ? null : maxStreamCount);
-        await using IMultiplexedNetworkConnection sut = testFixture.CreateConnection(listener.Endpoint);
+        await using IMultiplexedNetworkConnection sut = transportProvider.CreateConnection(listener.Endpoint);
 
-        await using IMultiplexedNetworkConnection serverConnection = await ConnectAsync(sut, listener);
+        await using IMultiplexedNetworkConnection serverConnection = await ConnectAndAcceptAsync(sut, listener);
 
         List<IMultiplexedStream> streams = await CreateStreamsAsync(
             sut,
@@ -133,33 +138,33 @@ public abstract class MultiplexedTransportConformanceTests
     [Test]
     public async Task Stream_full_duplex_communication(
         [Values(1, 16, 32, 64)] int segments,
-        [Values(1, 256, 1024 * 1024)] int payloadSize)
+        [Values(1, 256, 64 * 1024)] int payloadSize)
     {
         // Arrange
-        IMultiplexedTransportTestFixture testFixture = CreateMultiplexedTransportTestFixture();
-        await using IListener<IMultiplexedNetworkConnection> listener = testFixture.CreateListener();
-        await using IMultiplexedNetworkConnection clientConnection = testFixture.CreateConnection(listener.Endpoint);
-        await using IMultiplexedNetworkConnection serverConnection = await ConnectAsync(clientConnection, listener);
+        IMultiplexedTransportProvider transportProvider = CreateMultiplexedTransportProvider();
+        await using IListener<IMultiplexedNetworkConnection> listener = transportProvider.CreateListener();
+        await using IMultiplexedNetworkConnection clientConnection = 
+            transportProvider.CreateConnection(listener.Endpoint);
+        await using IMultiplexedNetworkConnection serverConnection = await ConnectAndAcceptAsync(clientConnection, listener);
 
         IMultiplexedStream clientStream = clientConnection.CreateStream(bidirectional: true);
-        FlushResult result = await clientStream.Output.WriteAsync(_oneBytePayload, default);
+        _ = await clientStream.Output.WriteAsync(_oneBytePayload, default);
         IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
 
         var payload = new ReadOnlyMemory<byte>(
             Enumerable.Range(0, payloadSize).Select(i => (byte)(i % 256)).ToArray());
 
         // Act
-        Task clientWriteTask = WriteAsync(clientStream);
-        Task serverReadTask = ReadAsync(serverStream);
-        Task serverWriteTask = WriteAsync(serverStream);
-        Task clientReadTask = ReadAsync(clientStream);
+        Task clientWriteTask = WriteAsync(clientStream, payload);
+        Task serverReadTask = ReadAsync(serverStream, payload.Length);
+        Task serverWriteTask = WriteAsync(serverStream, payload);
+        Task clientReadTask = ReadAsync(clientStream, payload.Length);
 
         // Assert
         await Task.WhenAll(clientWriteTask, serverWriteTask, clientReadTask, serverReadTask);
 
-        async Task ReadAsync(IMultiplexedStream stream)
+        async Task ReadAsync(IMultiplexedStream stream, long size)
         {
-            long size = payload.Length * segments;
             while (size > 0)
             {
                 ReadResult readResult = await stream.Input.ReadAsync();
@@ -169,7 +174,7 @@ public abstract class MultiplexedTransportConformanceTests
             await stream.Input.CompleteAsync();
         }
 
-        async Task WriteAsync(IMultiplexedStream stream)
+        async Task WriteAsync(IMultiplexedStream stream, ReadOnlyMemory<byte> payload)
         {
             for (int i = 0; i < segments; ++i)
             {
@@ -180,84 +185,11 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     [Test]
-    public async Task Stream_write_blocks_after_consuming_the_send_credit()
-    {
-        IMultiplexedTransportTestFixture testFixture = CreateMultiplexedTransportTestFixture();
-        await using IListener<IMultiplexedNetworkConnection> listener = testFixture.CreateListener(
-            pauseWriterThreshold: 1024 * 1024);
-        await using IMultiplexedNetworkConnection sut = testFixture.CreateConnection(listener.Endpoint);
-        await using IMultiplexedNetworkConnection serverConnection = await ConnectAsync(sut, listener);
-        IMultiplexedStream stream = sut.CreateStream(bidirectional: true);
-        FlushResult result = await stream.Output.WriteAsync(_oneMbPayload, default);
-
-        ValueTask<FlushResult> writeTask = stream.Output.WriteAsync(_oneMbPayload, default);
-
-        await Task.Delay(TimeSpan.FromMilliseconds(50));
-        Assert.That(writeTask.IsCompleted, Is.False);
-    }
-
-    [Test]
-    public async Task Stream_write_blocking_does_not_affect_concurrent_streams()
-    {
-        // Arrange
-        IMultiplexedTransportTestFixture testFixture = CreateMultiplexedTransportTestFixture();
-        await using IListener<IMultiplexedNetworkConnection> listener = testFixture.CreateListener(
-            pauseWriterThreshold: 1024 * 1024);
-        await using IMultiplexedNetworkConnection sut = testFixture.CreateConnection(listener.Endpoint);
-        await using IMultiplexedNetworkConnection serverConnection = await ConnectAsync(sut, listener);
-        IMultiplexedStream stream1 = sut.CreateStream(bidirectional: true);
-        IMultiplexedStream stream2 = sut.CreateStream(bidirectional: true);
-
-        FlushResult result = await stream1.Output.WriteAsync(_oneMbPayload, default);
-        ValueTask<FlushResult> writeTask = stream1.Output.WriteAsync(_oneMbPayload, default);
-
-        // Act
-
-        // stream1 consumed all its send credit, this shouldn't affect stream2
-        result = await stream2.Output.WriteAsync(_oneMbPayload, default);
-
-        // Assert
-        IMultiplexedStream serverStream1 = await serverConnection.AcceptStreamAsync(default);
-        IMultiplexedStream serverStream2 = await serverConnection.AcceptStreamAsync(default);
-        Assert.That(stream2.Id, Is.EqualTo(serverStream2.Id));
-        ReadResult readResult = await serverStream2.Input.ReadAtLeastAsync(1024 * 1024);
-        Assert.That(readResult.IsCanceled, Is.False);
-        serverStream2.Input.AdvanceTo(readResult.Buffer.End);
-        await Task.Delay(TimeSpan.FromMilliseconds(50));
-        Assert.That(writeTask.IsCompleted, Is.False);
-    }
-
-    [Test]
-    public async Task Write_resumes_after_reaching_the_resume_writer_threshold()
-    {
-        // Arrange
-        IMultiplexedTransportTestFixture testFixture = CreateMultiplexedTransportTestFixture();
-        await using IListener<IMultiplexedNetworkConnection> listener = testFixture.CreateListener(
-            pauseWriterThreshold: 1024 * 1024,
-            resumeWriterThreshold: 1024 * 512);
-        await using IMultiplexedNetworkConnection sut = testFixture.CreateConnection(listener.Endpoint);
-        await using IMultiplexedNetworkConnection serverConnection = await ConnectAsync(sut, listener);
-
-        IMultiplexedStream stream = sut.CreateStream(bidirectional: true);
-
-        FlushResult result = await stream.Output.WriteAsync(_oneMbPayload, default);
-        IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
-        ValueTask<FlushResult> writeTask = stream.Output.WriteAsync(_oneMbPayload, default);
-        ReadResult readResult = await serverStream.Input.ReadAtLeastAsync(1536 * 1024, default);
-
-        // Act
-        serverStream.Input.AdvanceTo(readResult.Buffer.GetPosition(1536 * 1024));
-
-        // Assert
-        Assert.That(async () => await writeTask, Throws.Nothing);
-    }
-
-    [Test]
     public async Task Write_to_a_stream_before_calling_connect_fails()
     {
-        IMultiplexedTransportTestFixture testFixture = CreateMultiplexedTransportTestFixture();
-        await using IListener<IMultiplexedNetworkConnection> listener = testFixture.CreateListener();
-        await using IMultiplexedNetworkConnection sut = testFixture.CreateConnection(listener.Endpoint);
+        IMultiplexedTransportProvider transportProvider = CreateMultiplexedTransportProvider();
+        await using IListener<IMultiplexedNetworkConnection> listener = transportProvider.CreateListener();
+        await using IMultiplexedNetworkConnection sut = transportProvider.CreateConnection(listener.Endpoint);
         IMultiplexedStream stream = sut.CreateStream(bidirectional: true);
 
         Assert.That(
@@ -265,7 +197,7 @@ public abstract class MultiplexedTransportConformanceTests
             Throws.TypeOf<InvalidOperationException>());
     }
 
-    private static async Task<IMultiplexedNetworkConnection> ConnectAsync(
+    private static async Task<IMultiplexedNetworkConnection> ConnectAndAcceptAsync(
         IMultiplexedNetworkConnection connection,
         IListener<IMultiplexedNetworkConnection> listener)
     {
@@ -312,15 +244,13 @@ public abstract class MultiplexedTransportConformanceTests
         }
     }
 
-    public interface IMultiplexedTransportTestFixture
+    public interface IMultiplexedTransportProvider
     {
         /// <summary>Creates a listener using the underlying multiplexed server transport.</summary>
         /// <param name="endpoint">The listener endpoint</param>
         /// <returns>The listener.</returns>
         IListener<IMultiplexedNetworkConnection> CreateListener(
             Endpoint? endpoint = null,
-            int? pauseWriterThreshold = null,
-            int? resumeWriterThreshold = null,
             int? bidirectionalStreamMaxCount = null,
             int? unidirectionalStreamMaxCount = null);
 
@@ -330,12 +260,12 @@ public abstract class MultiplexedTransportConformanceTests
         IMultiplexedNetworkConnection CreateConnection(Endpoint endpoint);
     }
 
-    public class SlicMultiplexedTransportTestFixture : IMultiplexedTransportTestFixture
+    public class SlicMultiplexedTransporttransportProvider : IMultiplexedTransportProvider
     {
         private readonly SlicServerTransportOptions? _slicServerOptions;
         private readonly SlicClientTransportOptions? _slicClientOptions;
 
-        public SlicMultiplexedTransportTestFixture(
+        public SlicMultiplexedTransporttransportProvider(
             SlicServerTransportOptions serverTransportOptions,
             SlicClientTransportOptions clientTransportOptions)
         {
@@ -352,26 +282,10 @@ public abstract class MultiplexedTransportConformanceTests
 
         public IListener<IMultiplexedNetworkConnection> CreateListener(
             Endpoint? endpoint = null,
-            int? pauseWriterThreshold = null,
-            int? resumeWriterThreshold = null,
             int? bidirectionalStreamMaxCount = null,
             int? unidirectionalStreamMaxCount = null)
         {
             SlicServerTransportOptions options = _slicServerOptions ?? new SlicServerTransportOptions();
-
-            endpoint ??= options.SimpleServerTransport is TcpServerTransport ?
-                Endpoint.FromString("icerpc://127.0.0.1:0/") :
-                Endpoint.FromString($"icerpc://{Guid.NewGuid()}/");
-
-            if (pauseWriterThreshold != null)
-            {
-                options.PauseWriterThreshold = pauseWriterThreshold.Value;
-            }
-
-            if (resumeWriterThreshold != null)
-            {
-                options.ResumeWriterThreshold = resumeWriterThreshold.Value;
-            }
 
             if (bidirectionalStreamMaxCount != null)
             {
@@ -385,37 +299,23 @@ public abstract class MultiplexedTransportConformanceTests
 
             options.SimpleServerTransport ??= new TcpServerTransport();
             var transport = new SlicServerTransport(options);
-            return transport.Listen(endpoint.Value, null, NullLogger.Instance);
+            return transport.Listen(
+                 endpoint ?? Endpoint.FromString($"icerpc://{Guid.NewGuid()}/"),
+                 null,
+                 NullLogger.Instance);
         }
     }
 }
 
-[Timeout(30000)]
-[Parallelizable(ParallelScope.All)]
-public class SlicOverTcpConformanceTests : MultiplexedTransportConformanceTests
-{
-    /// <summary>The multiplexed transports for conformance testing.</summary>
-    public override IMultiplexedTransportTestFixture CreateMultiplexedTransportTestFixture() =>
-        new SlicMultiplexedTransportTestFixture(
-            new SlicServerTransportOptions
-            {
-                SimpleServerTransport = new TcpServerTransport()
-            },
-            new SlicClientTransportOptions
-            {
-                SimpleClientTransport = new TcpClientTransport()
-            });
-}
-
-[Timeout(30000)]
+[Timeout(5000)]
 [Parallelizable(ParallelScope.All)]
 public class SlicOverColocConformanceTests : MultiplexedTransportConformanceTests
 {
     /// <summary>The multiplexed transports for conformance testing.</summary>
-    public override IMultiplexedTransportTestFixture CreateMultiplexedTransportTestFixture()
+    public override IMultiplexedTransportProvider CreateMultiplexedTransportProvider()
     {
         var coloc = new ColocTransport();
-        return new SlicMultiplexedTransportTestFixture(
+        return new SlicMultiplexedTransporttransportProvider(
             new SlicServerTransportOptions
             {
                 SimpleServerTransport = coloc.ServerTransport
