@@ -77,6 +77,7 @@ public class InvocationTests
 
     /// <summary>Verifies that the invocation is canceled after the <see cref="Invocation.Timeout"/> expires.</summary>
     [Test]
+    [NonParallelizable]
     public void Invocation_is_canceled_after_the_timeout_expires()
     {
         // Arrange
@@ -88,7 +89,7 @@ public class InvocationTests
             {
                 hasDeadline = request.Fields.ContainsKey(RequestFieldKey.Deadline);
                 cancellationToken = cancel;
-                await Task.Delay(TimeSpan.FromSeconds(5), cancel);
+                await Task.Delay(TimeSpan.FromMilliseconds(100), cancel);
                 return new IncomingResponse(request);
             }),
         };
@@ -101,7 +102,7 @@ public class InvocationTests
                 EmptyPipeReader.Instance,
                 null,
                 SliceDecoder.GetActivator(typeof(InvocationTests).Assembly),
-                new Invocation { Timeout = TimeSpan.FromMilliseconds(50) }),
+                new Invocation { Timeout = TimeSpan.FromMilliseconds(20) }),
             Throws.TypeOf<TaskCanceledException>());
 
         // Assert
@@ -114,6 +115,7 @@ public class InvocationTests
     /// <summary>Verifies that the invocation timeout value set in the <see cref="Invocation.Timeout"/> prevails over
     /// the invocation timeout value previously set with the <see cref="TimeoutInterceptor"/>.</summary>
     [Test]
+    [NonParallelizable]
     public async Task Invocation_timeout_value_prevails_over_invoker_timeout_interceptor()
     {
         // Arrange
@@ -138,7 +140,7 @@ public class InvocationTests
             new Invocation() { Timeout = invocationTimeout });
 
         // Assert
-        Assert.That(Math.Abs((deadline - expectedDeadline).TotalMilliseconds), Is.LessThanOrEqualTo(100));
+        Assert.That(Math.Abs((deadline - expectedDeadline).TotalMilliseconds), Is.LessThanOrEqualTo(10));
     }
 
     /// <summary>Verifies that when using an infinite invocation timeout the cancellation token passed to the invoker
