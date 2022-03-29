@@ -1,7 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice.Internal;
+using IceRpc.Tests;
 using NUnit.Framework;
+using System.IO.Pipelines;
+using System.Buffers;
+using IceRpc.Internal;
 
 namespace IceRpc.Slice.Tests;
 
@@ -31,5 +35,47 @@ public class DecodeStringTests
 
         Assert.That(r1, Is.EqualTo(testString));
         Assert.That(sut.Consumed, Is.EqualTo(encodedString.Length));
+    }
+
+    [Test]
+    public void Decode_single_segment_non_utf8_string_fails()
+    {
+        Assert.That(() =>
+        {
+            var encodedString = new byte[] { 0x08, 0xFD, 0xFF }; // Byte array for unicode char \uD800
+            var sut = new SliceDecoder(encodedString, Encoding.Slice20);
+
+            sut.DecodeString();
+        }, Throws.InstanceOf<InvalidDataException>());
+    }
+
+    [Test]
+    public void Decode_multi_segment_non_utf8_string_fails()
+    {
+        Assert.That(() =>
+        {
+            // Arrange
+            // A custom memory pool with a tiny max buffer size
+            using var customPool = new TestMemoryPool(7);
+
+            // minimumSegmentSize is not the same as the sizeHint given to GetMemory/GetSpan; it refers to the
+            // minBufferSize given to Rent
+            var pipe = new Pipe(new PipeOptions(pool: customPool, minimumSegmentSize: 5));
+            var p1 = System.Text.Encoding.UTF8.GetBytes("This is a bad string with unicode characters");
+            var badBytes = new byte[] { 0xFE, 0xFF };
+            var size = p1.Length + badBytes.Length;
+
+            pipe.Writer.Write(new byte[] { (byte)(size << 2) });
+            pipe.Writer.Write(p1);
+            pipe.Writer.Write(badBytes);
+            pipe.Writer.Complete();
+            pipe.Reader.TryRead(out ReadResult readResult);
+
+            var sut = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice20);
+
+            // Act
+            var result = sut.DecodeString();
+
+        }, Throws.InstanceOf<InvalidDataException>());
     }
 }
