@@ -252,7 +252,7 @@ public class ProxyTests
     {
         var proxy = new Proxy(Protocol.Ice) { Path = path };
 
-        string iceProxyString = proxy.ToString(format)[..^3]; // trim " -t"
+        string iceProxyString = proxy.ToString(format);
 
         Assert.That(iceProxyString, Is.EqualTo(expected));
     }

@@ -425,9 +425,6 @@ namespace IceRpc
                 }
             }
 
-            // TODO: should we just remove it since it's the default?
-            sb.Append(" -t");
-
             if (proxy.Endpoint == null)
             {
                 if (proxy.Params.TryGetValue("adapter-id", out string? adapterId))
