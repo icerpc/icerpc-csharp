@@ -110,9 +110,7 @@ namespace IceRpc
                         exception = ex;
 
                         // ConnectionClosedException is a graceful connection closure that is always safe to retry.
-                        if (ex is ConnectionClosedException ||
-                            (ex is TransportException &&
-                                (request.Fields.ContainsKey(RequestFieldKey.Idempotent) || !request.IsSent)))
+                        if (request.Fields.ContainsKey(RequestFieldKey.Idempotent) || !request.IsSent)
                         {
                             retryPolicy = RetryPolicy.Immediately;
                         }

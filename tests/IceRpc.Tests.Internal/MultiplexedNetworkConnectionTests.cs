@@ -57,7 +57,7 @@ namespace IceRpc.Tests.Internal
         {
             ValueTask<IMultiplexedStream> acceptStreamTask = _serverConnection.AcceptStreamAsync(default);
             await _clientConnection.DisposeAsync();
-            Assert.ThrowsAsync<ObjectDisposedException>(async () => await acceptStreamTask);
+            Assert.ThrowsAsync<ConnectionLostException>(async () => await acceptStreamTask);
         }
 
         [Test]
@@ -68,7 +68,7 @@ namespace IceRpc.Tests.Internal
 
             await _clientConnection.DisposeAsync();
 
-            Assert.ThrowsAsync<MultiplexedStreamAbortedException>(async () => await clientStream.Input.ReadAsync());
+            Assert.ThrowsAsync<ObjectDisposedException>(async () => await clientStream.Input.ReadAsync());
 
             // Can't create new stream
             clientStream = _clientConnection.CreateStream(true);
@@ -98,13 +98,6 @@ namespace IceRpc.Tests.Internal
             ValueTask<IMultiplexedStream> acceptTask = _serverConnection.AcceptStreamAsync(source.Token);
             source.Cancel();
             Assert.ThrowsAsync<OperationCanceledException>(async () => await acceptTask);
-        }
-
-        [Test]
-        public async Task MultiplexedNetworkConnection_AcceptStream_DisposeAsync()
-        {
-            await _clientConnection.DisposeAsync();
-            Assert.CatchAsync<ObjectDisposedException>(async () => await _serverConnection.AcceptStreamAsync(default));
         }
 
         [TestCase(false)]
@@ -294,7 +287,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiplexedNetworkConnection_SendAsync_Failure()
+        public async Task MultiplexedNetworkConnection_SendAsync_FailureOnClient()
         {
             IMultiplexedStream stream = _clientConnection.CreateStream(false);
             await _clientConnection.DisposeAsync();
@@ -303,7 +296,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiplexedNetworkConnection_SendAsync_FailureAsync()
+        public async Task MultiplexedNetworkConnection_SendAsync_FailureOnServer()
         {
             IMultiplexedStream clientStream = _clientConnection.CreateStream(true);
             await clientStream.Output.WriteAsync(new byte[10], true, default);
@@ -311,10 +304,24 @@ namespace IceRpc.Tests.Internal
             IMultiplexedStream serverStream = await _serverConnection.AcceptStreamAsync(default);
             ReadResult readResult = await serverStream.Input.ReadAsync();
             Assert.That(readResult.IsCompleted, Is.True);
-            await _serverConnection.DisposeAsync();
+            await _clientConnection.DisposeAsync();
 
-            Assert.CatchAsync<MultiplexedStreamAbortedException>(
-                async () => await serverStream.Output.WriteAsync(new byte[10], true, default));
+            Exception exception;
+            try
+            {
+                // It might take few writes to detect the peer's connection disposal.
+                while(true)
+                {
+                    await serverStream.Output.WriteAsync(new byte[10], true, default);
+                    await Task.Delay(50);
+                }
+            }
+            catch (Exception ex)
+            {
+                exception = ex;
+            }
+
+            Assert.That(exception, Is.InstanceOf<ConnectionLostException>());
         }
     }
 }

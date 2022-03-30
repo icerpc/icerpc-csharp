@@ -69,24 +69,8 @@ namespace IceRpc.Internal
             while (true)
             {
                 // Accepts a new stream.
-                IMultiplexedStream stream;
-                try
-                {
-                    stream = await _networkConnection.AcceptStreamAsync(CancellationToken.None).ConfigureAwait(false);
-                }
-                catch
-                {
-                    lock (_mutex)
-                    {
-                        if (_shuttingDown && _invocations.Count == 0 && _dispatches.Count == 0)
-                        {
-                            // The connection was gracefully shut down, raise ConnectionClosedException here to ensure
-                            // that the ClosedEvent will report this exception instead of the transport failure.
-                            throw new ConnectionClosedException("connection gracefully shut down");
-                        }
-                    }
-                    throw;
-                }
+                IMultiplexedStream stream = await _networkConnection.AcceptStreamAsync(
+                    CancellationToken.None).ConfigureAwait(false);
 
                 IceRpcRequestHeader header;
                 IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields;
@@ -176,7 +160,7 @@ namespace IceRpc.Internal
                             _lastRemoteUnidirectionalStreamId = stream.Id;
                         }
 
-                        stream.ShutdownAction = () =>
+                        stream.OnShutdown(() =>
                         {
                             // TODO: review stream shutdown (see #930)
 
@@ -204,7 +188,7 @@ namespace IceRpc.Internal
                                     _dispatchesAndInvocationsCompleted.SetResult();
                                 }
                             }
-                        };
+                        });
                     }
                 }
 
@@ -360,7 +344,7 @@ namespace IceRpc.Internal
                         {
                             _invocations.Add(stream);
 
-                            stream.ShutdownAction = () =>
+                            stream.OnShutdown(() =>
                             {
                                 // TODO: review stream shutdown (see #930)
 
@@ -374,7 +358,7 @@ namespace IceRpc.Internal
                                         _dispatchesAndInvocationsCompleted.SetResult();
                                     }
                                 }
-                            };
+                            });
                         }
                     }
                 }

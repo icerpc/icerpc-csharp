@@ -109,17 +109,50 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task SimpleNetworkConnection_DisposeAsync()
         {
-            await _clientConnection!.DisposeAsync();
-            await _serverConnection!.DisposeAsync();
-
             Memory<byte> buffer = new byte[1];
             var buffers = new ReadOnlyMemory<byte>[] { buffer };
 
-            Assert.CatchAsync<ObjectDisposedException>(async () => await _clientConnection.WriteAsync(buffers, default));
-            Assert.CatchAsync<ObjectDisposedException>(async () => await _clientConnection.ReadAsync(buffer, default));
+            ValueTask<int> serverReadTask = _serverConnection.ReadAsync(buffer, default);
+            ValueTask<int> clientReadTask = _clientConnection.ReadAsync(buffer, default);
 
-            Assert.CatchAsync<ObjectDisposedException>(async () => await _serverConnection.WriteAsync(buffers, default));
-            Assert.CatchAsync<ObjectDisposedException>(async () => await _serverConnection.ReadAsync(buffer, default));
+            await _clientConnection!.DisposeAsync();
+
+            ValueTask clientWriteTask = _clientConnection.WriteAsync(buffers, default);
+            ValueTask serverWriteTask = _serverConnection.WriteAsync(buffers, default);
+
+            Assert.CatchAsync<ObjectDisposedException>(async () => await clientReadTask);
+            Assert.CatchAsync<ObjectDisposedException>(async () => await clientWriteTask);
+
+            Exception readException;
+            try
+            {
+                while (true)
+                {
+                    await _serverConnection.ReadAsync(buffer, default);
+                    await Task.Delay(50);
+                }
+            }
+            catch (Exception ex)
+            {
+                readException = ex;
+            }
+
+            Exception writeException;
+            try
+            {
+                while (true)
+                {
+                    await _serverConnection.WriteAsync(buffers, default);
+                    await Task.Delay(50);
+                }
+            }
+            catch (Exception ex)
+            {
+                writeException = ex;
+            }
+
+            Assert.That(readException, Is.InstanceOf<ConnectionLostException>());
+            Assert.That(writeException, Is.InstanceOf<ConnectionLostException>());
         }
     }
 }

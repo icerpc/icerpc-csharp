@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
@@ -49,20 +50,7 @@ namespace IceRpc.Transports.Internal
                 }
 
                 _pipe.Writer.Complete(exception);
-
-                // Don't complete the reader if it's being used concurrently for sending a frame. It will be completed
-                // once the reading terminates.
-                if (_state.TrySetFlag(State.PipeReaderCompleted))
-                {
-                    if (_state.HasFlag(State.PipeReaderInUse))
-                    {
-                        _exception = exception;
-                    }
-                    else
-                    {
-                        _pipe.Reader.Complete(exception);
-                    }
-                }
+                CompletePipeReader(exception);
             }
         }
 
@@ -85,18 +73,9 @@ namespace IceRpc.Transports.Internal
         {
             CheckIfCompleted();
 
-            if (_stream.WritesCompleted)
+            if (_state.HasFlag(State.PipeReaderCompleted))
             {
-                if (_stream.ResetError is long error &&
-                    error.ToSlicError() is SlicStreamError slicError &&
-                    slicError != SlicStreamError.NoError)
-                {
-                    throw new MultiplexedStreamAbortedException(error);
-                }
-                else
-                {
-                    return new FlushResult(isCanceled: false, isCompleted: true);
-                }
+                return GetFlushResult();
             }
 
             if (_pipe.Writer.UnflushedBytes > 0)
@@ -108,14 +87,14 @@ namespace IceRpc.Transports.Internal
 
                 try
                 {
-                    if (_state.HasFlag(State.PipeReaderCompleted))
-                    {
-                        return new FlushResult(isCanceled: false, isCompleted: true);
-                    }
-
                     // Flush the internal pipe. It can be completed if the peer sent the stop sending frame.
-                    FlushResult flushResult = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-                    if (flushResult.IsCompleted)
+                    FlushResult flushResult = await _pipe.Writer.FlushAsync(
+                        CancellationToken.None).ConfigureAwait(false);
+                    if (flushResult.IsCanceled)
+                    {
+                        return GetFlushResult();
+                    }
+                    else if (flushResult.IsCompleted)
                     {
                         return flushResult;
                     }
@@ -167,6 +146,22 @@ namespace IceRpc.Transports.Internal
                 // deflate compressor might do this.
                 return new FlushResult(isCanceled: false, isCompleted: false);
             }
+
+            FlushResult GetFlushResult()
+            {
+                if (_exception != null)
+                {
+                    throw ExceptionUtil.Throw(_exception);
+                }
+                else if (_state.HasFlag(State.PipeReaderCompleted))
+                {
+                    return new FlushResult(isCanceled: false, isCompleted: true);
+                }
+                else
+                {
+                    return new FlushResult(isCanceled: true, isCompleted: false);
+                }
+            }
         }
 
         internal SlicPipeWriter(SlicMultiplexedStream stream, MemoryPool<byte> pool, int minimumSegmentSize)
@@ -183,21 +178,10 @@ namespace IceRpc.Transports.Internal
                 writerScheduler: PipeScheduler.Inline));
         }
 
-        internal void ReceivedStopSendingFrame(long error)
-        {
-            // TODO: Look into canceling the _stream.SendStreamFrameAsync() call if it's pending?
-            if (_state.TrySetFlag(State.PipeReaderCompleted))
-            {
-                _exception = error.ToSlicError() == SlicStreamError.NoError ?
-                    null :
-                    new MultiplexedStreamAbortedException(error);
+        internal void Abort(Exception exception) => CompletePipeReader(exception);
 
-                if (!_state.HasFlag(State.PipeReaderCompleted))
-                {
-                    _pipe.Reader.Complete(_exception);
-                }
-            }
-        }
+        internal void ReceivedStopSendingFrame(long error) => CompletePipeReader(
+            error == SlicStreamError.NoError.ToError() ? null : new MultiplexedStreamAbortedException(error));
 
         private void CheckIfCompleted()
         {
@@ -206,6 +190,24 @@ namespace IceRpc.Transports.Internal
                 // If the writer is completed, the caller is bogus, it shouldn't call writer operations after completing
                 // the pipe writer.
                 throw new InvalidOperationException("writing is not allowed once the writer is completed");
+            }
+        }
+
+        private void CompletePipeReader(Exception? exception)
+        {
+            // Don't complete the reader if it's being used concurrently for sending a frame. It will be completed
+            // once the reading terminates.
+            if (_state.TrySetFlag(State.PipeReaderCompleted))
+            {
+                _exception = exception;
+                if (!_state.HasFlag(State.PipeReaderInUse))
+                {
+                    _pipe.Reader.Complete(exception);
+                }
+                else if (!_state.HasFlag(State.Completed))
+                {
+                    _pipe.Writer.CancelPendingFlush();
+                }
             }
         }
 

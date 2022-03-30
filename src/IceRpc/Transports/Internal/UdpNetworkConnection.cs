@@ -109,7 +109,7 @@ namespace IceRpc.Transports.Internal
             }
             catch (SocketException ex)
             {
-                throw ex.ToTransportException(cancel);
+                throw ex.ToTransportException();
             }
         }
 
@@ -145,7 +145,7 @@ namespace IceRpc.Transports.Internal
             }
             catch (SocketException ex)
             {
-                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
+                throw ExceptionUtil.Throw(ex.ToTransportException());
             }
         }
 
@@ -270,7 +270,7 @@ namespace IceRpc.Transports.Internal
             }
             catch (SocketException ex)
             {
-                throw ex.ToTransportException(cancel);
+                throw ex.ToTransportException();
             }
         }
 
