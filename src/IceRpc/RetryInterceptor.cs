@@ -51,10 +51,10 @@ namespace IceRpc
 
             bool tryAgain;
 
-            var decorator = new ResettablePipeReaderDecorator(request.PayloadSource);
+            var decorator = new ResettablePipeReaderDecorator(request.Payload);
             await using var _ = decorator.ConfigureAwait(false);
 
-            request.PayloadSource = decorator;
+            request.Payload = decorator;
 
             try
             {
@@ -110,7 +110,9 @@ namespace IceRpc
                         exception = ex;
 
                         // ConnectionClosedException is a graceful connection closure that is always safe to retry.
-                        if (request.Fields.ContainsKey(RequestFieldKey.Idempotent) || !request.IsSent)
+                        if (ex is ConnectionClosedException ||
+                            request.Fields.ContainsKey(RequestFieldKey.Idempotent) ||
+                            !request.IsSent)
                         {
                             retryPolicy = RetryPolicy.Immediately;
                         }

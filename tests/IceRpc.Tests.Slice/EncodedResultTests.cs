@@ -108,12 +108,6 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) =>
                 new(new IEncodedResultOperations.OpStringDict2EncodedResult(p1, p1, dispatch));
-
-            public ValueTask<IEncodedResultOperations.OpMyClassAEncodedResult> OpMyClassAAsync(
-                MyClassA p1,
-                Dispatch dispatch,
-                CancellationToken cancel) =>
-                new(new IEncodedResultOperations.OpMyClassAEncodedResult(p1));
         }
     }
 }

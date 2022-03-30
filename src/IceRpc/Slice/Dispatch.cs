@@ -32,9 +32,6 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>The encoding used by the request.</summary>
-        public Encoding Encoding => Request.PayloadEncoding;
-
         /// <summary>The features associated with the request.</summary>
         public FeatureCollection Features
         {

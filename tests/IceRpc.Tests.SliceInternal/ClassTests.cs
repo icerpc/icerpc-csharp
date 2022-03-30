@@ -38,10 +38,6 @@ namespace IceRpc.Tests.SliceInternal
             _sliced = SlicedFormatOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
             _compact = CompactFormatOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
             _classformat = ClassFormatOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
-
-            _sliced.Proxy.Encoding = Encoding.Slice11;
-            _compact.Proxy.Encoding = Encoding.Slice11;
-            _classformat.Proxy.Encoding = Encoding.Slice11;
         }
 
         [OneTimeTearDown]
@@ -55,10 +51,10 @@ namespace IceRpc.Tests.SliceInternal
 
             pipeline1.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
+                ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
 
                 DecodeBefore(readResult.Buffer);
-                request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
+                request.Payload.AdvanceTo(readResult.Buffer.Start);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 readResult = await response.Payload.ReadAllAsync(cancel);
                 DecodeAfter(readResult.Buffer);
@@ -68,7 +64,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, Encoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -79,7 +75,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, Encoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -94,9 +90,9 @@ namespace IceRpc.Tests.SliceInternal
             var prx2 = new CompactFormatOperationsPrx(_compact.Proxy with { Invoker = pipeline2 });
             pipeline2.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
+                ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
                 DecodeBefore(readResult.Buffer);
-                request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
+                request.Payload.AdvanceTo(readResult.Buffer.Start);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 readResult = await response.Payload.ReadAllAsync(cancel);
                 DecodeAfter(readResult.Buffer);
@@ -105,7 +101,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, Encoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -116,7 +112,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, Encoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -131,9 +127,9 @@ namespace IceRpc.Tests.SliceInternal
             var prx3 = new ClassFormatOperationsPrx(_classformat.Proxy with { Invoker = pipeline3 });
             pipeline3.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
+                ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
                 DecodeBefore(readResult.Buffer);
-                request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
+                request.Payload.AdvanceTo(readResult.Buffer.Start);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 readResult = await response.Payload.ReadAllAsync(cancel);
                 DecodeAfter(readResult.Buffer);
@@ -142,7 +138,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, Encoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -153,7 +149,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, Encoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -168,9 +164,9 @@ namespace IceRpc.Tests.SliceInternal
             prx3.Proxy.Invoker = pipeline4;
             pipeline4.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
+                ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
                 DecodeBefore(readResult.Buffer);
-                request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
+                request.Payload.AdvanceTo(readResult.Buffer.Start);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 readResult = await response.Payload.ReadAllAsync(cancel);
                 DecodeAfter(readResult.Buffer);
@@ -180,7 +176,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, Encoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -191,7 +187,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, Encoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -224,7 +220,6 @@ namespace IceRpc.Tests.SliceInternal
                 .BuildServiceProvider();
 
             var prx = ClassGraphOperationsPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
-            prx.Proxy.Encoding = Encoding.Slice11;
 
             var pipeline = new Pipeline();
             pipeline.UseFeature(new SliceDecodePayloadOptions { MaxDepth = clientMaxDepth });

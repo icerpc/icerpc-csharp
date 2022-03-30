@@ -57,7 +57,7 @@ namespace IceRpc.Slice
         /// <param name="v">The dispatch exception to encode.</param>
         public void EncodeDispatchExceptionAsSystemException(DispatchException v)
         {
-            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
+            Debug.Assert(Encoding == SliceEncoding.Slice11);
 
             DispatchErrorCode errorCode = v.ErrorCode;
 

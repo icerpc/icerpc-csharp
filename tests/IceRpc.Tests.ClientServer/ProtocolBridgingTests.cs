@@ -25,7 +25,6 @@ namespace IceRpc.Tests.ClientServer
         public async Task ProtocolBridging_Forward(string forwarderProtocol, string targetProtocol, bool colocated)
         {
             var router = new Router();
-
             var targetServiceCollection = new IntegrationTestServiceCollection();
             var forwarderServiceCollection = new IntegrationTestServiceCollection();
 
@@ -127,7 +126,6 @@ namespace IceRpc.Tests.ClientServer
             {
                 var proxy = new Proxy(dispatch.Protocol) { Path = dispatch.Path };
                 proxy.Endpoint = dispatch.Connection.NetworkConnectionInformation?.LocalEndpoint;
-                proxy.Encoding = dispatch.Encoding; // use the request's encoding instead of the server's encoding.
                 return new(new ProtocolBridgingTestPrx(proxy));
             }
 
@@ -172,8 +170,7 @@ namespace IceRpc.Tests.ClientServer
                                 new OutgoingFieldValue(pair.Value)))),
                     IsOneway = incomingRequest.IsOneway,
                     Operation = incomingRequest.Operation,
-                    PayloadEncoding = incomingRequest.PayloadEncoding,
-                    PayloadSource = incomingRequest.Payload
+                    Payload = incomingRequest.Payload
                 };
 
                 // Then invoke
@@ -191,6 +188,7 @@ namespace IceRpc.Tests.ClientServer
                     try
                     {
                         await incomingResponse.CheckVoidReturnValueAsync(
+                            SliceEncoding.Slice20,
                             _activator,
                             hasStream: false,
                             cancel).ConfigureAwait(false);
@@ -213,7 +211,7 @@ namespace IceRpc.Tests.ClientServer
                 return new OutgoingResponse(incomingRequest)
                 {
                     Fields = fields,
-                    PayloadSource = incomingResponse.Payload,
+                    Payload = incomingResponse.Payload,
                     ResultType = incomingResponse.ResultType
                 };
             }

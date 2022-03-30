@@ -20,7 +20,7 @@ public class DecodeNumericTypesTests
     [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F }, long.MaxValue)]
     public void Decode_long_value(byte[] encodedBytes, long expected)
     {
-        var sut = new SliceDecoder(encodedBytes, Encoding.Slice20);
+        var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice20);
 
         long r1 = sut.DecodeLong();
 
@@ -41,7 +41,7 @@ public class DecodeNumericTypesTests
     [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F }, SliceEncoder.VarLongMaxValue)]
     public void Decode_varlong_value(byte[] encodedBytes, long expected)
     {
-        var sut = new SliceDecoder(encodedBytes, Encoding.Slice20);
+        var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice20);
 
         long r1 = sut.DecodeVarLong();
 
@@ -58,7 +58,7 @@ public class DecodeNumericTypesTests
     {
         Assert.That(() =>
         {
-            var sut = new SliceDecoder(encodedBytes, Encoding.Slice20);
+            var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice20);
 
             sut.DecodeVarInt();
         }, Throws.InstanceOf<InvalidDataException>());
@@ -74,7 +74,7 @@ public class DecodeNumericTypesTests
     [TestCase(new byte[] { 0x02, 0x00, 0x01, 0x00 }, (ulong)16384)]
     public void Decode_varulong_value(byte[] encodedBytes, ulong expected)
     {
-        var sut = new SliceDecoder(encodedBytes, Encoding.Slice20);
+        var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice20);
 
         ulong r1 = sut.DecodeVarULong();
 
@@ -92,10 +92,10 @@ public class DecodeNumericTypesTests
         {
             var buffer = new byte[256];
             var bufferWriter = new MemoryBufferWriter(buffer);
-            var encoder = new SliceEncoder(bufferWriter, Encoding.Slice20);
+            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice20);
             encoder.EncodeVarULong(value);
             var encodedBytes = buffer[0..bufferWriter.WrittenMemory.Length];
-            var sut = new SliceDecoder(encodedBytes, Encoding.Slice20);
+            var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice20);
 
             sut.DecodeVarUInt();
         }, Throws.InstanceOf<InvalidDataException>());
@@ -112,7 +112,7 @@ public class DecodeNumericTypesTests
     [TestCase(new byte[] { 0xFF, 0xE8, 0x03, 0x00, 0x00 }, 1000)]
     public void Decode_size(byte[] encodedBytes, int expected)
     {
-        var sut = new SliceDecoder(encodedBytes, Encoding.Slice11);
+        var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice11);
 
         var r1 = sut.DecodeSize();
 

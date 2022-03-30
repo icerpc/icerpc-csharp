@@ -40,6 +40,12 @@ You must replace:
 * TOKEN with your personal access token. Create your token from https://github.com/settings/tokens and give it the
   `read:packages` permission.
 
+Additionally, it may be necessary to set the following environment variable if you get a "Permission denied" error:
+```
+export CARGO_NET_GIT_FETCH_WITH_CLI=true
+```
+This tells Cargo to use git's executable to fetch dependencies instead of it's own.
+
 ## Building
 
 IceRpc can be built from a regular command prompt, using the following command

@@ -69,8 +69,7 @@ namespace IceRpc.Tests.Slice
             var request = new OutgoingRequest(_prx.Proxy)
             {
                 Operation = "opNestedTraitStruct",
-                PayloadSource = CreatePayload(),
-                PayloadEncoding = Encoding.Slice20
+                Payload = CreatePayload(),
             };
 
             IncomingResponse response = await Proxy.DefaultInvoker.InvokeAsync(request);
@@ -80,6 +79,7 @@ namespace IceRpc.Tests.Slice
             // Let's decode the exception. TODO: we should provide a more obvious exception-decoding API.
             var dispatchException = Assert.ThrowsAsync<DispatchException>(() =>
                 response.CheckVoidReturnValueAsync(
+                    SliceEncoding.Slice20,
                     SliceDecoder.GetActivator(typeof(TraitTests).Assembly),
                     hasStream: false,
                     cancel: default).AsTask());
@@ -92,7 +92,7 @@ namespace IceRpc.Tests.Slice
                 string typeId = typeof(NestedTraitStruct).GetSliceTypeId()!;
 
                 var pipe = new Pipe();
-                var encoder = new SliceEncoder(pipe.Writer, Encoding.Slice20);
+                var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice20);
                 encoder.EncodeSize((typeId.Length + 1) * depth); // the payload size, in bytes
                 for (int i = 0; i < depth; ++i)
                 {

@@ -33,29 +33,29 @@ public class PipelineTests
         var calls = new List<string>();
         var expectedCalls = new List<string>() { "invoker-1", "invoker-2", "invoker-3", "invoker-4" };
         var pipeline = new Pipeline();
-        pipeline.Use(
-            next => new InlineInvoker((request, cancel) =>
-            {
-                calls.Add("invoker-1");
-                return next.InvokeAsync(request, cancel);
-            }),
-            next => new InlineInvoker((request, cancel) =>
-            {
-                calls.Add("invoker-2");
-                return next.InvokeAsync(request, cancel);
-            }));
+        pipeline
+            .Use(next => new InlineInvoker((request, cancel) =>
+                {
+                    calls.Add("invoker-1");
+                    return next.InvokeAsync(request, cancel);
+                }))
+            .Use(next => new InlineInvoker((request, cancel) =>
+                {
+                    calls.Add("invoker-2");
+                    return next.InvokeAsync(request, cancel);
+                }));
 
-        pipeline.Use(
-            next => new InlineInvoker((request, cancel) =>
-            {
-                calls.Add("invoker-3");
-                return next.InvokeAsync(request, cancel);
-            }),
-            next => new InlineInvoker((request, cancel) =>
-            {
-                calls.Add("invoker-4");
-                return Task.FromResult(new IncomingResponse(request));
-            }));
+        pipeline
+            .Use(next => new InlineInvoker((request, cancel) =>
+                {
+                    calls.Add("invoker-3");
+                    return next.InvokeAsync(request, cancel);
+                }))
+            .Use(next => new InlineInvoker((request, cancel) =>
+                {
+                    calls.Add("invoker-4");
+                    return Task.FromResult(new IncomingResponse(request));
+                }));
 
         pipeline.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
 
@@ -71,24 +71,22 @@ public class PipelineTests
         var calls = new List<string>();
         var expectedCalls = new List<string>() { "invoker-1", "invoker-2", "invoker-3" };
         var pipeline = new Pipeline();
-        pipeline.Use(
-            next => new InlineInvoker((request, cancel) =>
-            {
-                calls.Add("invoker-1");
-                return next.InvokeAsync(request, cancel);
-            }),
-            next => new InlineInvoker((request, cancel) =>
-            {
-                calls.Add("invoker-2");
-                return next.InvokeAsync(request, cancel);
-            }));
-
-        pipeline = pipeline.With(
-            next => new InlineInvoker((request, cancel) =>
-            {
-                calls.Add("invoker-3");
-                return Task.FromResult(new IncomingResponse(request));
-            }));
+        pipeline
+            .Use(next => new InlineInvoker((request, cancel) =>
+                {
+                    calls.Add("invoker-1");
+                    return next.InvokeAsync(request, cancel);
+                }))
+            .Use(next => new InlineInvoker((request, cancel) =>
+                {
+                    calls.Add("invoker-2");
+                    return next.InvokeAsync(request, cancel);
+                }))
+            .Use(next => new InlineInvoker((request, cancel) =>
+                {
+                    calls.Add("invoker-3");
+                    return Task.FromResult(new IncomingResponse(request));
+                }));
 
         pipeline.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
 

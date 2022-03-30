@@ -33,7 +33,6 @@ compact struct IceRpcRequestHeader
 {
     path: string,
     operation: string,
-    payloadEncoding: string, // empty equivalent to "2.0"
     // fields: dictionary<RequestFieldKey, sequence<byte>>, (encoded/decoded manually)
 }
 

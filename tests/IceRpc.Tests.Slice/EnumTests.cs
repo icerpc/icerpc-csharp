@@ -52,6 +52,7 @@ namespace IceRpc.Tests.Slice
             Assert.That((uint)MyUncheckedEnum.E8, Is.EqualTo(256));
             Assert.That((uint)MyUncheckedEnum.E9, Is.EqualTo(512));
             Assert.That((uint)MyUncheckedEnum.E10, Is.EqualTo(1024));
+
         }
 
         [Test]

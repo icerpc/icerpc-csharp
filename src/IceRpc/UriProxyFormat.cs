@@ -76,14 +76,6 @@ namespace IceRpc
                 sb.Append(proxy.Path);
             }
 
-            // TODO: remove
-            if (proxy.Encoding != proxy.Protocol.SliceEncoding)
-            {
-                StartQueryOption(sb, ref firstOption);
-                sb.Append("encoding=");
-                sb.Append(proxy.Encoding);
-            }
-
             if (proxy.AltEndpoints.Count > 0)
             {
                 StartQueryOption(sb, ref firstOption);

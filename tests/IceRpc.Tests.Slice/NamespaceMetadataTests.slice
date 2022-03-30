@@ -1,11 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+encoding = 1.1;
+
 [cs:namespace("IceRpc.Tests.Slice.NamespaceMD.WithNamespace")]
 module WithNamespace
 {
     module N1::N2
     {
-        struct S1
+        compact struct S1
         {
             i: int,
         }
@@ -38,7 +40,7 @@ module M0
 {
     module M2::M3
     {
-        struct S2
+        compact struct S2
         {
             i: int,
         }

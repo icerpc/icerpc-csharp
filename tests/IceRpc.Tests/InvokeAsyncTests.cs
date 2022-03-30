@@ -40,7 +40,7 @@ public sealed class InvokeAsyncTests
 
         var request = new OutgoingRequest(proxy)
         {
-            PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(_expectedPayload))
+            Payload = PipeReader.Create(new ReadOnlySequence<byte>(_expectedPayload))
         };
 
         // Act
@@ -69,7 +69,7 @@ public sealed class InvokeAsyncTests
             await request.Payload.CompleteAsync();
             return new OutgoingResponse(request)
             {
-                PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(_expectedPayload)),
+                Payload = PipeReader.Create(new ReadOnlySequence<byte>(_expectedPayload)),
             };
         });
 

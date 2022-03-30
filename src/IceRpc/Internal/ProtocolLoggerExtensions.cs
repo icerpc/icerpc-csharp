@@ -9,27 +9,6 @@ namespace IceRpc.Internal
     internal static partial class ProtocolLoggerExtensions
     {
         [LoggerMessage(
-            EventId = (int)ProtocolEventIds.DatagramConnectionReceiveCloseConnectionFrame,
-            EventName = nameof(ProtocolEventIds.DatagramConnectionReceiveCloseConnectionFrame),
-            Level = LogLevel.Debug,
-            Message = "ignoring close connection frame for datagram connection")]
-        internal static partial void LogDatagramConnectionReceiveCloseConnectionFrame(this ILogger logger);
-
-        [LoggerMessage(
-            EventId = (int)ProtocolEventIds.DatagramMaximumSizeExceeded,
-            EventName = nameof(ProtocolEventIds.DatagramMaximumSizeExceeded),
-            Level = LogLevel.Debug,
-            Message = "maximum datagram size of {Size} exceeded")]
-        internal static partial void LogDatagramMaximumSizeExceeded(this ILogger logger, int size);
-
-        [LoggerMessage(
-            EventId = (int)ProtocolEventIds.DatagramSizeExceededMaxIncomingFrameSize,
-            EventName = nameof(ProtocolEventIds.DatagramSizeExceededMaxIncomingFrameSize),
-            Level = LogLevel.Debug,
-            Message = "frame with {Size} bytes exceeds MaxIncomingFrameSize connection option value")]
-        internal static partial void LogDatagramSizeExceededMaxIncomingFrameSize(this ILogger logger, int size);
-
-        [LoggerMessage(
             EventId = (int)ProtocolEventIds.ReceivedIceRequestBatchFrame,
             EventName = nameof(ProtocolEventIds.ReceivedIceRequestBatchFrame),
             Level = LogLevel.Debug,
@@ -66,15 +45,8 @@ namespace IceRpc.Internal
             EventId = (int)ProtocolEventIds.ReceivedInitializeFrame,
             EventName = nameof(ProtocolEventIds.ReceivedInitializeFrame),
             Level = LogLevel.Debug,
-            Message = "received initialize frame (MaxIncomingFrameSize={MaxIncomingFrameSize})")]
-        internal static partial void LogReceivedInitializeFrame(this ILogger logger, int MaxIncomingFrameSize);
-
-        [LoggerMessage(
-            EventId = (int)ProtocolEventIds.ReceivedInvalidDatagram,
-            EventName = nameof(ProtocolEventIds.ReceivedInvalidDatagram),
-            Level = LogLevel.Debug,
-            Message = "received invalid {Bytes} bytes datagram")]
-        internal static partial void LogReceivedInvalidDatagram(this ILogger logger, int bytes);
+            Message = "received initialize frame (MaxIncomingFrameSize={maxIncomingFrameSize})")]
+        internal static partial void LogReceivedInitializeFrame(this ILogger logger, int maxIncomingFrameSize);
 
         [LoggerMessage(
             EventId = (int)ProtocolEventIds.SentGoAwayFrame,
