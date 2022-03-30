@@ -26,6 +26,7 @@ public class ServerOptionsTests
             Assert.That(options.Fields, Is.Empty);
             Assert.That(options.KeepAlive, Is.False);
             Assert.That(options.LoggerFactory, Is.EqualTo(NullLoggerFactory.Instance));
+            Assert.That(options.MaxDispatchesPerConnection, Is.EqualTo(1));
             Assert.That(options.MultiplexedServerTransport, Is.EqualTo(ServerOptions.DefaultMultiplexedServerTransport));
             Assert.That(options.SimpleServerTransport, Is.EqualTo(ServerOptions.DefaultSimpleServerTransport));
         });

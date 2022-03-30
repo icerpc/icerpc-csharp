@@ -17,6 +17,7 @@ namespace IceRpc.Internal
         {
             var protocolConnection = new IceProtocolConnection(
                 networkConnection,
+                connectionOptions.MaxDispatches,
                 connectionOptions.IceProtocolOptions ?? Configure.IceProtocolOptions.Default);
 
             try
