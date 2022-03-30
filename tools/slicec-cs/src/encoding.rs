@@ -276,9 +276,7 @@ fn encode_tagged_type(
                 )
             }
         }
-        Types::Sequence(sequence_def)
-            if sequence_def.element_type.is_fixed_size()
-                && !sequence_def.element_type.is_optional =>
+        Types::Sequence(sequence_def) if sequence_def.element_type.is_fixed_size() =>
         {
             if read_only_memory {
                 (
@@ -303,9 +301,7 @@ fn encode_tagged_type(
         }
         Types::Dictionary(dictionary_def)
             if dictionary_def.key_type.is_fixed_size()
-                && !dictionary_def.key_type.is_optional
-                && dictionary_def.value_type.is_fixed_size()
-                && !dictionary_def.value_type.is_optional =>
+                && dictionary_def.value_type.is_fixed_size() =>
         {
             (
                 Some(format!(
@@ -320,44 +316,40 @@ fn encode_tagged_type(
         _ => (None, None),
     };
 
-    let mut args = vec![];
-    args.push(tag.to_string());
-
-    args.push(format!("IceRpc.Slice.TagFormat.{}", data_type.tag_format()));
-    if let Some(size_parameter) = size_parameter {
-        args.push("size: ".to_owned() + &size_parameter);
-    }
-    args.push(value);
-    args.push(
-        encode_action(&clone_as_non_optional(data_type), type_context, namespace).to_string(),
-    );
+    let unwrapped_name = member.parameter_name() + "Unwrapped";
+    let null_check = if read_only_memory {
+        format!("{}.Span != null", param) // TODO do we need the '.Span' here?
+    } else {
+        format!(
+            "{param} is {unwrapped_type} {unwrapped_name}",
+            param = param,
+            unwrapped_type = data_type.to_type_string(namespace, type_context, true),
+            unwrapped_name = &unwrapped_name
+        )
+    };
 
     writeln!(
         code,
         "\
-if ({param} != null)
+if ({null_check})
 {{
-    {encode}
+    {count_variable}
+    {encoder_param}.EncodeTagged({tag}, IceRpc.Slice.TagFormat.{format}{size}, {value}, {action});
 }}",
-        param = if read_only_memory {
-            param.to_owned() + ".Span"
-        } else {
-            param.to_owned()
-        },
-        encode = {
-            let mut code = CodeBlock::new();
-            if let Some(value) = count_value {
-                writeln!(code, "int count = {}.Count();", value);
-            }
-            writeln!(
-                code,
-                "{encoder_param}.EncodeTagged({args});",
-                encoder_param = encoder_param,
-                args = args.join(", ")
-            );
-            code
-        }
-        .indent()
+        null_check = null_check,
+        count_variable = count_value.map_or(
+            "".to_owned(),
+            |v| format!("int count = {}.Count();", v),
+        ),
+        encoder_param = encoder_param,
+        tag = tag,
+        format = data_type.tag_format(),
+        size = size_parameter.map_or(
+            "".to_owned(),
+            |v| format!(", size: {}", v)
+        ),
+        value = if read_only_memory { &value } else { &unwrapped_name },
+        action = encode_action(&clone_as_non_optional(data_type), type_context, namespace),
     );
 
     code

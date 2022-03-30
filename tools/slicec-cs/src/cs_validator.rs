@@ -228,8 +228,11 @@ impl Visitor for CsValidator {
         }
 
         for attribute in &cs_attributes(custom_type.attributes()) {
-            // TODOAUSTIN: Does `cs:internal` mean anything for custom types?
-            validate_common_attributes(attribute);
+            match attribute.directive.as_ref() {
+                "attribute" => validate_cs_attribute(attribute),
+                "type" => {} // already handled above.
+                _ => report_unexpected_attribute(attribute),
+            }
         }
     }
 
