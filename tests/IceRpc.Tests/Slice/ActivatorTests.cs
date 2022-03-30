@@ -6,7 +6,6 @@ using System.Reflection;
 
 namespace IceRpc.Slice.Tests;
 
-[Timeout(30000)]
 public class ActivatorTests
 {
     public static IEnumerable<string> ReferencedAssembliesTypeIds
