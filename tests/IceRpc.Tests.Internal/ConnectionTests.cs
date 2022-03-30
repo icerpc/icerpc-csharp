@@ -103,7 +103,7 @@ namespace IceRpc.Tests.Internal
         [TestCase("icerpc")]
         public async Task Connection_ConnectTimeoutAsync(string protocol)
         {
-            await using ServiceProvider serviceProvider = new InternalTestServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .UseTransport("tcp")
                 .UseProtocol(protocol)
                 .BuildServiceProvider();
@@ -125,7 +125,7 @@ namespace IceRpc.Tests.Internal
         [TestCase("tcp", true)]
         public async Task Connection_InformationAsync(string transport, bool secure)
         {
-            var serviceCollection = new InternalTestServiceCollection();
+            var serviceCollection = new IntegrationTestServiceCollection();
 
             serviceCollection.UseEndpoint(transport, host: "127.0.0.1", port: 0);
             await using var factory = new ConnectionFactory(serviceCollection);
@@ -485,7 +485,7 @@ namespace IceRpc.Tests.Internal
             semaphore.Release();
         }
 
-        private class ConnectionTestServiceCollection : InternalTestServiceCollection
+        private class ConnectionTestServiceCollection : IntegrationTestServiceCollection
         {
             internal ConnectionTestServiceCollection(
                 string transport = "coloc",
