@@ -11,7 +11,8 @@ namespace IceRpc.Slice.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class DecodeSequenceTests
 {
-    /// <summary>Provides test case data for <see cref="EncodingSequence_Long(IEnumerable{long})"/> test.</summary>
+    /// <summary>Provides test case data for
+    /// <see cref="Decode_long_sequence((SliceEncoding, byte[], IEnumerable{long})"/> test.</summary>
     private static IEnumerable<TestCaseData> SequenceLongData
     {
         get
@@ -31,7 +32,8 @@ public class DecodeSequenceTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="EncodingSequence_Long(IEnumerable{long})"/> test.</summary>
+    /// <summary>Provides test case data for
+    /// <see cref="Decode_string_sequence((SliceEncoding, byte[], IEnumerable{string})"/> test.</summary>
     private static IEnumerable<TestCaseData> SequenceStringData
     {
         get
@@ -52,20 +54,11 @@ public class DecodeSequenceTests
         }
     }
 
-    private static byte[] Encoded_size_helper<T>(IEnumerable<T> v, SliceEncoding encoding)
-    {
-        var buffer = new byte[1024 * 1024];
-        var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, encoding);
-
-        encoder.EncodeSize(v.Count());
-
-        return buffer[0..bufferWriter.WrittenMemory.Length];
-    }
-
-    /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSpan"/> and
-    /// <see cref="SliceDecoderExtensions.DecodeSequence"/> with a fixed-size numeric value type.</summary>
-    /// <param name="size">An int used to specify how many elements to generate in the sequence.</param>
+    /// <summary>Tests <see cref="SliceDecoderExtensions.DecodeSequence"/> with a fixed-size numeric value type.
+    /// </summary>
+    /// <param name="encoding">An int used to specify how many elements to generate in the sequence.</param>
+    /// <param name="value">An int used to specify how many elements to generate in the sequence.</param>
+    /// <param name="expected">An int used to specify how many elements to generate in the sequence.</param>
     [Test, TestCaseSource(nameof(SequenceLongData))]
     public void Decode_long_sequence(SliceEncoding encoding, byte[] value, IEnumerable<long> expected)
     {
@@ -77,14 +70,14 @@ public class DecodeSequenceTests
         Assert.That(sut.Consumed, Is.EqualTo(value.Length));
     }
 
-    /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSpan"/> and
-    /// <see cref="SliceDecoderExtensions.DecodeSequence"/> with a fixed-size numeric value type.</summary>
-    /// <param name="size">An int used to specify how many elements to generate in the sequence.</param>
+    /// <summary>Tests <see cref="SliceDecoderExtensions.DecodeSequence"/> with a string.</summary>
+    /// <param name="encoding">An int used to specify how many elements to generate in the sequence.</param>
+    /// <param name="value">An int used to specify how many elements to generate in the sequence.</param>
+    /// <param name="expected">An int used to specify how many elements to generate in the sequence.</param>
     [Test, TestCaseSource(nameof(SequenceStringData))]
     public void Decode_string_sequence(SliceEncoding encoding, byte[] value, IEnumerable<string> expected)
     {
         var sut = new SliceDecoder(value, encoding);
-        int numberOfSizeBytes = Encoded_size_helper(expected, encoding).Length;
 
         string[] result = sut.DecodeSequence(minElementSize: 1, (ref SliceDecoder decoder) => decoder.DecodeString());
 
