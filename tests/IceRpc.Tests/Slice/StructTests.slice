@@ -1,0 +1,14 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc::Slice::Tests;
+
+struct MyStruct
+{
+    x:int,
+    y:int,
+}
+
+interface StructOperations
+{
+    opMyStruct(p1: MyStruct) -> MyStruct;
+}
