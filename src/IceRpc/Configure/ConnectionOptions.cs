@@ -26,7 +26,7 @@ namespace IceRpc.Configure
 
         /// <summary>Returns the default value for <see cref="SimpleClientTransport"/>.</summary>
         public static IClientTransport<ISimpleNetworkConnection> DefaultSimpleClientTransport { get; } =
-            new CompositeSimpleClientTransport().UseTcp().UseUdp();
+            new CompositeSimpleClientTransport().UseTcp();
 
         /// <summary>Gets or sets the SSL client authentication options.</summary>
         /// <value>The SSL client authentication options. When not null, <see cref="Connection.ConnectAsync"/>

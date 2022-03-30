@@ -425,17 +425,6 @@ namespace IceRpc
                 }
             }
 
-            if (proxy.Endpoint is Endpoint endpoint &&
-                endpoint.Params.TryGetValue("transport", out string? transport) &&
-                transport == TransportNames.Udp)
-            {
-                sb.Append(" -d");
-            }
-            else
-            {
-                sb.Append(" -t");
-            }
-
             if (proxy.Endpoint == null)
             {
                 if (proxy.Params.TryGetValue("adapter-id", out string? adapterId))
