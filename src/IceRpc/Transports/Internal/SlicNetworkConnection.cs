@@ -777,7 +777,7 @@ namespace IceRpc.Transports.Internal
                 buffer = buffer.Slice(0, size);
             }
 
-            T decodedFrame = Encoding.Slice20.DecodeBuffer(buffer, decodeFunc);
+            T decodedFrame = SliceEncoding.Slice20.DecodeBuffer(buffer, decodeFunc);
             if (size > 0)
             {
                 _reader.NetworkConnectionReader.AdvanceTo(buffer.End);

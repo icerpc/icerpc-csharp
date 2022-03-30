@@ -10,7 +10,7 @@ namespace IceRpc.Transports.Internal
     {
         internal static (FrameType, int, long?, long) DecodeHeader(this ReadOnlySequence<byte> buffer)
         {
-            var decoder = new SliceDecoder(buffer, Encoding.Slice20);
+            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice20);
             var type = (FrameType)decoder.DecodeByte();
             int dataSize = decoder.DecodeSize();
             if (type < FrameType.Stream)
@@ -47,14 +47,14 @@ namespace IceRpc.Transports.Internal
                     $"unexpected Slic frame type {type}, expected {FrameType.Initialize}");
             }
 
-            return Encoding.Slice20.DecodeBuffer(new ReadOnlySequence<byte>(buffer), DecodeInitialize);
+            return SliceEncoding.Slice20.DecodeBuffer(new ReadOnlySequence<byte>(buffer), DecodeInitialize);
         }
 
         internal static (InitializeAckBody?, VersionBody?) DecodeInitializeAckOrVersion(
             this ReadOnlyMemory<byte> buffer,
             FrameType type)
         {
-            var decoder = new SliceDecoder(buffer, Encoding.Slice20);
+            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice20);
             return type switch
             {
                 FrameType.InitializeAck => (new InitializeAckBody(ref decoder), null),
@@ -65,19 +65,19 @@ namespace IceRpc.Transports.Internal
 
         internal static StreamResetBody DecodeStreamReset(this ReadOnlyMemory<byte> buffer)
         {
-            var decoder = new SliceDecoder(buffer, Encoding.Slice20);
+            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice20);
             return new StreamResetBody(ref decoder);
         }
 
         internal static StreamConsumedBody DecodeStreamConsumed(this ReadOnlyMemory<byte> buffer)
         {
-            var decoder = new SliceDecoder(buffer, Encoding.Slice20);
+            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice20);
             return new StreamConsumedBody(ref decoder);
         }
 
         internal static StreamStopSendingBody DecodeStreamStopSending(this ReadOnlyMemory<byte> buffer)
         {
-            var decoder = new SliceDecoder(buffer, Encoding.Slice20);
+            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice20);
             return new StreamStopSendingBody(ref decoder);
         }
     }

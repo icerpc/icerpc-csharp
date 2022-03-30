@@ -39,9 +39,6 @@ namespace IceRpc
         /// <value>The path of the target service. The default is <c>/</c>.</value>
         public string Path { get; init; } = "/";
 
-        /// <summary>Gets or initializes the encoding of the payload of this request.</summary>
-        public Encoding PayloadEncoding { get; init; } = Encoding.Unknown;
-
         private readonly string _fragment = "";
 
         /// <summary>Constructs an incoming request.</summary>

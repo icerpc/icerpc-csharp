@@ -2,23 +2,13 @@
 
 namespace IceRpc.Slice
 {
-    /// <summary>The base class for Slice encodings supported by this IceRPC runtime.</summary>
-    public abstract class SliceEncoding : Encoding
+    /// <summary>The versions of the Slice encoding supported by this IceRPC runtime.</summary>
+    public enum SliceEncoding : byte
     {
-        /// <summary>Returns a supported Slice encoding with the given name.</summary>
-        /// <param name="name">The name of the encoding.</param>
-        /// <returns>A supported Slice encoding.</returns>
-        public static new SliceEncoding FromString(string name) =>
-            name switch
-            {
-                Slice11Name => Slice11,
-                Slice20Name => Slice20,
-                _ => throw new ArgumentException($"{name} is not the name of a supported Slice encoding", nameof(name))
-            };
+        /// <summary>Version 1.1 of the Slice encoding, supported by IceRPC and Ice 3.5 or greater.</summary>
+        Slice11 = 1,
 
-        private protected SliceEncoding(string name)
-            : base(name)
-        {
-        }
+        /// <summary>Version 2.0 of the Slice encoding, supported by IceRPC.</summary>
+        Slice20 = 2,
     }
 }

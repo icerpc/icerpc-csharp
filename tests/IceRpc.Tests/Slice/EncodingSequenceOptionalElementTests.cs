@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace IceRpc.Slice.Tests;
 
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-[TestFixture("2.0")]
+[TestFixture(SliceEncoding.Slice20)] // TODO: should we also test Slice11?
 [Parallelizable(scope: ParallelScope.All)]
 public class EncodingSequenceOptionalElementsTests
 {
@@ -14,9 +14,9 @@ public class EncodingSequenceOptionalElementsTests
     private readonly SliceEncoding _encoding;
     private readonly MemoryBufferWriter _bufferWriter;
 
-    public EncodingSequenceOptionalElementsTests(string encoding)
+    public EncodingSequenceOptionalElementsTests(SliceEncoding encoding)
     {
-        _encoding = SliceEncoding.FromString(encoding);
+        _encoding = encoding;
         _buffer = new byte[1024 * 1024];
         _bufferWriter = new MemoryBufferWriter(_buffer);
     }

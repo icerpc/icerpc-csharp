@@ -33,7 +33,7 @@ public class InvocationTests
         // Act
         await proxy.InvokeAsync(
             "",
-            Encoding.Slice20,
+            SliceEncoding.Slice20,
             EmptyPipeReader.Instance,
             null,
             SliceDecoder.GetActivator(typeof(InvocationTests).Assembly),
@@ -64,7 +64,7 @@ public class InvocationTests
         // Act
         await sut.InvokeAsync(
             "",
-            Encoding.Slice20,
+            SliceEncoding.Slice20,
             EmptyPipeReader.Instance,
             null,
             SliceDecoder.GetActivator(typeof(InvocationTests).Assembly),
@@ -98,7 +98,7 @@ public class InvocationTests
         Assert.That(
             () => sut.InvokeAsync(
                 "",
-                Encoding.Slice20,
+                SliceEncoding.Slice20,
                 EmptyPipeReader.Instance,
                 null,
                 SliceDecoder.GetActivator(typeof(InvocationTests).Assembly),
@@ -133,7 +133,7 @@ public class InvocationTests
         // Act
         await sut.InvokeAsync(
             "",
-            Encoding.Slice20,
+            SliceEncoding.Slice20,
             EmptyPipeReader.Instance,
             null,
             SliceDecoder.GetActivator(typeof(InvocationTests).Assembly),
@@ -164,7 +164,7 @@ public class InvocationTests
         // Act
         await sut.InvokeAsync(
             "",
-            Encoding.Slice20,
+            SliceEncoding.Slice20,
             EmptyPipeReader.Instance,
             null,
             SliceDecoder.GetActivator(typeof(InvocationTests).Assembly),
@@ -188,7 +188,7 @@ public class InvocationTests
         Assert.ThrowsAsync<ArgumentException>(
             () => sut.InvokeAsync(
                 "",
-                Encoding.Slice20,
+                SliceEncoding.Slice20,
                 EmptyPipeReader.Instance,
                 null,
                 SliceDecoder.GetActivator(typeof(InvocationTests).Assembly),
@@ -202,9 +202,9 @@ public class InvocationTests
         {
             var buffer = new byte[256];
             var bufferWriter = new MemoryBufferWriter(buffer);
-            var encoder = new SliceEncoder(bufferWriter, Encoding.Slice20);
+            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice20);
             deadlineField.Encode(ref encoder);
-            var decoder = new SliceDecoder(buffer, Encoding.Slice20);
+            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice20);
             decoder.SkipSize();
             long value = decoder.DecodeVarLong();
             return DateTime.UnixEpoch + TimeSpan.FromMilliseconds(value);

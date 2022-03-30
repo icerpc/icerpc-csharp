@@ -282,7 +282,7 @@ namespace IceRpc.Slice
         // (resultType = Failure) and one for user exceptions (resultType = ServiceFailure).
         public RemoteException DecodeException(ResultType resultType)
         {
-            if (Encoding == IceRpc.Encoding.Slice11)
+            if (Encoding == SliceEncoding.Slice11)
             {
                 return DecodeExceptionClass(resultType);
             }
@@ -310,7 +310,7 @@ namespace IceRpc.Slice
         /// <returns>The decoded trait.</returns>
         public T DecodeTrait<T>()
         {
-            if (Encoding == IceRpc.Encoding.Slice11)
+            if (Encoding == SliceEncoding.Slice11)
             {
                 throw new InvalidOperationException(
                     $"{nameof(DecodeTrait)} is not compatible with encoding {Encoding}");
@@ -347,7 +347,7 @@ namespace IceRpc.Slice
         /// <returns>The decoded proxy, or null.</returns>
         public Proxy? DecodeNullableProxy(ref BitSequenceReader bitSequenceReader)
         {
-            if (Encoding == IceRpc.Encoding.Slice11)
+            if (Encoding == SliceEncoding.Slice11)
             {
                 string path = this.DecodeIdentityPath();
                 return path != "/" ? DecodeProxy(path) : null;
@@ -362,7 +362,7 @@ namespace IceRpc.Slice
         /// <returns>The decoded proxy</returns>
         public Proxy DecodeProxy()
         {
-            if (Encoding == IceRpc.Encoding.Slice11)
+            if (Encoding == SliceEncoding.Slice11)
             {
                 string path = this.DecodeIdentityPath();
                 return path != "/" ? DecodeProxy(path) :
@@ -424,7 +424,7 @@ namespace IceRpc.Slice
         /// <remarks>When T is a value type, it should be a nullable value type such as int?.</remarks>
         public T DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<T> decodeFunc)
         {
-            if (Encoding == IceRpc.Encoding.Slice11)
+            if (Encoding == SliceEncoding.Slice11)
             {
                 if (DecodeTaggedParamHeader(tag, tagFormat))
                 {
@@ -589,7 +589,7 @@ namespace IceRpc.Slice
         /// <returns>The size decoded by this decoder.</returns>
         internal int DecodeFixedLengthSize()
         {
-            if (Encoding == IceRpc.Encoding.Slice11)
+            if (Encoding == SliceEncoding.Slice11)
             {
                 int size = DecodeInt();
                 if (size < 0)
@@ -618,7 +618,7 @@ namespace IceRpc.Slice
 
         internal void SkipSize()
         {
-            if (Encoding == IceRpc.Encoding.Slice11)
+            if (Encoding == SliceEncoding.Slice11)
             {
                 byte b = DecodeByte();
                 if (b == 255)
@@ -653,7 +653,7 @@ namespace IceRpc.Slice
         /// <c>false</c> otherwise.</returns>
         internal bool TryDecodeSize(out int size)
         {
-            if (Encoding == IceRpc.Encoding.Slice11)
+            if (Encoding == SliceEncoding.Slice11)
             {
                 if (TryDecodeByte(out byte firstByte))
                 {
@@ -755,7 +755,7 @@ namespace IceRpc.Slice
         /// <returns>The endpoint decoded by this decoder.</returns>
         private Endpoint DecodeEndpoint(Protocol protocol)
         {
-            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
+            Debug.Assert(Encoding == SliceEncoding.Slice11);
 
             // The Slice 1.1 encoding of ice endpoints is transport-specific, and hard-coded here and in the
             // SliceEncoder. The preferred and fallback encoding for new transports is TransportCode.Uri.
@@ -778,9 +778,10 @@ namespace IceRpc.Slice
             // Remove 6 bytes from the encapsulation size (4 for encapsulation size, 2 for encoding).
             size -= 6;
 
-            var encoding = IceRpc.Encoding.FromMajorMinor(DecodeByte(), DecodeByte());
+            byte encodingMajor = DecodeByte();
+            byte encodingMinor = DecodeByte();
 
-            if (encoding == IceRpc.Encoding.Slice11 || encoding == IceRpc.Encoding.Slice10)
+            if (encodingMajor == 1 && encodingMinor <= 1)
             {
                 long oldPos = _reader.Consumed;
 
@@ -812,30 +813,6 @@ namespace IceRpc.Slice
                             {
                                 builder.Add("t", timeout.ToString(CultureInfo.InvariantCulture));
                             }
-                            if (compress)
-                            {
-                                builder.Add("z", "");
-                            }
-
-                            endpoint = new Endpoint(Protocol.Ice, host, port, builder.ToImmutable());
-                            break;
-                        }
-
-                        case TransportCode.UDP:
-                        {
-                            string host = DecodeString();
-                            if (Uri.CheckHostName(host) == UriHostNameType.Unknown)
-                            {
-                                throw new InvalidDataException($"received proxy with invalid host '{host}'");
-                            }
-
-                            ushort port = checked((ushort)DecodeInt());
-                            bool compress = DecodeBool();
-
-                            ImmutableDictionary<string, string>.Builder builder =
-                                ImmutableDictionary.CreateBuilder<string, string>();
-
-                            builder.Add("transport", TransportNames.Udp);
                             if (compress)
                             {
                                 builder.Add("z", "");
@@ -878,7 +855,6 @@ namespace IceRpc.Slice
                             var builder = ImmutableDictionary.CreateBuilder<string, string>();
                             builder.Add("transport", TransportNames.Opaque);
                             builder.Add("t", ((short)transportCode).ToString(CultureInfo.InvariantCulture));
-                            builder.Add("e", encoding.ToString());
                             builder.Add("v", Convert.ToBase64String(vSpan));
 
                             endpoint = new Endpoint(
@@ -918,7 +894,7 @@ namespace IceRpc.Slice
                 throw new InvalidDataException(
                     @$"cannot decode endpoint for protocol '{protocol
                     }' and transport '{transportCode.ToString().ToLowerInvariant()
-                    }' with endpoint encapsulation encoded with encoding '{encoding}'");
+                    }' with endpoint encapsulation encoded with encoding '{encodingMajor}.{encodingMinor}'");
             }
 
             return endpoint.Value;
@@ -930,7 +906,7 @@ namespace IceRpc.Slice
         /// <returns>True if the tagged parameter is present; otherwise, false.</returns>
         private bool DecodeTaggedParamHeader(int tag, TagFormat expectedFormat)
         {
-            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
+            Debug.Assert(Encoding == SliceEncoding.Slice11);
 
             bool withTagEndMarker = false;
 
@@ -1004,7 +980,7 @@ namespace IceRpc.Slice
         /// <summary>Skips the remaining tagged parameters, return value _or_ data members.</summary>
         public void SkipTaggedParams()
         {
-            if (Encoding == IceRpc.Encoding.Slice11)
+            if (Encoding == SliceEncoding.Slice11)
             {
                 bool withTagEndMarker = _classContext.Current.InstanceType != InstanceType.None;
 
@@ -1126,7 +1102,7 @@ namespace IceRpc.Slice
 
         private void SkipTaggedValue(TagFormat format)
         {
-            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
+            Debug.Assert(Encoding == SliceEncoding.Slice11);
 
             switch (format)
             {

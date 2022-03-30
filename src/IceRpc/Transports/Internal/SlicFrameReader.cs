@@ -44,7 +44,7 @@ namespace IceRpc.Transports.Internal
                 header = default;
                 consumed = default;
 
-                var decoder = new SliceDecoder(buffer, Encoding.Slice20);
+                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice20);
 
                 // Decode the frame type and frame size.
                 if (!decoder.TryDecodeByte(out byte frameType) ||

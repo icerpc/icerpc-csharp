@@ -15,14 +15,10 @@ namespace IceRpc.Internal
             bool isServer,
             CancellationToken cancel)
         {
-            // Check if we're using the special udp transport for ice
-            bool isUdp = connectionInfo.LocalEndpoint.Params.TryGetValue("transport", out string? transport) &&
-                transport == TransportNames.Udp;
-
             var protocolConnection = new IceProtocolConnection(
                 networkConnection,
-                connectionOptions.IceProtocolOptions ?? Configure.IceProtocolOptions.Default,
-                isUdp);
+                connectionOptions.IceProtocolOptions ?? Configure.IceProtocolOptions.Default);
+
             try
             {
                 await protocolConnection.InitializeAsync(isServer, cancel).ConfigureAwait(false);

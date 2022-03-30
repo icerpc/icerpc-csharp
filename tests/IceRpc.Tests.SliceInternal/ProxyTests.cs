@@ -10,15 +10,14 @@ namespace IceRpc.Tests.SliceInternal
     [Parallelizable(ParallelScope.All)]
     public sealed class ProxyTests
     {
-        [TestCase("2.0", "icerpc://localhost:10000/foo?alt-endpoint=localhost:10001")]
-        [TestCase("1.1", "icerpc://localhost:10000/foo?alt-endpoint=localhost:10001")]
-        [TestCase("2.0", "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
-        [TestCase("1.1", "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
-        public async Task Proxy_EncodingVersioning(string encodingStr, string str)
+        [TestCase(SliceEncoding.Slice20, "icerpc://localhost:10000/foo?alt-endpoint=localhost:10001")]
+        [TestCase(SliceEncoding.Slice11, "icerpc://localhost:10000/foo?alt-endpoint=localhost:10001")]
+        [TestCase(SliceEncoding.Slice20, "foo -f facet:tcp -h localhost -p 10000:tcp -h localhost -p 20000")]
+        [TestCase(SliceEncoding.Slice11, "foo -f facet:tcp -h localhost -p 10000:tcp -h localhost -p 20000")]
+        public async Task Proxy_EncodingVersioning(SliceEncoding encoding, string str)
         {
             Memory<byte> buffer = new byte[256];
             var bufferWriter = new MemoryBufferWriter(buffer);
-            var encoding = SliceEncoding.FromString(encodingStr);
 
             IProxyFormat? format = str.StartsWith("ice", StringComparison.Ordinal) ? null : IceProxyFormat.Default;
             var proxy = Proxy.Parse(str, format: format);
@@ -70,14 +69,14 @@ namespace IceRpc.Tests.SliceInternal
             void EncodeProxy()
             {
                 // Encodes the relative proxy
-                var encoder = new SliceEncoder(bufferWriter, Encoding.Slice20);
+                var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice20);
                 encoder.EncodeProxy(endpointLess);
             }
 
             Proxy DecodeProxy()
             {
                 // Decodes the relative proxy using the client connection. We get back a 1-endpoint proxy
-                var decoder = new SliceDecoder(buffer, Encoding.Slice20, connection);
+                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice20, connection);
 
                 Proxy p = decoder.DecodeProxy();
                 decoder.CheckEndOfBuffer(skipTaggedParams: false);

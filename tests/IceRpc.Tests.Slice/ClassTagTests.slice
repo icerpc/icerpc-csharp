@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+encoding = 1.1;
+
 module IceRpc::Tests::Slice;
 
 class OneTagged
@@ -16,35 +18,26 @@ class MultiTagged
     mLong: tag(5) long?,
     mFloat: tag(6) float?,
     mDouble: tag(7) double?,
-    mUShort: tag(8) ushort?,
-    mUInt: tag(9) uint?,
-    mULong: tag(10) ulong?,
-    mVarInt: tag(11) varint?,
-    mVarLong: tag(12) varlong?,
-    mVarUInt: tag(13) varuint?,
-    mVarULong: tag(14) varulong?,
     mString: tag(15) string?,
 
-    mMyEnum: tag(20) MyEnum?,
-    mMyCompactStruct: tag(21) MyCompactStruct?,
-    mAnotherCompactStruct: tag(22) AnotherCompactStruct?,
-
-    mByteSeq: tag(30) ByteSeq?,
-    mStringSeq: tag(31) StringSeq?,
-    mShortSeq: tag(32) ShortSeq?,
-    mMyEnumSeq: tag(33) MyEnumSeq?,
-    mMyCompactStructSeq: tag(34) MyCompactStructSeq?,
-    mAnotherCompactStructSeq: tag(35) AnotherCompactStructSeq?,
-
-    mIntDict: tag(40) IntDict?,
-    mStringDict: tag(41) StringDict?,
-    mUShortSeq: tag(42) UShortSeq?,
-    mVarULongSeq: tag(43) VarULongSeq?,
-    mVarIntSeq: tag(44) VarIntSeq?,
-
-    mByteDict: tag(50) ByteDict?,
-    mMyCompactStructDict: tag(51) MyCompactStructDict?,
-    mAnotherCompactStructDict: tag(52) AnotherCompactStructDict?,
+// TODO: These types and 2.0 only. We should either delete these or create our own copy for this test.
+//    mMyEnum: tag(20) MyEnum?,
+//    mMyCompactStruct: tag(21) MyCompactStruct?,
+//    mAnotherCompactStruct: tag(22) AnotherCompactStruct?,
+//
+//    mByteSeq: tag(30) ByteSeq?,
+//    mStringSeq: tag(31) StringSeq?,
+//    mShortSeq: tag(32) ShortSeq?,
+//    mMyEnumSeq: tag(33) MyEnumSeq?,
+//    mMyCompactStructSeq: tag(34) MyCompactStructSeq?,
+//    mAnotherCompactStructSeq: tag(35) AnotherCompactStructSeq?,
+//
+//    mIntDict: tag(40) IntDict?,
+//    mStringDict: tag(41) StringDict?,
+//
+//    mByteDict: tag(50) ByteDict?,
+//    mMyCompactStructDict: tag(51) MyCompactStructDict?,
+//    mAnotherCompactStructDict: tag(52) AnotherCompactStructDict?,
 }
 
 class A
@@ -70,8 +63,8 @@ class C : B
 
 class TaggedWithCustom
 {
-    mMyCompactStructList: tag(1) MyCompactStructList?,
-    mAnotherCompactStructList: tag(2) AnotherCompactStructList?,
+    // mMyCompactStructList: tag(1) MyCompactStructList?,
+    // mAnotherCompactStructList: tag(2) AnotherCompactStructList?,
 }
 
 interface ClassTag

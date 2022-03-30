@@ -38,10 +38,6 @@ namespace IceRpc.Tests.SliceInternal
             _sliced = SlicedFormatOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
             _compact = CompactFormatOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
             _classformat = ClassFormatOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
-
-            _sliced.Proxy.Encoding = Encoding.Slice11;
-            _compact.Proxy.Encoding = Encoding.Slice11;
-            _classformat.Proxy.Encoding = Encoding.Slice11;
         }
 
         [OneTimeTearDown]
@@ -68,7 +64,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, Encoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -79,7 +75,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, Encoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -105,7 +101,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, Encoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -116,7 +112,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, Encoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -142,7 +138,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, Encoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -153,7 +149,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, Encoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -180,7 +176,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, Encoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -191,7 +187,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, Encoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -224,7 +220,6 @@ namespace IceRpc.Tests.SliceInternal
                 .BuildServiceProvider();
 
             var prx = ClassGraphOperationsPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
-            prx.Proxy.Encoding = Encoding.Slice11;
 
             var pipeline = new Pipeline();
             pipeline.UseFeature(new SliceDecodePayloadOptions { MaxDepth = clientMaxDepth });

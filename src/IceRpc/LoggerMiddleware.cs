@@ -24,8 +24,7 @@ namespace IceRpc
         {
             _logger.LogReceivedRequest(request.Connection,
                                        request.Path,
-                                       request.Operation,
-                                       request.PayloadEncoding);
+                                       request.Operation);
             try
             {
                 OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
@@ -70,8 +69,7 @@ namespace IceRpc
             this ILogger logger,
             Connection? connection,
             string path,
-            string operation,
-            Encoding payloadEncoding)
+            string operation)
         {
             if (logger.IsEnabled(LogLevel.Information))
             {
@@ -79,8 +77,7 @@ namespace IceRpc
                     connection?.NetworkConnectionInformation?.LocalEndpoint.ToString() ?? "undefined",
                     connection?.NetworkConnectionInformation?.RemoteEndpoint.ToString() ?? "undefined",
                     path,
-                    operation,
-                    payloadEncoding);
+                    operation);
             }
         }
 
@@ -121,14 +118,13 @@ namespace IceRpc
             EventName = nameof(LoggerMiddlewareEventIds.ReceivedRequest),
             Level = LogLevel.Information,
             Message = "received request (LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint}, " +
-                      "Path={Path}, Operation={Operation}, PayloadEncoding={PayloadEncoding})")]
+                      "Path={Path}, Operation={Operation})")]
         private static partial void LogReceivedRequest(
             this ILogger logger,
             string localEndpoint,
             string remoteEndpoint,
             string path,
-            string operation,
-            Encoding payloadEncoding);
+            string operation);
 
         [LoggerMessage(
             EventId = (int)LoggerMiddlewareEventIds.SendingResponse,

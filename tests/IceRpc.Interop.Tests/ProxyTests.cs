@@ -182,7 +182,7 @@ public class ProxyTests
             ("icerpc:ssl -h localhost -p 10000", "/icerpc", ""),
             ("identity:tcp -h \"::0\"", "/identity", ""),
             ("identity:coloc -h *", "/identity", ""),
-            ("identity -e 4.5:coloc -h *", "/identity", ""),
+            ("identity -e 1.1:coloc -h *", "/identity", ""),
             ("name -f facet:coloc -h localhost", "/name", "facet"),
             ("category/name -f facet:coloc -h localhost", "/category/name", "facet"),
             ("cat$gory/nam$ -f fac$t:coloc -h localhost", "/cat%24gory/nam%24", "fac%24t"),
@@ -252,7 +252,7 @@ public class ProxyTests
     {
         var proxy = new Proxy(Protocol.Ice) { Path = path };
 
-        string iceProxyString = proxy.ToString(format)[..^10]; // trim " -t -e 1.1"
+        string iceProxyString = proxy.ToString(format);
 
         Assert.That(iceProxyString, Is.EqualTo(expected));
     }

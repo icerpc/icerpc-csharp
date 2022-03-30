@@ -36,7 +36,7 @@ namespace IceRpc.Tests.Slice
                                 {
                                     var pipe = new System.IO.Pipelines.Pipe(); // TODO: pipe options
 
-                                    var encoder = new SliceEncoder(pipe.Writer, Encoding.Slice11, default);
+                                    var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice11, default);
                                     encoder.EncodeClass(new MyClassAlsoEmpty());
                                     pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
                                     return pipe.Reader;
@@ -48,9 +48,7 @@ namespace IceRpc.Tests.Slice
 
             Connection connection = _serviceProvider.GetRequiredService<Connection>();
             _prx = ClassOperationsPrx.FromConnection(connection);
-            _prx.Proxy.Encoding = Encoding.Slice11; // TODO: should not be necessary
             _prxUnexpectedClass = ClassOperationsUnexpectedClassPrx.FromConnection(connection);
-            _prxUnexpectedClass.Proxy.Encoding = Encoding.Slice11;
         }
 
         [OneTimeTearDown]
@@ -116,21 +114,12 @@ namespace IceRpc.Tests.Slice
             Assert.That(d1!.A3!.Name, Is.EqualTo("a3"));
             Assert.That(d1!.A4!.Name, Is.EqualTo("a4"));
 
-            if (_prx.Proxy.Encoding == Encoding.Slice11)
-            {
-                MyDerivedException? ex = Assert.ThrowsAsync<MyDerivedException>(
-                    async () => await _prx.ThrowMyDerivedExceptionAsync());
-                Assert.That(ex!.A1!.Name, Is.EqualTo("a1"));
-                Assert.That(ex!.A2!.Name, Is.EqualTo("a2"));
-                Assert.That(ex!.A3!.Name, Is.EqualTo("a3"));
-                Assert.That(ex!.A4!.Name, Is.EqualTo("a4"));
-            }
-            else if (_prx.Proxy.Encoding == Encoding.Slice20)
-            {
-                // The method throws an exception with classes that gets sliced to the first 2.0-encodable base class,
-                // RemoteException.
-                Assert.ThrowsAsync<RemoteException>(async () => await _prx.ThrowMyDerivedExceptionAsync());
-            }
+            MyDerivedException? ex = Assert.ThrowsAsync<MyDerivedException>(
+                async () => await _prx.ThrowMyDerivedExceptionAsync());
+            Assert.That(ex!.A1!.Name, Is.EqualTo("a1"));
+            Assert.That(ex!.A2!.Name, Is.EqualTo("a2"));
+            Assert.That(ex!.A3!.Name, Is.EqualTo("a3"));
+            Assert.That(ex!.A4!.Name, Is.EqualTo("a4"));
 
             (MyClassE e1, MyClassE e2) =
                 await _prx.OpEAsync(new MyClassE(theB: new MyClassB(), theC: new MyClassC()), 42);
@@ -146,12 +135,12 @@ namespace IceRpc.Tests.Slice
         [Test]
         public async Task Class_WithComplexDictionaryAsync()
         {
-            var d = new Dictionary<MyCompactStruct, MyClassL>();
+            var d = new Dictionary<MyClassCompactStruct, MyClassL>();
 
-            var k1 = new MyCompactStruct(1, 1);
+            var k1 = new MyClassCompactStruct(1, 1);
             d[k1] = new MyClassL("one");
 
-            var k2 = new MyCompactStruct(2, 2);
+            var k2 = new MyClassCompactStruct(2, 2);
             d[k2] = new MyClassL("two");
 
             (MyClassM m2, MyClassM m1) = await _prx.OpMAsync(new MyClassM(d));

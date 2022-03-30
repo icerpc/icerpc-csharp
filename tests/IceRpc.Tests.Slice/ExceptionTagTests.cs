@@ -22,7 +22,6 @@ namespace IceRpc.Tests.Slice
                 .BuildServiceProvider();
 
             _prx = ExceptionTagPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>()).Proxy;
-            _prx.Encoding = Encoding.FromString(encoding);
         }
 
         [OneTimeTearDown]
@@ -73,77 +72,73 @@ namespace IceRpc.Tests.Slice
             Assert.That(ex.MStruct.Value, Is.EqualTo(ts));
         }
 
-        [Test]
-        public async Task ExceptionTag_OperationsAsync()
-        {
-            // Exceptions can't be passed as members with the 1.1 encoding.
-            if (_prx.Encoding == Encoding.Slice11)
-            {
-                return;
-            }
+        //TODO: 2.0 interface only
+        // [Test]
+        // public async Task ExceptionTag_OperationsAsync()
+        // {
+        //     var prx = new ExceptionTagPrx(_prx);
+        //     var tes = new TaggedExceptionStruct("bar", 0);
+        //     var tex = new TaggedException(tes, null, false, "foo");
 
-            var prx = new ExceptionTagPrx(_prx);
-            var tes = new TaggedExceptionStruct("bar", 0);
-            var tex = new TaggedException(tes, null, false, "foo");
+        //     var result = await prx.OpTaggedExceptionAsync(tex);
 
-            var result = await prx.OpTaggedExceptionAsync(tex);
+        //     Assert.That(result.MStruct, Is.Not.Null);
+        //     Assert.That(result.MStruct.Value.S, Is.EqualTo("bar"));
+        //     Assert.That(result.MStruct.Value.V, Is.EqualTo(0));
+        //     Assert.That(result.MInt, Is.Null);
+        //     Assert.That(result.MBool, Is.EqualTo(false));
+        //     Assert.That(result.MString, Is.EqualTo("foo"));
+        // }
 
-            Assert.That(result.MStruct, Is.Not.Null);
-            Assert.That(result.MStruct.Value.S, Is.EqualTo("bar"));
-            Assert.That(result.MStruct.Value.V, Is.EqualTo(0));
-            Assert.That(result.MInt, Is.Null);
-            Assert.That(result.MBool, Is.EqualTo(false));
-            Assert.That(result.MString, Is.EqualTo("foo"));
-        }
+        //TODO: split into multiples tests for 1.1 and 2.0 features
+        // [Test]
+        // public void ExceptionTag_Throw()
+        // {
+        //     var prx = new ExceptionTagPrx(_prx);
 
-        [Test]
-        public void ExceptionTag_Throw()
-        {
-            var prx = new ExceptionTagPrx(_prx);
+        //     var ts = new TaggedExceptionStruct("bar", 0);
 
-            var ts = new TaggedExceptionStruct("bar", 0);
+        //     TaggedException ex =
+        //         Assert.ThrowsAsync<TaggedException>(async () => await prx.ThrowTaggedExceptionAsync(null, "foo", ts));
+        //     CheckException(ex);
 
-            TaggedException ex =
-                Assert.ThrowsAsync<TaggedException>(async () => await prx.ThrowTaggedExceptionAsync(null, "foo", ts));
-            CheckException(ex);
+        //     if (prx.Proxy.Encoding == SliceEncoding.Slice11)
+        //     {
+        //         DerivedException derivedEx = Assert.ThrowsAsync<DerivedException>(
+        //             async () => await prx.ThrowDerivedExceptionAsync(null, "foo", ts));
 
-            if (prx.Proxy.Encoding == Encoding.Slice11)
-            {
-                DerivedException derivedEx = Assert.ThrowsAsync<DerivedException>(
-                    async () => await prx.ThrowDerivedExceptionAsync(null, "foo", ts));
+        //         Assert.That(derivedEx.MString1, Is.EqualTo("foo"));
+        //         Assert.That(derivedEx.MStruct1, Is.Not.Null);
+        //         Assert.That(derivedEx.MStruct1.Value, Is.EqualTo(ts));
+        //         CheckException(derivedEx);
 
-                Assert.That(derivedEx.MString1, Is.EqualTo("foo"));
-                Assert.That(derivedEx.MStruct1, Is.Not.Null);
-                Assert.That(derivedEx.MStruct1.Value, Is.EqualTo(ts));
-                CheckException(derivedEx);
+        //         RequiredException requiredEx = Assert.ThrowsAsync<RequiredException>(
+        //             async () => await prx.ThrowRequiredExceptionAsync(null, "foo", ts));
 
-                RequiredException requiredEx = Assert.ThrowsAsync<RequiredException>(
-                    async () => await prx.ThrowRequiredExceptionAsync(null, "foo", ts));
+        //         Assert.That(requiredEx.MString1, Is.EqualTo("foo"));
+        //         Assert.That(requiredEx.MStruct1, Is.EqualTo(ts));
+        //         CheckException(requiredEx);
+        //     }
+        //     else
+        //     {
+        //         ex = Assert.ThrowsAsync<TaggedException>(
+        //             async () => await prx.ThrowDerivedExceptionAsync(null, "foo", ts));
+        //         CheckException(ex);
 
-                Assert.That(requiredEx.MString1, Is.EqualTo("foo"));
-                Assert.That(requiredEx.MStruct1, Is.EqualTo(ts));
-                CheckException(requiredEx);
-            }
-            else
-            {
-                ex = Assert.ThrowsAsync<TaggedException>(
-                    async () => await prx.ThrowDerivedExceptionAsync(null, "foo", ts));
-                CheckException(ex);
+        //         ex = Assert.ThrowsAsync<TaggedException>(
+        //             async () => await prx.ThrowRequiredExceptionAsync(null, "foo", ts));
+        //         CheckException(ex);
+        //     }
 
-                ex = Assert.ThrowsAsync<TaggedException>(
-                    async () => await prx.ThrowRequiredExceptionAsync(null, "foo", ts));
-                CheckException(ex);
-            }
-
-            void CheckException(TaggedException ex)
-            {
-                Assert.That(ex.MBool, Is.EqualTo(false));
-                Assert.That(ex.MInt, Is.Null);
-                Assert.That(ex.MString, Is.EqualTo("foo"));
-                Assert.That(ex.MStruct, Is.Not.Null);
-                Assert.That(ex.MStruct.Value, Is.EqualTo(ts));
-            }
-        }
+        //     void CheckException(TaggedException ex)
+        //     {
+        //         Assert.That(ex.MBool, Is.EqualTo(false));
+        //         Assert.That(ex.MInt, Is.Null);
+        //         Assert.That(ex.MString, Is.EqualTo("foo"));
+        //         Assert.That(ex.MStruct, Is.Not.Null);
+        //         Assert.That(ex.MStruct.Value, Is.EqualTo(ts));
+        //     }
+        // }
 
         private class ActivatorMinus : IActivator
         {

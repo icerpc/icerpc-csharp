@@ -31,9 +31,6 @@ namespace IceRpc
         /// <value>The name of the operation. The default is the empty string.</value>
         public string Operation { get; init; } = "";
 
-        /// <summary>Returns the encoding of the payload of this request.</summary>
-        public Encoding PayloadEncoding { get; init; } = Encoding.Unknown;
-
         /// <summary>Returns the proxy that is sending this request.</summary>
         public Proxy Proxy { get; }
 

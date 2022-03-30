@@ -158,9 +158,9 @@ public abstract class MultiplexedTransportConformanceTests
 
         // Act
         Task clientWriteTask = WriteAsync(clientStream, payload);
-        Task serverReadTask = ReadAsync(serverStream, payload.Length);
+        Task serverReadTask = ReadAsync(serverStream, payloadSize * segments);
         Task serverWriteTask = WriteAsync(serverStream, payload);
-        Task clientReadTask = ReadAsync(clientStream, payload.Length);
+        Task clientReadTask = ReadAsync(clientStream, payloadSize * segments);
 
         // Assert
         await Task.WhenAll(clientWriteTask, serverWriteTask, clientReadTask, serverReadTask);

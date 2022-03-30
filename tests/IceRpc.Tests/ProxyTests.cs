@@ -342,22 +342,6 @@ public class ProxyTests
         Assert.That(proxy.AltEndpoints, Is.EqualTo(altEndpoints));
     }
 
-    /// <summary>Verifies that the proxy encoding is set from the parsed encoding parameter.</summary>
-    /// <param name="str">The proxy string to parse.</param>
-    /// <param name="encoding">The expected encoding.</param>
-    [TestCase("ice://localhost/foo?encoding=1.0", "1.0")]
-    [TestCase("ice://localhost/foo?encoding=1.1", "1.1")]
-    [TestCase("ice://localhost/foo?encoding=2.0", "2.0")]
-    [TestCase("ice://localhost/foo?encoding=json", "json")]
-    public void Parse_proxy_encoding(string str, string encodingStr)
-    {
-        var encoding = Encoding.FromString(encodingStr);
-
-        var proxy = Proxy.Parse(str);
-
-        Assert.That(proxy.Encoding, Is.EqualTo(encoding));
-    }
-
     /// <summary>Verifies that the proxy invoker of the <see cref="SliceDecodePayloadOptions"/> is used for proxies
     /// received over an incoming connection.</summary>
     [Test]

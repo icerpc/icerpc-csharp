@@ -14,9 +14,9 @@ namespace IceRpc.Transports.Internal
             long? streamId,
             EncodeAction? encode)
         {
-            var encoder = new SliceEncoder(writer, Encoding.Slice20);
+            var encoder = new SliceEncoder(writer, SliceEncoding.Slice20);
             encoder.EncodeByte((byte)frameType);
-            Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
+            Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
 
             if (streamId != null)
@@ -24,7 +24,7 @@ namespace IceRpc.Transports.Internal
                 encoder.EncodeVarULong((ulong)streamId);
             }
             encode?.Invoke(ref encoder);
-            Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
+            SliceEncoder.EncodeVarULong((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
         }
 
         internal static void EncodeStreamFrameHeader(
@@ -33,14 +33,12 @@ namespace IceRpc.Transports.Internal
             int length,
             bool endStream)
         {
-            var encoder = new SliceEncoder(writer, Encoding.Slice20);
+            var encoder = new SliceEncoder(writer, SliceEncoding.Slice20);
             encoder.EncodeByte((byte)(endStream ? FrameType.StreamLast : FrameType.Stream));
-            Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
+            Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encoder.EncodeVarULong((ulong)streamId);
-            Slice20Encoding.EncodeSize(
-                encoder.EncodedByteCount - startPos + length,
-                sizePlaceholder.Span);
+            SliceEncoder.EncodeVarULong((ulong)(encoder.EncodedByteCount - startPos + length), sizePlaceholder);
         }
     }
 }

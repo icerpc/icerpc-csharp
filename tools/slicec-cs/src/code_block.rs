@@ -56,20 +56,33 @@ impl CodeBlock {
 }
 
 /// Formats a CodeBlock for display. Whitespace characters are removed from the beginning, the end,
-/// and from lines that only contain whitespaces.
+/// and from lines that only contain whitespace.
 impl fmt::Display for CodeBlock {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut last_line_was_empty = false;
         write!(
             f,
             "{}",
             self.content
                 .lines()
                 .map(
+                    // Trim whitespace only lines and remove trailing whitespace from non-empty lines
                     |line| match line.trim_matches(char::is_whitespace).is_empty() {
                         true => "",
                         _ => line.trim_end_matches(char::is_whitespace),
                     },
                 )
+                .filter(|line| {
+                    // Remove empty lines if the previous line was empty
+                    let is_empty = line.is_empty();
+                    match last_line_was_empty && is_empty {
+                        true => false,
+                        _ => {
+                            last_line_was_empty = is_empty;
+                            true
+                        }
+                    }
+                })
                 .collect::<Vec<_>>()
                 .join("\n")
                 .trim_matches(char::is_whitespace)
