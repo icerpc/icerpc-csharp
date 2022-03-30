@@ -16,25 +16,4 @@ unchecked enum TransportCode : short
 
     /// SSL transport.
     SSL = 2,
-
-    /// UDP transport.
-    UDP = 3,
-
-    /// Web Socket transport.
-    WS = 4,
-
-    /// Secure Web Socket transport.
-    WSS = 5,
-
-    /// Bluetooth transport.
-    BT = 6,
-
-    /// Secure Bluetooth transport.
-    BTS = 7,
-
-    /// Apple iAP transport.
-    iAP = 8,
-
-    /// Secure Apple iAP transport.
-    iAPS = 9,
 }
