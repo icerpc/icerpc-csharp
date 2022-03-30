@@ -1,0 +1,33 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc::Slice::Tests;
+
+enum MyEnum
+{
+    enum1,
+    enum2,
+    enum3,
+}
+
+enum MyFixedLengthEnum : short
+{
+    senum1,
+    senum2,
+    senum3
+}
+
+enum MyEnumWithCustomEnumerators
+{
+    enum1 = -10,
+    enum2 = 20,
+    enum3 = 30,
+}
+
+[cs:attribute("System.Flags")] unchecked enum MyUncheckedEnum : uint
+{
+    E0 = 1,
+    E1 = 2,
+    E2 = 4,
+    E3 = 8,
+    E4 = 16,
+}
