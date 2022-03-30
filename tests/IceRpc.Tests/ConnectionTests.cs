@@ -20,7 +20,7 @@ public class ConnectionTests
         var colocTransport = new ColocTransport();
         var serverOptions = CreateServerOptions(endpoint, colocTransport);
         serverOptions.MaxDispatchesPerConnection = maxDispatchesPerConnection;
-        using var startSemaphore = new SemaphoreSlim(maxDispatchesPerConnection);
+        using var startSemaphore = new SemaphoreSlim(0);
         using var workSemaphore = new SemaphoreSlim(0);
         int count = 0;
         int maxCount = 0;
@@ -29,8 +29,8 @@ public class ConnectionTests
         serverOptions.Dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
             await request.Payload.CompleteAsync(); // done with payload
-            startSemaphore.Release();
             IncrementCount();
+            startSemaphore.Release();
             await workSemaphore.WaitAsync(cancel);
             DecrementCount();
             return new OutgoingResponse(request);
@@ -68,7 +68,10 @@ public class ConnectionTests
             responseTasks.Add(proxy.Invoker.InvokeAsync(request, default));
         }
         // wait for maxDispatchesPerConnection dispatches to start
-        await startSemaphore.WaitAsync(maxDispatchesPerConnection);
+        for (int i = 0; i < maxDispatchesPerConnection; ++i)
+        {
+            await startSemaphore.WaitAsync();
+        }
 
         // Assert
         for (int i = 0; i < maxDispatchesPerConnection + 1; ++i)

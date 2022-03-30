@@ -88,8 +88,7 @@ namespace IceRpc.Configure
         /// <summary>Gets or sets the maximum number of requests that the connection can dispatch concurrently.
         /// </summary>
         /// <value>The maximum number of requests that the connection can dispatch concurrently. The default value is
-        /// 1, meaning all dispatches are serialized. Use 0 to allow the connection to dispatch any number of requests
-        /// concurrently.</value>
+        /// 0 and means a connection can dispatch any number of requests concurrently.</value>
         public int MaxDispatches
         {
             get => _maxDispatches;
@@ -129,7 +128,7 @@ namespace IceRpc.Configure
         private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
         private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
 
-        private int _maxDispatches = 1;
+        private int _maxDispatches;
         private Endpoint? _remoteEndpoint;
     }
 }

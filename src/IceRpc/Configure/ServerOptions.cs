@@ -78,12 +78,10 @@ namespace IceRpc.Configure
         /// </summary>
         public ILoggerFactory LoggerFactory { get; set; } = NullLoggerFactory.Instance;
 
-        /// <summary>Gets or sets the maximum number of requests that a connection created by this server can dispatch
-        /// concurrently.
-        /// </summary>
+        /// <summary>Gets or sets the maximum number of requests that a connection created by the server can dispatch
+        /// concurrently.</summary>
         /// <value>The maximum number of requests that a connection can dispatch concurrently. The default value is
-        /// 1, meaning all dispatches are serialized for a given connection. Use 0 to allow connections to dispatch any
-        /// number of requests concurrently.</value>
+        /// 0 and means a connection can dispatch any number of requests concurrently.</value>
         public int MaxDispatchesPerConnection
         {
             get => _maxDispatchesPerConnection;
@@ -104,6 +102,6 @@ namespace IceRpc.Configure
         private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
         private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
         private Endpoint _endpoint = new(Protocol.IceRpc);
-        private int _maxDispatchesPerConnection = 1;
+        private int _maxDispatchesPerConnection;
     }
 }
