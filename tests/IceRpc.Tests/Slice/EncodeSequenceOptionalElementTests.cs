@@ -8,13 +8,13 @@ namespace IceRpc.Slice.Tests;
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 [TestFixture(SliceEncoding.Slice20)] // TODO: should we also test Slice11?
 [Parallelizable(scope: ParallelScope.All)]
-public class EncodingSequenceOptionalElementsTests
+public class EncodeSequenceOptionalElementsTests
 {
     private readonly Memory<byte> _buffer;
     private readonly SliceEncoding _encoding;
     private readonly MemoryBufferWriter _bufferWriter;
 
-    public EncodingSequenceOptionalElementsTests(SliceEncoding encoding)
+    public EncodeSequenceOptionalElementsTests(SliceEncoding encoding)
     {
         _encoding = encoding;
         _buffer = new byte[1024 * 1024];
