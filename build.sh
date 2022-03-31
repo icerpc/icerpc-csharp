@@ -98,11 +98,11 @@ clean()
 
 run_test()
 {
-    arguments=()
+    arguments=("test" "--no-build" "-c" "$dotnet_config")
     if [ "$coverage" == "yes" ]; then
         arguments+=("--collect:\"XPlat Code Coverage\"")
     fi
-    run_command dotnet "test" "--no-build" "-c" "$dotnet_config" "${arguments[@]}"
+    run_command dotnet "${arguments[@]}"
 
     if [ "$coverage" == "yes" ]; then
         arguments=("-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/CodeCoverageRerport")
