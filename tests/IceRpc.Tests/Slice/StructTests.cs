@@ -32,7 +32,7 @@ public class StructTests
         var response = new IncomingResponse(new OutgoingRequest(Proxy.FromConnection(connection, "/")))
         {
             Connection = connection,
-            Payload = IStructOperations.Response.OpMyStruct(SliceEncoding.Slice20, expectedValue)
+            Payload = IStructOperations.Response.OpMyStruct(expectedValue)
         };
 
         MyStruct value = await StructOperationsPrx.Response.OpMyStructAsync(response, default);
