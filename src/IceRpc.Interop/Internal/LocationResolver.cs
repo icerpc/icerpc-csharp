@@ -58,12 +58,13 @@ namespace IceRpc.Internal
             _ttl = ttl;
         }
 
-        ValueTask<(Proxy? Proxy, bool FromCache)> ILocationResolver.ResolveAsync(
+        public ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(
             Location location,
             bool refreshCache,
-            CancellationToken cancel) => ResolveAsync(location, refreshCache, cancel);
+            CancellationToken cancel) =>
+            PerformResolveAsync(location, refreshCache, cancel);
 
-        private async ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(
+        private async ValueTask<(Proxy? Proxy, bool FromCache)> PerformResolveAsync(
             Location location,
             bool refreshCache,
             CancellationToken cancel)
@@ -95,29 +96,12 @@ namespace IceRpc.Internal
             // A well-known proxy resolution can return a loc endpoint
             if (proxy != null && proxy.Params.TryGetValue("adapter-id", out string? adapterId))
             {
-                try
-                {
-                    // Resolves adapter ID recursively, by checking first the cache. If we resolved the well-known
-                    // proxy, we request a cache refresh for the adapter ID.
-                    (proxy, _) = await ResolveAsync(
-                        new Location { IsAdapterId = true, Value = adapterId },
-                        refreshCache || resolved,
-                        cancel).ConfigureAwait(false);
-                }
-                catch
-                {
-                    proxy = null;
-                    throw;
-                }
-                finally
-                {
-                    // When the second resolution fails, we clear the cache entry for the initial successful
-                    // resolution, since the overall resolution is a failure.
-                    if (proxy == null)
-                    {
-                        _endpointCache.Remove(location);
-                    }
-                }
+                // Resolves adapter ID recursively, by checking first the cache. If we resolved the well-known
+                // proxy, we request a cache refresh for the adapter ID.
+                (proxy, _) = await PerformResolveAsync(
+                    new Location { IsAdapterId = true, Value = adapterId },
+                    refreshCache || resolved,
+                    cancel).ConfigureAwait(false);
             }
 
             return (proxy, proxy != null && !resolved);
