@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Slice.Tests;
@@ -12,11 +11,14 @@ public class StructTests
         Enumerable.Range(0, 12).Select(x => new MyStruct(x, x * 2)).ToArray();
 
     [Test, TestCaseSource(nameof(MyStructSource))]
-    public async Task Decode_my_struct_param(MyStruct expectedValue)
+    public async Task Encode_and_decode_my_struct_param(MyStruct expectedValue)
     {
-        await using ServiceProvider provider = new SliceServiceCollection().BuildServiceProvider();
-        IncomingRequest request = provider.CreateIncomingRequestWithPayload(
-            StructOperationsPrx.Request.OpMyStruct(expectedValue));
+        await using var connection = new Connection(Endpoint.FromString("icerpc://localhost/"));
+        var request = new IncomingRequest(Protocol.IceRpc)
+        {
+            Connection = connection,
+            Payload = StructOperationsPrx.Request.OpMyStruct(expectedValue)
+        };
 
         MyStruct value = await IStructOperations.Request.OpMyStructAsync(request, default);
 
@@ -24,11 +26,14 @@ public class StructTests
     }
 
     [Test, TestCaseSource(nameof(MyStructSource))]
-    public async Task Decode_my_struct_return(MyStruct expectedValue)
+    public async Task Encode_and_decode_my_struct_return(MyStruct expectedValue)
     {
-        await using ServiceProvider provider = new SliceServiceCollection().BuildServiceProvider();
-        IncomingResponse response = provider.CreateIncomingResponseWithPayload(
-            IStructOperations.Response.OpMyStruct(SliceEncoding.Slice20, expectedValue));
+        await using var connection = new Connection(Endpoint.FromString("icerpc://localhost/"));
+        var response = new IncomingResponse(new OutgoingRequest(Proxy.FromConnection(connection, "/")))
+        {
+            Connection = connection,
+            Payload = IStructOperations.Response.OpMyStruct(SliceEncoding.Slice20, expectedValue)
+        };
 
         MyStruct value = await StructOperationsPrx.Response.OpMyStructAsync(response, default);
 
