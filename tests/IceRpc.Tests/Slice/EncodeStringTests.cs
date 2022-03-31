@@ -16,7 +16,6 @@ public class EncodeStringTests
     /// tests the size encoding, this test only needs to verify how strings are encoded with 2.0. </summary>
     /// <param name="value">The string to be encoded.</param>
     [TestCase("")]
-    [TestCase("Lorem ipsum dolor sit amet, no explicari repudiare vis, an dicant legimus ponderum sit.")]
     [TestCase("국민경제의 발전을 위한 중요정책의 수립에 관하여 대통령의 자문에 응하기 위하여 국민경제자문회의를 둘 수 있다")] // Korean
     [TestCase("旅ロ京青利セムレ弱改フヨス波府かばぼ意送でぼ調掲察たス日西重ケアナ住橋ユムミク順待ふかんぼ人奨貯鏡すびそ")]  // Japanese
     [TestCase("😁😂😃😄😅😆😉😊😋😌😍😏😒😓😔😖")]
@@ -37,7 +36,6 @@ public class EncodeStringTests
 
     /// <summary>Tests the encoding of a string using a custom memory pool.</summary>
     /// <param name="value">The string to be encoded.</param>
-    [TestCase("")]
     [TestCase("Lorem ipsum dolor sit amet, no explicari repudiare vis, an dicant legimus ponderum sit.")]
     [TestCase("국민경제의 발전을 위한 중요정책의 수립에 관하여 대통령의 자문에 응하기 위하여 국민경제자문회의를 둘 수 있다")] // Korean
     [TestCase("旅ロ京青利セムレ弱改フヨス波府かばぼ意送でぼ調掲察たス日西重ケアナ住橋ユムミク順待ふかんぼ人奨貯鏡すびそ")]  // Japanese
