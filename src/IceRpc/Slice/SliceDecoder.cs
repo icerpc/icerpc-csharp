@@ -822,30 +822,6 @@ namespace IceRpc.Slice
                             break;
                         }
 
-                        case TransportCode.UDP:
-                        {
-                            string host = DecodeString();
-                            if (Uri.CheckHostName(host) == UriHostNameType.Unknown)
-                            {
-                                throw new InvalidDataException($"received proxy with invalid host '{host}'");
-                            }
-
-                            ushort port = checked((ushort)DecodeInt());
-                            bool compress = DecodeBool();
-
-                            ImmutableDictionary<string, string>.Builder builder =
-                                ImmutableDictionary.CreateBuilder<string, string>();
-
-                            builder.Add("transport", TransportNames.Udp);
-                            if (compress)
-                            {
-                                builder.Add("z", "");
-                            }
-
-                            endpoint = new Endpoint(Protocol.Ice, host, port, builder.ToImmutable());
-                            break;
-                        }
-
                         case TransportCode.Uri:
                             endpoint = Endpoint.FromString(DecodeString());
                             if (endpoint.Value.Protocol != protocol)

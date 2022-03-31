@@ -261,7 +261,7 @@ namespace IceRpc.Slice
 
                 var proxyData = new ProxyData(
                     proxy.Fragment,
-                    GetInvocationMode(proxy),
+                    InvocationMode.Twoway,
                     secure: false,
                     protocolMajor: proxy.Protocol.ToByte(),
                     protocolMinor: 0,
@@ -295,12 +295,6 @@ namespace IceRpc.Slice
             {
                 EncodeString(proxy.ToString()); // a URI or an absolute path
             }
-
-            static InvocationMode GetInvocationMode(Proxy proxy) =>
-                proxy.Protocol == Protocol.Ice &&
-                proxy.Endpoint is Endpoint endpoint &&
-                endpoint.Params.TryGetValue("transport", out string? transport) &&
-                transport == TransportNames.Udp ? InvocationMode.Oneway : InvocationMode.Twoway;
         }
 
         // Other methods
@@ -685,11 +679,6 @@ namespace IceRpc.Slice
                             transportCode = TransportCode.TCP;
                             break;
 
-                        case TransportNames.Udp:
-                            compress = endpoint.ParseUdpParams().Compress;
-                            transportCode = TransportCode.UDP;
-                            break;
-
                         default:
                             break;
                     }
@@ -711,14 +700,6 @@ namespace IceRpc.Slice
                         EncodeString(endpoint.Host);
                         EncodeInt(endpoint.Port);
                         EncodeInt(timeout);
-                        EncodeBool(compress);
-                        break;
-                    }
-
-                    case TransportCode.UDP:
-                    {
-                        EncodeString(endpoint.Host);
-                        EncodeInt(endpoint.Port);
                         EncodeBool(compress);
                         break;
                     }

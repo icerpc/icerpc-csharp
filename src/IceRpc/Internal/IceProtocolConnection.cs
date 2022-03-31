@@ -54,7 +54,6 @@ namespace IceRpc.Internal
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly HashSet<CancellationTokenSource> _dispatches = new();
         private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
-        private readonly bool _isUdp;
 
         private readonly MemoryPool<byte> _memoryPool;
         private readonly int _minimumSegmentSize;
@@ -229,8 +228,6 @@ namespace IceRpc.Internal
                         await response.CompleteAsync().ConfigureAwait(false);
                         return;
                     }
-
-                    Debug.Assert(!_isUdp); // udp is oneway-only so no response
 
                     // Read the full payload. This can take some time so this needs to be done before acquiring the send
                     // semaphore.
@@ -438,11 +435,6 @@ namespace IceRpc.Internal
                 if (request.PayloadStream != null)
                 {
                     throw new NotSupportedException("PayloadStream must be null with the ice protocol");
-                }
-
-                if (_isUdp && !request.IsOneway)
-                {
-                    throw new InvalidOperationException("cannot send twoway request over UDP");
                 }
 
                 // Read the full payload. This can take some time so this needs to be done before acquiring the send
@@ -657,67 +649,56 @@ namespace IceRpc.Internal
         public async Task ShutdownAsync(string message, CancellationToken cancel)
         {
             var exception = new ConnectionClosedException(message);
-            if (_isUdp)
+            bool alreadyShuttingDown = false;
+            lock (_mutex)
             {
-                lock (_mutex)
+                if (_shuttingDown)
+                {
+                    alreadyShuttingDown = true;
+                }
+                else
                 {
                     _shuttingDown = true;
-                    _sendSemaphore.Complete(exception);
+                    if (_dispatches.Count == 0 && _invocations.Count == 0)
+                    {
+                        _dispatchesAndInvocationsCompleted.TrySetResult();
+                    }
                 }
             }
-            else
+
+            if (!alreadyShuttingDown)
             {
-                bool alreadyShuttingDown = false;
-                lock (_mutex)
+                // Cancel pending invocations immediately. Wait for dispatches to complete however.
+                CancelInvocations(new OperationCanceledException(message));
+
+                try
                 {
-                    if (_shuttingDown)
-                    {
-                        alreadyShuttingDown = true;
-                    }
-                    else
-                    {
-                        _shuttingDown = true;
-                        if (_dispatches.Count == 0 && _invocations.Count == 0)
-                        {
-                            _dispatchesAndInvocationsCompleted.TrySetResult();
-                        }
-                    }
+                    // Wait for dispatches to complete.
+                    await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Try to speed up dispatch completion.
+                    CancelDispatches();
+
+                    // Wait again for the dispatches to complete.
+                    await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
                 }
 
-                if (!alreadyShuttingDown)
-                {
-                    // Cancel pending invocations immediately. Wait for dispatches to complete however.
-                    CancelInvocations(new OperationCanceledException(message));
+                // Cancel any pending requests waiting for sending.
+                _sendSemaphore.Complete(exception);
 
-                    try
-                    {
-                        // Wait for dispatches to complete.
-                        await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // Try to speed up dispatch completion.
-                        CancelDispatches();
+                // Send the CloseConnection frame once all the dispatches are done.
+                EncodeCloseConnectionFrame(_networkConnectionWriter);
 
-                        // Wait again for the dispatches to complete.
-                        await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
-                    }
-
-                    // Cancel any pending requests waiting for sending.
-                    _sendSemaphore.Complete(exception);
-
-                    // Send the CloseConnection frame once all the dispatches are done.
-                    EncodeCloseConnectionFrame(_networkConnectionWriter);
-
-                    // The flush can't be canceled because it would lead to the writing of an incomplete frame.
-                    await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-                }
-
-                // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
-                // connection closure here. We can't just return and close the underlying transport since this could
-                // abort the receive of the dispatch responses and close connection frame by the peer.
-                await _pendingClose.Task.ConfigureAwait(false);
+                // The flush can't be canceled because it would lead to the writing of an incomplete frame.
+                await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
             }
+
+            // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
+            // connection closure here. We can't just return and close the underlying transport since this could
+            // abort the receive of the dispatch responses and close connection frame by the peer.
+            await _pendingClose.Task.ConfigureAwait(false);
 
             static void EncodeCloseConnectionFrame(SimpleNetworkConnectionWriter writer)
             {
@@ -728,10 +709,8 @@ namespace IceRpc.Internal
 
         internal IceProtocolConnection(
             ISimpleNetworkConnection simpleNetworkConnection,
-            Configure.IceProtocolOptions options,
-            bool isUdp)
+            Configure.IceProtocolOptions options)
         {
-            _isUdp = isUdp;
             _options = options;
 
             // TODO: get the pool and minimum segment size from an option class, but which one? The Slic connection
@@ -756,35 +735,32 @@ namespace IceRpc.Internal
 
         internal async Task InitializeAsync(bool isServer, CancellationToken cancel)
         {
-            if (!_isUdp)
+            if (isServer)
             {
-                if (isServer)
-                {
-                    EncodeValidateConnectionFrame(_networkConnectionWriter);
+                EncodeValidateConnectionFrame(_networkConnectionWriter);
 
-                    // The flush can't be canceled because it would lead to the writing of an incomplete frame.
-                    await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                // The flush can't be canceled because it would lead to the writing of an incomplete frame.
+                await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            else
+            {
+                ReadOnlySequence<byte> buffer = await _networkConnectionReader.ReadAtLeastAsync(
+                    IceDefinitions.PrologueSize,
+                    cancel).ConfigureAwait(false);
+
+                (IcePrologue validateConnectionFrame, long consumed) = DecodeValidateConnectionFrame(buffer);
+                _networkConnectionReader.AdvanceTo(buffer.GetPosition(consumed), buffer.End);
+
+                IceDefinitions.CheckPrologue(validateConnectionFrame);
+                if (validateConnectionFrame.FrameSize != IceDefinitions.PrologueSize)
+                {
+                    throw new InvalidDataException(
+                        $"received Ice frame with only '{validateConnectionFrame.FrameSize}' bytes");
                 }
-                else
+                if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
                 {
-                    ReadOnlySequence<byte> buffer = await _networkConnectionReader.ReadAtLeastAsync(
-                        IceDefinitions.PrologueSize,
-                        cancel).ConfigureAwait(false);
-
-                    (IcePrologue validateConnectionFrame, long consumed) = DecodeValidateConnectionFrame(buffer);
-                    _networkConnectionReader.AdvanceTo(buffer.GetPosition(consumed), buffer.End);
-
-                    IceDefinitions.CheckPrologue(validateConnectionFrame);
-                    if (validateConnectionFrame.FrameSize != IceDefinitions.PrologueSize)
-                    {
-                        throw new InvalidDataException(
-                            $"received Ice frame with only '{validateConnectionFrame.FrameSize}' bytes");
-                    }
-                    if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
-                    {
-                        throw new InvalidDataException(@$"expected '{nameof(IceFrameType.ValidateConnection)
-                            }' frame but received frame type '{validateConnectionFrame.FrameType}'");
-                    }
+                    throw new InvalidDataException(@$"expected '{nameof(IceFrameType.ValidateConnection)
+                        }' frame but received frame type '{validateConnectionFrame.FrameType}'");
                 }
             }
 
@@ -921,11 +897,6 @@ namespace IceRpc.Internal
                     throw new InvalidDataException(
                         $"incoming frame size ({prologue.FrameSize}) is greater than max incoming frame size");
                 }
-                else if (_isUdp && (prologue.FrameSize > buffer.Length || prologue.FrameSize > UdpUtils.MaxPacketSize))
-                {
-                    // Ignore truncated UDP datagram.
-                    continue; // while
-                }
 
                 if (prologue.CompressionStatus == 2)
                 {
@@ -942,11 +913,6 @@ namespace IceRpc.Internal
                         {
                             throw new InvalidDataException(
                                 $"unexpected data for {nameof(IceFrameType.CloseConnection)}");
-                        }
-                        if (_isUdp)
-                        {
-                            throw new InvalidDataException(
-                                $"unexpected {nameof(IceFrameType.CloseConnection)} frame for udp connection");
                         }
 
                         lock (_mutex)

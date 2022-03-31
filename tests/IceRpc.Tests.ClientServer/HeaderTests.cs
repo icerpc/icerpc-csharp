@@ -14,7 +14,6 @@ namespace IceRpc.Tests.ClientServer
     {
         [TestCase("icerpc://127.0.0.1:0")]
         [TestCase("ice://127.0.0.1:0")]
-        [TestCase("ice://127.0.0.1:0?transport=udp")]
         [TestCase("icerpc://header_request:10000?transport=coloc")]
         [TestCase("ice://header_request:10001?transport=coloc")]
         public async Task Header_RequestResponseAsync(string endpoint)
@@ -65,10 +64,7 @@ namespace IceRpc.Tests.ClientServer
 
             var invocation = new Invocation
             {
-                Features = new FeatureCollection().WithContext(new Dictionary<string, string> { ["foo"] = largeValue }),
-                IsOneway = serviceProvider.GetRequiredService<Endpoint>().Params.TryGetValue(
-                    "transport",
-                    out string? transport) && transport == "udp"
+                Features = new FeatureCollection().WithContext(new Dictionary<string, string> { ["foo"] = largeValue })
             };
 
             await greeter.SayHelloAsync("hello", invocation);
