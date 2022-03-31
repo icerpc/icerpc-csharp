@@ -78,10 +78,10 @@ public class ActivatorTests
         string typeId,
         Type expectedType)
     {
-        IActivator activator = SliceDecoder.GetActivator(assembly);
         var decoder = new SliceDecoder(ReadOnlyMemory<byte>.Empty, SliceEncoding.Slice11);
+        IActivator sut = SliceDecoder.GetActivator(assembly);
 
-        object? instance = activator.CreateInstance(typeId, ref decoder);
+        object? instance = sut.CreateInstance(typeId, ref decoder);
 
         Assert.That(instance, Is.Not.Null);
         Assert.That(instance.GetType(), Is.EqualTo(expectedType));
