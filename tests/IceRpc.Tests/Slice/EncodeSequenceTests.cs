@@ -10,7 +10,7 @@ namespace IceRpc.Slice.Tests;
 public class EncodingSequenceTests
 {
     /// <summary>Provides test case data for
-    /// <see cref="Encode_long_sequence(SliceEncoding, IEnumerable{long}, byte[])"/> test.</summary>
+    /// <see cref="Encode_fixed_sized_numeric_sequence(SliceEncoding, IEnumerable{long}, byte[])"/> test.</summary>
     private static IEnumerable<TestCaseData> SequenceLongData
     {
         get
@@ -62,20 +62,6 @@ public class EncodingSequenceTests
         }
     }
 
-    // <summary>A helper function that computes the encoded size bytes for any IEnumerable</summary>
-    /// <param name="enumerable">The <see cref="IEnumerable{T}"/> to encode the size of.</param>
-    /// <param name="encoding">The <see cref="SliceEncoding"/> to use for the size encoding.</param>
-    private static byte[] Encoded_size_helper<T>(IEnumerable<T> enumerable, SliceEncoding encoding)
-    {
-        var buffer = new byte[1024 * 1024];
-        var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, encoding);
-
-        encoder.EncodeSize(enumerable.Count());
-
-        return buffer[0..bufferWriter.WrittenMemory.Length];
-    }
-
     /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSequence"/> and
     /// <see cref="SliceDecoderExtensions.DecodeSequence"/> with a value type. Includes testing
     /// the <see cref="T[]"/>, <see cref="ImmutableArray{T}"/>, and <see cref="ArraySegment{T}"/>
@@ -85,18 +71,18 @@ public class EncodingSequenceTests
     /// <param name="value">The <see cref="IEnumerable{long}"/> to be encoded.</param>
     /// <param name="expected">The expected byte array from encoding the sequence of longs</param>
     [Test, TestCaseSource(nameof(SequenceLongData))]
-    public void Encode_long_sequence(SliceEncoding encoding, IEnumerable<long> value, byte[] expected)
+    public void Encode_fixed_sized_numeric_sequence(SliceEncoding encoding, IEnumerable<long> value, byte[] expected)
     {
         var buffer = new byte[1024 * 1024];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encodedSizeBytes = Encoded_size_helper(value, encoding);
+        byte[] encodedSize = EncodeSize(value.Count(), encoding);
         var sut = new SliceEncoder(bufferWriter, encoding);
 
         sut.EncodeSequence(value);
 
-        var encodedBytes = buffer[encodedSizeBytes.Length..bufferWriter.WrittenMemory.Length];
-        Assert.That(encodedBytes, Is.EqualTo(expected));
-        Assert.That(encodedBytes.Length, Is.EqualTo(sut.EncodedByteCount - encodedSizeBytes.Length));
+        byte[] encodedLongs = buffer[encodedSize.Length..bufferWriter.WrittenMemory.Length];
+        Assert.That(encodedLongs, Is.EqualTo(expected));
+        Assert.That(encodedLongs.Length, Is.EqualTo(sut.EncodedByteCount - encodedSize.Length));
     }
 
     /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSequence"/> and
@@ -110,13 +96,27 @@ public class EncodingSequenceTests
     {
         var buffer = new byte[1024 * 1024];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encodedSizeBytes = Encoded_size_helper(value, encoding);
+        byte[] encodedSize = EncodeSize(value.Count(), encoding);
         var sut = new SliceEncoder(bufferWriter, encoding);
 
         sut.EncodeSequence(value, (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
 
-        var encodedBytes = buffer[encodedSizeBytes.Length..bufferWriter.WrittenMemory.Length];
-        Assert.That(encodedBytes, Is.EqualTo(expected));
-        Assert.That(encodedBytes.Length, Is.EqualTo(sut.EncodedByteCount - encodedSizeBytes.Length));
+        byte[] encodedStrings = buffer[encodedSize.Length..bufferWriter.WrittenMemory.Length];
+        Assert.That(encodedStrings, Is.EqualTo(expected));
+        Assert.That(encodedStrings.Length, Is.EqualTo(sut.EncodedByteCount - encodedSize.Length));
+    }
+
+    // <summary>A helper function that computes the encoded size bytes for any IEnumerable</summary>
+    /// <param name="size">The size to encode.</param>
+    /// <param name="encoding">The <see cref="SliceEncoding"/> to use for the size encoding.</param>
+    private static byte[] EncodeSize(int size, SliceEncoding encoding)
+    {
+        var buffer = new byte[1024 * 1024];
+        var bufferWriter = new MemoryBufferWriter(buffer);
+        var encoder = new SliceEncoder(bufferWriter, encoding);
+
+        encoder.EncodeSize(size);
+
+        return buffer[0..bufferWriter.WrittenMemory.Length];
     }
 }

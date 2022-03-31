@@ -12,7 +12,7 @@ namespace IceRpc.Slice.Tests;
 public class DecodeSequenceTests
 {
     /// <summary>Provides test case data for
-    /// <see cref="Decode_long_sequence((SliceEncoding, byte[], IEnumerable{long})"/> test.</summary>
+    /// <see cref="Decode_fixed_sized_numeric_sequence((SliceEncoding, byte[], IEnumerable{long})"/> test.</summary>
     private static IEnumerable<TestCaseData> SequenceLongData
     {
         get
@@ -60,7 +60,7 @@ public class DecodeSequenceTests
     /// <param name="value">The byte array to decode.</param>
     /// <param name="expected">The expected <see cref="long[]"/> to be decoded</param>
     [Test, TestCaseSource(nameof(SequenceLongData))]
-    public void Decode_long_sequence(SliceEncoding encoding, byte[] value, IEnumerable<long> expected)
+    public void Decode_fixed_sized_numeric_sequence(SliceEncoding encoding, byte[] value, IEnumerable<long> expected)
     {
         var sut = new SliceDecoder(value, encoding);
 
