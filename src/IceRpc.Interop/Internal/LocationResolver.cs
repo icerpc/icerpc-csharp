@@ -61,8 +61,7 @@ namespace IceRpc.Internal
         public ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(
             Location location,
             bool refreshCache,
-            CancellationToken cancel) =>
-            PerformResolveAsync(location, refreshCache, cancel);
+            CancellationToken cancel) => PerformResolveAsync(location, refreshCache, cancel);
 
         private async ValueTask<(Proxy? Proxy, bool FromCache)> PerformResolveAsync(
             Location location,
@@ -96,12 +95,29 @@ namespace IceRpc.Internal
             // A well-known proxy resolution can return a loc endpoint
             if (proxy != null && proxy.Params.TryGetValue("adapter-id", out string? adapterId))
             {
-                // Resolves adapter ID recursively, by checking first the cache. If we resolved the well-known
-                // proxy, we request a cache refresh for the adapter ID.
-                (proxy, _) = await PerformResolveAsync(
-                    new Location { IsAdapterId = true, Value = adapterId },
-                    refreshCache || resolved,
-                    cancel).ConfigureAwait(false);
+                try
+                {
+                    // Resolves adapter ID recursively, by checking first the cache. If we resolved the well-known
+                    // proxy, we request a cache refresh for the adapter ID.
+                    (proxy, _) = await PerformResolveAsync(
+                        new Location { IsAdapterId = true, Value = adapterId },
+                        refreshCache || resolved,
+                        cancel).ConfigureAwait(false);
+                }
+                catch
+                {
+                    proxy = null;
+                    throw;
+                }
+                finally
+                {
+                    // When the second resolution fails, we clear the cache entry for the initial successful
+                    // resolution, since the overall resolution is a failure.
+                    if (proxy == null)
+                    {
+                        _endpointCache.Remove(location);
+                    }
+                }
             }
 
             return (proxy, proxy != null && !resolved);

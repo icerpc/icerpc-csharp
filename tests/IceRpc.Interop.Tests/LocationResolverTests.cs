@@ -18,7 +18,7 @@ public class LocationResolverTests
         var endpointFinder = new MockEndpointFinder();
         var resolver = new LocationResolver(
                 endpointFinder,
-                new MockEndpointCache(cachedProxy, TimeSpan.FromSeconds(cacheEntryAge)),
+                new MockEndpointCache(cachedProxy, insertionTime: TimeSpan.FromSeconds(cacheEntryAge)),
                 background: false,
                 TimeSpan.FromSeconds(refreshThreshold),
                 ttl: Timeout.InfiniteTimeSpan);
@@ -41,7 +41,7 @@ public class LocationResolverTests
         var endpointFinder = new MockEndpointFinder(resolvedProxy);
         var resolver = new LocationResolver(
                 endpointFinder,
-                new MockEndpointCache(cachedProxy, TimeSpan.FromSeconds(cacheEntryAge)),
+                new MockEndpointCache(cachedProxy, insertionTime: TimeSpan.FromSeconds(cacheEntryAge)),
                 background: false,
                 TimeSpan.FromSeconds(refreshThreshold),
                 ttl: Timeout.InfiniteTimeSpan);
@@ -61,7 +61,7 @@ public class LocationResolverTests
         var endpointFinder = new MockEndpointFinder(resolvedProxy);
         var resolver = new LocationResolver(
                 endpointFinder,
-                new MockEndpointCache(cachedProxy, TimeSpan.FromSeconds(120)),
+                new MockEndpointCache(cachedProxy, insertionTime: TimeSpan.FromSeconds(120)),
                 background: true,
                 TimeSpan.FromSeconds(1),
                 ttl: TimeSpan.FromSeconds(30));
@@ -100,10 +100,38 @@ public class LocationResolverTests
         Assert.That(endpointFinder.Calls, Is.EqualTo(2));
     }
 
+    [Test]
+    public async Task Failure_to_recursively_resolve_adapter_id_removes_proxy_from_cache()
+    {
+        var wellKnownProxy = Proxy.Parse("ice:/foo?adapter-id=bar");
+        var endpointFinder = new MockEndpointFinder(wellKnownProxy);
+        var endpointCache = new MockEndpointCache(wellKnownProxy);
+        var resolver = new LocationResolver(
+                endpointFinder,
+                endpointCache,
+                background: true,
+                TimeSpan.FromSeconds(1),
+                ttl: TimeSpan.FromSeconds(30));
+        var location = new Location
+        {
+            Value = "/hello",
+            IsAdapterId = false,
+        };
+
+        (Proxy? resolved, bool fromCache) = await resolver.ResolveAsync(
+            location,
+            refreshCache: false,
+            default);
+
+        Assert.That(fromCache, Is.False);
+        Assert.That(resolved, Is.Null);
+        Assert.That(endpointCache.Removed.Contains(location), Is.True);
+        Assert.That(endpointFinder.Calls, Is.EqualTo(1));
+    }
+
     private class MockEndpointFinder : IEndpointFinder
     {
         public int Calls { get; private set; }
-
 
         private readonly Proxy? _adapterIdProxy;
         private readonly Proxy? _wellKnownProxy;
@@ -126,26 +154,34 @@ public class LocationResolverTests
 
     private class MockEndpointCache : IEndpointCache
     {
-        private readonly TimeSpan _insertionTime;
-        private readonly Proxy? _proxy;
+        public List<Location> Removed { get; } = new List<Location>();
 
-        internal MockEndpointCache(Proxy? proxy = null, TimeSpan? insertionTime = null)
+        private readonly TimeSpan _insertionTime;
+        private readonly Proxy? _adapterIdProxy;
+        private readonly Proxy? _wellKnownProxy;
+
+        internal MockEndpointCache(
+            Proxy? wellKnownProxy = null,
+            Proxy? adapterIdProxy = null,
+            TimeSpan? insertionTime = null)
         {
-            _proxy = proxy;
+            _wellKnownProxy = wellKnownProxy;
+            _adapterIdProxy = adapterIdProxy;
             _insertionTime = insertionTime ?? Timeout.InfiniteTimeSpan;
         }
-        public void Remove(Location location) => throw new NotImplementedException();
+        public void Remove(Location location) => Removed.Add(location);
         public void Set(Location location, Proxy proxy) => throw new NotImplementedException();
         public bool TryGetValue(Location location, out (TimeSpan InsertionTime, Proxy Proxy) value)
         {
-            if(_proxy == null)
+            if ((location.IsAdapterId && _adapterIdProxy == null) ||
+                (!location.IsAdapterId && _wellKnownProxy == null))
             {
                 value = default;
                 return false;
             }
             else
             {
-                value = (Time.Elapsed - _insertionTime, _proxy);
+                value = (Time.Elapsed - _insertionTime, location.IsAdapterId ? _adapterIdProxy! : _wellKnownProxy!);
                 return true;
             }
         }

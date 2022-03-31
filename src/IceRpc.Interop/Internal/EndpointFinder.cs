@@ -152,21 +152,15 @@ namespace IceRpc.Internal
 
         async Task<Proxy?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel)
         {
-            Proxy? proxy = null;
-            try
+            Proxy? proxy = await _decoratee.FindAsync(location, cancel).ConfigureAwait(false);
+
+            if (proxy != null)
             {
-                proxy = await _decoratee.FindAsync(location, cancel).ConfigureAwait(false);
+                _endpointCache.Set(location, proxy);
             }
-            finally
+            else
             {
-                if (proxy != null)
-                {
-                    _endpointCache.Set(location, proxy);
-                }
-                else
-                {
-                    _endpointCache.Remove(location);
-                }
+                _endpointCache.Remove(location);
             }
             return proxy;
         }
