@@ -145,17 +145,18 @@ namespace IceRpc.Internal
                     request.Features = request.Features.WithContext(requestHeader.Context);
                 }
 
+                if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
+                {
+                    // This prevents us from receiving any frame until WaitAsync returns.
+                    await dispatchSemaphore.WaitAsync().ConfigureAwait(false);
+                }
+
                 _ = Task.Run(() => DispatchRequestAsync(requestId, request));
             }
 
             async Task DispatchRequestAsync(int requestId, IncomingRequest request)
             {
                 using var cancelDispatchSource = new CancellationTokenSource();
-
-                if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
-                {
-                    await dispatchSemaphore.WaitAsync(cancelDispatchSource.Token).ConfigureAwait(false);
-                }
 
                 bool shuttingDown = false;
                 lock (_mutex)
