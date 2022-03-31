@@ -56,9 +56,9 @@ public class DecodeSequenceTests
 
     /// <summary>Tests <see cref="SliceDecoderExtensions.DecodeSequence"/> with a fixed-size numeric value type.
     /// </summary>
-    /// <param name="encoding">An int used to specify how many elements to generate in the sequence.</param>
-    /// <param name="value">An int used to specify how many elements to generate in the sequence.</param>
-    /// <param name="expected">An int used to specify how many elements to generate in the sequence.</param>
+    /// <param name="encoding">The <see cref="SliceEncoding"/> to use for the decoding.</param>
+    /// <param name="value">The byte array to decode.</param>
+    /// <param name="expected">The expected <see cref="long[]"/> to be decoded</param>
     [Test, TestCaseSource(nameof(SequenceLongData))]
     public void Decode_long_sequence(SliceEncoding encoding, byte[] value, IEnumerable<long> expected)
     {
@@ -71,9 +71,9 @@ public class DecodeSequenceTests
     }
 
     /// <summary>Tests <see cref="SliceDecoderExtensions.DecodeSequence"/> with a string.</summary>
-    /// <param name="encoding">An int used to specify how many elements to generate in the sequence.</param>
-    /// <param name="value">An int used to specify how many elements to generate in the sequence.</param>
-    /// <param name="expected">An int used to specify how many elements to generate in the sequence.</param>
+    /// <param name="encoding">The <see cref="SliceEncoding"/> to use for the decoding.</param>
+    /// <param name="value">The byte array to decode.</param>
+    /// <param name="expected">The expected <see cref="string[]"/> to be decoded</param>
     [Test, TestCaseSource(nameof(SequenceStringData))]
     public void Decode_string_sequence(SliceEncoding encoding, byte[] value, IEnumerable<string> expected)
     {
