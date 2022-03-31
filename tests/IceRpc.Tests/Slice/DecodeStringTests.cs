@@ -56,7 +56,7 @@ public class DecodeStringTests
         encoder.EncodeString(value);
         pipe.Writer.Complete();
         pipe.Reader.TryRead(out ReadResult readResult);
-        pipe.Reader.Complete();
+
         var sut = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice20);
 
         // Act
@@ -65,6 +65,9 @@ public class DecodeStringTests
         // Assert
         Assert.That(sut.Consumed, Is.EqualTo(encoder.EncodedByteCount));
         Assert.That(r1, Is.EqualTo(value));
+
+        // Cleanup pipe
+        pipe.Reader.Complete();
     }
 
     [Test]
