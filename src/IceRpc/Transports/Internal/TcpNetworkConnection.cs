@@ -92,7 +92,9 @@ namespace IceRpc.Transports.Internal
 
             if (received == 0)
             {
-                throw new ConnectionLostException();
+                throw IsDisposed ?
+                    new ObjectDisposedException($"{typeof(TcpNetworkConnection)}") :
+                    new ConnectionLostException();
             }
 
             Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);

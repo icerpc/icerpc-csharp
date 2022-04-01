@@ -55,7 +55,7 @@ namespace IceRpc.Internal
         private readonly HashSet<CancellationTokenSource> _dispatches = new();
         private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
         private bool _isAborted;
-
+        private bool _isShuttingDown;
         private readonly MemoryPool<byte> _memoryPool;
         private readonly int _minimumSegmentSize;
 
@@ -68,7 +68,6 @@ namespace IceRpc.Internal
         private readonly IcePayloadPipeWriter _payloadWriter;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly AsyncSemaphore _sendSemaphore = new(1, 1);
-        private bool _shuttingDown;
 
         public async Task AcceptRequestsAsync(Connection connection, IDispatcher dispatcher)
         {
@@ -145,7 +144,7 @@ namespace IceRpc.Internal
                 bool shuttingDown = false;
                 lock (_mutex)
                 {
-                    if (_shuttingDown)
+                    if (_isShuttingDown)
                     {
                         shuttingDown = true;
                     }
@@ -292,7 +291,7 @@ namespace IceRpc.Internal
                         if (_dispatches.Remove(cancelDispatchSource))
                         {
                             // If no more invocations or dispatches and shutting down, shutdown can complete.
-                            if (_shuttingDown && _invocations.Count == 0 && _dispatches.Count == 0)
+                            if (_isShuttingDown && _invocations.Count == 0 && _dispatches.Count == 0)
                             {
                                 _dispatchesAndInvocationsCompleted.TrySetResult();
                             }
@@ -426,7 +425,7 @@ namespace IceRpc.Internal
                 {
                     lock (_mutex)
                     {
-                        if (_shuttingDown)
+                        if (_isShuttingDown)
                         {
                             throw new ConnectionClosedException();
                         }
@@ -573,7 +572,7 @@ namespace IceRpc.Internal
                     if (_invocations.Remove(requestId))
                     {
                         // If no more invocations or dispatches and shutting down, shutdown can complete.
-                        if (_shuttingDown && _invocations.Count == 0 && _dispatches.Count == 0)
+                        if (_isShuttingDown && _invocations.Count == 0 && _dispatches.Count == 0)
                         {
                             _dispatchesAndInvocationsCompleted.TrySetResult();
                         }
@@ -622,13 +621,13 @@ namespace IceRpc.Internal
             bool alreadyShuttingDown = false;
             lock (_mutex)
             {
-                if (_shuttingDown)
+                if (_isShuttingDown)
                 {
                     alreadyShuttingDown = true;
                 }
                 else
                 {
-                    _shuttingDown = true;
+                    _isShuttingDown = true;
                     if (_dispatches.Count == 0 && _invocations.Count == 0)
                     {
                         _dispatchesAndInvocationsCompleted.TrySetResult();
@@ -913,7 +912,7 @@ namespace IceRpc.Internal
                         {
                             // If local shutdown is in progress, shutdown from peer prevails. The local shutdown
                             // will return once the connection disposes this protocol connection.
-                            _shuttingDown = true;
+                            _isShuttingDown = true;
                         }
 
                         // Raise the peer shutdown initiated event.
@@ -994,7 +993,7 @@ namespace IceRpc.Internal
 
                                     cleanupFrameReader = false;
                                 }
-                                else if (!_shuttingDown)
+                                else if (!_isShuttingDown)
                                 {
                                     throw new InvalidDataException("received ice Reply for unknown invocation");
                                 }

@@ -245,9 +245,10 @@ namespace IceRpc.Transports.Internal
 
         private void CompletePipeWriter(Exception? exception)
         {
+            _exception = exception;
+
             if (_state.TrySetFlag(State.PipeWriterCompleted))
             {
-                _exception = exception;
                 if (!_state.HasFlag(State.PipeWriterInUse))
                 {
                     _pipe.Writer.Complete(exception);
@@ -261,12 +262,12 @@ namespace IceRpc.Transports.Internal
 
         private ReadResult GetReadResult()
         {
-            if (_exception != null)
+            if (_state.HasFlag(State.PipeWriterCompleted))
             {
-                throw ExceptionUtil.Throw(_exception);
-            }
-            else if (_state.HasFlag(State.PipeWriterCompleted))
-            {
+                if (_exception != null)
+                {
+                    throw ExceptionUtil.Throw(_exception);
+                }
                 return new ReadResult(ReadOnlySequence<byte>.Empty, isCanceled: false, isCompleted: true);
             }
             else

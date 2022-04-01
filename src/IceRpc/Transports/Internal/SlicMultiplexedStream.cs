@@ -70,8 +70,6 @@ namespace IceRpc.Transports.Internal
 
         public void AbortRead(long errorCode)
         {
-            // ResetError = errorCode;
-
             if (IsStarted && !IsShutdown)
             {
                 // Notify the peer of the read abort by sending a stop sending frame.
@@ -80,7 +78,6 @@ namespace IceRpc.Transports.Internal
             else
             {
                 TrySetReadCompleted();
-                _inputPipeReader.CancelPendingRead();
             }
 
             async Task SendStopSendingFrameAndShutdownAsync()
@@ -98,14 +95,11 @@ namespace IceRpc.Transports.Internal
                     // Ignore.
                 }
                 TrySetReadCompleted();
-                _inputPipeReader.CancelPendingRead();
             }
         }
 
         public void AbortWrite(long errorCode)
         {
-            // ResetError = errorCode;
-
             if (IsStarted && !IsShutdown)
             {
                 // Notify the peer of the write abort by sending a reset frame.
@@ -322,9 +316,6 @@ namespace IceRpc.Transports.Internal
         {
             Debug.Assert(_state.HasFlag(State.ReadsCompleted | State.WritesCompleted));
 
-            // Notify the shutdown callback that the stream is shutdown.
-            ExecuteStateAction(ref _shutdownAction);
-
             if (IsStarted)
             {
                 // Release connection stream count or semaphore for this stream and remove it from the connection.
@@ -335,7 +326,7 @@ namespace IceRpc.Transports.Internal
                 // UnidirectionalStreamReleased frame here to ensure the peer's stream is released. It's important to
                 // send the frame after the ReleaseStream call above to prevent a race condition where the peer could
                 // start a new unidirectional stream before the local counter is decreased.
-                if (IsRemote && !IsBidirectional)
+                if (IsRemote && !IsBidirectional && !_connection.IsAborted)
                 {
                     try
                     {
@@ -364,9 +355,13 @@ namespace IceRpc.Transports.Internal
                 {
                     // The stream reads and writes are completed, it's time to shutdown the stream.
                     Shutdown();
+
+                    // Notify the registered shutdown action.
+                    ExecuteStateAction(ref _shutdownAction);
                 }
                 if (state.HasFlag(State.ReceivedStopSending))
                 {
+                    // Notify the registered peer input completed action.
                     ExecuteStateAction(ref _peerInputCompletedAction);
                 }
                 return true;

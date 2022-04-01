@@ -149,12 +149,12 @@ namespace IceRpc.Transports.Internal
 
             FlushResult GetFlushResult()
             {
-                if (_exception != null)
+                if (_state.HasFlag(State.PipeReaderCompleted))
                 {
-                    throw ExceptionUtil.Throw(_exception);
-                }
-                else if (_state.HasFlag(State.PipeReaderCompleted))
-                {
+                    if (_exception != null)
+                    {
+                        throw ExceptionUtil.Throw(_exception);
+                    }
                     return new FlushResult(isCanceled: false, isCompleted: true);
                 }
                 else
@@ -195,11 +195,12 @@ namespace IceRpc.Transports.Internal
 
         private void CompletePipeReader(Exception? exception)
         {
+            _exception = exception;
+
             // Don't complete the reader if it's being used concurrently for sending a frame. It will be completed
             // once the reading terminates.
             if (_state.TrySetFlag(State.PipeReaderCompleted))
             {
-                _exception = exception;
                 if (!_state.HasFlag(State.PipeReaderInUse))
                 {
                     _pipe.Reader.Complete(exception);

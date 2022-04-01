@@ -18,6 +18,7 @@ namespace IceRpc.Transports.Internal
         public TimeSpan LastActivity => _simpleNetworkConnection.LastActivity;
 
         internal TimeSpan IdleTimeout { get; set; }
+        internal bool IsAborted => _exception != null;
         internal bool IsServer { get; }
         internal int MinimumSegmentSize { get; }
         internal int PauseWriterThreshold { get; }
@@ -30,7 +31,7 @@ namespace IceRpc.Transports.Internal
         private int _bidirectionalStreamCount;
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly int _bidirectionalMaxStreams;
-        private bool _isAborted;
+        private Exception? _exception;
         private long _lastRemoteBidirectionalStreamId = -1;
         private long _lastRemoteUnidirectionalStreamId = -1;
         // _mutex ensure the assignment of _lastRemoteXxx members and the addition of the stream to _streams is
@@ -262,9 +263,9 @@ namespace IceRpc.Transports.Internal
         {
             lock (_mutex)
             {
-                if (_isAborted)
+                if (_exception != null)
                 {
-                    throw new ObjectDisposedException($"{typeof(IMultiplexedNetworkConnection)}:{this}");
+                    throw _exception;
                 }
 
                 _streams[id] = stream;
@@ -454,11 +455,11 @@ namespace IceRpc.Transports.Internal
         {
             lock (_mutex)
             {
-                if (_isAborted)
+                if (_exception != null)
                 {
                     return;
                 }
-                _isAborted = true;
+                _exception = exception;
             }
 
             _acceptedStreamQueue.TryComplete(exception);
