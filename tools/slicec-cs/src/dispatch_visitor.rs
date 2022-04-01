@@ -9,7 +9,6 @@ use crate::decoding::*;
 use crate::encoded_result::encoded_result_struct;
 use crate::encoding::*;
 use crate::generated_code::GeneratedCode;
-use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
 use slice::code_gen_util::*;
 use slice::grammar::*;
@@ -180,7 +179,6 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 
         let namespace = &operation.namespace();
         let operation_name = &operation.escape_identifier();
-        let returns_classes = operation.returns_classes();
 
         let mut builder = FunctionBuilder::new(
             &format!("{} static", access),
@@ -198,16 +196,6 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
                 ),
             )
             .add_comment("returns", "A new response payload.");
-
-        let encoding = escape_parameter_name(&non_streamed_returns, "encoding");
-        if !returns_classes {
-            builder.add_parameter(
-                "SliceEncoding",
-                &encoding,
-                None,
-                Some("The encoding of the payload"),
-            );
-        }
 
         match non_streamed_returns.as_slice() {
             [param] => {
@@ -497,10 +485,6 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
     let non_streamed_return_values = operation.nonstreamed_return_members();
 
     let mut returns = vec![];
-
-    if !operation.returns_classes() {
-        returns.push(encoding.to_owned());
-    }
 
     returns.push(match operation.return_members().len() {
         1 => "returnValue".to_owned(),

@@ -24,7 +24,7 @@ namespace IceRpc.Tests.Internal
         [SetUp]
         public async Task Setup()
         {
-            _serviceProvider = new InternalTestServiceCollection().BuildServiceProvider();
+            _serviceProvider = new TransportServiceCollection().BuildServiceProvider();
             Task<IMultiplexedNetworkConnection> serverTask = _serviceProvider.GetMultiplexedServerConnectionAsync();
             _clientConnection = await _serviceProvider.GetMultiplexedClientConnectionAsync();
             _serverConnection = await serverTask;

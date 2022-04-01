@@ -22,7 +22,7 @@ namespace IceRpc.Tests.Internal
         {
             var colocTransport = new ColocTransport();
 
-            _serviceProvider = new InternalTestServiceCollection()
+            _serviceProvider = new TransportServiceCollection()
                 .AddTransient(_ => new SlicClientTransportOptions()
                 {
                     SimpleClientTransport = colocTransport.ClientTransport,
