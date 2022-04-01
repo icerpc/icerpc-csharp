@@ -22,11 +22,10 @@ public class DecodeSequenceTests
                 foreach (int size in new int[] { 0, 256 })
                 {
                     var expected = Enumerable.Range(0, size).Select(i => (long)i);
-                    var buffer = new byte[1024 * 1024];
-                    var bufferWriter = new MemoryBufferWriter(buffer);
+                    var bufferWriter = new MemoryBufferWriter(new byte[1024 * 1024]);
                     var encoder = new SliceEncoder(bufferWriter, encoding);
                     encoder.EncodeSequence(expected);
-                    yield return new TestCaseData(encoding, buffer[0..bufferWriter.WrittenMemory.Length], expected);
+                    yield return new TestCaseData(encoding, bufferWriter.WrittenMemory, expected);
                 }
             }
         }
