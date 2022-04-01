@@ -27,7 +27,7 @@ public class DecodeSequenceTests
                     var encoder = new SliceEncoder(bufferWriter, encoding);
                     encoder.EncodeSequence(expected);
                     yield return new TestCaseData(encoding, buffer[0..bufferWriter.WrittenMemory.Length], expected);
-                };
+                }
             }
         }
     }
