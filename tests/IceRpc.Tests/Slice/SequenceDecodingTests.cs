@@ -9,7 +9,7 @@ namespace IceRpc.Slice.Tests;
 
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 [Parallelizable(scope: ParallelScope.All)]
-public class DecodeSequenceTests
+public class SequenceDecodingTests
 {
     /// <summary>Provides test case data for
     /// <see cref="Decode_fixed_sized_numeric_sequence((SliceEncoding, byte[], IEnumerable{long})"/> test.</summary>

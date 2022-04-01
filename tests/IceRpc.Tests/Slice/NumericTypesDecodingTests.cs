@@ -7,7 +7,7 @@ namespace IceRpc.Slice.Tests;
 
 /// <summary>Test decoding built-in types with the supported Slice encodings.</summary>
 [Parallelizable(scope: ParallelScope.All)]
-public class DecodeNumericTypesTests
+public class NumericTypesDecodingTests
 {
     /// <summary>Tests the decoding of long. Decoding any fixed size numeric is handled the same way by the
     /// SliceDecoder, as such it is sufficient to just test decoding a long.</summary>
