@@ -17,7 +17,7 @@ public class DecodeSequenceTests
     {
         get
         {
-            foreach (SliceEncoding encoding in new SliceEncoding[] { SliceEncoding.Slice11, SliceEncoding.Slice20 })
+            foreach (SliceEncoding encoding in Enum.GetValues(typeof(SliceEncoding)))
             {
                 foreach (int size in new int[] { 0, 256 })
                 {
