@@ -7,7 +7,7 @@ using System.Collections.Immutable;
 
 namespace IceRpc.Slice.Tests;
 [Parallelizable(scope: ParallelScope.All)]
-public class EncodingSequenceTests
+public class SequenceEncodingTests
 {
     /// <summary>Provides test case data for
     /// <see cref="Encode_fixed_sized_numeric_sequence(SliceEncoding, IEnumerable{long}, byte[])"/> test.</summary>
