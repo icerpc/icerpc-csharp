@@ -21,11 +21,12 @@ public class DecodeSequenceTests
             {
                 foreach (int size in new int[] { 0, 256 })
                 {
+                    var buffer = new byte[1024 * 1024];
                     var expected = Enumerable.Range(0, size).Select(i => (long)i);
-                    var bufferWriter = new MemoryBufferWriter(new byte[1024 * 1024]);
+                    var bufferWriter = new MemoryBufferWriter(buffer);
                     var encoder = new SliceEncoder(bufferWriter, encoding);
                     encoder.EncodeSequence(expected);
-                    yield return new TestCaseData(encoding, bufferWriter.WrittenMemory, expected);
+                    yield return new TestCaseData(encoding, buffer[0..bufferWriter.WrittenMemory.Length], expected);
                 }
             }
         }
@@ -63,7 +64,7 @@ public class DecodeSequenceTests
     {
         var sut = new SliceDecoder(value, encoding);
 
-        long[] result = sut.DecodeSequence(minElementSize: 1, (ref SliceDecoder decoder) => decoder.DecodeLong());
+        long[] result = sut.DecodeSequence(minElementSize: 8, (ref SliceDecoder decoder) => decoder.DecodeLong());
 
         Assert.That(result, Is.EqualTo(expected));
         Assert.That(sut.Consumed, Is.EqualTo(value.Length));

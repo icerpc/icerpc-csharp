@@ -19,19 +19,19 @@ public class EncodingSequenceTests
             {
                 foreach (int size in new int[] { 0, 256 })
                 {
-                    var longs = Enumerable.Range(0, size).Select(i => (long)i);
+                    var values = Enumerable.Range(0, size).Select(i => (long)i);
                     var buffer = new byte[1024 * 1024];
                     var bufferWriter = new MemoryBufferWriter(buffer);
-                    longs.ToList().ForEach(l =>
+                    var encoder = new SliceEncoder(bufferWriter, encoding);
+                    foreach (long value in values)
                     {
-                        var encoder = new SliceEncoder(bufferWriter, encoding);
-                        encoder.EncodeLong(l);
-                    });
+                        encoder.EncodeLong(value);
+                    }
                     byte[] expected = buffer[0..bufferWriter.WrittenMemory.Length];
-                    yield return new TestCaseData(encoding, longs, expected);
-                    yield return new TestCaseData(encoding, ImmutableArray.CreateRange(longs), expected);
-                    yield return new TestCaseData(encoding, new ArraySegment<long>(longs.ToArray()), expected);
-                    yield return new TestCaseData(encoding, longs.ToArray(), expected);
+                    yield return new TestCaseData(encoding, values, expected);
+                    yield return new TestCaseData(encoding, ImmutableArray.CreateRange(values), expected);
+                    yield return new TestCaseData(encoding, new ArraySegment<long>(values.ToArray()), expected);
+                    yield return new TestCaseData(encoding, values.ToArray(), expected);
                 };
             }
         }
