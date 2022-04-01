@@ -73,16 +73,15 @@ public class EncodingSequenceTests
     [Test, TestCaseSource(nameof(SequenceLongData))]
     public void Encode_fixed_sized_numeric_sequence(SliceEncoding encoding, IEnumerable<long> value, byte[] expected)
     {
-        var buffer = new byte[1024 * 1024];
-        var bufferWriter = new MemoryBufferWriter(buffer);
+        var bufferWriter = new MemoryBufferWriter(new byte[1024 * 1024]);
         byte[] encodedSize = EncodeSize(value.Count(), encoding);
         var sut = new SliceEncoder(bufferWriter, encoding);
 
         sut.EncodeSequence(value);
 
-        byte[] encodedLongs = buffer[encodedSize.Length..bufferWriter.WrittenMemory.Length];
-        Assert.That(encodedLongs, Is.EqualTo(expected));
-        Assert.That(encodedLongs.Length, Is.EqualTo(sut.EncodedByteCount - encodedSize.Length));
+        var encoded = bufferWriter.WrittenMemory[encodedSize.Length..].ToArray();
+        Assert.That(encoded, Is.EqualTo(expected.ToArray()));
+        Assert.That(bufferWriter.WrittenMemory.Length, Is.EqualTo(sut.EncodedByteCount));
     }
 
     /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSequence"/> and
