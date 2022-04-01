@@ -48,7 +48,7 @@ public class DecodeSequenceTests
                     encoder.EncodeSequence(expected, (ref SliceEncoder encoder, string value) =>
                          encoder.EncodeString(value));
                     yield return new TestCaseData(encoding, buffer[0..bufferWriter.WrittenMemory.Length], expected);
-                };
+                }
             }
         }
     }
