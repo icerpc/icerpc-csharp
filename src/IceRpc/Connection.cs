@@ -320,17 +320,19 @@ namespace IceRpc
             catch (ConnectionLostException exception)
             {
                 // If the network connection is lost while sending the request, we close the connection now instead of
-                // waiting for AcceptRequestsAsync to throw. It's necessary to ensure that the next SendRequestAsync
-                // on the connection will fail with ConnectionClosedException.
+                // waiting for AcceptRequestsAsync to throw. It's necessary to ensure that the next SendRequestAsync on
+                // will fail with ConnectionClosedException  (it's important to ensure retries don't occur on this
+                // connection again).
                 await CloseAsync(exception).ConfigureAwait(false);
                 throw;
             }
             catch (ConnectionClosedException exception)
             {
-                // It's important to ensure shutdown is initiated if the peer reported a close connection for the
-                // request. It's possible this connection didn't receive yet the GoAway/CloseConnection message.
-                // Initiating the shutdown right away ensure that the connection won't be used by a retry.
-                InitiateShutdown(exception.Message); // Initiate shutdown if necessary.
+                // Ensure that the shutdown is initiated if the invocations fails with ConnectionClosedException. It's
+                // possible that the connection didn't receive yet the GoAway message. Initiating the shutdown now
+                // ensures that the next SendRequestAsync will fail with ConnectionLostException (it's important to
+                // ensure retries don't occur on this connection again).
+                InitiateShutdown(exception.Message);
                 throw;
             }
 
@@ -575,9 +577,9 @@ namespace IceRpc
                     // will trigger the failure of the associated invocations whose interceptor might access
                     // the connection state (e.g.: the retry interceptor or the connection pool checks the
                     // connection state).
-                    bool shuttingDown = _state == ConnectionState.ShuttingDown;
+                    bool isShuttingDown = _state == ConnectionState.ShuttingDown;
                     _state = ConnectionState.Closing;
-                    _stateTask = PerformCloseAsync(shuttingDown);
+                    _stateTask = PerformCloseAsync(isShuttingDown);
                 }
 
                 Debug.Assert(_stateTask != null);
@@ -586,7 +588,7 @@ namespace IceRpc
 
             await waitTask.ConfigureAwait(false);
 
-            async Task PerformCloseAsync(bool shuttingDown)
+            async Task PerformCloseAsync(bool isShuttingDown)
             {
                 // Yield before continuing to ensure the code below isn't executed with the mutex locked and
                 // that _closeTask is assigned before any synchronous continuations are ran.
@@ -640,7 +642,7 @@ namespace IceRpc
                 {
                     try
                     {
-                        _closed?.Invoke(this, new ClosedEventArgs(shuttingDown ?
+                        _closed?.Invoke(this, new ClosedEventArgs(isShuttingDown ?
                             new ConnectionClosedException("connection gracefully shut down", exception) :
                             exception
                         ));
@@ -657,6 +659,7 @@ namespace IceRpc
         {
             lock (_mutex)
             {
+                // If the connection is active, switch the state to ShuttingDown and initiate the shutdown.
                 if (_state == ConnectionState.Active)
                 {
                     _state = ConnectionState.ShuttingDown;

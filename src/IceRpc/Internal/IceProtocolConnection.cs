@@ -141,12 +141,12 @@ namespace IceRpc.Internal
             {
                 using var cancelDispatchSource = new CancellationTokenSource();
 
-                bool shuttingDown = false;
+                bool isShuttingDown = false;
                 lock (_mutex)
                 {
                     if (_isShuttingDown)
                     {
-                        shuttingDown = true;
+                        isShuttingDown = true;
                     }
                     else
                     {
@@ -154,7 +154,7 @@ namespace IceRpc.Internal
                     }
                 }
 
-                if (shuttingDown)
+                if (isShuttingDown)
                 {
                     // If shutting down, ignore the incoming request.
                     // TODO: replace with payload exception and error code
