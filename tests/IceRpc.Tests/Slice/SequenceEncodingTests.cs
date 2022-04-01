@@ -27,11 +27,16 @@ public class SequenceEncodingTests
                     {
                         encoder.EncodeLong(value);
                     }
+                    int sizeLength = encoder.GetSizeLength(size);
                     byte[] expected = buffer[0..bufferWriter.WrittenMemory.Length];
-                    yield return new TestCaseData(encoding, values, expected);
-                    yield return new TestCaseData(encoding, ImmutableArray.CreateRange(values), expected);
-                    yield return new TestCaseData(encoding, new ArraySegment<long>(values.ToArray()), expected);
-                    yield return new TestCaseData(encoding, values.ToArray(), expected);
+                    yield return new TestCaseData(encoding, values, expected, sizeLength);
+                    yield return new TestCaseData(encoding, ImmutableArray.CreateRange(values), expected, sizeLength);
+                    yield return new TestCaseData(
+                        encoding,
+                        new ArraySegment<long>(values.ToArray()),
+                        expected,
+                        sizeLength);
+                    yield return new TestCaseData(encoding, values.ToArray(), expected, sizeLength);
                 };
             }
         }
@@ -43,20 +48,21 @@ public class SequenceEncodingTests
     {
         get
         {
-            foreach (SliceEncoding encoding in new SliceEncoding[] { SliceEncoding.Slice11, SliceEncoding.Slice20 })
+            foreach (SliceEncoding encoding in Enum.GetValues(typeof(SliceEncoding)))
             {
                 foreach (int size in new int[] { 0, 256 })
                 {
-                    IEnumerable<string> strings = Enumerable.Range(0, size).Select(i => $"string-{i}");
+                    IEnumerable<string> values = Enumerable.Range(0, size).Select(i => $"string-{i}");
                     var buffer = new byte[1024 * 1024];
                     var bufferWriter = new MemoryBufferWriter(buffer);
-                    strings.ToList().ForEach(s =>
+                    var encoder = new SliceEncoder(bufferWriter, encoding);
+                    foreach (string value in values)
                     {
-                        var encoder = new SliceEncoder(bufferWriter, encoding);
-                        encoder.EncodeString(s);
-                    });
+                        encoder.EncodeString(value);
+                    }
+                    int sizeLength = encoder.GetSizeLength(size);
                     byte[] expected = buffer[0..bufferWriter.WrittenMemory.Length];
-                    yield return new TestCaseData(encoding, strings, expected);
+                    yield return new TestCaseData(encoding, values, expected, sizeLength);
                 }
             }
         }
@@ -70,16 +76,20 @@ public class SequenceEncodingTests
     /// <param name="encoding">The <see cref="SliceEncoding"/> to use for the encoding.</param>
     /// <param name="value">The <see cref="IEnumerable{long}"/> to be encoded.</param>
     /// <param name="expected">The expected byte array from encoding the sequence of longs</param>
+    /// <param name="sizeLength">The number of bytes required to encode the sequence size.</param>
     [Test, TestCaseSource(nameof(SequenceLongData))]
-    public void Encode_fixed_sized_numeric_sequence(SliceEncoding encoding, IEnumerable<long> value, byte[] expected)
+    public void Encode_fixed_sized_numeric_sequence(
+        SliceEncoding encoding,
+        IEnumerable<long> value,
+        byte[] expected,
+        int sizeLength)
     {
         var bufferWriter = new MemoryBufferWriter(new byte[1024 * 1024]);
-        byte[] encodedSize = EncodeSize(value.Count(), encoding);
         var sut = new SliceEncoder(bufferWriter, encoding);
 
         sut.EncodeSequence(value);
 
-        var encoded = bufferWriter.WrittenMemory[encodedSize.Length..].ToArray();
+        var encoded = bufferWriter.WrittenMemory[sizeLength..].ToArray();
         Assert.That(encoded, Is.EqualTo(expected.ToArray()));
         Assert.That(bufferWriter.WrittenMemory.Length, Is.EqualTo(sut.EncodedByteCount));
     }
@@ -90,32 +100,21 @@ public class SequenceEncodingTests
     /// <param name="encoding">The <see cref="SliceEncoding"/> to use for the encoding.</param>
     /// <param name="value">The <see cref="IEnumerable{string}"/> to be encoded.</param>
     /// <param name="expected">The expected byte array from encoding the sequence of strings</param>
+    /// <param name="sizeLength">The number of bytes required to encode the sequence size.</param>
     [Test, TestCaseSource(nameof(EncodeStringSequenceDataSource))]
-    public void Encode_string_sequence(SliceEncoding encoding, IEnumerable<string> value, byte[] expected)
+    public void Encode_string_sequence(
+        SliceEncoding encoding, 
+        IEnumerable<string> value,
+        byte[] expected,
+        int sizeLength)
     {
-        var buffer = new byte[1024 * 1024];
-        var bufferWriter = new MemoryBufferWriter(buffer);
-        byte[] encodedSize = EncodeSize(value.Count(), encoding);
+        var bufferWriter = new MemoryBufferWriter(new byte[1024 * 1024]);
         var sut = new SliceEncoder(bufferWriter, encoding);
 
         sut.EncodeSequence(value, (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
 
-        byte[] encodedStrings = buffer[encodedSize.Length..bufferWriter.WrittenMemory.Length];
-        Assert.That(encodedStrings, Is.EqualTo(expected));
-        Assert.That(encodedStrings.Length, Is.EqualTo(sut.EncodedByteCount - encodedSize.Length));
-    }
-
-    // <summary>A helper function that computes the encoded size bytes for any IEnumerable</summary>
-    /// <param name="size">The size to encode.</param>
-    /// <param name="encoding">The <see cref="SliceEncoding"/> to use for the size encoding.</param>
-    private static byte[] EncodeSize(int size, SliceEncoding encoding)
-    {
-        var buffer = new byte[1024 * 1024];
-        var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, encoding);
-
-        encoder.EncodeSize(size);
-
-        return buffer[0..bufferWriter.WrittenMemory.Length];
+        byte[] encoded = bufferWriter.WrittenMemory[sizeLength..].ToArray();
+        Assert.That(encoded, Is.EqualTo(expected));
+        Assert.That(encoded.Length, Is.EqualTo(sut.EncodedByteCount - sizeLength));
     }
 }
