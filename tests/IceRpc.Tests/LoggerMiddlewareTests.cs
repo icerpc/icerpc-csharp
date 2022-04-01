@@ -7,7 +7,7 @@ namespace IceRpc.Tests;
 public sealed class LoggerMiddlewareTests
 {
     [Test]
-    public async Task Log_suscefull_request()
+    public async Task Log_successful_request()
     {
         var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
         using var loggerFactory = new TestLoggerFactory();
