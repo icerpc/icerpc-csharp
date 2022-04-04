@@ -205,7 +205,7 @@ namespace IceRpc.Internal
 
                     response = new OutgoingResponse(request)
                     {
-                        Payload = SliceEncoding.Slice11.CreatePayloadFromRemoteException(remoteException),
+                        Payload = SliceEncoding.Slice1.CreatePayloadFromRemoteException(remoteException),
                         ResultType = ResultType.Failure
                     };
                 }
@@ -316,7 +316,7 @@ namespace IceRpc.Internal
                     int payloadSize,
                     ReplyStatus replyStatus)
                 {
-                    var encoder = new SliceEncoder(writer, SliceEncoding.Slice11);
+                    var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
 
                     // Write the response header.
 
@@ -351,7 +351,7 @@ namespace IceRpc.Internal
             static (int RequestId, IceRequestHeader Header, int Consumed) DecodeRequestIdAndHeader(
                 ReadOnlySequence<byte> buffer)
             {
-                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice11);
+                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
 
                 int requestId = decoder.DecodeInt();
                 var requestHeader = new IceRequestHeader(ref decoder);
@@ -360,15 +360,13 @@ namespace IceRpc.Internal
                     requestHeader.EncapsulationHeader.PayloadEncodingMinor != 1)
                 {
                     throw new InvalidDataException(
-                        @$"unsupported payload encoding '{requestHeader.EncapsulationHeader.PayloadEncodingMajor
-                        }.{requestHeader.EncapsulationHeader.PayloadEncodingMinor}'");
+                        @$"unsupported payload encoding '{requestHeader.EncapsulationHeader.PayloadEncodingMajor}.{requestHeader.EncapsulationHeader.PayloadEncodingMinor}'");
                 }
 
                 int payloadSize = requestHeader.EncapsulationHeader.EncapsulationSize - 6;
                 if (payloadSize != (buffer.Length - decoder.Consumed))
                 {
-                    throw new InvalidDataException(@$"request payload size mismatch: expected {payloadSize
-                        } bytes, read {buffer.Length - decoder.Consumed} bytes");
+                    throw new InvalidDataException(@$"request payload size mismatch: expected {payloadSize} bytes, read {buffer.Length - decoder.Consumed} bytes");
                 }
 
                 return (requestId, requestHeader, (int)decoder.Consumed);
@@ -415,7 +413,7 @@ namespace IceRpc.Internal
 
             static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
             {
-                var encoder = new SliceEncoder(writer, SliceEncoding.Slice11);
+                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
                 IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
             }
         }
@@ -546,7 +544,7 @@ namespace IceRpc.Internal
                             throw new ConnectionLostException();
                         }
 
-                        EncapsulationHeader encapsulationHeader = SliceEncoding.Slice11.DecodeBuffer(
+                        EncapsulationHeader encapsulationHeader = SliceEncoding.Slice1.DecodeBuffer(
                             readResult.Buffer.Slice(1, 6),
                             (ref SliceDecoder decoder) => new EncapsulationHeader(ref decoder));
 
@@ -555,8 +553,7 @@ namespace IceRpc.Internal
                         if (payloadSize != readResult.Buffer.Length - headerSize)
                         {
                             throw new InvalidDataException(
-                                @$"response payload size/frame size mismatch: payload size is {payloadSize
-                                } bytes but frame has {readResult.Buffer.Length - headerSize} bytes left");
+                                @$"response payload size/frame size mismatch: payload size is {payloadSize} bytes but frame has {readResult.Buffer.Length - headerSize} bytes left");
                         }
 
                         // TODO: check encoding is 1.1. See github proposal.
@@ -617,7 +614,7 @@ namespace IceRpc.Internal
                 int requestId,
                 int payloadSize)
             {
-                var encoder = new SliceEncoder(output, SliceEncoding.Slice11);
+                var encoder = new SliceEncoder(output, SliceEncoding.Slice1);
 
                 // Write the request header.
                 encoder.WriteByteSpan(IceDefinitions.FramePrologue);
@@ -702,7 +699,7 @@ namespace IceRpc.Internal
 
             static void EncodeCloseConnectionFrame(SimpleNetworkConnectionWriter writer)
             {
-                var encoder = new SliceEncoder(writer, SliceEncoding.Slice11);
+                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
                 IceDefinitions.CloseConnectionFrame.Encode(ref encoder);
             }
         }
@@ -759,20 +756,19 @@ namespace IceRpc.Internal
                 }
                 if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
                 {
-                    throw new InvalidDataException(@$"expected '{nameof(IceFrameType.ValidateConnection)
-                        }' frame but received frame type '{validateConnectionFrame.FrameType}'");
+                    throw new InvalidDataException(@$"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'");
                 }
             }
 
             static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
             {
-                var encoder = new SliceEncoder(writer, SliceEncoding.Slice11);
+                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
                 IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
             }
 
             static (IcePrologue, long) DecodeValidateConnectionFrame(ReadOnlySequence<byte> buffer)
             {
-                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice11);
+                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
                 return (new IcePrologue(ref decoder), decoder.Consumed);
             }
         }
@@ -885,7 +881,7 @@ namespace IceRpc.Internal
 
                 ReadOnlySequence<byte> prologueBuffer = buffer.Slice(0, IceDefinitions.PrologueSize);
 
-                IcePrologue prologue = SliceEncoding.Slice11.DecodeBuffer(
+                IcePrologue prologue = SliceEncoding.Slice1.DecodeBuffer(
                     prologueBuffer,
                     (ref SliceDecoder decoder) => new IcePrologue(ref decoder));
 
@@ -985,7 +981,7 @@ namespace IceRpc.Internal
                             }
 
                             ReadOnlySequence<byte> requestIdBuffer = readResult.Buffer.Slice(0, 4);
-                            int requestId = SliceEncoding.Slice11.DecodeBuffer(
+                            int requestId = SliceEncoding.Slice1.DecodeBuffer(
                                 requestIdBuffer,
                                 (ref SliceDecoder decoder) => decoder.DecodeInt());
                             replyFrameReader.AdvanceTo(requestIdBuffer.End);

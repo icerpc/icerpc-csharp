@@ -7,7 +7,7 @@ using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
 
-using static IceRpc.Slice.Internal.Slice11Definitions;
+using static IceRpc.Slice.Internal.Slice1Definitions;
 
 namespace IceRpc.Tests.SliceInternal
 {
@@ -64,7 +64,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice1);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -75,7 +75,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice1);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -101,7 +101,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice1);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -112,7 +112,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice1);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -138,7 +138,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice1);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -149,7 +149,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice1);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -176,7 +176,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice1);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
@@ -187,7 +187,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new SliceDecoder(data, SliceEncoding.Slice11);
+                    var decoder = new SliceDecoder(data, SliceEncoding.Slice1);
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));

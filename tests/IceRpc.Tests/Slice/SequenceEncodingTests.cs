@@ -43,7 +43,7 @@ public class SequenceEncodingTests
     {
         get
         {
-            foreach (SliceEncoding encoding in new SliceEncoding[] { SliceEncoding.Slice11, SliceEncoding.Slice20 })
+            foreach (SliceEncoding encoding in new SliceEncoding[] { SliceEncoding.Slice1, SliceEncoding.Slice2 })
             {
                 foreach (int size in new int[] { 0, 256 })
                 {
