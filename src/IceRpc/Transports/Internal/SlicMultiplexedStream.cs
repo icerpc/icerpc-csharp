@@ -215,7 +215,7 @@ namespace IceRpc.Transports.Internal
                 Debug.Assert(_sendCreditSemaphore.Count == 0);
                 _sendCreditSemaphore.Release();
             }
-            else if (newValue > _connection.PauseWriterThreshold)
+            else if (newValue > _connection.PeerPauseWriterThreshold)
             {
                 // The peer is trying to increase the credit to a value which is larger than what it is allowed to.
                 throw new InvalidDataException("invalid flow control credit increase");
