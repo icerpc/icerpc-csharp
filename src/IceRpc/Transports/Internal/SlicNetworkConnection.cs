@@ -18,6 +18,7 @@ namespace IceRpc.Transports.Internal
         public TimeSpan LastActivity => _simpleNetworkConnection.LastActivity;
 
         internal TimeSpan IdleTimeout { get; set; }
+        internal bool IsAborted => _exception != null;
         internal bool IsServer { get; }
         internal int MinimumSegmentSize { get; }
         internal int PauseWriterThreshold { get; }
@@ -30,7 +31,7 @@ namespace IceRpc.Transports.Internal
         private int _bidirectionalStreamCount;
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly int _bidirectionalMaxStreams;
-        private bool _isDisposed;
+        private Exception? _exception;
         private long _lastRemoteBidirectionalStreamId = -1;
         private long _lastRemoteUnidirectionalStreamId = -1;
         // _mutex ensure the assignment of _lastRemoteXxx members and the addition of the stream to _streams is
@@ -39,8 +40,6 @@ namespace IceRpc.Transports.Internal
         private long _nextBidirectionalId;
         private long _nextUnidirectionalId;
         private readonly int _packetMaxSize;
-        private readonly CancellationTokenSource _readCancellationTokenSource = new();
-        private AsyncSemaphore? _readCompletedSemaphore;
         private readonly ISlicFrameReader _reader;
         private readonly AsyncSemaphore _sendSemaphore = new(1, 1);
         private readonly ISimpleNetworkConnection _simpleNetworkConnection;
@@ -181,25 +180,16 @@ namespace IceRpc.Transports.Internal
             }
 
             // Start a task to read frames from the network connection.
-            _readCompletedSemaphore = new AsyncSemaphore(0, 1);
             _ = Task.Run(
                 async () =>
                 {
                     try
                     {
-                        await ReadFramesAsync(_readCancellationTokenSource.Token).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        _acceptedStreamQueue.TryComplete(new ConnectionLostException());
+                        await ReadFramesAsync(CancellationToken.None).ConfigureAwait(false);
                     }
                     catch (Exception exception)
                     {
-                        _acceptedStreamQueue.TryComplete(exception);
-                    }
-                    finally
-                    {
-                        _readCompletedSemaphore.Release();
+                        await AbortAsync(exception).ConfigureAwait(false);
                     }
                 },
                 CancellationToken.None);
@@ -211,48 +201,8 @@ namespace IceRpc.Transports.Internal
             // TODO: Cache SliceMultiplexedStream
             new SlicMultiplexedStream(this, bidirectional, remote: false, _reader, _writer);
 
-        public async ValueTask DisposeAsync()
-        {
-            lock (_mutex)
-            {
-                if (_isDisposed)
-                {
-                    return;
-                }
-                _isDisposed = true;
-            }
-
-            // Cancel reading and wait for the reading to complete if reading is in progress.
-            _readCancellationTokenSource.Cancel();
-            if (_readCompletedSemaphore != null)
-            {
-                await _readCompletedSemaphore.EnterAsync(CancellationToken.None).ConfigureAwait(false);
-            }
-
-            _simpleNetworkConnectionReader.Dispose();
-            _simpleNetworkConnectionWriter.Dispose();
-
-            // Close the network connection.
-            await _simpleNetworkConnection.DisposeAsync().ConfigureAwait(false);
-
-            var exception = new ObjectDisposedException($"{typeof(SlicNetworkConnection)}:{this}");
-
-            // Unblock requests waiting on the semaphores.
-            _bidirectionalStreamSemaphore?.Complete(exception);
-            _unidirectionalStreamSemaphore?.Complete(exception);
-            _sendSemaphore.Complete(exception);
-
-            foreach (SlicMultiplexedStream stream in _streams.Values)
-            {
-                stream.AbortRead(SlicStreamError.Aborted.ToError());
-                stream.AbortWrite(SlicStreamError.Aborted.ToError());
-            }
-
-            _readCancellationTokenSource.Dispose();
-
-            // Unblock task blocked on AcceptStreamAsync
-            _acceptedStreamQueue.TryComplete(exception);
-        }
+        public ValueTask DisposeAsync() =>
+            AbortAsync(new ObjectDisposedException($"{typeof(SlicNetworkConnection)}"));
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             _simpleNetworkConnection.HasCompatibleParams(remoteEndpoint);
@@ -313,9 +263,9 @@ namespace IceRpc.Transports.Internal
         {
             lock (_mutex)
             {
-                if (_isDisposed)
+                if (_exception != null)
                 {
-                    throw new ObjectDisposedException($"{typeof(IMultiplexedNetworkConnection)}:{this}");
+                    throw _exception;
                 }
 
                 _streams[id] = stream;
@@ -395,22 +345,6 @@ namespace IceRpc.Transports.Internal
 
             do
             {
-                // Check if writes completed, the stream might have been reset by the peer. Don't send the data and
-                // return a completed flush result.
-                if (stream.WritesCompleted)
-                {
-                    if (stream.ResetError is long error &&
-                        error.ToSlicError() is SlicStreamError slicError &&
-                        slicError != SlicStreamError.NoError)
-                    {
-                        throw new MultiplexedStreamAbortedException(error);
-                    }
-                    else
-                    {
-                        return new FlushResult(isCanceled: false, isCompleted: true);
-                    }
-                }
-
                 // First, if the stream isn't started, we need to acquire the stream count semaphore. If there are more
                 // streams opened than the peer allows, this will block until a stream is shutdown.
                 if (!stream.IsStarted)
@@ -515,6 +449,34 @@ namespace IceRpc.Transports.Internal
             while (!source1.IsEmpty || !source2.IsEmpty); // Loop until there's no data left to send.
 
             return new FlushResult(isCanceled: false, isCompleted: false);
+        }
+
+        private async ValueTask AbortAsync(Exception exception)
+        {
+            lock (_mutex)
+            {
+                if (_exception != null)
+                {
+                    return;
+                }
+                _exception = exception;
+            }
+
+            _acceptedStreamQueue.TryComplete(exception);
+
+            // Unblock requests waiting on the semaphores.
+            _bidirectionalStreamSemaphore?.Complete(exception);
+            _unidirectionalStreamSemaphore?.Complete(exception);
+            _sendSemaphore.Complete(exception);
+
+            foreach (SlicMultiplexedStream stream in _streams.Values)
+            {
+                stream.Abort(exception);
+            }
+
+            await _simpleNetworkConnection.DisposeAsync().ConfigureAwait(false);
+            _simpleNetworkConnectionReader.Dispose();
+            _simpleNetworkConnectionWriter.Dispose();
         }
 
         private Dictionary<int, IList<byte>> GetParameters()

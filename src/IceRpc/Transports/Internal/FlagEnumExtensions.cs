@@ -8,30 +8,32 @@ namespace IceRpc.Transports.Internal
     /// enumeration underlying type must be an integer as well.</summary>
     internal static class FlagEnumExtensions
     {
-        internal static bool TrySetFlag<T>(this ref int source, T value) where T : Enum
+        internal static bool TrySetFlag<T>(this ref int source, T flag) where T : Enum
         {
-            int state = Unsafe.As<T, int>(ref value);
-            int previousState = Interlocked.Or(ref source, state);
-            return previousState != (previousState | state);
+            int flagValue = Unsafe.As<T, int>(ref flag);
+            int previousValue = Interlocked.Or(ref source, flagValue);
+            return previousValue != (previousValue | flagValue);
         }
 
-        internal static bool TrySetFlag<T>(this ref int source, T value, out T newValue) where T : Enum
+        internal static bool TrySetFlag<T>(this ref int source, T flag, out int newValue) where T : Enum
         {
-            int state = Unsafe.As<T, int>(ref value);
-            int previousState = Interlocked.Or(ref source, state);
-            int newState = previousState | state;
-            newValue = Unsafe.As<int, T>(ref newState);
-            return previousState != newState;
+            int flagValue = Unsafe.As<T, int>(ref flag);
+            int previousValue = Interlocked.Or(ref source, flagValue);
+            newValue = previousValue | flagValue;
+            return previousValue != newValue;
         }
 
-        internal static bool HasFlag<T>(this ref int source, T value) where T : Enum =>
-            (Thread.VolatileRead(ref source) & Unsafe.As<T, int>(ref value)) > 0;
-
-        internal static void ClearFlag<T>(this ref int source, T value) where T : Enum
+        internal static bool HasFlag<T>(this ref int source, T flag) where T : Enum
         {
-            int state = Unsafe.As<T, int>(ref value);
-            int previousState = Interlocked.And(ref source, ~state);
-            if (previousState == (previousState & ~state))
+            int flagValue = Unsafe.As<T, int>(ref flag);
+            return (Thread.VolatileRead(ref source) & flagValue) == flagValue;
+        }
+
+        internal static void ClearFlag<T>(this ref int source, T flag) where T : Enum
+        {
+            int flagValue = Unsafe.As<T, int>(ref flag);
+            int previousValue = Interlocked.And(ref source, ~flagValue);
+            if (previousValue == (previousValue & ~flagValue))
             {
                 throw new InvalidOperationException("state was already cleared");
             }

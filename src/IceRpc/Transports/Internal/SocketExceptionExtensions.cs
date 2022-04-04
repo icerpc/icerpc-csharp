@@ -6,29 +6,29 @@ namespace IceRpc.Transports.Internal
 {
     internal static class SocketExceptionExtensions
     {
-        /// <summary>Converts a socket exception into a <see cref="ConnectFailedException"/> or
-        /// <see cref="OperationCanceledException"/>.</summary>
-        internal static Exception ToConnectFailedException(this SocketException exception, CancellationToken cancel)
+        /// <summary>Converts a socket exception into a <see cref="ConnectFailedException"/>.</summary>
+        internal static Exception ToConnectFailedException(this Exception exception)
         {
-            if (cancel.IsCancellationRequested)
-            {
-                return new OperationCanceledException(null, exception, cancel);
-            }
+            SocketException socketException =
+                exception as SocketException ??
+                exception.InnerException as SocketException ??
+                throw new ConnectFailedException(exception);
 
-            return exception.SocketErrorCode == SocketError.ConnectionRefused ?
-                new ConnectionRefusedException(exception) : new ConnectFailedException(exception);
+            return socketException.SocketErrorCode == SocketError.ConnectionRefused ?
+                new ConnectionRefusedException(exception) :
+                new ConnectFailedException(exception);
         }
 
-        /// <summary>Converts a socket exception into a <see cref="TransportException"/>,
-        /// <see cref="ConnectionLostException"/> or <see cref="OperationCanceledException"/>.</summary>
-        internal static Exception ToTransportException(this SocketException exception, CancellationToken cancel)
+        /// <summary>Converts a socket exception into a <see cref="TransportException"/> or
+        /// <see cref="ConnectionLostException"/>.</summary>
+        internal static Exception ToTransportException(this Exception exception)
         {
-            if (cancel.IsCancellationRequested)
-            {
-                return new OperationCanceledException(null, exception, cancel);
-            }
+            SocketException socketException =
+                exception as SocketException ??
+                exception.InnerException as SocketException ??
+                throw new ConnectionLostException(exception);
 
-            SocketError error = exception.SocketErrorCode;
+            SocketError error = socketException.SocketErrorCode;
             if (error == SocketError.ConnectionReset ||
                 error == SocketError.Shutdown ||
                 error == SocketError.ConnectionAborted ||

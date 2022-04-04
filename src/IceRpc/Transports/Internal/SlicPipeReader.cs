@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System.Buffers;
 using System.IO.Pipelines;
 
@@ -88,20 +89,7 @@ namespace IceRpc.Transports.Internal
                 }
 
                 _pipe.Reader.Complete(exception);
-
-                // Don't complete the writer if it's being used concurrently for receiving a frame. It will be completed
-                // once the reading terminates.
-                if (_state.TrySetFlag(State.PipeWriterCompleted))
-                {
-                    if (_state.HasFlag(State.PipeWriterInUse))
-                    {
-                        _exception = exception;
-                    }
-                    else
-                    {
-                        _pipe.Writer.Complete(exception);
-                    }
-                }
+                CompletePipeWriter(exception);
             }
         }
 
@@ -110,10 +98,9 @@ namespace IceRpc.Transports.Internal
             CheckIfCompleted();
 
             ReadResult result = await _pipe.Reader.ReadAsync(cancel).ConfigureAwait(false);
-            if (result.IsCanceled && _stream.ResetError is long errorCode)
+            if (result.IsCanceled)
             {
-                // The pipe reader pending read has been canceled by AbortRead.
-                throw new MultiplexedStreamAbortedException(errorCode);
+                return GetReadResult();
             }
 
             // Cache the read result for the implementation of AdvanceTo. It needs to be able to figure out how much
@@ -135,10 +122,10 @@ namespace IceRpc.Transports.Internal
 
             if (_pipe.Reader.TryRead(out result))
             {
-                if (result.IsCanceled && _stream.ResetError is long errorCode)
+                if (result.IsCanceled)
                 {
-                    // The pipe reader pending read has been canceled by AbortRead.
-                    throw new MultiplexedStreamAbortedException(errorCode);
+                    result = GetReadResult();
+                    return true;
                 }
 
                 // Cache the read result for the implementation of AdvanceTo. It needs to be able to figure out how much
@@ -178,21 +165,11 @@ namespace IceRpc.Transports.Internal
                 writerScheduler: PipeScheduler.Inline));
         }
 
-        /// <summary>Called when a stream reset is received.</summary>
-        internal void ReceivedResetFrame(long error)
-        {
-            if (_state.TrySetFlag(State.PipeWriterCompleted))
-            {
-                _exception = error.ToSlicError() == SlicStreamError.NoError ?
-                    null :
-                    new MultiplexedStreamAbortedException(error);
+        internal void Abort(Exception exception) => CompletePipeWriter(exception);
 
-                if (!_state.HasFlag(State.PipeWriterInUse))
-                {
-                    _pipe.Writer.Complete(_exception);
-                }
-            }
-        }
+        /// <summary>Called when a stream reset is received.</summary>
+        internal void ReceivedResetFrame(long error) => CompletePipeWriter(
+            error == SlicStreamError.NoError.ToError() ? null : new MultiplexedStreamAbortedException(error));
 
         /// <summary>Called when a stream frame is received. It writes the data from the received stream frame to the
         /// internal pipe writer and returns the number of bytes that were consumed.</summary>
@@ -207,6 +184,7 @@ namespace IceRpc.Transports.Internal
             {
                 throw new InvalidOperationException($"{nameof(ReceivedStreamFrameAsync)} is not thread safe");
             }
+
             try
             {
                 if (_state.HasFlag(State.PipeWriterCompleted))
@@ -247,7 +225,7 @@ namespace IceRpc.Transports.Internal
             {
                 if (_state.HasFlag(State.PipeWriterCompleted))
                 {
-                    // If the Slic pipe reader has been completed while we were reader the data from the stream, we
+                    // If the Slic pipe reader has been completed while we were reading the data from the stream, we
                     // make sure to complete the writer now since Complete didn't do it.
                     await _pipe.Writer.CompleteAsync(_exception).ConfigureAwait(false);
                 }
@@ -262,6 +240,39 @@ namespace IceRpc.Transports.Internal
                 // If the reader is completed, the caller is bogus, it shouldn't call reader operations after completing
                 // the pipe reader.
                 throw new InvalidOperationException($"reading is not allowed once the reader is completed");
+            }
+        }
+
+        private void CompletePipeWriter(Exception? exception)
+        {
+            _exception = exception;
+
+            if (_state.TrySetFlag(State.PipeWriterCompleted))
+            {
+                if (!_state.HasFlag(State.PipeWriterInUse))
+                {
+                    _pipe.Writer.Complete(exception);
+                }
+                else if (!_state.HasFlag(State.Completed))
+                {
+                    _pipe.Reader.CancelPendingRead();
+                }
+            }
+        }
+
+        private ReadResult GetReadResult()
+        {
+            if (_state.HasFlag(State.PipeWriterCompleted))
+            {
+                if (_exception != null)
+                {
+                    throw ExceptionUtil.Throw(_exception);
+                }
+                return new ReadResult(ReadOnlySequence<byte>.Empty, isCanceled: false, isCompleted: true);
+            }
+            else
+            {
+                return new ReadResult(ReadOnlySequence<byte>.Empty, isCanceled: true, isCompleted: false);
             }
         }
 

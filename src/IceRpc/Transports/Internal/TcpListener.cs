@@ -106,7 +106,7 @@ namespace IceRpc.Transports.Internal
             catch (SocketException ex)
             {
                 _socket.Dispose();
-                throw ex.ToTransportException(default);
+                throw ex.ToTransportException();
             }
 
             Endpoint = endpoint with { Port = (ushort)address.Port };

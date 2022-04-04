@@ -35,7 +35,6 @@ namespace IceRpc.Transports
         {
         }
 
-
         /// <inheritdoc/>
         public IMultiplexedNetworkConnection CreateConnection(
             Endpoint remoteEndpoint,

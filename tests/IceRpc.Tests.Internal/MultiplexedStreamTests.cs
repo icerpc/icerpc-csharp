@@ -132,18 +132,16 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task MultiplexedStream_ConnectionDisposeAsync()
         {
-            // Connection dispose aborts the streams which completes the reader/writer.
             await _clientConnection!.DisposeAsync();
 
-            // Can't read/write once the writer/reader is completed.
-            Assert.ThrowsAsync<MultiplexedStreamAbortedException>(() => ClientStream.Input.ReadAsync().AsTask());
-            Assert.ThrowsAsync<MultiplexedStreamAbortedException>(
+            // Locally, we should get ObjectDisposedException
+            Assert.ThrowsAsync<ObjectDisposedException>(() => ClientStream.Input.ReadAsync().AsTask());
+            Assert.ThrowsAsync<ObjectDisposedException>(
                 () => ClientStream.Output.WriteAsync(ReadOnlyMemory<byte>.Empty).AsTask());
 
-            await _serverConnection!.DisposeAsync();
-
-            Assert.ThrowsAsync<MultiplexedStreamAbortedException>(() => ServerStream.Input.ReadAsync().AsTask());
-            Assert.ThrowsAsync<MultiplexedStreamAbortedException>(
+            // On the remote connection, we should get ConnectionLostException
+            Assert.ThrowsAsync<ConnectionLostException>(() => ServerStream.Input.ReadAsync().AsTask());
+            Assert.ThrowsAsync<ConnectionLostException>(
                 () => ServerStream.Output.WriteAsync(ReadOnlyMemory<byte>.Empty).AsTask());
         }
 

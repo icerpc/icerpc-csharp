@@ -68,7 +68,7 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     [Test]
-    public async Task Complete_stream_with_unflused_bytes_fails()
+    public async Task Complete_stream_with_unflushed_bytes_fails()
     {
         IMultiplexedTransportProvider transportProvider = CreateMultiplexedTransportProvider();
         await using IListener<IMultiplexedNetworkConnection> listener = transportProvider.CreateListener();
@@ -99,7 +99,7 @@ public abstract class MultiplexedTransportConformanceTests
 
         await sut.DisposeAsync();
 
-        Assert.ThrowsAsync<MultiplexedStreamAbortedException>(async () => await clientStream.Input.ReadAsync());
+        Assert.ThrowsAsync<ObjectDisposedException>(async () => await clientStream.Input.ReadAsync());
         await CompleteStreamAsync(clientStream);
     }
 
@@ -145,7 +145,7 @@ public abstract class MultiplexedTransportConformanceTests
         // Arrange
         IMultiplexedTransportProvider transportProvider = CreateMultiplexedTransportProvider();
         await using IListener<IMultiplexedNetworkConnection> listener = transportProvider.CreateListener();
-        await using IMultiplexedNetworkConnection clientConnection = 
+        await using IMultiplexedNetworkConnection clientConnection =
             transportProvider.CreateConnection(listener.Endpoint);
         await using IMultiplexedNetworkConnection serverConnection = await ConnectAndAcceptAsync(clientConnection, listener);
 

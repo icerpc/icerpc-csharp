@@ -69,26 +69,23 @@ public class TcpTransportTests
             Throws.InstanceOf<OperationCanceledException>());
     }
 
-    /// <summary>Verifies that calling read on a client connection returns zero when the peer connection is disposed.
+    /// <summary>Verifies that calling read on a client connection fails with <see cref="ConnectionLostException"/>.
     /// </summary>
     [Test]
-    public async Task Client_connection_read_from_disposed_peer_connection_returns_zero()
+    public async Task Client_connection_read_from_disposed_peer_connection_fails()
     {
         // Arrange
         await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener();
-        await using TcpClientNetworkConnection clientConnection =
-            CreateTcpClientConnection(listener.Endpoint);
+        await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(listener.Endpoint);
 
         Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
         await clientConnection.ConnectAsync(default);
         ISimpleNetworkConnection serverConnection = await acceptTask;
         await serverConnection.DisposeAsync();
 
-        // Act
-        int read = await clientConnection.ReadAsync(new byte[1], default);
-
-        // Assert
-        Assert.That(read, Is.Zero);
+        // Act/Assert
+        Assert.That(async () => await clientConnection.ReadAsync(new byte[1], default),
+            Throws.InstanceOf<ConnectionLostException>());
     }
 
     /// <summary>Verifies that setting <see cref="TcpTransportOptions.ReceiveBufferSize"/> and
@@ -371,11 +368,12 @@ public class TcpTransportTests
         Assert.That(clientConnection.LastActivity, Is.GreaterThanOrEqualTo(lastActivity + delay));
     }
 
-    /// <summary>Verifies that calling read on a server connection returns zero when the peer connection is disposed.
-    /// </summary>
+    /// <summary>Verifies that calling read on a server connection fails with <see cref="ConnectionLostException"/> when
+    /// the peer connection is disposed.</summary>
     [Test]
-    public async Task Server_connection_read_from_disposed_client_connection_returns_zero()
+    public async Task Server_connection_read_from_disposed_client_connection_fails()
     {
+        // Arrange
         await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener();
         await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(listener.Endpoint);
         Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
@@ -383,9 +381,11 @@ public class TcpTransportTests
         ISimpleNetworkConnection serverConnection = await acceptTask;
         await clientConnection.DisposeAsync();
 
-        int read = await serverConnection.ReadAsync(new byte[1], default);
+        // Act
+        ValueTask<int> readTask = serverConnection.ReadAsync(new byte[1], default);
 
-        Assert.That(read, Is.Zero);
+        // Assert
+        Assert.That(async () => await readTask, Throws.InstanceOf<ConnectionLostException>());
     }
 
     /// <summary>Verifies that a server connection created with <see cref="TcpTransportOptions.IsIPv6Only"/> set to
@@ -579,21 +579,30 @@ public class TcpTransportTests
         await clientConnection.ConnectAsync(default);
         ISimpleNetworkConnection serverConnection = await acceptTask;
         await serverConnection.DisposeAsync();
-        var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1024 * 1024] };
-        // The write task will complete successfully until we have fill the tcp buffer.
-        Task writeTask;
-        do
-        {
-            writeTask = clientConnection.WriteAsync(buffer, default).AsTask();
-            await Task.WhenAny(Task.Delay(TimeSpan.FromMilliseconds(100)), writeTask);
-        }
-        while (writeTask.IsCompletedSuccessfully);
 
-        // Act/Assert
-        Assert.That(async () => await writeTask, Throws.InstanceOf<ConnectionLostException>());
+        // Act
+        var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1] };
+        Exception exception;
+        try
+        {
+            // It can take few writes to detect the peer's connection closure.
+            while (true)
+            {
+                await clientConnection.WriteAsync(buffer, default);
+                await Task.Delay(50);
+            }
+        }
+        catch (Exception ex)
+        {
+            exception = ex;
+        }
+
+        // Assert
+        Assert.That(exception, Is.InstanceOf<ConnectionLostException>());
     }
 
-    /// <summary>Verifies that reading from a disposed tcp server connection returns zero.</summary>
+    /// <summary>Verifies that reading from a disposed tcp server connection fails with <see
+    /// cref="ObjectDisposedException"/>.</summary>
     [Test]
     public async Task Write_to_disposed_client_connection_fails()
     {
