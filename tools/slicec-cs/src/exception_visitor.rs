@@ -128,7 +128,12 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
 
         exception_class_builder.add_block(encode_method(exception_def));
         exception_class_builder.add_block(encode_trait_method(exception_def));
-        exception_class_builder.add_block(encode_core_method(exception_def));
+        if exception_def
+            .supported_encodings()
+            .supports(&Encoding::Slice11)
+        {
+            exception_class_builder.add_block(encode_core_method(exception_def));
+        }
 
         self.generated_code
             .insert_scoped(exception_def, exception_class_builder.build().into());
@@ -188,25 +193,34 @@ fn encode_core_method(exception_def: &Exception) -> CodeBlock {
 
     let body = CodeBlock::from(format!(
         r#"
-if (encoder.Encoding != SliceEncoding.Slice11)
-{{
-    throw new InvalidOperationException("encoding an exception in slices is only supported with the 1.1 encoding");
-}}
-
+System.Diagnostics.Debug.Assert(encoder.Encoding == SliceEncoding.Slice11);
 encoder.StartSlice(SliceTypeId);
 {encode_data_members}
 encoder.EndSlice(lastSlice: {is_last_slice});
 {encode_base}"#,
         encode_data_members = &encode_data_members(members, namespace, FieldType::Exception),
         is_last_slice = !has_base,
-        encode_base = if has_base { "base.EncodeCore(ref encoder);" } else { "" },
+        encode_base = if has_base {
+            "base.EncodeCore(ref encoder);"
+        } else {
+            ""
+        },
     ));
 
-    FunctionBuilder::new("protected override", "void", "EncodeCore", FunctionType::BlockBody)
-        .set_inherit_doc(true)
-        .add_parameter("ref SliceEncoder", "encoder", None, None)
-        .set_body(body)
-        .build()
+    FunctionBuilder::new(
+        if has_base {
+            "protected override"
+        } else {
+            "virtual protected"
+        },
+        "void",
+        "EncodeCore",
+        FunctionType::BlockBody,
+    )
+    .set_inherit_doc(true)
+    .add_parameter("ref SliceEncoder", "encoder", None, None)
+    .set_body(body)
+    .build()
 }
 
 fn one_shot_constructor(
