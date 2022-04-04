@@ -78,7 +78,6 @@ public class SlicTransportTests
     }
 
     [Test]
-    [Repeat(100)]
     public async Task Write_resumes_after_reaching_the_resume_writer_threshold()
     {
         // Arrange
