@@ -130,7 +130,7 @@ namespace IceRpc.Transports.Internal
             {
                 if (_state.HasFlag(State.Disposed))
                 {
-#pragma warning disable CA1849
+#pragma warning disable CA1849 // Call async methods when in an async method
                     _pipe.Reader.Complete();
                     _pipe.Writer.Complete();
 #pragma warning restore CA1849

@@ -308,7 +308,7 @@ namespace IceRpc
             {
                 await ConnectAsync(cancel).ConfigureAwait(false);
             }
-            protocolConnection = GetProtocolConnection() ?? throw new ConnectionClosedException();
+            protocolConnection ??= GetProtocolConnection() ?? throw new ConnectionClosedException();
 
             try
             {
@@ -317,7 +317,7 @@ namespace IceRpc
             catch (ConnectionLostException exception)
             {
                 // If the network connection is lost while sending the request, we close the connection now instead of
-                // waiting for AcceptRequestsAsync to throw. It's necessary to ensure that the next SendRequestAsync on
+                // waiting for AcceptRequestsAsync to throw. It's necessary to ensure that the next SendRequestAsync
                 // will fail with ConnectionClosedException  (it's important to ensure retries don't occur on this
                 // connection again).
                 await CloseAsync(exception).ConfigureAwait(false);
@@ -638,10 +638,11 @@ namespace IceRpc
                 {
                     try
                     {
-                        _closed?.Invoke(this, new ClosedEventArgs(isShuttingDown ?
-                            new ConnectionClosedException("connection gracefully shut down", exception) :
-                            exception
-                        ));
+                        _closed?.Invoke(
+                            this,
+                            new ClosedEventArgs(isShuttingDown ?
+                                new ConnectionClosedException("connection gracefully shut down", exception) :
+                                exception));
                     }
                     catch
                     {
