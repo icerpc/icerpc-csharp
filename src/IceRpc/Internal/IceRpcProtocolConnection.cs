@@ -72,10 +72,9 @@ namespace IceRpc.Internal
                 IceRpcRequestHeader header;
                 IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields;
                 FeatureCollection features = FeatureCollection.Empty;
-                PipeReader reader = stream.Input;
                 try
                 {
-                    ReadResult readResult = await reader.ReadSegmentAsync(
+                    ReadResult readResult = await stream.Input.ReadSegmentAsync(
                         SliceEncoding.Slice20,
                         CancellationToken.None).ConfigureAwait(false);
 
@@ -85,7 +84,7 @@ namespace IceRpc.Internal
                     }
 
                     (header, fields) = DecodeHeader(readResult.Buffer);
-                    reader.AdvanceTo(readResult.Buffer.End);
+                    stream.Input.AdvanceTo(readResult.Buffer.End);
 
                     // Decode Context from Fields and set corresponding feature.
                     if (fields.DecodeValue(
@@ -119,7 +118,7 @@ namespace IceRpc.Internal
                     IsOneway = !stream.IsBidirectional,
                     Operation = header.Operation,
                     Path = header.Path,
-                    Payload = reader,
+                    Payload = stream.Input,
                 };
 
                 CancellationTokenSource? cancelDispatchSource = null;
@@ -181,7 +180,7 @@ namespace IceRpc.Internal
                     // If shutting down, ignore the incoming request.
                     // TODO: replace with payload exception and error code
                     Exception exception = IceRpcStreamError.ConnectionShutdownByPeer.ToException();
-                    await request.Payload.CompleteAsync(exception).ConfigureAwait(false);
+                    await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
                     await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
                 }
                 else
@@ -252,6 +251,15 @@ namespace IceRpc.Internal
                     return;
                 }
 
+                stream.OnPeerInputCompleted(() =>
+                    {
+                        response.Payload.CancelPendingRead();
+                        if (response.PayloadStream is PipeReader payloadStream)
+                        {
+                            payloadStream.CancelPendingRead();
+                        }
+                    });
+
                 EncodeHeader();
                 // SendPayloadAsync takes care of the completion of the payload, payload stream and stream output.
                 await SendPayloadAsync(response, stream.Output, CancellationToken.None).ConfigureAwait(false);
@@ -299,7 +307,7 @@ namespace IceRpc.Internal
             OutgoingRequest request,
             CancellationToken cancel)
         {
-            PipeReader? responseReader = null;
+            IMultiplexedStream? stream = null;
             try
             {
                 if (request.Proxy.Fragment.Length > 0)
@@ -308,12 +316,16 @@ namespace IceRpc.Internal
                 }
 
                 // Create the stream.
-                IMultiplexedStream stream = _networkConnection.CreateStream(bidirectional: !request.IsOneway);
+                stream = _networkConnection.CreateStream(bidirectional: !request.IsOneway);
+                stream.OnPeerInputCompleted(() =>
+                    {
 
-                if (stream.IsBidirectional)
-                {
-                    responseReader = stream.Input;
-                }
+                        request.Payload.CancelPendingRead();
+                        if (request.PayloadStream is PipeReader payloadStream)
+                        {
+                            payloadStream.CancelPendingRead();
+                        }
+                    });
 
                 // Keep track of the invocation for the shutdown logic.
                 if (!request.IsOneway || request.PayloadStream != null)
@@ -356,9 +368,13 @@ namespace IceRpc.Internal
             catch (Exception exception)
             {
                 await request.CompleteAsync(exception).ConfigureAwait(false);
-                if (responseReader != null)
+                if (stream != null)
                 {
-                    await responseReader.CompleteAsync(exception).ConfigureAwait(false);
+                    await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
+                    if (stream.IsBidirectional)
+                    {
+                        await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
+                    }
                 }
                 throw;
             }
@@ -368,10 +384,10 @@ namespace IceRpc.Internal
                 return new IncomingResponse(request);
             }
 
-            Debug.Assert(responseReader != null);
+            Debug.Assert(stream != null);
             try
             {
-                ReadResult readResult = await responseReader.ReadSegmentAsync(
+                ReadResult readResult = await stream.Input.ReadSegmentAsync(
                     SliceEncoding.Slice20,
                     cancel).ConfigureAwait(false);
 
@@ -405,7 +421,7 @@ namespace IceRpc.Internal
 
                 (IceRpcResponseHeader header, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields) =
                     DecodeHeader(readResult.Buffer);
-                responseReader.AdvanceTo(readResult.Buffer.End);
+                stream.Input.AdvanceTo(readResult.Buffer.End);
 
                 RetryPolicy? retryPolicy = fields.DecodeValue(
                     ResponseFieldKey.RetryPolicy,
@@ -419,13 +435,13 @@ namespace IceRpc.Internal
                 {
                     Connection = connection,
                     Fields = fields,
-                    Payload = responseReader,
+                    Payload = stream.Input,
                     ResultType = header.ResultType
                 };
             }
             catch (MultiplexedStreamAbortedException exception)
             {
-                await responseReader.CompleteAsync(exception).ConfigureAwait(false);
+                await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
                 if (exception.ErrorKind == MultiplexedStreamErrorKind.Protocol)
                 {
                     throw exception.ToIceRpcException();
@@ -439,13 +455,13 @@ namespace IceRpc.Internal
             {
                 // Notify the peer that we give up on receiving the response. The peer will cancel the dispatch upon
                 // receiving this notification.
-                await responseReader.CompleteAsync(
+                await stream.Input.CompleteAsync(
                     IceRpcStreamError.InvocationCanceled.ToException()).ConfigureAwait(false);
                 throw;
             }
             catch (Exception exception)
             {
-                await responseReader.CompleteAsync(exception).ConfigureAwait(false);
+                await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
                 throw;
             }
 
