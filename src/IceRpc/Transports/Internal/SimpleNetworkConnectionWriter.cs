@@ -78,6 +78,11 @@ namespace IceRpc.Transports.Internal
 
             try
             {
+                if (_state.HasFlag(State.Disposed))
+                {
+                    throw new ObjectDisposedException($"{typeof(SimpleNetworkConnectionWriter)}");
+                }
+
                 if (_pipe.Writer.UnflushedBytes == 0 && source1.IsEmpty && source2.IsEmpty)
                 {
                     return;
@@ -126,7 +131,7 @@ namespace IceRpc.Transports.Internal
                     }
                 }
             }
-            catch
+            finally
             {
                 if (_state.HasFlag(State.Disposed))
                 {
@@ -135,10 +140,6 @@ namespace IceRpc.Transports.Internal
                     _pipe.Writer.Complete();
 #pragma warning restore CA1849
                 }
-                throw;
-            }
-            finally
-            {
                 _state.ClearFlag(State.Writing);
             }
 

@@ -71,6 +71,11 @@ namespace IceRpc.Transports.Internal
 
             try
             {
+                if (_state.HasFlag(State.Disposed))
+                {
+                    throw new ObjectDisposedException($"{typeof(SimpleNetworkConnectionReader)}");
+                }
+
                 // If there's still data on the pipe reader, copy the data from the pipe reader synchronously.
                 if (_pipe.Reader.TryRead(out ReadResult result))
                 {
@@ -99,7 +104,7 @@ namespace IceRpc.Transports.Internal
                     }
                 }
             }
-            catch
+            finally
             {
                 if (_state.HasFlag(State.Disposed))
                 {
@@ -108,10 +113,6 @@ namespace IceRpc.Transports.Internal
                     _pipe.Writer.Complete();
 #pragma warning restore CA1849
                 }
-                throw;
-            }
-            finally
-            {
                 _state.ClearFlag(State.Reading);
             }
 
@@ -155,6 +156,11 @@ namespace IceRpc.Transports.Internal
 
             try
             {
+                if (_state.HasFlag(State.Disposed))
+                {
+                    throw new ObjectDisposedException($"{typeof(SimpleNetworkConnectionReader)}");
+                }
+
                 if (_pipe.Reader.TryRead(out ReadResult readResult))
                 {
                     if (readResult.IsCanceled)
@@ -193,17 +199,13 @@ namespace IceRpc.Transports.Internal
                 Debug.Assert(readResult.Buffer.Length >= minimumSize);
                 return readResult.Buffer;
             }
-            catch
+            finally
             {
                 if (_state.HasFlag(State.Disposed))
                 {
                     await _pipe.Reader.CompleteAsync().ConfigureAwait(false);
                     await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
                 }
-                throw;
-            }
-            finally
-            {
                 _state.ClearFlag(State.Reading);
             }
         }
@@ -217,6 +219,11 @@ namespace IceRpc.Transports.Internal
 
             try
             {
+                if (_state.HasFlag(State.Disposed))
+                {
+                    throw new ObjectDisposedException($"{typeof(SimpleNetworkConnectionReader)}");
+                }
+
                 if (_pipe.Reader.TryRead(out ReadResult readResult))
                 {
                     if (readResult.IsCanceled)
@@ -232,17 +239,13 @@ namespace IceRpc.Transports.Internal
                     return false;
                 }
             }
-            catch
+            finally
             {
                 if (_state.HasFlag(State.Disposed))
                 {
                     _pipe.Reader.Complete();
                     _pipe.Writer.Complete();
                 }
-                throw;
-            }
-            finally
-            {
                 _state.ClearFlag(State.Reading);
             }
         }
