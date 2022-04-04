@@ -85,7 +85,7 @@ namespace IceRpc.Transports.Internal
             {
                 if (ipAddress.AddressFamily == AddressFamily.InterNetworkV6)
                 {
-                    _socket.DualMode = !options.IsIPv6Only;
+                    _socket.DualMode = options.DualMode;
                 }
 
                 _socket.ExclusiveAddressUse = true;

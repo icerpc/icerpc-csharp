@@ -345,7 +345,7 @@ namespace IceRpc.Transports.Internal
             {
                 if (ipAddress?.AddressFamily == AddressFamily.InterNetworkV6)
                 {
-                    Socket.DualMode = !options.IsIPv6Only;
+                    Socket.DualMode = options.DualMode;
                 }
 
                 if (options.LocalEndPoint is IPEndPoint localEndPoint)
