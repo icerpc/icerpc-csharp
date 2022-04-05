@@ -7,7 +7,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 
-using static IceRpc.Slice.Internal.Slice11Definitions;
+using static IceRpc.Slice.Internal.Slice1Definitions;
 
 namespace IceRpc.Slice
 {
@@ -24,7 +24,7 @@ namespace IceRpc.Slice
         /// <returns>The class instance, or null.</returns>
         public T? DecodeNullableClass<T>() where T : class
         {
-            if (Encoding != SliceEncoding.Slice11)
+            if (Encoding != SliceEncoding.Slice1)
             {
                 throw new InvalidOperationException(
                     $"{nameof(DecodeNullableClass)} is not compatible with encoding {Encoding}");
@@ -41,8 +41,7 @@ namespace IceRpc.Slice
             }
             else
             {
-                throw new InvalidDataException(@$"decoded instance of type '{obj.GetType()
-                    }' but expected instance of type '{typeof(T)}'");
+                throw new InvalidDataException(@$"decoded instance of type '{obj.GetType()}' but expected instance of type '{typeof(T)}'");
             }
         }
 
@@ -50,7 +49,7 @@ namespace IceRpc.Slice
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void EndSlice()
         {
-            if (Encoding != SliceEncoding.Slice11)
+            if (Encoding != SliceEncoding.Slice1)
             {
                 throw new InvalidOperationException(
                     $"{nameof(EndSlice)} is not compatible with encoding {Encoding}");
@@ -78,7 +77,7 @@ namespace IceRpc.Slice
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void StartSlice()
         {
-            if (Encoding != SliceEncoding.Slice11)
+            if (Encoding != SliceEncoding.Slice1)
             {
                 throw new InvalidOperationException(
                     $"{nameof(StartSlice)} is not compatible with encoding {Encoding}");
@@ -100,7 +99,7 @@ namespace IceRpc.Slice
         /// <returns>The class instance. Can be null.</returns>
         private AnyClass? DecodeAnyClass()
         {
-            Debug.Assert(Encoding == SliceEncoding.Slice11);
+            Debug.Assert(Encoding == SliceEncoding.Slice1);
 
             int index = DecodeSize();
             if (index < 0)
@@ -135,7 +134,7 @@ namespace IceRpc.Slice
 
         private RemoteException DecodeExceptionClass(ResultType resultType)
         {
-            Debug.Assert(Encoding == SliceEncoding.Slice11);
+            Debug.Assert(Encoding == SliceEncoding.Slice1);
 
             ReplyStatus replyStatus = ReplyStatus.UserException;
 
@@ -170,8 +169,7 @@ namespace IceRpc.Slice
                             string target = requestFailed.Fragment.Length > 0 ?
                                 $"{requestFailed.Path}#{requestFailed.Fragment}" : requestFailed.Path;
 
-                            message = @$"{nameof(DispatchException)} {{ ErrorCode = {errorCode
-                                } }} while dispatching '{requestFailed.Operation}' on '{target}'";
+                            message = @$"{nameof(DispatchException)} {{ ErrorCode = {errorCode} }} while dispatching '{requestFailed.Operation}' on '{target}'";
                         }
                         // else message remains null
                         break;
@@ -559,8 +557,7 @@ namespace IceRpc.Slice
             if ((_classContext.Current.SliceFlags & SliceFlags.HasSliceSize) == 0)
             {
                 string kind = _classContext.Current.InstanceType.ToString().ToLowerInvariant();
-                throw new InvalidDataException(@$"no {kind} found for type ID '{typeId
-                        }' and compact format prevents slicing (the sender should use the sliced format instead)");
+                throw new InvalidDataException(@$"no {kind} found for type ID '{typeId}' and compact format prevents slicing (the sender should use the sliced format instead)");
             }
 
             bool hasTaggedMembers = (_classContext.Current.SliceFlags & SliceFlags.HasTaggedMembers) != 0;
