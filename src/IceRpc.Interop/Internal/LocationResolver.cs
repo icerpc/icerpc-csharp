@@ -58,12 +58,12 @@ namespace IceRpc.Internal
             _ttl = ttl;
         }
 
-        ValueTask<(Proxy? Proxy, bool FromCache)> ILocationResolver.ResolveAsync(
+        public ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(
             Location location,
             bool refreshCache,
-            CancellationToken cancel) => ResolveAsync(location, refreshCache, cancel);
+            CancellationToken cancel) => PerformResolveAsync(location, refreshCache, cancel);
 
-        private async ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(
+        private async ValueTask<(Proxy? Proxy, bool FromCache)> PerformResolveAsync(
             Location location,
             bool refreshCache,
             CancellationToken cancel)
@@ -99,7 +99,7 @@ namespace IceRpc.Internal
                 {
                     // Resolves adapter ID recursively, by checking first the cache. If we resolved the well-known
                     // proxy, we request a cache refresh for the adapter ID.
-                    (proxy, _) = await ResolveAsync(
+                    (proxy, _) = await PerformResolveAsync(
                         new Location { IsAdapterId = true, Value = adapterId },
                         refreshCache || resolved,
                         cancel).ConfigureAwait(false);

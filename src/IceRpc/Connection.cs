@@ -68,18 +68,18 @@ namespace IceRpc
 
         /// <summary><c>true</c> for a connection accepted by a server and <c>false</c> for a connection created by a
         /// client.</summary>
-        public bool IsServer { get; }
+        public bool IsServer => _serverProtocol != null;
 
         /// <summary>The network connection information or <c>null</c> if the connection is not connected.</summary>
         public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
 
         /// <summary>The protocol used by the connection.</summary>
-        public Protocol Protocol { get; }
+        public Protocol Protocol => _serverProtocol ?? _options.RemoteEndpoint?.Protocol ??
+            throw new InvalidOperationException($"cannot access Protocol before configuring {nameof(RemoteEndpoint)}");
 
         /// <summary>The connection's remote endpoint.</summary>
-        public Endpoint RemoteEndpoint => NetworkConnectionInformation?.RemoteEndpoint ??
-            _options?.RemoteEndpoint ??
-            throw new InvalidOperationException($"{nameof(RemoteEndpoint)} is not set on the connection");
+        public Endpoint RemoteEndpoint => NetworkConnectionInformation?.RemoteEndpoint ?? _options?.RemoteEndpoint ??
+            throw new InvalidOperationException($"{nameof(RemoteEndpoint)} is not configured");
 
         /// <summary>The state of the connection.</summary>
         public ConnectionState State
@@ -116,6 +116,8 @@ namespace IceRpc
 
         private ConnectionState _state = ConnectionState.NotConnected;
 
+        private readonly Protocol? _serverProtocol;
+
         // The state task is assigned when the state is updated to Connecting, ShuttingDown, Closing. It's completed
         // once the state update completes. It's protected with _mutex.
         private Task? _stateTask;
@@ -124,12 +126,7 @@ namespace IceRpc
 
         /// <summary>Constructs a client connection.</summary>
         /// <param name="options">The connection options.</param>
-        public Connection(ConnectionOptions options)
-        {
-            Protocol = options.RemoteEndpoint is Endpoint remoteEndpoint ? remoteEndpoint.Protocol :
-                throw new ArgumentException($"options.RemoteEndpoint must be set to a non-null value", nameof(options));
-            _options = options;
-        }
+        public Connection(ConnectionOptions options) => _options = options;
 
         /// <summary>Constructs a client connection with the specified remote endpoint and  authentication options.
         /// All other properties have their default values.</summary>
@@ -304,49 +301,55 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+        public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            IProtocolConnection? protocolConnection = null;
-            lock (_mutex)
-            {
-                if (_state == ConnectionState.Active)
-                {
-                    protocolConnection = _protocolConnection!;
-                }
-                else if (_state > ConnectionState.Active && !_options.IsResumable)
-                {
-                    throw new ConnectionClosedException();
-                }
-            }
-
-            // SendRequestAsync is responsible for completing the payload and payload stream.
+            IProtocolConnection? protocolConnection = GetProtocolConnection();
             if (protocolConnection == null)
             {
-                return PerformConnectAndSendRequest();
-            }
-            else
-            {
-                return protocolConnection.SendRequestAsync(this, request, cancel);
-            }
-
-            async Task<IncomingResponse> PerformConnectAndSendRequest()
-            {
                 await ConnectAsync(cancel).ConfigureAwait(false);
+            }
+            protocolConnection ??= GetProtocolConnection() ?? throw new ConnectionClosedException();
 
-                IProtocolConnection protocolConnection;
+            try
+            {
+                return await protocolConnection.SendRequestAsync(this, request, cancel).ConfigureAwait(false);
+            }
+            catch (ConnectionLostException exception)
+            {
+                // If the network connection is lost while sending the request, we close the connection now instead of
+                // waiting for AcceptRequestsAsync to throw. It's necessary to ensure that the next SendRequestAsync
+                // will fail with ConnectionClosedException  (it's important to ensure retries don't occur on this
+                // connection again).
+                await CloseAsync(exception).ConfigureAwait(false);
+                throw;
+            }
+            catch (ConnectionClosedException exception)
+            {
+                // Ensure that the shutdown is initiated if the invocations fails with ConnectionClosedException. It's
+                // possible that the connection didn't receive yet the GoAway message. Initiating the shutdown now
+                // ensures that the next SendRequestAsync will fail with ConnectionLostException (it's important to
+                // ensure retries don't occur on this connection again).
+                InitiateShutdown(exception.Message);
+                throw;
+            }
+
+            IProtocolConnection? GetProtocolConnection()
+            {
                 lock (_mutex)
                 {
                     if (_state == ConnectionState.Active)
                     {
-                        protocolConnection = _protocolConnection!;
+                        return _protocolConnection!;
+                    }
+                    else if (_state > ConnectionState.Active && !_options.IsResumable)
+                    {
+                        throw new ConnectionClosedException();
                     }
                     else
                     {
-                        // The connection was closed right after the successful connect.
-                        throw new ConnectionClosedException();
+                        return null;
                     }
                 }
-                return await protocolConnection.SendRequestAsync(this, request, cancel).ConfigureAwait(false);
             }
         }
 
@@ -405,8 +408,7 @@ namespace IceRpc
         /// <summary>Constructs a server connection from an accepted network connection.</summary>
         internal Connection(INetworkConnection connection, Protocol protocol, ConnectionOptions options)
         {
-            IsServer = true;
-            Protocol = protocol;
+            _serverProtocol = protocol;
             _networkConnection = connection;
             _options = options;
             _state = ConnectionState.Connecting;
@@ -456,21 +458,7 @@ namespace IceRpc
                     // Switch the connection to the ShuttingDown state as soon as the protocol receives a notification
                     // that peer initiated shutdown. This is in particular useful for the connection pool to not return
                     // a connection which is being shutdown.
-                    _protocolConnection.PeerShutdownInitiated += message =>
-                        {
-                            lock (_mutex)
-                            {
-                                if (_state == ConnectionState.Active)
-                                {
-                                    _state = ConnectionState.ShuttingDown;
-                                    _protocolShutdownCancellationSource = new();
-                                    _stateTask = ShutdownAsyncCore(
-                                        _protocolConnection,
-                                        message,
-                                        _protocolShutdownCancellationSource.Token);
-                                }
-                            }
-                        };
+                    _protocolConnection.PeerShutdownInitiated += InitiateShutdown;
 
                     // Setup a timer to check for the connection idle time every IdleTimeout / 2 period. If the
                     // transport doesn't support idle timeout (e.g.: the colocated transport), IdleTimeout will be
@@ -498,8 +486,7 @@ namespace IceRpc
                             }
                             catch (Exception exception)
                             {
-                                // Unexpected exception, if the connection hasn't been resumed already, close the
-                                // connection.
+                                // Unexpected exception, if the connection hasn't been resumed already, close it.
                                 lock (_mutex)
                                 {
                                     if (protocolConnection == _protocolConnection)
@@ -586,8 +573,9 @@ namespace IceRpc
                     // will trigger the failure of the associated invocations whose interceptor might access
                     // the connection state (e.g.: the retry interceptor or the connection pool checks the
                     // connection state).
+                    bool isShuttingDown = _state == ConnectionState.ShuttingDown;
                     _state = ConnectionState.Closing;
-                    _stateTask = PerformCloseAsync();
+                    _stateTask = PerformCloseAsync(isShuttingDown);
                 }
 
                 Debug.Assert(_stateTask != null);
@@ -596,7 +584,7 @@ namespace IceRpc
 
             await waitTask.ConfigureAwait(false);
 
-            async Task PerformCloseAsync()
+            async Task PerformCloseAsync(bool isShuttingDown)
             {
                 // Yield before continuing to ensure the code below isn't executed with the mutex locked and
                 // that _closeTask is assigned before any synchronous continuations are ran.
@@ -650,12 +638,33 @@ namespace IceRpc
                 {
                     try
                     {
-                        _closed?.Invoke(this, new ClosedEventArgs(exception));
+                        _closed?.Invoke(
+                            this,
+                            new ClosedEventArgs(isShuttingDown ?
+                                new ConnectionClosedException("connection gracefully shut down", exception) :
+                                exception));
                     }
                     catch
                     {
                         // Ignore, application event handlers shouldn't raise exceptions.
                     }
+                }
+            }
+        }
+
+        private void InitiateShutdown(string message)
+        {
+            lock (_mutex)
+            {
+                // If the connection is active, switch the state to ShuttingDown and initiate the shutdown.
+                if (_state == ConnectionState.Active)
+                {
+                    _state = ConnectionState.ShuttingDown;
+                    _protocolShutdownCancellationSource = new();
+                    _stateTask = ShutdownAsyncCore(
+                        _protocolConnection!,
+                        message,
+                        _protocolShutdownCancellationSource.Token);
                 }
             }
         }

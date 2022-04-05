@@ -18,7 +18,15 @@ namespace IceRpc.Transports
         /// <summary>Returns <c>true</c> if the local stream is started, <c>false</c> otherwise.</summary>
         bool IsStarted { get; }
 
-        /// <summary>Sets the action which is called when the stream is reset.</summary>
-        Action? ShutdownAction { get; set; }
+        /// <summary>Sets the action which is called when the stream is shutdown.</summary>
+        /// <param name="action">The callback to register.</param>
+        /// <remarks>If the stream is already shutdown, the callback is called synchronously by this method.</remarks>
+        void OnShutdown(Action action);
+
+        /// <summary>Sets the action which is called when the peer <see cref="IDuplexPipe.Input"/> completes.</summary>
+        /// <param name="action">The callback to register.</param>
+        /// <remarks>If the he peer <see cref="IDuplexPipe.Input"/> is already completed, the callback is called
+        /// synchronously by this method.</remarks>
+        void OnPeerInputCompleted(Action action);
     }
 }

@@ -8,7 +8,7 @@ using System.IO.Pipelines;
 namespace IceRpc.Slice.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
-public class SliceEncoderTests
+public class SliceEncodingTests
 {
 
     [Test]

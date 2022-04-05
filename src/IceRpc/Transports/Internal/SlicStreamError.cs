@@ -7,8 +7,6 @@ namespace IceRpc.Transports.Internal
     {
         /// <summary>The stream was successfully completed.</summary>
         NoError,
-        /// <summary>The stream was aborted.</summary>
-        Aborted,
         /// <summary>The stream was completed with an unexpected error.</summary>
         UnexpectedError,
     }
@@ -17,9 +15,6 @@ namespace IceRpc.Transports.Internal
     {
         internal static long ToError(this SlicStreamError error) =>
             (long)MultiplexedStreamErrorKind.Transport | (long)error;
-
-        internal static SlicStreamError? ToSlicError(this long error) =>
-            (error >> 32) == (long)MultiplexedStreamErrorKind.Transport ? (SlicStreamError)error : null;
 
         internal static SlicStreamError? ToSlicError(this MultiplexedStreamAbortedException exception) =>
             exception.ErrorKind == MultiplexedStreamErrorKind.Transport ? (SlicStreamError)exception.ErrorCode : null;
