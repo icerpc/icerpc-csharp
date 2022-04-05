@@ -662,18 +662,20 @@ namespace IceRpc.Slice
             else
             {
                 TransportCode transportCode = TransportCode.Uri;
-                const bool compress = false;
-                const int timeout = EndpointExtensions.DefaultTcpTimeout;
+                bool compress = false;
+                int timeout = -1;
 
                 if (endpoint.Protocol == Protocol.Ice)
                 {
                     switch (transport)
                     {
                         case TransportNames.Ssl:
+                            (compress, timeout) = endpoint.ParseTcpParams();
                             transportCode = TransportCode.Ssl;
                             break;
 
                         case TransportNames.Tcp:
+                            (compress, timeout) = endpoint.ParseTcpParams();
                             transportCode = TransportCode.Tcp;
                             break;
 

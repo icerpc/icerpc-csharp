@@ -319,6 +319,8 @@ namespace IceRpc.Transports.Internal
                 return false;
             }
 
+            _ = remoteEndpoint.ParseTcpParams(); // check remote endpoint
+
             return true;
         }
 
