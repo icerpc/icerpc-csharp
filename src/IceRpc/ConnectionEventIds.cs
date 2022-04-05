@@ -5,7 +5,6 @@ namespace IceRpc
     /// <summary>Connection-related events shared by all Ice protocols.</summary>
     public enum ConnectionEventIds
     {
-
         /// <summary>The protocol connection is accepting requests.</summary>
         AcceptRequests,
 

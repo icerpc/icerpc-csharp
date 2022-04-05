@@ -62,10 +62,6 @@ namespace IceRpc.Slice
         /// <param name="decoder">The Slice decoder.</param>
         protected abstract void DecodeCore(ref SliceDecoder decoder);
 
-        /// <summary>Encodes a remote exception.</summary>
-        /// <param name="encoder">The Slice encoder.</param>
-        protected abstract void EncodeCore(ref SliceEncoder encoder);
-
         internal void Decode(ref SliceDecoder decoder) => DecodeCore(ref decoder);
     }
 }

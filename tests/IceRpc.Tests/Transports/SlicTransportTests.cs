@@ -87,7 +87,7 @@ public class SlicTransportTests
                 PauseWriterThreshold = 1024 * 1024,
                 ResumeWriterThreshold = 1024 * 512,
             }).BuildServiceProvider();
-        
+
         var acceptTask = serviceProvider.GetMultiplexedServerConnectionAsync();
         IMultiplexedNetworkConnection sut = await serviceProvider.GetMultiplexedClientConnectionAsync();
         IMultiplexedNetworkConnection serverConnection = await acceptTask;

@@ -41,37 +41,6 @@ namespace IceRpc.Transports.Internal
         /// <inheritdoc/>
         public bool IsStarted => Thread.VolatileRead(ref _id) != -1;
 
-        /// <inheritdoc/>
-        public Action? ShutdownAction
-        {
-            get
-            {
-                lock (_mutex)
-                {
-                    return _shutdownAction;
-                }
-            }
-            set
-            {
-                bool alreadyShutdown = false;
-                lock (_mutex)
-                {
-                    if (IsShutdown)
-                    {
-                        alreadyShutdown = true;
-                    }
-                    else
-                    {
-                        _shutdownAction = value;
-                    }
-                }
-                if (alreadyShutdown)
-                {
-                    value?.Invoke();
-                }
-            }
-        }
-
         public PipeWriter Output => !IsRemote || IsBidirectional ?
             _outputPipeWriter :
             throw new InvalidOperationException($"can't get {nameof(Output)} on unidirectional remote stream");
@@ -81,29 +50,9 @@ namespace IceRpc.Transports.Internal
 
         internal bool IsShutdown => ReadsCompleted && WritesCompleted;
 
-        internal bool ReadsCompleted => _state.HasFlag(State.ReadCompleted);
+        internal bool ReadsCompleted => _state.HasFlag(State.ReadsCompleted);
 
-        /// <summary>The stream reset error is set if the stream is reset by the peer or locally. It's used to set
-        /// the error for the <see cref="MultiplexedStreamAbortedException"/> raised by the stream.</summary>
-        internal long? ResetError
-        {
-            get
-            {
-                lock (_mutex)
-                {
-                    return _resetErrorCode;
-                }
-            }
-            private set
-            {
-                lock (_mutex)
-                {
-                    _resetErrorCode = value;
-                }
-            }
-        }
-
-        internal bool WritesCompleted => _state.HasFlag(State.WriteCompleted);
+        internal bool WritesCompleted => _state.HasFlag(State.WritesCompleted);
 
         private readonly SlicNetworkConnection _connection;
         private readonly ISlicFrameReader _frameReader;
@@ -115,19 +64,12 @@ namespace IceRpc.Transports.Internal
         private volatile int _sendCredit = int.MaxValue;
         // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
         private readonly AsyncSemaphore _sendCreditSemaphore = new(1, 1);
-        private volatile Action? _shutdownAction;
-        private long? _resetErrorCode;
+        private Action? _shutdownAction;
+        private Action? _peerInputCompletedAction;
         private int _state;
 
         public void AbortRead(long errorCode)
         {
-            if (ReadsCompleted)
-            {
-                return;
-            }
-
-            ResetError = errorCode;
-
             if (IsStarted && !IsShutdown)
             {
                 // Notify the peer of the read abort by sending a stop sending frame.
@@ -136,7 +78,6 @@ namespace IceRpc.Transports.Internal
             else
             {
                 TrySetReadCompleted();
-                _inputPipeReader.CancelPendingRead();
             }
 
             async Task SendStopSendingFrameAndShutdownAsync()
@@ -154,14 +95,11 @@ namespace IceRpc.Transports.Internal
                     // Ignore.
                 }
                 TrySetReadCompleted();
-                _inputPipeReader.CancelPendingRead();
             }
         }
 
         public void AbortWrite(long errorCode)
         {
-            ResetError = errorCode;
-
             if (IsStarted && !IsShutdown)
             {
                 // Notify the peer of the write abort by sending a reset frame.
@@ -189,6 +127,14 @@ namespace IceRpc.Transports.Internal
                 TrySetWriteCompleted();
             }
         }
+
+        /// <inheritdoc/>
+        public void OnPeerInputCompleted(Action callback) =>
+            RegisterStateAction(ref _peerInputCompletedAction, State.ReceivedStopSending, callback);
+
+        /// <inheritdoc/>
+        public void OnShutdown(Action callback) =>
+            RegisterStateAction(ref _shutdownAction, State.WritesCompleted | State.ReadsCompleted, callback);
 
         /// <inheritdoc/>
         public override string ToString() => $"{base.ToString()} (ID={Id})";
@@ -232,6 +178,12 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        internal void Abort(Exception exception)
+        {
+            _inputPipeReader.Abort(exception);
+            _outputPipeWriter.Abort(exception);
+        }
+
         internal async ValueTask<int> AcquireSendCreditAsync(CancellationToken cancel)
         {
             // Acquire the semaphore to ensure flow control allows sending additional data. It's important to acquire
@@ -263,7 +215,7 @@ namespace IceRpc.Transports.Internal
                 Debug.Assert(_sendCreditSemaphore.Count == 0);
                 _sendCreditSemaphore.Release();
             }
-            else if (newValue > _connection.PauseWriterThreshold)
+            else if (newValue > _connection.PeerPauseWriterThreshold)
             {
                 // The peer is trying to increase the credit to a value which is larger than what it is allowed to.
                 throw new InvalidDataException("invalid flow control credit increase");
@@ -279,26 +231,32 @@ namespace IceRpc.Transports.Internal
             {
                 throw new InvalidDataException("received reset frame on local unidirectional stream");
             }
+            else if (!TrySetState(State.ReceivedReset))
+            {
+                throw new InvalidDataException("already received reset frame");
+            }
 
-            ResetError = error;
-
-            _inputPipeReader.ReceivedResetFrame(error);
-
-            TrySetReadCompleted();
+            if (TrySetReadCompleted())
+            {
+                _inputPipeReader.ReceivedResetFrame(error);
+            }
         }
 
         internal void ReceivedStopSendingFrame(long error)
         {
             if (!IsBidirectional && !IsRemote)
             {
-                throw new InvalidDataException("received reset frame on local unidirectional stream");
+                throw new InvalidDataException("received stop sending on remote unidirectional stream");
+            }
+            else if (!TrySetState(State.ReceivedStopSending))
+            {
+                throw new InvalidDataException("already received stop sending frame");
             }
 
-            ResetError = error;
-
-            _outputPipeWriter.ReceivedStopSendingFrame(error);
-
-            TrySetWriteCompleted();
+            if (TrySetWriteCompleted())
+            {
+                _outputPipeWriter.ReceivedStopSendingFrame(error);
+            }
         }
 
         internal ValueTask<FlushResult> SendStreamFrameAsync(
@@ -315,28 +273,48 @@ namespace IceRpc.Transports.Internal
                 new StreamConsumedBody((ulong)size).Encode,
                 CancellationToken.None).AsTask();
 
-        internal bool TrySetReadCompleted() => TrySetStateAndShutdown(State.ReadCompleted);
-
-        internal bool TrySetWriteCompleted() => TrySetStateAndShutdown(State.WriteCompleted);
-
-        private void Shutdown()
+        private void ExecuteStateAction(ref Action? stateAction)
         {
-            Debug.Assert(_state == (int)(State.ReadCompleted | State.WriteCompleted));
-            Action? shutdownAction = null;
+            Action? action;
             lock (_mutex)
             {
-                shutdownAction = _shutdownAction;
+                action = stateAction;
             }
 
             try
             {
-                shutdownAction?.Invoke();
+                action?.Invoke();
             }
             catch (Exception ex)
             {
-                Debug.Assert(false, $"unexpected exception from stream shutdown action {ex}");
+                Debug.Assert(false, $"unexpected exception from stream state action\n{ex}");
                 throw;
             }
+        }
+
+        private void RegisterStateAction(ref Action? stateAction, State state, Action? action)
+        {
+            bool isStateAlreadySet = false;
+            lock (_mutex)
+            {
+                if (_state.HasFlag(state))
+                {
+                    isStateAlreadySet = true;
+                }
+                else
+                {
+                    stateAction = action;
+                }
+            }
+            if (isStateAlreadySet)
+            {
+                action?.Invoke();
+            }
+        }
+
+        private void Shutdown()
+        {
+            Debug.Assert(_state.HasFlag(State.ReadsCompleted | State.WritesCompleted));
 
             if (IsStarted)
             {
@@ -348,7 +326,7 @@ namespace IceRpc.Transports.Internal
                 // UnidirectionalStreamReleased frame here to ensure the peer's stream is released. It's important to
                 // send the frame after the ReleaseStream call above to prevent a race condition where the peer could
                 // start a new unidirectional stream before the local counter is decreased.
-                if (IsRemote && !IsBidirectional)
+                if (IsRemote && !IsBidirectional && !_connection.IsAborted)
                 {
                     try
                     {
@@ -366,35 +344,43 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private bool TrySetStateAndShutdown(State state)
+        internal bool TrySetReadCompleted() => TrySetState(State.ReadsCompleted);
+
+        private bool TrySetState(State state)
         {
-            if (!_state.TrySetFlag(state, out State newState))
+            if (_state.TrySetFlag(state, out int newState))
             {
-                return false;
-            }
-            else
-            {
-                if (newState == (State.ReadCompleted | State.WriteCompleted))
+                if ((state.HasFlag(State.ReadsCompleted) || state.HasFlag(State.WritesCompleted)) &&
+                    newState.HasFlag(State.ReadsCompleted | State.WritesCompleted))
                 {
-                    // The stream reads and writes are completed.
-                    try
-                    {
-                        Shutdown();
-                    }
-                    catch (Exception exception)
-                    {
-                        Debug.Assert(false, $"unexpected exception {exception}");
-                    }
+                    // The stream reads and writes are completed, it's time to shutdown the stream.
+                    Shutdown();
+
+                    // Notify the registered shutdown action.
+                    ExecuteStateAction(ref _shutdownAction);
+                }
+                if (state.HasFlag(State.ReceivedStopSending))
+                {
+                    // Notify the registered peer input completed action.
+                    ExecuteStateAction(ref _peerInputCompletedAction);
                 }
                 return true;
             }
+            else
+            {
+                return false;
+            }
         }
+
+        internal bool TrySetWriteCompleted() => TrySetState(State.WritesCompleted);
 
         [Flags]
         private enum State : int
         {
-            ReadCompleted = 1,
-            WriteCompleted = 2,
+            ReadsCompleted = 1,
+            WritesCompleted = 2,
+            ReceivedStopSending = 4,
+            ReceivedReset = 8
         }
     }
 }

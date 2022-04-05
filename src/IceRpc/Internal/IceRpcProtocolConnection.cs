@@ -48,19 +48,17 @@ namespace IceRpc.Internal
         private readonly HashSet<CancellationTokenSource> _dispatches = new();
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
-
         private readonly HashSet<IMultiplexedStream> _invocations = new();
+        private bool _isShutdownCanceled;
+        private bool _isShuttingDown;
         private long _lastRemoteBidirectionalStreamId = -1;
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
         private long _lastRemoteUnidirectionalStreamId = -1;
         private readonly IDictionary<ConnectionFieldKey, OutgoingFieldValue> _localFields;
-
         private readonly object _mutex = new();
         private readonly IMultiplexedNetworkConnection _networkConnection;
         private IMultiplexedStream? _remoteControlStream;
         private readonly CancellationTokenSource _shutdownCancellationSource = new();
-        private bool _shutdownCanceled;
-        private bool _shuttingDown;
         private readonly TaskCompletionSource _waitForGoAwayCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -69,24 +67,7 @@ namespace IceRpc.Internal
             while (true)
             {
                 // Accepts a new stream.
-                IMultiplexedStream stream;
-                try
-                {
-                    stream = await _networkConnection.AcceptStreamAsync(CancellationToken.None).ConfigureAwait(false);
-                }
-                catch
-                {
-                    lock (_mutex)
-                    {
-                        if (_shuttingDown && _invocations.Count == 0 && _dispatches.Count == 0)
-                        {
-                            // The connection was gracefully shut down, raise ConnectionClosedException here to ensure
-                            // that the ClosedEvent will report this exception instead of the transport failure.
-                            throw new ConnectionClosedException("connection gracefully shut down");
-                        }
-                    }
-                    throw;
-                }
+                IMultiplexedStream stream = await _networkConnection.AcceptStreamAsync(default).ConfigureAwait(false);
 
                 IceRpcRequestHeader header;
                 IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields;
@@ -141,23 +122,18 @@ namespace IceRpc.Internal
                     Payload = reader,
                 };
 
-                _ = Task.Run(() => DispatchRequestAsync(request, stream));
-            }
-
-            async Task DispatchRequestAsync(IncomingRequest request, IMultiplexedStream stream)
-            {
-                using var cancelDispatchSource = new CancellationTokenSource();
-
+                CancellationTokenSource? cancelDispatchSource = null;
                 bool shuttingDown = false;
                 lock (_mutex)
                 {
                     // If shutting down, ignore the incoming request.
-                    if (_shuttingDown)
+                    if (_isShuttingDown)
                     {
                         shuttingDown = true;
                     }
                     else
                     {
+                        cancelDispatchSource = new();
                         _dispatches.Add(cancelDispatchSource);
                         if (stream.IsBidirectional)
                         {
@@ -168,7 +144,7 @@ namespace IceRpc.Internal
                             _lastRemoteUnidirectionalStreamId = stream.Id;
                         }
 
-                        stream.ShutdownAction = () =>
+                        stream.OnShutdown(() =>
                         {
                             // TODO: review stream shutdown (see #930)
 
@@ -191,12 +167,12 @@ namespace IceRpc.Internal
                                 _dispatches.Remove(cancelDispatchSource);
 
                                 // If no more invocations or dispatches and shutting down, shutdown can complete.
-                                if (_shuttingDown && _invocations.Count == 0 && _dispatches.Count == 0)
+                                if (_isShuttingDown && _invocations.Count == 0 && _dispatches.Count == 0)
                                 {
                                     _dispatchesAndInvocationsCompleted.SetResult();
                                 }
                             }
-                        };
+                        });
                     }
                 }
 
@@ -204,11 +180,23 @@ namespace IceRpc.Internal
                 {
                     // If shutting down, ignore the incoming request.
                     // TODO: replace with payload exception and error code
-                    var exception = new ConnectionClosedException();
+                    Exception exception = IceRpcStreamError.ConnectionShutdownByPeer.ToException();
                     await request.Payload.CompleteAsync(exception).ConfigureAwait(false);
                     await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
-                    return;
                 }
+                else
+                {
+                    Debug.Assert(cancelDispatchSource != null);
+                    _ = Task.Run(() => DispatchRequestAsync(request, stream, cancelDispatchSource));
+                }
+            }
+
+            async Task DispatchRequestAsync(
+                IncomingRequest request,
+                IMultiplexedStream stream,
+                CancellationTokenSource cancelDispatchSource)
+            {
+                using CancellationTokenSource? _ = cancelDispatchSource;
 
                 OutgoingResponse response;
                 try
@@ -265,7 +253,6 @@ namespace IceRpc.Internal
                 }
 
                 EncodeHeader();
-
                 // SendPayloadAsync takes care of the completion of the payload, payload stream and stream output.
                 await SendPayloadAsync(response, stream.Output, CancellationToken.None).ConfigureAwait(false);
 
@@ -333,7 +320,7 @@ namespace IceRpc.Internal
                 {
                     lock (_mutex)
                     {
-                        if (_shuttingDown)
+                        if (_isShuttingDown)
                         {
                             throw new ConnectionClosedException("connection shutdown");
                         }
@@ -341,7 +328,7 @@ namespace IceRpc.Internal
                         {
                             _invocations.Add(stream);
 
-                            stream.ShutdownAction = () =>
+                            stream.OnShutdown(() =>
                             {
                                 // TODO: review stream shutdown (see #930)
 
@@ -350,12 +337,12 @@ namespace IceRpc.Internal
                                     _invocations.Remove(stream);
 
                                     // If no more invocations or dispatches and shutting down, shutdown can complete.
-                                    if (_shuttingDown && _invocations.Count == 0 && _dispatches.Count == 0)
+                                    if (_isShuttingDown && _invocations.Count == 0 && _dispatches.Count == 0)
                                     {
                                         _dispatchesAndInvocationsCompleted.SetResult();
                                     }
                                 }
-                            };
+                            });
                         }
                     }
                 }
@@ -368,6 +355,7 @@ namespace IceRpc.Internal
             }
             catch (Exception exception)
             {
+                await request.CompleteAsync(exception).ConfigureAwait(false);
                 if (responseReader != null)
                 {
                     await responseReader.CompleteAsync(exception).ConfigureAwait(false);
@@ -391,12 +379,12 @@ namespace IceRpc.Internal
                 {
                     lock (_mutex)
                     {
-                        if (_shutdownCanceled)
+                        if (_isShutdownCanceled)
                         {
                             // If shutdown is canceled, pending invocations are canceled.
                             throw new OperationCanceledException("shutdown canceled");
                         }
-                        else if (_shuttingDown)
+                        else if (_isShuttingDown)
                         {
                             // If shutdown isn't canceled, the cancellation indicates that the peer didn't dispatch the
                             // invocation.
@@ -518,14 +506,16 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task ShutdownAsync(string message, CancellationToken cancel)
         {
+            IceRpcGoAway goAwayFrame;
             lock (_mutex)
             {
                 // Mark the connection as shutting down to prevent further requests from being accepted.
-                _shuttingDown = true;
+                _isShuttingDown = true;
                 if (_invocations.Count == 0 && _dispatches.Count == 0)
                 {
                     _dispatchesAndInvocationsCompleted.SetResult();
                 }
+                goAwayFrame = new(_lastRemoteBidirectionalStreamId, _lastRemoteUnidirectionalStreamId, message);
             }
 
             // Canceling Shutdown will cancel dispatches and invocations to speed up shutdown.
@@ -543,10 +533,7 @@ namespace IceRpc.Internal
             // Send GoAway frame.
             await SendControlFrameAsync(
                 IceRpcControlFrameType.GoAway,
-                (ref SliceEncoder encoder) => new IceRpcGoAway(
-                    _lastRemoteBidirectionalStreamId,
-                    _lastRemoteUnidirectionalStreamId,
-                    message).Encode(ref encoder),
+                (ref SliceEncoder encoder) => goAwayFrame.Encode(ref encoder),
                 CancellationToken.None).ConfigureAwait(false);
 
             // Ensure WaitForGoAway completes before continuing.
@@ -565,7 +552,7 @@ namespace IceRpc.Internal
                 IEnumerable<CancellationTokenSource> dispatches;
                 lock (_mutex)
                 {
-                    _shutdownCanceled = true;
+                    _isShutdownCanceled = true;
                     invocations = _invocations.ToArray();
                     dispatches = _dispatches.ToArray();
                 }
@@ -856,7 +843,7 @@ namespace IceRpc.Internal
                 lock (_mutex)
                 {
                     // Mark the connection as shutting down to prevent further requests from being accepted.
-                    _shuttingDown = true;
+                    _isShuttingDown = true;
 
                     // Cancel the invocations that were not dispatched by the peer.
                     invocations = _invocations.Where(stream =>
@@ -868,7 +855,6 @@ namespace IceRpc.Internal
 
                 foreach (IMultiplexedStream stream in invocations)
                 {
-                    // Cancel the invocation pending read response.
                     stream.Input.CancelPendingRead();
                 }
             }

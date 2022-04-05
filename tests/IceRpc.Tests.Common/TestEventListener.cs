@@ -49,7 +49,7 @@ public class TestEventListener : EventListener
                         eventSource,
                         EventLevel.LogAlways,
                         EventKeywords.All,
-                        new Dictionary<string, string?> { ["EventCounterIntervalSec"] = "0.001" });
+                        new Dictionary<string, string?> { ["EventCounterIntervalSec"] = "1" });
                 }
             }
         }

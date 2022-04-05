@@ -789,8 +789,8 @@ namespace IceRpc.Slice
                 {
                     switch (transportCode)
                     {
-                        case TransportCode.TCP:
-                        case TransportCode.SSL:
+                        case TransportCode.Tcp:
+                        case TransportCode.Ssl:
                         {
                             string host = DecodeString();
                             if (Uri.CheckHostName(host) == UriHostNameType.Unknown)
@@ -807,9 +807,9 @@ namespace IceRpc.Slice
 
                             builder.Add(
                                 "transport",
-                                transportCode == TransportCode.TCP ? TransportNames.Tcp : TransportNames.Ssl);
+                                transportCode == TransportCode.Tcp ? TransportNames.Tcp : TransportNames.Ssl);
 
-                            if (timeout != Transports.Internal.EndpointExtensions.DefaultTcpTimeout)
+                            if (timeout != EndpointExtensions.DefaultTcpTimeout)
                             {
                                 builder.Add("t", timeout.ToString(CultureInfo.InvariantCulture));
                             }

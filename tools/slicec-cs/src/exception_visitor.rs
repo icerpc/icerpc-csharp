@@ -139,7 +139,12 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
 
         exception_class_builder.add_block(encode_method(exception_def));
         exception_class_builder.add_block(encode_trait_method(exception_def));
-        exception_class_builder.add_block(encode_core_method(exception_def));
+        if exception_def
+            .supported_encodings()
+            .supports(&Encoding::Slice11)
+        {
+            exception_class_builder.add_block(encode_core_method(exception_def));
+        }
 
         self.generated_code
             .insert_scoped(exception_def, exception_class_builder.build().into());
@@ -212,11 +217,7 @@ fn encode_core_method(exception_def: &Exception) -> CodeBlock {
 
     let body = CodeBlock::from(format!(
         r#"
-if (encoder.Encoding != SliceEncoding.Slice1)
-{{
-    throw new InvalidOperationException("encoding an exception in slices is only supported with the 1.1 encoding");
-}}
-
+System.Diagnostics.Debug.Assert(encoder.Encoding == SliceEncoding.Slice1);
 encoder.StartSlice(SliceTypeId);
 {encode_data_members}
 encoder.EndSlice(lastSlice: {is_last_slice});
@@ -231,7 +232,11 @@ encoder.EndSlice(lastSlice: {is_last_slice});
     ));
 
     FunctionBuilder::new(
-        "protected override",
+        if has_base {
+            "protected override"
+        } else {
+            "virtual protected"
+        },
         "void",
         "EncodeCore",
         FunctionType::BlockBody,

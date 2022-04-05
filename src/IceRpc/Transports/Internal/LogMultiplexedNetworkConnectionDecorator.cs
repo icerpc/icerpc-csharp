@@ -43,16 +43,15 @@ namespace IceRpc.Transports.Internal
         public bool IsBidirectional => _decoratee.IsBidirectional;
         public bool IsStarted => _decoratee.IsStarted;
         public PipeWriter Output => _output ??= new LogMultiplexedStreamPipeWriter(_decoratee.Output, this, _logger);
-        public Action? ShutdownAction
-        {
-            get => _decoratee.ShutdownAction;
-            set => _decoratee.ShutdownAction = value;
-        }
 
         private readonly IMultiplexedStream _decoratee;
         private PipeReader? _input;
         private readonly ILogger _logger;
         private PipeWriter? _output;
+
+        public void OnShutdown(Action callback) => _decoratee.OnShutdown(callback);
+
+        public void OnPeerInputCompleted(Action callback) => _decoratee.OnPeerInputCompleted(callback);
 
         public override string? ToString() => _decoratee.ToString();
 

@@ -41,13 +41,14 @@ namespace IceRpc.Tests.Internal
             if (closeClientSide)
             {
                 await factory.ClientConnection.CloseAsync();
+                Assert.ThrowsAsync<ObjectDisposedException>(async () => await pingTask);
             }
             else
             {
                 await factory.ServerConnection.CloseAsync();
+                Assert.ThrowsAsync<ConnectionLostException>(async () => await pingTask);
             }
 
-            Assert.ThrowsAsync<ConnectionLostException>(async () => await pingTask);
             semaphore.Release();
         }
 
@@ -472,12 +473,12 @@ namespace IceRpc.Tests.Internal
                 }
                 else
                 {
-                    Assert.ThrowsAsync<ConnectionLostException>(async () => await pingTask);
+                    Assert.ThrowsAsync<ObjectDisposedException>(async () => await pingTask);
                 }
             }
             else
             {
-                // Shutdown should trigger the abort of the connection after the close timeout
+                // Shutdown should trigger the abort of the connection on the client side after the close timeout
                 await factory.ServerConnection.ShutdownAsync();
                 Assert.ThrowsAsync<ConnectionLostException>(async () => await pingTask);
             }

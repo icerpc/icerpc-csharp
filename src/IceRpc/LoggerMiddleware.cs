@@ -20,11 +20,10 @@ namespace IceRpc
             _logger = loggerFactory.CreateLogger("IceRpc");
         }
 
-        async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(IncomingRequest request, CancellationToken cancel)
+        /// <inheritdoc/>
+        public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
         {
-            _logger.LogReceivedRequest(request.Connection,
-                                       request.Path,
-                                       request.Operation);
+            _logger.LogReceivedRequest(request.Connection, request.Path, request.Operation);
             try
             {
                 OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);

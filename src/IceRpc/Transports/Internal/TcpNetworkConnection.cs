@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
+using System.Security.Authentication;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -19,8 +20,11 @@ namespace IceRpc.Transports.Internal
         internal abstract Socket Socket { get; }
         internal abstract SslStream? SslStream { get; }
 
+        protected volatile bool IsDisposed;
+
         // The MaxDataSize of the SSL implementation.
         private const int MaxSslDataSize = 16 * 1024;
+
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
         private readonly List<ArraySegment<byte>> _segments = new();
 
@@ -28,6 +32,8 @@ namespace IceRpc.Transports.Internal
 
         public async ValueTask DisposeAsync()
         {
+            IsDisposed = true;
+
             if (SslStream is SslStream sslStream)
             {
                 await sslStream.DisposeAsync().ConfigureAwait(false);
@@ -71,13 +77,24 @@ namespace IceRpc.Transports.Internal
                     received = await Socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
                 }
             }
-            catch (SocketException ex)
+            catch when (IsDisposed)
             {
-                throw ex.ToTransportException(cancel);
+                throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
             }
-            catch (IOException ex)
+            catch (Exception exception) when (cancel.IsCancellationRequested)
             {
-                throw ex.ToTransportException(cancel);
+                throw new OperationCanceledException(null, exception, cancel);
+            }
+            catch (Exception exception)
+            {
+                throw exception.ToTransportException();
+            }
+
+            if (received == 0)
+            {
+                throw IsDisposed ?
+                    new ObjectDisposedException($"{typeof(TcpNetworkConnection)}") :
+                    new ConnectionLostException();
             }
 
             Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
@@ -187,13 +204,17 @@ namespace IceRpc.Transports.Internal
                 // TODO: should we update _lastActivity when an exception is thrown?
                 Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
             }
-            catch (SocketException ex)
+            catch when (IsDisposed)
             {
-                throw ex.ToTransportException(cancel);
+                throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
             }
-            catch (IOException ex)
+            catch (Exception exception) when (cancel.IsCancellationRequested)
             {
-                throw ex.ToTransportException(cancel);
+                throw new OperationCanceledException(null, exception, cancel);
+            }
+            catch (Exception exception)
+            {
+                throw exception.ToTransportException();
             }
         }
 
@@ -273,13 +294,21 @@ namespace IceRpc.Transports.Internal
                     _idleTimeout,
                     _sslStream?.RemoteCertificate);
             }
-            catch (SocketException ex)
+            catch when (IsDisposed)
             {
-                throw ex.ToConnectFailedException(cancel);
+                throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
             }
-            catch (IOException ex)
+            catch (Exception exception) when (cancel.IsCancellationRequested)
             {
-                throw ex.ToConnectFailedException(cancel);
+                throw new OperationCanceledException(null, exception, cancel);
+            }
+            catch (AuthenticationException)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                throw exception.ToConnectFailedException();
             }
         }
 
@@ -289,8 +318,6 @@ namespace IceRpc.Transports.Internal
             {
                 return false;
             }
-
-            _ = remoteEndpoint.ParseTcpParams(); // check remote endpoint
 
             return true;
         }
@@ -387,13 +414,21 @@ namespace IceRpc.Transports.Internal
                     _idleTimeout,
                     _sslStream?.RemoteCertificate);
             }
-            catch (SocketException ex)
+            catch when (IsDisposed)
             {
-                throw ex.ToConnectFailedException(cancel);
+                throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
             }
-            catch (IOException ex)
+            catch (Exception exception) when (cancel.IsCancellationRequested)
             {
-                throw ex.ToConnectFailedException(cancel);
+                throw new OperationCanceledException(null, exception, cancel);
+            }
+            catch (AuthenticationException)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                throw exception.ToConnectFailedException();
             }
         }
 
