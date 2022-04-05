@@ -76,7 +76,6 @@ public class ProxyTests
         byte[] buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
         var encoder = new SliceEncoder(bufferWriter, encoding);
-
         Proxy proxy = format.Parse(value, Proxy.DefaultInvoker);
         encoder.EncodeProxy(proxy);
 
