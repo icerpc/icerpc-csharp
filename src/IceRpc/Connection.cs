@@ -66,10 +66,6 @@ namespace IceRpc
             remove => _closed -= value;
         }
 
-        /// <summary><c>true</c> for a connection accepted by a server and <c>false</c> for a connection created by a
-        /// client.</summary>
-        public bool IsServer => _serverProtocol != null;
-
         /// <summary>The network connection information or <c>null</c> if the connection is not connected.</summary>
         public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
 
@@ -171,7 +167,7 @@ namespace IceRpc
                         // Only the application can call ConnectAsync on a server connection (which is ok but not
                         // particularly useful), and in this case, the connection state can only be active or >=
                         // closing.
-                        Debug.Assert(!IsServer);
+                        Debug.Assert(_serverProtocol == null);
 
                         Debug.Assert(
                             _networkConnection == null &&
@@ -294,9 +290,9 @@ namespace IceRpc
         {
             lock (_mutex)
             {
-                return IsServer == false &&
-                       State == ConnectionState.Active &&
-                       _networkConnection!.HasCompatibleParams(remoteEndpoint);
+                return _serverProtocol == null &&
+                    State == ConnectionState.Active &&
+                   _networkConnection!.HasCompatibleParams(remoteEndpoint);
             }
         }
 
@@ -439,7 +435,7 @@ namespace IceRpc
                     networkConnection,
                     NetworkConnectionInformation.Value,
                     _options,
-                    IsServer,
+                    _serverProtocol != null,
                     connectCancellationSource.Token).ConfigureAwait(false);
 
                 lock (_mutex)

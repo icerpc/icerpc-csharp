@@ -220,7 +220,6 @@ namespace IceRpc
             new(connection.Protocol)
             {
                 Path = path,
-                Endpoint = connection.IsServer ? (Endpoint?)null : connection.RemoteEndpoint,
                 Connection = connection,
                 Invoker = invoker ?? DefaultInvoker
             };

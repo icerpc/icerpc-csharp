@@ -248,11 +248,6 @@ namespace IceRpc.Slice
         /// <param name="proxy">The proxy to encode.</param>
         public void EncodeProxy(Proxy proxy)
         {
-            if (proxy.Connection?.IsServer ?? false)
-            {
-                throw new InvalidOperationException("cannot encode a proxy bound to a server connection");
-            }
-
             if (Encoding == SliceEncoding.Slice11)
             {
                 this.EncodeIdentityPath(proxy.Path);

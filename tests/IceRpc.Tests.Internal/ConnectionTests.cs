@@ -142,9 +142,6 @@ namespace IceRpc.Tests.Internal
             Assert.That(clientInformation?.RemoteEndpoint!.Port, Is.EqualTo(serverInformation?.LocalEndpoint!.Port));
             Assert.That(clientInformation?.LocalEndpoint!.Port, Is.EqualTo(serverInformation?.RemoteEndpoint!.Port));
             Assert.That(clientInformation?.RemoteEndpoint!.Host, Is.EqualTo("127.0.0.1"));
-
-            Assert.That(factory.ClientConnection.IsServer, Is.False);
-            Assert.That(factory.ServerConnection.IsServer, Is.True);
         }
 
         [TestCase("ice")]

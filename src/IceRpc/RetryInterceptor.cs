@@ -126,8 +126,7 @@ namespace IceRpc
                     if (attempt == _options.MaxAttempts ||
                         retryPolicy == RetryPolicy.NoRetry ||
                         !decorator.IsResettable ||
-                        (request.IsSent && releaseRequestAfterSent) ||
-                        (retryPolicy == RetryPolicy.OtherReplica && (request.Connection?.IsServer ?? false)))
+                        (request.IsSent && releaseRequestAfterSent))
                     {
                         tryAgain = false;
                     }
@@ -138,9 +137,7 @@ namespace IceRpc
                         // We use this ExcludedEndpoints list rather than simply removing the endpoint from the
                         // request.Endpoint/AltEndpoints because an interceptor down the line can change Endpoint /
                         // AltEndpoints, for example by re-resolving the original loc endpoint.
-                        if (request.Connection != null &&
-                            !request.Connection.IsServer &&
-                            retryPolicy == RetryPolicy.OtherReplica)
+                        if (request.Connection != null && retryPolicy == RetryPolicy.OtherReplica)
                         {
                             // Filter-out the remote endpoint
                             if (endpointSelection.Endpoint == request.Connection.RemoteEndpoint)
@@ -186,7 +183,6 @@ namespace IceRpc
                         }
 
                         if (request.Connection != null &&
-                            !request.Connection.IsServer &&
                             (retryPolicy == RetryPolicy.OtherReplica ||
                              request.Connection.State != ConnectionState.Active))
                         {
