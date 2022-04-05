@@ -1,8 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice;
-using IceRpc.Slice.Internal;
 using System.Buffers;
+using System.Diagnostics;
+
 
 namespace IceRpc
 {
@@ -35,11 +36,8 @@ namespace IceRpc
         /// <summary>Encodes this field value using a Slice encoder.</summary>
         public void Encode(ref SliceEncoder encoder)
         {
-            if (encoder.Encoding == SliceEncoding.Slice11)
-            {
-                throw new NotSupportedException(
-                    $"cannot encode am {nameof(OutgoingFieldValue)} using the 1.1 encoding");
-            }
+            Debug.Assert(encoder.Encoding != SliceEncoding.Slice11,
+                         $"cannot encode am {nameof(OutgoingFieldValue)} using the 1.1 encoding");
 
             if (EncodeAction is EncodeAction encodeAction)
             {
