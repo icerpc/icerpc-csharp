@@ -80,14 +80,13 @@ namespace IceRpc.Transports.Internal
             }
 
             var address = new IPEndPoint(ipAddress, endpoint.Port);
-            _socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            // When using IPv6 address family we use the socket constructor without AddressFamiliy parameter to ensure
+            // dual-mode socket are used in platforms that support them.
+            _socket = ipAddress.AddressFamily == AddressFamily.InterNetwork ?
+                new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp) :
+                new Socket(SocketType.Stream, ProtocolType.Tcp);
             try
             {
-                if (ipAddress.AddressFamily == AddressFamily.InterNetworkV6)
-                {
-                    _socket.DualMode = options.DualMode;
-                }
-
                 _socket.ExclusiveAddressUse = true;
 
                 if (options.ReceiveBufferSize is int receiveSize)

@@ -18,11 +18,6 @@ namespace IceRpc.Configure
                 throw new ArgumentException($"0 is not a valid value for {nameof(IdleTimeout)}", nameof(value));
         }
 
-        /// <summary>Gets or sets a value that specifies whether the underlying socket is a dual-mode socket used for
-        /// both IPv4 and IPv6.</summary>
-        /// <value><c>true</c> if the underlying socket is a dual-mode socket; otherwise, <c>false</c>.</value>
-        public bool DualMode { get; set; } = true;
-
         /// <summary>Gets or sets the socket receive buffer size in bytes.</summary>
         /// <value>The receive buffer size in bytes. It can't be less than 1KB. <c>null</c> means use the operating
         /// system default.</value>

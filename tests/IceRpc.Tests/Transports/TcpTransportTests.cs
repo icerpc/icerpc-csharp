@@ -127,21 +127,14 @@ public class TcpTransportTests
         }
     }
 
-    /// <summary>Verifies that a dual mode socket is created when <see cref="TcpTransportOptions.DualMode"/> is set
-    /// to <c>true</c>.</summary>
-    /// <param name="ipv6only">The value for <see cref="TcpTransportOptions.DualMode"/>.</param>
-    /// <returns></returns>
+    /// <summary>Verifies that client connection using IPv6 address uses a dual mode socket.</summary>
     [Test]
-    public async Task Configure_client_connection_is_ipv6_only([Values(true, false)] bool dualMode)
+    public async Task Client_connection_uses_dual_mode_socket()
     {
         await using TcpClientNetworkConnection? connection = CreateTcpClientConnection(
-            new Endpoint(Protocol.IceRpc) { Host = "::1" },
-            new TcpClientTransportOptions
-            {
-                DualMode = dualMode
-            });
+            new Endpoint(Protocol.IceRpc) { Host = "::1" });
 
-        Assert.That(connection.Socket.DualMode, Is.EqualTo(dualMode));
+        Assert.That(connection.Socket.DualMode, Is.True);
     }
 
     /// <summary>Verifies that setting the <see cref="TcpClientTransportOptions.LocalEndPoint"/> properties, sets
@@ -388,18 +381,13 @@ public class TcpTransportTests
         Assert.That(async () => await readTask, Throws.InstanceOf<ConnectionLostException>());
     }
 
-    /// <summary>Verifies that a server connection created with <see cref="TcpTransportOptions.DualMode"/> set to
-    /// false creates a dual mode socket, and accepts connections from IPv4 mapped addresses.</summary>
+    /// <summary>Verifies that a server can accept connections from IPv4 mapped addresses.</summary>
     [Test]
-    public async Task Server_connection_with_dual_mode_socket_accepts_incoming_connections_from_ipv4_mapped_addresses()
+    public async Task Server_accepts_incoming_connections_from_ipv4_mapped_addresses()
     {
         // Arrange
         await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
-            endpoint: new Endpoint(Protocol.IceRpc) { Host = "::0", Port = 0 },
-            options: new TcpServerTransportOptions
-            {
-                DualMode = true
-            });
+            endpoint: new Endpoint(Protocol.IceRpc) { Host = "::0", Port = 0 });
         Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
 
         await using TcpClientNetworkConnection clientConnection =
@@ -407,27 +395,6 @@ public class TcpTransportTests
 
         // Act/Assert
         Assert.That(() => clientConnection.ConnectAsync(default), Throws.Nothing);
-    }
-
-    /// <summary>Verifies that a server connection created with <see cref="TcpTransportOptions.DualMode"/> set to
-    /// true does not create a dual mode socket, and does not accept connections from IPv4 mapped addresses.</summary>
-    [Test]
-    public async Task Server_connection_with_non_dual_mode_socket_does_not_accept_incoming_connections_from_ipv4_mapped_addresses()
-    {
-        // Arrange
-        await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
-            options: new TcpServerTransportOptions
-            {
-                DualMode = false
-            });
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-
-        await using TcpClientNetworkConnection clientConnection =
-            CreateTcpClientConnection(listener.Endpoint with { Host = "::FFFF:127.0.0.1" });
-
-        // Act/Assert
-        Assert.That(() => clientConnection.ConnectAsync(default),
-            Throws.TypeOf<ConnectionRefusedException>());
     }
 
     /// <summary>Verifies that the client connect call on a tls connection fails with

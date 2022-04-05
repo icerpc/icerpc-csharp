@@ -335,19 +335,14 @@ namespace IceRpc.Transports.Internal
                 new IPEndPoint(ipAddress, _remoteEndpoint.Port) :
                 new DnsEndPoint(_remoteEndpoint.Host, _remoteEndpoint.Port);
 
-            // We still specify the address family for the socket if an address is set to ensure an IPv4 socket is
-            // created if the address is an IPv4 address.
-            Socket = ipAddress == null ?
-                new Socket(SocketType.Stream, ProtocolType.Tcp) :
-                new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            // When using IPv6 address family we use the socket constructor without AddressFamiliy parameter to ensure
+            // dual-mode socket are used in platforms that support them.
+            Socket = ipAddress?.AddressFamily == AddressFamily.InterNetwork ?
+                new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp) :
+                new Socket(SocketType.Stream, ProtocolType.Tcp);
 
             try
             {
-                if (ipAddress?.AddressFamily == AddressFamily.InterNetworkV6)
-                {
-                    Socket.DualMode = options.DualMode;
-                }
-
                 if (options.LocalEndPoint is IPEndPoint localEndPoint)
                 {
                     Socket.Bind(localEndPoint);
