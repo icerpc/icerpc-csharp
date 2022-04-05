@@ -48,94 +48,6 @@ namespace IceRpc.Tests.Internal
             await _serviceProvider!.DisposeAsync();
         }
 
-        [TestCase(true, null, false)]
-        [TestCase(true, 15, false)]
-        [TestCase(true, 145, false)]
-        [TestCase(false, null, false)]
-        [TestCase(false, null, true)]
-        [TestCase(false, 15, false)]
-        [TestCase(false, 145, false)]
-        [TestCase(false, 145, true)]
-        public async Task MultiplexedStream_Abort(bool abortWrite, byte? errorCode, bool endStream)
-        {
-            Exception? exception =
-                errorCode == null ? null :
-                errorCode == 200 ? new InvalidOperationException() :
-                new MultiplexedStreamAbortedException(errorCode.Value);
-
-            if (abortWrite)
-            {
-                await ClientStream.Output.CompleteAsync(exception);
-            }
-            else
-            {
-                await ServerStream.Input.CompleteAsync(exception);
-            }
-
-            // Wait for the peer to receive the StreamStopSending/StreamReset frame.
-            await Task.Delay(500);
-
-            if (exception == null)
-            {
-                if (abortWrite)
-                {
-                    ReadResult readResult = await ServerStream.Input.ReadAsync();
-                    Assert.That(readResult.IsCompleted);
-                }
-                else
-                {
-                    FlushResult flushResult = await ClientStream.Output.WriteAsync(new byte[1], endStream, default);
-                    Assert.That(flushResult.IsCompleted);
-                }
-            }
-            else
-            {
-                // Ensure that WriteAsync raises MultiplexedStreamAbortedException
-                MultiplexedStreamAbortedException? ex = null;
-                if (abortWrite)
-                {
-                    ex = Assert.CatchAsync<MultiplexedStreamAbortedException>(
-                        async () => await ServerStream.Input.ReadAsync());
-                }
-                else
-                {
-                    ex = Assert.ThrowsAsync<MultiplexedStreamAbortedException>(
-                        async () => await ClientStream.Output.WriteAsync(new byte[1], endStream, default));
-                }
-
-                // Check the code
-                Assert.That(ex!.ErrorCode, Is.EqualTo(errorCode == 200 ? 1 : errorCode));
-            }
-
-            // Complete the pipe readers/writers to shutdown the stream.
-            if (abortWrite)
-            {
-                await ServerStream.Input.CompleteAsync();
-            }
-            else
-            {
-                await ClientStream.Output.CompleteAsync();
-            }
-            await ClientStream.Input.CompleteAsync();
-            await ServerStream.Output.CompleteAsync();
-        }
-
-        [Test]
-        public async Task MultiplexedStream_ConnectionDisposeAsync()
-        {
-            await _clientConnection!.DisposeAsync();
-
-            // Locally, we should get ObjectDisposedException
-            Assert.ThrowsAsync<ObjectDisposedException>(() => ClientStream.Input.ReadAsync().AsTask());
-            Assert.ThrowsAsync<ObjectDisposedException>(
-                () => ClientStream.Output.WriteAsync(ReadOnlyMemory<byte>.Empty).AsTask());
-
-            // On the remote connection, we should get ConnectionLostException
-            Assert.ThrowsAsync<ConnectionLostException>(() => ServerStream.Input.ReadAsync().AsTask());
-            Assert.ThrowsAsync<ConnectionLostException>(
-                () => ServerStream.Output.WriteAsync(ReadOnlyMemory<byte>.Empty).AsTask());
-        }
-
         [TestCase(1, 256, false)]
         [TestCase(1, 256, true)]
         [TestCase(32, 256, false)]
@@ -261,34 +173,6 @@ namespace IceRpc.Tests.Internal
                 Assert.That(result.IsCanceled, Is.False);
                 await ClientStream.Output.CompleteAsync();
             }
-        }
-
-        [Test]
-        public void MultiplexedStream_SendAsync_Cancellation()
-        {
-            using var source = new CancellationTokenSource();
-            source.Cancel();
-            Assert.CatchAsync<OperationCanceledException>(
-                async () => await ClientStream.Output.WriteAsync(new byte[10], true, source.Token));
-        }
-
-        [Test]
-        public async Task MultiplexedStream_ReceiveAsync_Cancellation()
-        {
-            await ClientStream.Output.WriteAsync(new byte[10], true, default); // start the stream
-
-            using var source = new CancellationTokenSource();
-            source.Cancel();
-            Assert.CatchAsync<OperationCanceledException>(async () => await ClientStream.Input.ReadAsync(source.Token));
-        }
-
-        [Test]
-        public void MultiplexedStream_ReceiveAsync_Cancellation2Async()
-        {
-            using var source = new CancellationTokenSource();
-            ValueTask<ReadResult> receiveTask = ClientStream.Input.ReadAsync(source.Token);
-            source.Cancel();
-            Assert.CatchAsync<OperationCanceledException>(async () => await receiveTask);
         }
     }
 }

@@ -88,19 +88,37 @@ public abstract class MultiplexedTransportConformanceTests
     public abstract IMultiplexedTransportProvider CreateMultiplexedTransportProvider();
 
     [Test]
-    public async Task Disposing_the_connection_aborts_the_streams()
+    public async Task Disposing_the_connection_aborts_the_streams(
+        [Values(true, false)] bool disposeServerConnection)
     {
+        // Arrange
         IMultiplexedTransportProvider transportProvider = CreateMultiplexedTransportProvider();
         await using IListener<IMultiplexedNetworkConnection> listener = transportProvider.CreateListener();
-        await using IMultiplexedNetworkConnection sut = transportProvider.CreateConnection(listener.Endpoint);
-        await using IMultiplexedNetworkConnection serverConnection = await ConnectAndAcceptAsync(sut, listener);
-        IMultiplexedStream clientStream = sut.CreateStream(true);
+        await using IMultiplexedNetworkConnection clientConnection = transportProvider.CreateConnection(listener.Endpoint);
+        await using IMultiplexedNetworkConnection serverConnection = await ConnectAndAcceptAsync(clientConnection, listener);
+        IMultiplexedStream clientStream = clientConnection.CreateStream(true);
         await clientStream.Output.WriteAsync(_oneBytePayload);
+        IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
 
-        await sut.DisposeAsync();
+        IMultiplexedNetworkConnection diposedConnection = disposeServerConnection ? serverConnection : clientConnection;
+        IMultiplexedStream diposedStream = disposeServerConnection ? serverStream : clientStream;
+        IMultiplexedStream peerStream = disposeServerConnection ? clientStream : serverStream;
 
-        Assert.ThrowsAsync<ObjectDisposedException>(async () => await clientStream.Input.ReadAsync());
+        // Act
+        await diposedConnection.DisposeAsync();
+
+        // Assert
+
+        // The streams of the disposed connection get ObjectDisposedException and the streams of the peer connection get
+        // ConnectionLostException.
+        Assert.ThrowsAsync<ObjectDisposedException>(async () => await diposedStream.Input.ReadAsync());
+        Assert.ThrowsAsync<ObjectDisposedException>(async () => await diposedStream.Output.WriteAsync(_oneBytePayload));
+
+        Assert.ThrowsAsync<ConnectionLostException>(async () => await peerStream.Input.ReadAsync());
+        Assert.ThrowsAsync<ConnectionLostException>(async () => await peerStream.Output.WriteAsync(_oneBytePayload));
+
         await CompleteStreamAsync(clientStream);
+        await CompleteStreamAsync(serverStream);
     }
 
     [Test]
@@ -222,33 +240,115 @@ public abstract class MultiplexedTransportConformanceTests
             Enumerable.Range(0, payloadSize).Select(i => (byte)(i % 256)).ToArray());
 
         // Act
-        Task clientWriteTask = WriteAsync(clientStream, payload);
-        Task serverReadTask = ReadAsync(serverStream, payloadSize * segments);
-        Task serverWriteTask = WriteAsync(serverStream, payload);
-        Task clientReadTask = ReadAsync(clientStream, payloadSize * segments);
+        Task clientWriteTask = WriteAsync(clientStream, segments, payload);
+        Task<byte[]> serverReadTask = ReadAsync(serverStream, 1 + (payloadSize * segments));
+        Task serverWriteTask = WriteAsync(serverStream, segments, payload);
+        Task<byte[]> clientReadTask = ReadAsync(clientStream, payloadSize * segments);
 
         // Assert
         await Task.WhenAll(clientWriteTask, serverWriteTask, clientReadTask, serverReadTask);
 
-        async Task ReadAsync(IMultiplexedStream stream, long size)
+        var clientReadResult = new ArraySegment<byte>(await clientReadTask);
+        for (int i = 0; i < segments; ++i)
         {
-            while (size > 0)
-            {
-                ReadResult readResult = await stream.Input.ReadAsync();
-                size -= readResult.Buffer.Length;
-                stream.Input.AdvanceTo(readResult.Buffer.End, readResult.Buffer.End);
-            }
-            await stream.Input.CompleteAsync();
+            Assert.That(
+                clientReadResult.Slice(i * payload.Length, payload.Length), 
+                Is.EquivalentTo(payload.ToArray()));
         }
 
-        async Task WriteAsync(IMultiplexedStream stream, ReadOnlyMemory<byte> payload)
+        var serverReadResult = new ArraySegment<byte>(await serverReadTask).Slice(1);
+        for (int i = 0; i < segments; ++i)
+        {
+            Assert.That(
+                serverReadResult.Slice(i * payload.Length, payload.Length),
+                Is.EquivalentTo(payload.ToArray()));
+        }
+
+        await CompleteStreamAsync(clientStream);
+        await CompleteStreamAsync(serverStream);
+
+        async Task<byte[]> ReadAsync(IMultiplexedStream stream, long size)
+        {
+            byte[] buffer = new byte[size];
+            var segment = new ArraySegment<byte>(buffer);
+            while (segment.Count > 0)
+            {
+                ReadResult readResult = await stream.Input.ReadAsync();
+                foreach (ReadOnlyMemory<byte> src in readResult.Buffer)
+                {
+                    src.CopyTo(segment);
+                    segment = segment.Slice(src.Length);
+                }
+                stream.Input.AdvanceTo(readResult.Buffer.End, readResult.Buffer.End);
+            }
+            return buffer;
+        }
+
+        async Task WriteAsync(IMultiplexedStream stream, int segments, ReadOnlyMemory<byte> payload)
         {
             for (int i = 0; i < segments; ++i)
             {
                 await stream.Output.WriteAsync(payload, default);
             }
-            await stream.Output.CompleteAsync();
         }
+    }
+
+    [Test]
+    public async Task Stream_read_with_canceled_token()
+    {
+        // Arrange
+        IMultiplexedTransportProvider transportProvider = CreateMultiplexedTransportProvider();
+        await using IListener<IMultiplexedNetworkConnection> listener = transportProvider.CreateListener();
+        await using IMultiplexedNetworkConnection clientConnection =
+            transportProvider.CreateConnection(listener.Endpoint);
+        await using IMultiplexedNetworkConnection serverConnection =
+            await ConnectAndAcceptAsync(clientConnection, listener);
+
+        IMultiplexedStream clientStream = clientConnection.CreateStream(bidirectional: true);
+
+        // Act/Assert
+        Assert.CatchAsync<OperationCanceledException>(
+            async () => await clientStream.Input.ReadAsync(new CancellationToken(canceled: true)));
+    }
+
+    [Test]
+    public async Task Stream_read_canceled()
+    {
+        // Arrange
+        IMultiplexedTransportProvider transportProvider = CreateMultiplexedTransportProvider();
+        await using IListener<IMultiplexedNetworkConnection> listener = transportProvider.CreateListener();
+        await using IMultiplexedNetworkConnection clientConnection =
+            transportProvider.CreateConnection(listener.Endpoint);
+        await using IMultiplexedNetworkConnection serverConnection =
+            await ConnectAndAcceptAsync(clientConnection, listener);
+
+        IMultiplexedStream clientStream = clientConnection.CreateStream(bidirectional: true);
+        using var cancelationSource = new CancellationTokenSource();
+        ValueTask<ReadResult> readTask = clientStream.Input.ReadAsync(cancelationSource.Token);
+
+        // Act
+        cancelationSource.Cancel();
+
+        // Assert
+        Assert.CatchAsync<OperationCanceledException>(async () => await readTask);
+    }
+
+    [Test]
+    public async Task Stream_write_with_canceled_token()
+    {
+        // Arrange
+        IMultiplexedTransportProvider transportProvider = CreateMultiplexedTransportProvider();
+        await using IListener<IMultiplexedNetworkConnection> listener = transportProvider.CreateListener();
+        await using IMultiplexedNetworkConnection clientConnection =
+            transportProvider.CreateConnection(listener.Endpoint);
+        await using IMultiplexedNetworkConnection serverConnection =
+            await ConnectAndAcceptAsync(clientConnection, listener);
+
+        IMultiplexedStream clientStream = clientConnection.CreateStream(bidirectional: true);
+
+        // Act/Assert
+        Assert.CatchAsync<OperationCanceledException>(
+            async () => await clientStream.Output.WriteAsync(_oneBytePayload, new CancellationToken(canceled: true)));
     }
 
     [Test]
@@ -376,7 +476,7 @@ public abstract class MultiplexedTransportConformanceTests
 
 [Timeout(5000)]
 [Parallelizable(ParallelScope.All)]
-public class SlicOverColocConformanceTests : MultiplexedTransportConformanceTests
+public class SlicConformanceTests : MultiplexedTransportConformanceTests
 {
     /// <summary>The multiplexed transports for conformance testing.</summary>
     public override IMultiplexedTransportProvider CreateMultiplexedTransportProvider()
