@@ -5,7 +5,7 @@ using NUnit.Framework;
 namespace IceRpc.Tests;
 
 [Parallelizable(ParallelScope.All)]
-[Timeout(1000)]
+[Timeout(5000)]
 public sealed class MetricsInterceptorTests
 {
     /// <summary>Verifies that a canceled invocation published the expected events (request started, request canceled,
@@ -59,7 +59,6 @@ public sealed class MetricsInterceptorTests
         catch (InvalidOperationException)
         {
         }
-
 
         await eventListener.WaitForCounterEventsAsync();
         Assert.That(eventListener.ReceivedEventCounters, Is.EquivalentTo(eventListener.ExpectedEventCounters));

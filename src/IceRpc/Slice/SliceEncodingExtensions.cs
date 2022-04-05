@@ -28,7 +28,7 @@ namespace IceRpc.Slice
             return hasStream ? PipeReader.Create(_payloadWithZeroSize) : EmptyPipeReader.Instance;
         }
 
-        /// <summary>Creates a payload source stream from an async enumerable.</summary>
+        /// <summary>Creates a payload stream from an async enumerable.</summary>
         public static PipeReader CreatePayloadStream<T>(
             this SliceEncoding encoding,
             IAsyncEnumerable<T> asyncEnumerable,

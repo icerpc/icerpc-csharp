@@ -42,7 +42,7 @@ namespace IceRpc.Tests
 
     public sealed class TestLoggerFactory : ILoggerFactory
     {
-        public TestLogger? Logger;
+        public TestLogger? Logger { get; private set; }
 
         public void AddProvider(ILoggerProvider provider)
         {
