@@ -66,9 +66,9 @@ public class ProxyTests
     }
 
     /// <summary>Verifies that calling <see cref="SliceDecoder.DecodeProxy"/> correctly decodes a proxy.</summary>
-    /// <param name="value">The proxy to encode</param>
-    /// <param name="expected">The expected decoded </param>
-    /// <param name="format">The proxy string format</param>
+    /// <param name="value">The proxy to encode.</param>
+    /// <param name="expected">The expected proxy string.</param>
+    /// <param name="format">The proxy string format.</param>
     /// <param name="encoding">The encoding used to decode the proxy.</param>
     [Test, TestCaseSource(nameof(DecodeProxyDataSource))]
     public void Decode_proxy(string value, string expected, IProxyFormat format, SliceEncoding encoding)
