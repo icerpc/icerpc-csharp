@@ -15,8 +15,16 @@ namespace IceRpc.Transports
         /// <summary>Returns <c>true</c> if the stream is a bidirectional stream, <c>false</c> otherwise.</summary>
         bool IsBidirectional { get; }
 
+        /// <summary>Returns <c>true</c> if the stream is a remote stream, <c>false</c> otherwise.</summary>
+        bool IsRemote { get; }
+
         /// <summary>Returns <c>true</c> if the local stream is started, <c>false</c> otherwise.</summary>
         bool IsStarted { get; }
+
+        /// <summary>Aborts the stream. This will cause the stream <see cref="IDuplexPipe.Input"/> and <see
+        /// cref="IDuplexPipe.Output"/> pipe read and write method to throw the given exception.</summary>
+        /// <param name="exception">The abortion exception.</param>
+        void Abort(Exception exception);
 
         /// <summary>Sets the action which is called when the stream is shutdown.</summary>
         /// <param name="action">The callback to register.</param>

@@ -237,7 +237,7 @@ namespace IceRpc.Transports.Internal
         {
             if (_state.HasFlag(State.Completed))
             {
-                // If the reader is completed, the caller is bogus, it shouldn't call reader operations after completing
+                // If the reader is completed, the caller is bogus, it shouldn't call read operations after completing
                 // the pipe reader.
                 throw new InvalidOperationException($"reading is not allowed once the reader is completed");
             }
