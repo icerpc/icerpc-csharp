@@ -7,7 +7,7 @@ namespace IceRpc.Internal
 {
     /// <summary>Identifies different ways  to escape non-ASCII characters in identities and facets. See
     /// <see cref="IceProxyFormat"/>.</summary>
-    internal enum EscapeMode : byte { Unicode, ASCII, Compat }
+    internal enum EscapeMode : byte { Unicode, Ascii, Compat }
 
     /// <summary>Helper methods for string manipulation.</summary>
     internal static class StringUtil
@@ -69,7 +69,7 @@ namespace IceRpc.Internal
                     }
                     else
                     {
-                        Debug.Assert((escapeMode == EscapeMode.ASCII) && char.IsSurrogate(c));
+                        Debug.Assert((escapeMode == EscapeMode.Ascii) && char.IsSurrogate(c));
                         if (i + 1 == s.Length)
                         {
                             throw new System.ArgumentException("high surrogate without low surrogate", nameof(s));
@@ -484,7 +484,7 @@ namespace IceRpc.Internal
                                 }
                                 sb.Append(octal);
                             }
-                            else if (i < 32 || i == 127 || (escapeMode == EscapeMode.ASCII))
+                            else if (i < 32 || i == 127 || (escapeMode == EscapeMode.Ascii))
                             {
                                 // append \\unnnn
                                 sb.Append("\\u");

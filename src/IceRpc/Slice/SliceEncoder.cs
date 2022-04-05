@@ -670,11 +670,11 @@ namespace IceRpc.Slice
                     switch (transport)
                     {
                         case TransportNames.Ssl:
-                            transportCode = TransportCode.SSL;
+                            transportCode = TransportCode.Ssl;
                             break;
 
                         case TransportNames.Tcp:
-                            transportCode = TransportCode.TCP;
+                            transportCode = TransportCode.Tcp;
                             break;
 
                         default:
@@ -692,8 +692,8 @@ namespace IceRpc.Slice
 
                 switch (transportCode)
                 {
-                    case TransportCode.TCP:
-                    case TransportCode.SSL:
+                    case TransportCode.Tcp:
+                    case TransportCode.Ssl:
                     {
                         EncodeString(endpoint.Host);
                         EncodeInt(endpoint.Port);
