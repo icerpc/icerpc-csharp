@@ -39,7 +39,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Tests", "tests\IceRp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IntegrationTests", "tests\IntegrationTests\IntegrationTests.csproj", "{7D90ECC9-BEFA-444F-879B-47765894B5E6}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc..Conformance.Tests", "tests\IceRpc.Conformance.Tests\IceRpc..Conformance.Tests.csproj", "{73D78B96-51EE-4F86-8BFE-F57B2930CA5E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Conformance.Tests", "tests\IceRpc.Conformance.Tests\IceRpc.Conformance.Tests.csproj", "{73D78B96-51EE-4F86-8BFE-F57B2930CA5E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

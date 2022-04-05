@@ -137,6 +137,39 @@ public abstract class MultiplexedTransportConformanceTests
         await CompleteStreamsAsync(streams);
     }
 
+    [TestCase(100)]
+    [TestCase(15)]
+    public async Task Stream_abort_write(byte errorCode)
+    {
+        // Arrange
+        IMultiplexedTransportProvider transportProvider = CreateMultiplexedTransportProvider();
+        await using IListener<IMultiplexedNetworkConnection> listener = transportProvider.CreateListener();
+        await using IMultiplexedNetworkConnection clientConnection =
+            transportProvider.CreateConnection(listener.Endpoint);
+        await using IMultiplexedNetworkConnection serverConnection =
+            await ConnectAndAcceptAsync(clientConnection, listener);
+
+        IMultiplexedStream clientStream = clientConnection.CreateStream(bidirectional: true);
+        _ = await clientStream.Output.WriteAsync(_oneBytePayload, default);
+        IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
+
+        // Act
+        await clientStream.Output.CompleteAsync(new MultiplexedStreamAbortedException(error: errorCode));
+
+        // Assert
+        // Wait for the peer to receive the StreamStopSending/StreamReset frame.
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
+        MultiplexedStreamAbortedException ex = Assert.CatchAsync<MultiplexedStreamAbortedException>(
+            async () => await serverStream.Input.ReadAsync());
+        Assert.That(ex.ErrorCode, Is.EqualTo(errorCode));
+
+         // Complete the pipe readers/writers to shutdown the stream.
+        await serverStream.Input.CompleteAsync();
+
+        await clientStream.Input.CompleteAsync();
+        await serverStream.Output.CompleteAsync();
+    }
+
     [Test]
     public async Task Stream_full_duplex_communication(
         [Values(1, 16, 32, 64)] int segments,

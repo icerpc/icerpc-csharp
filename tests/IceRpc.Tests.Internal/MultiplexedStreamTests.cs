@@ -121,15 +121,6 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void MultiplexedStream_AbortWithUnflushedBytes()
-        {
-            Memory<byte> buffer = ClientStream.Output.GetMemory();
-            ClientStream.Output.Advance(10);
-            Assert.Throws<NotSupportedException>(() => ClientStream.Output.Complete());
-
-        }
-
-        [Test]
         public async Task MultiplexedStream_ConnectionDisposeAsync()
         {
             await _clientConnection!.DisposeAsync();
