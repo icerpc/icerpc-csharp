@@ -2,7 +2,6 @@
 
 using IceRpc.Configure;
 using IceRpc.Internal;
-using IceRpc.Slice;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
