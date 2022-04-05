@@ -139,6 +139,38 @@ public abstract class MultiplexedTransportConformanceTests
 
     [TestCase(100)]
     [TestCase(15)]
+    public async Task Stream_abort_read(byte errorCode)
+    {
+        // Arrange
+        IMultiplexedTransportProvider transportProvider = CreateMultiplexedTransportProvider();
+        await using IListener<IMultiplexedNetworkConnection> listener = transportProvider.CreateListener();
+        await using IMultiplexedNetworkConnection clientConnection =
+            transportProvider.CreateConnection(listener.Endpoint);
+        await using IMultiplexedNetworkConnection serverConnection =
+            await ConnectAndAcceptAsync(clientConnection, listener);
+
+        IMultiplexedStream clientStream = clientConnection.CreateStream(bidirectional: true);
+        _ = await clientStream.Output.WriteAsync(_oneBytePayload);
+        IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
+
+        // Act
+        await serverStream.Input.CompleteAsync(new MultiplexedStreamAbortedException(error: errorCode));
+
+        // Assert
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
+        MultiplexedStreamAbortedException ex = Assert.CatchAsync<MultiplexedStreamAbortedException>(
+            async () => await clientStream.Output.WriteAsync(_oneBytePayload));
+        Assert.That(ex.ErrorCode, Is.EqualTo(errorCode));
+
+         // Complete the pipe readers/writers to shutdown the stream.
+        await clientStream.Output.CompleteAsync();
+
+        await clientStream.Input.CompleteAsync();
+        await serverStream.Output.CompleteAsync();
+    }
+
+    [TestCase(100)]
+    [TestCase(15)]
     public async Task Stream_abort_write(byte errorCode)
     {
         // Arrange
@@ -163,7 +195,7 @@ public abstract class MultiplexedTransportConformanceTests
             async () => await serverStream.Input.ReadAsync());
         Assert.That(ex.ErrorCode, Is.EqualTo(errorCode));
 
-         // Complete the pipe readers/writers to shutdown the stream.
+        // Complete the pipe readers/writers to shutdown the stream.
         await serverStream.Input.CompleteAsync();
 
         await clientStream.Input.CompleteAsync();
