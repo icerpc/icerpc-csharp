@@ -22,7 +22,7 @@ namespace IceRpc.Transports
         bool IsStarted { get; }
 
         /// <summary>Aborts the stream. This will cause the stream <see cref="IDuplexPipe.Input"/> and <see
-        /// cref="IDuplexPipe.Output"/> pipe read and write method to throw the given exception.</summary>
+        /// cref="IDuplexPipe.Output"/> pipe read and write methods to throw the given exception.</summary>
         /// <param name="exception">The abortion exception.</param>
         void Abort(Exception exception);
 

@@ -318,7 +318,7 @@ namespace IceRpc
             {
                 // If the network connection is lost while sending the request, we close the connection now instead of
                 // waiting for AcceptRequestsAsync to throw. It's necessary to ensure that the next SendRequestAsync
-                // will fail with ConnectionClosedException  (it's important to ensure retries don't occur on this
+                // will fail with ConnectionClosedException (it's important to ensure retries don't occur on this
                 // connection again).
                 await CloseAsync(exception).ConfigureAwait(false);
                 throw;
@@ -327,7 +327,7 @@ namespace IceRpc
             {
                 // Ensure that the shutdown is initiated if the invocations fails with ConnectionClosedException. It's
                 // possible that the connection didn't receive yet the GoAway message. Initiating the shutdown now
-                // ensures that the next SendRequestAsync will fail with ConnectionLostException (it's important to
+                // ensures that the next SendRequestAsync will fail with ConnectionClosedException (it's important to
                 // ensure retries don't occur on this connection again).
                 InitiateShutdown(exception.Message);
                 throw;

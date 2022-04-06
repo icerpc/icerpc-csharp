@@ -11,7 +11,7 @@ namespace IceRpc.Tests.ClientServer
     [TestFixture("icerpc")]
     [Parallelizable(ParallelScope.All)]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    [Timeout(5000)]
+    [Timeout(10000)]
     public class StressTests
     {
         private readonly ServiceProvider _serviceProvider;

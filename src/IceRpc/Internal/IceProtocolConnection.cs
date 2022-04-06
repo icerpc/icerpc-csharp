@@ -131,16 +131,7 @@ namespace IceRpc.Internal
                     request.Features = request.Features.WithContext(requestHeader.Context);
                 }
 
-                // TODO: at this point - before reading the actual request frame - we could easily wait until
-                // _dispatches.Count < MaxConcurrentDispatches.
-
-                _ = Task.Run(() => DispatchRequestAsync(requestId, request));
-            }
-
-            async Task DispatchRequestAsync(int requestId, IncomingRequest request)
-            {
-                using var cancelDispatchSource = new CancellationTokenSource();
-
+                CancellationTokenSource? cancelDispatchSource = null;
                 bool isShuttingDown = false;
                 lock (_mutex)
                 {
@@ -150,6 +141,7 @@ namespace IceRpc.Internal
                     }
                     else
                     {
+                        cancelDispatchSource = new();
                         _dispatches.Add(cancelDispatchSource);
                     }
                 }
@@ -158,11 +150,24 @@ namespace IceRpc.Internal
                 {
                     // If shutting down, ignore the incoming request.
                     // TODO: replace with payload exception and error code
-                    var exception = new ConnectionClosedException();
-                    await request.Payload.CompleteAsync(exception).ConfigureAwait(false);
-                    return;
+                    await request.Payload.CompleteAsync(new ConnectionClosedException()).ConfigureAwait(false);
                 }
+                else
+                {
+                    // TODO: at this point - before reading the actual request frame - we could easily wait until
+                    // _dispatches.Count < MaxConcurrentDispatches.
 
+                    Debug.Assert(cancelDispatchSource != null);
+                    _ = Task.Run(() => DispatchRequestAsync(requestId, request, cancelDispatchSource));
+                }
+            }
+
+            async Task DispatchRequestAsync(
+                int requestId,
+                IncomingRequest request,
+                CancellationTokenSource cancelDispatchSource)
+            {
+                using CancellationTokenSource _ = cancelDispatchSource;
                 OutgoingResponse response;
                 try
                 {
@@ -667,7 +672,7 @@ namespace IceRpc.Internal
             // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
             // connection closure here. We can't just return and close the underlying transport since this could
             // abort the receive of the dispatch responses and close connection frame by the peer.
-            await _pendingClose.Task.ConfigureAwait(false);
+            await _pendingClose.Task.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 
             static void EncodeCloseConnectionFrame(SimpleNetworkConnectionWriter writer)
             {
@@ -754,6 +759,9 @@ namespace IceRpc.Internal
             }
             _isAborted = true;
 
+            CancelInvocations(exception);
+            CancelDispatches();
+
             _networkConnectionReader.Dispose();
             _networkConnectionWriter.Dispose();
 
@@ -765,9 +773,6 @@ namespace IceRpc.Internal
 
             // Unblock ShutdownAsync if it's waiting for invocations and dispatches to complete.
             _dispatchesAndInvocationsCompleted.TrySetException(exception);
-
-            CancelInvocations(exception);
-            CancelDispatches();
         }
 
         private void CancelDispatches()
@@ -915,7 +920,7 @@ namespace IceRpc.Internal
                             _isShuttingDown = true;
                         }
 
-                        // Raise the peer shutdown initiated event.
+                        // Notify the connection of the peer initiated shutdown.
                         try
                         {
                             PeerShutdownInitiated?.Invoke("connection shutdown by peer");
@@ -927,20 +932,7 @@ namespace IceRpc.Internal
                                 $"{nameof(PeerShutdownInitiated)} raised unexpected exception\n{ex}");
                         }
 
-                        var exception = new ConnectionClosedException("connection shutdown by peer");
-
-                        // The peer cancels its invocations on shutdown so we can cancel the dispatches.
-                        CancelDispatches();
-
-                        // The peer didn't dispatch invocations which are still in progress, these invocations can
-                        // therefore be retried (completing the invocation here ensures that the invocations won't
-                        // get ConnectionLostException from Dispose).
-                        CancelInvocations(exception);
-
-                        // New requests will complete with ConnectionClosedException.
-                        _sendSemaphore.Complete(exception);
-
-                        throw exception;
+                        throw new ConnectionClosedException("connection shutdown by peer");
                     }
 
                     case IceFrameType.Request:

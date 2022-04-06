@@ -100,12 +100,12 @@ namespace IceRpc.Internal
                         features = features.WithContext(context);
                     }
                 }
-                catch (Exception ex)
+                catch (Exception exception)
                 {
-                    await stream.Input.CompleteAsync(ex).ConfigureAwait(false);
+                    await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
                     if (stream.IsBidirectional)
                     {
-                        await stream.Output.CompleteAsync(ex).ConfigureAwait(false);
+                        await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
                     }
                     throw;
                 }
@@ -122,13 +122,13 @@ namespace IceRpc.Internal
                 };
 
                 CancellationTokenSource? cancelDispatchSource = null;
-                bool shuttingDown = false;
+                bool isShuttingDown = false;
                 lock (_mutex)
                 {
                     // If shutting down, ignore the incoming request.
                     if (_isShuttingDown)
                     {
-                        shuttingDown = true;
+                        isShuttingDown = true;
                     }
                     else
                     {
@@ -148,7 +148,7 @@ namespace IceRpc.Internal
                     }
                 }
 
-                if (shuttingDown)
+                if (isShuttingDown)
                 {
                     // If shutting down, ignore the incoming request.
                     // TODO: replace with payload exception and error code
@@ -322,7 +322,6 @@ namespace IceRpc.Internal
 
                 // SendPayloadAsync takes care of the completion of the payloads and stream output.
                 await SendPayloadAsync(request, stream, cancel).ConfigureAwait(false);
-                request.IsSent = true;
             }
             catch (Exception exception)
             {
@@ -337,6 +336,8 @@ namespace IceRpc.Internal
                 }
                 throw;
             }
+
+            request.IsSent = true;
 
             if (request.IsOneway)
             {
@@ -523,7 +524,7 @@ namespace IceRpc.Internal
                 }
 
                 // Abort streams.
-                var exception = new OperationCanceledException("shutdown canceled");
+                MultiplexedStreamAbortedException exception = IceRpcStreamError.ConnectionShutdown.ToException();
                 foreach (IMultiplexedStream stream in streams)
                 {
                     stream.Abort(exception);
@@ -852,7 +853,7 @@ namespace IceRpc.Internal
 
                     // Cancel the invocations that were not dispatched by the peer.
                     invocations = _streams.Where(stream =>
-                        stream.IsRemote &&
+                        !stream.IsRemote &&
                         (!stream.IsStarted || (stream.Id > (stream.IsBidirectional ?
                             goAwayFrame.LastBidirectionalStreamId :
                             goAwayFrame.LastUnidirectionalStreamId)))).ToArray();
@@ -860,7 +861,7 @@ namespace IceRpc.Internal
 
                 // Abort streams for invocations that were not dispatched by the peer. The invocations will throw
                 // ConnectionClosedException which is retryable.
-                var exception = new ConnectionClosedException("connection shutdown by peer");
+                MultiplexedStreamAbortedException exception = IceRpcStreamError.ConnectionShutdownByPeer.ToException();
                 foreach (IMultiplexedStream stream in invocations)
                 {
                     stream.Abort(exception);

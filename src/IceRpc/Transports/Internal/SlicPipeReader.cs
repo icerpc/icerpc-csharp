@@ -225,8 +225,8 @@ namespace IceRpc.Transports.Internal
             {
                 if (_state.HasFlag(State.PipeWriterCompleted))
                 {
-                    // If the Slic pipe reader has been completed while we were reading the data from the stream, we
-                    // make sure to complete the writer now since Complete didn't do it.
+                    // If the pipe writer has been completed while we were reading the data from the stream, we make
+                    // sure to complete the writer now since Complete or CompleteWriter didn't do it.
                     await _pipe.Writer.CompleteAsync(_exception).ConfigureAwait(false);
                 }
                 _state.ClearFlag(State.PipeWriterInUse);
@@ -253,7 +253,7 @@ namespace IceRpc.Transports.Internal
                 {
                     _pipe.Writer.Complete(exception);
                 }
-                else if (!_state.HasFlag(State.Completed))
+                else
                 {
                     _pipe.Reader.CancelPendingRead();
                 }
