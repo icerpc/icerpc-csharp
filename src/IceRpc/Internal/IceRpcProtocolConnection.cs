@@ -251,13 +251,16 @@ namespace IceRpc.Internal
                     await response.CompleteAsync().ConfigureAwait(false);
                     return;
                 }
+
                 try
                 {
                     EncodeHeader();
                 }
-                catch (Exception ex)
+                catch (Exception exception)
                 {
-                    Console.WriteLine(ex);
+                    await response.CompleteAsync(exception).ConfigureAwait(false);
+                    await stream.Output.CompleteAsync().ConfigureAwait(false);
+                    throw;
                 }
 
                 // SendPayloadAsync takes care of the completion of the payload, payload stream and stream output.
