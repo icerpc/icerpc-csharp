@@ -259,8 +259,8 @@ namespace IceRpc.Internal
                 catch (Exception exception)
                 {
                     await response.CompleteAsync(exception).ConfigureAwait(false);
-                    await stream.Output.CompleteAsync().ConfigureAwait(false);
-                    throw;
+                    await SendPayloadAsync(response, stream.Output, CancellationToken.None).ConfigureAwait(false);
+                    return;
                 }
 
                 // SendPayloadAsync takes care of the completion of the payload, payload stream and stream output.
