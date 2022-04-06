@@ -15,26 +15,26 @@ public class ProxyTests
     {
         get
         {
-            (string, string, SliceEncoding)[] testData =
+            (string, string?, SliceEncoding)[] testData =
             {
                 (
                     "icerpc://host:1000/identity?foo=bar",
-                    "icerpc://host:1000/identity?foo=bar",
+                    null,
                     SliceEncoding.Slice2
                 ),
                 (
                     "icerpc://host:1000/identity?foo=bar",
-                    "icerpc://host:1000/identity?foo=bar",
+                    null,
                     SliceEncoding.Slice1
                 ),
                 (
                     "ice://host:10000/identity?transport=tcp",
-                    "ice://host:10000/identity?transport=tcp",
+                    null,
                     SliceEncoding.Slice2
                 ),
                 (
                     "ice://host:10000/identity?transport=tcp",
-                    "ice://host:10000/identity?transport=tcp",
+                    null,
                     SliceEncoding.Slice1
                 ),
                 (
@@ -50,10 +50,10 @@ public class ProxyTests
             };
             foreach ((
                 string value,
-                string expected,
+                string? expected,
                 SliceEncoding encoding) in testData)
             {
-                yield return new TestCaseData(Proxy.Parse(value), Proxy.Parse(expected), encoding);
+                yield return new TestCaseData(Proxy.Parse(value), Proxy.Parse(expected ?? value), encoding);
             }
         }
     }
