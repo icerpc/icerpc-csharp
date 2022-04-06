@@ -17,36 +17,16 @@ public class ProxyTests
         {
             (string, string?, SliceEncoding)[] testData =
             {
-                (
-                    "icerpc://host:1000/identity?foo=bar",
-                    null,
-                    SliceEncoding.Slice2
-                ),
-                (
-                    "icerpc://host:1000/identity?foo=bar",
-                    null,
-                    SliceEncoding.Slice1
-                ),
-                (
-                    "ice://host:10000/identity?transport=tcp",
-                    null,
-                    SliceEncoding.Slice2
-                ),
-                (
-                    "ice://host:10000/identity?transport=tcp",
-                    null,
-                    SliceEncoding.Slice1
-                ),
-                (
+                ("icerpc://host:1000/identity?foo=bar", null, SliceEncoding.Slice2),
+                ("icerpc://host:1000/identity?foo=bar", null, SliceEncoding.Slice1),
+                ("ice://host:10000/identity?transport=tcp", null, SliceEncoding.Slice2),
+                ("ice://host:10000/identity?transport=tcp", null, SliceEncoding.Slice1),
+                ("ice://opaque/identity?e=1.1&t=1&transport=opaque&v=CTEyNy4wLjAuMeouAAAQJwAAAA==",
                     "ice://opaque/identity?e=1.1&t=1&transport=opaque&v=CTEyNy4wLjAuMeouAAAQJwAAAA==",
-                    "ice://opaque/identity?e=1.1&t=1&transport=opaque&v=CTEyNy4wLjAuMeouAAAQJwAAAA==",
-                    SliceEncoding.Slice2
-                ),
-                (
-                    "ice://opaque/identity?e=1.1&t=1&transport=opaque&v=CTEyNy4wLjAuMeouAAAQJwAAAA==",
+                    SliceEncoding.Slice2),
+                ("ice://opaque/identity?e=1.1&t=1&transport=opaque&v=CTEyNy4wLjAuMeouAAAQJwAAAA==",
                     "ice://127.0.0.1:12010/identity?transport=tcp&t=10000",
-                    SliceEncoding.Slice1
-                )
+                    SliceEncoding.Slice1)
             };
             foreach ((
                 string value,
