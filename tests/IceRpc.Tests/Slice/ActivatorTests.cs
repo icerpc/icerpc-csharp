@@ -64,7 +64,7 @@ public class ActivatorTests
     [Test, TestCaseSource(nameof(ReferencedAssembliesTypeIds))]
     public void Activator_cannot_create_instances_of_types_defined_in_unknown_assemblies(string typeId)
     {
-        var decoder = new SliceDecoder(ReadOnlyMemory<byte>.Empty, SliceEncoding.Slice11);
+        var decoder = new SliceDecoder(ReadOnlyMemory<byte>.Empty, SliceEncoding.Slice1);
         IActivator sut = SliceDecoder.GetActivator(typeof(SliceDecoder).Assembly);
 
         object? instance = sut.CreateInstance(typeId, ref decoder);
@@ -78,7 +78,7 @@ public class ActivatorTests
         string typeId,
         Type expectedType)
     {
-        var decoder = new SliceDecoder(ReadOnlyMemory<byte>.Empty, SliceEncoding.Slice11);
+        var decoder = new SliceDecoder(ReadOnlyMemory<byte>.Empty, SliceEncoding.Slice1);
         IActivator sut = SliceDecoder.GetActivator(assembly);
 
         object? instance = sut.CreateInstance(typeId, ref decoder);

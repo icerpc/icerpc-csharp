@@ -119,7 +119,10 @@ impl<'a> Visitor for StructVisitor<'a> {
             // Encode method
             let mut encode_body = encode_data_members(&members, &namespace, FieldType::NonMangled);
             if !struct_def.is_compact {
-                writeln!(encode_body, "encoder.EncodeVarInt(Slice20Definitions.TagEndMarker);");
+                writeln!(
+                    encode_body,
+                    "encoder.EncodeVarInt(Slice2Definitions.TagEndMarker);"
+                );
             }
             builder.add_block(
                 FunctionBuilder::new(
