@@ -482,7 +482,7 @@ namespace IceRpc.Tests.Slice
             IncomingResponse response = await _prx.Proxy.Invoker.InvokeAsync(request);
 
             Assert.DoesNotThrowAsync(async () => await response.CheckVoidReturnValueAsync(
-                SliceEncoding.Slice20,
+                SliceEncoding.Slice2,
                 SliceDecoder.GetActivator(typeof(OperationTagTests).Assembly),
                 hasStream: false,
                 default));
@@ -492,7 +492,7 @@ namespace IceRpc.Tests.Slice
                 // Build a request payload with 2 tagged values
                 var pipe = new Pipe(); // TODO: pipe options
 
-                var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice20, default);
+                var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2, default);
                 Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
                 int startPos = encoder.EncodedByteCount;
 
