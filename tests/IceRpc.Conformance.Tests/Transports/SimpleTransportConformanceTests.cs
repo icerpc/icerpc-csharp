@@ -89,7 +89,7 @@ public abstract class SimpleTransportConformanceTests
         Assert.That(async () => await writeTask, Throws.TypeOf<OperationCanceledException>());
     }
 
-    /// <summary>Creates the test fixture that provides the multiplexed transport to test with.</summary>
+    /// <summary>Creates the service collection used for the simple transport conformance tests.</summary>
     public abstract ServiceCollection CreateServiceCollection();
 
     [Test]
@@ -290,24 +290,6 @@ public abstract class SimpleTransportConformanceTests
     }
 }
 
-/// <summary>Conformance tests for the tcp simple transport.</summary>
-[Timeout(5000)]
-[Parallelizable(ParallelScope.All)]
-public class TcpTransportConformanceTests : SimpleTransportConformanceTests
-{
-    public override ServiceCollection CreateServiceCollection() =>
-        new TcpTransportServiceCollection();
-}
-
-/// <summary>Conformance tests for the coloc simple transport.</summary>
-[Timeout(5000)]
-[Parallelizable(ParallelScope.All)]
-public class ColocTransportConformanceTests : SimpleTransportConformanceTests
-{
-    public override ServiceCollection CreateServiceCollection() =>
-        new ColocTransportServiceCollection();
-}
-
 public class SimpleTransportServiceCollection : ServiceCollection
 {
     public SimpleTransportServiceCollection()
@@ -329,27 +311,6 @@ public class SimpleTransportServiceCollection : ServiceCollection
                 provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>();
             return clientTransport.CreateConnection(listener.Endpoint, null, NullLogger.Instance);
         });
-    }
-}
-
-public class TcpTransportServiceCollection : SimpleTransportServiceCollection
-{
-    public TcpTransportServiceCollection()
-    {
-        this.AddScoped<IServerTransport<ISimpleNetworkConnection>>(_ => new TcpServerTransport());
-        this.AddScoped<IClientTransport<ISimpleNetworkConnection>>(_ => new TcpClientTransport());
-        this.AddScoped(typeof(Endpoint), provider => Endpoint.FromString("icerpc://127.0.0.1:0/"));
-    }
-}
-
-public class ColocTransportServiceCollection : SimpleTransportServiceCollection
-{
-    public ColocTransportServiceCollection()
-    {
-        var coloc = new ColocTransport();
-        this.AddScoped(_ => coloc.ServerTransport);
-        this.AddScoped(_ => coloc.ClientTransport);
-        this.AddScoped(typeof(Endpoint), provider => Endpoint.FromString($"icerpc://{Guid.NewGuid()}/"));
     }
 }
 
