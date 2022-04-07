@@ -54,11 +54,18 @@ public sealed class ProtocolConformanceTests
                         yield return new("request invalid writer", protocol, request, dispatcher, payload, exception);
                     }
 
-                    // TODO: request with invalid header
+                    if (protocol == Protocol.IceRpc)
+                    {
+                        var payload = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+                        var request = new OutgoingRequest(new Proxy(protocol)) { Payload = payload };
+                        request.Fields = request.Fields.With(
+                            RequestFieldKey.Idempotent,
+                            (ref SliceEncoder encoder) => throw new NotSupportedException("bogus header"));
+                        yield return new("request invalid header", protocol, request, dispatcher, payload, exception);
+                    }
                 }
 
                 // Test invalid responses
-
                 {
                     // TODO: ConnectionLostException for the icerpc stream abort is bogus
                     Type exception = typeof(ConnectionLostException);
@@ -83,7 +90,21 @@ public sealed class ProtocolConformanceTests
                         yield return new("response invalid writer", protocol, request, dispatcher, payload, exception);
                     }
 
-                    // TODO: response with invalid header
+                    if (protocol == Protocol.IceRpc)
+                    {
+                        var request = new OutgoingRequest(new Proxy(protocol));
+                        var payload = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
+                        var dispatcher = new InlineDispatcher((request, cancel) =>
+                            {
+                                var response = new OutgoingResponse(request) { Payload = payload };
+                                response.Fields = response.Fields.With(
+                                        ResponseFieldKey.RetryPolicy,
+                                        (ref SliceEncoder encoder) => throw new NotSupportedException("bogus header"));
+                                return new(response);
+                            });
+                        yield return new("response invalid header", protocol, request, dispatcher, payload, exception);
+                    }
+
                 }
             }
         }
