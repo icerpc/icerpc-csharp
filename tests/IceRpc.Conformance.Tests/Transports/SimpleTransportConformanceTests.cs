@@ -1,13 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
 namespace IceRpc.Transports.Tests;
 
 /// <summary>Conformance tests for the simple transports.</summary>
-[Timeout(30000)]
-[Parallelizable(ParallelScope.All)]
 public abstract class SimpleTransportConformanceTests
 {
     /// <summary>Verifies that the transport can accept connections.</summary>
@@ -15,9 +14,9 @@ public abstract class SimpleTransportConformanceTests
     public async Task Accept_network_connection()
     {
         // Arrange
-        ISimpleTransportTestFixture testFixture = CreateSimpleTransportTestFixture();
-        await using IListener<ISimpleNetworkConnection> listener = testFixture.CreateListener();
-        await using ISimpleNetworkConnection clientConnection = testFixture.CreateConnection(listener.Endpoint);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
+        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
+        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
 
         Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
         await clientConnection.ConnectAsync(default);
@@ -38,9 +37,9 @@ public abstract class SimpleTransportConformanceTests
         [Values(true, false)] bool readFromServer)
     {
         // Arrange
-        ISimpleTransportTestFixture testFixture = CreateSimpleTransportTestFixture();
-        await using IListener<ISimpleNetworkConnection> listener = testFixture.CreateListener();
-        await using ISimpleNetworkConnection clientConnection = testFixture.CreateConnection(listener.Endpoint);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
+        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
+        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
 
         Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
         await clientConnection.ConnectAsync(default);
@@ -64,9 +63,9 @@ public abstract class SimpleTransportConformanceTests
         [Values(true, false)] bool useServerConnection)
     {
         // Arrange
-        ISimpleTransportTestFixture testFixture = CreateSimpleTransportTestFixture();
-        await using IListener<ISimpleNetworkConnection> listener = testFixture.CreateListener();
-        await using ISimpleNetworkConnection clientConnection = testFixture.CreateConnection(listener.Endpoint);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
+        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
+        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
 
         Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
         await clientConnection.ConnectAsync(default);
@@ -92,15 +91,15 @@ public abstract class SimpleTransportConformanceTests
     }
 
     [Test]
-    public void Listen_twice_on_the_same_address_fails_with_a_transport_exception()
+    public async Task Listen_twice_on_the_same_address_fails_with_a_transport_exception()
     {
         // Arrange
-        ISimpleTransportTestFixture testFixture = CreateSimpleTransportTestFixture();
-        IListener<ISimpleNetworkConnection> listener = testFixture.CreateListener();
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
+        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
 
         // Act/Assert
         Assert.That(
-            () => testFixture.CreateListener(listener.Endpoint),
+            () => provider.CreateListener(listener.Endpoint),
             Throws.TypeOf<TransportException>());
     }
 
@@ -110,9 +109,9 @@ public abstract class SimpleTransportConformanceTests
     public async Task Read_from_disposed_connection_fails([Values(true, false)] bool disposeServerConnection)
     {
         // Arrange
-        ISimpleTransportTestFixture testFixture = CreateSimpleTransportTestFixture();
-        await using IListener<ISimpleNetworkConnection> listener = testFixture.CreateListener();
-        await using ISimpleNetworkConnection clientConnection = testFixture.CreateConnection(listener.Endpoint);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
+        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
+        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
 
         Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
         await clientConnection.ConnectAsync(default);
@@ -133,9 +132,9 @@ public abstract class SimpleTransportConformanceTests
     public async Task Write_to_disposed_connection_fails([Values(true, false)] bool disposeServerConnection)
     {
         // Arrange
-        ISimpleTransportTestFixture testFixture = CreateSimpleTransportTestFixture();
-        await using IListener<ISimpleNetworkConnection> listener = testFixture.CreateListener();
-        await using ISimpleNetworkConnection clientConnection = testFixture.CreateConnection(listener.Endpoint);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
+        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
+        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
 
         Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
         await clientConnection.ConnectAsync(default);
@@ -157,9 +156,9 @@ public abstract class SimpleTransportConformanceTests
     public async Task Read_updates_last_activity()
     {
         // Arrange
-        ISimpleTransportTestFixture testFixture = CreateSimpleTransportTestFixture();
-        await using IListener<ISimpleNetworkConnection> listener = testFixture.CreateListener();
-        await using ISimpleNetworkConnection clientConnection = testFixture.CreateConnection(listener.Endpoint);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
+        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
+        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
 
         Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
         await clientConnection.ConnectAsync(default);
@@ -185,9 +184,9 @@ public abstract class SimpleTransportConformanceTests
     public async Task Cancel_read()
     {
         // Arrange
-        ISimpleTransportTestFixture testFixture = CreateSimpleTransportTestFixture();
-        await using IListener<ISimpleNetworkConnection> listener = testFixture.CreateListener();
-        await using ISimpleNetworkConnection clientConnection = testFixture.CreateConnection(listener.Endpoint);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
+        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
+        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
 
         Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
         await clientConnection.ConnectAsync(default);
@@ -212,9 +211,9 @@ public abstract class SimpleTransportConformanceTests
     public async Task Cancel_write()
     {
         // Arrange
-        ISimpleTransportTestFixture testFixture = CreateSimpleTransportTestFixture();
-        await using IListener<ISimpleNetworkConnection> listener = testFixture.CreateListener();
-        await using ISimpleNetworkConnection clientConnection = testFixture.CreateConnection(listener.Endpoint);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
+        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
+        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
 
         Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
         await clientConnection.ConnectAsync(default);
@@ -241,9 +240,9 @@ public abstract class SimpleTransportConformanceTests
     [Test]
     public async Task Write_canceled()
     {
-        ISimpleTransportTestFixture testFixture = CreateSimpleTransportTestFixture();
-        await using IListener<ISimpleNetworkConnection> listener = testFixture.CreateListener();
-        await using ISimpleNetworkConnection clientConnection = testFixture.CreateConnection(listener.Endpoint);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
+        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
+        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
         var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1024] };
 
         Assert.CatchAsync<OperationCanceledException>(
@@ -253,9 +252,9 @@ public abstract class SimpleTransportConformanceTests
     [Test]
     public async Task Read_canceled()
     {
-        ISimpleTransportTestFixture testFixture = CreateSimpleTransportTestFixture();
-        await using IListener<ISimpleNetworkConnection> listener = testFixture.CreateListener();
-        await using ISimpleNetworkConnection clientConnection = testFixture.CreateConnection(listener.Endpoint);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
+        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
+        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
         var buffer = new Memory<byte>(new byte[1]);
 
         Assert.CatchAsync<OperationCanceledException>(
@@ -263,7 +262,7 @@ public abstract class SimpleTransportConformanceTests
     }
 
     /// <summary>Creates the test fixture that provides the multiplexed transport to test with.</summary>
-    public abstract ISimpleTransportTestFixture CreateSimpleTransportTestFixture();
+    public abstract ServiceCollection CreateServiceCollection();
 }
 
 public interface ISimpleTransportTestFixture
@@ -279,46 +278,87 @@ public interface ISimpleTransportTestFixture
     ISimpleNetworkConnection CreateConnection(Endpoint endpoint);
 }
 
-public class TcpTransportTestFixture : ISimpleTransportTestFixture
-{
-    private readonly TcpServerTransport _tcpServerTransport = new();
-    private readonly TcpClientTransport _tcpClientTransport = new();
-
-    public IListener<ISimpleNetworkConnection> CreateListener(Endpoint? endpoint = null) =>
-        _tcpServerTransport.Listen(
-            endpoint ?? Endpoint.FromString("icerpc://127.0.0.1:0/"),
-            null,
-            NullLogger.Instance);
-
-    public ISimpleNetworkConnection CreateConnection(Endpoint endpoint) =>
-        _tcpClientTransport.CreateConnection(endpoint, null, NullLogger.Instance);
-}
-
-public class ColocTransportTestFixture : ISimpleTransportTestFixture
-{
-    private readonly ColocTransport _transport = new();
-    public IListener<ISimpleNetworkConnection> CreateListener(Endpoint? endpoint = null) =>
-        _transport.ServerTransport.Listen(
-            endpoint ?? Endpoint.FromString($"icerpc://{Guid.NewGuid()}/"),
-            null,
-            NullLogger.Instance);
-
-    public ISimpleNetworkConnection CreateConnection(Endpoint endpoint) =>
-        _transport.ClientTransport.CreateConnection(endpoint, null, NullLogger.Instance);
-}
-
 /// <summary>Conformance tests for the tcp simple transport.</summary>
-[Timeout(30000)]
+[Timeout(5000)]
 [Parallelizable(ParallelScope.All)]
 public class TcpTransportConformanceTests : SimpleTransportConformanceTests
 {
-    public override ISimpleTransportTestFixture CreateSimpleTransportTestFixture() =>
-        new TcpTransportTestFixture();
+    public override ServiceCollection CreateServiceCollection() =>
+        new TcpTransportServiceCollection();
 }
 
 /// <summary>Conformance tests for the coloc simple transport.</summary>
+[Timeout(5000)]
+[Parallelizable(ParallelScope.All)]
 public class ColocTransportConformanceTests : SimpleTransportConformanceTests
 {
-    public override ISimpleTransportTestFixture CreateSimpleTransportTestFixture() =>
-        new ColocTransportTestFixture();
+    public override ServiceCollection CreateServiceCollection() =>
+        new ColocTransportServiceCollection();
+}
+
+public class SimpleTransportServiceCollection : ServiceCollection
+{
+    public SimpleTransportServiceCollection()
+    {
+        this.AddScoped(provider =>
+        {
+            IServerTransport<ISimpleNetworkConnection>? serverTransport =
+            provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>();
+            return serverTransport.Listen(
+                provider.GetRequiredService<Endpoint>(),
+                null,
+                NullLogger.Instance);
+        });
+
+        this.AddScoped(provider =>
+        {
+            IListener<ISimpleNetworkConnection> listener = provider.GetListener();
+            IClientTransport<ISimpleNetworkConnection> clientTransport =
+                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>();
+            return clientTransport.CreateConnection(listener.Endpoint, null, NullLogger.Instance);
+        });
+    }
+}
+
+public class TcpTransportServiceCollection : SimpleTransportServiceCollection
+{
+    public TcpTransportServiceCollection()
+    {
+        this.AddScoped<IServerTransport<ISimpleNetworkConnection>>(_ => new TcpServerTransport());
+        this.AddScoped<IClientTransport<ISimpleNetworkConnection>>(_ => new TcpClientTransport());
+        this.AddScoped(typeof(Endpoint), provider => Endpoint.FromString("icerpc://127.0.0.1:0/"));
+    }
+}
+
+public class ColocTransportServiceCollection : SimpleTransportServiceCollection
+{
+    public ColocTransportServiceCollection()
+    {
+        var coloc = new ColocTransport();
+        this.AddScoped(_ => coloc.ServerTransport);
+        this.AddScoped(_ => coloc.ClientTransport);
+        this.AddScoped(typeof(Endpoint), provider => Endpoint.FromString($"icerpc://{Guid.NewGuid()}/"));
+    }
+}
+
+public static class SimpleTransportServiceCollectionExtensions
+{
+    public static void UseEndpoint(this ServiceCollection serviceCollection, Endpoint endpoint) =>
+        serviceCollection.AddScoped(typeof(Endpoint), _ => endpoint);
+}
+
+public static class SimpleTransportServiceProviderExtensions
+{
+    public static IListener<ISimpleNetworkConnection> GetListener(this IServiceProvider provider) =>
+        provider.GetRequiredService<IListener<ISimpleNetworkConnection>>();
+
+    public static IListener<ISimpleNetworkConnection> CreateListener(this IServiceProvider provider, Endpoint endpoint)
+    {
+        IServerTransport<ISimpleNetworkConnection>? serverTransport =
+            provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>();
+        return serverTransport.Listen(endpoint, null, NullLogger.Instance);
+    }
+
+    public static ISimpleNetworkConnection GetClientConnection(this IServiceProvider provider) =>
+        provider.GetRequiredService<ISimpleNetworkConnection>();
 }
