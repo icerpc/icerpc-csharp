@@ -416,9 +416,9 @@ namespace IceRpc.Transports.Internal
 
                     if (lastStreamFrame)
                     {
-                        // At this point writes are considered completed on the stream. It's important to call
-                        // this before sending the last packet to avoid a race condition where the peer could
-                        // start a new stream before the Slic connection stream count is decreased.
+                        // At this point writes are considered completed on the stream. It's important to call this
+                        // before sending the last packet to avoid a race condition where the peer could start a new
+                        // stream before the Slic connection stream count is decreased.
                         stream.TrySetWriteCompleted();
                     }
 

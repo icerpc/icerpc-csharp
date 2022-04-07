@@ -16,10 +16,10 @@ namespace IceRpc.Internal
         ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>> IProtocolConnection.PeerFields =>
             _decoratee.PeerFields;
 
-        event Action<string>? IProtocolConnection.PeerShutdownInitiated
+        Action<string>? IProtocolConnection.PeerShutdownInitiated
         {
-            add => _decoratee.PeerShutdownInitiated += value;
-            remove => _decoratee.PeerShutdownInitiated -= value;
+            get => _decoratee.PeerShutdownInitiated;
+            set => _decoratee.PeerShutdownInitiated = value;
         }
 
         private readonly IProtocolConnection _decoratee;
@@ -27,11 +27,11 @@ namespace IceRpc.Internal
         private readonly bool _isServer;
         private readonly ILogger _logger;
 
-        async Task IProtocolConnection.AcceptRequestsAsync(Connection connection, IDispatcher dispatcher)
+        async Task IProtocolConnection.AcceptRequestsAsync()
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             _logger.LogAcceptRequests();
-            await _decoratee.AcceptRequestsAsync(connection, dispatcher).ConfigureAwait(false);
+            await _decoratee.AcceptRequestsAsync().ConfigureAwait(false);
         }
 
         void IDisposable.Dispose()
@@ -49,14 +49,12 @@ namespace IceRpc.Internal
         }
 
         async Task<IncomingResponse> IProtocolConnection.SendRequestAsync(
-            Connection connection,
             OutgoingRequest request,
             CancellationToken cancel)
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             using IDisposable _ = _logger.StartSendRequestScope(request);
             IncomingResponse response = await _decoratee.SendRequestAsync(
-                connection,
                 request,
                 cancel).ConfigureAwait(false);
             _logger.LogSendRequest();

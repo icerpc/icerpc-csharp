@@ -42,10 +42,12 @@ namespace IceRpc.Internal
             ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>>.Empty;
 
         /// <inheritdoc/>
-        public event Action<string>? PeerShutdownInitiated;
+        public Action<string>? PeerShutdownInitiated { get; set; }
 
+        private readonly Connection _connection;
         private IMultiplexedStream? _controlStream;
         private readonly HashSet<CancellationTokenSource> _cancelDispatchSources = new();
+        private readonly IDispatcher _dispatcher;
         private readonly TaskCompletionSource _streamsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly HashSet<IMultiplexedStream> _streams = new();
@@ -62,7 +64,7 @@ namespace IceRpc.Internal
         private readonly TaskCompletionSource _waitForGoAwayCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public async Task AcceptRequestsAsync(Connection connection, IDispatcher dispatcher)
+        public async Task AcceptRequestsAsync()
         {
             while (true)
             {
@@ -112,7 +114,7 @@ namespace IceRpc.Internal
 
                 var request = new IncomingRequest(Protocol.IceRpc)
                 {
-                    Connection = connection,
+                    Connection = _connection,
                     Features = features,
                     Fields = fields,
                     IsOneway = !stream.IsBidirectional,
@@ -186,7 +188,7 @@ namespace IceRpc.Internal
                 try
                 {
                     // The dispatcher is responsible for completing the incoming request payload and payload stream.
-                    response = await dispatcher.DispatchAsync(
+                    response = await _dispatcher.DispatchAsync(
                         request,
                         cancelDispatchSource.Token).ConfigureAwait(false);
                 }
@@ -286,10 +288,7 @@ namespace IceRpc.Internal
         public Task PingAsync(CancellationToken cancel) =>
             SendControlFrameAsync(IceRpcControlFrameType.Ping, encodeAction: null, cancel).AsTask();
 
-        public async Task<IncomingResponse> SendRequestAsync(
-            Connection connection,
-            OutgoingRequest request,
-            CancellationToken cancel)
+        public async Task<IncomingResponse> SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
             IMultiplexedStream? stream = null;
             try
@@ -373,7 +372,7 @@ namespace IceRpc.Internal
 
                 return new IncomingResponse(request)
                 {
-                    Connection = connection,
+                    Connection = _connection,
                     Fields = fields,
                     Payload = stream.Input,
                     ResultType = header.ResultType
@@ -550,9 +549,13 @@ namespace IceRpc.Internal
 
         /// <inheritdoc/>
         internal IceRpcProtocolConnection(
+            Connection connection,
+            IDispatcher dispatcher,
             IMultiplexedNetworkConnection networkConnection,
             IDictionary<ConnectionFieldKey, OutgoingFieldValue> localFields)
         {
+            _connection = connection;
+            _dispatcher = dispatcher;
             _networkConnection = networkConnection;
             _localFields = localFields;
         }
@@ -835,7 +838,7 @@ namespace IceRpc.Internal
                     (ref SliceDecoder decoder) => new IceRpcGoAway(ref decoder),
                     CancellationToken.None).ConfigureAwait(false);
 
-                // Raise the peer shutdown initiated event.
+                // Call the peer shutdown callback.
                 try
                 {
                     PeerShutdownInitiated?.Invoke(goAwayFrame.Message);

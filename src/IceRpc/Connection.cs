@@ -312,7 +312,7 @@ namespace IceRpc
 
             try
             {
-                return await protocolConnection.SendRequestAsync(this, request, cancel).ConfigureAwait(false);
+                return await protocolConnection.SendRequestAsync(request, cancel).ConfigureAwait(false);
             }
             catch (ConnectionLostException exception)
             {
@@ -438,6 +438,7 @@ namespace IceRpc
                 _protocolConnection = await protocolConnectionFactory.CreateProtocolConnectionAsync(
                     networkConnection,
                     NetworkConnectionInformation.Value,
+                    this,
                     _options,
                     IsServer,
                     connectCancellationSource.Token).ConfigureAwait(false);
@@ -458,7 +459,7 @@ namespace IceRpc
                     // Switch the connection to the ShuttingDown state as soon as the protocol receives a notification
                     // that peer initiated shutdown. This is in particular useful for the connection pool to not return
                     // a connection which is being shutdown.
-                    _protocolConnection.PeerShutdownInitiated += InitiateShutdown;
+                    _protocolConnection.PeerShutdownInitiated = InitiateShutdown;
 
                     // Setup a timer to check for the connection idle time every IdleTimeout / 2 period. If the
                     // transport doesn't support idle timeout (e.g.: the colocated transport), IdleTimeout will be
@@ -480,9 +481,7 @@ namespace IceRpc
                         {
                             try
                             {
-                                await protocolConnection.AcceptRequestsAsync(
-                                    this,
-                                    _options.Dispatcher).ConfigureAwait(false);
+                                await protocolConnection.AcceptRequestsAsync().ConfigureAwait(false);
                             }
                             catch (Exception exception)
                             {
