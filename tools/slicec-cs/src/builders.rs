@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use slice::code_gen_util::TypeContext;
-use slice::grammar::{Attributable, Class, Entity, NamedSymbol, Operation, Encoding};
+use slice::grammar::{Attributable, Class, Encoding, Entity, NamedSymbol, Operation};
 use slice::supported_encodings::SupportedEncodings;
 
 use crate::code_block::CodeBlock;
@@ -425,7 +425,11 @@ pub struct EncodingBlockBuilder {
 }
 
 impl EncodingBlockBuilder {
-    pub fn new(encoding_variable: &str, identifier: &str, supported_encodings: SupportedEncodings) -> Self {
+    pub fn new(
+        encoding_variable: &str,
+        identifier: &str,
+        supported_encodings: SupportedEncodings,
+    ) -> Self {
         Self {
             encoding_blocks: HashMap::new(),
             supported_encodings,
@@ -457,24 +461,21 @@ r#"if ({encoding_variable} != {encoding})
                     encode_block = self.encoding_blocks[encoding].clone(),
                 ).into()
             }
-            encodings => {
+            _ => {
                 format!("\
-switch ({encoding_variable})
+if ({encoding_variable} == SliceEncoding.Slice1)
 {{
-    {encoding_cases}
-    default:
-        throw new InvalidOperationException($\"the {{{encoding_variable}}} encoding is not supported\");
+    {encoding_1}
+}}
+else // not 1.1
+{{
+    {encoding_2}
 }}
 ",
-encoding_variable = self.encoding_variable,
-encoding_cases = CodeBlock::from(self.encoding_blocks
-                    .iter()
-                    .filter(|(encoding, _)| encodings.contains(encoding))
-                    .map(|(encoding, code)| format!("case {}:\n    {}\n    break;" ,
-                                                    encoding.to_cs_encoding(),
-                                                    code.clone().indent()))
-                    .collect::<Vec<String>>()
-                    .join("\n")).indent()).into()
+                    encoding_variable = self.encoding_variable,
+                    encoding_1 = self.encoding_blocks[&Encoding::Slice11].clone().indent(),
+                    encoding_2 = self.encoding_blocks[&Encoding::Slice2].clone().indent())
+                .into()
             }
         }
     }
