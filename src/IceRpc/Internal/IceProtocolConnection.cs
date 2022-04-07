@@ -168,13 +168,6 @@ namespace IceRpc.Internal
             }
             catch (Exception exception)
             {
-                // If the network connection has been disposed, we raise ConnectionLostException to ensure the request
-                // is retried by the retry interceptor. The retry interceptor only retries a request if the exception is
-                // a transport exception.
-                if (exception is ObjectDisposedException)
-                {
-                    exception = new ConnectionLostException(exception);
-                }
                 await request.CompleteAsync(exception).ConfigureAwait(false);
                 await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
                 throw;
@@ -941,7 +934,9 @@ namespace IceRpc.Internal
                 {
                     await response.CompleteAsync(exception).ConfigureAwait(false);
                     await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
-                    throw;
+
+                    // This is an unrecoverable failure, so we kill the connection.
+                    await _networkConnection.DisposeAsync().ConfigureAwait(false);
                 }
                 finally
                 {

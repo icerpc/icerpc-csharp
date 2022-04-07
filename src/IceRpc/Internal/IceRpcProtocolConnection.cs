@@ -246,9 +246,18 @@ namespace IceRpc.Internal
                     return;
                 }
 
-                EncodeHeader();
-                // SendPayloadAsync takes care of the completion of the payload, payload stream and stream output.
-                await SendPayloadAsync(response, stream, CancellationToken.None).ConfigureAwait(false);
+                try
+                {
+                    EncodeHeader();
+
+                    // SendPayloadAsync takes care of the completion of the payload, payload stream and stream output.
+                    await SendPayloadAsync(response, stream, CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception exception)
+                {
+                    await response.CompleteAsync(exception).ConfigureAwait(false);
+                    await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
+                }
 
                 void EncodeHeader()
                 {

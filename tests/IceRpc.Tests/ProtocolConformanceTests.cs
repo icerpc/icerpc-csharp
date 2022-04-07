@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
 using System.Collections.Immutable;
+using System.IO.Pipelines;
 
 namespace IceRpc.Tests;
 
@@ -15,23 +16,76 @@ namespace IceRpc.Tests;
 [Parallelizable(ParallelScope.All)]
 public sealed class ProtocolConformanceTests
 {
-    private static IEnumerable<Protocol> Protocols
+    private static readonly List<Protocol> _protocols = new() { Protocol.Ice, Protocol.IceRpc };
+
+    private static IEnumerable<TestCaseData> ClientServerConnections
     {
         get
         {
-            yield return Protocol.Ice;
-            yield return Protocol.IceRpc;
+            foreach (Protocol protocol in _protocols)
+            {
+                yield return new TestCaseData(protocol, ConnectionType.Client);
+                yield return new TestCaseData(protocol, ConnectionType.Client);
+            }
         }
     }
 
-    private static IEnumerable<TestCaseData> ProtocolsAndClientServer
+    private static IEnumerable<TestCaseData> InvalidRequestsAndResponses
     {
         get
         {
-            yield return new TestCaseData(Protocol.Ice, ConnectionType.Client);
-            yield return new TestCaseData(Protocol.IceRpc, ConnectionType.Client);
-            yield return new TestCaseData(Protocol.Ice, ConnectionType.Server);
-            yield return new TestCaseData(Protocol.IceRpc, ConnectionType.Server);
+            foreach (Protocol protocol in _protocols)
+            {
+                // Test invalid requests
+                {
+                    IDispatcher dispatcher = ConnectionOptions.DefaultDispatcher;
+                    Type exception = typeof(NotSupportedException); // Payload reader or writer throws NotSupportedException
+
+                    {
+                        var payload = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
+                        var request = new OutgoingRequest(new Proxy(protocol)) { Payload = payload };
+                        yield return new("request invalid reader", protocol, request, dispatcher, payload, exception);
+                    }
+
+                    {
+                        var payload = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+                        var request = new OutgoingRequest(new Proxy(protocol)) { Payload = payload };
+                        request.Use(writer => InvalidPipeWriter.Instance);
+                        yield return new("request invalid writer", protocol, request, dispatcher, payload, exception);
+                    }
+
+                    // TODO: request with invalid header
+                }
+
+                // Test invalid responses
+
+                {
+                    // TODO: ConnectionLostException for the icerpc stream abort is bogus
+                    Type exception = typeof(ConnectionLostException);
+
+                    {
+                        var request = new OutgoingRequest(new Proxy(protocol));
+                        var payload = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
+                        var dispatcher = new InlineDispatcher((request, cancel) =>
+                            new(new OutgoingResponse(request) { Payload = payload }));
+                        yield return new("response invalid reader", protocol, request, dispatcher, payload, exception);
+                    }
+
+                    {
+                        var request = new OutgoingRequest(new Proxy(protocol));
+                        var payload = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+                        var dispatcher = new InlineDispatcher((request, cancel) =>
+                            {
+                                var response = new OutgoingResponse(request) { Payload = payload };
+                                response.Use(writer => InvalidPipeWriter.Instance);
+                                return new(response);
+                            });
+                        yield return new("response invalid writer", protocol, request, dispatcher, payload, exception);
+                    }
+
+                    // TODO: response with invalid header
+                }
+            }
         }
     }
 
@@ -41,7 +95,7 @@ public sealed class ProtocolConformanceTests
         Server
     }
 
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test, TestCaseSource(nameof(_protocols))]
     public async Task Connection_has_invocation_and_dispatch_in_progress(Protocol protocol)
     {
         // Arrange
@@ -65,13 +119,13 @@ public sealed class ProtocolConformanceTests
         _ = sut.Value.Server.AcceptRequestsAsync();
 
         // Act
-        await sut.Value.Client.SendRequestAsync(new OutgoingRequest(new Proxy(protocol)), default);
+        await sut.Value.Client.SendRequestAsync(new OutgoingRequest(new Proxy(protocol)));
 
         // Assert
         Assert.That(await result.Task, Is.True);
     }
 
-    [Test, TestCaseSource(nameof(Protocols))]
+    [Test, TestCaseSource(nameof(_protocols))]
     public async Task Dispose_the_protocol_connections(Protocol protocol)
     {
         // Arrange
@@ -121,7 +175,7 @@ public sealed class ProtocolConformanceTests
             fields.DecodeValue(key, (ref SliceDecoder decoder) => decoder.DecodeInt());
     }
 
-    [Test, TestCaseSource(nameof(ProtocolsAndClientServer))]
+    [Test, TestCaseSource(nameof(ClientServerConnections))]
     public async Task PeerShutdownInitiated_callback_is_called(Protocol protocol, ConnectionType connectionType)
     {
         // Arrange
@@ -135,15 +189,120 @@ public sealed class ProtocolConformanceTests
         connection2.PeerShutdownInitiated = message =>
             {
                 shutdownInitiatedCalled.SetResult(message);
-                _ = connection2.ShutdownAsync("", default);
+                _ = connection2.ShutdownAsync("");
             };
 
         // Act
-        await connection1.ShutdownAsync("hello world", default);
+        await connection1.ShutdownAsync("hello world");
 
         // Assert
         string message = protocol == Protocol.Ice ? "connection shutdown by peer" : "hello world";
         Assert.That(await shutdownInitiatedCalled.Task, Is.EqualTo(message));
+    }
+
+    [Test, TestCaseSource(nameof(_protocols))]
+    public async Task SendRequest_on_shutdown_connection_fails(Protocol protocol)
+    {
+        // Arrange
+        await using var serviceProvider = new ProtocolServiceCollection().UseProtocol(protocol).BuildServiceProvider();
+
+        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        _ = sut.Client.ShutdownAsync("");
+        _ = sut.Server.ShutdownAsync("");
+
+        // Act
+        Task<IncomingResponse> sendRequestTask = sut.Client.SendRequestAsync(new OutgoingRequest(new Proxy(protocol)));
+
+        // Assert
+        Assert.ThrowsAsync<ConnectionClosedException>(async () => await sendRequestTask);
+    }
+
+    [Test, TestCaseSource(nameof(_protocols))]
+    public async Task SendRequest_completes_payloads(Protocol protocol)
+    {
+        // Arrange
+        var responsePayload = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .UseServerConnectionOptions(new ConnectionOptions()
+            {
+                Dispatcher = new InlineDispatcher(
+                    (request, cancel) => new(new OutgoingResponse(request) { Payload = responsePayload }))
+            })
+            .BuildServiceProvider();
+        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+
+        var requestPayload = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        var request = new OutgoingRequest(new Proxy(protocol)) { Payload = requestPayload };
+        _ = sut.Server.AcceptRequestsAsync();
+
+        // Act
+        await sut.Client.SendRequestAsync(request);
+
+        // Assert
+        Assert.Multiple(async () =>
+        {
+            Assert.That(await requestPayload.CompleteCalled, Is.True);
+            Assert.That(await responsePayload.CompleteCalled, Is.True);
+        });
+    }
+
+    [Test, TestCaseSource(nameof(InvalidRequestsAndResponses))]
+    public async Task Payload_completed_on_request_or_response_failure(
+        string name,
+        Protocol protocol,
+        OutgoingRequest request,
+        IDispatcher dispatcher,
+        PayloadPipeReaderDecorator payload,
+        Type exceptionType)
+    {
+        // Arrange
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .BuildServiceProvider();
+        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        _ = sut.Server.AcceptRequestsAsync();
+
+        // Act
+        Task<IncomingResponse> sendRequestTask = sut.Client.SendRequestAsync(request);
+
+        // Assert
+        Assert.Multiple(async () =>
+        {
+            Type? type = Assert.CatchAsync(() => sendRequestTask)?.GetType();
+            Assert.That(type, Is.EqualTo(exceptionType));
+            Assert.That(await payload.CompleteCalled, Is.True);
+        });
+    }
+
+    public sealed class PayloadPipeReaderDecorator : PipeReader
+    {
+        internal Task<bool> CompleteCalled => _completeCalled.Task;
+
+        private readonly PipeReader _decoratee;
+        private readonly TaskCompletionSource<bool> _completeCalled =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public override void AdvanceTo(SequencePosition consumed) => _decoratee.AdvanceTo(consumed);
+
+        public override void AdvanceTo(SequencePosition consumed, SequencePosition examined) =>
+            _decoratee.AdvanceTo(consumed, examined);
+
+        public override void CancelPendingRead() => _decoratee.CancelPendingRead();
+
+        public override void Complete(Exception? exception = null)
+        {
+            _completeCalled.SetResult(true);
+            _decoratee.Complete(exception);
+        }
+
+        public override ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default) =>
+            _decoratee.ReadAsync(cancellationToken);
+
+        public override bool TryRead(out ReadResult result) => _decoratee.TryRead(out result);
+
+        internal PayloadPipeReaderDecorator(PipeReader decoratee) => _decoratee = decoratee;
     }
 }
 
