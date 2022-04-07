@@ -181,7 +181,7 @@ public abstract class MultiplexedTransportConformanceTests
 
     [Test]
     public async Task Max_bidirectional_stream_stress_test(
-        [Values(256, 1024)] int maxStreamCount,
+        [Values(32, 128)] int maxStreamCount,
         [Values(32, 64)] int segments,
         [Values(32 * 1024, 64 * 1024)] int payloadSize)
     {
@@ -205,7 +205,11 @@ public abstract class MultiplexedTransportConformanceTests
         for (int i = 0; i < maxStreamCount * 10; ++i)
         {
             tasks.Add(CreateStreamAsync(clientConnection));
-            tasks.Add(AcceptStreamAsync(serverConnection));
+        }
+
+        for (int i = 0; i < maxStreamCount * 10; ++i)
+        {
+            tasks.Add(AcceptStreamAsync(await serverConnection.AcceptStreamAsync(default)));
         }
 
         // Assert
@@ -235,9 +239,8 @@ public abstract class MultiplexedTransportConformanceTests
             await stream.Input.CompleteAsync();
         }
 
-        async Task AcceptStreamAsync(IMultiplexedNetworkConnection connection)
+        async Task AcceptStreamAsync(IMultiplexedStream stream)
         {
-            IMultiplexedStream stream = await connection.AcceptStreamAsync(default);
             ReadResult readResult = await stream.Input.ReadAsync();
             stream.Input.AdvanceTo(readResult.Buffer.GetPosition(1));
 
