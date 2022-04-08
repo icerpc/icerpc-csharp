@@ -72,7 +72,8 @@ namespace IceRpc
         public Protocol Protocol => _serverEndpoint?.Protocol ?? _options.RemoteEndpoint?.Protocol ??
             throw new InvalidOperationException($"cannot access Protocol before configuring {nameof(Endpoint)}");
 
-        /// <summary>The connection's remote endpoint.</summary>
+        /// <summary>The connection's endpoint. For a client connection this is the connection remote endpoint,
+        /// for a server connection it is the listener local endpoint.</summary>
         public Endpoint Endpoint => _serverEndpoint ?? _options?.RemoteEndpoint ??
             throw new InvalidOperationException($"{nameof(Endpoint)} is not configured");
 
@@ -125,7 +126,7 @@ namespace IceRpc
 
         /// <summary>Constructs a client connection with the specified remote endpoint and  authentication options.
         /// All other properties have their default values.</summary>
-        /// <param name="endpoint">The remote endpoint.</param>
+        /// <param name="endpoint">The connection remote endpoint.</param>
         /// <param name="authenticationOptions">The client authentication options.</param>
         public Connection(Endpoint endpoint, SslClientAuthenticationOptions? authenticationOptions = null)
             : this(new ConnectionOptions
