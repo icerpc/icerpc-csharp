@@ -67,7 +67,7 @@ public abstract class SimpleTransportConformanceTests
 
         Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
         await clientConnection.ConnectAsync(default);
-        ISimpleNetworkConnection serverConnection = await acceptTask;
+        await using ISimpleNetworkConnection serverConnection = await acceptTask;
         var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1024 * 1024] };
         using var canceled = new CancellationTokenSource();
         // Write completes as soon as the data is copied to the socket buffer, the test relies on the calls
@@ -85,6 +85,47 @@ public abstract class SimpleTransportConformanceTests
 
         // Assert
         Assert.That(async () => await writeTask, Throws.TypeOf<OperationCanceledException>());
+    }
+
+    /// <summary>Write data until the transport flow control start blocking, at this point we start
+    /// a read task and ensure that this unblocks the pending write calls.</summary>
+    [Test]
+    public async Task Flow_control()
+    {
+        var payload = new List<ReadOnlyMemory<byte>>() { new byte[1024 * 1024] };
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
+        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
+        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
+
+        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
+        await clientConnection.ConnectAsync(default);
+        await using ISimpleNetworkConnection serverConnection = await acceptTask;
+
+        int writtenSize = 0;
+        Task writeTask;
+        do
+        {
+            writtenSize += payload[0].Length;
+            writeTask = clientConnection.WriteAsync(payload, default).AsTask();
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
+        }
+        while (writeTask.IsCompleted);
+
+        // Act
+        Task readTask = ReadAsync(serverConnection, writtenSize);
+
+        // Assert
+        Assert.That(async () => await writeTask, Throws.Nothing);
+        Assert.That(async () => await readTask, Throws.Nothing);
+
+        async Task ReadAsync(ISimpleNetworkConnection connection, int size)
+        {
+            var buffer = new byte[1024];
+            while (size > 0)
+            {
+                size -= await connection.ReadAsync(buffer, default);
+            }
+        }
     }
 
     [Test]
