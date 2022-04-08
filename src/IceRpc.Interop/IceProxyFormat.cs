@@ -20,7 +20,7 @@ namespace IceRpc
         /// character names in the resulting string: \\unnnn for BMP characters and \\Unnnnnnnn for non-BMP characters.
         /// Non-printable ASCII characters with ordinal values 127 and below are encoded as \\t, \\n (etc.)
         /// or \\unnnn. This is an optional format introduced in Ice 3.7.</summary>
-        public static IceProxyFormat ASCII { get; } = new(EscapeMode.ASCII);
+        public static IceProxyFormat ASCII { get; } = new(EscapeMode.Ascii);
 
         /// <summary>With this format, characters with ordinal values greater than 127 are encoded as a sequence of
         /// UTF-8 bytes using octal escapes. Characters with ordinal values 127 and below are encoded as \\t, \\n (etc.)

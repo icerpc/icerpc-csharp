@@ -12,8 +12,8 @@ unchecked enum TransportCode : short
     Uri = 0,
 
     /// TCP transport.
-    TCP = 1,
+    Tcp = 1,
 
     /// SSL transport.
-    SSL = 2,
+    Ssl = 2,
 }

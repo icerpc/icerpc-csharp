@@ -52,19 +52,15 @@ namespace IceRpc.Slice
         /// <summary>Constructs a remote exception using a decoder.</summary>
         /// <param name="decoder">The decoder.</param>
         protected RemoteException(ref SliceDecoder decoder)
-            : base(decoder.Encoding == SliceEncoding.Slice11 ? null : decoder.DecodeString())
+            : base(decoder.Encoding == SliceEncoding.Slice1 ? null : decoder.DecodeString())
         {
-            _hasCustomMessage = decoder.Encoding != SliceEncoding.Slice11;
+            _hasCustomMessage = decoder.Encoding != SliceEncoding.Slice1;
             ConvertToUnhandled = true;
         }
 
         /// <summary>Decodes a remote exception.</summary>
         /// <param name="decoder">The Slice decoder.</param>
         protected abstract void DecodeCore(ref SliceDecoder decoder);
-
-        /// <summary>Encodes a remote exception.</summary>
-        /// <param name="encoder">The Slice encoder.</param>
-        protected abstract void EncodeCore(ref SliceEncoder encoder);
 
         internal void Decode(ref SliceDecoder decoder) => DecodeCore(ref decoder);
     }

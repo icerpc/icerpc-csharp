@@ -73,7 +73,7 @@ namespace IceRpc
 
         internal static void RestoreActivityContext(ReadOnlySequence<byte> buffer, Activity activity)
         {
-            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice20);
+            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
 
             // Read W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,
             // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
