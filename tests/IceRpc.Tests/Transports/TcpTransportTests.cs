@@ -127,16 +127,6 @@ public class TcpTransportTests
         }
     }
 
-    /// <summary>Verifies that client connection using IPv6 address uses a dual mode socket.</summary>
-    [Test]
-    public async Task Client_connection_uses_dual_mode_socket()
-    {
-        await using TcpClientNetworkConnection? connection = CreateTcpClientConnection(
-            new Endpoint(Protocol.IceRpc) { Host = "::1" });
-
-        Assert.That(connection.Socket.DualMode, Is.True);
-    }
-
     /// <summary>Verifies that setting the <see cref="TcpClientTransportOptions.LocalEndPoint"/> properties, sets
     /// the socket local endpoint.</summary>
     [Test]
@@ -379,22 +369,6 @@ public class TcpTransportTests
 
         // Assert
         Assert.That(async () => await readTask, Throws.InstanceOf<ConnectionLostException>());
-    }
-
-    /// <summary>Verifies that a server can accept connections from IPv4 mapped addresses.</summary>
-    [Test]
-    public async Task Server_accepts_incoming_connections_from_ipv4_mapped_addresses()
-    {
-        // Arrange
-        await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
-            endpoint: new Endpoint(Protocol.IceRpc) { Host = "::0", Port = 0 });
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-
-        await using TcpClientNetworkConnection clientConnection =
-            CreateTcpClientConnection(listener.Endpoint with { Host = "::FFFF:127.0.0.1" });
-
-        // Act/Assert
-        Assert.That(() => clientConnection.ConnectAsync(default), Throws.Nothing);
     }
 
     /// <summary>Verifies that the client connect call on a tls connection fails with
