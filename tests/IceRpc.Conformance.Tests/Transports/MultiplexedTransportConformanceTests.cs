@@ -26,7 +26,7 @@ public abstract class MultiplexedTransportConformanceTests
         await using IMultiplexedNetworkConnection serverConnection =
             await provider.AcceptConnectionAsync(clientConnection);
 
-        (IMultiplexedStream localStream, IMultiplexedStream remoteStream) = await CreateAndAcceptStream(
+        (IMultiplexedStream localStream, IMultiplexedStream remoteStream) = await CreateAndAcceptStreamAsync(
             (serverInitiated ? clientConnection : serverConnection),
             (serverInitiated ? serverConnection : clientConnection),
             true);
@@ -421,7 +421,7 @@ public abstract class MultiplexedTransportConformanceTests
         await using IMultiplexedNetworkConnection serverConnection =
             await provider.AcceptConnectionAsync(clientConnection);
 
-        var sut = await CreateAndAcceptStream(serverConnection, clientConnection, true);
+        var sut = await CreateAndAcceptStreamAsync(serverConnection, clientConnection, true);
 
         // Act
         await sut.RemoteStream.Input.CompleteAsync(new MultiplexedStreamAbortedException(error: errorCode));
@@ -451,7 +451,7 @@ public abstract class MultiplexedTransportConformanceTests
         await using IMultiplexedNetworkConnection serverConnection =
             await provider.AcceptConnectionAsync(clientConnection);
 
-        var sut = await CreateAndAcceptStream(serverConnection, clientConnection, true);
+        var sut = await CreateAndAcceptStreamAsync(serverConnection, clientConnection, true);
 
         // Act
         await sut.LocalStream.Output.CompleteAsync(new MultiplexedStreamAbortedException(error: errorCode));
@@ -492,7 +492,7 @@ public abstract class MultiplexedTransportConformanceTests
 
         for (int i = 0; i < streams; ++i)
         {
-            var sut = await CreateAndAcceptStream(serverConnection, clientConnection, true);
+            var sut = await CreateAndAcceptStreamAsync(serverConnection, clientConnection, true);
             clientStreams[i] = sut.LocalStream;
             serverStreams[i] = sut.RemoteStream;
         }
@@ -580,7 +580,7 @@ public abstract class MultiplexedTransportConformanceTests
         await using IMultiplexedNetworkConnection serverConnection =
             await provider.AcceptConnectionAsync(clientConnection);
 
-        var sut = await CreateAndAcceptStream(serverConnection, clientConnection, true);
+        var sut = await CreateAndAcceptStreamAsync(serverConnection, clientConnection, true);
         await sut.RemoteStream.Output.CompleteAsync();
 
         byte[] payloadData = Enumerable.Range(0, payloadSize).Select(i => (byte)(i % 256)).ToArray();
@@ -638,7 +638,7 @@ public abstract class MultiplexedTransportConformanceTests
         await using IMultiplexedNetworkConnection serverConnection =
             await provider.AcceptConnectionAsync(clientConnection);
 
-        var sut = await CreateAndAcceptStream(serverConnection, clientConnection, true);
+        var sut = await CreateAndAcceptStreamAsync(serverConnection, clientConnection, true);
         await sut.LocalStream.Input.CompleteAsync();
         await sut.RemoteStream.Output.CompleteAsync();
 
@@ -738,7 +738,7 @@ public abstract class MultiplexedTransportConformanceTests
     /// <summary>Creates the service collection used for multiplexed transport conformance tests.</summary>
     protected abstract ServiceCollection CreateServiceCollection();
 
-    private static async Task<(IMultiplexedStream LocalStream, IMultiplexedStream RemoteStream)> CreateAndAcceptStream(
+    private static async Task<(IMultiplexedStream LocalStream, IMultiplexedStream RemoteStream)> CreateAndAcceptStreamAsync(
         IMultiplexedNetworkConnection remoteConnection,
         IMultiplexedNetworkConnection localConnection,
         bool bidirectional)
