@@ -57,8 +57,6 @@ namespace IceRpc.Tests.Internal
                 "retrying request because of retryable exception",
                 request.Proxy.Path,
                 request.Operation,
-                connection.NetworkConnectionInformation!.Value.LocalEndpoint,
-                connection.NetworkConnectionInformation!.Value.RemoteEndpoint,
                 exception: null);
 
             Assert.That(entry.State["RetryPolicy"], Is.EqualTo(policy));
@@ -76,34 +74,15 @@ namespace IceRpc.Tests.Internal
             string messagePrefix,
             string path,
             string operation,
-            Endpoint localEndpoint,
-            Endpoint remoteEndpoint,
             Exception? exception = null)
         {
             Assert.That(entry.EventId.Id, Is.EqualTo(eventId));
             Assert.That(entry.LogLevel, Is.EqualTo(level));
-            Assert.That(entry.State["LocalEndpoint"], Is.EqualTo(localEndpoint.ToString()));
-            Assert.That(entry.State["RemoteEndpoint"], Is.EqualTo(remoteEndpoint.ToString()));
             Assert.That(entry.State["Path"], Is.EqualTo(path));
             Assert.That(entry.State["Operation"], Is.EqualTo(operation));
             Assert.That(entry.Message, Does.StartWith(messagePrefix));
             Assert.That(entry.Exception, Is.EqualTo(exception));
         }
-
-        private static IncomingRequest CreateIncomingRequest(Connection connection, bool twoway) =>
-            new(connection.Protocol)
-            {
-                Connection = connection,
-                IsOneway = !twoway,
-                Path = "/dummy",
-                Operation = "foo",
-                Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
-            };
-
-        private static IncomingResponse CreateIncomingResponse(OutgoingRequest request) => new(request)
-        {
-            Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[10]))
-        };
 
         private static OutgoingRequest CreateOutgoingRequest(Connection connection, bool twoway) =>
             new(new Proxy(connection.Protocol) { Path = "/dummy" })

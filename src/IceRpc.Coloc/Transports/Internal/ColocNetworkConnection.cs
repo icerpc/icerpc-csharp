@@ -17,8 +17,16 @@ namespace IceRpc.Transports.Internal
         private int _state;
         private readonly PipeWriter _writer;
 
-        public Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel) =>
-            Task.FromResult(new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null));
+        public Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
+        {
+            var colocEndpoint = new ColocEndpoint(_endpoint);
+            return Task.FromResult(new NetworkConnectionInformation(
+                _endpoint.Protocol,
+                colocEndpoint,
+                colocEndpoint,
+                TimeSpan.MaxValue,
+                null));
+        }
 
         public async ValueTask DisposeAsync()
         {

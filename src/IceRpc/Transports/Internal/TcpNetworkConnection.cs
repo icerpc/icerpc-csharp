@@ -282,15 +282,10 @@ namespace IceRpc.Transports.Internal
                         cancel).WaitAsync(cancel).ConfigureAwait(false);
                 }
 
-                var ipEndPoint = (IPEndPoint)Socket.LocalEndPoint!;
-
                 return new NetworkConnectionInformation(
-                    localEndpoint: remoteEndpoint with
-                    {
-                        Host = ipEndPoint.Address.ToString(),
-                        Port = checked((ushort)ipEndPoint.Port)
-                    },
-                    remoteEndpoint: remoteEndpoint,
+                    applicationProtocol: remoteEndpoint.Protocol,
+                    localEndpoint: Socket.LocalEndPoint!,
+                    remoteEndpoint: Socket.RemoteEndPoint!,
                     _idleTimeout,
                     _sslStream?.RemoteCertificate);
             }
@@ -401,13 +396,9 @@ namespace IceRpc.Transports.Internal
                 var ipEndPoint = (IPEndPoint)Socket.RemoteEndPoint!;
 
                 return new NetworkConnectionInformation(
-                    localEndpoint: _localEndpoint,
-                    remoteEndpoint: _localEndpoint with
-                    {
-                        Host = ipEndPoint.Address.ToString(),
-                        Port = checked((ushort)ipEndPoint.Port),
-                        Params = _localEndpoint.Params
-                    },
+                    _localEndpoint.Protocol,
+                    localEndpoint: Socket.LocalEndPoint!,
+                    remoteEndpoint: Socket.RemoteEndPoint!,
                     _idleTimeout,
                     _sslStream?.RemoteCertificate);
             }

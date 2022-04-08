@@ -27,7 +27,7 @@ namespace IceRpc.Internal
                 isServer,
                 cancel).ConfigureAwait(false);
 
-            _logger.LogCreateProtocolConnection(connectionInformation.LocalEndpoint.Protocol,
+            _logger.LogCreateProtocolConnection(connectionInformation.ApplicationProtocol,
                                                 connectionInformation.LocalEndpoint,
                                                 connectionInformation.RemoteEndpoint);
 

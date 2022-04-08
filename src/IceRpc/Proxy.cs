@@ -211,8 +211,7 @@ namespace IceRpc
         private string _path = "/";
 
         /// <summary>Creates a proxy from a connection and a path.</summary>
-        /// <param name="connection">The connection of the new proxy. If it's a client connection, the endpoint of the
-        /// new proxy is <see cref="Connection.RemoteEndpoint"/>; otherwise, the new proxy has no endpoint.</param>
+        /// <param name="connection">The connection of the new proxy.</param>
         /// <param name="path">The path of the proxy.</param>
         /// <param name="invoker">The invoker of the new proxy.</param>
         /// <returns>The new proxy.</returns>

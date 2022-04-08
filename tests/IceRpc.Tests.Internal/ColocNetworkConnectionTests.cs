@@ -34,8 +34,12 @@ namespace IceRpc.Tests.Internal
 
             NetworkConnectionInformation information = await connection.ConnectAsync(default);
 
-            Assert.That(information.LocalEndpoint, Is.EqualTo(Endpoint.FromString("icerpc://host?transport=coloc")));
-            Assert.That(information.RemoteEndpoint, Is.EqualTo(Endpoint.FromString("icerpc://host?transport=coloc")));
+            Assert.That(
+                information.LocalEndpoint.ToString(),
+                Is.EqualTo(Endpoint.FromString("icerpc://host?transport=coloc").ToString()));
+            Assert.That(
+                information.RemoteEndpoint.ToString(),
+                Is.EqualTo(Endpoint.FromString("icerpc://host?transport=coloc").ToString()));
             Assert.That(information.IdleTimeout, Is.EqualTo(TimeSpan.MaxValue));
         }
 

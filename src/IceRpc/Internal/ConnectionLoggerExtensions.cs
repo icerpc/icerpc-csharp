@@ -2,14 +2,15 @@
 
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
+using System.Net;
 
 namespace IceRpc.Internal
 {
     /// <summary>This class provides ILogger extension methods for connection-related messages.</summary>
     internal static partial class ConnectionLoggerExtensions
     {
-        private static readonly Func<ILogger, Endpoint, Endpoint, IDisposable> _clientConnectionScope =
-            LoggerMessage.DefineScope<Endpoint, Endpoint>(
+        private static readonly Func<ILogger, EndPoint, EndPoint, IDisposable> _clientConnectionScope =
+            LoggerMessage.DefineScope<EndPoint, EndPoint>(
                 "ClientConnection(LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint})");
 
         private static readonly Func<ILogger, Endpoint, IDisposable> _newClientConnectionScope =
@@ -30,8 +31,8 @@ namespace IceRpc.Internal
             LoggerMessage.DefineScope<string, string, ResultType>(
                 "SendResponse(Path={Path}, Operation={Operation}, ResultType={ResultType})");
 
-        private static readonly Func<ILogger, Endpoint, Endpoint, IDisposable> _serverConnectionScope =
-            LoggerMessage.DefineScope<Endpoint, Endpoint>(
+        private static readonly Func<ILogger, EndPoint, EndPoint, IDisposable> _serverConnectionScope =
+            LoggerMessage.DefineScope<EndPoint, EndPoint>(
                 "ServerConnection(LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint})");
 
         [LoggerMessage(
@@ -57,8 +58,8 @@ namespace IceRpc.Internal
         internal static partial void LogCreateProtocolConnection(
             this ILogger logger,
             Protocol protocol,
-            Endpoint localEndpoint,
-            Endpoint remoteEndpoint);
+            EndPoint localEndpoint,
+            EndPoint remoteEndpoint);
 
         [LoggerMessage(
             EventId = (int)ConnectionEventIds.Ping,

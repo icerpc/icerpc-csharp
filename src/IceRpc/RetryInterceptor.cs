@@ -140,12 +140,12 @@ namespace IceRpc
                         if (request.Connection != null && retryPolicy == RetryPolicy.OtherReplica)
                         {
                             // Filter-out the remote endpoint
-                            if (endpointSelection.Endpoint == request.Connection.RemoteEndpoint)
+                            if (endpointSelection.Endpoint == request.Connection.Endpoint)
                             {
                                 endpointSelection.Endpoint = null;
                             }
                             endpointSelection.AltEndpoints = endpointSelection.AltEndpoints.Where(
-                                e => e != request.Connection.RemoteEndpoint).ToList();
+                                e => e != request.Connection.Endpoint).ToList();
 
                             if (endpointSelection.Endpoint == null && endpointSelection.AltEndpoints.Any())
                             {

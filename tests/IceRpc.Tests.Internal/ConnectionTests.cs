@@ -7,6 +7,7 @@ using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
+using System.Net;
 using System.Net.Security;
 
 namespace IceRpc.Tests.Internal
@@ -131,17 +132,27 @@ namespace IceRpc.Tests.Internal
             serviceCollection.UseEndpoint(transport, host: "127.0.0.1", port: 0);
             await using var factory = new ConnectionFactory(serviceCollection);
 
-            NetworkConnectionInformation? clientInformation = factory.ClientConnection.NetworkConnectionInformation;
-            Assert.That(clientInformation, Is.Not.Null);
+            
+            Assert.That(factory.ClientConnection.NetworkConnectionInformation, Is.Not.Null);
+            NetworkConnectionInformation clientInformation = factory.ClientConnection.NetworkConnectionInformation.Value;
 
-            NetworkConnectionInformation? serverInformation = factory.ServerConnection.NetworkConnectionInformation;
-            Assert.That(serverInformation, Is.Not.Null);
+            Assert.That(factory.ServerConnection.NetworkConnectionInformation, Is.Not.Null);
+            NetworkConnectionInformation serverInformation = factory.ServerConnection.NetworkConnectionInformation.Value;
 
-            Assert.That(clientInformation?.LocalEndpoint.Host, Is.EqualTo("127.0.0.1"));
-            Assert.That(clientInformation?.RemoteEndpoint.Host, Is.EqualTo("127.0.0.1"));
-            Assert.That(clientInformation?.RemoteEndpoint!.Port, Is.EqualTo(serverInformation?.LocalEndpoint!.Port));
-            Assert.That(clientInformation?.LocalEndpoint!.Port, Is.EqualTo(serverInformation?.RemoteEndpoint!.Port));
-            Assert.That(clientInformation?.RemoteEndpoint!.Host, Is.EqualTo("127.0.0.1"));
+            var clientLocalIPEndpoint = (IPEndPoint)clientInformation.LocalEndpoint;
+            var clientRemoteIPEndpoint = (IPEndPoint)clientInformation.RemoteEndpoint;
+
+            var serverLocalIPEndpoint = (IPEndPoint)serverInformation.LocalEndpoint;
+            var serverRemoteIPEndpoint = (IPEndPoint)serverInformation.RemoteEndpoint;
+
+            Assert.That(clientLocalIPEndpoint.Address, Is.EqualTo(IPAddress.Loopback));
+            Assert.That(clientRemoteIPEndpoint.Address, Is.EqualTo(IPAddress.Loopback));
+
+            Assert.That(serverLocalIPEndpoint.Address, Is.EqualTo(IPAddress.Loopback));
+            Assert.That(serverRemoteIPEndpoint.Address, Is.EqualTo(IPAddress.Loopback));
+
+            Assert.That(clientRemoteIPEndpoint.Port, Is.EqualTo(serverLocalIPEndpoint.Port));
+            Assert.That(clientLocalIPEndpoint.Port, Is.EqualTo(serverRemoteIPEndpoint.Port));
         }
 
         [TestCase("ice")]
@@ -562,8 +573,8 @@ namespace IceRpc.Tests.Internal
                     };
 
                     var connection = new Connection(
+                        listener.Endpoint,
                         networkConnection,
-                        listener.Endpoint.Protocol,
                         serverConnectionOptions);
 
                     await connection.ConnectAsync<T>(
