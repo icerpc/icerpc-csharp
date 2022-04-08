@@ -20,6 +20,6 @@ public class TcpTransportServiceCollection : SimpleTransportServiceCollection
 [Parallelizable(ParallelScope.All)]
 public class TcpTransportConformanceTests : SimpleTransportConformanceTests
 {
-    public override ServiceCollection CreateServiceCollection() =>
+    protected override ServiceCollection CreateServiceCollection() =>
         new TcpTransportServiceCollection();
 }

@@ -12,7 +12,7 @@ namespace IceRpc.Transports.Tests;
 public class SlicConformanceTests : MultiplexedTransportConformanceTests
 {
     /// <summary>Creates the service collection used for Slic multiplexed transports for conformance testing.</summary>
-    public override ServiceCollection CreateServiceCollection() => new SlicServiceCollection();
+    protected override ServiceCollection CreateServiceCollection() => new SlicServiceCollection();
 }
 
 public class SlicServiceCollection : ServiceCollection
@@ -26,10 +26,13 @@ public class SlicServiceCollection : ServiceCollection
             var colocTransport = provider.GetRequiredService<ColocTransport>();
             var serverOptions = new SlicServerTransportOptions();
             var multiplexedTransportOptions = provider.GetRequiredService<MultiplexedTransportOptions>();
-            if (multiplexedTransportOptions != null)
+            if (multiplexedTransportOptions.BidirectionalStreamMaxCount is int bidirectionalStreamMaxCount)
             {
-                serverOptions.BidirectionalStreamMaxCount = multiplexedTransportOptions.BidirectionalStreamMaxCount;
-                serverOptions.UnidirectionalStreamMaxCount = multiplexedTransportOptions.UnidirectionalStreamMaxCount;
+                serverOptions.BidirectionalStreamMaxCount = bidirectionalStreamMaxCount;
+            }
+            if (multiplexedTransportOptions.UnidirectionalStreamMaxCount is int unidirectionalStreamMaxCount)
+            {
+                serverOptions.UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount;
             }
             serverOptions.SimpleServerTransport = colocTransport.ServerTransport;
             return new SlicServerTransport(serverOptions);
@@ -40,10 +43,13 @@ public class SlicServiceCollection : ServiceCollection
             var colocTransport = provider.GetRequiredService<ColocTransport>();
             var clientOptions = new SlicClientTransportOptions();
             var multiplexedTransportOptions = provider.GetRequiredService<MultiplexedTransportOptions>();
-            if (multiplexedTransportOptions != null)
+            if (multiplexedTransportOptions.BidirectionalStreamMaxCount is int bidirectionalStreamMaxCount)
             {
-                clientOptions.BidirectionalStreamMaxCount = multiplexedTransportOptions.BidirectionalStreamMaxCount;
-                clientOptions.UnidirectionalStreamMaxCount = multiplexedTransportOptions.UnidirectionalStreamMaxCount;
+                clientOptions.BidirectionalStreamMaxCount = bidirectionalStreamMaxCount;
+            }
+            if (multiplexedTransportOptions.UnidirectionalStreamMaxCount is int unidirectionalStreamMaxCount)
+            {
+                clientOptions.UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount;
             }
             clientOptions.SimpleClientTransport = colocTransport.ClientTransport;
             return new SlicClientTransport(clientOptions);
@@ -58,6 +64,6 @@ public class SlicServiceCollection : ServiceCollection
                 NullLogger.Instance);
         });
 
-        this.AddScoped(_ => new MultiplexedTransportOptions());
+        this.UseTransportOptions();
     }
 }

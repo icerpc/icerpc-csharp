@@ -21,6 +21,6 @@ public class ColocTransportServiceCollection : SimpleTransportServiceCollection
 [Parallelizable(ParallelScope.All)]
 public class ColocTransportConformanceTests : SimpleTransportConformanceTests
 {
-    public override ServiceCollection CreateServiceCollection() =>
+    protected override ServiceCollection CreateServiceCollection() =>
         new ColocTransportServiceCollection();
 }

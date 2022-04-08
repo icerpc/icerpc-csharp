@@ -45,8 +45,6 @@ public abstract class SimpleTransportConformanceTests
         ISimpleNetworkConnection serverConnection = await acceptTask;
         var buffer = new Memory<byte>(new byte[1]);
         using var canceled = new CancellationTokenSource();
-        // Write completes as soon as the data is copied to the socket buffer, the test relies on the calls
-        // not completing synchronously to be able to cancel them.
         Task readTask = clientConnection.ReadAsync(buffer, canceled.Token).AsTask();
         await Task.Delay(TimeSpan.FromMilliseconds(10));
 
@@ -88,9 +86,6 @@ public abstract class SimpleTransportConformanceTests
         // Assert
         Assert.That(async () => await writeTask, Throws.TypeOf<OperationCanceledException>());
     }
-
-    /// <summary>Creates the service collection used for the simple transport conformance tests.</summary>
-    public abstract ServiceCollection CreateServiceCollection();
 
     [Test]
     public async Task Listen_twice_on_the_same_address_fails_with_a_transport_exception()
@@ -288,6 +283,9 @@ public abstract class SimpleTransportConformanceTests
         Assert.CatchAsync<OperationCanceledException>(
             async () => await clientConnection.WriteAsync(buffer, new CancellationToken(canceled: true)));
     }
+
+    /// <summary>Creates the service collection used for the simple transport conformance tests.</summary>
+    protected abstract ServiceCollection CreateServiceCollection();
 }
 
 public class SimpleTransportServiceCollection : ServiceCollection
