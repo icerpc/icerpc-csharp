@@ -20,7 +20,7 @@ public class NumericTypesEncodingTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice20);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
 
         encoder.EncodeLong(value);
 
@@ -42,7 +42,7 @@ public class NumericTypesEncodingTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice20);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
 
         encoder.EncodeVarLong(value);
 
@@ -64,7 +64,7 @@ public class NumericTypesEncodingTests
             // Arrange
             var buffer = new byte[256];
             var bufferWriter = new MemoryBufferWriter(buffer);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice20);
+            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
 
             // Act
             encoder.EncodeVarLong(value);
@@ -82,7 +82,7 @@ public class NumericTypesEncodingTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice20);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
 
         encoder.EncodeVarULong(value);
 
@@ -102,7 +102,7 @@ public class NumericTypesEncodingTests
         {
             var buffer = new byte[256];
             var bufferWriter = new MemoryBufferWriter(buffer);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice20);
+            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
 
             encoder.EncodeVarULong(value);
         }, Throws.InstanceOf<ArgumentOutOfRangeException>());
@@ -122,7 +122,7 @@ public class NumericTypesEncodingTests
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice11);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
 
         encoder.EncodeSize(size);
 

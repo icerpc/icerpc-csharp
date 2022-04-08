@@ -167,7 +167,7 @@ public sealed class TelemetryMiddlewareTests
 
             var buffer = new byte[1024];
             var bufferWriter = new MemoryBufferWriter(buffer);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice20);
+            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
 
             TelemetryInterceptor.WriteActivityContext(ref encoder, encodedActivity);
 

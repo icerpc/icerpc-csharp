@@ -1,7 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{
-    AttributeBuilder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType, EncodingBlockBuilder
+    AttributeBuilder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder, FunctionBuilder,
+    FunctionType,
 };
 use crate::code_block::CodeBlock;
 use crate::comments::doc_comment_message;
@@ -12,7 +13,7 @@ use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
 use slice::code_gen_util::TypeContext;
-use slice::grammar::{Exception, Member, Encoding, Type};
+use slice::grammar::{Encoding, Exception, Member, Type};
 use slice::visitor::Visitor;
 
 pub struct ExceptionVisitor<'a> {
@@ -90,10 +91,20 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
                 .add_parameter("ref SliceDecoder", "decoder", None, None)
                 .add_base_parameter("ref decoder")
                 .set_body(
-                    EncodingBlockBuilder::new("decoder.Encoding", &exception_name, exception_def.supported_encodings())
-                    .add_encoding_block(Encoding::Slice11, initialize_non_nullable_fields(&members, FieldType::Exception))
-                    .add_encoding_block(Encoding::Slice2, decode_data_members(&members, namespace, FieldType::Exception))
-                    .build()
+                    EncodingBlockBuilder::new(
+                        "decoder.Encoding",
+                        &exception_name,
+                        exception_def.supported_encodings(),
+                    )
+                    .add_encoding_block(
+                        Encoding::Slice11,
+                        initialize_non_nullable_fields(&members, FieldType::Exception),
+                    )
+                    .add_encoding_block(
+                        Encoding::Slice2,
+                        decode_data_members(&members, namespace, FieldType::Exception),
+                    )
+                    .build(),
                 )
                 .add_never_editor_browsable_attribute()
                 .build(),
@@ -147,14 +158,14 @@ fn encode_method(exception_def: &Exception) -> CodeBlock {
 
     let body = CodeBlock::from(format!(
         r#"
-if (encoder.Encoding == SliceEncoding.Slice11)
+if (encoder.Encoding == SliceEncoding.Slice1)
 {{
     throw new InvalidOperationException("encoding an exception by its fields isn't supported with the 1.1 encoding");
 }}
 
 encoder.EncodeString(Message);
 {encode_data_members}
-encoder.EncodeVarInt(Slice20Definitions.TagEndMarker);
+encoder.EncodeVarInt(Slice2Definitions.TagEndMarker);
         "#,
         encode_data_members = &encode_data_members(members, namespace, FieldType::Exception),
     ));
@@ -169,21 +180,34 @@ encoder.EncodeVarInt(Slice20Definitions.TagEndMarker);
 }
 
 fn encode_trait_method(exception_def: &Exception) -> CodeBlock {
-    FunctionBuilder::new("public override", "void", "EncodeTrait", FunctionType::BlockBody)
-        .add_comment(
-            "summary",
-            "Encodes this exception as a trait, by encoding its Slice type ID followed by its fields.",
+    FunctionBuilder::new(
+        "public override",
+        "void",
+        "EncodeTrait",
+        FunctionType::BlockBody,
+    )
+    .add_comment(
+        "summary",
+        "Encodes this exception as a trait, by encoding its Slice type ID followed by its fields.",
+    )
+    .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
+    .set_body(
+        EncodingBlockBuilder::new(
+            "encoder.Encoding",
+            &exception_def.escape_identifier(),
+            exception_def.supported_encodings(),
         )
-        .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
-        .set_body(
-            EncodingBlockBuilder::new("encoder.Encoding", &exception_def.escape_identifier(), exception_def.supported_encodings())
-                .add_encoding_block(Encoding::Slice11, "this.EncodeCore(ref encoder);".into())
-                .add_encoding_block(Encoding::Slice2, "\
+        .add_encoding_block(Encoding::Slice11, "this.EncodeCore(ref encoder);".into())
+        .add_encoding_block(
+            Encoding::Slice2,
+            "\
 encoder.EncodeString(SliceTypeId);
-this.Encode(ref encoder);".into())
-                .build()
+this.Encode(ref encoder);"
+                .into(),
         )
-        .build()
+        .build(),
+    )
+    .build()
 }
 
 fn encode_core_method(exception_def: &Exception) -> CodeBlock {
@@ -193,7 +217,7 @@ fn encode_core_method(exception_def: &Exception) -> CodeBlock {
 
     let body = CodeBlock::from(format!(
         r#"
-System.Diagnostics.Debug.Assert(encoder.Encoding == SliceEncoding.Slice11);
+System.Diagnostics.Debug.Assert(encoder.Encoding == SliceEncoding.Slice1);
 encoder.StartSlice(SliceTypeId);
 {encode_data_members}
 encoder.EndSlice(lastSlice: {is_last_slice});

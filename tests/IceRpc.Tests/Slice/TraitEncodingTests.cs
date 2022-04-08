@@ -14,7 +14,7 @@ public sealed class TraitEncodingTests
     {
         // Arrange
         Memory<byte> buffer = new byte[1024];
-        var encoder = new SliceEncoder(new MemoryBufferWriter(buffer), SliceEncoding.Slice20);
+        var encoder = new SliceEncoder(new MemoryBufferWriter(buffer), SliceEncoding.Slice2);
         var traitStructB = new TraitStructB(97);
         traitStructB.EncodeTrait(ref encoder);
 
@@ -22,7 +22,7 @@ public sealed class TraitEncodingTests
         Assert.That(
             () => new SliceDecoder(
                 buffer,
-                SliceEncoding.Slice20,
+                SliceEncoding.Slice2,
                 activator: CreateActivator())
                 .DecodeTrait<IMyTraitA>(),
             Throws.TypeOf<InvalidDataException>());
@@ -34,11 +34,11 @@ public sealed class TraitEncodingTests
     public void Decoding_a_trait_as_a_struct()
     {
         Memory<byte> buffer = new byte[1024];
-        var encoder = new SliceEncoder(new MemoryBufferWriter(buffer), SliceEncoding.Slice20);
+        var encoder = new SliceEncoder(new MemoryBufferWriter(buffer), SliceEncoding.Slice2);
         encoder.EncodeString("::IceRpc::Slice::Tests::TraitStructB");
         var traitStructB1 = new TraitStructB(79);
         traitStructB1.Encode(ref encoder);
-        var decoder = new SliceDecoder(buffer, SliceEncoding.Slice20, activator: CreateActivator());
+        var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2, activator: CreateActivator());
 
         TraitStructB traitStructB2 = decoder.DecodeTrait<TraitStructB>();
 
@@ -51,8 +51,8 @@ public sealed class TraitEncodingTests
     public void Decoding_a_trait_as_an_interface()
     {
         Memory<byte> buffer = new byte[1024];
-        var encoder = new SliceEncoder(new MemoryBufferWriter(buffer), SliceEncoding.Slice20);
-        var decoder = new SliceDecoder(buffer, SliceEncoding.Slice20, activator: CreateActivator());
+        var encoder = new SliceEncoder(new MemoryBufferWriter(buffer), SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2, activator: CreateActivator());
         var tsa = new TraitStructA("Bar");
         encoder.EncodeString("::IceRpc::Slice::Tests::TraitStructA");
         tsa.Encode(ref encoder);
@@ -69,7 +69,7 @@ public sealed class TraitEncodingTests
     {
         // Arrange
         Memory<byte> buffer = new byte[1024];
-        var encoder = new SliceEncoder(new MemoryBufferWriter(buffer), SliceEncoding.Slice20);
+        var encoder = new SliceEncoder(new MemoryBufferWriter(buffer), SliceEncoding.Slice2);
         var traitStructB = new TraitStructB(42);
         encoder.EncodeString("::IceRpc::Slice::Tests::FakeTrait");
         traitStructB.Encode(ref encoder);
@@ -78,7 +78,7 @@ public sealed class TraitEncodingTests
         Assert.That(
             () => new SliceDecoder(
                 buffer,
-                SliceEncoding.Slice20,
+                SliceEncoding.Slice2,
                 activator: CreateActivator())
                 .DecodeTrait<IMyTraitB>(),
             Throws.TypeOf<InvalidDataException>());
@@ -89,8 +89,8 @@ public sealed class TraitEncodingTests
     public void Encoding_a_struct_as_a_trait()
     {
         Memory<byte> buffer = new byte[1024];
-        var encoder = new SliceEncoder(new MemoryBufferWriter(buffer), SliceEncoding.Slice20);
-        var decoder = new SliceDecoder(buffer, SliceEncoding.Slice20, activator: CreateActivator());
+        var encoder = new SliceEncoder(new MemoryBufferWriter(buffer), SliceEncoding.Slice2);
+        var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2, activator: CreateActivator());
         var traitStructA = new TraitStructA("Foo");
 
         traitStructA.EncodeTrait(ref encoder);

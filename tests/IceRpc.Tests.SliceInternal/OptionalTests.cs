@@ -17,11 +17,11 @@ namespace IceRpc.Tests.SliceInternal
             var myOptional = new MyOptional("str", prxStr == null ? null : ServicePrx.Parse(prxStr));
             var buffer = new byte[256];
 
-            EncodePayload(SliceEncoding.Slice20, myOptional);
-            Assert.That(myOptional, Is.EqualTo(DecodePayload(SliceEncoding.Slice20)));
+            EncodePayload(SliceEncoding.Slice2, myOptional);
+            Assert.That(myOptional, Is.EqualTo(DecodePayload(SliceEncoding.Slice2)));
 
-            EncodePayload(SliceEncoding.Slice11, myOptional);
-            Assert.That(myOptional, Is.EqualTo(DecodePayload(SliceEncoding.Slice11)));
+            EncodePayload(SliceEncoding.Slice1, myOptional);
+            Assert.That(myOptional, Is.EqualTo(DecodePayload(SliceEncoding.Slice1)));
 
             void EncodePayload(SliceEncoding encoding, MyOptional value)
             {

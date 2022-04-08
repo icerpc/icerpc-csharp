@@ -103,7 +103,7 @@ public class SequenceEncodingTests
     /// <param name="sizeLength">The number of bytes required to encode the sequence size.</param>
     [Test, TestCaseSource(nameof(EncodeStringSequenceDataSource))]
     public void Encode_string_sequence(
-        SliceEncoding encoding, 
+        SliceEncoding encoding,
         IEnumerable<string> value,
         byte[] expected,
         int sizeLength)
