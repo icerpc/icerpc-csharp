@@ -15,7 +15,6 @@ public abstract class MultiplexedTransportConformanceTests
 {
     private static readonly ReadOnlyMemory<byte> _oneBytePayload = new(new byte[] { 0xFF });
 
-
     /// <summary>Verifies that both peers can initiate and accept streams.</summary>
     /// <param name="serverInitiated">Whether the stream is initiated by the server or by the client.</param>
     /// <returns></returns>
@@ -27,12 +26,10 @@ public abstract class MultiplexedTransportConformanceTests
         await using IMultiplexedNetworkConnection serverConnection =
             await provider.AcceptConnectionAsync(clientConnection);
 
-        IMultiplexedStream localStream =
-            (serverInitiated ? serverConnection : clientConnection).CreateStream(true);
-        await localStream.Output.WriteAsync(_oneBytePayload, default);
-
-        IMultiplexedStream remoteStream =
-            await (serverInitiated ? clientConnection : serverConnection).AcceptStreamAsync(default);
+        (IMultiplexedStream localStream, IMultiplexedStream remoteStream) = await CreateAndAcceptStream(
+            (serverInitiated ? clientConnection : serverConnection),
+            (serverInitiated ? serverConnection : clientConnection),
+            true);
 
         Assert.That(localStream.Id, Is.EqualTo(remoteStream.Id));
 
@@ -424,24 +421,24 @@ public abstract class MultiplexedTransportConformanceTests
         await using IMultiplexedNetworkConnection serverConnection =
             await provider.AcceptConnectionAsync(clientConnection);
 
-        IMultiplexedStream clientStream = clientConnection.CreateStream(bidirectional: true);
-        _ = await clientStream.Output.WriteAsync(_oneBytePayload);
-        IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
+        var sut = await CreateAndAcceptStream(serverConnection, clientConnection, true);
 
         // Act
-        await serverStream.Input.CompleteAsync(new MultiplexedStreamAbortedException(error: errorCode));
+        await sut.RemoteStream.Input.CompleteAsync(new MultiplexedStreamAbortedException(error: errorCode));
 
         // Assert
-        await Task.Delay(TimeSpan.FromMilliseconds(50));
         MultiplexedStreamAbortedException ex = Assert.CatchAsync<MultiplexedStreamAbortedException>(
-            async () => await clientStream.Output.WriteAsync(_oneBytePayload));
+            async () =>
+            {
+                while (true)
+                {
+                    await sut.LocalStream.Output.WriteAsync(new byte[1024]);
+                }
+            });
         Assert.That(ex.ErrorCode, Is.EqualTo(errorCode));
 
-         // Complete the pipe readers/writers to shutdown the stream.
-        await clientStream.Output.CompleteAsync();
-
-        await clientStream.Input.CompleteAsync();
-        await serverStream.Output.CompleteAsync();
+        // Complete the pipe readers/writers to shutdown the stream.
+        await CompleteStreamsAsync(sut);
     }
 
     [TestCase(100)]
@@ -454,25 +451,20 @@ public abstract class MultiplexedTransportConformanceTests
         await using IMultiplexedNetworkConnection serverConnection =
             await provider.AcceptConnectionAsync(clientConnection);
 
-        IMultiplexedStream clientStream = clientConnection.CreateStream(bidirectional: true);
-        _ = await clientStream.Output.WriteAsync(_oneBytePayload, default);
-        IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
+        var sut = await CreateAndAcceptStream(serverConnection, clientConnection, true);
 
         // Act
-        await clientStream.Output.CompleteAsync(new MultiplexedStreamAbortedException(error: errorCode));
+        await sut.LocalStream.Output.CompleteAsync(new MultiplexedStreamAbortedException(error: errorCode));
 
         // Assert
         // Wait for the peer to receive the StreamStopSending/StreamReset frame.
         await Task.Delay(TimeSpan.FromMilliseconds(50));
         MultiplexedStreamAbortedException ex = Assert.CatchAsync<MultiplexedStreamAbortedException>(
-            async () => await serverStream.Input.ReadAsync());
+            async () => await sut.RemoteStream.Input.ReadAsync());
         Assert.That(ex.ErrorCode, Is.EqualTo(errorCode));
 
         // Complete the pipe readers/writers to shutdown the stream.
-        await serverStream.Input.CompleteAsync();
-
-        await clientStream.Input.CompleteAsync();
-        await serverStream.Output.CompleteAsync();
+        await CompleteStreamsAsync(sut);
     }
 
     /// <summary>Verifies that we can read and write concurrently to multiple streams.</summary>
@@ -500,13 +492,9 @@ public abstract class MultiplexedTransportConformanceTests
 
         for (int i = 0; i < streams; ++i)
         {
-            IMultiplexedStream clientStream = clientConnection.CreateStream(bidirectional: true);
-            clientStreams[i] = clientStream;
-            _ = await clientStream.Output.WriteAsync(_oneBytePayload, default);
-            IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
-            serverStreams[i] = serverStream;
-            ReadResult readResult = await serverStream.Input.ReadAsync();
-            serverStream.Input.AdvanceTo(readResult.Buffer.End);
+            var sut = await CreateAndAcceptStream(serverConnection, clientConnection, true);
+            clientStreams[i] = sut.LocalStream;
+            serverStreams[i] = sut.RemoteStream;
         }
 
         byte[] payloadData = Enumerable.Range(0, payloadSize).Select(i => (byte)(i % 256)).ToArray();
@@ -546,6 +534,10 @@ public abstract class MultiplexedTransportConformanceTests
             {
                 // wait for delay
                 ReadResult result = await stream.Input.ReadAsync();
+                if (readDelay > 0)
+                {
+                    await Task.Delay(TimeSpan.FromMilliseconds(readDelay));
+                }
                 if (result.Buffer.Length == size)
                 {
                     byte[] buffer = result.Buffer.ToArray();
@@ -588,19 +580,15 @@ public abstract class MultiplexedTransportConformanceTests
         await using IMultiplexedNetworkConnection serverConnection =
             await provider.AcceptConnectionAsync(clientConnection);
 
-        IMultiplexedStream clientStream = clientConnection.CreateStream(bidirectional: true);
-        await clientStream.Input.CompleteAsync();
-        _ = await clientStream.Output.WriteAsync(_oneBytePayload, default);
-        IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
-        serverStream.Input.AdvanceTo((await serverStream.Input.ReadAsync()).Buffer.End);
-        await serverStream.Output.CompleteAsync();
+        var sut = await CreateAndAcceptStream(serverConnection, clientConnection, true);
+        await sut.RemoteStream.Output.CompleteAsync();
 
         byte[] payloadData = Enumerable.Range(0, payloadSize).Select(i => (byte)(i % 256)).ToArray();
         var payload = new ReadOnlyMemory<byte>(payloadData);
 
         // Act
-        Task writeTask = WriteAsync(clientStream, segments, payload);
-        Task<byte[]> readTask = ReadAsync(serverStream, payloadSize * segments);
+        Task writeTask = WriteAsync(sut.LocalStream, segments, payload);
+        Task<byte[]> readTask = ReadAsync(sut.RemoteStream, payloadSize * segments);
 
         // Assert
         await Task.WhenAll(writeTask, readTask);
@@ -650,24 +638,21 @@ public abstract class MultiplexedTransportConformanceTests
         await using IMultiplexedNetworkConnection serverConnection =
             await provider.AcceptConnectionAsync(clientConnection);
 
-        IMultiplexedStream clientStream = clientConnection.CreateStream(bidirectional: true);
-        await clientStream.Input.CompleteAsync();
-        _ = await clientStream.Output.WriteAsync(_oneBytePayload, default);
-        IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
-        serverStream.Input.AdvanceTo((await serverStream.Input.ReadAsync()).Buffer.End);
-        await serverStream.Output.CompleteAsync();
+        var sut = await CreateAndAcceptStream(serverConnection, clientConnection, true);
+        await sut.LocalStream.Input.CompleteAsync();
+        await sut.RemoteStream.Output.CompleteAsync();
 
-        Task writeTask = WriteAsync(clientStream);
-        ReadResult readResult = await serverStream.Input.ReadAsync();
-        serverStream.Input.AdvanceTo(readResult.Buffer.End);
+        Task writeTask = WriteAsync(sut.LocalStream);
+        ReadResult readResult = await sut.RemoteStream.Input.ReadAsync();
+        sut.RemoteStream.Input.AdvanceTo(readResult.Buffer.End);
 
         // Act
-        await serverStream.Input.CompleteAsync();
+        await sut.RemoteStream.Input.CompleteAsync();
 
         // Assert
         Assert.That(async () => await writeTask, Throws.Nothing);
 
-        async Task WriteAsync(IMultiplexedStream stream)
+        static async Task WriteAsync(IMultiplexedStream stream)
         {
             var payload = new ReadOnlyMemory<byte>(new byte[1024]);
             FlushResult flushResult = default;
@@ -752,6 +737,26 @@ public abstract class MultiplexedTransportConformanceTests
 
     /// <summary>Creates the service collection used for multiplexed transport conformance tests.</summary>
     protected abstract ServiceCollection CreateServiceCollection();
+
+    private static async Task<(IMultiplexedStream LocalStream, IMultiplexedStream RemoteStream)> CreateAndAcceptStream(
+        IMultiplexedNetworkConnection remoteConnection,
+        IMultiplexedNetworkConnection localConnection,
+        bool bidirectional)
+    {
+        IMultiplexedStream localStream = localConnection.CreateStream(bidirectional);
+        _ = await localStream.Output.WriteAsync(_oneBytePayload);
+        IMultiplexedStream remoteStream = await remoteConnection.AcceptStreamAsync(default);
+        ReadResult readResult = await remoteStream.Input.ReadAsync();
+        remoteStream.Input.AdvanceTo(readResult.Buffer.End);
+        return (localStream, remoteStream);
+    }
+
+    private static async Task CompleteStreamsAsync(
+        (IMultiplexedStream LocalStream, IMultiplexedStream RemoteStream) sut)
+    {
+        await CompleteStreamAsync(sut.LocalStream);
+        await CompleteStreamAsync(sut.RemoteStream);
+    }
 
     private static async Task<List<IMultiplexedStream>> CreateStreamsAsync(
         IMultiplexedNetworkConnection connection,
