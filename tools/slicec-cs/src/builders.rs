@@ -462,20 +462,48 @@ r#"if ({encoding_variable} != {encoding})
                 ).into()
             }
             _ => {
-                format!("\
-if ({encoding_variable} == SliceEncoding.Slice1)
-{{
-    {encoding_1}
-}}
-else // not 1.1
+                let mut encoding_1 = self.encoding_blocks[&Encoding::Slice11].clone();
+                let mut encoding_2 = self.encoding_blocks[&Encoding::Slice2].clone();
+
+                // Slice 1 case empty and Slice 2 case not empty
+                if encoding_1.is_empty() && encoding_2.is_empty() {
+                    "".into()
+                } else if encoding_1.is_empty() && !encoding_2.is_empty() {
+                    format!("\
+if ({encoding_variable} != SliceEncoding.Slice1) // Slice 2 encoding only
 {{
     {encoding_2}
 }}
 ",
-                    encoding_variable = self.encoding_variable,
-                    encoding_1 = self.encoding_blocks[&Encoding::Slice11].clone().indent(),
-                    encoding_2 = self.encoding_blocks[&Encoding::Slice2].clone().indent())
-                .into()
+                            encoding_variable = self.encoding_variable,
+                            encoding_2 = encoding_2.indent())
+                            .into()
+                } else if !encoding_1.is_empty() && encoding_2.is_empty() {
+                    format!("\
+if ({encoding_variable} == SliceEncoding.Slice1) // Slice 1 encoding only
+{{
+    {encoding_1}
+}}
+}}
+",                          encoding_variable = self.encoding_variable,
+                            encoding_1 = encoding_1.indent())
+                            .into()
+                } else {
+                    format!("\
+if ({encoding_variable} == SliceEncoding.Slice1)
+{{
+    {encoding_1}
+}}
+else // Slice 2 encoding
+{{
+    {encoding_2}
+}}
+",
+                            encoding_variable = self.encoding_variable,
+                            encoding_1 = encoding_1.indent(),
+                            encoding_2 = encoding_2.indent())
+                            .into()
+                }
             }
         }
     }
