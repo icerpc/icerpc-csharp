@@ -521,7 +521,7 @@ public abstract class MultiplexedTransportConformanceTests
     /// <param name="readDelay">Number of milliseconds to delay in the read operation.</param>
     /// <param name="writeDelay">Number of milliseconds to delay in the write operation.</param>
     /// <param name="streams">The number of streams to create.</param>
-    /// <param name="segments">The number of segment to write to each stream.</param>
+    /// <param name="segments">The number of segments to write to each stream.</param>
     /// <param name="payloadSize">The payload size to write with each write call.</param>
     [Test]
     public async Task Stream_full_duplex_communication(
