@@ -18,12 +18,6 @@ namespace IceRpc.Configure
                 throw new ArgumentException($"0 is not a valid value for {nameof(IdleTimeout)}", nameof(value));
         }
 
-        /// <summary>Configures an IPv6 socket to only support IPv6. The socket won't support IPv4 mapped addresses
-        /// when this property is set to <c>true</c>.</summary>
-        /// <value><c>true</c> to enable IPv6-only support, <c>false</c> to disable it. The default is <c>false</c>.
-        /// </value>
-        public bool IsIPv6Only { get; set; }
-
         /// <summary>Gets or sets the socket receive buffer size in bytes.</summary>
         /// <value>The receive buffer size in bytes. It can't be less than 1KB. <c>null</c> means use the operating
         /// system default.</value>

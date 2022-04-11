@@ -127,22 +127,6 @@ public class TcpTransportTests
         }
     }
 
-    /// <summary>Verifies that a dual mode socket is created when <see cref="TcpTransportOptions.IsIPv6Only"/> is set
-    /// to <c>true</c>.</summary>
-    /// <param name="ipv6only">The value for <see cref="TcpTransportOptions.IsIPv6Only"/>.</param>
-    [Test]
-    public async Task Configure_client_connection_is_ipv6_only([Values(true, false)] bool ipv6only)
-    {
-        await using TcpClientNetworkConnection? connection = CreateTcpClientConnection(
-            new Endpoint(Protocol.IceRpc) { Host = "::1" },
-            new TcpClientTransportOptions
-            {
-                IsIPv6Only = ipv6only
-            });
-
-        Assert.That(connection.Socket.DualMode, ipv6only ? Is.False : Is.True);
-    }
-
     /// <summary>Verifies that setting the <see cref="TcpClientTransportOptions.LocalEndPoint"/> properties, sets
     /// the socket local endpoint.</summary>
     [Test]
@@ -385,48 +369,6 @@ public class TcpTransportTests
 
         // Assert
         Assert.That(async () => await readTask, Throws.InstanceOf<ConnectionLostException>());
-    }
-
-    /// <summary>Verifies that a server connection created with <see cref="TcpTransportOptions.IsIPv6Only"/> set to
-    /// false creates a dual mode socket, and accepts connections from IPv4 mapped addresses.</summary>
-    [Test]
-    public async Task Server_connection_with_dual_mode_socket_accepts_incoming_connections_from_ipv4_mapped_addresses()
-    {
-        // Arrange
-        await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
-            endpoint: new Endpoint(Protocol.IceRpc) { Host = "::0", Port = 0 },
-            options: new TcpServerTransportOptions
-            {
-                IsIPv6Only = false
-            });
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-
-        await using TcpClientNetworkConnection clientConnection =
-            CreateTcpClientConnection(listener.Endpoint with { Host = "::FFFF:127.0.0.1" });
-
-        // Act/Assert
-        Assert.That(() => clientConnection.ConnectAsync(default), Throws.Nothing);
-    }
-
-    /// <summary>Verifies that a server connection created with <see cref="TcpTransportOptions.IsIPv6Only"/> set to
-    /// true does not create a dual mode socket, and does not accept connections from IPv4 mapped addresses.</summary>
-    [Test]
-    public async Task Server_connection_with_non_dual_mode_socket_does_not_accept_incoming_connections_from_ipv4_mapped_addresses()
-    {
-        // Arrange
-        await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
-            options: new TcpServerTransportOptions
-            {
-                IsIPv6Only = true
-            });
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-
-        await using TcpClientNetworkConnection clientConnection =
-            CreateTcpClientConnection(listener.Endpoint with { Host = "::FFFF:127.0.0.1" });
-
-        // Act/Assert
-        Assert.That(() => clientConnection.ConnectAsync(default),
-            Throws.TypeOf<ConnectionRefusedException>());
     }
 
     /// <summary>Verifies that the client connect call on a tls connection fails with

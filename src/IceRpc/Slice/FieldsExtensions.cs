@@ -21,6 +21,6 @@ namespace IceRpc.Slice
             TKey key,
             DecodeFunc<TValue> decodeFunc) where TKey : struct =>
             fields.TryGetValue(key, out ReadOnlySequence<byte> value) ?
-                SliceEncoding.Slice20.DecodeBuffer(value, decodeFunc) : default;
+                SliceEncoding.Slice2.DecodeBuffer(value, decodeFunc) : default;
     }
 }

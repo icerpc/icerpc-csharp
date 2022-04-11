@@ -7,7 +7,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 
-using static IceRpc.Slice.Internal.Slice11Definitions;
+using static IceRpc.Slice.Internal.Slice1Definitions;
 
 namespace IceRpc.Slice
 {
@@ -57,7 +57,7 @@ namespace IceRpc.Slice
         /// <param name="v">The dispatch exception to encode.</param>
         public void EncodeDispatchExceptionAsSystemException(DispatchException v)
         {
-            Debug.Assert(Encoding == SliceEncoding.Slice11);
+            Debug.Assert(Encoding == SliceEncoding.Slice1);
 
             DispatchErrorCode errorCode = v.ErrorCode;
 
@@ -96,7 +96,7 @@ namespace IceRpc.Slice
             // before the indirection table and are included in the slice size.
             if ((_classContext.Current.SliceFlags & SliceFlags.HasTaggedMembers) != 0)
             {
-                EncodeByte(Slice11Definitions.TagEndMarker);
+                EncodeByte(Slice1Definitions.TagEndMarker);
             }
 
             // Encodes the slice size if necessary.
