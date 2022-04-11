@@ -25,14 +25,15 @@ public sealed class ProtocolConformanceTests
             foreach (Protocol protocol in _protocols)
             {
                 yield return new TestCaseData(protocol, ConnectionType.Client);
-                yield return new TestCaseData(protocol, ConnectionType.Client);
+                yield return new TestCaseData(protocol, ConnectionType.Server);
             }
         }
     }
 
-    /// <summary>Provides test case data for the <see cref="Payload_completed_on_request_and_response"> test. The test
+    /// <summary>Provides test case data for the <see cref="Payload_completed_on_request_and_response"/> test. The test
     /// case data provides the outgoing request to send, the dipatcher to provide the response and the payload reader
-    /// decorator use to ensure <see cref="PipeReader.Complete"/> is called.
+    /// decorator used to ensure <see cref="PipeReader.Complete"/> is called. The test case test the completion of the
+    /// request/response payload and payload stream on a successful request or on various failure conditions.</summary>
     private static IEnumerable<TestCaseData> RequestsAndResponses
     {
         get
@@ -85,12 +86,10 @@ public sealed class ProtocolConformanceTests
                 yield return CreateRequestTestCase("invalid request payload", payload: InvalidPipeReader.Instance);
                 yield return CreateRequestTestCase("invalid request writer", writer: InvalidPayloadWriter);
 
-                if (HasPayloadStreamSupport(protocol))
-                {
-                    yield return CreateRequestTestCase(
-                        "invalid request payload stream",
-                        payloadStream: InvalidPipeReader.Instance);
-                }
+                yield return CreateRequestTestCase(
+                    "invalid request payload stream",
+                    payloadStream: InvalidPipeReader.Instance);
+
                 if (protocol.HasFields)
                 {
                     yield return CreateRequestTestCase("invalid request fields", invalidFields: true);
@@ -98,6 +97,7 @@ public sealed class ProtocolConformanceTests
 
                 if (isOneway)
                 {
+                    // No response, so there's no need to test response payload or payload stream completion.
                     yield break;
                 }
 
@@ -105,12 +105,10 @@ public sealed class ProtocolConformanceTests
                 yield return CreateResponseTestCase("invalid response payload", payload: InvalidPipeReader.Instance);
                 yield return CreateResponseTestCase("invalid response writer", writer: InvalidPayloadWriter);
 
-                if (HasPayloadStreamSupport(protocol))
-                {
-                    yield return CreateResponseTestCase(
-                        "invalid response payload stream",
-                        payloadStream: InvalidPipeReader.Instance);
-                }
+                yield return CreateResponseTestCase(
+                    "invalid response payload stream",
+                    payloadStream: InvalidPipeReader.Instance);
+
                 if (protocol.HasFields)
                 {
                     yield return CreateResponseTestCase("invalid response fields", invalidFields: true);
@@ -125,6 +123,7 @@ public sealed class ProtocolConformanceTests
                 {
                     PayloadPipeReaderDecorator? decorator = payload == null ? null : new(payload);
                     PayloadPipeReaderDecorator? streamDecorator = payloadStream == null ? null : new(payloadStream);
+                    bool invalid = payload == InvalidPipeReader.Instance || payloadStream == InvalidPipeReader.Instance;
                     var testCaseData = new TestCaseData(
                         protocol,
                         CreateRequest(
@@ -136,7 +135,8 @@ public sealed class ProtocolConformanceTests
                             invalidFields: invalidFields),
                         null, // dispatcher
                         decorator,
-                        streamDecorator);
+                        streamDecorator,
+                        invalid ? typeof(NotSupportedException) : null);
                     testCaseData.SetName(name);
                     return testCaseData;
                 }
@@ -150,6 +150,7 @@ public sealed class ProtocolConformanceTests
                 {
                     PayloadPipeReaderDecorator? decorator = payload == null ? null : new(payload);
                     PayloadPipeReaderDecorator? streamDecorator = payloadStream == null ? null : new(payloadStream);
+                    bool invalid = payload == InvalidPipeReader.Instance || payloadStream == InvalidPipeReader.Instance;
                     var testCaseData = new TestCaseData(
                         protocol,
                         CreateRequest(protocol, isOneway),
@@ -159,7 +160,8 @@ public sealed class ProtocolConformanceTests
                             writer: writer,
                             invalidFields: invalidFields),
                         decorator,
-                        streamDecorator);
+                        streamDecorator,
+                        invalid ? typeof(NotSupportedException) : null);
                     testCaseData.SetName(name);
                     return testCaseData;
                 }
@@ -169,7 +171,7 @@ public sealed class ProtocolConformanceTests
 
     /// <summary>Provides test case data for the <see cref="PayloadWriter_completed_on_request_and_response"> test. The
     /// test case data provides the outgoing request to send, the dipatcher to provide the response and the payload
-    /// writer interceptor use to ensure <see cref="PipeWriter.Complete"/> is called.
+    /// writer interceptor use to ensure <see cref="PipeWriter.Complete"/> is called.</summary>
     private static IEnumerable<TestCaseData> RequestsAndResponsesWithPayloadWriter
     {
         get
@@ -195,7 +197,8 @@ public sealed class ProtocolConformanceTests
                     var writerSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
                     var request = CreateRequest(protocol, isOneway, writer: PayloadWriter(writerSource));
                     var dispatcher = ConnectionOptions.DefaultDispatcher;
-                    yield return ("request", new(protocol, request, dispatcher, writerSource.Task));
+                    yield return ("request payload writer",
+                                  new(protocol, request, dispatcher, writerSource.Task, null));
                 }
 
                 // Valid response
@@ -204,7 +207,8 @@ public sealed class ProtocolConformanceTests
                     var writerSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
                     var request = CreateRequest(protocol, isOneway);
                     var dispatcher = CreateResponseDispatcher(writer: PayloadWriter(writerSource));
-                    yield return ("response", new(protocol, request, dispatcher, writerSource.Task));
+                    yield return ("response payload writer",
+                                  new(protocol, request, dispatcher, writerSource.Task, null));
                 }
 
                 if (protocol == Protocol.Ice)
@@ -220,7 +224,8 @@ public sealed class ProtocolConformanceTests
                     var request = CreateRequest(
                         protocol, isOneway, InvalidPipeReader.Instance, writer: PayloadWriter(writerSource));
                     var dispatcher = ConnectionOptions.DefaultDispatcher;
-                    yield return ("invalid request payload", new(protocol, request, dispatcher, writerSource.Task));
+                    yield return ("invalid request payload",
+                                  new(protocol, request, dispatcher, writerSource.Task, typeof(NotSupportedException)));
                 }
 
                 // Invalid response payload
@@ -229,7 +234,8 @@ public sealed class ProtocolConformanceTests
                     var writerSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
                     var request = CreateRequest(protocol, isOneway);
                     var dispatcher = CreateResponseDispatcher(InvalidPipeReader.Instance, PayloadWriter(writerSource));
-                    yield return ("invalid response payload", new(protocol, request, dispatcher, writerSource.Task));
+                    yield return ("invalid response payload",
+                                  new(protocol, request, dispatcher, writerSource.Task, typeof(NotSupportedException)));
                 }
             }
 
@@ -241,73 +247,6 @@ public sealed class ProtocolConformanceTests
                     source.SetResult(payloadWriterDecorator);
                     return payloadWriterDecorator;
                 };
-        }
-    }
-
-    /// <summary>Provides test case data for the <see cref="PayloadWriter_completed_on_request_and_response"> test. The
-    /// test case data provides the outgoing request to send, the dipatcher to provide the response and the payload
-    /// writer interceptor use to ensure <see cref="PipeWriter.Complete"/> is called.
-    private static IEnumerable<TestCaseData> RequestsAndResponsesExceptions
-    {
-        get
-        {
-            foreach (Protocol protocol in _protocols)
-            {
-                foreach (TestCaseData testCase in GetTestCaseData(protocol))
-                {
-                    yield return testCase;
-                }
-            }
-
-            static IEnumerable<TestCaseData> GetTestCaseData(Protocol protocol)
-            {
-                // Invalid requests
-                {
-                    IDispatcher dispatcher = ConnectionOptions.DefaultDispatcher;
-                    Type? exception = typeof(NotSupportedException);
-
-                    {
-                        var request = CreateRequest(protocol, payload: InvalidPipeReader.Instance);
-                        yield return new("request invalid payload", protocol, request, dispatcher, exception);
-                    }
-
-                    {
-                        var request = CreateRequest(protocol, writer: InvalidPayloadWriter);
-                        yield return new("request invalid writer", protocol, request, dispatcher, exception);
-                    }
-
-                    if (protocol.HasFields)
-                    {
-                        var request = CreateRequest(protocol, invalidFields: true);
-                        yield return new("request invalid header", protocol, request, dispatcher, exception);
-                    }
-                }
-
-                // Invalid responses
-                {
-                    // TODO: ConnectionLostException for the icerpc stream abort is bogus
-                    Type? exception = typeof(ConnectionLostException);
-
-                    {
-                        var request = CreateRequest(protocol);
-                        var dispatcher = CreateResponseDispatcher(payload: InvalidPipeReader.Instance);
-                        yield return new("response invalid payload", protocol, request, dispatcher, exception);
-                    }
-
-                    {
-                        var request = CreateRequest(protocol);
-                        var dispatcher = CreateResponseDispatcher(writer: InvalidPayloadWriter);
-                        yield return new("response invalid writer", protocol, request, dispatcher, exception);
-                    }
-
-                    if (protocol.HasFields)
-                    {
-                        var request = CreateRequest(protocol);
-                        var dispatcher = CreateResponseDispatcher(invalidFields: true);
-                        yield return new("response invalid header", protocol, request, dispatcher, exception);
-                    }
-                }
-            }
         }
     }
 
@@ -446,31 +385,6 @@ public sealed class ProtocolConformanceTests
         Assert.ThrowsAsync<ConnectionClosedException>(async () => await sendRequestTask);
     }
 
-    /// <summary>Ensures that the failure to read or write the payload raises the expected exception.</summary>
-    [Test, TestCaseSource(nameof(RequestsAndResponsesExceptions))]
-    public async Task SendRequest_failure_throws_expected_exception(
-        string name,
-        Protocol protocol,
-        OutgoingRequest request,
-        IDispatcher dispatcher,
-        Type expectedType)
-    {
-        // Arrange
-        await using var serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(protocol)
-            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
-            .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
-        _ = sut.Server.AcceptRequestsAsync();
-
-        // Act
-        Task sendRequestTask = sut.Client.SendRequestAsync(request);
-
-        // Assert
-        Exception? exception = Assert.CatchAsync<Exception>(() => sendRequestTask);
-        Assert.That(exception?.GetType(), Is.EqualTo(expectedType));
-    }
-
     /// <summary>Ensures that the request or response payload is always completed.</summary>
     [Test, TestCaseSource(nameof(RequestsAndResponses))]
     public async Task Payload_completed_on_request_and_response(
@@ -478,7 +392,8 @@ public sealed class ProtocolConformanceTests
         OutgoingRequest request,
         IDispatcher dispatcher,
         PayloadPipeReaderDecorator? payload,
-        PayloadPipeReaderDecorator? payloadStream = null)
+        PayloadPipeReaderDecorator? payloadStream,
+        Type? exceptionType)
     {
         // Arrange
         await using var serviceProvider = new ProtocolServiceCollection()
@@ -502,6 +417,7 @@ public sealed class ProtocolConformanceTests
             {
                 Assert.That(await payloadStream.CompleteCalled, Is.True);
             }
+            Assert.That((payload ?? payloadStream)?.CompleteException?.GetType(), Is.EqualTo(exceptionType));
         });
     }
 
@@ -511,7 +427,8 @@ public sealed class ProtocolConformanceTests
         Protocol protocol,
         OutgoingRequest request,
         IDispatcher dispatcher,
-        Task<PayloadPipeWriterDecorator> payloadWriterTask)
+        Task<PayloadPipeWriterDecorator> payloadWriterTask,
+        Type? exceptionType)
     {
         // Arrange
         await using var serviceProvider = new ProtocolServiceCollection()
@@ -524,9 +441,14 @@ public sealed class ProtocolConformanceTests
         // Act
         _ = sut.Client.SendRequestAsync(request);
         PayloadPipeWriterDecorator payloadWriter = await payloadWriterTask;
+        bool completedCalled = await payloadWriter.CompleteCalled;
 
         // Assert
-        Assert.That(await payloadWriter.CompleteCalled, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(completedCalled, Is.True);
+            Assert.That(payloadWriter.CompleteException?.GetType(), Is.EqualTo(exceptionType));
+        });
     }
 
     /// <summary>Ensures that the request payload and payload stream pipe readers are completed if the connection is
@@ -549,16 +471,71 @@ public sealed class ProtocolConformanceTests
 
         // Act
         Task<IncomingResponse> sendRequestTask = sut.Client.SendRequestAsync(request);
+        bool completeCalled = await payload.CompleteCalled;
 
         // Assert
         Assert.Multiple(async () =>
         {
             Assert.ThrowsAsync<ConnectionClosedException>(() => sendRequestTask);
-            Assert.That(await payload.CompleteCalled, Is.True);
+            Assert.That(completeCalled, Is.True);
+            Assert.That(payload.CompleteException, Is.InstanceOf<ConnectionClosedException>());
             if (payloadStream != null)
             {
                 Assert.That(await payloadStream.CompleteCalled, Is.True);
+                Assert.That(payloadStream.CompleteException, Is.InstanceOf<ConnectionClosedException>());
             }
+        });
+    }
+
+    /// <summary>Ensures that the request payload and payload stream pipe readers are completed if the connection is
+    /// shutdown.</summary>
+    [Test, TestCaseSource(nameof(ClientServerConnections))]
+    public async Task Request_payload_completed_when_network_connection_is_disposed(
+        Protocol protocol,
+        ConnectionType connectionType)
+    {
+        // Arrange
+        using var dispatchSemaphore = new SemaphoreSlim(0);
+        using var responseSemaphore = new SemaphoreSlim(0);
+        var responsePayload = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .UseServerConnectionOptions(new ConnectionOptions()
+                {
+                    Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                        {
+                            dispatchSemaphore.Release();
+                            await responseSemaphore.WaitAsync(cancel);
+                            return new OutgoingResponse(request)
+                                {
+                                    Payload = responsePayload
+                                };
+                        })
+                })
+            .BuildServiceProvider();
+        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        _ = sut.Client.AcceptRequestsAsync();
+        _ = sut.Server.AcceptRequestsAsync();
+
+        INetworkConnection networkConnection = connectionType == ConnectionType.Client ?
+            sut.ServerNetworkConnection :
+            sut.ClientNetworkConnection;
+        Type exceptionType = connectionType == ConnectionType.Client ?
+            typeof(ObjectDisposedException) :
+            typeof(ConnectionLostException);
+
+        // Act
+        _ = sut.Client.SendRequestAsync(CreateRequest(protocol));
+        await dispatchSemaphore.WaitAsync();
+        await networkConnection.DisposeAsync();
+        responseSemaphore.Release();
+        bool completeCalled = await responsePayload.CompleteCalled;
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(completeCalled, Is.True);
+            Assert.That(responsePayload.CompleteException?.GetType(), Is.EqualTo(exceptionType));
         });
     }
 
@@ -624,6 +601,8 @@ public sealed class PayloadPipeReaderDecorator : PipeReader
 {
     internal Task<bool> CompleteCalled => _completeCalled.Task;
 
+    internal Exception? CompleteException { get; private set; }
+
     private readonly PipeReader _decoratee;
     private readonly TaskCompletionSource<bool> _completeCalled =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -637,6 +616,7 @@ public sealed class PayloadPipeReaderDecorator : PipeReader
 
     public override void Complete(Exception? exception = null)
     {
+        CompleteException = exception;
         _completeCalled.SetResult(true);
         _decoratee.Complete(exception);
     }
@@ -653,6 +633,7 @@ public sealed class PayloadPipeReaderDecorator : PipeReader
 public sealed class PayloadPipeWriterDecorator : PipeWriter
 {
     internal Task<bool> CompleteCalled => _completeCalled.Task;
+    internal Exception? CompleteException { get; private set; }
 
     private readonly PipeWriter _decoratee;
     private readonly TaskCompletionSource<bool> _completeCalled =
@@ -662,6 +643,7 @@ public sealed class PayloadPipeWriterDecorator : PipeWriter
 
     public override void Complete(Exception? exception = null)
     {
+        CompleteException = exception;
         _completeCalled.SetResult(true);
         _decoratee.Complete(exception);
     }
@@ -685,17 +667,16 @@ public sealed class PayloadPipeWriterDecorator : PipeWriter
 internal struct ProtocolConnectionPair : IAsyncDisposable
 {
     public IProtocolConnection Client { get; }
+    public INetworkConnection ClientNetworkConnection { get; }
     public IProtocolConnection Server { get; }
-
-    private readonly INetworkConnection _clientNetworkConnection;
-    private readonly INetworkConnection _serverNetworkConnection;
+    public INetworkConnection ServerNetworkConnection { get; }
 
     public async ValueTask DisposeAsync()
     {
         Client.Dispose();
         Server.Dispose();
-        await _clientNetworkConnection.DisposeAsync();
-        await _serverNetworkConnection.DisposeAsync();
+        await ClientNetworkConnection.DisposeAsync();
+        await ServerNetworkConnection.DisposeAsync();
     }
 
     internal ProtocolConnectionPair(
@@ -704,8 +685,8 @@ internal struct ProtocolConnectionPair : IAsyncDisposable
         IProtocolConnection clientConnection,
         IProtocolConnection serverConnection)
     {
-        _clientNetworkConnection = clientNetworkConnection;
-        _serverNetworkConnection = serverNetworkConnection;
+        ClientNetworkConnection = clientNetworkConnection;
+        ServerNetworkConnection = serverNetworkConnection;
         Client = clientConnection;
         Server = serverConnection;
     }
