@@ -147,7 +147,7 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.ThrowsAsync<ConnectionLostException>(async () => await peerStream.Output.WriteAsync(_oneBytePayload));
     }
 
-    /// <summary>Verifies that completing a stream with unflused bytes fails with
+    /// <summary>Verifies that completing a stream with unflushed bytes fails with
     /// <see cref="NotSupportedException"/>.</summary>
     [Test]
     public async Task Complete_stream_with_unflushed_bytes_fails()
