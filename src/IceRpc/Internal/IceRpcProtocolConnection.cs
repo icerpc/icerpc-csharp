@@ -776,8 +776,7 @@ namespace IceRpc.Internal
                 bool endStream,
                 CancellationToken cancel)
             {
-                // If the peer completes its input pipe reader, we cancel the pending read on the payload. If the
-                // reading from the payload, the payload read will be interrupted.
+                // If the peer completes its input pipe reader, we cancel the pending read on the payload.
                 stream.OnPeerInputCompleted(reader.CancelPendingRead);
 
                 while (true)
