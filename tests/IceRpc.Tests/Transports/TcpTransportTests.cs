@@ -130,7 +130,6 @@ public class TcpTransportTests
     /// <summary>Verifies that a dual mode socket is created when <see cref="TcpTransportOptions.IsIPv6Only"/> is set
     /// to <c>true</c>.</summary>
     /// <param name="ipv6only">The value for <see cref="TcpTransportOptions.IsIPv6Only"/>.</param>
-    /// <returns></returns>
     [Test]
     public async Task Configure_client_connection_is_ipv6_only([Values(true, false)] bool ipv6only)
     {

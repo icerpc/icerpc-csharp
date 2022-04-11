@@ -17,7 +17,6 @@ public abstract class MultiplexedTransportConformanceTests
 
     /// <summary>Verifies that both peers can initiate and accept streams.</summary>
     /// <param name="serverInitiated">Whether the stream is initiated by the server or by the client.</param>
-    /// <returns></returns>
     [Test]
     public async Task Accept_a_stream([Values(true, false)] bool serverInitiated)
     {
@@ -287,7 +286,6 @@ public abstract class MultiplexedTransportConformanceTests
         var streams = new List<IMultiplexedStream>();
         var tasks = new List<Task>();
 
-        // Act
         for (int i = 0; i < streamMaxCount * streamMaxCountFactor; ++i)
         {
             IMultiplexedStream stream = clientConnection.CreateStream(true);
@@ -295,6 +293,7 @@ public abstract class MultiplexedTransportConformanceTests
             streams.Add(stream);
         }
 
+        // Act
         for (int i = 0; i < streamMaxCount * streamMaxCountFactor; ++i)
         {
             tasks.Add(ServerReadWriteAsync(await serverConnection.AcceptStreamAsync(default)));
@@ -392,8 +391,6 @@ public abstract class MultiplexedTransportConformanceTests
 
         var streams = new List<IMultiplexedStream>();
         var tasks = new List<Task>();
-
-        // Act
         for (int i = 0; i < streamMaxCount * streamMaxCountFactor; ++i)
         {
             IMultiplexedStream stream = clientConnection.CreateStream(bidirectional: false);
@@ -401,6 +398,7 @@ public abstract class MultiplexedTransportConformanceTests
             streams.Add(stream);
         }
 
+        // Act
         for (int i = 0; i < streamMaxCount * streamMaxCountFactor; ++i)
         {
             tasks.Add(ServerReadAsync(await serverConnection.AcceptStreamAsync(default)));
@@ -635,9 +633,9 @@ public abstract class MultiplexedTransportConformanceTests
 
         byte[] payloadData = Enumerable.Range(0, payloadSize).Select(i => (byte)(i % 256)).ToArray();
         var payload = new ReadOnlyMemory<byte>(payloadData);
+        Task writeTask = WriteAsync(sut.LocalStream, segments, payload);
 
         // Act
-        Task writeTask = WriteAsync(sut.LocalStream, segments, payload);
         Task<byte[]> readTask = ReadAsync(sut.RemoteStream, payloadSize * segments);
 
         // Assert
