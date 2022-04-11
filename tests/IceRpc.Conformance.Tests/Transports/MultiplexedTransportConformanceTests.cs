@@ -656,13 +656,17 @@ public abstract class MultiplexedTransportConformanceTests
         async Task<byte[]> ReadAsync(IMultiplexedStream stream, long size)
         {
             ReadResult readResult = default;
+            byte[] buffer = Array.Empty<byte>();
             do
             {
                 readResult = await stream.Input.ReadAsync();
+                if (readResult.Buffer.Length >= size)
+                {
+                    buffer = readResult.Buffer.ToArray();
+                }
                 stream.Input.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
             }
             while (readResult.Buffer.Length < size);
-            byte[] buffer = readResult.Buffer.ToArray();
             await stream.Input.CompleteAsync();
             return buffer;
         }
