@@ -18,7 +18,7 @@ namespace IceRpc.Internal
         internal IProtocolConnectionFactory<IMultiplexedNetworkConnection> ProtocolConnectionFactory { get; } =
             new IceRpcProtocolConnectionFactory();
 
-        internal override SliceEncoding SliceEncoding => SliceEncoding.Slice20;
+        internal override SliceEncoding SliceEncoding => SliceEncoding.Slice2;
 
         private IceRpcProtocol()
             : base(IceRpcName)

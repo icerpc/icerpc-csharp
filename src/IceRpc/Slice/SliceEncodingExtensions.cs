@@ -19,7 +19,7 @@ namespace IceRpc.Slice
         /// <returns>A new empty payload.</returns>
         public static PipeReader CreateEmptyPayload(this SliceEncoding encoding, bool hasStream = false)
         {
-            if (hasStream && encoding == SliceEncoding.Slice11)
+            if (hasStream && encoding == SliceEncoding.Slice1)
             {
                 throw new ArgumentException(
                     $"{nameof(hasStream)} must be false when encoding is 1.1", nameof(hasStream));
@@ -34,7 +34,7 @@ namespace IceRpc.Slice
             IAsyncEnumerable<T> asyncEnumerable,
             EncodeAction<T> encodeAction)
         {
-            if (encoding == SliceEncoding.Slice11)
+            if (encoding == SliceEncoding.Slice1)
             {
                 throw new NotSupportedException("streaming is not supported with encoding 1.1");
             }
@@ -50,10 +50,10 @@ namespace IceRpc.Slice
             var pipe = new Pipe(); // TODO: pipe options
 
             var encoder = new SliceEncoder(pipe.Writer, encoding);
-            Span<byte> sizePlaceholder = encoding == SliceEncoding.Slice11 ? default : encoder.GetPlaceholderSpan(4);
+            Span<byte> sizePlaceholder = encoding == SliceEncoding.Slice1 ? default : encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
 
-            if (encoding == SliceEncoding.Slice11 && exception is DispatchException dispatchException)
+            if (encoding == SliceEncoding.Slice1 && exception is DispatchException dispatchException)
             {
                 encoder.EncodeDispatchExceptionAsSystemException(dispatchException);
             }
@@ -62,7 +62,7 @@ namespace IceRpc.Slice
                 exception.EncodeTrait(ref encoder);
             }
 
-            if (encoding != SliceEncoding.Slice11)
+            if (encoding != SliceEncoding.Slice1)
             {
                 SliceEncoder.EncodeVarULong((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
             }
@@ -82,7 +82,7 @@ namespace IceRpc.Slice
                 throw new ArgumentOutOfRangeException(nameof(size), "size must be positive");
             }
 
-            if (encoding == SliceEncoding.Slice11)
+            if (encoding == SliceEncoding.Slice1)
             {
                 SliceEncoder.EncodeInt(size, into);
             }

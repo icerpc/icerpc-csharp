@@ -77,7 +77,7 @@ namespace IceRpc.Internal
                 try
                 {
                     ReadResult readResult = await stream.Input.ReadSegmentAsync(
-                        SliceEncoding.Slice20,
+                        SliceEncoding.Slice2,
                         CancellationToken.None).ConfigureAwait(false);
 
                     if (readResult.Buffer.IsEmpty)
@@ -219,7 +219,7 @@ namespace IceRpc.Internal
 
                     response = new OutgoingResponse(request)
                     {
-                        Payload = SliceEncoding.Slice20.CreatePayloadFromRemoteException(remoteException),
+                        Payload = SliceEncoding.Slice2.CreatePayloadFromRemoteException(remoteException),
                         ResultType = ResultType.Failure
                     };
 
@@ -261,7 +261,7 @@ namespace IceRpc.Internal
 
                 void EncodeHeader()
                 {
-                    var encoder = new SliceEncoder(stream.Output, SliceEncoding.Slice20);
+                    var encoder = new SliceEncoder(stream.Output, SliceEncoding.Slice2);
 
                     // Write the IceRpc response header.
                     Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
@@ -282,7 +282,7 @@ namespace IceRpc.Internal
             static (IceRpcRequestHeader, IDictionary<RequestFieldKey, ReadOnlySequence<byte>>) DecodeHeader(
                 ReadOnlySequence<byte> buffer)
             {
-                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice20);
+                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
                 var header = new IceRpcRequestHeader(ref decoder);
                 IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields = decoder.DecodeFieldDictionary(
                     (ref SliceDecoder decoder) => decoder.DecodeRequestFieldKey());
@@ -356,7 +356,7 @@ namespace IceRpc.Internal
             try
             {
                 ReadResult readResult = await stream.Input.ReadSegmentAsync(
-                    SliceEncoding.Slice20,
+                    SliceEncoding.Slice2,
                     cancel).ConfigureAwait(false);
 
                 // Nothing cancels the stream input pipe reader.
@@ -415,7 +415,7 @@ namespace IceRpc.Internal
 
             void EncodeHeader(PipeWriter writer)
             {
-                var encoder = new SliceEncoder(writer, SliceEncoding.Slice20);
+                var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
 
                 // Write the IceRpc request header.
                 Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
@@ -457,7 +457,7 @@ namespace IceRpc.Internal
             static (IceRpcResponseHeader, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>>) DecodeHeader(
                 ReadOnlySequence<byte> buffer)
             {
-                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice20);
+                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
                 var header = new IceRpcResponseHeader(ref decoder);
                 IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields =
                     decoder.DecodeFieldDictionary((ref SliceDecoder decoder) => decoder.DecodeResponseFieldKey());
@@ -632,7 +632,7 @@ namespace IceRpc.Internal
             CancellationToken cancel)
         {
             PipeReader input = _remoteControlStream!.Input;
-            ReadResult readResult = await input.ReadSegmentAsync(SliceEncoding.Slice20, cancel).ConfigureAwait(false);
+            ReadResult readResult = await input.ReadSegmentAsync(SliceEncoding.Slice2, cancel).ConfigureAwait(false);
             if (readResult.IsCanceled)
             {
                 throw new OperationCanceledException();
@@ -640,7 +640,7 @@ namespace IceRpc.Internal
 
             try
             {
-                return SliceEncoding.Slice20.DecodeBuffer(readResult.Buffer, decodeFunc);
+                return SliceEncoding.Slice2.DecodeBuffer(readResult.Buffer, decodeFunc);
             }
             finally
             {
@@ -702,7 +702,7 @@ namespace IceRpc.Internal
 
             if (encodeAction != null)
             {
-                var encoder = new SliceEncoder(output, SliceEncoding.Slice20);
+                var encoder = new SliceEncoder(output, SliceEncoding.Slice2);
                 Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2); // TODO: switch to MaxHeaderSize
                 int startPos = encoder.EncodedByteCount; // does not include the size
                 encodeAction?.Invoke(ref encoder);
