@@ -20,7 +20,7 @@ public class SlicTransportTests
         int pauseThreshold)
     {
         // Arrange
-        await using var serviceProvider = CreateServiceCollection(
+        await using ServiceProvider serviceProvider = CreateServiceCollection(
             serverOptions: new SlicServerTransportOptions
             {
                 PauseWriterThreshold = pauseThreshold
@@ -35,7 +35,7 @@ public class SlicTransportTests
 
         (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
             await CreateAndAcceptStreamAsync(serverConnection, clientConnection);
-        FlushResult result = await localStream.Output.WriteAsync(payload, default);
+        _ = await localStream.Output.WriteAsync(payload, default);
 
         // Act
         ValueTask<FlushResult> writeTask = localStream.Output.WriteAsync(payload, default);
@@ -71,13 +71,13 @@ public class SlicTransportTests
         (IMultiplexedStream localStream2, IMultiplexedStream remoteStream2) =
             await CreateAndAcceptStreamAsync(serverConnection, clientConnection);
 
-        FlushResult result = await localStream1.Output.WriteAsync(payload, default);
+        _ = await localStream1.Output.WriteAsync(payload, default);
         ValueTask<FlushResult> writeTask = localStream1.Output.WriteAsync(payload, default);
 
         // Act
 
         // stream1 consumed all its send credit, this shouldn't affect stream2
-        result = await localStream2.Output.WriteAsync(payload, default);
+        _ = await localStream2.Output.WriteAsync(payload, default);
 
         // Assert
         Assert.That(localStream2.Id, Is.EqualTo(remoteStream2.Id));
