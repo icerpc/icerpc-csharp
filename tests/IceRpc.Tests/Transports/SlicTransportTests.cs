@@ -2,6 +2,7 @@
 
 using IceRpc.Configure;
 using IceRpc.Tests;
+using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.IO.Pipelines;
@@ -13,6 +14,36 @@ namespace IceRpc.Transports.Tests;
 [Parallelizable(ParallelScope.All)]
 public class SlicTransportTests
 {
+    [Test]
+    public async Task Stream_peer_options_are_set_after_connect()
+    {
+        // Arrange
+        await using ServiceProvider serviceProvider = CreateServiceCollection(
+            new SlicServerTransportOptions
+            {
+                PauseWriterThreshold = 6893,
+                ResumeWriterThreshold = 2000,
+                PacketMaxSize = 2098
+            },
+            new SlicClientTransportOptions
+            {
+                PauseWriterThreshold = 2405,
+                ResumeWriterThreshold = 2000,
+                PacketMaxSize = 4567
+            }).BuildServiceProvider();
+        Task<IMultiplexedNetworkConnection> acceptTask = serviceProvider.GetMultiplexedServerConnectionAsync();
+        var clientConnection = (SlicNetworkConnection)await serviceProvider.GetMultiplexedClientConnectionAsync();
+
+        // Act
+        var serverConnection = (SlicNetworkConnection)await acceptTask;
+
+        // Assert
+        Assert.That(serverConnection.PeerPauseWriterThreshold, Is.EqualTo(2405));
+        Assert.That(clientConnection.PeerPauseWriterThreshold, Is.EqualTo(6893));
+        Assert.That(serverConnection.PeerPacketMaxSize, Is.EqualTo(4567));
+        Assert.That(clientConnection.PeerPacketMaxSize, Is.EqualTo(2098));
+    }
+
     [TestCase(1024 * 32)]
     [TestCase(1024 * 512)]
     [TestCase(1024 * 1024)]

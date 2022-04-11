@@ -14,7 +14,7 @@ namespace IceRpc.Transports.Internal
         public async Task<ISimpleNetworkConnection> AcceptAsync()
         {
             (PipeReader reader, PipeWriter writer) = await _queue.DequeueAsync(default).ConfigureAwait(false);
-            return new ColocNetworkConnection(Endpoint, isServer: true, reader, writer);
+            return new ColocNetworkConnection(Endpoint, isServer: true, writer, reader);
         }
 
         public override string ToString() => $"{base.ToString()} {Endpoint}";

@@ -244,7 +244,7 @@ namespace IceRpc.Transports.Internal
 
         internal void ReceivedStopSendingFrame(long error)
         {
-            if (!IsBidirectional && !IsRemote)
+            if (!IsBidirectional && IsRemote)
             {
                 throw new InvalidDataException("received stop sending on remote unidirectional stream");
             }
