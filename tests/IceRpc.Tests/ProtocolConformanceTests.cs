@@ -487,58 +487,6 @@ public sealed class ProtocolConformanceTests
         });
     }
 
-    /// <summary>Ensures that the request payload and payload stream pipe readers are completed if the connection is
-    /// shutdown.</summary>
-    [Test, TestCaseSource(nameof(ClientServerConnections))]
-    public async Task Request_payload_completed_when_network_connection_is_disposed(
-        Protocol protocol,
-        ConnectionType connectionType)
-    {
-        // Arrange
-        using var dispatchSemaphore = new SemaphoreSlim(0);
-        using var responseSemaphore = new SemaphoreSlim(0);
-        var responsePayload = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
-        await using var serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(protocol)
-            .UseServerConnectionOptions(new ConnectionOptions()
-                {
-                    Dispatcher = new InlineDispatcher(async (request, cancel) =>
-                        {
-                            dispatchSemaphore.Release();
-                            await responseSemaphore.WaitAsync(cancel);
-                            return new OutgoingResponse(request)
-                                {
-                                    Payload = responsePayload
-                                };
-                        })
-                })
-            .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
-        _ = sut.Client.AcceptRequestsAsync();
-        _ = sut.Server.AcceptRequestsAsync();
-
-        INetworkConnection networkConnection = connectionType == ConnectionType.Client ?
-            sut.ServerNetworkConnection :
-            sut.ClientNetworkConnection;
-        Type exceptionType = connectionType == ConnectionType.Client ?
-            typeof(ObjectDisposedException) :
-            typeof(ConnectionLostException);
-
-        // Act
-        _ = sut.Client.SendRequestAsync(CreateRequest(protocol));
-        await dispatchSemaphore.WaitAsync();
-        await networkConnection.DisposeAsync();
-        responseSemaphore.Release();
-        bool completeCalled = await responsePayload.CompleteCalled;
-
-        // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(completeCalled, Is.True);
-            Assert.That(responsePayload.CompleteException?.GetType(), Is.EqualTo(exceptionType));
-        });
-    }
-
     private static OutgoingRequest CreateRequest(
         Protocol protocol,
         bool isOneway = false,
