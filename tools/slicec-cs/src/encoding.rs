@@ -291,7 +291,7 @@ fn encode_tagged_type(
             } else {
                 (
                     Some(format!(
-                        "{encoder_param}.GetSizeLength(count) + {min_wire_size} * count",
+                        "{encoder_param}.GetSizeLength(count_) + {min_wire_size} * count_",
                         encoder_param = encoder_param,
                         min_wire_size = sequence_def.element_type.min_wire_size()
                     )),
@@ -305,7 +305,7 @@ fn encode_tagged_type(
         {
             (
                 Some(format!(
-                    "{encoder_param}.GetSizeLength(count) + {min_wire_size} * count",
+                    "{encoder_param}.GetSizeLength(count_) + {min_wire_size} * count_",
                     encoder_param = encoder_param,
                     min_wire_size = dictionary_def.key_type.min_wire_size()
                         + dictionary_def.value_type.min_wire_size()
@@ -316,7 +316,7 @@ fn encode_tagged_type(
         _ => (None, None),
     };
 
-    let unwrapped_name = member.parameter_name() + "Unwrapped";
+    let unwrapped_name = member.parameter_name() + "_";
     let null_check = if read_only_memory {
         format!("{}.Span != null", param) // TODO do we need the '.Span' here?
     } else {
@@ -332,14 +332,13 @@ fn encode_tagged_type(
         code,
         "\
 if ({null_check})
-{{
-    {count_variable}
+{{{count_variable}
     {encoder_param}.EncodeTagged({tag}, IceRpc.Slice.TagFormat.{format}{size}, {value}, {action});
 }}",
         null_check = null_check,
         count_variable = count_value.map_or(
             "".to_owned(),
-            |v| format!("int count = {}.Count();", v),
+            |v| format!("\nint count_ = {}.Count();", v),
         ),
         encoder_param = encoder_param,
         tag = tag,

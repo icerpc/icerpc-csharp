@@ -218,9 +218,7 @@ impl Visitor for CsValidator {
 
     fn visit_custom_type(&mut self, custom_type: &CustomType) {
         // We require 'cs:type' on custom types to know how to encode/decode it.
-        if let Some(attribute) = custom_type.get_raw_attribute("cs:type", false) {
-            validate_cs_type(attribute);
-        } else {
+        if !custom_type.has_attribute("cs:type", false) {
             slice::report_error(
                 "missing required attribute: 'cs:type'".to_owned(),
                 Some(&custom_type.location),
@@ -230,7 +228,7 @@ impl Visitor for CsValidator {
         for attribute in &cs_attributes(custom_type.attributes()) {
             match attribute.directive.as_ref() {
                 "attribute" => validate_cs_attribute(attribute),
-                "type" => {} // already handled above.
+                "type" => validate_cs_type(attribute),
                 _ => report_unexpected_attribute(attribute),
             }
         }
