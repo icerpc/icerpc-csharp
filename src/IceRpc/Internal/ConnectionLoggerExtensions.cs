@@ -11,7 +11,7 @@ namespace IceRpc.Internal
     {
         private static readonly Func<ILogger, EndPoint, EndPoint, IDisposable> _clientConnectionScope =
             LoggerMessage.DefineScope<EndPoint, EndPoint>(
-                "ClientConnection(LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint})");
+                "ClientConnection(LocalEndPoint={LocalEndPoint}, RemoteEndPoint={RemoteEndPoint})");
 
         private static readonly Func<ILogger, Endpoint, IDisposable> _newClientConnectionScope =
             LoggerMessage.DefineScope<Endpoint>(
@@ -33,7 +33,7 @@ namespace IceRpc.Internal
 
         private static readonly Func<ILogger, EndPoint, EndPoint, IDisposable> _serverConnectionScope =
             LoggerMessage.DefineScope<EndPoint, EndPoint>(
-                "ServerConnection(LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint})");
+                "ServerConnection(LocalEndPoint={LocalEndPoint}, RemoteEndPoint={RemoteEndPoint})");
 
         [LoggerMessage(
             EventId = (int)ConnectionEventIds.AcceptRequests,

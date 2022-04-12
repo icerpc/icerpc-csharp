@@ -68,8 +68,8 @@ namespace IceRpc
         /// <summary>The network connection information or <c>null</c> if the connection is not connected.</summary>
         public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
 
-        /// <summary>The connection's endpoint. For a client connection this is the connection remote endpoint,
-        /// for a server connection it is the listener local endpoint.</summary>
+        /// <summary>The connection's endpoint. For a client connection this is the connection's remote endpoint,
+        /// for a server connection the server's endpoint.</summary>
         public Endpoint Endpoint => _serverEndpoint ?? _options?.RemoteEndpoint ??
             throw new InvalidOperationException($"{nameof(Endpoint)} is not configured");
 

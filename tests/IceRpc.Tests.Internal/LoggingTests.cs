@@ -85,7 +85,7 @@ namespace IceRpc.Tests.Internal
         }
 
         private static OutgoingRequest CreateOutgoingRequest(Connection connection, bool twoway) =>
-            new(new Proxy(connection.Protocol) { Path = "/dummy" })
+            new(new Proxy(connection.Endpoint.Protocol) { Path = "/dummy" })
             {
                 Connection = connection,
                 IsOneway = !twoway,
