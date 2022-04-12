@@ -2,9 +2,9 @@
 
 using System.Net.Sockets;
 
-namespace IceRpc.Transports
+namespace IceRpc.Transports.Internal
 {
-    internal class ColocEndpoint : System.Net.EndPoint
+    internal class ColocEndPoint : System.Net.EndPoint
     {
         private readonly Endpoint _endpoint;
 
@@ -14,6 +14,6 @@ namespace IceRpc.Transports
         /// <inheritdoc/>
         public override string ToString() => _endpoint.ToString();
 
-        internal ColocEndpoint(Endpoint endpoint) => _endpoint = endpoint;
+        internal ColocEndPoint(Endpoint endpoint) => _endpoint = endpoint;
     }
 }

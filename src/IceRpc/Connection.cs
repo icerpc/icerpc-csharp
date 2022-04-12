@@ -68,10 +68,6 @@ namespace IceRpc
         /// <summary>The network connection information or <c>null</c> if the connection is not connected.</summary>
         public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
 
-        /// <summary>The protocol used by the connection.</summary>
-        public Protocol Protocol => _serverEndpoint?.Protocol ?? _options.RemoteEndpoint?.Protocol ??
-            throw new InvalidOperationException($"cannot access Protocol before configuring {nameof(Endpoint)}");
-
         /// <summary>The connection's endpoint. For a client connection this is the connection remote endpoint,
         /// for a server connection it is the listener local endpoint.</summary>
         public Endpoint Endpoint => _serverEndpoint ?? _options?.RemoteEndpoint ??
@@ -174,7 +170,7 @@ namespace IceRpc
                             _protocolConnection == null &&
                             Endpoint != default);
 
-                        _stateTask = Protocol == Protocol.Ice ?
+                        _stateTask = Endpoint.Protocol == Protocol.Ice ?
                             PerformConnectAsync(
                                 _options.SimpleClientTransport,
                                 IceProtocol.Instance.ProtocolConnectionFactory,

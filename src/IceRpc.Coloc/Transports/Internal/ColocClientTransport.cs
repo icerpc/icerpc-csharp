@@ -1,12 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.IO.Pipelines;
 using System.Net.Security;
 
-namespace IceRpc.Transports
+namespace IceRpc.Transports.Internal
 {
     /// <summary>Implements <see cref="IClientTransport{ISimpleNetworkConnection}"/> for the coloc transport.</summary>
     internal class ColocClientTransport : IClientTransport<ISimpleNetworkConnection>
