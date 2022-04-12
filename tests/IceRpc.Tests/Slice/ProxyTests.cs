@@ -9,7 +9,7 @@ namespace IceRpc.Slice.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class ProxyTests
 {
-    /// <summary>Provides test case data for <see cref="Decode_proxy(string, string, IProxyFormat, SliceEncoding)"/> test.
+    /// <summary>Provides test case data for <see cref="Decode_proxy(Proxy, Proxy, IProxyFormat, SliceEncoding)"/> test.
     /// </summary>
     private static IEnumerable<TestCaseData> DecodeProxyDataSource
     {
