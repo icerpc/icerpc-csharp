@@ -43,8 +43,8 @@ public class ProxyTests
     /// <param name="encoding"></param>
     [Test]
     public void Decode_nullable_proxy(
-    [Values("icerpc://host.zeroc.com/hello", null)] string? value,
-    [Values(SliceEncoding.Slice1, SliceEncoding.Slice2)] SliceEncoding encoding)
+        [Values("icerpc://host.zeroc.com/hello", null)] string? value,
+        [Values(SliceEncoding.Slice1, SliceEncoding.Slice2)] SliceEncoding encoding)
     {
         Proxy? expected = value == null ? null : Proxy.Parse(value);
         var buffer = new MemoryBufferWriter(new byte[256]);
