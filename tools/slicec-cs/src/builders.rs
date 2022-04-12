@@ -510,7 +510,7 @@ else // Slice 2 encoding
                     )
                     .into()
                 } else {
-                    panic!("At least one encoding block must be non-empty");
+                    panic!("it is not possible to have an empty Slice 2 encoding block with a non empty Slice 1 encoding block");
                 }
             }
         }
