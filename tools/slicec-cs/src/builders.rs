@@ -465,7 +465,7 @@ r#"if ({encoding_variable} != {encoding})
                                 identifier = self.identifier,
                                 encoding_variable = self.encoding_variable,
                                 encoding = encoding.to_cs_encoding(),
-                                encoding_name = encoding.encoding_name(),
+                                encoding_name = encoding,
                             )
                         } else {
                             "".to_owned()
