@@ -14,7 +14,7 @@ namespace IceRpc.Tests;
 
 [Timeout(5000)]
 [Parallelizable(ParallelScope.All)]
-public sealed class ProtocolConformanceTests
+public sealed class ProtocolConnectionTests
 {
     private static readonly List<Protocol> _protocols = new() { Protocol.Ice, Protocol.IceRpc };
 
@@ -31,7 +31,7 @@ public sealed class ProtocolConformanceTests
     }
 
     /// <summary>Provides test case data for the <see cref="Payload_completed_on_request_and_response"/> test. The test
-    /// case data provides the outgoing request to send, the dipatcher to provide the response and the payload reader
+    /// case data provides the outgoing request to send, the dispatcher to provide the response and the payload reader
     /// decorator used to ensure <see cref="PipeReader.Complete"/> is called. The test case test the completion of the
     /// request/response payload and payload stream on a successful request or on various failure conditions.</summary>
     private static IEnumerable<TestCaseData> RequestsAndResponses
@@ -170,7 +170,7 @@ public sealed class ProtocolConformanceTests
     }
 
     /// <summary>Provides test case data for the <see cref="PayloadWriter_completed_on_request_and_response"> test. The
-    /// test case data provides the outgoing request to send, the dipatcher to provide the response and the payload
+    /// test case data provides the outgoing request to send, the dispatcher to provide the response and the payload
     /// writer interceptor use to ensure <see cref="PipeWriter.Complete"/> is called.</summary>
     private static IEnumerable<TestCaseData> RequestsAndResponsesWithPayloadWriter
     {
@@ -256,9 +256,9 @@ public sealed class ProtocolConformanceTests
         Server
     }
 
-    /// <summary>Ensures that the connection HasInvocationInProgress and HasDispatchInProgress work.</summary>
+    /// <summary>Ensures that the connection HasInvocationInProgress works.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    public async Task Connection_has_invocation_and_dispatch_in_progress(Protocol protocol)
+    public async Task Connection_has_invocation_in_progress(Protocol protocol)
     {
         // Arrange
         var result = new TaskCompletionSource<bool>();
@@ -269,9 +269,7 @@ public sealed class ProtocolConformanceTests
                 {
                     Dispatcher = new InlineDispatcher((request, cancel) =>
                         {
-                            result.SetResult(
-                                sut!.Value.Client.HasInvocationsInProgress &&
-                                sut!.Value.Server.HasDispatchesInProgress);
+                            result.SetResult(sut!.Value.Client.HasInvocationsInProgress);
                             return new(new OutgoingResponse(request));
                         })
                 })
@@ -281,7 +279,37 @@ public sealed class ProtocolConformanceTests
         _ = sut.Value.Server.AcceptRequestsAsync();
 
         // Act
-        await sut.Value.Client.SendRequestAsync(new OutgoingRequest(new Proxy(protocol)));
+        await sut.Value.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
+
+        // Assert
+        Assert.That(await result.Task, Is.True);
+        await sut!.Value.DisposeAsync();
+    }
+
+    /// <summary>Ensures that the connection HasDispatchInProgress works.</summary>
+    [Test, TestCaseSource(nameof(_protocols))]
+    public async Task Connection_has_dispatch_in_progress(Protocol protocol)
+    {
+        // Arrange
+        var result = new TaskCompletionSource<bool>();
+        ProtocolConnectionPair? sut = null;
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .UseServerConnectionOptions(new ConnectionOptions()
+            {
+                Dispatcher = new InlineDispatcher((request, cancel) =>
+                    {
+                        result.SetResult(sut!.Value.Server.HasDispatchesInProgress);
+                        return new(new OutgoingResponse(request));
+                    })
+            })
+            .BuildServiceProvider();
+
+        sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        _ = sut.Value.Server.AcceptRequestsAsync();
+
+        // Act
+        await sut.Value.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
 
         // Assert
         Assert.That(await result.Task, Is.True);
@@ -376,10 +404,9 @@ public sealed class ProtocolConformanceTests
 
         await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
         _ = sut.Client.ShutdownAsync("");
-        _ = sut.Server.ShutdownAsync("");
 
         // Act
-        Task<IncomingResponse> sendRequestTask = sut.Client.SendRequestAsync(new OutgoingRequest(new Proxy(protocol)));
+        Task<IncomingResponse> sendRequestTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
 
         // Assert
         Assert.ThrowsAsync<ConnectionClosedException>(async () => await sendRequestTask);
@@ -404,7 +431,7 @@ public sealed class ProtocolConformanceTests
         _ = sut.Server.AcceptRequestsAsync();
 
         // Act
-        _ = sut.Client.SendRequestAsync(request);
+        _ = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.Multiple(async () =>
@@ -439,7 +466,7 @@ public sealed class ProtocolConformanceTests
         _ = sut.Server.AcceptRequestsAsync();
 
         // Act
-        _ = sut.Client.SendRequestAsync(request);
+        _ = sut.Client.InvokeAsync(request);
         PayloadPipeWriterDecorator payloadWriter = await payloadWriterTask;
         bool completedCalled = await payloadWriter.CompleteCalled;
 
@@ -470,7 +497,7 @@ public sealed class ProtocolConformanceTests
         var request = CreateRequest(protocol, isOneway: false, payload, payloadStream);
 
         // Act
-        Task<IncomingResponse> sendRequestTask = sut.Client.SendRequestAsync(request);
+        Task<IncomingResponse> sendRequestTask = sut.Client.InvokeAsync(request);
         bool completeCalled = await payload.CompleteCalled;
 
         // Assert
@@ -505,7 +532,7 @@ public sealed class ProtocolConformanceTests
         {
             request.Fields = request.Fields.With(
                 RequestFieldKey.Idempotent,
-                (ref SliceEncoder encoder) => throw new NotSupportedException("bogus header"));
+                (ref SliceEncoder encoder) => throw new NotSupportedException("invalid request fields"));
         }
         if (writer != null)
         {
@@ -530,7 +557,7 @@ public sealed class ProtocolConformanceTests
                 {
                     response.Fields = response.Fields.With(
                         ResponseFieldKey.CompressionFormat,
-                        (ref SliceEncoder encoder) => throw new NotSupportedException("bogus header"));
+                        (ref SliceEncoder encoder) => throw new NotSupportedException("invalid response fields"));
                 }
                 if (writer != null)
                 {

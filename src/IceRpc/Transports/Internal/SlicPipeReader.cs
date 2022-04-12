@@ -249,13 +249,13 @@ namespace IceRpc.Transports.Internal
 
             if (_state.TrySetFlag(State.PipeWriterCompleted))
             {
-                if (!_state.HasFlag(State.PipeWriterInUse))
+                if (_state.HasFlag(State.PipeWriterInUse))
                 {
-                    _pipe.Writer.Complete(exception);
+                    _pipe.Reader.CancelPendingRead();
                 }
                 else
                 {
-                    _pipe.Reader.CancelPendingRead();
+                    _pipe.Writer.Complete(exception);
                 }
             }
         }

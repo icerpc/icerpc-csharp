@@ -48,13 +48,13 @@ namespace IceRpc.Internal
             _logger.LogPing();
         }
 
-        async Task<IncomingResponse> IProtocolConnection.SendRequestAsync(
+        async Task<IncomingResponse> IProtocolConnection.InvokeAsync(
             OutgoingRequest request,
             CancellationToken cancel)
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             using IDisposable _ = _logger.StartSendRequestScope(request);
-            IncomingResponse response = await _decoratee.SendRequestAsync(
+            IncomingResponse response = await _decoratee.InvokeAsync(
                 request,
                 cancel).ConfigureAwait(false);
             _logger.LogSendRequest();

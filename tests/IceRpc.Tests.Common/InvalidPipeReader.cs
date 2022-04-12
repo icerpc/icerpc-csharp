@@ -4,7 +4,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Tests
 {
-    /// <summary>A PipeWriter that does nothing and always throws NotSupportedException except for
+    /// <summary>A PipeReader that does nothing and always throws NotSupportedException except for
     /// Complete/CompleteAsync.</summary>
     public sealed class InvalidPipeReader : PipeReader
     {

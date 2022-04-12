@@ -308,7 +308,7 @@ namespace IceRpc.Transports.Internal
             }
             if (isStateAlreadySet)
             {
-                action?.Invoke();
+                action();
             }
         }
 

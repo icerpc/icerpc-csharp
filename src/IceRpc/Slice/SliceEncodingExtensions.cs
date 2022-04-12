@@ -71,27 +71,6 @@ namespace IceRpc.Slice
             return pipe.Reader;
         }
 
-        /// <summary>Encodes a fixed-length size into a span.</summary>
-        /// <param name="encoding">The Slice encoding.</param>
-        /// <param name="size">The size to encode.</param>
-        /// <param name="into">The destination span. This method uses all its bytes.</param>
-        public static void EncodeFixedLengthSize(this SliceEncoding encoding, int size, Span<byte> into)
-        {
-            if (size < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(size), "size must be positive");
-            }
-
-            if (encoding == SliceEncoding.Slice1)
-            {
-                SliceEncoder.EncodeInt(size, into);
-            }
-            else
-            {
-                SliceEncoder.EncodeVarULong((ulong)size, into);
-            }
-        }
-
 #pragma warning disable CA1001 // CompleteAsync disposes the cancellation source token.
         private class PayloadStreamPipeReader<T> : PipeReader
 #pragma warning restore CA1001
@@ -115,15 +94,13 @@ namespace IceRpc.Slice
                 _cancellationSource.Cancel();
             }
 
-            public override ValueTask CompleteAsync(Exception? exception = null)
+            public override void Complete(Exception? exception = null)
             {
                 _cancellationSource.Dispose();
                 _pipe.Reader.Complete(exception);
                 _pipe.Writer.Complete(exception);
-                return _asyncEnumerator.DisposeAsync();
+                _ = _asyncEnumerator.DisposeAsync().AsTask();
             }
-
-            public override void Complete(Exception? exception = null) => throw new NotSupportedException();
 
             public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancel = default)
             {
@@ -152,7 +129,7 @@ namespace IceRpc.Slice
                         {
                             size += EncodeElement(_asyncEnumerator.Current);
 
-                            // If we reached the segment size threeshold, it's time to flush the segment.
+                            // If we reached the segment size threshold, it's time to flush the segment.
                             // TODO: allow to configure the size limit?
                             if (size > _segmentSizeFlushThreshold)
                             {
@@ -172,7 +149,7 @@ namespace IceRpc.Slice
                             hasNext = moveNext.Result;
                         }
 
-                        _encoding.EncodeFixedLengthSize(size, sizePlaceholder.Span);
+                        SliceEncoder.EncodeVarULong((ulong)size, sizePlaceholder.Span);
 
                         if (hasNext)
                         {

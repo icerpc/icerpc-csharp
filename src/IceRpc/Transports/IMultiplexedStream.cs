@@ -15,7 +15,9 @@ namespace IceRpc.Transports
         /// <summary>Returns <c>true</c> if the stream is a bidirectional stream, <c>false</c> otherwise.</summary>
         bool IsBidirectional { get; }
 
-        /// <summary>Returns <c>true</c> if the stream is a remote stream, <c>false</c> otherwise.</summary>
+        /// <summary>Returns <c>true</c> if the stream is a remote stream, <c>false</c> otherwise. A remote stream is a
+        /// stream initiated by the peer and it's returned by <see
+        /// cref="IMultiplexedNetworkConnection.AcceptStreamAsync(CancellationToken)"/>.</summary>
         bool IsRemote { get; }
 
         /// <summary>Returns <c>true</c> if the local stream is started, <c>false</c> otherwise.</summary>

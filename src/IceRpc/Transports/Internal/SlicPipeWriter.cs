@@ -201,13 +201,13 @@ namespace IceRpc.Transports.Internal
             // once the reading terminates.
             if (_state.TrySetFlag(State.PipeReaderCompleted))
             {
-                if (!_state.HasFlag(State.PipeReaderInUse))
+                if (_state.HasFlag(State.PipeReaderInUse))
                 {
-                    _pipe.Reader.Complete(exception);
+                    _pipe.Writer.CancelPendingFlush();
                 }
                 else
                 {
-                    _pipe.Writer.CancelPendingFlush();
+                    _pipe.Reader.Complete(exception);
                 }
             }
         }

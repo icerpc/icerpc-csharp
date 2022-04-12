@@ -62,7 +62,7 @@ namespace IceRpc.Internal
         private readonly int _minimumSegmentSize;
 
         private readonly object _mutex = new();
-        private readonly ISimpleNetworkConnection  _networkConnection;
+        private readonly ISimpleNetworkConnection _networkConnection;
         private readonly SimpleNetworkConnectionReader _networkConnectionReader;
         private readonly SimpleNetworkConnectionWriter _networkConnectionWriter;
 
@@ -102,7 +102,7 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
-        public async Task<IncomingResponse> SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
+        public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
             bool acquiredSemaphore = false;
             int requestId = 0;
@@ -369,7 +369,7 @@ namespace IceRpc.Internal
             // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
             // connection closure here. We can't just return and close the underlying transport since this could
             // abort the receive of the dispatch responses and close connection frame by the peer.
-            await _pendingClose.Task.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+            await _pendingClose.Task.ConfigureAwait(false);
 
             static void EncodeCloseConnectionFrame(SimpleNetworkConnectionWriter writer)
             {
@@ -582,7 +582,7 @@ namespace IceRpc.Internal
         /// <returns>The size of the request frame.</returns>
         /// <remarks>When this method returns, only the frame prologue has been read from the network. The caller is
         /// responsible to read the remainder of the request frame from _networkConnectionReader.</remarks>
-        private async ValueTask<int> ReceiveFramesAsync()
+        private async ValueTask ReceiveFramesAsync()
         {
             // Reads are not cancelable. This method returns once a request frame is read or when the connection is
             // disposed.
@@ -1007,13 +1007,15 @@ namespace IceRpc.Internal
                     requestHeader.EncapsulationHeader.PayloadEncodingMinor != 1)
                 {
                     throw new InvalidDataException(
-                        @$"unsupported payload encoding '{requestHeader.EncapsulationHeader.PayloadEncodingMajor}.{requestHeader.EncapsulationHeader.PayloadEncodingMinor}'");
+                        @$"unsupported payload encoding '{requestHeader.EncapsulationHeader.PayloadEncodingMajor
+                            }.{requestHeader.EncapsulationHeader.PayloadEncodingMinor}'");
                 }
 
                 int payloadSize = requestHeader.EncapsulationHeader.EncapsulationSize - 6;
                 if (payloadSize != (buffer.Length - decoder.Consumed))
                 {
-                    throw new InvalidDataException(@$"request payload size mismatch: expected {payloadSize} bytes, read {buffer.Length - decoder.Consumed} bytes");
+                    throw new InvalidDataException(@$"request payload size mismatch: expected {payloadSize
+                        } bytes, read {buffer.Length - decoder.Consumed} bytes");
                 }
 
                 return (requestId, requestHeader, (int)decoder.Consumed);

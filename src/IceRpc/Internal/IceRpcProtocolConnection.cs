@@ -297,7 +297,7 @@ namespace IceRpc.Internal
         public Task PingAsync(CancellationToken cancel) =>
             SendControlFrameAsync(IceRpcControlFrameType.Ping, encodeAction: null, cancel).AsTask();
 
-        public async Task<IncomingResponse> SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
+        public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
             IMultiplexedStream? stream = null;
             try
@@ -599,32 +599,35 @@ namespace IceRpc.Internal
 
         private void AddStream(IMultiplexedStream stream)
         {
-            _streams.Add(stream);
-
-            if (!stream.IsRemote)
+            lock (_mutex)
             {
-                ++_invocationCount;
-            }
+                _streams.Add(stream);
 
-            stream.OnShutdown(() =>
+                if (!stream.IsRemote)
                 {
-                    lock (_mutex)
+                    ++_invocationCount;
+                }
+
+                stream.OnShutdown(() =>
                     {
-                        if (!stream.IsRemote)
+                        lock (_mutex)
                         {
-                            --_invocationCount;
-                        }
+                            if (!stream.IsRemote)
+                            {
+                                --_invocationCount;
+                            }
 
-                        _streams.Remove(stream);
+                            _streams.Remove(stream);
 
-                        // If no more streams and shutting down, we can set the _streamsCompleted task completion source
-                        // as completed to allow shutdown to progress.
-                        if (_isShuttingDown && _streams.Count == 0)
-                        {
-                            _streamsCompleted.SetResult();
+                            // If no more streams and shutting down, we can set the _streamsCompleted task completion source
+                            // as completed to allow shutdown to progress.
+                            if (_isShuttingDown && _streams.Count == 0)
+                            {
+                                _streamsCompleted.SetResult();
+                            }
                         }
-                    }
-                });
+                    });
+            }
         }
 
         private async ValueTask<T> ReceiveControlFrameBodyAsync<T>(
@@ -726,11 +729,24 @@ namespace IceRpc.Internal
 
             try
             {
-                await CopyReaderToWriterAsync(
+                FlushResult flushResult = await CopyReaderToWriterAsync(
                     outgoingFrame.Payload,
                     payloadWriter,
                     endStream: outgoingFrame.PayloadStream == null,
                     cancel).ConfigureAwait(false);
+
+                if (flushResult.IsCompleted)
+                {
+                    // The remote reader gracefully completed the stream input pipe. We're done.
+                    await payloadWriter.CompleteAsync().ConfigureAwait(false);
+                    await outgoingFrame.CompleteAsync().ConfigureAwait(false);
+                    return;
+                }
+                else if (flushResult.IsCanceled)
+                {
+                    throw new InvalidOperationException(
+                        "a payload writer is not allowed to return a canceled flush result");
+                }
             }
             catch (Exception exception)
             {
@@ -752,11 +768,17 @@ namespace IceRpc.Internal
                     {
                         try
                         {
-                            await CopyReaderToWriterAsync(
+                            FlushResult flushResult = await CopyReaderToWriterAsync(
                                 outgoingFrame.PayloadStream,
                                 payloadWriter,
                                 endStream: true,
                                 CancellationToken.None).ConfigureAwait(false);
+
+                            if (flushResult.IsCanceled)
+                            {
+                                throw new InvalidOperationException(
+                                    "a payload writer interceptor is not allowed to return a canceled flush result");
+                            }
 
                             await outgoingFrame.PayloadStream.CompleteAsync().ConfigureAwait(false);
                             await payloadWriter.CompleteAsync().ConfigureAwait(false);
@@ -770,7 +792,7 @@ namespace IceRpc.Internal
                     cancel);
             }
 
-            async Task CopyReaderToWriterAsync(
+            async Task<FlushResult> CopyReaderToWriterAsync(
                 PipeReader reader,
                 PipeWriter writer,
                 bool endStream,
@@ -779,11 +801,11 @@ namespace IceRpc.Internal
                 // If the peer completes its input pipe reader, we cancel the pending read on the payload.
                 stream.OnPeerInputCompleted(reader.CancelPendingRead);
 
-                while (true)
+                FlushResult flushResult;
+                do
                 {
                     ReadResult readResult = await reader.ReadAsync(cancel).ConfigureAwait(false);
 
-                    FlushResult flushResult;
                     if (readResult.IsCanceled)
                     {
                         // If the peer input pipe reader was completed, this will throw with the reason of the pipe
@@ -813,22 +835,10 @@ namespace IceRpc.Internal
                     }
                     else if (readResult.IsCanceled)
                     {
-                        throw new OperationCanceledException(
-                            "payload sending was canceled by a payload reader decorator");
-
+                        throw new OperationCanceledException("payload pipe reader was canceled");
                     }
-
-                    if (flushResult.IsCompleted)
-                    {
-                        // The remote reader gracefully completed the stream input pipe.
-                        throw new OperationCanceledException("peer stopped reading the payload");
-                    }
-                    else if (flushResult.IsCanceled)
-                    {
-                        throw new OperationCanceledException(
-                            "payload sending was canceled by a payload writer interceptor");
-                    }
-                }
+                } while (!flushResult.IsCanceled && !flushResult.IsCompleted);
+                return flushResult;
             }
         }
 
