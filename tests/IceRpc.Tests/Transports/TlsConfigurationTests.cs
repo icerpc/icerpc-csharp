@@ -56,7 +56,6 @@ public class TlsConfigurationTests
 
     /// <summary>Verifies that the local certificate selection callback is used to select the client certificate.
     /// </summary>
-    /// <returns></returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Security",
         "CA5359:Do Not Disable Certificate Validation",
@@ -109,7 +108,6 @@ public class TlsConfigurationTests
 
     /// <summary>Verifies that the remote certificate validation callbacks set with the client and server connections
     /// are used during the tls handshake.</summary>
-    /// <returns></returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Security",
         "CA5359:Do Not Disable Certificate Validation",
