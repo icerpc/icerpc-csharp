@@ -2,8 +2,6 @@
 
 using IceRpc.Slice.Internal;
 using NUnit.Framework;
-using System.Buffers;
-using System.Collections.Immutable;
 
 namespace IceRpc.Slice.Tests;
 

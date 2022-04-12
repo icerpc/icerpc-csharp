@@ -6,9 +6,9 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
-using System.Security.Authentication;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using System.Security.Authentication;
 using System.Text;
 
 namespace IceRpc.Transports.Internal

@@ -14,7 +14,7 @@ namespace IceRpc.Slice
     {
         /// <summary>Verifies that a response payload carries no return value or only tagged return values.</summary>
         /// <param name="response">The incoming response.</param>
-         /// <param name="sliceEncoding">The Slice encoding of the response payload.</param>
+        /// <param name="sliceEncoding">The Slice encoding of the response payload.</param>
         /// <param name="defaultActivator">The default activator.</param>
         /// <param name="hasStream"><c>true</c> if this void value is followed by a stream parameter; otherwise,
         /// <c>false</c>.</param>
