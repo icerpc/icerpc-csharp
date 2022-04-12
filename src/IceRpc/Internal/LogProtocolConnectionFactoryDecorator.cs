@@ -28,8 +28,8 @@ namespace IceRpc.Internal
                 cancel).ConfigureAwait(false);
 
             _logger.LogCreateProtocolConnection(connectionInformation.ApplicationProtocol,
-                                                connectionInformation.LocalEndpoint,
-                                                connectionInformation.RemoteEndpoint);
+                                                connectionInformation.LocalEndPoint,
+                                                connectionInformation.RemoteEndPoint);
 
             return new LogProtocolConnectionDecorator(protocolConnection, connectionInformation, isServer, _logger);
         }

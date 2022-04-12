@@ -57,8 +57,8 @@ namespace IceRpc
             if (logger.IsEnabled(LogLevel.Information))
             {
                 logger.LogInvokeException(
-                    connection?.NetworkConnectionInformation?.LocalEndpoint.ToString() ?? "undefined",
-                    connection?.NetworkConnectionInformation?.RemoteEndpoint.ToString() ?? "undefined",
+                    connection?.NetworkConnectionInformation?.LocalEndPoint.ToString() ?? "undefined",
+                    connection?.NetworkConnectionInformation?.RemoteEndPoint.ToString() ?? "undefined",
                     path,
                     operation,
                     ex);
@@ -75,8 +75,8 @@ namespace IceRpc
             if (logger.IsEnabled(LogLevel.Information))
             {
                 logger.LogReceivedResponse(
-                    connection?.NetworkConnectionInformation?.LocalEndpoint.ToString() ?? "undefined",
-                    connection?.NetworkConnectionInformation?.RemoteEndpoint.ToString() ?? "undefined",
+                    connection?.NetworkConnectionInformation?.LocalEndPoint.ToString() ?? "undefined",
+                    connection?.NetworkConnectionInformation?.RemoteEndPoint.ToString() ?? "undefined",
                     path,
                     operation,
                     resultType);
@@ -92,8 +92,8 @@ namespace IceRpc
             if (logger.IsEnabled(LogLevel.Information))
             {
                 logger.LogSendingRequest(
-                    connection?.NetworkConnectionInformation?.LocalEndpoint.ToString() ?? "undefined",
-                    connection?.NetworkConnectionInformation?.RemoteEndpoint.ToString() ?? "undefined",
+                    connection?.NetworkConnectionInformation?.LocalEndPoint.ToString() ?? "undefined",
+                    connection?.NetworkConnectionInformation?.RemoteEndPoint.ToString() ?? "undefined",
                     path,
                     operation);
             }

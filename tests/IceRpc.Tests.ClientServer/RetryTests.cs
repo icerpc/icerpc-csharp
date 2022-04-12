@@ -376,7 +376,7 @@ namespace IceRpc.Tests.ClientServer
                 return new InlineDispatcher(
                     async (request, cancel) =>
                     {
-                        calls.Add(request.Connection.NetworkConnectionInformation?.LocalEndpoint?.ToString() ?? "");
+                        calls.Add(request.Connection.NetworkConnectionInformation?.LocalEndPoint?.ToString() ?? "");
                         return await next.DispatchAsync(request, cancel);
                     });
             }
@@ -459,7 +459,7 @@ namespace IceRpc.Tests.ClientServer
                 return new InlineDispatcher(
                     async (request, cancel) =>
                     {
-                        calls.Add(request.Connection.NetworkConnectionInformation?.LocalEndpoint?.ToString() ?? "");
+                        calls.Add(request.Connection.NetworkConnectionInformation?.LocalEndPoint?.ToString() ?? "");
                         return await next.DispatchAsync(request, cancel);
                     });
             }

@@ -139,11 +139,11 @@ namespace IceRpc.Tests.Internal
             Assert.That(factory.ServerConnection.NetworkConnectionInformation, Is.Not.Null);
             NetworkConnectionInformation serverInformation = factory.ServerConnection.NetworkConnectionInformation.Value;
 
-            var clientLocalIPEndpoint = (IPEndPoint)clientInformation.LocalEndpoint;
-            var clientRemoteIPEndpoint = (IPEndPoint)clientInformation.RemoteEndpoint;
+            var clientLocalIPEndpoint = (IPEndPoint)clientInformation.LocalEndPoint;
+            var clientRemoteIPEndpoint = (IPEndPoint)clientInformation.RemoteEndPoint;
 
-            var serverLocalIPEndpoint = (IPEndPoint)serverInformation.LocalEndpoint;
-            var serverRemoteIPEndpoint = (IPEndPoint)serverInformation.RemoteEndpoint;
+            var serverLocalIPEndpoint = (IPEndPoint)serverInformation.LocalEndPoint;
+            var serverRemoteIPEndpoint = (IPEndPoint)serverInformation.RemoteEndPoint;
 
             Assert.That(clientLocalIPEndpoint.Address, Is.EqualTo(IPAddress.Loopback));
             Assert.That(clientRemoteIPEndpoint.Address, Is.EqualTo(IPAddress.Loopback));

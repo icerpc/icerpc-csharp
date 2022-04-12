@@ -16,30 +16,30 @@ namespace IceRpc.Transports
         public TimeSpan IdleTimeout { get; init; }
 
         /// <summary>The local endpoint.</summary>
-        public EndPoint LocalEndpoint { get; }
+        public EndPoint LocalEndPoint { get; }
 
         /// <summary>The remote endpoint.</summary>
-        public EndPoint RemoteEndpoint { get; }
+        public EndPoint RemoteEndPoint { get; }
 
         /// <summary>The peer remote certificate if TLS is used for the connection, <c>null</c> otherwise.</summary>
         public X509Certificate? RemoteCertificate { get; }
 
         /// <summary>Constructs a new instance of <see cref="NetworkConnectionInformation"/>.</summary>
         /// <param name="applicationProtocol">The application endpoint.</param>
-        /// <param name="localEndpoint">The local endpoint.</param>
-        /// <param name="remoteEndpoint">The remote endpoint.</param>
+        /// <param name="localEndPoint">The local endpoint.</param>
+        /// <param name="remoteEndPoint">The remote endpoint.</param>
         /// <param name="idleTimeout">The idle timeout.</param>
         /// <param name="remoteCertificate">The optional remote certificate.</param>
         public NetworkConnectionInformation(
             Protocol applicationProtocol,
-            EndPoint localEndpoint,
-            EndPoint remoteEndpoint,
+            EndPoint localEndPoint,
+            EndPoint remoteEndPoint,
             TimeSpan idleTimeout,
             X509Certificate? remoteCertificate)
         {
             ApplicationProtocol = applicationProtocol;
-            LocalEndpoint = localEndpoint;
-            RemoteEndpoint = remoteEndpoint;
+            LocalEndPoint = localEndPoint;
+            RemoteEndPoint = remoteEndPoint;
             IdleTimeout = idleTimeout;
             RemoteCertificate = remoteCertificate;
         }

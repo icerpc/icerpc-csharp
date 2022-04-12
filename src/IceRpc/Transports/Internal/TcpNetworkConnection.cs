@@ -284,8 +284,8 @@ namespace IceRpc.Transports.Internal
 
                 return new NetworkConnectionInformation(
                     applicationProtocol: remoteEndpoint.Protocol,
-                    localEndpoint: Socket.LocalEndPoint!,
-                    remoteEndpoint: Socket.RemoteEndPoint!,
+                    localEndPoint: Socket.LocalEndPoint!,
+                    remoteEndPoint: Socket.RemoteEndPoint!,
                     _idleTimeout,
                     _sslStream?.RemoteCertificate);
             }
@@ -397,8 +397,8 @@ namespace IceRpc.Transports.Internal
 
                 return new NetworkConnectionInformation(
                     _localEndpoint.Protocol,
-                    localEndpoint: Socket.LocalEndPoint!,
-                    remoteEndpoint: Socket.RemoteEndPoint!,
+                    localEndPoint: Socket.LocalEndPoint!,
+                    remoteEndPoint: Socket.RemoteEndPoint!,
                     _idleTimeout,
                     _sslStream?.RemoteCertificate);
             }

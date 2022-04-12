@@ -227,8 +227,8 @@ namespace IceRpc
             if (logger.IsEnabled(LogLevel.Information))
             {
                 logger.LogRetryRequest(
-                    connection?.NetworkConnectionInformation?.LocalEndpoint.ToString() ?? "undefined",
-                    connection?.NetworkConnectionInformation?.RemoteEndpoint.ToString() ?? "undefined",
+                    connection?.NetworkConnectionInformation?.LocalEndPoint.ToString() ?? "undefined",
+                    connection?.NetworkConnectionInformation?.RemoteEndPoint.ToString() ?? "undefined",
                     path,
                     operation,
                     retryPolicy,
