@@ -422,6 +422,7 @@ pub struct EncodingBlockBuilder {
     supported_encodings: SupportedEncodings,
     encoding_variable: String,
     identifier: String,
+    encoding_check: bool,
 }
 
 impl EncodingBlockBuilder {
@@ -429,12 +430,14 @@ impl EncodingBlockBuilder {
         encoding_variable: &str,
         identifier: &str,
         supported_encodings: SupportedEncodings,
+        encoding_check: bool,
     ) -> Self {
         Self {
             encoding_blocks: HashMap::new(),
             supported_encodings,
             encoding_variable: encoding_variable.to_owned(),
             identifier: identifier.to_owned(),
+            encoding_check: encoding_check,
         }
     }
 
@@ -447,19 +450,29 @@ impl EncodingBlockBuilder {
         match &self.supported_encodings[..] {
             [] => panic!("No supported encodings"),
             [encoding] => {
-                format!(
+                format!("\
+{encoding_check}
+{encode_block}
+",
+                    encoding_check =
+                        if self.encoding_check {
+                            format!(
 r#"if ({encoding_variable} != {encoding})
 {{
     throw new InvalidOperationException("{identifier} can only be encoded with the Slice {encoding_name} encoding.");
 }}
-
-{encode_block}"#,
-                    identifier = self.identifier,
-                    encoding_variable = self.encoding_variable,
-                    encoding = encoding.to_cs_encoding(),
-                    encoding_name = encoding.encoding_name(),
+"#,
+                                identifier = self.identifier,
+                                encoding_variable = self.encoding_variable,
+                                encoding = encoding.to_cs_encoding(),
+                                encoding_name = encoding.encoding_name(),
+                            )
+                        } else {
+                            "".to_owned()
+                        },
                     encode_block = self.encoding_blocks[encoding].clone(),
-                ).into()
+                )
+                .into()
             }
             _ => {
                 let mut encoding_1 = self.encoding_blocks[&Encoding::Slice11].clone();
@@ -468,17 +481,20 @@ r#"if ({encoding_variable} != {encoding})
                 if encoding_1.is_empty() && encoding_2.is_empty() {
                     "".into()
                 } else if encoding_1.is_empty() && !encoding_2.is_empty() {
-                    format!("\
+                    format!(
+                        "\
 if ({encoding_variable} != SliceEncoding.Slice1) // Slice 2 encoding only
 {{
     {encoding_2}
 }}
 ",
-                            encoding_variable = self.encoding_variable,
-                            encoding_2 = encoding_2.indent())
-                            .into()
+                        encoding_variable = self.encoding_variable,
+                        encoding_2 = encoding_2.indent()
+                    )
+                    .into()
                 } else if !encoding_1.is_empty() && !encoding_2.is_empty() {
-                    format!("\
+                    format!(
+                        "\
 if ({encoding_variable} == SliceEncoding.Slice1)
 {{
     {encoding_1}
@@ -486,12 +502,12 @@ if ({encoding_variable} == SliceEncoding.Slice1)
 else // Slice 2 encoding
 {{
     {encoding_2}
-}}
-",
-                            encoding_variable = self.encoding_variable,
-                            encoding_1 = encoding_1.indent(),
-                            encoding_2 = encoding_2.indent())
-                            .into()
+}}",
+                        encoding_variable = self.encoding_variable,
+                        encoding_1 = encoding_1.indent(),
+                        encoding_2 = encoding_2.indent()
+                    )
+                    .into()
                 } else {
                     panic!("Not possible to have an empty Slice 2 encoding block with a non empty Slice 1 encoding block");
                 }
