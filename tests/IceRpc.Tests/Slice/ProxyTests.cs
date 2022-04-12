@@ -9,7 +9,7 @@ namespace IceRpc.Slice.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class ProxyTests
 {
-     /// <summary>Provides test case data for <see cref="Decode_proxy(string, string, IProxyFormat, SliceEncoding)"/> test.
+    /// <summary>Provides test case data for <see cref="Decode_proxy(string, string, IProxyFormat, SliceEncoding)"/> test.
     /// </summary>
     private static IEnumerable<TestCaseData> DecodeProxyDataSource
     {
@@ -36,6 +36,27 @@ public class ProxyTests
                 yield return new TestCaseData(Proxy.Parse(value), Proxy.Parse(expected ?? value), encoding);
             }
         }
+    }
+
+    /// <summary>Verifies that nullable proxies are correctly encoded with both Slice1 and Slice2 encoding.</summary>
+    /// <param name="value"></param>
+    /// <param name="encoding"></param>
+    [Test]
+    public void Decode_nullable_proxy(
+    [Values("icerpc://host.zeroc.com/hello", null)] string? value,
+    [Values(SliceEncoding.Slice1, SliceEncoding.Slice2)] SliceEncoding encoding)
+    {
+        Proxy? expected = value == null ? null : Proxy.Parse(value);
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer, encoding);
+        BitSequenceWriter bitSequenceWritter = encoder.GetBitSequenceWriter(1);
+        encoder.EncodeNullableProxy(ref bitSequenceWritter, expected);
+        var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
+        BitSequenceReader bitsequenceReader = decoder.GetBitSequenceReader(1);
+
+        Proxy? decoded = decoder.DecodeNullableProxy(ref bitsequenceReader);
+
+        Assert.That(decoded, Is.EqualTo(expected));
     }
 
     /// <summary>Verifies that calling <see cref="SliceDecoder.DecodeProxy"/> correctly decodes a proxy.</summary>
