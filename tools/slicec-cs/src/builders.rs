@@ -437,7 +437,7 @@ impl EncodingBlockBuilder {
             supported_encodings,
             encoding_variable: encoding_variable.to_owned(),
             identifier: identifier.to_owned(),
-            encoding_check: encoding_check,
+            encoding_check,
         }
     }
 
