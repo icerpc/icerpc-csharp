@@ -45,7 +45,9 @@ namespace IceRpc.Slice
         /// <param name="encoding">The Slice encoding.</param>
         /// <param name="exception">The remote exception.</param>
         /// <returns>A new payload.</returns>
-        public static PipeReader CreatePayloadFromRemoteException(this SliceEncoding encoding, RemoteException exception)
+        public static PipeReader CreatePayloadFromRemoteException(
+            this SliceEncoding encoding,
+            RemoteException exception)
         {
             var pipe = new Pipe(); // TODO: pipe options
 
@@ -53,9 +55,16 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceholder = encoding == SliceEncoding.Slice1 ? default : encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
 
-            if (encoding == SliceEncoding.Slice1 && exception is DispatchException dispatchException)
+            if (encoding == SliceEncoding.Slice1)
             {
-                encoder.EncodeDispatchExceptionAsSystemException(dispatchException);
+                if (exception is DispatchException dispatchException)
+                {
+                    encoder.EncodeDispatchExceptionAsSystemException(dispatchException);
+                }
+                else
+                {
+                    exception.Encode(ref encoder);
+                }
             }
             else
             {

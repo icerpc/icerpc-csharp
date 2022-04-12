@@ -111,6 +111,10 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
                 .build(),
         );
 
+        if exception_def.supported_encodings().supports(&Encoding::Slice2) {
+            exception_class_builder.add_block(encode_trait_method());
+        }
+
         // Remote exceptions are always "preserved".
         exception_class_builder.add_block(
             FunctionBuilder::new(
@@ -138,71 +142,26 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
             .build(),
         );
 
-        exception_class_builder.add_block(encode_method(exception_def));
-        exception_class_builder.add_block(encode_trait_method(exception_def));
-        if exception_def
-            .supported_encodings()
-            .supports(&Encoding::Slice11)
-        {
-            exception_class_builder.add_block(encode_core_method(exception_def));
-        }
+        exception_class_builder.add_block(encode_core_method(exception_def));
 
-        self.generated_code
-            .insert_scoped(exception_def, exception_class_builder.build().into());
+        self.generated_code.insert_scoped(exception_def, exception_class_builder.build().into());
     }
 }
 
-fn encode_method(exception_def: &Exception) -> CodeBlock {
-    let members = &exception_def.members();
-    let namespace = &exception_def.namespace();
-    let has_base = exception_def.base.is_some();
-
-    let body = CodeBlock::from(format!(
-        "\
-encoder.EncodeString(Message);
-{encode_data_members}
-encoder.EncodeVarInt(Slice2Definitions.TagEndMarker);
-",
-        encode_data_members = &encode_data_members(members, namespace, FieldType::Exception),
-    ));
-
-    let qualifier = if has_base { "public new" } else { "public" };
-
-    FunctionBuilder::new(qualifier, "void", "Encode", FunctionType::BlockBody)
-        .add_comment("summary", "Encodes the fields of this exception.")
-        .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
-        .set_body(body)
-        .build()
-}
-
-fn encode_trait_method(exception_def: &Exception) -> CodeBlock {
+fn encode_trait_method() -> CodeBlock {
     FunctionBuilder::new(
         "public override",
         "void",
         "EncodeTrait",
         FunctionType::BlockBody,
     )
-    .add_comment(
-        "summary",
-        "Encodes this exception as a trait, by encoding its Slice type ID followed by its fields.",
-    )
-    .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
+    .add_parameter("ref SliceEncoder", "encoder", None, Some("The Slice encoder."))
+    .set_inherit_doc(true)
     .set_body(
-        EncodingBlockBuilder::new(
-            "encoder.Encoding",
-            &exception_def.escape_identifier(),
-            exception_def.supported_encodings(),
-            true,
-        )
-        .add_encoding_block(Encoding::Slice11, "this.EncodeCore(ref encoder);".into())
-        .add_encoding_block(
-            Encoding::Slice2,
-            "\
+        "\
 encoder.EncodeString(SliceTypeId);
 this.Encode(ref encoder);"
-                .into(),
-        )
-        .build(),
+            .into(),
     )
     .build()
 }
@@ -212,33 +171,47 @@ fn encode_core_method(exception_def: &Exception) -> CodeBlock {
     let namespace = &exception_def.namespace();
     let has_base = exception_def.base.is_some();
 
-    let body = CodeBlock::from(format!(
-        r#"
-System.Diagnostics.Debug.Assert(encoder.Encoding == SliceEncoding.Slice1);
+    let body = EncodingBlockBuilder::new(
+            "encoder.Encoding",
+            &exception_def.escape_identifier(),
+            exception_def.supported_encodings(),
+            true,
+        )
+        .add_encoding_block(
+            Encoding::Slice11,
+            format!(
+                "\
 encoder.StartSlice(SliceTypeId);
 {encode_data_members}
 encoder.EndSlice(lastSlice: {is_last_slice});
-{encode_base}"#,
-        encode_data_members = &encode_data_members(members, namespace, FieldType::Exception),
-        is_last_slice = !has_base,
-        encode_base = if has_base {
-            "base.EncodeCore(ref encoder);"
-        } else {
-            ""
-        },
-    ));
+{encode_base}",
+                encode_data_members = &encode_data_members(members, namespace, FieldType::Exception),
+                is_last_slice = !has_base,
+                encode_base = if has_base {
+                    "base.EncodeCore(ref encoder);"
+                } else {
+                    ""
+                },
+            ).into()
+        )
+        .add_encoding_block(
+            Encoding::Slice2,
+            format!(
+                "\
+encoder.EncodeString(Message);
+{encode_data_members}
+encoder.EncodeVarInt(Slice2Definitions.TagEndMarker);",
+                encode_data_members = &encode_data_members(members, namespace, FieldType::Exception),
+            ).into()
+        )
+        .build();
 
     FunctionBuilder::new(
-        if has_base {
-            "protected override"
-        } else {
-            "virtual protected"
-        },
+        "protected override",
         "void",
         "EncodeCore",
         FunctionType::BlockBody,
     )
-    .set_inherit_doc(true)
     .add_parameter("ref SliceEncoder", "encoder", None, None)
     .set_body(body)
     .build()

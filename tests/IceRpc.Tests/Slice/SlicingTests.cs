@@ -194,7 +194,7 @@ public class SlicingTests
         var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1, classFormat: FormatType.Sliced);
 
         var p1 = new MyMostDerivedException("most-derived", "derived", "base");
-        p1.EncodeTrait(ref encoder);
+        p1.Encode(ref encoder);
         buffer = bufferWriter.WrittenMemory;
 
         // Create an activator that knows about all the types using in this test
