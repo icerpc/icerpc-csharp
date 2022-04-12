@@ -37,7 +37,7 @@ namespace IceRpc.Transports
             if (_listeners.TryGetValue(remoteEndpoint, out ColocListener? listener))
             {
                 (PipeReader reader, PipeWriter writer) = listener.NewClientConnection();
-                return new ColocNetworkConnection(remoteEndpoint, isServer: false, reader, writer);
+                return new ColocNetworkConnection(remoteEndpoint, isServer: false, writer, reader);
             }
             else
             {

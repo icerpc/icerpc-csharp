@@ -160,12 +160,12 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal ColocNetworkConnection(Endpoint endpoint, bool isServer, PipeReader reader, PipeWriter writer)
+        public ColocNetworkConnection(Endpoint endpoint, bool isServer, PipeWriter writer, PipeReader reader)
         {
             _endpoint = endpoint;
             _isServer = isServer;
-            _reader = reader;
             _writer = writer;
+            _reader = reader;
         }
 
         private enum State : int

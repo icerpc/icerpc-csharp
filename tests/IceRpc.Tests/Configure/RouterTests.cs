@@ -95,7 +95,6 @@ public class RouterTests
     /// is selected for dispatch requests with a path starting with the given prefix.</summary>
     /// <param name="prefix">The prefix to mount the dispatcher.</param>
     /// <param name="path">The path for the request.</param>
-    /// <returns></returns>
     [TestCase("/foo", "/foo/bar")]
     [TestCase("/foo/", "/foo/bar")]
     [TestCase("/foo/bar///", "/foo/bar")] // ignores trailing slash(es) in prefix
@@ -208,7 +207,6 @@ public class RouterTests
     /// <param name="subprefix">The prefix for the sub-sub-router</param>
     /// <param name="path">The path for the request.</param>
     /// <param name="subpath">The path for the dispatcher in the inner most router.</param>
-    /// <returns></returns>
     [TestCase("/foo", "/bar", "/foo/bar/abc", "/abc")]
     [TestCase("/foo/", "/bar/", "/foo/bar/abc", "/abc")]
     public async Task Router_with_middleware_and_nested_subrouters(

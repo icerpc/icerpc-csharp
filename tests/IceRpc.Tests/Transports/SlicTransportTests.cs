@@ -2,6 +2,7 @@
 
 using IceRpc.Configure;
 using IceRpc.Tests;
+using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.IO.Pipelines;
@@ -13,100 +14,169 @@ namespace IceRpc.Transports.Tests;
 [Parallelizable(ParallelScope.All)]
 public class SlicTransportTests
 {
-    private static readonly ReadOnlyMemory<byte> _oneMbPayload = new(
-        Enumerable.Range(0, 1024 * 1024).Select(i => (byte)(i % 256)).ToArray());
-
     [Test]
-    public async Task Stream_write_blocks_after_consuming_the_send_credit()
+    public async Task Stream_peer_options_are_set_after_connect()
     {
         // Arrange
-        await using var serviceProvider = CreateSlicTransportServiceCollection(
-            serverOptions: new SlicServerTransportOptions
+        await using ServiceProvider serviceProvider = CreateServiceCollection(
+            new SlicServerTransportOptions
             {
-                PauseWriterThreshold = 1024 * 1024
+                PauseWriterThreshold = 6893,
+                ResumeWriterThreshold = 2000,
+                PacketMaxSize = 2098
+            },
+            new SlicClientTransportOptions
+            {
+                PauseWriterThreshold = 2405,
+                ResumeWriterThreshold = 2000,
+                PacketMaxSize = 4567
             }).BuildServiceProvider();
-
-        var acceptTask = serviceProvider.GetMultiplexedServerConnectionAsync();
-        IMultiplexedNetworkConnection sut = await serviceProvider.GetMultiplexedClientConnectionAsync();
-        IMultiplexedNetworkConnection serverConnection = await acceptTask;
-
-        IMultiplexedStream stream = sut.CreateStream(bidirectional: true);
-        FlushResult result = await stream.Output.WriteAsync(_oneMbPayload, default);
+        Task<IMultiplexedNetworkConnection> acceptTask = serviceProvider.GetMultiplexedServerConnectionAsync();
+        var clientConnection = (SlicNetworkConnection)await serviceProvider.GetMultiplexedClientConnectionAsync();
 
         // Act
-        ValueTask<FlushResult> writeTask = stream.Output.WriteAsync(_oneMbPayload, default);
+        var serverConnection = (SlicNetworkConnection)await acceptTask;
+
+        // Assert
+        Assert.That(serverConnection.PeerPauseWriterThreshold, Is.EqualTo(2405));
+        Assert.That(clientConnection.PeerPauseWriterThreshold, Is.EqualTo(6893));
+        Assert.That(serverConnection.PeerPacketMaxSize, Is.EqualTo(4567));
+        Assert.That(clientConnection.PeerPacketMaxSize, Is.EqualTo(2098));
+    }
+
+    [TestCase(1024 * 32)]
+    [TestCase(1024 * 512)]
+    [TestCase(1024 * 1024)]
+    public async Task Stream_write_blocks_after_consuming_the_send_credit(
+        int pauseThreshold)
+    {
+        // Arrange
+        await using ServiceProvider serviceProvider = CreateServiceCollection(
+            serverOptions: new SlicServerTransportOptions
+            {
+                PauseWriterThreshold = pauseThreshold
+            }).BuildServiceProvider();
+
+        byte[] payload = new byte[pauseThreshold - 1];
+
+        Task<IMultiplexedNetworkConnection> acceptTask = serviceProvider.GetMultiplexedServerConnectionAsync();
+        await using IMultiplexedNetworkConnection clientConnection =
+            await serviceProvider.GetMultiplexedClientConnectionAsync();
+        await using IMultiplexedNetworkConnection serverConnection = await acceptTask;
+
+        (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
+            await CreateAndAcceptStreamAsync(serverConnection, clientConnection);
+        _ = await localStream.Output.WriteAsync(payload, default);
+
+        // Act
+        ValueTask<FlushResult> writeTask = localStream.Output.WriteAsync(payload, default);
 
         // Assert
         await Task.Delay(TimeSpan.FromMilliseconds(50));
         Assert.That(writeTask.IsCompleted, Is.False);
+
+        CompleteStreams(localStream, remoteStream);
     }
 
-    [Test]
-    public async Task Stream_write_blocking_does_not_affect_concurrent_streams()
+    [TestCase(32 * 1024)]
+    [TestCase(512 * 1024)]
+    [TestCase(1024 * 1024)]
+    public async Task Stream_write_blocking_does_not_affect_concurrent_streams(
+        int pauseThreshold)
     {
         // Arrange
-        await using var serviceProvider = CreateSlicTransportServiceCollection(
+        byte[] payload = new byte[pauseThreshold - 1];
+        await using ServiceProvider serviceProvider = CreateServiceCollection(
             serverOptions: new SlicServerTransportOptions
             {
-                PauseWriterThreshold = 1024 * 1024
+                PauseWriterThreshold = pauseThreshold
             }).BuildServiceProvider();
 
-        var acceptTask = serviceProvider.GetMultiplexedServerConnectionAsync();
-        IMultiplexedNetworkConnection sut = await serviceProvider.GetMultiplexedClientConnectionAsync();
-        IMultiplexedNetworkConnection serverConnection = await acceptTask;
+        Task<IMultiplexedNetworkConnection> acceptTask = serviceProvider.GetMultiplexedServerConnectionAsync();
+        await using IMultiplexedNetworkConnection clientConnection =
+            await serviceProvider.GetMultiplexedClientConnectionAsync();
+        await using IMultiplexedNetworkConnection serverConnection = await acceptTask;
 
-        IMultiplexedStream stream1 = sut.CreateStream(bidirectional: true);
-        IMultiplexedStream stream2 = sut.CreateStream(bidirectional: true);
+        (IMultiplexedStream localStream1, IMultiplexedStream remoteStream1) =
+            await CreateAndAcceptStreamAsync(serverConnection, clientConnection);
+        (IMultiplexedStream localStream2, IMultiplexedStream remoteStream2) =
+            await CreateAndAcceptStreamAsync(serverConnection, clientConnection);
 
-        FlushResult result = await stream1.Output.WriteAsync(_oneMbPayload, default);
-        ValueTask<FlushResult> writeTask = stream1.Output.WriteAsync(_oneMbPayload, default);
+        _ = await localStream1.Output.WriteAsync(payload, default);
+        ValueTask<FlushResult> writeTask = localStream1.Output.WriteAsync(payload, default);
 
         // Act
 
         // stream1 consumed all its send credit, this shouldn't affect stream2
-        result = await stream2.Output.WriteAsync(_oneMbPayload, default);
+        _ = await localStream2.Output.WriteAsync(payload, default);
 
         // Assert
-        IMultiplexedStream serverStream1 = await serverConnection.AcceptStreamAsync(default);
-        IMultiplexedStream serverStream2 = await serverConnection.AcceptStreamAsync(default);
-        Assert.That(stream2.Id, Is.EqualTo(serverStream2.Id));
-        ReadResult readResult = await serverStream2.Input.ReadAtLeastAsync(1024 * 1024);
+        Assert.That(localStream2.Id, Is.EqualTo(remoteStream2.Id));
+        ReadResult readResult = await remoteStream2.Input.ReadAtLeastAsync(pauseThreshold - 1);
         Assert.That(readResult.IsCanceled, Is.False);
-        serverStream2.Input.AdvanceTo(readResult.Buffer.End);
+        remoteStream2.Input.AdvanceTo(readResult.Buffer.End);
         await Task.Delay(TimeSpan.FromMilliseconds(50));
         Assert.That(writeTask.IsCompleted, Is.False);
     }
 
-    [Test]
-    public async Task Write_resumes_after_reaching_the_resume_writer_threshold()
+    [TestCase(64 * 1024, 32 * 1024)]
+    [TestCase(1024 * 1024, 512 * 1024)]
+    [TestCase(2048 * 1024, 512 * 1024)]
+    public async Task Write_resumes_after_reaching_the_resume_writer_threshold(
+        int pauseThreshold,
+        int resumeThreshold)
     {
         // Arrange
-        await using var serviceProvider = CreateSlicTransportServiceCollection(
+        await using ServiceProvider serviceProvider = CreateServiceCollection(
             serverOptions: new SlicServerTransportOptions
             {
-                PauseWriterThreshold = 1024 * 1024,
-                ResumeWriterThreshold = 1024 * 512,
+                PauseWriterThreshold = pauseThreshold,
+                ResumeWriterThreshold = resumeThreshold,
             }).BuildServiceProvider();
 
-        var acceptTask = serviceProvider.GetMultiplexedServerConnectionAsync();
-        IMultiplexedNetworkConnection sut = await serviceProvider.GetMultiplexedClientConnectionAsync();
-        IMultiplexedNetworkConnection serverConnection = await acceptTask;
+        Task<IMultiplexedNetworkConnection>? acceptTask = serviceProvider.GetMultiplexedServerConnectionAsync();
+        await using IMultiplexedNetworkConnection clientConnection =
+            await serviceProvider.GetMultiplexedClientConnectionAsync();
+        await using IMultiplexedNetworkConnection serverConnection = await acceptTask;
 
-        IMultiplexedStream stream = sut.CreateStream(bidirectional: true);
+        IMultiplexedStream stream = clientConnection.CreateStream(bidirectional: true);
 
-        FlushResult result = await stream.Output.WriteAsync(_oneMbPayload, default);
-        IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
-        ValueTask<FlushResult> writeTask = stream.Output.WriteAsync(_oneMbPayload, default);
-        ReadResult readResult = await serverStream.Input.ReadAtLeastAsync(1536 * 1024, default);
+        (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
+            await CreateAndAcceptStreamAsync(serverConnection, clientConnection);
+
+        ValueTask<FlushResult> writeTask = localStream.Output.WriteAsync(new byte[pauseThreshold], default);
+        ReadResult readResult = await remoteStream.Input.ReadAtLeastAsync(pauseThreshold - resumeThreshold, default);
 
         // Act
-        serverStream.Input.AdvanceTo(readResult.Buffer.GetPosition(1536 * 1024));
+        remoteStream.Input.AdvanceTo(readResult.Buffer.GetPosition(pauseThreshold - resumeThreshold));
 
         // Assert
         Assert.That(async () => await writeTask, Throws.Nothing);
     }
 
-    private static IServiceCollection CreateSlicTransportServiceCollection(
+    private static void CompleteStreams(params IMultiplexedStream[] streams)
+    {
+        foreach (IMultiplexedStream stream in streams)
+        {
+            stream.Output.Complete();
+            stream.Input.Complete();
+        }
+    }
+
+    private static async Task<(IMultiplexedStream LocalStream, IMultiplexedStream RemoteStream)> CreateAndAcceptStreamAsync(
+        IMultiplexedNetworkConnection remoteConnection,
+        IMultiplexedNetworkConnection localConnection,
+        bool bidirectional = true)
+    {
+        IMultiplexedStream localStream = localConnection.CreateStream(bidirectional);
+        _ = await localStream.Output.WriteAsync(new byte[1]);
+        IMultiplexedStream remoteStream = await remoteConnection.AcceptStreamAsync(default);
+        ReadResult readResult = await remoteStream.Input.ReadAsync();
+        remoteStream.Input.AdvanceTo(readResult.Buffer.End);
+        return (localStream, remoteStream);
+    }
+
+    private static IServiceCollection CreateServiceCollection(
         SlicServerTransportOptions? serverOptions = null,
         SlicClientTransportOptions? clientOptions = null)
     {

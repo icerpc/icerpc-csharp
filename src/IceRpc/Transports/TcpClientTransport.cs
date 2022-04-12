@@ -27,7 +27,7 @@ namespace IceRpc.Transports
         public TcpClientTransport(TcpClientTransportOptions options) => _options = options;
 
         /// <inheritdoc/>
-        ISimpleNetworkConnection IClientTransport<ISimpleNetworkConnection>.CreateConnection(
+        public ISimpleNetworkConnection CreateConnection(
             Endpoint remoteEndpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             ILogger logger)

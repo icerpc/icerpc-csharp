@@ -5,6 +5,7 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Net.Security;
 
 namespace IceRpc.Tests
@@ -41,7 +42,7 @@ namespace IceRpc.Tests
             this.AddScoped(serviceProvider =>
                 new SlicServerTransportOptions
                 {
-                   SimpleServerTransport =
+                    SimpleServerTransport =
                       serviceProvider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()
                 });
 
@@ -101,13 +102,16 @@ namespace IceRpc.Tests
                     serviceProvider.GetRequiredService<IServerTransport<T>>().Listen(
                         serviceProvider.GetRequiredService<Endpoint>(),
                         serviceProvider.GetService<SslServerAuthenticationOptions>(),
-                        serviceProvider.GetRequiredService<ILogger>());
+                        logger);
 
-                LogNetworkConnectionDecoratorFactory<T>? decorator =
-                    serviceProvider.GetService<LogNetworkConnectionDecoratorFactory<T>>();
-                if (decorator != null)
+                if (logger != NullLogger.Instance)
                 {
-                    listener = new LogListenerDecorator<T>(listener, logger, decorator);
+                    LogNetworkConnectionDecoratorFactory<T>? decorator =
+                        serviceProvider.GetService<LogNetworkConnectionDecoratorFactory<T>>();
+                    if (decorator != null)
+                    {
+                        listener = new LogListenerDecorator<T>(listener, logger, decorator);
+                    }
                 }
                 return listener;
             }
@@ -141,7 +145,7 @@ namespace IceRpc.Tests
 
             return collection;
         }
-  
+
         public static Task<IMultiplexedNetworkConnection> GetMultiplexedClientConnectionAsync(
             this IServiceProvider serviceProvider) =>
             GetClientNetworkConnectionAsync<IMultiplexedNetworkConnection>(serviceProvider);
@@ -167,11 +171,14 @@ namespace IceRpc.Tests
                 endpoint,
                 serviceProvider.GetService<SslClientAuthenticationOptions>(),
                 logger);
-            LogNetworkConnectionDecoratorFactory<T>? decorator =
-                serviceProvider.GetService<LogNetworkConnectionDecoratorFactory<T>>();
-            if (decorator != null)
+            if (logger != NullLogger.Instance)
             {
-                connection = decorator(connection, endpoint, false, logger);
+                LogNetworkConnectionDecoratorFactory<T>? decorator =
+                    serviceProvider.GetService<LogNetworkConnectionDecoratorFactory<T>>();
+                if (decorator != null)
+                {
+                    connection = decorator(connection, endpoint, false, logger);
+                }
             }
             await connection.ConnectAsync(default);
             return connection;

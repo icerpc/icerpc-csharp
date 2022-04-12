@@ -27,7 +27,7 @@ namespace IceRpc.Transports
         public TcpServerTransport(TcpServerTransportOptions options) => _options = options;
 
         /// <inheritdoc/>
-        IListener<ISimpleNetworkConnection> IServerTransport<ISimpleNetworkConnection>.Listen(
+        public IListener<ISimpleNetworkConnection> Listen(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
             ILogger logger)
