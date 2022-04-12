@@ -282,30 +282,20 @@ namespace IceRpc.Slice
         // (resultType = Failure) and one for user exceptions (resultType = ServiceFailure).
         public RemoteException DecodeException(ResultType resultType)
         {
-            if (Encoding == SliceEncoding.Slice1)
-            {
-                return DecodeExceptionClass(resultType);
-            }
-            else
-            {
-                string typeId = DecodeString();
+            return Encoding == SliceEncoding.Slice1 ? DecodeExceptionClass(resultType) :
+                DecodeTrait(CreateUnknownException);
 
-                if (_activator?.CreateInstance(typeId, ref this) is RemoteException remoteException)
-                {
-                    return remoteException;
-                }
-                else
-                {
-                    // If we can't decode this exception, we return an UnknownException with the undecodable
-                    // exception's type ID and message.
-                    return new UnknownException(typeId, DecodeString());
-                }
-            }
+            // If we can't decode this exception, we return an UnknownException with the undecodable exception's
+            // type ID and message.
+            static RemoteException CreateUnknownException(string typeId, ref SliceDecoder decoder) =>
+                new UnknownException(typeId, decoder.DecodeString());
         }
 
         /// <summary>Decodes a trait.</summary>
+        /// <param name="fallback">An optional function that creates a trait in case the activator does not find a
+        /// struct or class associated with the type ID.</param>
         /// <returns>The decoded trait.</returns>
-        public T DecodeTrait<T>()
+        public T DecodeTrait<T>(DecodeTraitFunc<T>? fallback = null)
         {
             if (Encoding == SliceEncoding.Slice1)
             {
@@ -330,9 +320,15 @@ namespace IceRpc.Slice
             else if (trait != null)
             {
                 throw new InvalidDataException(
-                    $"decoded struct of type '{trait.GetType()}' does not implement expected interface '{typeof(T)}'");
+                    $"decoded instance of type '{trait.GetType()}' does not implement '{typeof(T)}'");
             }
             else
+            {
+                fallback ??= ThrowInvalidDataException;
+                return fallback(typeId, ref this);
+            }
+
+            static T ThrowInvalidDataException(string typeId, ref SliceDecoder decoder)
             {
                 throw new InvalidDataException(
                     $"failed to decode struct with type ID '{typeId}' implementing interface '{typeof(T)}'");
