@@ -459,7 +459,7 @@ impl EncodingBlockBuilder {
                             format!(
 r#"if ({encoding_variable} != {encoding})
 {{
-    throw new InvalidOperationException("{identifier} can only be encoded with the Slice {encoding_name} encoding.");
+    throw new InvalidOperationException("{identifier} can only be encoded with the Slice {encoding_name} encoding");
 }}
 "#,
                                 identifier = self.identifier,
@@ -502,14 +502,15 @@ if ({encoding_variable} == SliceEncoding.Slice1)
 else // Slice 2 encoding
 {{
     {encoding_2}
-}}",
+}}
+",
                         encoding_variable = self.encoding_variable,
                         encoding_1 = encoding_1.indent(),
                         encoding_2 = encoding_2.indent()
                     )
                     .into()
                 } else {
-                    panic!("Not possible to have an empty Slice 2 encoding block with a non empty Slice 1 encoding block");
+                    panic!("At least one encoding block must be non-empty");
                 }
             }
         }
