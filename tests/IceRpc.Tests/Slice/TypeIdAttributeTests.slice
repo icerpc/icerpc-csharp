@@ -3,7 +3,7 @@
 // TODO: should we remove 1.1 encoding and get rid of classes here?
 encoding = 1.1;
 
-module IceRpc::Slice::TypeIdAttributeTests
+module IceRpc::Slice::TypeIdAttributeTestNameSpace
 {
     class MyClass {}
     interface MyInterface {}

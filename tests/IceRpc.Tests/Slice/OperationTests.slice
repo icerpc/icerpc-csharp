@@ -1,0 +1,36 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc::Slice::Tests;
+
+trait MyTrait;
+
+struct MyStruct
+{
+    x:int,
+    y:int,
+}
+
+struct MyException
+{
+    x:int,
+    y:int,
+}
+
+interface MyOperations
+{
+    // Single input parameter and return value
+    opInt(p1: int) -> int;
+    opIntSeq(p1: sequence<int>) -> sequence<int>;
+    opString(p1: string) -> string;
+    opStringSeq(p1: sequence<string>) -> sequence<string>;
+    opDict(p1: dictionary<int, string>) -> dictionary<int, string>;
+    opMyStruct(p1: MyStruct) -> MyStruct;
+    opMyEnum(p1: MyEnum) -> MyEnum;
+    opMyException(p1: MyException) -> MyException;
+    opMyTrait(p1: MyTrait) -> MyTrait;
+    opService(p1: Slice::Service) -> Slice::Service;
+
+
+    // Multiple input parameters and return values
+    opIntAndString(p1: int, p2: string) -> (r1: int, r2: string);
+}
