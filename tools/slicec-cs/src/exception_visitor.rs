@@ -86,6 +86,9 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
             );
         }
 
+        let mut decode_body_slice2 = decode_data_members(&members, &namespace, FieldType::Exception);
+        writeln!(decode_body_slice2, "decoder.SkipTaggedParams();");
+
         exception_class_builder.add_block(
             FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody)
                 .add_parameter("ref SliceDecoder", "decoder", None, None)
@@ -101,10 +104,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
                         Encoding::Slice11,
                         initialize_non_nullable_fields(&members, FieldType::Exception),
                     )
-                    .add_encoding_block(
-                        Encoding::Slice2,
-                        decode_data_members(&members, namespace, FieldType::Exception),
-                    )
+                    .add_encoding_block(Encoding::Slice2, decode_body_slice2)
                     .build(),
                 )
                 .add_never_editor_browsable_attribute()

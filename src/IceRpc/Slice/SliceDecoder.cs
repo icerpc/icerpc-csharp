@@ -292,9 +292,6 @@ namespace IceRpc.Slice
 
                 if (_activator?.CreateInstance(typeId, ref this) is RemoteException remoteException)
                 {
-                    // TODO: consider calling this Skip for the remaining exception tagged members from the generated
-                    // code to make the exception decoding constructor usable directly. See protocol bridging code.
-                    SkipTaggedParams();
                     return remoteException;
                 }
                 else
