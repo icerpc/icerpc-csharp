@@ -177,27 +177,16 @@ namespace IceRpc.Tests.ClientServer
 
                 IncomingResponse incomingResponse = await _target.Invoker!.InvokeAsync(outgoingRequest, cancel);
 
-                // Then create an outgoing response from the incoming response
-                // When ResultType == Failure and the protocols are different, we need to transcode the exception
-                // (typically a dispatch exception). Fortunately, we can simply throw it.
+                // Then create an outgoing response from the incoming response.
 
+                // When ResultType == Failure and the protocols are different, we need to transcode the exception
+                // (typically a dispatch exception). Fortunately, we can simply decode it and throw it.
                 if (incomingRequest.Protocol != incomingResponse.Protocol &&
                     incomingResponse.ResultType == ResultType.Failure)
                 {
-                    // TODO: need better method to decode and throw the exception
-                    try
-                    {
-                        await incomingResponse.CheckVoidReturnValueAsync(
-                            SliceEncoding.Slice2,
-                            _activator,
-                            hasStream: false,
-                            cancel).ConfigureAwait(false);
-                    }
-                    catch (RemoteException ex)
-                    {
-                        ex.ConvertToUnhandled = false;
-                        throw;
-                    }
+                    RemoteException remoteException = await incomingResponse.DecodeFailureAsync(_activator, cancel);
+                    remoteException.ConvertToUnhandled = false;
+                    throw remoteException;
                 }
 
                 // Don't forward RetryPolicy

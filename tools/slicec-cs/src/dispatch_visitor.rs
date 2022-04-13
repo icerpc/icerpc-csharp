@@ -249,7 +249,7 @@ return {decode_operation_stream}",
             writeln!(
                 code,
                 "\
-var {args} = await request.ToArgsAsync(
+var {args} = await request.DecodeArgsAsync(
     {encoding},
     _defaultActivator,
     {decode_func},
@@ -271,7 +271,7 @@ return {args_and_stream};",
         writeln!(
             code,
             "\
-await request.ToArgsAsync(
+await request.DecodeArgsAsync(
     {encoding},
     _defaultActivator,
     {decode_func},
@@ -473,7 +473,7 @@ catch (RemoteException remoteException)
         throw;
     }}
 
-    return request.CreateResponseFromRemoteException(remoteException, {encoding});
+    return request.CreateServiceFailureResponse(remoteException, {encoding});
 }}",
     check_and_decode = check_and_decode,
     dispatch_and_return = dispatch_and_return.indent(),

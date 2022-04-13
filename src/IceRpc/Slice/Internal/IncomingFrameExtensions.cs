@@ -1,11 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
-using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.IO.Pipelines;
 
-namespace IceRpc.Slice
+namespace IceRpc.Slice.Internal
 {
     /// <summary>Extension methods to decode the payload of an incoming frame when this payload is encoded with the
     /// Slice encoding.</summary>

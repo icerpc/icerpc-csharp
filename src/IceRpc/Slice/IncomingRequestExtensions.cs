@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Slice.Internal;
 using System.IO.Pipelines;
 
 namespace IceRpc.Slice
@@ -36,17 +37,18 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Creates an outgoing response from a remote exception.</summary>
+        /// <summary>Creates an outgoing response with a <see cref="SliceResultType.ServiceFailure"/> result type.
+        /// </summary>
         /// <param name="request">The incoming request.</param>
         /// <param name="remoteException">The remote exception to encode in the payload.</param>
-        /// <param name="requestPayloadEncoding">The encoding used for the request payload.</param>
-        /// <returns>An outgoing response with a <see cref="SliceResultType.ServiceFailure"/> result type.</returns>
+        /// <param name="encoding">The encoding used for the request payload.</param>
+        /// <returns>The new outgoing response.</returns>
         /// <exception cref="ArgumentException">Thrown if <paramref name="remoteException"/> is a dispatch exception or
         /// its <see cref="RemoteException.ConvertToUnhandled"/> property is <c>true</c>.</exception>
-        public static OutgoingResponse CreateResponseFromRemoteException(
+        public static OutgoingResponse CreateServiceFailureResponse(
             this IncomingRequest request,
             RemoteException remoteException,
-            SliceEncoding requestPayloadEncoding)
+            SliceEncoding encoding)
         {
             if (remoteException is DispatchException || remoteException.ConvertToUnhandled)
             {
@@ -71,9 +73,9 @@ namespace IceRpc.Slice
             PipeReader CreateExceptionPayload()
             {
                 var pipe = new Pipe(); // TODO: pipe options
-                var encoder = new SliceEncoder(pipe.Writer, requestPayloadEncoding);
+                var encoder = new SliceEncoder(pipe.Writer, encoding);
 
-                if (requestPayloadEncoding == SliceEncoding.Slice1)
+                if (encoding == SliceEncoding.Slice1)
                 {
                     remoteException.Encode(ref encoder);
                 }
@@ -99,7 +101,7 @@ namespace IceRpc.Slice
         /// <param name="hasStream">When true, T is or includes a stream.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The request arguments.</returns>
-        public static ValueTask<T> ToArgsAsync<T>(
+        public static ValueTask<T> DecodeArgsAsync<T>(
             this IncomingRequest request,
             SliceEncoding sliceEncoding,
             IActivator defaultActivator,

@@ -14,7 +14,7 @@ namespace IceRpc.Slice
     {
         /// <summary>Verifies that a response payload carries no return value or only tagged return values.</summary>
         /// <param name="response">The incoming response.</param>
-        /// <param name="sliceEncoding">The Slice encoding of the response payload.</param>
+        /// <param name="encoding">The encoding of the response payload.</param>
         /// <param name="defaultActivator">The default activator.</param>
         /// <param name="hasStream"><c>true</c> if this void value is followed by a stream parameter; otherwise,
         /// <c>false</c>.</param>
@@ -24,56 +24,48 @@ namespace IceRpc.Slice
         /// response.</remarks>
         public static ValueTask CheckVoidReturnValueAsync(
             this IncomingResponse response,
-            SliceEncoding sliceEncoding,
+            SliceEncoding encoding,
             IActivator defaultActivator,
             bool hasStream,
             CancellationToken cancel)
         {
-            if (response.ResultType == ResultType.Success)
-            {
-                return response.DecodeVoidAsync(
-                    sliceEncoding,
-                    hasStream,
-                    cancel);
-            }
-            else
-            {
-                return ThrowRemoteExceptionAsync();
-            }
+            return response.ResultType == ResultType.Success ?
+                response.DecodeVoidAsync(encoding, hasStream, cancel) :
+                ThrowRemoteExceptionAsync();
 
             async ValueTask ThrowRemoteExceptionAsync()
             {
-                throw await response.ToRemoteExceptionAsync(
-                    sliceEncoding,
+                throw await response.DecodeRemoteExceptionAsync(
+                    encoding,
                     response.Request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
                     defaultActivator,
                     cancel).ConfigureAwait(false);
             }
         }
 
-        /// <summary>Creates an async enumerable over the payload reader of an incoming response to decode streamed
-        /// members.</summary>
+        /// <summary>Decodes a response with a <see cref="ResultType.Failure"/> result type.</summary>
         /// <param name="response">The incoming response.</param>
-        /// <param name="sliceEncoding">The Slice encoding of the response payload.</param>
         /// <param name="defaultActivator">The default activator.</param>
-        /// <param name="decodeFunc">The function used to decode the streamed member.</param>
-        /// <returns>The async enumerable to decode and return the streamed members.</returns>
-        public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>The decoded failure.</returns>
+        public static ValueTask<RemoteException> DecodeFailureAsync(
             this IncomingResponse response,
-            SliceEncoding sliceEncoding,
             IActivator defaultActivator,
-            DecodeFunc<T> decodeFunc) =>
-            response.ToAsyncEnumerable(
-                sliceEncoding,
-                response.Request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
-                defaultActivator,
-                defaultInvoker: response.Request.Proxy.Invoker,
-                decodeFunc);
+            CancellationToken cancel) =>
+            response.ResultType == ResultType.Failure ?
+                response.DecodeRemoteExceptionAsync(
+                    response.Protocol.SliceEncoding,
+                    response.Request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
+                    defaultActivator,
+                    cancel) :
+                throw new ArgumentException(
+                    $"{nameof(DecodeFailureAsync)} requires a response with a Failure result type",
+                    nameof(response));
 
         /// <summary>Decodes a response payload.</summary>
         /// <paramtype name="T">The type of the return value.</paramtype>
         /// <param name="response">The incoming response.</param>
-        /// <param name="sliceEncoding">The Slice encoding of the response payload.</param>
+        /// <param name="encoding">The encoding of the response payload.</param>
         /// <param name="defaultActivator">The default activator.</param>
         /// <param name="decodeFunc">The decode function for the return value.</param>
         /// <param name="hasStream"><c>true</c> if the value is followed by a stream parameter; otherwise,
@@ -83,55 +75,70 @@ namespace IceRpc.Slice
         /// <remarks>This method marks the response as completed when this method throws an exception or when it
         /// succeeds and hasStream is false. If hasStream is true, the caller is responsible to complete the
         /// response.</remarks>
-        public static ValueTask<T> ToReturnValueAsync<T>(
+        public static ValueTask<T> DecodeReturnValueAsync<T>(
             this IncomingResponse response,
-            SliceEncoding sliceEncoding,
+            SliceEncoding encoding,
             IActivator defaultActivator,
             DecodeFunc<T> decodeFunc,
             bool hasStream,
             CancellationToken cancel)
         {
-            if (response.ResultType == ResultType.Success)
-            {
-                return response.DecodeValueAsync(
-                    sliceEncoding,
+            return response.ResultType == ResultType.Success ?
+                response.DecodeValueAsync(
+                    encoding,
                     response.Request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
                     defaultActivator,
                     defaultInvoker: response.Request.Proxy.Invoker,
                     decodeFunc,
                     hasStream,
-                    cancel);
-            }
-            else
-            {
-                return ThrowRemoteExceptionAsync();
-            }
+                    cancel) :
+                ThrowRemoteExceptionAsync();
 
             async ValueTask<T> ThrowRemoteExceptionAsync()
             {
-                throw await response.ToRemoteExceptionAsync(
-                    sliceEncoding,
+                throw await response.DecodeRemoteExceptionAsync(
+                    encoding,
                     response.Request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
                     defaultActivator,
                     cancel).ConfigureAwait(false);
             }
         }
 
-        private static async ValueTask<RemoteException> ToRemoteExceptionAsync(
+        /// <summary>Creates an async enumerable over the payload reader of an incoming response to decode streamed
+        /// members.</summary>
+        /// <param name="response">The incoming response.</param>
+        /// <param name="encoding">The encoding of the response payload.</param>
+        /// <param name="defaultActivator">The default activator.</param>
+        /// <param name="decodeFunc">The function used to decode the streamed member.</param>
+        /// <returns>The async enumerable to decode and return the streamed members.</returns>
+        public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this IncomingResponse response,
-            SliceEncoding sliceEncoding,
+            SliceEncoding encoding,
+            IActivator defaultActivator,
+            DecodeFunc<T> decodeFunc) =>
+            response.ToAsyncEnumerable(
+                encoding,
+                response.Request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
+                defaultActivator,
+                defaultInvoker: response.Request.Proxy.Invoker,
+                decodeFunc);
+
+        private static async ValueTask<RemoteException> DecodeRemoteExceptionAsync(
+            this IncomingResponse response,
+            SliceEncoding encoding,
             SliceDecodePayloadOptions decodePayloadOptions,
             IActivator defaultActivator,
             CancellationToken cancel)
         {
             Debug.Assert(response.ResultType != ResultType.Success);
+            if (response.ResultType == ResultType.Failure)
+            {
+                encoding = response.Protocol.SliceEncoding;
+            }
 
             var resultType = (SliceResultType)response.ResultType;
             if (resultType is SliceResultType.Failure or SliceResultType.ServiceFailure)
             {
-                SliceEncoding encoding = resultType == SliceResultType.Failure ?
-                    response.Protocol.SliceEncoding : sliceEncoding;
-
                 ReadResult readResult = await response.Payload.ReadSegmentAsync(
                     encoding,
                     cancel).ConfigureAwait(false);
@@ -160,13 +167,13 @@ namespace IceRpc.Slice
             {
                 var decoder = new SliceDecoder(
                     buffer,
-                    resultType == SliceResultType.Failure ? response.Protocol.SliceEncoding : sliceEncoding,
+                    encoding,
                     response.Connection,
                     decodePayloadOptions.ProxyInvoker ?? response.Request.Proxy.Invoker,
                     decodePayloadOptions.Activator ?? defaultActivator,
                     decodePayloadOptions.MaxDepth);
 
-                RemoteException remoteException = decoder.Encoding == SliceEncoding.Slice1 ?
+                RemoteException remoteException = encoding == SliceEncoding.Slice1 ?
                     (resultType == SliceResultType.Failure ?
                         decoder.DecodeSystemException() :
                         decoder.DecodeUserException()) :
@@ -181,7 +188,7 @@ namespace IceRpc.Slice
                 return remoteException;
 
                 // If we can't decode this exception, we return an UnknownException with the undecodable exception's
-                // type ID and message.
+                // type identifier and message.
                 static RemoteException CreateUnknownException(string typeId, ref SliceDecoder decoder) =>
                     new UnknownException(typeId, decoder.DecodeString());
             }
