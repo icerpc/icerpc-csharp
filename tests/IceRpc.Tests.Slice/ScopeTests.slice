@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-encoding = 1.1;
+encoding = 1;
 
 // Ensure that using the same type names in different modules, doesn't cause any conflicts and generates correct code.
 module IceRpc::Tests::Slice::Scope

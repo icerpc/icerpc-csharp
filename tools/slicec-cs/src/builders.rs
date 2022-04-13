@@ -475,7 +475,7 @@ r#"if ({encoding_variable} != {encoding})
                 .into()
             }
             _ => {
-                let mut encoding_1 = self.encoding_blocks[&Encoding::Slice11].clone();
+                let mut encoding_1 = self.encoding_blocks[&Encoding::Slice1].clone();
                 let mut encoding_2 = self.encoding_blocks[&Encoding::Slice2].clone();
 
                 if encoding_1.is_empty() && encoding_2.is_empty() {

@@ -9,7 +9,7 @@ pub trait EncodingExt {
 impl EncodingExt for Encoding {
     fn to_cs_encoding(&self) -> &str {
         match self {
-            Encoding::Slice11 => "SliceEncoding.Slice1",
+            Encoding::Slice1 => "SliceEncoding.Slice1",
             Encoding::Slice2 => "SliceEncoding.Slice2",
         }
     }

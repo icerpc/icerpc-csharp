@@ -98,7 +98,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
                         false,
                     )
                     .add_encoding_block(
-                        Encoding::Slice11,
+                        Encoding::Slice1,
                         initialize_non_nullable_fields(&members, FieldType::Exception),
                     )
                     .add_encoding_block(
@@ -142,7 +142,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
         exception_class_builder.add_block(encode_trait_method(exception_def));
         if exception_def
             .supported_encodings()
-            .supports(&Encoding::Slice11)
+            .supports(&Encoding::Slice1)
         {
             exception_class_builder.add_block(encode_core_method(exception_def));
         }
@@ -194,7 +194,7 @@ fn encode_trait_method(exception_def: &Exception) -> CodeBlock {
             exception_def.supported_encodings(),
             true,
         )
-        .add_encoding_block(Encoding::Slice11, "this.EncodeCore(ref encoder);".into())
+        .add_encoding_block(Encoding::Slice1, "this.EncodeCore(ref encoder);".into())
         .add_encoding_block(
             Encoding::Slice2,
             "\
