@@ -9,7 +9,7 @@ namespace IceRpc.Slice.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class ProxyTests
 {
-     /// <summary>Provides test case data for <see cref="Decode_proxy(string, string, IProxyFormat, SliceEncoding)"/> test.
+    /// <summary>Provides test case data for <see cref="Decode_proxy(Proxy, Proxy, IProxyFormat, SliceEncoding)"/> test.
     /// </summary>
     private static IEnumerable<TestCaseData> DecodeProxyDataSource
     {
@@ -36,6 +36,36 @@ public class ProxyTests
                 yield return new TestCaseData(Proxy.Parse(value), Proxy.Parse(expected ?? value), encoding);
             }
         }
+    }
+
+    private static IEnumerable<TestCaseData> DecodeNullableProxySource
+    {
+        get
+        {
+            foreach (SliceEncoding encoding in Enum.GetValues(typeof(SliceEncoding)))
+            {
+                yield return new TestCaseData(Proxy.Parse("icerpc://host.zeroc.com/hello"), encoding);
+                yield return new TestCaseData(null, encoding);
+            }
+        }
+    }
+
+    /// <summary>Verifies that nullable proxies are correctly encoded with both Slice1 and Slice2 encoding.</summary>
+    /// <param name="expected">The nullable proxy to test with.</param>
+    /// <param name="encoding">The encoding to use.</param>
+    [Test, TestCaseSource(nameof(DecodeNullableProxySource))]
+    public void Decode_nullable_proxy(Proxy? expected, SliceEncoding encoding)
+    {
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer, encoding);
+        BitSequenceWriter bitSequenceWritter = encoder.GetBitSequenceWriter(1);
+        encoder.EncodeNullableProxy(ref bitSequenceWritter, expected);
+        var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
+        BitSequenceReader bitsequenceReader = decoder.GetBitSequenceReader(1);
+
+        Proxy? decoded = decoder.DecodeNullableProxy(ref bitsequenceReader);
+
+        Assert.That(decoded, Is.EqualTo(expected));
     }
 
     /// <summary>Verifies that calling <see cref="SliceDecoder.DecodeProxy"/> correctly decodes a proxy.</summary>
