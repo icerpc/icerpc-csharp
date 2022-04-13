@@ -158,8 +158,6 @@ namespace IceRpc.Slice
 
             RemoteException Decode(ReadOnlySequence<byte> buffer)
             {
-                RemoteException remoteException;
-
                 var decoder = new SliceDecoder(
                     buffer,
                     resultType == SliceResultType.Failure ? response.Protocol.SliceEncoding : sliceEncoding,
@@ -167,7 +165,12 @@ namespace IceRpc.Slice
                     decodePayloadOptions.ProxyInvoker ?? response.Request.Proxy.Invoker,
                     decodePayloadOptions.Activator ?? defaultActivator,
                     decodePayloadOptions.MaxDepth);
-                remoteException = decoder.DecodeException(response.ResultType);
+
+                RemoteException remoteException = decoder.Encoding == SliceEncoding.Slice1 ?
+                    (resultType == SliceResultType.Failure ?
+                        decoder.DecodeSystemException() :
+                        decoder.DecodeUserException()) :
+                    decoder.DecodeTrait(CreateUnknownException);
 
                 if (remoteException is not UnknownException)
                 {
@@ -176,7 +179,13 @@ namespace IceRpc.Slice
                 // else, we did not decode the full exception from the buffer
 
                 return remoteException;
+
+                // If we can't decode this exception, we return an UnknownException with the undecodable exception's
+                // type ID and message.
+                static RemoteException CreateUnknownException(string typeId, ref SliceDecoder decoder) =>
+                    new UnknownException(typeId, decoder.DecodeString());
             }
+
         }
     }
 }

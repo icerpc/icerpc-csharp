@@ -207,7 +207,7 @@ public class SlicingTests
 
         // First we unmarshal the exception using the factory that knows all the types, no Slicing should occur in this case.
         var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1, activator: activator);
-        RemoteException r = decoder.DecodeException((ResultType)SliceResultType.ServiceFailure);
+        RemoteException r = decoder.DecodeUserException();
         Assert.That(r, Is.InstanceOf<MyMostDerivedException>());
         var r1 = (MyMostDerivedException)r;
         Assert.That(p1.M1, Is.EqualTo(r1.M1));
@@ -222,7 +222,7 @@ public class SlicingTests
 
         decoder = new SliceDecoder(buffer, SliceEncoding.Slice1, activator: slicingActivator);
 
-        r = decoder.DecodeException((ResultType)SliceResultType.ServiceFailure);
+        r = decoder.DecodeUserException();
         Assert.That(r, Is.InstanceOf<MyDerivedException>());
         Assert.That(r, Is.Not.InstanceOf<MyMostDerivedException>());
         var r2 = (MyDerivedException)r;
@@ -237,7 +237,7 @@ public class SlicingTests
                 "::IceRpc::Slice::Tests::MyDerivedException"));
 
         decoder = new SliceDecoder(buffer, SliceEncoding.Slice1, activator: slicingActivator);
-        r = decoder.DecodeException((ResultType)SliceResultType.ServiceFailure);
+        r = decoder.DecodeUserException();
         Assert.That(r, Is.Not.InstanceOf<MyDerivedException>());
         Assert.That(r, Is.InstanceOf<MyBaseException>());
         var r3 = (MyBaseException)r;
@@ -252,7 +252,7 @@ public class SlicingTests
                 "::IceRpc::Slice::Tests::MyBaseException"));
 
         decoder = new SliceDecoder(buffer, SliceEncoding.Slice1, activator: slicingActivator);
-        r = decoder.DecodeException((ResultType)SliceResultType.ServiceFailure);
+        r = decoder.DecodeUserException();
         Assert.That(r, Is.Not.InstanceOf<MyBaseException>());
         Assert.That(r, Is.InstanceOf<UnknownException>());
         Assert.That(((UnknownException)r).TypeId, Is.EqualTo("::IceRpc::Slice::Tests::MyMostDerivedException"));

@@ -59,7 +59,7 @@ namespace IceRpc.Slice
             {
                 if (exception is DispatchException dispatchException)
                 {
-                    encoder.EncodeDispatchExceptionAsSystemException(dispatchException);
+                    encoder.EncodeSystemException(dispatchException);
                 }
                 else
                 {
