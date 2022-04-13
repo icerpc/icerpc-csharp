@@ -1,0 +1,27 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc::Slice::Tests;
+
+struct MyStruct
+{
+    i: int,
+    j: int,
+}
+
+trait MyTrait;
+
+struct MyStructWithOptionalMembers
+{
+    i: int,
+    j: int,
+    k: int?,
+    l: int?
+}
+
+struct MyStructWithTaggedMembers
+{
+    i: int,
+    j: int,
+    k: tag(1) int?,
+    l: tag(255) int?
+}
