@@ -29,17 +29,9 @@ namespace IceRpc.Slice
             bool hasStream,
             CancellationToken cancel)
         {
-            if (response.ResultType == ResultType.Success)
-            {
-                return response.DecodeVoidAsync(
-                    encoding,
-                    hasStream,
-                    cancel);
-            }
-            else
-            {
-                return ThrowRemoteExceptionAsync();
-            }
+            return response.ResultType == ResultType.Success ?
+                response.DecodeVoidAsync(encoding, hasStream, cancel) :
+                ThrowRemoteExceptionAsync();
 
             async ValueTask ThrowRemoteExceptionAsync()
             {
@@ -51,25 +43,24 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Decodes a response with a Failure result type.</summary>
+        /// <summary>Decodes a response with a <see cref="ResultType.Failure"/> result type.</summary>
+        /// <param name="response">The incoming response.</param>
+        /// <param name="defaultActivator">The default activator.</param>
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>The decoded failure.</returns>
         public static ValueTask<RemoteException> DecodeFailureAsync(
             this IncomingResponse response,
             IActivator defaultActivator,
-            CancellationToken cancel)
-        {
-            if (response.ResultType != ResultType.Failure)
-            {
+            CancellationToken cancel) =>
+            response.ResultType == ResultType.Failure ?
+                response.DecodeRemoteExceptionAsync(
+                    response.Protocol.SliceEncoding,
+                    response.Request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
+                    defaultActivator,
+                    cancel) :
                 throw new ArgumentException(
                     $"{nameof(DecodeFailureAsync)} requires a response with a Failure result type",
                     nameof(response));
-            }
-
-            return response.DecodeRemoteExceptionAsync(
-                response.Protocol.SliceEncoding,
-                response.Request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
-                defaultActivator,
-                cancel);
-        }
 
         /// <summary>Decodes a response payload.</summary>
         /// <paramtype name="T">The type of the return value.</paramtype>
@@ -92,21 +83,16 @@ namespace IceRpc.Slice
             bool hasStream,
             CancellationToken cancel)
         {
-            if (response.ResultType == ResultType.Success)
-            {
-                return response.DecodeValueAsync(
+            return response.ResultType == ResultType.Success ?
+                response.DecodeValueAsync(
                     encoding,
                     response.Request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
                     defaultActivator,
                     defaultInvoker: response.Request.Proxy.Invoker,
                     decodeFunc,
                     hasStream,
-                    cancel);
-            }
-            else
-            {
-                return ThrowRemoteExceptionAsync();
-            }
+                    cancel) :
+                ThrowRemoteExceptionAsync();
 
             async ValueTask<T> ThrowRemoteExceptionAsync()
             {
