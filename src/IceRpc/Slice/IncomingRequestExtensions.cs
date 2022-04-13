@@ -96,7 +96,7 @@ namespace IceRpc.Slice
         /// <paramtype name="T">The type of the request parameters.</paramtype>
         /// <param name="request">The incoming request.</param>
         /// <param name="sliceEncoding">The Slice encoding of the request payload.</param>
-        /// <param name="defaultActivator">The default activator.</param>
+        /// <param name="defaultActivator">The default activator (can be null).</param>
         /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
         /// <param name="hasStream">When true, T is or includes a stream.</param>
         /// <param name="cancel">The cancellation token.</param>
@@ -104,7 +104,7 @@ namespace IceRpc.Slice
         public static ValueTask<T> DecodeArgsAsync<T>(
             this IncomingRequest request,
             SliceEncoding sliceEncoding,
-            IActivator defaultActivator,
+            IActivator? defaultActivator,
             DecodeFunc<T> decodeFunc,
             bool hasStream,
             CancellationToken cancel) =>
@@ -121,13 +121,13 @@ namespace IceRpc.Slice
         /// members.</summary>
         /// <param name="request">The incoming request.</param>
         /// <param name="sliceEncoding">The Slice encoding of the request payload.</param>
-        /// <param name="defaultActivator">The default activator.</param>
+        /// <param name="defaultActivator">The default activator (can be null).</param>
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
         /// <returns>The async enumerable to decode and return the streamed members.</returns>
         public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this IncomingRequest request,
             SliceEncoding sliceEncoding,
-            IActivator defaultActivator,
+            IActivator? defaultActivator,
             DecodeFunc<T> decodeFunc) =>
             request.ToAsyncEnumerable(
                 sliceEncoding,

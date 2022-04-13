@@ -92,7 +92,7 @@ namespace IceRpc.Slice
         /// <param name="sliceEncoding">The encoding of the request payload.</param>
         /// <param name="payload">The payload of the request.</param>
         /// <param name="payloadStream">The payload stream of the request.</param>
-        /// <param name="defaultActivator">The default activator.</param>
+        /// <param name="defaultActivator">The default activator (can be null).</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="idempotent">When true, the request is idempotent.</param>
         /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
@@ -108,7 +108,7 @@ namespace IceRpc.Slice
             SliceEncoding sliceEncoding,
             PipeReader payload,
             PipeReader? payloadStream,
-            IActivator defaultActivator,
+            IActivator? defaultActivator,
             Invocation? invocation,
             bool idempotent = false,
             bool oneway = false,

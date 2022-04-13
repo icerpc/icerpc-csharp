@@ -139,7 +139,6 @@ namespace IceRpc.Tests.ClientServer
 
         public sealed class Forwarder : IDispatcher
         {
-            private static readonly IActivator _activator = SliceDecoder.GetActivator(typeof(Forwarder).Assembly);
             private readonly Proxy _target;
 
             async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(
@@ -184,7 +183,7 @@ namespace IceRpc.Tests.ClientServer
                 if (incomingRequest.Protocol != incomingResponse.Protocol &&
                     incomingResponse.ResultType == ResultType.Failure)
                 {
-                    RemoteException remoteException = await incomingResponse.DecodeFailureAsync(_activator, cancel);
+                    RemoteException remoteException = await incomingResponse.DecodeFailureAsync(cancel);
                     remoteException.ConvertToUnhandled = false;
                     throw remoteException;
                 }

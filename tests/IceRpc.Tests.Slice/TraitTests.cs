@@ -77,9 +77,7 @@ namespace IceRpc.Tests.Slice
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
 
             // Let's decode the exception.
-            var dispatchException = (DispatchException)await response.DecodeFailureAsync(
-                SliceDecoder.GetActivator(typeof(TraitTests).Assembly),
-                default);
+            var dispatchException = (DispatchException)await response.DecodeFailureAsync(default);
 
             Assert.That(dispatchException.ErrorCode, Is.EqualTo(DispatchErrorCode.InvalidData));
 
