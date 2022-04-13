@@ -38,15 +38,24 @@ public class ProxyTests
         }
     }
 
-    /// <summary>Verifies that nullable proxies are correctly encoded with both Slice1 and Slice2 encoding.</summary>
-    /// <param name="value"></param>
-    /// <param name="encoding"></param>
-    [Test]
-    public void Decode_nullable_proxy(
-        [Values("icerpc://host.zeroc.com/hello", null)] string? value,
-        [Values(SliceEncoding.Slice1, SliceEncoding.Slice2)] SliceEncoding encoding)
+    private static IEnumerable<TestCaseData> DecodeNullableProxySource
     {
-        Proxy? expected = value == null ? null : Proxy.Parse(value);
+        get
+        {
+            foreach (SliceEncoding encoding in Enum.GetValues(typeof(SliceEncoding)))
+            {
+                yield return new TestCaseData(Proxy.Parse("icerpc://host.zeroc.com/hello"), encoding);
+                yield return new TestCaseData(null, encoding);
+            }
+        }
+    }
+
+    /// <summary>Verifies that nullable proxies are correctly encoded with both Slice1 and Slice2 encoding.</summary>
+    /// <param name="expected">The nullable proxy to test with.</param>
+    /// <param name="encoding">The encoding to use.</param>
+    [Test, TestCaseSource(nameof(DecodeNullableProxySource))]
+    public void Decode_nullable_proxy(Proxy? expected, SliceEncoding encoding)
+    {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, encoding);
         BitSequenceWriter bitSequenceWritter = encoder.GetBitSequenceWriter(1);
