@@ -25,3 +25,9 @@ struct MyStructWithTaggedMembers
     k: tag(1) int?,
     l: tag(255) int?
 }
+
+compact struct MyCompactStruct
+{
+    i: int,
+    j: int,
+}
