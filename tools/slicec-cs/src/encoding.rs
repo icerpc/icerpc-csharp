@@ -342,7 +342,10 @@ if ({null_check})
         encoder_param = encoder_param,
         tag = tag,
         format = data_type.tag_format(),
-        size = size_parameter.map_or("".to_owned(), |v| format!(", size: {}", v)),
+        size = size_parameter.map_or(
+            "".to_owned(),
+            |v| format!(", size: {}", v),
+        ),
         value = if read_only_memory {
             &value
         } else {
