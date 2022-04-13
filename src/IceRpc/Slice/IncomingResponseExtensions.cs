@@ -185,7 +185,6 @@ namespace IceRpc.Slice
                 static RemoteException CreateUnknownException(string typeId, ref SliceDecoder decoder) =>
                     new UnknownException(typeId, decoder.DecodeString());
             }
-
         }
     }
 }

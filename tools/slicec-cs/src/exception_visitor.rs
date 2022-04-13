@@ -172,39 +172,39 @@ fn encode_core_method(exception_def: &Exception) -> CodeBlock {
     let has_base = exception_def.base.is_some();
 
     let body = EncodingBlockBuilder::new(
-            "encoder.Encoding",
-            &exception_def.escape_identifier(),
-            exception_def.supported_encodings(),
-            true,
-        )
-        .add_encoding_block(
-            Encoding::Slice1,
-            format!(
-                "\
+        "encoder.Encoding",
+        &exception_def.escape_identifier(),
+        exception_def.supported_encodings(),
+        true,
+    )
+    .add_encoding_block(
+        Encoding::Slice1,
+        format!(
+            "\
 encoder.StartSlice(SliceTypeId);
 {encode_data_members}
 encoder.EndSlice(lastSlice: {is_last_slice});
 {encode_base}",
-                encode_data_members = &encode_data_members(members, namespace, FieldType::Exception),
-                is_last_slice = !has_base,
-                encode_base = if has_base {
-                    "base.EncodeCore(ref encoder);"
-                } else {
-                    ""
-                },
-            ).into()
-        )
-        .add_encoding_block(
-            Encoding::Slice2,
-            format!(
-                "\
+            encode_data_members = &encode_data_members(members, namespace, FieldType::Exception),
+            is_last_slice = !has_base,
+            encode_base = if has_base {
+                "base.EncodeCore(ref encoder);"
+            } else {
+                ""
+            },
+        ).into()
+    )
+    .add_encoding_block(
+        Encoding::Slice2,
+        format!(
+            "\
 encoder.EncodeString(Message);
 {encode_data_members}
 encoder.EncodeVarInt(Slice2Definitions.TagEndMarker);",
-                encode_data_members = &encode_data_members(members, namespace, FieldType::Exception),
-            ).into()
-        )
-        .build();
+            encode_data_members = &encode_data_members(members, namespace, FieldType::Exception),
+        ).into()
+    )
+    .build();
 
     FunctionBuilder::new(
         "protected override",

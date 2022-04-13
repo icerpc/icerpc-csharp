@@ -295,26 +295,19 @@ namespace IceRpc.Slice
                 throw new InvalidDataException($"maximum decoder depth reached while decoding trait {typeId}");
             }
 
-            object? trait = _activator?.CreateInstance(typeId, ref this);
+            object? instance = _activator?.CreateInstance(typeId, ref this);
             _currentDepth--;
 
-            if (trait is T result)
+            if (instance == null)
             {
-                return result;
-            }
-            else if (trait != null)
-            {
-                throw new InvalidDataException(
-                    $"decoded instance of type '{trait.GetType()}' does not implement '{typeof(T)}'");
+                return fallback != null ? fallback(typeId, ref this) :
+                    throw new InvalidDataException($"activator could not find type with Slice type ID '{typeId}'");
             }
             else
             {
-                fallback ??= ThrowInvalidDataException;
-                return fallback(typeId, ref this);
+                return instance is T result ? result : throw new InvalidDataException(
+                    $"decoded instance of type '{instance.GetType()}' does not implement '{typeof(T)}'");
             }
-
-            static T ThrowInvalidDataException(string typeId, ref SliceDecoder decoder) =>
-                throw new InvalidDataException($"activator could not find type with Slice type ID '{typeId}'");
         }
 
         /// <summary>Decodes a nullable proxy.</summary>

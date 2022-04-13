@@ -29,7 +29,6 @@ namespace IceRpc.Slice
 
         /// <summary>Encodes this exception.</summary>
         /// <param name="encoder">The Slice encoder.</param>
-        /// <remarks>With Slice2, this method encodes the exception like a struct, without a type ID.</remarks>
         public void Encode(ref SliceEncoder encoder) => EncodeCore(ref encoder);
 
         /// <summary>Encodes this exception as a trait, by encoding its Slice type ID followed by its fields.</summary>
