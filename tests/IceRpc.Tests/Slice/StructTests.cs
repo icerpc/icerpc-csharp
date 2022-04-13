@@ -93,30 +93,34 @@ public sealed class StructTests
     [Test]
     public void Decode_struct_as_not_implemented_trait()
     {
-        var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        new MyStruct(0, 0).EncodeTrait(ref encoder);
-
-        // Act/Assert
         Assert.That(
             () =>
             {
+                var buffer = new MemoryBufferWriter(new byte[256]);
+                var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+                new MyStruct(0, 0).EncodeTrait(ref encoder);
                 var decoder = new SliceDecoder(
                     buffer.WrittenMemory,
                     SliceEncoding.Slice2,
                     activator: SliceDecoder.GetActivator(typeof(MyStruct).Assembly));
+
                 decoder.DecodeTrait<INotImplementedTrait>();
             },
             Throws.TypeOf<InvalidDataException>());
     }
 
-    [Test]
-    public void Cannot_encode_a_struct_with_slice2_only_members_using_slice1()
+    [Test, Ignore("BUG: https://github.com/zeroc-ice/icerpc-csharp/issues/1034")]
+    public void Encoding_a_struct_with_slice2_only_members_using_slice1_fails()
     {
-        var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
-        var value = new MyStructWithTraitMember(new MyStruct(0, 0));
+        Assert.That(
+            () =>
+            {
+                var buffer = new MemoryBufferWriter(new byte[256]);
+                var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
+                var value = new MyStructWithTraitMember(new MyStruct(0, 0));
 
-        value.Encode(ref encoder);
+                value.Encode(ref encoder);
+            },
+            Throws.TypeOf<InvalidOperationException>());
     }
 }
