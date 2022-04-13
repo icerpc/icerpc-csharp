@@ -101,7 +101,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
                         false,
                     )
                     .add_encoding_block(
-                        Encoding::Slice11,
+                        Encoding::Slice1,
                         initialize_non_nullable_fields(&members, FieldType::Exception),
                     )
                     .add_encoding_block(Encoding::Slice2, decode_body_slice2)
