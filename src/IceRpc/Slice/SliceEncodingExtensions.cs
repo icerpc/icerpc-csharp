@@ -41,36 +41,6 @@ namespace IceRpc.Slice
             return new PayloadStreamPipeReader<T>(encoding, asyncEnumerable, encodeAction);
         }
 
-        /// <summary>Creates the payload of a response from a remote exception.</summary>
-        /// <param name="encoding">The Slice encoding.</param>
-        /// <param name="exception">The remote exception.</param>
-        /// <returns>A new payload.</returns>
-        public static PipeReader CreatePayloadFromRemoteException(this SliceEncoding encoding, RemoteException exception)
-        {
-            var pipe = new Pipe(); // TODO: pipe options
-
-            var encoder = new SliceEncoder(pipe.Writer, encoding);
-            Span<byte> sizePlaceholder = encoding == SliceEncoding.Slice1 ? default : encoder.GetPlaceholderSpan(4);
-            int startPos = encoder.EncodedByteCount;
-
-            if (encoding == SliceEncoding.Slice1 && exception is DispatchException dispatchException)
-            {
-                encoder.EncodeDispatchExceptionAsSystemException(dispatchException);
-            }
-            else
-            {
-                exception.EncodeTrait(ref encoder);
-            }
-
-            if (encoding != SliceEncoding.Slice1)
-            {
-                SliceEncoder.EncodeVarULong((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
-            }
-
-            pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
-            return pipe.Reader;
-        }
-
 #pragma warning disable CA1001 // CompleteAsync disposes the cancellation source token.
         private class PayloadStreamPipeReader<T> : PipeReader
 #pragma warning restore CA1001

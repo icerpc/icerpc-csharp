@@ -1,13 +1,16 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports.Internal;
 using System.Buffers;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+
 using static IceRpc.Slice.Internal.Slice1Definitions;
 
 namespace IceRpc.Slice
@@ -18,7 +21,7 @@ namespace IceRpc.Slice
         /// <summary>The number of bytes encoded by this encoder into the underlying buffer writer.</summary>
         public int EncodedByteCount { get; private set; }
 
-        /// <summary>The Slice encoding associated with this encoder.</summary>
+        /// <summary>The Slice encoding of this encoder.</summary>
         public SliceEncoding Encoding { get; }
 
         internal const long VarLongMinValue = -2_305_843_009_213_693_952; // -2^61
@@ -294,6 +297,36 @@ namespace IceRpc.Slice
             else
             {
                 EncodeString(proxy.ToString()); // a URI or an absolute path
+            }
+        }
+
+        /// <summary>Encodes a dispatch exception as a Slice1 system exception.</summary>
+        /// <param name="v">The dispatch exception to encode.</param>
+        /// <param name="path">The path to include in some system exceptions.</param>
+        /// <param name="fragment">The fragment to include in some system exceptions.</param>
+        /// <param name="operation">The operation to include in some system exceptions.</param>
+        /// <remarks>A dispatch exception cannot be encoded directly with Slice1.</remarks>
+        public void EncodeSystemException(DispatchException v, string path, string fragment, string operation)
+        {
+            Debug.Assert(Encoding == SliceEncoding.Slice1);
+
+            DispatchErrorCode errorCode = v.ErrorCode;
+
+            switch (errorCode)
+            {
+                case DispatchErrorCode.ServiceNotFound:
+                case DispatchErrorCode.OperationNotFound:
+                    this.EncodeReplyStatus(errorCode == DispatchErrorCode.ServiceNotFound ?
+                        ReplyStatus.ObjectNotExistException : ReplyStatus.OperationNotExistException);
+
+                    new RequestFailedExceptionData(path, fragment, operation).Encode(ref this);
+                    break;
+
+                default:
+                    this.EncodeReplyStatus(ReplyStatus.UnknownException);
+                    // We encode the error code in the message.
+                    EncodeString($"[{((byte)errorCode).ToString(CultureInfo.InvariantCulture)}] {v.Message}");
+                    break;
             }
         }
 

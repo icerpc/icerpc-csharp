@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports.Internal;
 using System.Buffers;
@@ -275,40 +276,11 @@ namespace IceRpc.Slice
 
         // Decode methods for constructed types
 
-        /// <summary>Decodes a remote exception.</summary>
-        /// <returns>The remote exception.</returns>
-        // TODO: this method is temporary. We should decode 2.0-encoded exceptions like structs/traits. For 1.1-encoded
-        // exceptions, we probably need 2 separate methods, one for system exceptions aka dispatch exceptions
-        // (resultType = Failure) and one for user exceptions (resultType = ServiceFailure).
-        public RemoteException DecodeException(ResultType resultType)
-        {
-            if (Encoding == SliceEncoding.Slice1)
-            {
-                return DecodeExceptionClass(resultType);
-            }
-            else
-            {
-                string typeId = DecodeString();
-
-                if (_activator?.CreateInstance(typeId, ref this) is RemoteException remoteException)
-                {
-                    // TODO: consider calling this Skip for the remaining exception tagged members from the generated
-                    // code to make the exception decoding constructor usable directly. See protocol bridging code.
-                    SkipTaggedParams();
-                    return remoteException;
-                }
-                else
-                {
-                    // If we can't decode this exception, we return an UnknownException with the undecodable
-                    // exception's type ID and message.
-                    return new UnknownException(typeId, DecodeString());
-                }
-            }
-        }
-
         /// <summary>Decodes a trait.</summary>
+        /// <param name="fallback">An optional function that creates a trait in case the activator does not find a
+        /// struct or class associated with the type ID.</param>
         /// <returns>The decoded trait.</returns>
-        public T DecodeTrait<T>()
+        public T DecodeTrait<T>(DecodeTraitFunc<T>? fallback = null)
         {
             if (Encoding == SliceEncoding.Slice1)
             {
@@ -323,22 +295,18 @@ namespace IceRpc.Slice
                 throw new InvalidDataException($"maximum decoder depth reached while decoding trait {typeId}");
             }
 
-            object? trait = _activator?.CreateInstance(typeId, ref this);
+            object? instance = _activator?.CreateInstance(typeId, ref this);
             _currentDepth--;
 
-            if (trait is T result)
+            if (instance == null)
             {
-                return result;
-            }
-            else if (trait != null)
-            {
-                throw new InvalidDataException(
-                    $"decoded struct of type '{trait.GetType()}' does not implement expected interface '{typeof(T)}'");
+                return fallback != null ? fallback(typeId, ref this) :
+                    throw new InvalidDataException($"activator could not find type with Slice type ID '{typeId}'");
             }
             else
             {
-                throw new InvalidDataException(
-                    $"failed to decode struct with type ID '{typeId}' implementing interface '{typeof(T)}'");
+                return instance is T result ? result : throw new InvalidDataException(
+                    $"decoded instance of type '{instance.GetType()}' does not implement '{typeof(T)}'");
             }
         }
 
@@ -475,6 +443,77 @@ namespace IceRpc.Slice
             }
         }
 
+        /// <summary>Decodes a Slice1 system exception.</summary>
+        public DispatchException DecodeSystemException()
+        {
+            if (Encoding != SliceEncoding.Slice1)
+            {
+                throw new InvalidOperationException(
+                    $"{nameof(DecodeSystemException)} is not compatible with {Encoding}");
+            }
+
+            ReplyStatus replyStatus = this.DecodeReplyStatus();
+
+            if (replyStatus <= ReplyStatus.UserException)
+            {
+                throw new InvalidDataException($"invalid system exception with {replyStatus} ReplyStatus");
+            }
+
+            string? message = null;
+            DispatchErrorCode errorCode;
+
+            switch (replyStatus)
+            {
+                case ReplyStatus.FacetNotExistException:
+                case ReplyStatus.ObjectNotExistException:
+                case ReplyStatus.OperationNotExistException:
+
+                    var requestFailed = new RequestFailedExceptionData(ref this);
+
+                    errorCode = replyStatus == ReplyStatus.OperationNotExistException ?
+                        DispatchErrorCode.OperationNotFound : DispatchErrorCode.ServiceNotFound;
+
+                    if (requestFailed.Operation.Length > 0)
+                    {
+                        string target = requestFailed.Fragment.Length > 0 ?
+                            $"{requestFailed.Path}#{requestFailed.Fragment}" : requestFailed.Path;
+
+                        message = @$"{nameof(DispatchException)} {{ ErrorCode = {errorCode
+                            } }} while dispatching '{requestFailed.Operation}' on '{target}'";
+                    }
+                    // else message remains null
+                    break;
+
+                default:
+                    message = DecodeString();
+                    errorCode = DispatchErrorCode.UnhandledException;
+
+                    // Attempt to parse the DispatchErrorCode from the message:
+                    if (message.StartsWith('[') &&
+                        message.IndexOf(']', StringComparison.Ordinal) is int pos && pos != -1)
+                    {
+                        try
+                        {
+                            errorCode = (DispatchErrorCode)byte.Parse(
+                                message[1..pos],
+                                CultureInfo.InvariantCulture);
+
+                            message = message[(pos + 1)..].TrimStart();
+                        }
+                        catch
+                        {
+                            // ignored, keep default errorCode
+                        }
+                    }
+                    break;
+            }
+
+            return new DispatchException(message, errorCode)
+            {
+                ConvertToUnhandled = true,
+            };
+        }
+
         /// <summary>Gets a bit sequence reader to read the underlying bit sequence later on.</summary>
         /// <param name="bitSequenceSize">The minimum number of bits in the sequence.</param>
         /// <returns>A bit sequence reader.</returns>
@@ -501,8 +540,6 @@ namespace IceRpc.Slice
                 return new BitSequenceReader(bitSequence);
             }
         }
-
-        internal static int DecodeInt(ReadOnlySpan<byte> from) => BitConverter.ToInt32(from);
 
         // Applies to all var type: varlong, varulong etc.
         internal static int DecodeVarLongLength(byte from) => 1 << (from & 0x03);

@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using System.IO.Pipelines;
 
 namespace IceRpc.Slice
 {
@@ -55,7 +56,7 @@ namespace IceRpc.Slice
             var response = new OutgoingResponse(request)
             {
                 ResultType = (ResultType)SliceResultType.ServiceFailure,
-                Payload = requestPayloadEncoding.CreatePayloadFromRemoteException(remoteException)
+                Payload = CreateExceptionPayload()
             };
 
             if (response.Protocol.HasFields && remoteException.RetryPolicy != RetryPolicy.NoRetry)
@@ -66,6 +67,27 @@ namespace IceRpc.Slice
                     (ref SliceEncoder encoder) => retryPolicy.Encode(ref encoder));
             }
             return response;
+
+            PipeReader CreateExceptionPayload()
+            {
+                var pipe = new Pipe(); // TODO: pipe options
+                var encoder = new SliceEncoder(pipe.Writer, requestPayloadEncoding);
+
+                if (requestPayloadEncoding == SliceEncoding.Slice1)
+                {
+                    remoteException.Encode(ref encoder);
+                }
+                else
+                {
+                    Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+                    int startPos = encoder.EncodedByteCount;
+                    remoteException.EncodeTrait(ref encoder);
+                    SliceEncoder.EncodeVarULong((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
+                }
+
+                pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
+                return pipe.Reader;
+            }
         }
 
         /// <summary>Decodes the request's payload into a list of arguments.</summary>
