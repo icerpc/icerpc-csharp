@@ -105,7 +105,11 @@ namespace IceRpc.Slice
             public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancel = default)
             {
                 // If no more buffered data to read, fill the pipe with new data.
-                if (!_pipe.Reader.TryRead(out ReadResult readResult))
+                if (_pipe.Reader.TryRead(out ReadResult readResult))
+                {
+                    return readResult;
+                }
+                else
                 {
                     bool hasNext;
                     if (_moveNext == null)

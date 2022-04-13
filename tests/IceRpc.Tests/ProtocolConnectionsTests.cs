@@ -42,10 +42,14 @@ public sealed class ProtocolConnectionTests
             {
                 foreach (TestCaseData testCase in GetTestCaseData(protocol, isOneway: false))
                 {
+                    testCase.TestName =
+                        $"Payload_completed_on_request_and_response_with_{testCase.TestName}({protocol},oneway)";
                     yield return testCase;
                 }
                 foreach (TestCaseData testCase in GetTestCaseData(protocol, isOneway: true))
                 {
+                    testCase.TestName =
+                        $"Payload_completed_on_request_and_response_with_{testCase.TestName}({protocol},twoway)";
                     yield return testCase;
                 }
             }
@@ -53,46 +57,46 @@ public sealed class ProtocolConnectionTests
             static IEnumerable<TestCaseData> GetTestCaseData(Protocol protocol, bool isOneway)
             {
                 // Valid requests with payload and payload stream
-                yield return CreateRequestTestCase("request payload", payload: EmptyPipeReader.Instance);
+                yield return CreateRequestTestCase("valid_request_payload", payload: EmptyPipeReader.Instance);
 
                 if (HasPayloadStreamSupport(protocol))
                 {
                     yield return CreateRequestTestCase(
-                        "request payload stream",
+                        "valid_request_payload_stream",
                         payloadStream: EmptyPipeReader.Instance);
 
                     yield return CreateRequestTestCase(
-                        "request payload and payload stream",
+                        "valid_request_payload_And_payload_stream",
                         payload: EmptyPipeReader.Instance,
                         payloadStream: EmptyPipeReader.Instance);
                 }
 
                 // Valid responses with payload and payload stream
-                yield return CreateResponseTestCase("response payload", payload: EmptyPipeReader.Instance);
+                yield return CreateResponseTestCase("valid_response_payload", payload: EmptyPipeReader.Instance);
 
                 if (HasPayloadStreamSupport(protocol))
                 {
                     yield return CreateResponseTestCase(
-                        "response payload stream",
+                        "valid_response_payload_stream",
                         payloadStream: EmptyPipeReader.Instance);
 
                     yield return CreateResponseTestCase(
-                        "response payload and payload stream",
+                        "valid_response_payload_And_payload_stream",
                         payload: EmptyPipeReader.Instance,
                         payloadStream: EmptyPipeReader.Instance);
                 }
 
                 // Invalid requests
-                yield return CreateRequestTestCase("invalid request payload", payload: InvalidPipeReader.Instance);
-                yield return CreateRequestTestCase("invalid request writer", writer: InvalidPayloadWriter);
+                yield return CreateRequestTestCase("invalid_request_payload", payload: InvalidPipeReader.Instance);
+                yield return CreateRequestTestCase("invalid_request_writer", writer: InvalidPayloadWriter);
 
                 yield return CreateRequestTestCase(
-                    "invalid request payload stream",
+                    "invalid_request_payload_stream",
                     payloadStream: InvalidPipeReader.Instance);
 
                 if (protocol.HasFields)
                 {
-                    yield return CreateRequestTestCase("invalid request fields", invalidFields: true);
+                    yield return CreateRequestTestCase("invalid_request_Fields", invalidFields: true);
                 }
 
                 if (isOneway)
@@ -102,16 +106,16 @@ public sealed class ProtocolConnectionTests
                 }
 
                 // Invalid responses
-                yield return CreateResponseTestCase("invalid response payload", payload: InvalidPipeReader.Instance);
-                yield return CreateResponseTestCase("invalid response writer", writer: InvalidPayloadWriter);
+                yield return CreateResponseTestCase("invalid_response_payload", payload: InvalidPipeReader.Instance);
+                yield return CreateResponseTestCase("invalid_response_writer", writer: InvalidPayloadWriter);
 
                 yield return CreateResponseTestCase(
-                    "invalid response payload stream",
+                    "invalid_response_payload_stream",
                     payloadStream: InvalidPipeReader.Instance);
 
                 if (protocol.HasFields)
                 {
-                    yield return CreateResponseTestCase("invalid response fields", invalidFields: true);
+                    yield return CreateResponseTestCase("invalid_response_Fields", invalidFields: true);
                 }
 
                 TestCaseData CreateRequestTestCase(
@@ -169,7 +173,7 @@ public sealed class ProtocolConnectionTests
         }
     }
 
-    /// <summary>Provides test case data for the <see cref="PayloadWriter_completed_on_request_and_response"> test. The
+    /// <summary>Provides test case data for the <see cref="payload_writer_completed_on_request_and_response"> test. The
     /// test case data provides the outgoing request to send, the dispatcher to provide the response and the payload
     /// writer interceptor use to ensure <see cref="PipeWriter.Complete"/> is called.</summary>
     private static IEnumerable<TestCaseData> RequestsAndResponsesWithPayloadWriter
@@ -180,12 +184,14 @@ public sealed class ProtocolConnectionTests
             {
                 foreach ((string name, TestCaseData testCase) in GetTestCaseData(protocol, isOneway: false))
                 {
-                    testCase.SetName(name);
+                    testCase.SetName(
+                        $"payload_writer_completed_on_request_and_response_with_{name}({protocol},oneway)");
                     yield return testCase;
                 }
                 foreach ((string name, TestCaseData testCase) in GetTestCaseData(protocol, isOneway: true))
                 {
-                    testCase.SetName(name);
+                    testCase.SetName(
+                        $"payload_writer_completed_on_request_and_response_with_{name}({protocol},twoway)");
                     yield return testCase;
                 }
             }
@@ -197,7 +203,7 @@ public sealed class ProtocolConnectionTests
                     var writerSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
                     var request = CreateRequest(protocol, isOneway, writer: PayloadWriter(writerSource));
                     var dispatcher = ConnectionOptions.DefaultDispatcher;
-                    yield return ("request payload writer",
+                    yield return ("request_payload_writer",
                                   new(protocol, request, dispatcher, writerSource.Task, null));
                 }
 
@@ -207,7 +213,7 @@ public sealed class ProtocolConnectionTests
                     var writerSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
                     var request = CreateRequest(protocol, isOneway);
                     var dispatcher = CreateResponseDispatcher(writer: PayloadWriter(writerSource));
-                    yield return ("response payload writer",
+                    yield return ("response_payload_writer",
                                   new(protocol, request, dispatcher, writerSource.Task, null));
                 }
 
@@ -224,7 +230,7 @@ public sealed class ProtocolConnectionTests
                     var request = CreateRequest(
                         protocol, isOneway, InvalidPipeReader.Instance, writer: PayloadWriter(writerSource));
                     var dispatcher = ConnectionOptions.DefaultDispatcher;
-                    yield return ("invalid request payload",
+                    yield return ("invalid_request_payload",
                                   new(protocol, request, dispatcher, writerSource.Task, typeof(NotSupportedException)));
                 }
 
@@ -234,7 +240,7 @@ public sealed class ProtocolConnectionTests
                     var writerSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
                     var request = CreateRequest(protocol, isOneway);
                     var dispatcher = CreateResponseDispatcher(InvalidPipeReader.Instance, PayloadWriter(writerSource));
-                    yield return ("invalid response payload",
+                    yield return ("invalid_response_payload",
                                   new(protocol, request, dispatcher, writerSource.Task, typeof(NotSupportedException)));
                 }
             }
@@ -397,7 +403,7 @@ public sealed class ProtocolConnectionTests
 
     /// <summary>Ensures that the sending a request after shutdown fails.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    public async Task SendRequest_on_shutdown_connection_fails(Protocol protocol)
+    public async Task Sendrequest_on_shutdown_connection_fails(Protocol protocol)
     {
         // Arrange
         await using var serviceProvider = new ProtocolServiceCollection().UseProtocol(protocol).BuildServiceProvider();
@@ -481,7 +487,7 @@ public sealed class ProtocolConnectionTests
     /// <summary>Ensures that the request payload and payload stream pipe readers are completed if the connection is
     /// shutdown.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    public async Task Request_payload_completed_when_connection_is_shutdown(Protocol protocol)
+    public async Task request_payload_completed_when_connection_is_shutdown(Protocol protocol)
     {
         // Arrange
         await using var serviceProvider = new ProtocolServiceCollection().UseProtocol(protocol).BuildServiceProvider();

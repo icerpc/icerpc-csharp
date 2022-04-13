@@ -238,7 +238,7 @@ public abstract class MultiplexedTransportConformanceTests
                 writeTask = stream.Output.WriteAsync(payload).AsTask();
                 await Task.Delay(TimeSpan.FromMilliseconds(20));
             }
-            while (!writeTask.IsCompleted);            
+            while (!writeTask.IsCompleted);
         }
 
         async Task ReadAsync(IMultiplexedStream stream)
