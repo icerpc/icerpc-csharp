@@ -5,7 +5,7 @@ encoding = 1;
 [cs:internal]
 module IceRpc::Slice::Internal;
 
-/// The identity of a service. Used only with the 1.1 encoding.
+/// The identity of a service. Used only with encoding 1.
 [cs:readonly]
 compact struct Identity
 {

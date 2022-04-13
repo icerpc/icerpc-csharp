@@ -72,7 +72,7 @@ namespace IceRpc.Tests.Slice
             Assert.That(ex.MStruct.Value, Is.EqualTo(ts));
         }
 
-        //TODO: 2.0 interface only
+        //TODO: Slice2 interface only
         // [Test]
         // public async Task ExceptionTag_OperationsAsync()
         // {
@@ -90,7 +90,7 @@ namespace IceRpc.Tests.Slice
         //     Assert.That(result.MString, Is.EqualTo("foo"));
         // }
 
-        //TODO: split into multiples tests for 1.1 and 2.0 features
+        //TODO: split into multiples tests for Slice1 and Slice2 features
         // [Test]
         // public void ExceptionTag_Throw()
         // {

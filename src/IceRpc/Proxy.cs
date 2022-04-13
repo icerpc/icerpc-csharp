@@ -491,12 +491,11 @@ namespace IceRpc
             if (path.Length == 0 || path[0] != '/' || !IsValid(path, "\"<>#?\\^`{|}"))
             {
                 throw new FormatException(
-                    @$"invalid path '{path
-                    }'; a valid path starts with '/' and contains only unreserved characters, '%' or reserved characters other than '?' and '#'");
+                    @$"invalid path '{path}'; a valid path starts with '/' and contains only unreserved characters, '%' or reserved characters other than '?' and '#'");
             }
         }
 
-        /// <summary>"unchecked" constructor used by the Slice decoder when decoding a 1.1-encoded proxy.</summary>
+        /// <summary>"unchecked" constructor used by the Slice decoder when decoding a Slice1 encoded proxy.</summary>
         internal Proxy(
             Protocol protocol,
             string path,
@@ -525,8 +524,7 @@ namespace IceRpc
             if (!IsValid(fragment, "\"<>\\^`{|}"))
             {
                 throw new FormatException(
-                    @$"invalid fragment '{fragment
-                    }'; a valid fragment contains only unreserved characters, reserved characters or '%'");
+                    @$"invalid fragment '{fragment}'; a valid fragment contains only unreserved characters, reserved characters or '%'");
             }
         }
 

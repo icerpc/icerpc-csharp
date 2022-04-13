@@ -443,7 +443,7 @@ namespace IceRpc.Slice
             {
                 throw new InvalidDataException($"invalid slice size: {size}");
             }
-            // With the 1.1 encoding, the encoded size includes the size length.
+            // With Slice1, the encoded size includes the size length.
             return size - 4;
         }
 
@@ -578,7 +578,7 @@ namespace IceRpc.Slice
 
             bool hasIndirectionTable = (_classContext.Current.SliceFlags & SliceFlags.HasIndirectionTable) != 0;
 
-            // With the 1.1 encoding, SkipSlice for a class skips the indirection table and preserves its position in
+            // With Slice1, SkipSlice for a class skips the indirection table and preserves its position in
             // _current.DeferredIndirectionTableList for later decoding.
             if (_classContext.Current.InstanceType == InstanceType.Class)
             {
@@ -618,7 +618,7 @@ namespace IceRpc.Slice
             return (_classContext.Current.SliceFlags & SliceFlags.IsLastSlice) != 0;
         }
 
-        /// <summary>Holds various fields used for class and exception decoding with the Slice 1.1 encoding.</summary>
+        /// <summary>Holds various fields used for class and exception decoding with Slice1.</summary>
         private struct ClassContext
         {
             // Data for the class or exception instance that is currently getting decoded.

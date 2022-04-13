@@ -22,7 +22,7 @@ namespace IceRpc.Slice
             if (hasStream && encoding == SliceEncoding.Slice1)
             {
                 throw new ArgumentException(
-                    $"{nameof(hasStream)} must be false when encoding is 1.1", nameof(hasStream));
+                    $"{nameof(hasStream)} must be false when encoding is Slice1", nameof(hasStream));
             }
 
             return hasStream ? PipeReader.Create(_payloadWithZeroSize) : EmptyPipeReader.Instance;
@@ -36,7 +36,7 @@ namespace IceRpc.Slice
         {
             if (encoding == SliceEncoding.Slice1)
             {
-                throw new NotSupportedException("streaming is not supported with encoding 1.1");
+                throw new NotSupportedException("streaming is not supported with Slice1");
             }
             return new PayloadStreamPipeReader<T>(encoding, asyncEnumerable, encodeAction);
         }
