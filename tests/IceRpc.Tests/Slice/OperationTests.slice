@@ -10,27 +10,22 @@ struct MyStruct
     y:int,
 }
 
-struct MyException
-{
-    x:int,
-    y:int,
-}
-
 interface MyOperations
 {
     // Single input parameter and return value
     opInt(p1: int) -> int;
-    opIntSeq(p1: sequence<int>) -> sequence<int>;
     opString(p1: string) -> string;
-    opStringSeq(p1: sequence<string>) -> sequence<string>;
-    opDict(p1: dictionary<int, string>) -> dictionary<int, string>;
     opMyStruct(p1: MyStruct) -> MyStruct;
-    opMyEnum(p1: MyEnum) -> MyEnum;
-    opMyException(p1: MyException) -> MyException;
     opMyTrait(p1: MyTrait) -> MyTrait;
-    opService(p1: Slice::Service) -> Slice::Service;
-
 
     // Multiple input parameters and return values
     opIntAndString(p1: int, p2: string) -> (r1: int, r2: string);
+
+    // Optional input parameters and return values
+    opOptional(p1: int, p2: string, p3: int?, p4: string?) ->
+        (r1: int, r2: string, r3: int?, r4: string?);
+
+    // Tagged input parameters and return values
+    opTagged(p1: int, p2: string, p3: tag(1) int?, p4: tag(2) string?) ->
+        (r1: int, r2: string, r3: tag(1) int?, r4: tag(2) string?);
 }
