@@ -335,8 +335,10 @@ if ({null_check})
     {encoder_param}.EncodeTagged({tag}, IceRpc.Slice.TagFormat.{format}{size}, {value}, {action});
 }}",
         null_check = null_check,
-        count_variable =
-            count_value.map_or("".to_owned(), |v| format!("\nint count_ = {}.Count();", v),),
+        count_variable = count_value.map_or(
+            "".to_owned(),
+            |v| format!("\nint count_ = {}.Count();", v),
+        ),
         encoder_param = encoder_param,
         tag = tag,
         format = data_type.tag_format(),
