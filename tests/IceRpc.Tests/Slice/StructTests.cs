@@ -109,4 +109,14 @@ public sealed class StructTests
             },
             Throws.TypeOf<InvalidDataException>());
     }
+
+    [Test]
+    public void Cannot_encode_a_struct_with_slice2_only_members_using_slice1()
+    {
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
+        var value = new MyStructWithTraitMember(new MyStruct(0, 0));
+
+        value.Encode(ref encoder);
+    }
 }
