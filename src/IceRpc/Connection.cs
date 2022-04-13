@@ -311,13 +311,13 @@ namespace IceRpc
 
             try
             {
-                return await protocolConnection.SendRequestAsync(this, request, cancel).ConfigureAwait(false);
+                return await protocolConnection.InvokeAsync(request, cancel).ConfigureAwait(false);
             }
             catch (ConnectionLostException exception)
             {
                 // If the network connection is lost while sending the request, we close the connection now instead of
-                // waiting for AcceptRequestsAsync to throw. It's necessary to ensure that the next SendRequestAsync
-                // will fail with ConnectionClosedException  (it's important to ensure retries don't occur on this
+                // waiting for AcceptRequestsAsync to throw. It's necessary to ensure that the next InvokeAsync
+                // will fail with ConnectionClosedException (it's important to ensure retries don't occur on this
                 // connection again).
                 await CloseAsync(exception).ConfigureAwait(false);
                 throw;
@@ -326,7 +326,7 @@ namespace IceRpc
             {
                 // Ensure that the shutdown is initiated if the invocations fails with ConnectionClosedException. It's
                 // possible that the connection didn't receive yet the GoAway message. Initiating the shutdown now
-                // ensures that the next SendRequestAsync will fail with ConnectionLostException (it's important to
+                // ensures that the next InvokeAsync will fail with ConnectionClosedException (it's important to
                 // ensure retries don't occur on this connection again).
                 InitiateShutdown(exception.Message);
                 throw;
@@ -437,6 +437,7 @@ namespace IceRpc
                 _protocolConnection = await protocolConnectionFactory.CreateProtocolConnectionAsync(
                     networkConnection,
                     NetworkConnectionInformation.Value,
+                    this,
                     _options,
                     IsServer,
                     connectCancellationSource.Token).ConfigureAwait(false);
@@ -457,7 +458,7 @@ namespace IceRpc
                     // Switch the connection to the ShuttingDown state as soon as the protocol receives a notification
                     // that peer initiated shutdown. This is in particular useful for the connection pool to not return
                     // a connection which is being shutdown.
-                    _protocolConnection.PeerShutdownInitiated += InitiateShutdown;
+                    _protocolConnection.PeerShutdownInitiated = InitiateShutdown;
 
                     // Setup a timer to check for the connection idle time every IdleTimeout / 2 period. If the
                     // transport doesn't support idle timeout (e.g.: the colocated transport), IdleTimeout will be
@@ -479,9 +480,7 @@ namespace IceRpc
                         {
                             try
                             {
-                                await protocolConnection.AcceptRequestsAsync(
-                                    this,
-                                    _options.Dispatcher).ConfigureAwait(false);
+                                await protocolConnection.AcceptRequestsAsync().ConfigureAwait(false);
                             }
                             catch (Exception exception)
                             {

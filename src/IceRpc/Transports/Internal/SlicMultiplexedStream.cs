@@ -39,14 +39,14 @@ namespace IceRpc.Transports.Internal
         public bool IsBidirectional { get; }
 
         /// <inheritdoc/>
+        public bool IsRemote => _id != -1 && _id % 2 == (_connection.IsServer ? 0 : 1);
+
+        /// <inheritdoc/>
         public bool IsStarted => Thread.VolatileRead(ref _id) != -1;
 
         public PipeWriter Output => !IsRemote || IsBidirectional ?
             _outputPipeWriter :
             throw new InvalidOperationException($"can't get {nameof(Output)} on unidirectional remote stream");
-
-        /// <summary>Specifies whether or not this is a stream initiated by the peer.</summary>
-        internal bool IsRemote => _id != -1 && _id % 2 == (_connection.IsServer ? 0 : 1);
 
         internal bool IsShutdown => ReadsCompleted && WritesCompleted;
 
@@ -68,64 +68,10 @@ namespace IceRpc.Transports.Internal
         private Action? _peerInputCompletedAction;
         private int _state;
 
-        public void AbortRead(long errorCode)
+        public void Abort(Exception exception)
         {
-            if (IsStarted && !IsShutdown)
-            {
-                // Notify the peer of the read abort by sending a stop sending frame.
-                _ = SendStopSendingFrameAndShutdownAsync();
-            }
-            else
-            {
-                TrySetReadCompleted();
-            }
-
-            async Task SendStopSendingFrameAndShutdownAsync()
-            {
-                try
-                {
-                    await _connection.SendFrameAsync(
-                        stream: this,
-                        FrameType.StreamStopSending,
-                        new StreamStopSendingBody(errorCode).Encode,
-                        default).ConfigureAwait(false);
-                }
-                catch
-                {
-                    // Ignore.
-                }
-                TrySetReadCompleted();
-            }
-        }
-
-        public void AbortWrite(long errorCode)
-        {
-            if (IsStarted && !IsShutdown)
-            {
-                // Notify the peer of the write abort by sending a reset frame.
-                _ = SendResetFrameAndCompleteWritesAsync();
-            }
-            else
-            {
-                TrySetWriteCompleted();
-            }
-
-            async Task SendResetFrameAndCompleteWritesAsync()
-            {
-                try
-                {
-                    await _connection.SendFrameAsync(
-                        stream: this,
-                        FrameType.StreamReset,
-                        new StreamResetBody(errorCode).Encode,
-                        default).ConfigureAwait(false);
-                }
-                catch
-                {
-                    // Ignore.
-                }
-                TrySetWriteCompleted();
-            }
+            _inputPipeReader.Abort(exception);
+            _outputPipeWriter.Abort(exception);
         }
 
         /// <inheritdoc/>
@@ -178,10 +124,64 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal void Abort(Exception exception)
+        internal void AbortRead(long errorCode)
         {
-            _inputPipeReader.Abort(exception);
-            _outputPipeWriter.Abort(exception);
+            if (IsStarted && !IsShutdown)
+            {
+                // Notify the peer of the read abort by sending a stop sending frame.
+                _ = SendStopSendingFrameAndShutdownAsync();
+            }
+            else
+            {
+                TrySetReadCompleted();
+            }
+
+            async Task SendStopSendingFrameAndShutdownAsync()
+            {
+                try
+                {
+                    await _connection.SendFrameAsync(
+                        stream: this,
+                        FrameType.StreamStopSending,
+                        new StreamStopSendingBody(errorCode).Encode,
+                        default).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Ignore.
+                }
+                TrySetReadCompleted();
+            }
+        }
+
+        internal void AbortWrite(long errorCode)
+        {
+            if (IsStarted && !IsShutdown)
+            {
+                // Notify the peer of the write abort by sending a reset frame.
+                _ = SendResetFrameAndCompleteWritesAsync();
+            }
+            else
+            {
+                TrySetWriteCompleted();
+            }
+
+            async Task SendResetFrameAndCompleteWritesAsync()
+            {
+                try
+                {
+                    await _connection.SendFrameAsync(
+                        stream: this,
+                        FrameType.StreamReset,
+                        new StreamResetBody(errorCode).Encode,
+                        default).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Ignore.
+                }
+                TrySetWriteCompleted();
+            }
         }
 
         internal async ValueTask<int> AcquireSendCreditAsync(CancellationToken cancel)
@@ -292,7 +292,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private void RegisterStateAction(ref Action? stateAction, State state, Action? action)
+        private void RegisterStateAction(ref Action? stateAction, State state, Action action)
         {
             bool isStateAlreadySet = false;
             lock (_mutex)
@@ -308,7 +308,7 @@ namespace IceRpc.Transports.Internal
             }
             if (isStateAlreadySet)
             {
-                action?.Invoke();
+                action();
             }
         }
 
