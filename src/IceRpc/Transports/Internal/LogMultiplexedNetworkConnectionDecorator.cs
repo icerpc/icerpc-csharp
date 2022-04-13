@@ -41,6 +41,7 @@ namespace IceRpc.Transports.Internal
         public long Id => _decoratee.Id;
         public PipeReader Input => _input ??= new LogMultiplexedStreamPipeReader(_decoratee.Input, this, _logger);
         public bool IsBidirectional => _decoratee.IsBidirectional;
+        public bool IsRemote => _decoratee.IsRemote;
         public bool IsStarted => _decoratee.IsStarted;
         public PipeWriter Output => _output ??= new LogMultiplexedStreamPipeWriter(_decoratee.Output, this, _logger);
 
@@ -48,6 +49,8 @@ namespace IceRpc.Transports.Internal
         private PipeReader? _input;
         private readonly ILogger _logger;
         private PipeWriter? _output;
+
+        public void Abort(Exception exception) => _decoratee.Abort(exception);
 
         public void OnShutdown(Action callback) => _decoratee.OnShutdown(callback);
 

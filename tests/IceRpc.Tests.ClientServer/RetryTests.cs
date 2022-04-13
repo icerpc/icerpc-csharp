@@ -132,7 +132,6 @@ namespace IceRpc.Tests.ClientServer
             {
                 results.Add(retry.OpWithDataAsync(-1, 0, seq));
             }
-
             await Task.WhenAll(results);
         }
 
