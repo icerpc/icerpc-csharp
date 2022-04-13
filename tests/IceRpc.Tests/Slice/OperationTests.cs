@@ -59,7 +59,6 @@ public class OperationTests
     public async Task Operation_encode_decode_with_multiple_parameters()
     {
         await using var connection = new Connection(new ConnectionOptions());
-
         var request = new IncomingRequest(Protocol.IceRpc)
         {
             Connection = connection,
