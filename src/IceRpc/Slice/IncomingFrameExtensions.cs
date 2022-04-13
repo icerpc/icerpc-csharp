@@ -179,27 +179,7 @@ namespace IceRpc.Slice
             IInvoker defaultInvoker,
             DecodeFunc<T> decodeFunc)
         {
-            Func<ReadOnlySequence<byte>, IEnumerable<T>> decodeBufferFunc = buffer =>
-            {
-                var decoder = new SliceDecoder(
-                    buffer,
-                    encoding,
-                    frame.Connection,
-                    decodePayloadOptions.ProxyInvoker ?? defaultInvoker,
-                    decodePayloadOptions.Activator ?? defaultActivator,
-                    decodePayloadOptions.MaxDepth);
-
-                var items = new List<T>();
-                do
-                {
-                    items.Add(decodeFunc(ref decoder));
-                }
-                while (decoder.Consumed < buffer.Length);
-
-                return items;
-            };
-
-            var streamDecoder = new StreamDecoder<T>(decodeBufferFunc, decodePayloadOptions.StreamDecoderOptions);
+            var streamDecoder = new StreamDecoder<T>(DecodeBufferFunc, decodePayloadOptions.StreamDecoderOptions);
 
             _ = Task.Run(() => FillWriterAsync(), CancellationToken.None);
 
@@ -268,6 +248,26 @@ namespace IceRpc.Slice
                         break;
                     }
                 }
+            }
+
+            IEnumerable<T> DecodeBufferFunc(ReadOnlySequence<byte> buffer)
+            {
+                var decoder = new SliceDecoder(
+                    buffer,
+                    encoding,
+                    frame.Connection,
+                    decodePayloadOptions.ProxyInvoker ?? defaultInvoker,
+                    decodePayloadOptions.Activator ?? defaultActivator,
+                    decodePayloadOptions.MaxDepth);
+
+                var items = new List<T>();
+                do
+                {
+                    items.Add(decodeFunc(ref decoder));
+                }
+                while (decoder.Consumed < buffer.Length);
+
+                return items;
             }
         }
     }
