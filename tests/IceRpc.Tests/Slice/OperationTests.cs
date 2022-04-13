@@ -27,15 +27,11 @@ public class OperationTests
     public async Task Operation_encode_decode_with_single_return()
     {
         await using var connection = new Connection(new ConnectionOptions());
-        var request = new OutgoingResponse(new IncomingRequest(Protocol.IceRpc))
-        {
-            Payload = IMyOperations.Response.OpInt(10)
-        };
 
         var response = new IncomingResponse(new OutgoingRequest(new Proxy(Protocol.IceRpc)))
         {
             Connection = connection,
-            Payload = request.Payload
+            Payload = IMyOperations.Response.OpInt(10)
         };
 
         int value = await MyOperationsPrx.Response.OpIntAsync(response, default);
@@ -63,15 +59,10 @@ public class OperationTests
     public async Task Operation_encode_decode_with_multiple_return()
     {
         await using var connection = new Connection(new ConnectionOptions());
-        var request = new OutgoingResponse(new IncomingRequest(Protocol.IceRpc))
-        {
-            Payload = IMyOperations.Response.OpIntAndString(10, "hello world!")
-        };
-
         var response = new IncomingResponse(new OutgoingRequest(new Proxy(Protocol.IceRpc)))
         {
             Connection = connection,
-            Payload = request.Payload
+            Payload = IMyOperations.Response.OpIntAndString(10, "hello world!")
         };
 
         var value = await MyOperationsPrx.Response.OpIntAndStringAsync(response, default);
@@ -110,15 +101,10 @@ public class OperationTests
         const int p1 = 10;
         const string p2 = "hello world!";
         await using var connection = new Connection(new ConnectionOptions());
-        var request = new OutgoingResponse(new IncomingRequest(Protocol.IceRpc))
-        {
-            Payload = IMyOperations.Response.OpOptional(p1, p2, p3, p4)
-        };
-
         var response = new IncomingResponse(new OutgoingRequest(new Proxy(Protocol.IceRpc)))
         {
             Connection = connection,
-            Payload = request.Payload
+            Payload = IMyOperations.Response.OpOptional(p1, p2, p3, p4)
         };
 
         var value = await MyOperationsPrx.Response.OpOptionalAsync(response, default);
@@ -159,15 +145,10 @@ public class OperationTests
         const int p1 = 10;
         const string p2 = "hello world!";
         await using var connection = new Connection(new ConnectionOptions());
-        var request = new OutgoingResponse(new IncomingRequest(Protocol.IceRpc))
-        {
-            Payload = IMyOperations.Response.OpTagged(p1, p2, p3, p4)
-        };
-
         var response = new IncomingResponse(new OutgoingRequest(new Proxy(Protocol.IceRpc)))
         {
             Connection = connection,
-            Payload = request.Payload
+            Payload = IMyOperations.Response.OpTagged(p1, p2, p3, p4)
         };
 
         var value = await MyOperationsPrx.Response.OpTaggedAsync(response, default);
