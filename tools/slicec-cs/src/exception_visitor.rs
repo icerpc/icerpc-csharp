@@ -95,9 +95,10 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
                         "decoder.Encoding",
                         &exception_name,
                         exception_def.supported_encodings(),
+                        false,
                     )
                     .add_encoding_block(
-                        Encoding::Slice11,
+                        Encoding::Slice1,
                         initialize_non_nullable_fields(&members, FieldType::Exception),
                     )
                     .add_encoding_block(
@@ -141,7 +142,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
         exception_class_builder.add_block(encode_trait_method(exception_def));
         if exception_def
             .supported_encodings()
-            .supports(&Encoding::Slice11)
+            .supports(&Encoding::Slice1)
         {
             exception_class_builder.add_block(encode_core_method(exception_def));
         }
@@ -157,16 +158,11 @@ fn encode_method(exception_def: &Exception) -> CodeBlock {
     let has_base = exception_def.base.is_some();
 
     let body = CodeBlock::from(format!(
-        r#"
-if (encoder.Encoding == SliceEncoding.Slice1)
-{{
-    throw new InvalidOperationException("encoding an exception by its fields isn't supported with the 1.1 encoding");
-}}
-
+        "\
 encoder.EncodeString(Message);
 {encode_data_members}
 encoder.EncodeVarInt(Slice2Definitions.TagEndMarker);
-        "#,
+",
         encode_data_members = &encode_data_members(members, namespace, FieldType::Exception),
     ));
 
@@ -196,8 +192,9 @@ fn encode_trait_method(exception_def: &Exception) -> CodeBlock {
             "encoder.Encoding",
             &exception_def.escape_identifier(),
             exception_def.supported_encodings(),
+            true,
         )
-        .add_encoding_block(Encoding::Slice11, "this.EncodeCore(ref encoder);".into())
+        .add_encoding_block(Encoding::Slice1, "this.EncodeCore(ref encoder);".into())
         .add_encoding_block(
             Encoding::Slice2,
             "\

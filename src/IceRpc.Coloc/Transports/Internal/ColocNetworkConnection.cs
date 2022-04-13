@@ -76,17 +76,13 @@ namespace IceRpc.Transports.Internal
                 }
 
                 ReadResult readResult = await _reader.ReadAsync(cancel).ConfigureAwait(false);
-                if (readResult.IsCompleted)
+
+                if (_state.HasFlag(State.Disposed))
                 {
-                    await _reader.CompleteAsync().ConfigureAwait(false);
-                    return 0;
-                }
-                if (readResult.IsCanceled)
-                {
-                    Debug.Assert(_state.HasFlag(State.Disposed));
-                    await _reader.CompleteAsync(new ConnectionLostException()).ConfigureAwait(false);
                     throw new ObjectDisposedException($"{typeof(ColocNetworkConnection)}");
                 }
+
+                Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled);
 
                 // We could eventually add a CopyTo(this ReadOnlySequence<byte> src, Memory<byte> dest) extension method
                 // if we need this in other places.
@@ -100,7 +96,6 @@ namespace IceRpc.Transports.Internal
                     read = 0;
                     foreach (ReadOnlyMemory<byte> segment in readResult.Buffer)
                     {
-
                         read += CopySegmentToMemory(segment, buffer[read..]);
                         if (read == buffer.Length)
                         {
@@ -110,6 +105,11 @@ namespace IceRpc.Transports.Internal
                 }
                 _reader.AdvanceTo(readResult.Buffer.GetPosition(read));
                 return read;
+            }
+            catch (ObjectDisposedException)
+            {
+                await _reader.CompleteAsync(new ConnectionLostException()).ConfigureAwait(false);
+                throw;
             }
             finally
             {
@@ -148,17 +148,19 @@ namespace IceRpc.Transports.Internal
                 foreach (ReadOnlyMemory<byte> buffer in buffers)
                 {
                     FlushResult flushResult = await _writer.WriteAsync(buffer, cancel).ConfigureAwait(false);
-                    if (flushResult.IsCompleted)
+
+                    if (_state.HasFlag(State.Disposed))
                     {
-                        await _writer.CompleteAsync().ConfigureAwait(false);
-                    }
-                    else if (flushResult.IsCanceled)
-                    {
-                        Debug.Assert(_state.HasFlag(State.Disposed));
-                        await _writer.CompleteAsync(new ConnectionLostException()).ConfigureAwait(false);
                         throw new ObjectDisposedException($"{typeof(ColocNetworkConnection)}");
                     }
+
+                    Debug.Assert(!flushResult.IsCompleted && !flushResult.IsCanceled);
                 }
+            }
+            catch (ObjectDisposedException)
+            {
+                await _writer.CompleteAsync(new ConnectionLostException()).ConfigureAwait(false);
+                throw;
             }
             finally
             {

@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use slice::code_gen_util::TypeContext;
-use slice::grammar::{Attributable, Class, Entity, NamedSymbol, Operation, Encoding};
+use slice::grammar::{Attributable, Class, Encoding, Entity, NamedSymbol, Operation};
 use slice::supported_encodings::SupportedEncodings;
 
 use crate::code_block::CodeBlock;
@@ -422,15 +422,22 @@ pub struct EncodingBlockBuilder {
     supported_encodings: SupportedEncodings,
     encoding_variable: String,
     identifier: String,
+    encoding_check: bool,
 }
 
 impl EncodingBlockBuilder {
-    pub fn new(encoding_variable: &str, identifier: &str, supported_encodings: SupportedEncodings) -> Self {
+    pub fn new(
+        encoding_variable: &str,
+        identifier: &str,
+        supported_encodings: SupportedEncodings,
+        encoding_check: bool,
+    ) -> Self {
         Self {
             encoding_blocks: HashMap::new(),
             supported_encodings,
             encoding_variable: encoding_variable.to_owned(),
             identifier: identifier.to_owned(),
+            encoding_check,
         }
     }
 
@@ -443,38 +450,68 @@ impl EncodingBlockBuilder {
         match &self.supported_encodings[..] {
             [] => panic!("No supported encodings"),
             [encoding] => {
-                format!(
+                format!("\
+{encoding_check}
+{encode_block}
+",
+                    encoding_check =
+                        if self.encoding_check {
+                            format!(
 r#"if ({encoding_variable} != {encoding})
 {{
-    throw new InvalidOperationException("{identifier} can only be encoded with the Slice {encoding_name} encoding.");
+    throw new InvalidOperationException("{identifier} can only be encoded with the Slice {encoding_name} encoding");
 }}
-
-{encode_block}"#,
-                    identifier = self.identifier,
-                    encoding_variable = self.encoding_variable,
-                    encoding = encoding.to_cs_encoding(),
-                    encoding_name = encoding.encoding_name(),
+"#,
+                                identifier = self.identifier,
+                                encoding_variable = self.encoding_variable,
+                                encoding = encoding.to_cs_encoding(),
+                                encoding_name = encoding,
+                            )
+                        } else {
+                            "".to_owned()
+                        },
                     encode_block = self.encoding_blocks[encoding].clone(),
-                ).into()
+                )
+                .into()
             }
-            encodings => {
-                format!("\
-switch ({encoding_variable})
+            _ => {
+                let mut encoding_1 = self.encoding_blocks[&Encoding::Slice1].clone();
+                let mut encoding_2 = self.encoding_blocks[&Encoding::Slice2].clone();
+
+                if encoding_1.is_empty() && encoding_2.is_empty() {
+                    "".into()
+                } else if encoding_1.is_empty() && !encoding_2.is_empty() {
+                    format!(
+                        "\
+if ({encoding_variable} != SliceEncoding.Slice1) // Slice 2 encoding only
 {{
-    {encoding_cases}
-    default:
-        throw new InvalidOperationException($\"the {{{encoding_variable}}} encoding is not supported\");
+    {encoding_2}
 }}
 ",
-encoding_variable = self.encoding_variable,
-encoding_cases = CodeBlock::from(self.encoding_blocks
-                    .iter()
-                    .filter(|(encoding, _)| encodings.contains(encoding))
-                    .map(|(encoding, code)| format!("case {}:\n    {}\n    break;" ,
-                                                    encoding.to_cs_encoding(),
-                                                    code.clone().indent()))
-                    .collect::<Vec<String>>()
-                    .join("\n")).indent()).into()
+                        encoding_variable = self.encoding_variable,
+                        encoding_2 = encoding_2.indent()
+                    )
+                    .into()
+                } else if !encoding_1.is_empty() && !encoding_2.is_empty() {
+                    format!(
+                        "\
+if ({encoding_variable} == SliceEncoding.Slice1)
+{{
+    {encoding_1}
+}}
+else // Slice 2 encoding
+{{
+    {encoding_2}
+}}
+",
+                        encoding_variable = self.encoding_variable,
+                        encoding_1 = encoding_1.indent(),
+                        encoding_2 = encoding_2.indent()
+                    )
+                    .into()
+                } else {
+                    panic!("it is not possible to have an empty Slice 2 encoding block with a non empty Slice 1 encoding block");
+                }
             }
         }
     }

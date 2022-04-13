@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
-using IceRpc.Transports.Internal;
 
 namespace IceRpc.Internal
 {
@@ -11,11 +10,14 @@ namespace IceRpc.Internal
         public async Task<IProtocolConnection> CreateProtocolConnectionAsync(
             ISimpleNetworkConnection networkConnection,
             NetworkConnectionInformation connectionInfo,
+            Connection connection,
             Configure.ConnectionOptions connectionOptions,
             bool isServer,
             CancellationToken cancel)
         {
             var protocolConnection = new IceProtocolConnection(
+                connection,
+                connectionOptions.Dispatcher,
                 networkConnection,
                 connectionOptions.IceProtocolOptions ?? Configure.IceProtocolOptions.Default);
 

@@ -2,7 +2,6 @@
 
 using IceRpc.Slice.Internal;
 using System.Globalization;
-using System.Net;
 
 namespace IceRpc.Transports.Internal
 {

@@ -201,8 +201,7 @@ namespace IceRpc.Transports.Internal
             // TODO: Cache SliceMultiplexedStream
             new SlicMultiplexedStream(this, bidirectional, remote: false, _reader, _writer);
 
-        public ValueTask DisposeAsync() =>
-            AbortAsync(new ObjectDisposedException($"{typeof(SlicNetworkConnection)}"));
+        public ValueTask DisposeAsync() => AbortAsync(new ObjectDisposedException($"{typeof(SlicNetworkConnection)}"));
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             _simpleNetworkConnection.HasCompatibleParams(remoteEndpoint);
@@ -416,9 +415,9 @@ namespace IceRpc.Transports.Internal
 
                     if (lastStreamFrame)
                     {
-                        // At this point writes are considered completed on the stream. It's important to call
-                        // this before sending the last packet to avoid a race condition where the peer could
-                        // start a new stream before the Slic connection stream count is decreased.
+                        // At this point writes are considered completed on the stream. It's important to call this
+                        // before sending the last packet to avoid a race condition where the peer could start a new
+                        // stream before the Slic connection stream count is decreased.
                         stream.TrySetWriteCompleted();
                     }
 

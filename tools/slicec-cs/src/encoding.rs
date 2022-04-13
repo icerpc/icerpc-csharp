@@ -137,6 +137,18 @@ fn encode_type(
                     param = param,
                     encoder_param = encoder_param
                 ),
+                TypeRefs::CustomType(custom_type_ref) => {
+                    format!(
+                        "{encoder_extensions_class}.Encode{identifier}(ref {encoder_param}, {value});",
+                        encoder_extensions_class = custom_type_ref.escape_scoped_identifier_with_prefix_and_suffix(
+                            "SliceEncoder",
+                            "Extensions",
+                            namespace),
+                        identifier = custom_type_ref.identifier(),
+                        encoder_param = encoder_param,
+                        value = value
+                    )
+                }
                 TypeRefs::Sequence(sequence_ref) => format!(
                     "{};",
                     encode_sequence(sequence_ref, namespace, param, type_context, encoder_param),
@@ -264,10 +276,7 @@ fn encode_tagged_type(
                 )
             }
         }
-        Types::Sequence(sequence_def)
-            if sequence_def.element_type.is_fixed_size()
-                && !sequence_def.element_type.is_optional =>
-        {
+        Types::Sequence(sequence_def) if sequence_def.element_type.is_fixed_size() => {
             if read_only_memory {
                 (
                     Some(format!(
@@ -281,7 +290,7 @@ fn encode_tagged_type(
             } else {
                 (
                     Some(format!(
-                        "{encoder_param}.GetSizeLength(count) + {min_wire_size} * count",
+                        "{encoder_param}.GetSizeLength(count_) + {min_wire_size} * count_",
                         encoder_param = encoder_param,
                         min_wire_size = sequence_def.element_type.min_wire_size()
                     )),
@@ -291,13 +300,11 @@ fn encode_tagged_type(
         }
         Types::Dictionary(dictionary_def)
             if dictionary_def.key_type.is_fixed_size()
-                && !dictionary_def.key_type.is_optional
-                && dictionary_def.value_type.is_fixed_size()
-                && !dictionary_def.value_type.is_optional =>
+                && dictionary_def.value_type.is_fixed_size() =>
         {
             (
                 Some(format!(
-                    "{encoder_param}.GetSizeLength(count) + {min_wire_size} * count",
+                    "{encoder_param}.GetSizeLength(count_) + {min_wire_size} * count_",
                     encoder_param = encoder_param,
                     min_wire_size = dictionary_def.key_type.min_wire_size()
                         + dictionary_def.value_type.min_wire_size()
@@ -308,44 +315,43 @@ fn encode_tagged_type(
         _ => (None, None),
     };
 
-    let mut args = vec![];
-    args.push(tag.to_string());
-
-    args.push(format!("IceRpc.Slice.TagFormat.{}", data_type.tag_format()));
-    if let Some(size_parameter) = size_parameter {
-        args.push("size: ".to_owned() + &size_parameter);
-    }
-    args.push(value);
-    args.push(
-        encode_action(&clone_as_non_optional(data_type), type_context, namespace).to_string(),
-    );
+    let unwrapped_name = member.parameter_name() + "_";
+    let null_check = if read_only_memory {
+        format!("{}.Span != null", param) // TODO do we need the '.Span' here?
+    } else {
+        format!(
+            "{param} is {unwrapped_type} {unwrapped_name}",
+            param = param,
+            unwrapped_type = data_type.to_type_string(namespace, type_context, true),
+            unwrapped_name = &unwrapped_name
+        )
+    };
 
     writeln!(
         code,
         "\
-if ({param} != null)
-{{
-    {encode}
+if ({null_check})
+{{{count_variable}
+    {encoder_param}.EncodeTagged({tag}, IceRpc.Slice.TagFormat.{format}{size}, {value}, {action});
 }}",
-        param = if read_only_memory {
-            param.to_owned() + ".Span"
+        null_check = null_check,
+        count_variable = count_value.map_or(
+            "".to_owned(),
+            |v| format!("\nint count_ = {}.Count();", v),
+        ),
+        encoder_param = encoder_param,
+        tag = tag,
+        format = data_type.tag_format(),
+        size = size_parameter.map_or(
+            "".to_owned(),
+            |v| format!(", size: {}", v),
+        ),
+        value = if read_only_memory {
+            &value
         } else {
-            param.to_owned()
+            &unwrapped_name
         },
-        encode = {
-            let mut code = CodeBlock::new();
-            if let Some(value) = count_value {
-                writeln!(code, "int count = {}.Count();", value);
-            }
-            writeln!(
-                code,
-                "{encoder_param}.EncodeTagged({args});",
-                encoder_param = encoder_param,
-                args = args.join(", ")
-            );
-            code
-        }
-        .indent()
+        action = encode_action(&clone_as_non_optional(data_type), type_context, namespace),
     );
 
     code
@@ -504,13 +510,26 @@ pub fn encode_action(type_ref: &TypeRef, type_context: TypeContext, namespace: &
                     encode_sequence(sequence_ref, namespace, "value", type_context, "encoder")
             )
         }
-        TypeRefs::Struct(_) => {
-            write!(
-                code,
-                "(ref SliceEncoder encoder, {value_type} value) => {value}.Encode(ref encoder)",
-                value_type = value_type,
-                value = value
-            )
+        TypeRefs::Struct(struct_ref) => {
+            if struct_ref.definition().has_attribute("cs:type", false) {
+                write!(
+                    code,
+                    "(ref SliceEncoder encoder, {value_type} value) => {encoder_extensions_class}.Encode{identifier}(ref encoder, value)",
+                    value_type = value_type,
+                    encoder_extensions_class = struct_ref.escape_scoped_identifier_with_prefix_and_suffix(
+                        "SliceEncoder",
+                        "Extensions",
+                        namespace),
+                    identifier = struct_ref.identifier()
+                )
+            } else {
+                write!(
+                    code,
+                    "(ref SliceEncoder encoder, {value_type} value) => {value}.Encode(ref encoder)",
+                    value_type = value_type,
+                    value = value
+                )
+            }
         }
         TypeRefs::Exception(_) => {
             write!(
@@ -525,6 +544,18 @@ pub fn encode_action(type_ref: &TypeRef, type_context: TypeContext, namespace: &
                 code,
                 "(ref SliceEncoder encoder, {value_type} value) => value.EncodeTrait(ref encoder)",
                 value_type = value_type,
+            )
+        }
+        TypeRefs::CustomType(custom_type_ref) => {
+            write!(
+                code,
+                "(ref SliceEncoder encoder, {value_type} value) => {encoder_extensions_class}.Encode{identifier}(ref encoder, value)",
+                value_type = value_type,
+                encoder_extensions_class = custom_type_ref.escape_scoped_identifier_with_prefix_and_suffix(
+                    "SliceEncoder",
+                    "Extensions",
+                    namespace),
+                identifier = custom_type_ref.identifier()
             )
         }
     }
@@ -595,7 +626,11 @@ fn encode_operation_parameters(
     code
 }
 
-pub fn encode_operation(operation: &Operation, return_type: bool, assign_pipe_reader: &str) -> CodeBlock {
+pub fn encode_operation(
+    operation: &Operation,
+    return_type: bool,
+    assign_pipe_reader: &str,
+) -> CodeBlock {
     format!(
         "\
 var pipe_ = new global::System.IO.Pipelines.Pipe(); // TODO: pipe options
@@ -610,13 +645,13 @@ var encoder_ = new SliceEncoder(pipe_.Writer, {encoding}, {class_format});
 pipe_.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
 {assign_pipe_reader} pipe_.Reader;",
         size_placeholder_and_start_position = match operation.encoding {
-            Encoding::Slice11 => "",
+            Encoding::Slice1 => "",
             _ => "\
 Span<byte> sizePlaceholder_ = encoder_.GetPlaceholderSpan(4);
 int startPos_ = encoder_.EncodedByteCount;",
         },
         rewrite_size = match operation.encoding {
-            Encoding::Slice11 => "",
+            Encoding::Slice1 => "",
             _ => "SliceEncoder.EncodeVarULong((ulong)(encoder_.EncodedByteCount - startPos_), sizePlaceholder_);",
         },
         encoding = operation.encoding.to_cs_encoding(),

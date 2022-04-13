@@ -72,6 +72,20 @@ fn validate_cs_generic(attribute: &Attribute) {
     }
 }
 
+fn validate_cs_type(attribute: &Attribute) {
+    match attribute.arguments.len() {
+        1 => (), // Expected 1 argument
+        0 => slice::report_error(
+            r#"missing required argument, expected 'cs:type("<type>")'"#.to_owned(),
+            Some(&attribute.location),
+        ),
+        _ => slice::report_error(
+            r#"too many arguments, expected 'cs:type("<type>")'"#.to_owned(),
+            Some(&attribute.location),
+        ),
+    }
+}
+
 fn validate_collection_attributes<T: Attributable>(attributable: &T) {
     for attribute in &cs_attributes(attributable.attributes()) {
         match attribute.directive.as_ref() {
@@ -150,17 +164,7 @@ impl Visitor for CsValidator {
                             r#"The 'cs:type("<type>")' attribute is only valid for compact structs"#.to_owned(),
                             Some(&attribute.location))
                     }
-                    match attribute.arguments.len() {
-                        1 => (), // Expected 1 argument
-                        0 => slice::report_error(
-                            r#"missing required argument, expected 'cs:type("<type>")'"#.to_owned(),
-                            Some(&attribute.location),
-                        ),
-                        _ => slice::report_error(
-                            r#"too many arguments, expected 'cs:type("<type>")'"#.to_owned(),
-                            Some(&attribute.location),
-                        ),
-                    }
+                    validate_cs_type(attribute);
                 }
                 _ => validate_common_attributes(attribute),
             }
@@ -209,6 +213,24 @@ impl Visitor for CsValidator {
     fn visit_trait(&mut self, trait_def: &Trait) {
         for attribute in &cs_attributes(trait_def.attributes()) {
             validate_common_attributes(attribute);
+        }
+    }
+
+    fn visit_custom_type(&mut self, custom_type: &CustomType) {
+        // We require 'cs:type' on custom types to know how to encode/decode it.
+        if !custom_type.has_attribute("cs:type", false) {
+            slice::report_error(
+                "missing required attribute: 'cs:type'".to_owned(),
+                Some(&custom_type.location),
+            );
+        }
+
+        for attribute in &cs_attributes(custom_type.attributes()) {
+            match attribute.directive.as_ref() {
+                "attribute" => validate_cs_attribute(attribute),
+                "type" => validate_cs_type(attribute),
+                _ => report_unexpected_attribute(attribute),
+            }
         }
     }
 

@@ -42,7 +42,7 @@ namespace IceRpc.Tests
             this.AddScoped(serviceProvider =>
                 new SlicServerTransportOptions
                 {
-                   SimpleServerTransport =
+                    SimpleServerTransport =
                       serviceProvider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()
                 });
 
@@ -145,7 +145,7 @@ namespace IceRpc.Tests
 
             return collection;
         }
-  
+
         public static Task<IMultiplexedNetworkConnection> GetMultiplexedClientConnectionAsync(
             this IServiceProvider serviceProvider) =>
             GetClientNetworkConnectionAsync<IMultiplexedNetworkConnection>(serviceProvider);
