@@ -487,7 +487,7 @@ namespace IceRpc.Tests.Slice
                 hasStream: false,
                 default));
 
-            PipeReader CreatePayload()
+            static PipeReader CreatePayload()
             {
                 // Build a request payload with 2 tagged values
                 var pipe = new Pipe(); // TODO: pipe options

@@ -51,6 +51,26 @@ namespace IceRpc.Slice
             }
         }
 
+        /// <summary>Decodes a response with a Failure result type.</summary>
+        public static ValueTask<RemoteException> DecodeFailureAsync(
+            this IncomingResponse response,
+            IActivator defaultActivator,
+            CancellationToken cancel)
+        {
+            if (response.ResultType != ResultType.Failure)
+            {
+                throw new ArgumentException(
+                    $"{nameof(DecodeFailureAsync)} requires a response with a Failure result type",
+                    nameof(response));
+            }
+
+            return response.ToRemoteExceptionAsync(
+                response.Protocol.SliceEncoding,
+                response.Request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
+                defaultActivator,
+                cancel);
+        }
+
         /// <summary>Creates an async enumerable over the payload reader of an incoming response to decode streamed
         /// members.</summary>
         /// <param name="response">The incoming response.</param>
@@ -119,19 +139,20 @@ namespace IceRpc.Slice
 
         private static async ValueTask<RemoteException> ToRemoteExceptionAsync(
             this IncomingResponse response,
-            SliceEncoding sliceEncoding,
+            SliceEncoding encoding,
             SliceDecodePayloadOptions decodePayloadOptions,
             IActivator defaultActivator,
             CancellationToken cancel)
         {
             Debug.Assert(response.ResultType != ResultType.Success);
+            if (response.ResultType == ResultType.Failure)
+            {
+                encoding = response.Protocol.SliceEncoding;
+            }
 
             var resultType = (SliceResultType)response.ResultType;
             if (resultType is SliceResultType.Failure or SliceResultType.ServiceFailure)
             {
-                SliceEncoding encoding = resultType == SliceResultType.Failure ?
-                    response.Protocol.SliceEncoding : sliceEncoding;
-
                 ReadResult readResult = await response.Payload.ReadSegmentAsync(
                     encoding,
                     cancel).ConfigureAwait(false);
@@ -160,7 +181,7 @@ namespace IceRpc.Slice
             {
                 var decoder = new SliceDecoder(
                     buffer,
-                    resultType == SliceResultType.Failure ? response.Protocol.SliceEncoding : sliceEncoding,
+                    encoding,
                     response.Connection,
                     decodePayloadOptions.ProxyInvoker ?? response.Request.Proxy.Invoker,
                     decodePayloadOptions.Activator ?? defaultActivator,
