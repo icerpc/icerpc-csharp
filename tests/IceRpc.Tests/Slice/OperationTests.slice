@@ -2,21 +2,10 @@
 
 module IceRpc::Slice::Tests;
 
-trait MyTrait;
-
-struct MyStruct
-{
-    x:int,
-    y:int,
-}
-
 interface MyOperations
 {
     // Single input parameter and return value
     opInt(p1: int) -> int;
-    opString(p1: string) -> string;
-    opMyStruct(p1: MyStruct) -> MyStruct;
-    opMyTrait(p1: MyTrait) -> MyTrait;
 
     // Multiple input parameters and return values
     opIntAndString(p1: int, p2: string) -> (r1: int, r2: string);
