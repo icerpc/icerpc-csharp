@@ -511,7 +511,7 @@ return {decode_operation_stream}
             writeln!(
                 code,
                 "\
-var {return_value} = await response.ToReturnValueAsync(
+var {return_value} = await response.DecodeReturnValueAsync(
     {encoding},
     _defaultActivator,
     {response_decode_func},
@@ -534,7 +534,7 @@ return {return_value_and_stream};
         writeln!(
             code,
             "\
-await response.ToReturnValueAsync(
+await response.DecodeReturnValueAsync(
     {encoding},
     _defaultActivator,
     {response_decode_func},
