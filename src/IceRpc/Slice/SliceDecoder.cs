@@ -313,11 +313,8 @@ namespace IceRpc.Slice
                 return fallback(typeId, ref this);
             }
 
-            static T ThrowInvalidDataException(string typeId, ref SliceDecoder decoder)
-            {
-                throw new InvalidDataException(
-                    $"failed to decode struct with type ID '{typeId}' implementing interface '{typeof(T)}'");
-            }
+            static T ThrowInvalidDataException(string typeId, ref SliceDecoder decoder) =>
+                throw new InvalidDataException($"activator could not find type with Slice type ID '{typeId}'");
         }
 
         /// <summary>Decodes a nullable proxy.</summary>
@@ -456,7 +453,11 @@ namespace IceRpc.Slice
         /// <summary>Decodes a Slice1 system exception.</summary>
         public DispatchException DecodeSystemException()
         {
-            Debug.Assert(Encoding == SliceEncoding.Slice1);
+            if (Encoding != SliceEncoding.Slice1)
+            {
+                throw new InvalidOperationException(
+                    $"{nameof(DecodeSystemException)} is not compatible with {Encoding}");
+            }
 
             ReplyStatus replyStatus = this.DecodeReplyStatus();
 

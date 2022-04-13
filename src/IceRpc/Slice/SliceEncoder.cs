@@ -10,6 +10,7 @@ using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+
 using static IceRpc.Slice.Internal.Slice1Definitions;
 
 namespace IceRpc.Slice
@@ -20,7 +21,7 @@ namespace IceRpc.Slice
         /// <summary>The number of bytes encoded by this encoder into the underlying buffer writer.</summary>
         public int EncodedByteCount { get; private set; }
 
-        /// <summary>The Slice encoding associated with this encoder.</summary>
+        /// <summary>The Slice encoding of this encoder.</summary>
         public SliceEncoding Encoding { get; }
 
         internal const long VarLongMinValue = -2_305_843_009_213_693_952; // -2^61
@@ -301,6 +302,7 @@ namespace IceRpc.Slice
 
         /// <summary>Encodes a dispatch exception as a Slice1 system exception.</summary>
         /// <param name="v">The dispatch exception to encode.</param>
+        /// <remarks>A dispatch exception cannot be encoded directly with Slice1.</remarks>
         public void EncodeSystemException(DispatchException v)
         {
             Debug.Assert(Encoding == SliceEncoding.Slice1);

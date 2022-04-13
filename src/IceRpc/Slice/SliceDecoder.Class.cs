@@ -25,29 +25,24 @@ namespace IceRpc.Slice
         {
             if (Encoding != SliceEncoding.Slice1)
             {
-                throw new InvalidOperationException(
-                    $"{nameof(DecodeNullableClass)} is not compatible with encoding {Encoding}");
+                throw new InvalidOperationException($"{nameof(DecodeNullableClass)} is not compatible with {Encoding}");
             }
 
             AnyClass? obj = DecodeAnyClass();
-            if (obj is T result)
-            {
-                return result;
-            }
-            else if (obj == null)
-            {
-                return null;
-            }
-            else
-            {
-                throw new InvalidDataException(@$"decoded instance of type '{obj.GetType()}' but expected instance of type '{typeof(T)}'");
-            }
+
+            return obj is T result ? result :
+                obj == null ? null : throw new InvalidDataException(@$"decoded instance of type '{obj.GetType()
+                    }' but expected instance of type '{typeof(T)}'");
         }
 
         /// <summary>Decodes a Slice1 user exception.</summary>
         public RemoteException DecodeUserException()
         {
-            Debug.Assert(Encoding == SliceEncoding.Slice1);
+            if (Encoding != SliceEncoding.Slice1)
+            {
+                throw new InvalidOperationException($"{nameof(DecodeUserException)} is not compatible with {Encoding}");
+            }
+
             Debug.Assert(_classContext.Current.InstanceType == InstanceType.None);
             _classContext.Current.InstanceType = InstanceType.Exception;
 
@@ -124,8 +119,7 @@ namespace IceRpc.Slice
         {
             if (Encoding != SliceEncoding.Slice1)
             {
-                throw new InvalidOperationException(
-                    $"{nameof(StartSlice)} is not compatible with encoding {Encoding}");
+                throw new InvalidOperationException($"{nameof(StartSlice)} is not compatible with encoding {Encoding}");
             }
 
             Debug.Assert(_classContext.Current.InstanceType != InstanceType.None);
