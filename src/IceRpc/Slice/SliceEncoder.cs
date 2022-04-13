@@ -302,8 +302,11 @@ namespace IceRpc.Slice
 
         /// <summary>Encodes a dispatch exception as a Slice1 system exception.</summary>
         /// <param name="v">The dispatch exception to encode.</param>
+        /// <param name="path">The path to include in some system exceptions.</param>
+        /// <param name="fragment">The fragment to include in some system exceptions.</param>
+        /// <param name="operation">The operation to include in some system exceptions.</param>
         /// <remarks>A dispatch exception cannot be encoded directly with Slice1.</remarks>
-        public void EncodeSystemException(DispatchException v)
+        public void EncodeSystemException(DispatchException v, string path, string fragment, string operation)
         {
             Debug.Assert(Encoding == SliceEncoding.Slice1);
 
@@ -316,9 +319,7 @@ namespace IceRpc.Slice
                     this.EncodeReplyStatus(errorCode == DispatchErrorCode.ServiceNotFound ?
                         ReplyStatus.ObjectNotExistException : ReplyStatus.OperationNotExistException);
 
-                    // TODO: pass context to dispatch exception Encode
-                    var requestFailed = new RequestFailedExceptionData(path: "/", "", "");
-                    requestFailed.Encode(ref this);
+                    new RequestFailedExceptionData(path, fragment, operation).Encode(ref this);
                     break;
 
                 default:

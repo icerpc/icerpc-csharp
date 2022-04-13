@@ -831,28 +831,38 @@ namespace IceRpc.Internal
                 {
                     // If we catch an exception, we return a failure response with a Slice-encoded payload.
 
-                    if (exception is OperationCanceledException)
+                    if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
                     {
-                        exception = new DispatchException("dispatch canceled by peer", DispatchErrorCode.Canceled);
-                    }
-
-                    // With the ice protocol, a ResultType = Failure exception must be an ice system exception.
-                    if (exception is not RemoteException remoteException ||
-                        remoteException.ConvertToUnhandled ||
-                        remoteException is not DispatchException)
-                    {
-                        remoteException = new DispatchException(
-                            message: null,
-                            exception is InvalidDataException ?
-                                DispatchErrorCode.InvalidData : DispatchErrorCode.UnhandledException,
-                            exception);
+                        dispatchException = exception is OperationCanceledException ?
+                            new DispatchException("dispatch canceled by peer", DispatchErrorCode.Canceled) :
+                            new DispatchException(
+                                message: null,
+                                exception is InvalidDataException ?
+                                    DispatchErrorCode.InvalidData : DispatchErrorCode.UnhandledException,
+                                exception);
                     }
 
                     response = new OutgoingResponse(request)
                     {
-                        Payload = SliceEncoding.Slice1.CreatePayloadFromRemoteException(remoteException),
+                        Payload = CreateExceptionPayload(dispatchException, request),
                         ResultType = ResultType.Failure
                     };
+
+                    static PipeReader CreateExceptionPayload(
+                        DispatchException dispatchException,
+                        IncomingRequest request)
+                    {
+                        var pipe = new Pipe(); // TODO: pipe options
+
+                        var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice1);
+                        encoder.EncodeSystemException(
+                            dispatchException,
+                            request.Path,
+                            request.Fragment,
+                            request.Operation);
+                        pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
+                        return pipe.Reader;
+                    }
                 }
 
                 // The sending of the response can't be canceled. This would lead to invalid protocol behavior.
