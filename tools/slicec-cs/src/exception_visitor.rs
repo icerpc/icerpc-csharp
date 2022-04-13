@@ -178,7 +178,7 @@ fn encode_core_method(exception_def: &Exception) -> CodeBlock {
             true,
         )
         .add_encoding_block(
-            Encoding::Slice11,
+            Encoding::Slice1,
             format!(
                 "\
 encoder.StartSlice(SliceTypeId);
