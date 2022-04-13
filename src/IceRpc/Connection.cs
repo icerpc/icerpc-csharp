@@ -160,15 +160,13 @@ namespace IceRpc
                 {
                     if (_state == ConnectionState.NotConnected)
                     {
-                        // Only the application can call ConnectAsync on a server connection (which is ok but not
-                        // particularly useful), and in this case, the connection state can only be active or >=
-                        // closing.
-                        Debug.Assert(_serverEndpoint == null);
-
-                        Debug.Assert(
-                            _networkConnection == null &&
-                            _protocolConnection == null &&
-                            Endpoint != default);
+                        // Only called for client connections which at this point must have configure a remote endpoint.
+                        if (_options.RemoteEndpoint is not Endpoint remoteEndpoint || remoteEndpoint == default)
+                        {
+                            throw new InvalidOperationException(
+                                $"cannot call connect without configuring {nameof(Endpoint)}");
+                        }
+                        Debug.Assert(_networkConnection == null && _protocolConnection == null);
 
                         _stateTask = Endpoint.Protocol == Protocol.Ice ?
                             PerformConnectAsync(
