@@ -190,7 +190,7 @@ namespace IceRpc
         /// <summary>Constructs an endpoint from a protocol, a host, a port and parsed parameters, without parameter
         /// validation.</summary>
         /// <remarks>This constructor is used by <see cref="Proxy"/> for its main endpoint and by the Slice decoder for
-        /// 1.1-encoded endpoints.</remarks>
+        /// Slice1 endpoints.</remarks>
         internal Endpoint(
             Protocol protocol,
             string host,

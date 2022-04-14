@@ -483,7 +483,7 @@ r#"if ({encoding_variable} != {encoding})
                 } else if encoding_1.is_empty() && !encoding_2.is_empty() {
                     format!(
                         "\
-if ({encoding_variable} != SliceEncoding.Slice1) // Slice 2 encoding only
+if ({encoding_variable} != SliceEncoding.Slice1) // Slice2 only
 {{
     {encoding_2}
 }}
@@ -499,7 +499,7 @@ if ({encoding_variable} == SliceEncoding.Slice1)
 {{
     {encoding_1}
 }}
-else // Slice 2 encoding
+else // Slice2
 {{
     {encoding_2}
 }}
@@ -510,7 +510,7 @@ else // Slice 2 encoding
                     )
                     .into()
                 } else {
-                    panic!("it is not possible to have an empty Slice 2 encoding block with a non empty Slice 1 encoding block");
+                    panic!("it is not possible to have an empty Slice2 encoding block with a non empty Slice1 encoding block");
                 }
             }
         }

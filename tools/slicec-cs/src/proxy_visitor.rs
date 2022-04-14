@@ -119,8 +119,7 @@ fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
     let access = interface_def.access_modifier();
     format!(
         r#"/// <summary>Creates a new <see cref="{prx_impl}"/> from the give connection and path.</summary>
-/// <param name="connection">The connection. If it's an outgoing connection, the endpoint of the new proxy is
-/// <see cref="Connection.RemoteEndpoint"/>; otherwise, the new proxy has no endpoint.</param>
+/// <param name="connection">The connection of the new proxy.</param>
 /// <param name="path">The path of the proxy. If null, the path is set to <see cref="DefaultPath"/>.</param>
 /// <param name="invoker">The invoker. If null and connection is an incoming connection, the invoker is set to
 /// the server's invoker.</param>
@@ -501,7 +500,7 @@ fn response_operation_body(operation: &Operation) -> CodeBlock {
             writeln!(
                 code,
                 "\
-await response.CheckVoidReturnValueAsync(
+await response.DecodeVoidReturnValueAsync(
     {encoding},
     _defaultActivator,
     hasStream: true,
@@ -517,7 +516,7 @@ return {decode_operation_stream}
             writeln!(
                 code,
                 "\
-var {return_value} = await response.ToReturnValueAsync(
+var {return_value} = await response.DecodeReturnValueAsync(
     {encoding},
     _defaultActivator,
     {response_decode_func},
@@ -540,7 +539,7 @@ return {return_value_and_stream};
         writeln!(
             code,
             "\
-await response.ToReturnValueAsync(
+await response.DecodeReturnValueAsync(
     {encoding},
     _defaultActivator,
     {response_decode_func},

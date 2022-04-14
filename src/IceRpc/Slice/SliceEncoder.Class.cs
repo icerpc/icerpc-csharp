@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 using System.Collections.Immutable;
 using System.ComponentModel;
@@ -50,34 +49,6 @@ namespace IceRpc.Slice
                 {
                     EncodeInstance(v); // Encodes the instance or a reference if already encoded.
                 }
-            }
-        }
-
-        /// <summary>Encodes a dispatch exception as an ice "system exception".</summary>
-        /// <param name="v">The dispatch exception to encode.</param>
-        public void EncodeDispatchExceptionAsSystemException(DispatchException v)
-        {
-            Debug.Assert(Encoding == SliceEncoding.Slice1);
-
-            DispatchErrorCode errorCode = v.ErrorCode;
-
-            switch (errorCode)
-            {
-                case DispatchErrorCode.ServiceNotFound:
-                case DispatchErrorCode.OperationNotFound:
-                    this.EncodeReplyStatus(errorCode == DispatchErrorCode.ServiceNotFound ?
-                        ReplyStatus.ObjectNotExistException : ReplyStatus.OperationNotExistException);
-
-                    // TODO: pass context to dispatch exception Encode
-                    var requestFailed = new RequestFailedExceptionData(path: "/", "", "");
-                    requestFailed.Encode(ref this);
-                    break;
-
-                default:
-                    this.EncodeReplyStatus(ReplyStatus.UnknownException);
-                    // We encode the error code in the message.
-                    EncodeString($"[{((byte)errorCode).ToString(CultureInfo.InvariantCulture)}] {v.Message}");
-                    break;
             }
         }
 

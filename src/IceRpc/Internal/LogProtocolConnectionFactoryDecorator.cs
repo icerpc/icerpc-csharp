@@ -29,11 +29,16 @@ namespace IceRpc.Internal
                 isServer,
                 cancel).ConfigureAwait(false);
 
-            _logger.LogCreateProtocolConnection(connectionInformation.LocalEndpoint.Protocol,
-                                                connectionInformation.LocalEndpoint,
-                                                connectionInformation.RemoteEndpoint);
+            _logger.LogCreateProtocolConnection(connection.Endpoint.Protocol,
+                                                connectionInformation.LocalEndPoint,
+                                                connectionInformation.RemoteEndPoint);
 
-            return new LogProtocolConnectionDecorator(protocolConnection, connectionInformation, isServer, _logger);
+            return new LogProtocolConnectionDecorator(
+                protocolConnection,
+                connection.Endpoint.Protocol,
+                connectionInformation,
+                isServer,
+                _logger);
         }
 
         internal LogProtocolConnectionFactoryDecorator(IProtocolConnectionFactory<T> decoratee, ILogger logger)

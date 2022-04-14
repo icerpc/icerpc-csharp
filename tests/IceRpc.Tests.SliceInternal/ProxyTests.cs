@@ -64,7 +64,6 @@ namespace IceRpc.Tests.SliceInternal
             Proxy proxy1 = DecodeProxy();
 
             Assert.That(regular.Connection, Is.EqualTo(proxy1.Connection));
-            Assert.That(proxy1.Endpoint, Is.EqualTo(regular.Connection!.RemoteEndpoint));
 
             void EncodeProxy()
             {
