@@ -152,7 +152,6 @@ public sealed class StructTests
         expected.Encode(ref encoder);
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
-        Assert.That(buffer.WrittenMemory.Length, Is.EqualTo(8));
         Assert.That(decoder.DecodeInt(), Is.EqualTo(expected.I));
         Assert.That(decoder.DecodeInt(), Is.EqualTo(expected.J));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
