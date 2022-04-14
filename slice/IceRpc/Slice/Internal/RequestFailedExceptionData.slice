@@ -1,12 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-encoding = 1.1;
+encoding = 1;
 
 [cs:internal]
 module IceRpc::Slice::Internal;
 
 /// The data carried by a RequestFailedException (ObjectNotExistException, FacetNotExistException or
-/// OperationNotExistException) when encoded with the 1.1 encoding.
+/// OperationNotExistException) when encoded with Slice1.
 [cs:readonly]
 compact struct RequestFailedExceptionData
 {

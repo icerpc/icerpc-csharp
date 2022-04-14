@@ -76,15 +76,12 @@ namespace IceRpc.Tests.Slice
 
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
 
-            // Let's decode the exception. TODO: we should provide a more obvious exception-decoding API.
-            var dispatchException = Assert.ThrowsAsync<DispatchException>(() =>
-                response.CheckVoidReturnValueAsync(
-                    SliceEncoding.Slice2,
-                    SliceDecoder.GetActivator(typeof(TraitTests).Assembly),
-                    hasStream: false,
-                    cancel: default).AsTask());
+            // Let's decode the exception
 
-            Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.InvalidData));
+            RemoteException exception = await response.DecodeFailureAsync();
+            Assert.That(exception, Is.TypeOf<DispatchException>());
+            var dispatchException = (DispatchException)exception;
+            Assert.That(dispatchException.ErrorCode, Is.EqualTo(DispatchErrorCode.InvalidData));
 
             // Constructs a payload that creates a stack overflow during decoding. We're targeting opNestedTraitStruct.
             PipeReader CreatePayload()

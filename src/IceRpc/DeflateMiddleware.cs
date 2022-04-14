@@ -7,8 +7,8 @@ using System.IO.Pipelines;
 
 namespace IceRpc
 {
-    /// <summary>A middleware that applies the deflate compression algorithm to the 2.0 encoded payload of a response
-    /// when <see cref="Features.CompressPayload.Yes"/> is present in the response features.</summary>
+    /// <summary>A middleware that applies the deflate compression algorithm to the Slice2 encoded payload of a
+    /// response when <see cref="Features.CompressPayload.Yes"/> is present in the response features.</summary>
     public class DeflateMiddleware : IDispatcher
     {
         private static readonly ReadOnlySequence<byte> _encodedCompressionFormatValue =

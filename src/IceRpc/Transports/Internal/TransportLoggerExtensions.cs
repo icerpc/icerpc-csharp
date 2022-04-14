@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
+using System.Net;
 
 namespace IceRpc.Transports.Internal
 {
@@ -16,7 +17,7 @@ namespace IceRpc.Transports.Internal
             EventName = nameof(TransportEventIds.Connect),
             Level = LogLevel.Debug,
             Message = "network connection established: LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint}")]
-        internal static partial void LogConnect(this ILogger logger, Endpoint localEndpoint, Endpoint remoteEndpoint);
+        internal static partial void LogConnect(this ILogger logger, EndPoint localEndpoint, EndPoint remoteEndpoint);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.ConnectFailed,

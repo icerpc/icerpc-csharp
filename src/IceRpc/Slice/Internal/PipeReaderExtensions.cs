@@ -18,7 +18,7 @@ namespace IceRpc.Slice.Internal
         /// <c>true</c>.</returns>
         /// <exception cref="InvalidDataException">Thrown when the segment size could not be decoded or the segment size
         /// exceeds the max segment size.</exception>
-        /// <remarks>The caller must call AdvanceTo on the reader, as usual. With encoding 1.1, this method reads all
+        /// <remarks>The caller must call AdvanceTo on the reader, as usual. With Slice1, this method reads all
         /// the remaining bytes in the reader; otherwise, this method reads the segment size in the segment and returns
         /// exactly segment size bytes. This method often examines the buffer it returns as part of ReadResult,
         /// therefore the caller should never examine less than Buffer.End.</remarks>

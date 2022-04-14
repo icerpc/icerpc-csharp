@@ -43,13 +43,13 @@ public sealed class ProtocolConnectionTests
                 foreach (TestCaseData testCase in GetTestCaseData(protocol, isOneway: false))
                 {
                     testCase.TestName =
-                        $"Payload_completed_on_request_and_response_with_{testCase.TestName}({protocol},oneway)";
+                        $"Payload_completed_on_request_and_response({testCase.TestName},{protocol},oneway))";
                     yield return testCase;
                 }
                 foreach (TestCaseData testCase in GetTestCaseData(protocol, isOneway: true))
                 {
                     testCase.TestName =
-                        $"Payload_completed_on_request_and_response_with_{testCase.TestName}({protocol},twoway)";
+                        $"Payload_completed_on_request_and_response({testCase.TestName},{protocol},twoway)";
                     yield return testCase;
                 }
             }
@@ -185,13 +185,13 @@ public sealed class ProtocolConnectionTests
                 foreach ((string name, TestCaseData testCase) in GetTestCaseData(protocol, isOneway: false))
                 {
                     testCase.SetName(
-                        $"payload_writer_completed_on_request_and_response_with_{name}({protocol},oneway)");
+                        $"PayloadWriter_completed_on_request_and_response({name},{protocol},oneway)");
                     yield return testCase;
                 }
                 foreach ((string name, TestCaseData testCase) in GetTestCaseData(protocol, isOneway: true))
                 {
                     testCase.SetName(
-                        $"payload_writer_completed_on_request_and_response_with_{name}({protocol},twoway)");
+                        $"PayloadWriter_completed_on_request_and_response{name}({protocol},twoway)");
                     yield return testCase;
                 }
             }
@@ -487,7 +487,7 @@ public sealed class ProtocolConnectionTests
     /// <summary>Ensures that the request payload and payload stream pipe readers are completed if the connection is
     /// shutdown.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    public async Task request_payload_completed_when_connection_is_shutdown(Protocol protocol)
+    public async Task Request_payload_completed_when_connection_is_shutdown(Protocol protocol)
     {
         // Arrange
         await using var serviceProvider = new ProtocolServiceCollection().UseProtocol(protocol).BuildServiceProvider();

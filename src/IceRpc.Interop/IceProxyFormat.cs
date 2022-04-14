@@ -484,7 +484,7 @@ namespace IceRpc
             string? host = null;
             ushort? port = null;
 
-            // We map "default" to tcp for consistency with the Slice 1.1 Encoder/Decoder.
+            // We map "default" to tcp for consistency with the Slice1 Encoder/Decoder.
             var endpointParams = new Dictionary<string, string>
             {
                 ["transport"] = transport == "default" ? TransportNames.Tcp : transport,
@@ -681,7 +681,7 @@ namespace IceRpc
         {
             var sb = new StringBuilder();
 
-            // The default transport is "tcp" for consistency with the Slice 1.1 Encoder/Decoder.
+            // The default transport is "tcp" for consistency with the Slice1 Encoder/Decoder.
             string transport = endpoint.Params.TryGetValue("transport", out string? transportValue) ?
                 transportValue : TransportNames.Tcp;
 

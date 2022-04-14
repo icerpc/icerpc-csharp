@@ -569,7 +569,7 @@ pub fn decode_operation_stream(
             if dispatch {
                 format!(
                     "\
-request.ToAsyncEnumerable<{param_type}>(
+request.DecodeAsyncEnumerable<{param_type}>(
     {encoding},
     _defaultActivator,
     {decode_func});",
@@ -581,7 +581,7 @@ request.ToAsyncEnumerable<{param_type}>(
             } else {
                 format!(
                     "\
-response.ToAsyncEnumerable<{param_type}>(
+response.DecodeAsyncEnumerable<{param_type}>(
     {encoding},
     _defaultActivator,
     {decode_func});",

@@ -276,8 +276,7 @@ fn encode_tagged_type(
                 )
             }
         }
-        Types::Sequence(sequence_def) if sequence_def.element_type.is_fixed_size() =>
-        {
+        Types::Sequence(sequence_def) if sequence_def.element_type.is_fixed_size() => {
             if read_only_memory {
                 (
                     Some(format!(
@@ -345,9 +344,13 @@ if ({null_check})
         format = data_type.tag_format(),
         size = size_parameter.map_or(
             "".to_owned(),
-            |v| format!(", size: {}", v)
+            |v| format!(", size: {}", v),
         ),
-        value = if read_only_memory { &value } else { &unwrapped_name },
+        value = if read_only_memory {
+            &value
+        } else {
+            &unwrapped_name
+        },
         action = encode_action(&clone_as_non_optional(data_type), type_context, namespace),
     );
 
@@ -623,7 +626,11 @@ fn encode_operation_parameters(
     code
 }
 
-pub fn encode_operation(operation: &Operation, return_type: bool, assign_pipe_reader: &str) -> CodeBlock {
+pub fn encode_operation(
+    operation: &Operation,
+    return_type: bool,
+    assign_pipe_reader: &str,
+) -> CodeBlock {
     format!(
         "\
 var pipe_ = new global::System.IO.Pipelines.Pipe(); // TODO: pipe options
@@ -638,13 +645,13 @@ var encoder_ = new SliceEncoder(pipe_.Writer, {encoding}, {class_format});
 pipe_.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
 {assign_pipe_reader} pipe_.Reader;",
         size_placeholder_and_start_position = match operation.encoding {
-            Encoding::Slice11 => "",
+            Encoding::Slice1 => "",
             _ => "\
 Span<byte> sizePlaceholder_ = encoder_.GetPlaceholderSpan(4);
 int startPos_ = encoder_.EncodedByteCount;",
         },
         rewrite_size = match operation.encoding {
-            Encoding::Slice11 => "",
+            Encoding::Slice1 => "",
             _ => "SliceEncoder.EncodeVarULong((ulong)(encoder_.EncodedByteCount - startPos_), sizePlaceholder_);",
         },
         encoding = operation.encoding.to_cs_encoding(),

@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice.TypeIdAttributeTests;
+using IceRpc.Slice.TypeIdAttributeTestNamespace;
 using NUnit.Framework;
 
 namespace IceRpc.Slice.Tests;
@@ -35,43 +35,43 @@ public sealed class TypeIdAttributeTests
     private static readonly Dictionary<Type, string> _typeIds = new()
     {
         [typeof(ServicePrx)] = "::Slice::Service",
-        [typeof(MyClass)] = "::IceRpc::Slice::TypeIdAttributeTests::MyClass",
-        [typeof(IMyInterfacePrx)] = "::IceRpc::Slice::TypeIdAttributeTests::MyInterface",
-        [typeof(MyInterfacePrx)] = "::IceRpc::Slice::TypeIdAttributeTests::MyInterface",
-        [typeof(IMyInterface)] = "::IceRpc::Slice::TypeIdAttributeTests::MyInterface",
-        [typeof(MyException)] = "::IceRpc::Slice::TypeIdAttributeTests::MyException",
-        [typeof(Slice.TypeIdAttributeTests.MyStruct)] = "::IceRpc::Slice::TypeIdAttributeTests::MyStruct",
-        [typeof(Slice.TypeIdAttributeTests.Inner.MyClass)] =
-            "::IceRpc::Slice::TypeIdAttributeTests::Inner::myClass",
-        [typeof(Slice.TypeIdAttributeTests.Inner.MyInterfacePrx)] =
-            "::IceRpc::Slice::TypeIdAttributeTests::Inner::myInterface",
-        [typeof(Slice.TypeIdAttributeTests.Inner.IMyInterface)] =
-            "::IceRpc::Slice::TypeIdAttributeTests::Inner::myInterface",
-        [typeof(Slice.TypeIdAttributeTests.Inner.MyException)] =
-            "::IceRpc::Slice::TypeIdAttributeTests::Inner::myException",
-        [typeof(Slice.TypeIdAttributeTests.Inner.MyStruct)] =
-            "::IceRpc::Slice::TypeIdAttributeTests::Inner::myStruct",
-
+        [typeof(MyClass)] = "::IceRpc::Slice::TypeIdAttributeTestNamespace::MyClass",
+        [typeof(IMyInterfacePrx)] = "::IceRpc::Slice::TypeIdAttributeTestNamespace::MyInterface",
+        [typeof(MyInterfacePrx)] = "::IceRpc::Slice::TypeIdAttributeTestNamespace::MyInterface",
+        [typeof(IMyInterface)] = "::IceRpc::Slice::TypeIdAttributeTestNamespace::MyInterface",
+        [typeof(TypeIdAttributeTestNamespace.MyException)] =
+            "::IceRpc::Slice::TypeIdAttributeTestNamespace::MyException",
+        [typeof(TypeIdAttributeTestNamespace.MyStruct)] = "::IceRpc::Slice::TypeIdAttributeTestNamespace::MyStruct",
+        [typeof(TypeIdAttributeTestNamespace.Inner.MyClass)] =
+            "::IceRpc::Slice::TypeIdAttributeTestNamespace::Inner::myClass",
+        [typeof(TypeIdAttributeTestNamespace.Inner.MyInterfacePrx)] =
+            "::IceRpc::Slice::TypeIdAttributeTestNamespace::Inner::myInterface",
+        [typeof(TypeIdAttributeTestNamespace.Inner.IMyInterface)] =
+            "::IceRpc::Slice::TypeIdAttributeTestNamespace::Inner::myInterface",
+        [typeof(TypeIdAttributeTestNamespace.Inner.MyException)] =
+            "::IceRpc::Slice::TypeIdAttributeTestNamespace::Inner::myException",
+        [typeof(TypeIdAttributeTestNamespace.Inner.MyStruct)] =
+            "::IceRpc::Slice::TypeIdAttributeTestNamespace::Inner::myStruct",
     };
 
     /// <summary>A collection of types generated from Slice definitions and its expected default path.</summary>
     private static readonly Dictionary<Type, string> _defaultPaths = new()
     {
         [typeof(ServicePrx)] = "/Slice.Service",
-        [typeof(MyClass)] = "/IceRpc.Slice.TypeIdAttributeTests.MyClass",
-        [typeof(IMyInterfacePrx)] = "/IceRpc.Slice.TypeIdAttributeTests.MyInterface",
-        [typeof(MyInterfacePrx)] = "/IceRpc.Slice.TypeIdAttributeTests.MyInterface",
-        [typeof(IMyInterface)] = "/IceRpc.Slice.TypeIdAttributeTests.MyInterface",
-        [typeof(MyException)] = "/IceRpc.Slice.TypeIdAttributeTests.MyException",
-        [typeof(Slice.TypeIdAttributeTests.MyStruct)] = "/IceRpc.Slice.TypeIdAttributeTests.MyStruct",
-        [typeof(Slice.TypeIdAttributeTests.Inner.MyClass)] =
-            "/IceRpc.Slice.TypeIdAttributeTests.Inner.myClass",
-        [typeof(Slice.TypeIdAttributeTests.Inner.MyInterfacePrx)] =
-            "/IceRpc.Slice.TypeIdAttributeTests.Inner.myInterface",
-        [typeof(Slice.TypeIdAttributeTests.Inner.MyException)] =
-            "/IceRpc.Slice.TypeIdAttributeTests.Inner.myException",
-        [typeof(Slice.TypeIdAttributeTests.Inner.MyStruct)] =
-            "/IceRpc.Slice.TypeIdAttributeTests.Inner.myStruct",
+        [typeof(MyClass)] = "/IceRpc.Slice.TypeIdAttributeTestNamespace.MyClass",
+        [typeof(IMyInterfacePrx)] = "/IceRpc.Slice.TypeIdAttributeTestNamespace.MyInterface",
+        [typeof(MyInterfacePrx)] = "/IceRpc.Slice.TypeIdAttributeTestNamespace.MyInterface",
+        [typeof(IMyInterface)] = "/IceRpc.Slice.TypeIdAttributeTestNamespace.MyInterface",
+        [typeof(TypeIdAttributeTestNamespace.MyException)] = "/IceRpc.Slice.TypeIdAttributeTestNamespace.MyException",
+        [typeof(TypeIdAttributeTestNamespace.MyStruct)] = "/IceRpc.Slice.TypeIdAttributeTestNamespace.MyStruct",
+        [typeof(TypeIdAttributeTestNamespace.Inner.MyClass)] =
+            "/IceRpc.Slice.TypeIdAttributeTestNamespace.Inner.myClass",
+        [typeof(TypeIdAttributeTestNamespace.Inner.MyInterfacePrx)] =
+            "/IceRpc.Slice.TypeIdAttributeTestNamespace.Inner.myInterface",
+        [typeof(TypeIdAttributeTestNamespace.Inner.MyException)] =
+            "/IceRpc.Slice.TypeIdAttributeTestNamespace.Inner.myException",
+        [typeof(TypeIdAttributeTestNamespace.Inner.MyStruct)] =
+            "/IceRpc.Slice.TypeIdAttributeTestNamespace.Inner.myStruct",
     };
 
     /// <summary>Verifies that types generated from Slice definitions have the expected type ID.</summary>

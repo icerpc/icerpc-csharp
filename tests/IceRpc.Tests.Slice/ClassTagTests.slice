@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-encoding = 1.1;
+encoding = 1;
 
 module IceRpc::Tests::Slice;
 
@@ -20,7 +20,7 @@ class MultiTagged
     mDouble: tag(7) double?,
     mString: tag(15) string?,
 
-// TODO: These types and 2.0 only. We should either delete these or create our own copy for this test.
+// TODO: These types are Slice2 only. We should either delete these or create our own copy for this test.
 //    mMyEnum: tag(20) MyEnum?,
 //    mMyCompactStruct: tag(21) MyCompactStruct?,
 //    mAnotherCompactStruct: tag(22) AnotherCompactStruct?,
