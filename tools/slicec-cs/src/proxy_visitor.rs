@@ -500,7 +500,7 @@ fn response_operation_body(operation: &Operation) -> CodeBlock {
             writeln!(
                 code,
                 "\
-await response.CheckVoidReturnValueAsync(
+await response.DecodeVoidReturnValueAsync(
     {encoding},
     _defaultActivator,
     hasStream: true,

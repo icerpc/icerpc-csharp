@@ -167,7 +167,7 @@ namespace IceRpc.Slice.Internal
         /// <param name="encoding">The Slice encoding version.</param>
         /// <param name="decodePayloadOptions">The decode payload options.</param>
         /// <param name="defaultInvoker">The default invoker.</param>
-        /// <param name="defaultActivator">The default activator (can be null).</param>
+        /// <param name="defaultActivator">The optional default activator.</param>
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
         /// <returns>The async enumerable to decode and return the streamed members.</returns>
         internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(

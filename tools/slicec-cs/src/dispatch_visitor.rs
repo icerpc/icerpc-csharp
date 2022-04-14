@@ -239,7 +239,7 @@ fn request_decode_body(operation: &Operation) -> CodeBlock {
             writeln!(
                 code,
                 "\
-await request.CheckEmptyArgsAsync({encoding}, hasStream: true, cancel).ConfigureAwait(false);
+await request.DecodeEmptyArgsAsync({encoding}, hasStream: true, cancel).ConfigureAwait(false);
 
 return {decode_operation_stream}",
                 encoding = encoding,
@@ -372,7 +372,7 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
         [] => {
             // Verify the payload is indeed empty (it can contain tagged params that we have to skip).
             writeln!(check_and_decode, "\
-await request.CheckEmptyArgsAsync({}, hasStream: false, cancel).ConfigureAwait(false);", encoding
+await request.DecodeEmptyArgsAsync({}, hasStream: false, cancel).ConfigureAwait(false);", encoding
             );
         }
         [parameter] => {

@@ -76,9 +76,11 @@ namespace IceRpc.Tests.Slice
 
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
 
-            // Let's decode the exception.
-            var dispatchException = (DispatchException)await response.DecodeFailureAsync();
+            // Let's decode the exception
 
+            RemoteException exception = await response.DecodeFailureAsync();
+            Assert.That(exception, Is.TypeOf<DispatchException>());
+            var dispatchException = (DispatchException)exception;
             Assert.That(dispatchException.ErrorCode, Is.EqualTo(DispatchErrorCode.InvalidData));
 
             // Constructs a payload that creates a stack overflow during decoding. We're targeting opNestedTraitStruct.
