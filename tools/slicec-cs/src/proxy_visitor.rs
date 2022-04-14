@@ -255,7 +255,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
         let stream_parameter_name = stream_parameter.parameter_name();
         let stream_type = stream_parameter.data_type();
         match stream_type.concrete_type() {
-            Types::Primitive(b) if matches!(b, Primitive::Byte) => {
+            Types::Primitive(b) if matches!(b, Primitive::UInt8) => {
                 invoke_args.push(stream_parameter_name)
             }
             _ => invoke_args.push(format!(

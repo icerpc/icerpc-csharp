@@ -3,7 +3,7 @@
 module IceRpc;
 
 /// The compression format of a payload.
-unchecked enum CompressionFormat : byte
+unchecked enum CompressionFormat : uint8
 {
     /// Reserved value which should not be encoded.
     NotCompressed = 0,

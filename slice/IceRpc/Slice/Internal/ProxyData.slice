@@ -49,8 +49,8 @@ compact struct ProxyData
     fragment: Fragment,
     invocationMode: InvocationMode,
     secure: bool,
-    protocolMajor: byte,
-    protocolMinor: byte,
-    encodingMajor: byte,
-    encodingMinor: byte,
+    protocolMajor: uint8,
+    protocolMinor: uint8,
+    encodingMajor: uint8,
+    encodingMinor: uint8,
 }
