@@ -63,6 +63,9 @@ namespace IceRpc.Tests.ClientServer
             prx.Proxy.AltEndpoints = ImmutableList.Create(server2.Endpoint, server3.Endpoint);
 
             Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
+            // TODO fix the test below to compare the client connection EndPoint with the server connection EndPoint and
+            // ensure we hit the expected server.
+
             //Assert.That(
             //    prx.Proxy.Connection!.NetworkConnectionInformation!.Value.RemoteEndpoint, Is.EqualTo(server1.Endpoint));
             await server1.ShutdownAsync();

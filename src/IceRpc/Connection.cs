@@ -165,7 +165,7 @@ namespace IceRpc
                         if (_options.RemoteEndpoint is not Endpoint remoteEndpoint || remoteEndpoint == default)
                         {
                             throw new InvalidOperationException(
-                                $"cannot call connect without configuring {nameof(Endpoint)}");
+                                $"cannot call connect without configuring {nameof(ConnectionOptions.RemoteEndpoint)}");
                         }
                         Debug.Assert(_networkConnection == null && _protocolConnection == null);
 
