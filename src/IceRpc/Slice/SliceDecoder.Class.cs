@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 using System.Collections.Immutable;
 using System.ComponentModel;
@@ -26,23 +25,64 @@ namespace IceRpc.Slice
         {
             if (Encoding != SliceEncoding.Slice1)
             {
-                throw new InvalidOperationException(
-                    $"{nameof(DecodeNullableClass)} is not compatible with encoding {Encoding}");
+                throw new InvalidOperationException($"{nameof(DecodeNullableClass)} is not compatible with {Encoding}");
             }
 
             AnyClass? obj = DecodeAnyClass();
-            if (obj is T result)
+
+            return obj is T result ? result :
+                obj == null ? null : throw new InvalidDataException(@$"decoded instance of type '{obj.GetType()
+                    }' but expected instance of type '{typeof(T)}'");
+        }
+
+        /// <summary>Decodes a Slice1 user exception.</summary>
+        public RemoteException DecodeUserException()
+        {
+            if (Encoding != SliceEncoding.Slice1)
             {
-                return result;
+                throw new InvalidOperationException($"{nameof(DecodeUserException)} is not compatible with {Encoding}");
             }
-            else if (obj == null)
+
+            Debug.Assert(_classContext.Current.InstanceType == InstanceType.None);
+            _classContext.Current.InstanceType = InstanceType.Exception;
+
+            RemoteException? remoteException;
+
+            // We can decode the indirection table (if there is one) immediately after decoding each slice header
+            // because the indirection table cannot reference the exception itself.
+            // Each slice contains its type ID as a string.
+
+            string? mostDerivedTypeId = null;
+
+            do
             {
-                return null;
+                // The type ID is always decoded for an exception and cannot be null.
+                string? typeId = DecodeSliceHeaderIntoCurrent();
+                Debug.Assert(typeId != null);
+                mostDerivedTypeId ??= typeId;
+
+                DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
+
+                remoteException = _activator?.CreateInstance(typeId, ref this) as RemoteException;
+                if (remoteException == null && SkipSlice(typeId)) // Slice off what we don't understand.
+                {
+                    break;
+                }
+            }
+            while (remoteException == null);
+
+            if (remoteException != null)
+            {
+                _classContext.Current.FirstSlice = true;
+                remoteException.Decode(ref this);
             }
             else
             {
-                throw new InvalidDataException(@$"decoded instance of type '{obj.GetType()}' but expected instance of type '{typeof(T)}'");
+                remoteException = new UnknownException(mostDerivedTypeId, message: "");
             }
+
+            _classContext.Current = default;
+            return remoteException;
         }
 
         /// <summary>Tells the decoder the end of a class or remote exception slice was reached.</summary>
@@ -79,8 +119,7 @@ namespace IceRpc.Slice
         {
             if (Encoding != SliceEncoding.Slice1)
             {
-                throw new InvalidOperationException(
-                    $"{nameof(StartSlice)} is not compatible with encoding {Encoding}");
+                throw new InvalidOperationException($"{nameof(StartSlice)} is not compatible with encoding {Encoding}");
             }
 
             Debug.Assert(_classContext.Current.InstanceType != InstanceType.None);
@@ -129,122 +168,6 @@ namespace IceRpc.Slice
             else
             {
                 return DecodeInstance(index);
-            }
-        }
-
-        private RemoteException DecodeExceptionClass(ResultType resultType)
-        {
-            Debug.Assert(Encoding == SliceEncoding.Slice1);
-
-            ReplyStatus replyStatus = ReplyStatus.UserException;
-
-            if (resultType == ResultType.Failure)
-            {
-                replyStatus = this.DecodeReplyStatus();
-            }
-
-            if (replyStatus == ReplyStatus.OK)
-            {
-                throw new InvalidDataException("invalid exception with OK ReplyStatus");
-            }
-
-            if (replyStatus > ReplyStatus.UserException)
-            {
-                string? message = null;
-                DispatchErrorCode errorCode;
-
-                switch (replyStatus)
-                {
-                    case ReplyStatus.FacetNotExistException:
-                    case ReplyStatus.ObjectNotExistException:
-                    case ReplyStatus.OperationNotExistException:
-
-                        var requestFailed = new RequestFailedExceptionData(ref this);
-
-                        errorCode = replyStatus == ReplyStatus.OperationNotExistException ?
-                            DispatchErrorCode.OperationNotFound : DispatchErrorCode.ServiceNotFound;
-
-                        if (requestFailed.Operation.Length > 0)
-                        {
-                            string target = requestFailed.Fragment.Length > 0 ?
-                                $"{requestFailed.Path}#{requestFailed.Fragment}" : requestFailed.Path;
-
-                            message = @$"{nameof(DispatchException)} {{ ErrorCode = {errorCode} }} while dispatching '{requestFailed.Operation}' on '{target}'";
-                        }
-                        // else message remains null
-                        break;
-
-                    default:
-                        message = DecodeString();
-                        errorCode = DispatchErrorCode.UnhandledException;
-
-                        // Attempt to parse the DispatchErrorCode from the message:
-                        if (message.StartsWith('[') &&
-                            message.IndexOf(']', StringComparison.Ordinal) is int pos && pos != -1)
-                        {
-                            try
-                            {
-                                errorCode = (DispatchErrorCode)byte.Parse(
-                                    message[1..pos],
-                                    CultureInfo.InvariantCulture);
-
-                                message = message[(pos + 1)..].TrimStart();
-                            }
-                            catch
-                            {
-                                // ignored, keep default errorCode
-                            }
-                        }
-                        break;
-                }
-
-                return new DispatchException(message, errorCode)
-                {
-                    ConvertToUnhandled = true,
-                };
-            }
-            else
-            {
-                Debug.Assert(_classContext.Current.InstanceType == InstanceType.None);
-                _classContext.Current.InstanceType = InstanceType.Exception;
-
-                RemoteException? remoteEx;
-
-                // We can decode the indirection table (if there is one) immediately after decoding each slice header
-                // because the indirection table cannot reference the exception itself.
-                // Each slice contains its type ID as a string.
-
-                string? mostDerivedTypeId = null;
-
-                do
-                {
-                    // The type ID is always decoded for an exception and cannot be null.
-                    string? typeId = DecodeSliceHeaderIntoCurrent();
-                    Debug.Assert(typeId != null);
-                    mostDerivedTypeId ??= typeId;
-
-                    DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
-
-                    remoteEx = _activator?.CreateInstance(typeId, ref this) as RemoteException;
-                    if (remoteEx == null && SkipSlice(typeId)) // Slice off what we don't understand.
-                    {
-                        break;
-                    }
-                }
-                while (remoteEx == null);
-
-                if (remoteEx != null)
-                {
-                    _classContext.Current.FirstSlice = true;
-                    remoteEx.Decode(ref this);
-                }
-                else
-                {
-                    remoteEx = new UnknownException(mostDerivedTypeId, message: "");
-                }
-
-                _classContext.Current = default;
-                return remoteEx;
             }
         }
 

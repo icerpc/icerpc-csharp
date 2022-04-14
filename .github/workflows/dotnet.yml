@@ -39,19 +39,6 @@ jobs:
     - name: Build
       run: dotnet build --no-restore
     - name: Test
-      run: dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage"
+      run: dotnet test --no-build --verbosity normal
     - name: Build Examples
       run: ./build.sh --examples --srcdist
-    - name: ReportGenerator
-      uses: danielpalme/ReportGenerator-GitHub-Action@4.8.4
-      with:
-        reports: 'tests/*/TestResults/*/coverage.cobertura.xml'
-        targetdir: 'tests/coverage-report'
-        reporttypes: 'Html'
-    - name: Compress reports
-      run: tar cv tests/coverage-report/ | gzip --best > coverage.tar.gz
-    - uses: actions/upload-artifact@v2
-      with:
-        name: coverage-report
-        path: coverage.tar.gz
-        retention-days: 5

@@ -258,8 +258,7 @@ public class ProxyTests
         Assert.That(hashCode1, Is.EqualTo(proxy2.GetHashCode()));
     }
 
-    /// <summary>Verifies that a proxy created from a client connection has the expected path, connection and endpoint
-    /// properties.</summary>
+    /// <summary>Verifies that a proxy created from a client connection has the expected path and connection.</summary>
     [Test]
     public async Task From_connection_with_a_client_connection()
     {
@@ -271,7 +270,6 @@ public class ProxyTests
         {
             Assert.That(proxy.Path, Is.EqualTo("/"));
             Assert.That(proxy.Connection, Is.EqualTo(connection));
-            Assert.That(proxy.Endpoint, Is.EqualTo(connection.RemoteEndpoint));
         });
     }
 
@@ -282,7 +280,10 @@ public class ProxyTests
     {
         // Arrange
         await using var networkConnection = new MockNetworkConnection();
-        await using var serverConnection = new Connection(networkConnection, Protocol.IceRpc, new ConnectionOptions());
+        await using var serverConnection = new Connection(
+            new Endpoint(Protocol.IceRpc),
+            networkConnection,
+            new ConnectionOptions());
 
         // Act
         var proxy = Proxy.FromConnection(serverConnection, "/");

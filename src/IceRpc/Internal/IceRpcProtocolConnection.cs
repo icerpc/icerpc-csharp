@@ -219,7 +219,7 @@ namespace IceRpc.Internal
 
                     response = new OutgoingResponse(request)
                     {
-                        Payload = SliceEncoding.Slice2.CreatePayloadFromRemoteException(remoteException),
+                        Payload = CreateExceptionPayload(remoteException),
                         ResultType = ResultType.Failure
                     };
 
@@ -229,6 +229,19 @@ namespace IceRpc.Internal
                         response.Fields = response.Fields.With(
                             ResponseFieldKey.RetryPolicy,
                             (ref SliceEncoder encoder) => retryPolicy.Encode(ref encoder));
+                    }
+
+                    static PipeReader CreateExceptionPayload(RemoteException exception)
+                    {
+                        var pipe = new Pipe(); // TODO: pipe options
+
+                        var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
+                        Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+                        int startPos = encoder.EncodedByteCount;
+                        exception.EncodeTrait(ref encoder);
+                        SliceEncoder.EncodeVarULong((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
+                        pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
+                        return pipe.Reader;
                     }
                 }
                 finally

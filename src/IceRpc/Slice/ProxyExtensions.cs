@@ -89,10 +89,10 @@ namespace IceRpc.Slice
         /// <summary>Sends a request to a service and decodes the "void" response.</summary>
         /// <param name="proxy">A proxy for the remote service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
-        /// <param name="sliceEncoding">The encoding of the request payload.</param>
+        /// <param name="encoding">The encoding of the request payload.</param>
         /// <param name="payload">The payload of the request.</param>
         /// <param name="payloadStream">The payload stream of the request.</param>
-        /// <param name="defaultActivator">The default activator.</param>
+        /// <param name="defaultActivator">The optional default activator.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="idempotent">When true, the request is idempotent.</param>
         /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
@@ -105,10 +105,10 @@ namespace IceRpc.Slice
         public static Task InvokeAsync(
             this Proxy proxy,
             string operation,
-            SliceEncoding sliceEncoding,
+            SliceEncoding encoding,
             PipeReader payload,
             PipeReader? payloadStream,
-            IActivator defaultActivator,
+            IActivator? defaultActivator,
             Invocation? invocation,
             bool idempotent = false,
             bool oneway = false,
@@ -144,8 +144,8 @@ namespace IceRpc.Slice
                     invocation.Response = response;
                 }
 
-                await response.CheckVoidReturnValueAsync(
-                    sliceEncoding,
+                await response.DecodeVoidReturnValueAsync(
+                    encoding,
                     defaultActivator,
                     hasStream: false,
                     cancel).ConfigureAwait(false);
