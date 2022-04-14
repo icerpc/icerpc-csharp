@@ -183,7 +183,7 @@ namespace IceRpc.Tests.ClientServer
                 if (incomingRequest.Protocol != incomingResponse.Protocol &&
                     incomingResponse.ResultType == ResultType.Failure)
                 {
-                    RemoteException remoteException = await incomingResponse.DecodeFailureAsync(cancel);
+                    RemoteException remoteException = await incomingResponse.DecodeFailureAsync(cancel: cancel);
                     remoteException.ConvertToUnhandled = false;
                     throw remoteException;
                 }

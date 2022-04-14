@@ -21,7 +21,7 @@ namespace IceRpc.Slice
             this IncomingRequest request,
             SliceEncoding sliceEncoding,
             bool hasStream,
-            CancellationToken cancel) =>
+            CancellationToken cancel = default) =>
             request.DecodeVoidAsync(sliceEncoding, hasStream, cancel);
 
         /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared
@@ -107,7 +107,7 @@ namespace IceRpc.Slice
             IActivator? defaultActivator,
             DecodeFunc<T> decodeFunc,
             bool hasStream,
-            CancellationToken cancel) =>
+            CancellationToken cancel = default) =>
             request.DecodeValueAsync(
                 sliceEncoding,
                 request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,

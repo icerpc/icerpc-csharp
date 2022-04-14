@@ -27,7 +27,7 @@ namespace IceRpc.Slice
             SliceEncoding encoding,
             IActivator? defaultActivator,
             bool hasStream,
-            CancellationToken cancel)
+            CancellationToken cancel = default)
         {
             return response.ResultType == ResultType.Success ?
                 response.DecodeVoidAsync(encoding, hasStream, cancel) :
@@ -45,16 +45,18 @@ namespace IceRpc.Slice
 
         /// <summary>Decodes a response with a <see cref="ResultType.Failure"/> result type.</summary>
         /// <param name="response">The incoming response.</param>
+        /// <param name="defaultActivator">The default activator (can be null).</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The decoded failure.</returns>
         public static ValueTask<RemoteException> DecodeFailureAsync(
             this IncomingResponse response,
+            IActivator? defaultActivator = null,
             CancellationToken cancel = default) =>
             response.ResultType == ResultType.Failure ?
                 response.DecodeRemoteExceptionAsync(
                     response.Protocol.SliceEncoding,
                     response.Request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
-                    defaultActivator: null,
+                    defaultActivator,
                     cancel) :
                 throw new ArgumentException(
                     $"{nameof(DecodeFailureAsync)} requires a response with a Failure result type",
@@ -79,7 +81,7 @@ namespace IceRpc.Slice
             IActivator? defaultActivator,
             DecodeFunc<T> decodeFunc,
             bool hasStream,
-            CancellationToken cancel)
+            CancellationToken cancel = default)
         {
             return response.ResultType == ResultType.Success ?
                 response.DecodeValueAsync(
