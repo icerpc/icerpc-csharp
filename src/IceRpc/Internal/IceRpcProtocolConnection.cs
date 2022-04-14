@@ -217,7 +217,7 @@ namespace IceRpc.Internal
                             exception);
                     }
 
-                    // Attempt to encode this exception. If the encoding fail, we encode a DispatchException.
+                    // Attempt to encode this exception. If the encoding fails, we encode a DispatchException.
                     PipeReader responsePayload;
                     try
                     {
