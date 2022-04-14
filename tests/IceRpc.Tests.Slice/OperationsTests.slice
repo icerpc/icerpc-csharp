@@ -19,8 +19,8 @@ interface Operations
     opVarLong(p1: varint62, p2: varint62) -> (r1: varint62, r2: varint62);
     opULong(p1: uint64, p2: uint64) -> (r1: uint64, r2: uint64);
     opVarULong(p1: varuint62, p2: varuint62) -> (r1: varuint62, r2: varuint62);
-    opFloat(p1: float, p2: float) -> (r1: float, r2: float);
-    opDouble(p1: double, p2: double) -> (r1: double, r2: double);
+    opFloat(p1: float32, p2: float32) -> (r1: float32, r2: float32);
+    opDouble(p1: float64, p2: float64) -> (r1: float64, r2: float64);
     opString(p1: string, p2: string) -> (r1: string, r2: string);
 
     // Returns a proxy to a Service

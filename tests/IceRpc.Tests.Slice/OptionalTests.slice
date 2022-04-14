@@ -14,8 +14,8 @@ compact struct MultiOptional
     mShort: int16?,
     mInt: int32?,
     mLong: int64?,
-    mFloat: float?,
-    mDouble: double?,
+    mFloat: float32?,
+    mDouble: float64?,
     mUShort: uint16?,
     mUInt: uint32?,
     mULong: uint64?,
@@ -62,9 +62,9 @@ interface OptionalOperations
 
     opLong(p1: int64?) -> (r1: int64?, r2: int64?);
 
-    opFloat(p1: float?) -> (r1: float?, r2: float?);
+    opFloat(p1: float32?) -> (r1: float32?, r2: float32?);
 
-    opDouble(p1: double?) -> (r1: double?, r2: double?);
+    opDouble(p1: float64?) -> (r1: float64?, r2: float64?);
 
     opString(p1: string?) -> (r1: string?, r2: string?);
 

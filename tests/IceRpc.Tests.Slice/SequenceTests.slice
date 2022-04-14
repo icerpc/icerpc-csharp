@@ -6,16 +6,16 @@ typealias ByteSeq = sequence<uint8>;
 typealias BoolSeq = sequence<bool>;
 typealias ShortSeq = sequence<int16>;
 typealias UShortSeq = sequence<uint16>;
-typealias IntSeq = sequence<int>;
-typealias VarIntSeq = sequence<varint>;
+typealias IntSeq = sequence<int32>;
+typealias VarIntSeq = sequence<varint32>;
 typealias UIntSeq = sequence<uint32>;
 typealias VarUIntSeq = sequence<varuint32>;
 typealias LongSeq = sequence<int64>;
 typealias VarLongSeq = sequence<varint62>;
 typealias ULongSeq = sequence<uint64>;
 typealias VarULongSeq = sequence<varuint62>;
-typealias FloatSeq = sequence<float>;
-typealias DoubleSeq = sequence<double>;
+typealias FloatSeq = sequence<float32>;
+typealias DoubleSeq = sequence<float64>;
 typealias StringSeq = sequence<string>;
 
 typealias MyEnumSeq = sequence<MyEnum>;
@@ -36,17 +36,17 @@ typealias BoolCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequ
 typealias ShortList = [cs:generic("System.Collections.Generic.List")] sequence<int16>;
 typealias ShortCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<int16>;
 
-typealias IntList = [cs:generic("System.Collections.Generic.List")] sequence<int>;
-typealias IntCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<int>;
+typealias IntList = [cs:generic("System.Collections.Generic.List")] sequence<int32>;
+typealias IntCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<int32>;
 
 typealias LongList = [cs:generic("System.Collections.Generic.List")] sequence<int64>;
 typealias LongCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<int64>;
 
-typealias FloatList = [cs:generic("System.Collections.Generic.List")] sequence<float>;
-typealias FloatCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<float>;
+typealias FloatList = [cs:generic("System.Collections.Generic.List")] sequence<float32>;
+typealias FloatCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<float32>;
 
-typealias DoubleList = [cs:generic("System.Collections.Generic.List")] sequence<double>;
-typealias DoubleCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<double>;
+typealias DoubleList = [cs:generic("System.Collections.Generic.List")] sequence<float64>;
+typealias DoubleCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<float64>;
 
 typealias StringList = [cs:generic("System.Collections.Generic.List")] sequence<string>;
 typealias StringCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<string>;

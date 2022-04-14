@@ -25,7 +25,7 @@ compact struct MyTimeSpan
 [cs:type("global::System.Collections.Generic.LinkedList<int>")]
 compact struct MyList
 {
-    value: sequence<int>
+    value: sequence<int32>
 }
 
 compact struct MyStructWithCustomType
