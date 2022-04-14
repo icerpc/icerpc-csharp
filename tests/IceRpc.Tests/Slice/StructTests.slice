@@ -8,8 +8,6 @@ struct MyStruct
     j: int,
 }
 
-trait MyTrait;
-
 struct MyStructWithOptionalMembers
 {
     i: int,
@@ -30,10 +28,4 @@ compact struct MyCompactStruct
 {
     i: int,
     j: int,
-}
-
-// Can only be encoded with Slice2 encoding because it contains a trait.
-compact struct MyStructWithTraitMember
-{
-    i: MyTrait
 }

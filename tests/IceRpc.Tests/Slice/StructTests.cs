@@ -5,9 +5,6 @@ using NUnit.Framework;
 
 namespace IceRpc.Slice.Tests;
 
-public partial record struct MyStruct : IMyTrait { }
-public interface INotImplementedTrait : ITrait { }
-
 [Timeout(5000)]
 [Parallelizable(ParallelScope.All)]
 public sealed class StructTests
