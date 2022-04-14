@@ -47,7 +47,7 @@ unchecked enum ParameterKey : int32
     PauseWriterThreshold = 4,
 }
 
-typealias ParameterFields = dictionary<varint, sequence<uint8>>;
+typealias ParameterFields = dictionary<varint32, sequence<uint8>>;
 
 /// The Slic initialize frame body.
 [cs:readonly]
@@ -85,7 +85,7 @@ compact struct VersionBody
 compact struct StreamResetBody
 {
     /// The application protocol error code indicating the reason of the reset.
-    applicationProtocolErrorCode: varlong,
+    applicationProtocolErrorCode: varint62,
 }
 
 /// The body of the Stream consumed frame. This frame is sent to increase the peer's send credit.
@@ -93,7 +93,7 @@ compact struct StreamResetBody
 compact struct StreamConsumedBody
 {
     /// The size of the consumed data.
-    size: varulong,
+    size: varuint62,
 }
 
 /// The body of the Stream stop sending frame. This frame is sent to notify the peer that the receiver is no longer
@@ -102,5 +102,5 @@ compact struct StreamConsumedBody
 compact struct StreamStopSendingBody
 {
     /// The application protocol error code indicating the reason why the peer no longer needs to receive data.
-    applicationProtocolErrorCode: varlong,
+    applicationProtocolErrorCode: varint62,
 }

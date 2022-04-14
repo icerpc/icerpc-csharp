@@ -13,16 +13,16 @@ compact struct MultiOptional
     mBool: bool?,
     mShort: int16?,
     mInt: int32?,
-    mLong: long?,
+    mLong: int64?,
     mFloat: float?,
     mDouble: double?,
     mUShort: uint16?,
     mUInt: uint32?,
-    mULong: ulong?,
+    mULong: uint64?,
     mVarInt: varint32?,
-    mVarLong: varlong?,
+    mVarLong: varint62?,
     mVarUInt: varuint32?,
-    mVarULong: varulong?,
+    mVarULong: varuint62?,
     mString: string?,
 
     mMyEnum: MyEnum?,
@@ -52,7 +52,7 @@ interface OptionalOperations
     pingPongOne(o: OneOptional?) -> OneOptional?;
     pingPongMulti(o: MultiOptional?) -> MultiOptional?;
 
-    opByte(p1 uint8?) -> (r1 uint8?, r2 uint8?);
+    opByte(p1: uint8?) -> (r1: uint8?, r2: uint8?);
 
     opBool(p1: bool?) -> (r1: bool?, r2: bool?);
 
@@ -60,7 +60,7 @@ interface OptionalOperations
 
     opInt(p1: int32?) -> (r1: int32?, r2: int32?);
 
-    opLong(p1: long?) -> (r1: long?, r2: long?);
+    opLong(p1: int64?) -> (r1: int64?, r2: int64?);
 
     opFloat(p1: float?) -> (r1: float?, r2: float?);
 

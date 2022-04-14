@@ -25,7 +25,7 @@ enum IceRpcControlFrameType : uint8
 }
 
 /// Each icerpc request frame consists of:
-/// - a request header size (varulong)
+/// - a request header size (varuint62)
 /// - a request header (below)
 /// - a request payload
 [cs:readonly]
@@ -37,7 +37,7 @@ compact struct IceRpcRequestHeader
 }
 
 /// Each icerpc response frame consists of:
-/// - a response header size (varulong)
+/// - a response header size (varuint62)
 /// - a response header (below)
 /// - a response payload
 [cs:readonly]
@@ -60,7 +60,7 @@ compact struct IceRpcInitialize
 [cs:readonly]
 compact struct IceRpcGoAway
 {
-    lastBidirectionalStreamId: varlong,
-    lastUnidirectionalStreamId: varlong,
+    lastBidirectionalStreamId: varint62,
+    lastUnidirectionalStreamId: varint62,
     message: string,
 }

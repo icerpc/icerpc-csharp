@@ -12,13 +12,13 @@ struct TraitStructA
 
 struct TraitStructB
 {
-    l: long,
+    l: int64,
 }
 
 struct TraitStructAB
 {
     s: string,
-    l: long,
+    l: int64,
 }
 
 struct NestedTraitStruct
@@ -35,12 +35,12 @@ struct OptionalNestedTraitStruct
 interface TraitOperations
 {
     opTraitA(p1: MyTraitA) -> string;
-    opTraitB(p1: MyTraitB) -> long;
+    opTraitB(p1: MyTraitB) -> int64;
 
     opTraitASeq(p1: sequence<MyTraitA>) -> sequence<string>;
-    opTraitBDict(p1: dictionary<uint8, MyTraitB>) -> dictionary<uint8, long>;
+    opTraitBDict(p1: dictionary<uint8, MyTraitB>) -> dictionary<uint8, int64>;
     opNestedTraitStruct(p1: NestedTraitStruct) -> string;
-    opOptionalNestedTraitStruct(p1: OptionalNestedTraitStruct) -> (s: string?, l: long?);
+    opOptionalNestedTraitStruct(p1: OptionalNestedTraitStruct) -> (s: string?, l: int64?);
 
     opOptionalTrait(p1: MyTraitA?) -> string?;
 

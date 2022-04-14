@@ -19,7 +19,7 @@ compact struct AnotherCompactStruct
 [cs:type("global::System.TimeSpan")]
 compact struct MyTimeSpan
 {
-    milliSeconds: long,
+    milliSeconds: int64,
 }
 
 [cs:type("global::System.Collections.Generic.LinkedList<int>")]

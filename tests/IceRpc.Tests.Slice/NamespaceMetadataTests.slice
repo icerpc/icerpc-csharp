@@ -20,7 +20,7 @@ module WithNamespace
 
     class C2 : C1
     {
-        l: long,
+        l: int64,
     }
 
     exception E1
@@ -30,7 +30,7 @@ module WithNamespace
 
     exception E2 : E1
     {
-        l: long,
+        l: int64,
     }
 }
 

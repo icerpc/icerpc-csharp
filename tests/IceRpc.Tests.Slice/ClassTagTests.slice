@@ -11,11 +11,11 @@ class OneTagged
 
 class MultiTagged
 {
-    mByte: tag(1 uint8?,
+    mByte: tag(1) uint8?,
     mBool: tag(2) bool?,
     mShort: tag(3) int16?,
     mInt: tag(4) int32?,
-    mLong: tag(5) long?,
+    mLong: tag(5) int64?,
     mFloat: tag(6) float?,
     mDouble: tag(7) double?,
     mString: tag(15) string?,

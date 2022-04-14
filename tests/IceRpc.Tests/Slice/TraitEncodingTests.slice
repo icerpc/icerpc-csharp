@@ -12,5 +12,5 @@ struct TraitStructA
 
 struct TraitStructB
 {
-    l: long,
+    l: int64,
 }
