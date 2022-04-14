@@ -3,7 +3,7 @@
 // TODO: should we remove Slice1 and get rid of classes here?
 encoding = 1;
 
-module IceRpc::Slice::TypeIdAttributeTests
+module IceRpc::Slice::TypeIdAttributeTestNamespace
 {
     class MyClass {}
     interface MyInterface {}
