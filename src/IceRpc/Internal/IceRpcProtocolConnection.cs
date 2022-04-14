@@ -235,7 +235,7 @@ namespace IceRpc.Internal
                     }
                     response = new OutgoingResponse(request)
                     {
-                        Payload = CreateExceptionPayload(remoteException),
+                        Payload = responsePayload,
                         ResultType = ResultType.Failure
                     };
 
