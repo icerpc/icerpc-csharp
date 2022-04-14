@@ -9,9 +9,6 @@ namespace IceRpc.Transports
     /// establishment.</summary>
     public readonly record struct NetworkConnectionInformation
     {
-        /// <summary>The application protocol.</summary>
-        public Protocol ApplicationProtocol { get; }
-
         /// <summary>The idle timeout.</summary>
         public TimeSpan IdleTimeout { get; init; }
 
@@ -25,19 +22,16 @@ namespace IceRpc.Transports
         public X509Certificate? RemoteCertificate { get; }
 
         /// <summary>Constructs a new instance of <see cref="NetworkConnectionInformation"/>.</summary>
-        /// <param name="applicationProtocol">The application endpoint.</param>
         /// <param name="localEndPoint">The local endpoint.</param>
         /// <param name="remoteEndPoint">The remote endpoint.</param>
         /// <param name="idleTimeout">The idle timeout.</param>
         /// <param name="remoteCertificate">The optional remote certificate.</param>
         public NetworkConnectionInformation(
-            Protocol applicationProtocol,
             EndPoint localEndPoint,
             EndPoint remoteEndPoint,
             TimeSpan idleTimeout,
             X509Certificate? remoteCertificate)
         {
-            ApplicationProtocol = applicationProtocol;
             LocalEndPoint = localEndPoint;
             RemoteEndPoint = remoteEndPoint;
             IdleTimeout = idleTimeout;

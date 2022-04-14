@@ -22,6 +22,7 @@ namespace IceRpc.Internal
             set => _decoratee.PeerShutdownInitiated = value;
         }
 
+        private readonly Protocol _protocol;
         private readonly IProtocolConnection _decoratee;
         private readonly NetworkConnectionInformation _information;
         private readonly bool _isServer;
@@ -38,7 +39,7 @@ namespace IceRpc.Internal
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             _decoratee.Dispose();
-            _logger.LogProtocolConnectionDispose(_information.ApplicationProtocol);
+            _logger.LogProtocolConnectionDispose(_protocol);
         }
 
         async Task IProtocolConnection.PingAsync(CancellationToken cancel)
@@ -69,21 +70,23 @@ namespace IceRpc.Internal
                 {
                     try
                     {
-                        _logger.LogProtocolConnectionShutdownCanceled(_information.ApplicationProtocol);
+                        _logger.LogProtocolConnectionShutdownCanceled(_protocol);
                     }
                     catch
                     {
                     }
                 });
-            _logger.LogProtocolConnectionShutdown(_information.ApplicationProtocol, message);
+            _logger.LogProtocolConnectionShutdown(_protocol, message);
         }
 
         internal LogProtocolConnectionDecorator(
             IProtocolConnection decoratee,
+            Protocol protocol,
             NetworkConnectionInformation connectionInformation,
             bool isServer,
             ILogger logger)
         {
+            _protocol = protocol;
             _decoratee = decoratee;
             _information = connectionInformation;
             _isServer = isServer;

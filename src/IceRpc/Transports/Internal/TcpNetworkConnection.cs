@@ -283,7 +283,6 @@ namespace IceRpc.Transports.Internal
                 }
 
                 return new NetworkConnectionInformation(
-                    applicationProtocol: remoteEndpoint.Protocol,
                     localEndPoint: Socket.LocalEndPoint!,
                     remoteEndPoint: Socket.RemoteEndPoint!,
                     _idleTimeout,
@@ -396,7 +395,6 @@ namespace IceRpc.Transports.Internal
                 var ipEndPoint = (IPEndPoint)Socket.RemoteEndPoint!;
 
                 return new NetworkConnectionInformation(
-                    _localEndpoint.Protocol,
                     localEndPoint: Socket.LocalEndPoint!,
                     remoteEndPoint: Socket.RemoteEndPoint!,
                     _idleTimeout,

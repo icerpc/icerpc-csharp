@@ -21,7 +21,6 @@ namespace IceRpc.Transports.Internal
         {
             var colocEndPoint = new ColocEndPoint(_endpoint);
             return Task.FromResult(new NetworkConnectionInformation(
-                _endpoint.Protocol,
                 colocEndPoint,
                 colocEndPoint,
                 TimeSpan.MaxValue,
