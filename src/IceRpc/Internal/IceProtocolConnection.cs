@@ -1017,13 +1017,15 @@ namespace IceRpc.Internal
                     requestHeader.EncapsulationHeader.PayloadEncodingMinor != 1)
                 {
                     throw new InvalidDataException(
-                        @$"unsupported payload encoding '{requestHeader.EncapsulationHeader.PayloadEncodingMajor}.{requestHeader.EncapsulationHeader.PayloadEncodingMinor}'");
+                        @$"unsupported payload encoding '{requestHeader.EncapsulationHeader.PayloadEncodingMajor
+                        }.{requestHeader.EncapsulationHeader.PayloadEncodingMinor}'");
                 }
 
                 int payloadSize = requestHeader.EncapsulationHeader.EncapsulationSize - 6;
                 if (payloadSize != (buffer.Length - decoder.Consumed))
                 {
-                    throw new InvalidDataException(@$"request payload size mismatch: expected {payloadSize} bytes, read {buffer.Length - decoder.Consumed} bytes");
+                    throw new InvalidDataException(@$"request payload size mismatch: expected {payloadSize
+                        } bytes, read {buffer.Length - decoder.Consumed} bytes");
                 }
 
                 return (requestId, requestHeader, (int)decoder.Consumed);

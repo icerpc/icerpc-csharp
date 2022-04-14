@@ -489,7 +489,8 @@ namespace IceRpc
             if (path.Length == 0 || path[0] != '/' || !IsValid(path, "\"<>#?\\^`{|}"))
             {
                 throw new FormatException(
-                    @$"invalid path '{path}'; a valid path starts with '/' and contains only unreserved characters, '%' or reserved characters other than '?' and '#'");
+                    $"invalid path '{path}'; a valid path starts with '/' and contains only unreserved characters, " +
+                    "'%' or reserved characters other than '?' and '#'");
             }
         }
 
@@ -522,7 +523,8 @@ namespace IceRpc
             if (!IsValid(fragment, "\"<>\\^`{|}"))
             {
                 throw new FormatException(
-                    @$"invalid fragment '{fragment}'; a valid fragment contains only unreserved characters, reserved characters or '%'");
+                    @$"invalid fragment '{fragment
+                    }'; a valid fragment contains only unreserved characters, reserved characters or '%'");
             }
         }
 
