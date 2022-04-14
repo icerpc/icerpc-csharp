@@ -41,7 +41,7 @@ namespace IceRpc.Slice
         /// <summary>Constructs an Slice encoder.</summary>
         /// <param name="pipeWriter">The pipe writer that provides the buffers to write into.</param>
         /// <param name="encoding">The Slice encoding.</param>
-        /// <param name="classFormat">The class format (1.1 only).</param>
+        /// <param name="classFormat">The class format (Slice1 only).</param>
         public SliceEncoder(PipeWriter pipeWriter, SliceEncoding encoding, FormatType classFormat = default)
             : this((IBufferWriter<byte>)pipeWriter, encoding, classFormat)
         {
@@ -284,7 +284,7 @@ namespace IceRpc.Slice
                     if (proxy.Params.Count > maxCount)
                     {
                         throw new NotSupportedException(
-                            "cannot encode proxy with parameter other than adapter-id using Slice 1.1");
+                            "cannot encode proxy with parameter other than adapter-id using Slice1");
                     }
                     EncodeString(adapterId ?? "");
                 }
@@ -659,7 +659,7 @@ namespace IceRpc.Slice
             EncodedByteCount += count;
         }
 
-        /// <summary>Encodes an endpoint in a nested encapsulation (1.1 only).</summary>
+        /// <summary>Encodes an endpoint in a nested encapsulation (Slice1 only).</summary>
         /// <param name="endpoint">The endpoint to encode.</param>
         private void EncodeEndpoint(Endpoint endpoint)
         {
@@ -671,7 +671,7 @@ namespace IceRpc.Slice
                 transport = TransportNames.Tcp;
             }
 
-            // The 1.1 encoding of ice endpoints is transport-specific, and hard-coded here. The preferred and
+            // The Slice1 encoding of ice endpoints is transport-specific, and hard-coded here. The preferred and
             // fallback encoding for new transports is TransportCode.Uri.
 
             if (endpoint.Protocol == Protocol.Ice && transport == TransportNames.Opaque)
@@ -742,7 +742,7 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes the header for a tagged parameter or data member. Slice 1.1 only.</summary>
+        /// <summary>Encodes the header for a tagged parameter or data member. Slice1 only.</summary>
         /// <param name="tag">The numeric tag associated with the parameter or data member.</param>
         /// <param name="format">The tag format.</param>
         private void EncodeTaggedParamHeader(int tag, TagFormat format)

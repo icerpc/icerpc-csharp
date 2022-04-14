@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-// TODO: should we remove 1.1 encoding and get rid of classes here?
+// TODO: should we remove Slice1 and get rid of classes here?
 encoding = 1;
 
 module IceRpc::Slice::TypeIdAttributeTests

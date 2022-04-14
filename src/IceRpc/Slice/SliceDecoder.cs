@@ -314,7 +314,7 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Decodes a nullable proxy.</summary>
-        /// <param name="bitSequenceReader">The bit sequence reader, ignored with 1.1 encoding.</param>
+        /// <param name="bitSequenceReader">The bit sequence reader, ignored with Slice1.</param>
         /// <returns>The decoded proxy, or null.</returns>
         public Proxy? DecodeNullableProxy(ref BitSequenceReader bitSequenceReader)
         {
@@ -481,8 +481,7 @@ namespace IceRpc.Slice
                         string target = requestFailed.Fragment.Length > 0 ?
                             $"{requestFailed.Path}#{requestFailed.Fragment}" : requestFailed.Path;
 
-                        message = @$"{nameof(DispatchException)} {{ ErrorCode = {errorCode
-                            } }} while dispatching '{requestFailed.Operation}' on '{target}'";
+                        message = @$"{nameof(DispatchException)} {{ ErrorCode = {errorCode} }} while dispatching '{requestFailed.Operation}' on '{target}'";
                     }
                     // else message remains null
                     break;
@@ -790,14 +789,14 @@ namespace IceRpc.Slice
             return false;
         }
 
-        /// <summary>Decodes an endpoint (Slice 1.1).</summary>
+        /// <summary>Decodes an endpoint (Slice1).</summary>
         /// <param name="protocol">The protocol of this endpoint.</param>
         /// <returns>The endpoint decoded by this decoder.</returns>
         private Endpoint DecodeEndpoint(Protocol protocol)
         {
             Debug.Assert(Encoding == SliceEncoding.Slice1);
 
-            // The Slice 1.1 encoding of ice endpoints is transport-specific, and hard-coded here and in the
+            // The Slice1 ice endpoints are transport-specific, and hard-coded here and in the
             // SliceEncoder. The preferred and fallback encoding for new transports is TransportCode.Uri.
 
             Endpoint? endpoint = null;
@@ -806,7 +805,7 @@ namespace IceRpc.Slice
             int size = DecodeInt();
             if (size < 6)
             {
-                throw new InvalidDataException($"the 1.1 encapsulation's size ({size}) is too small");
+                throw new InvalidDataException($"the Slice1 encapsulation's size ({size}) is too small");
             }
 
             if (size - 4 > _reader.Remaining)
@@ -908,7 +907,7 @@ namespace IceRpc.Slice
                 }
                 else if (transportCode == TransportCode.Uri)
                 {
-                    // The endpoints of 1.1-encoded icerpc proxies only use TransportCode.Uri.
+                    // The endpoints of Slice1 encoded icerpc proxies only use TransportCode.Uri.
 
                     endpoint = Endpoint.FromString(DecodeString());
                     if (endpoint.Value.Protocol != protocol)
@@ -1065,7 +1064,7 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Helper method to decode a proxy encoded with the 1.1 encoding.</summary>
+        /// <summary>Helper method to decode a proxy encoded with Slice1.</summary>
         /// <param name="path">The decoded path.</param>
         /// <returns>The decoded proxy.</returns>
         private Proxy DecodeProxy(string path)
@@ -1082,7 +1081,7 @@ namespace IceRpc.Slice
                     $"received proxy with invalid protocolMinor value: {proxyData.ProtocolMinor}");
             }
 
-            // The min size for an Endpoint with the 1.1 encoding is: transport (short = 2 bytes) + encapsulation
+            // The min size for an Endpoint with Slice1 is: transport (short = 2 bytes) + encapsulation
             // header (6 bytes), for a total of 8 bytes.
             int size = DecodeAndCheckSeqSize(8);
 

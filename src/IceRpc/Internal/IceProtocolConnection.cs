@@ -230,7 +230,7 @@ namespace IceRpc.Internal
                                 @$"response payload size/frame size mismatch: payload size is {payloadSize} bytes but frame has {readResult.Buffer.Length - headerSize} bytes left");
                         }
 
-                        // TODO: check encoding is 1.1. See github proposal.
+                        // TODO: check encoding is Slice1. See github proposal.
 
                         // Consume header.
                         frameReader.AdvanceTo(readResult.Buffer.GetPosition(headerSize));
@@ -1018,7 +1018,7 @@ namespace IceRpc.Internal
                 {
                     throw new InvalidDataException(
                         @$"unsupported payload encoding '{requestHeader.EncapsulationHeader.PayloadEncodingMajor
-                            }.{requestHeader.EncapsulationHeader.PayloadEncodingMinor}'");
+                        }.{requestHeader.EncapsulationHeader.PayloadEncodingMinor}'");
                 }
 
                 int payloadSize = requestHeader.EncapsulationHeader.EncapsulationSize - 6;
