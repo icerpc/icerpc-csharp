@@ -24,6 +24,9 @@ namespace IceRpc.Slice
         /// <summary>The number of bytes decoded in the underlying buffer.</summary>
         internal long Consumed => _reader.Consumed;
 
+        private static readonly IActivator _defaultActivator =
+            ActivatorFactory.Instance.Get(typeof(SliceDecoder).Assembly);
+
         private static readonly UTF8Encoding _utf8 =
             new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true); // no BOM
 
@@ -45,7 +48,7 @@ namespace IceRpc.Slice
         public static IActivator GetActivator(IEnumerable<Assembly> assemblies) =>
             Internal.Activator.Merge(assemblies.Select(assembly => ActivatorFactory.Instance.Get(assembly)));
 
-        private readonly IActivator? _activator;
+        private readonly IActivator _activator;
 
         private ClassContext _classContext;
 
@@ -87,7 +90,7 @@ namespace IceRpc.Slice
         {
             Encoding = encoding;
 
-            _activator = activator;
+            _activator = activator ?? _defaultActivator;
             _classContext = default;
             _connection = connection;
             _currentDepth = 0;
@@ -295,7 +298,7 @@ namespace IceRpc.Slice
                 throw new InvalidDataException($"maximum decoder depth reached while decoding trait {typeId}");
             }
 
-            object? instance = _activator?.CreateInstance(typeId, ref this);
+            object? instance = _activator.CreateInstance(typeId, ref this);
             _currentDepth--;
 
             if (instance == null)

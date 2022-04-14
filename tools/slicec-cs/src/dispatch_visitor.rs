@@ -239,7 +239,7 @@ fn request_decode_body(operation: &Operation) -> CodeBlock {
             writeln!(
                 code,
                 "\
-await request.CheckEmptyArgsAsync({encoding}, hasStream: true, cancel).ConfigureAwait(false);
+await request.DecodeEmptyArgsAsync({encoding}, hasStream: true, cancel).ConfigureAwait(false);
 
 return {decode_operation_stream}",
                 encoding = encoding,
@@ -249,7 +249,7 @@ return {decode_operation_stream}",
             writeln!(
                 code,
                 "\
-var {args} = await request.ToArgsAsync(
+var {args} = await request.DecodeArgsAsync(
     {encoding},
     _defaultActivator,
     {decode_func},
@@ -271,7 +271,7 @@ return {args_and_stream};",
         writeln!(
             code,
             "\
-await request.ToArgsAsync(
+await request.DecodeArgsAsync(
     {encoding},
     _defaultActivator,
     {decode_func},
@@ -372,7 +372,7 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
         [] => {
             // Verify the payload is indeed empty (it can contain tagged params that we have to skip).
             writeln!(check_and_decode, "\
-await request.CheckEmptyArgsAsync({}, hasStream: false, cancel).ConfigureAwait(false);", encoding
+await request.DecodeEmptyArgsAsync({}, hasStream: false, cancel).ConfigureAwait(false);", encoding
             );
         }
         [parameter] => {
@@ -473,7 +473,7 @@ catch (RemoteException remoteException)
         throw;
     }}
 
-    return request.CreateResponseFromRemoteException(remoteException, {encoding});
+    return request.CreateServiceFailureResponse(remoteException, {encoding});
 }}",
     check_and_decode = check_and_decode,
     dispatch_and_return = dispatch_and_return.indent(),

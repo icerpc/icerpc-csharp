@@ -1,11 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
-using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.IO.Pipelines;
 
-namespace IceRpc.Slice
+namespace IceRpc.Slice.Internal
 {
     /// <summary>Extension methods to decode the payload of an incoming frame when this payload is encoded with the
     /// Slice encoding.</summary>
@@ -26,7 +25,7 @@ namespace IceRpc.Slice
             this IncomingFrame frame,
             SliceEncoding encoding,
             SliceDecodePayloadOptions decodePayloadOptions,
-            IActivator defaultActivator,
+            IActivator? defaultActivator,
             IInvoker defaultInvoker,
             DecodeFunc<T> decodeFunc,
             bool hasStream,
@@ -168,14 +167,14 @@ namespace IceRpc.Slice
         /// <param name="encoding">The Slice encoding version.</param>
         /// <param name="decodePayloadOptions">The decode payload options.</param>
         /// <param name="defaultInvoker">The default invoker.</param>
-        /// <param name="defaultActivator">The default activator.</param>
+        /// <param name="defaultActivator">The optional default activator.</param>
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
         /// <returns>The async enumerable to decode and return the streamed members.</returns>
         internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this IncomingFrame frame,
             SliceEncoding encoding,
             SliceDecodePayloadOptions decodePayloadOptions,
-            IActivator defaultActivator,
+            IActivator? defaultActivator,
             IInvoker defaultInvoker,
             DecodeFunc<T> decodeFunc)
         {
