@@ -44,7 +44,7 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Decode_struct_as_trait()
+    public void Decode_trait()
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
@@ -134,15 +134,6 @@ public sealed class StructTests
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
         var decoded = new MyStructWithTaggedMembers(ref decoder);
-
-        // Payload:
-        //   int 4 bytes,
-        //   int 4 bytes,
-        //   tagged int 0 | tag(1) 1 byte, size 1 byte, data 4 bytes,
-        //   optional int 0 | tag(255) 2 bytes, size 1 byte, data 4 bytes,,
-        //   tag end marker 1 byte)
-        int size = 4 + 4 + (k == null ? 0 : 6) + (l == null ? 0 : 7) + 1;
-        Assert.That(buffer.WrittenMemory.Length, Is.EqualTo(size));
         Assert.That(decoded.I, Is.EqualTo(10));
         Assert.That(decoded.J, Is.EqualTo(20));
         Assert.That(decoded.K, Is.EqualTo(k));
@@ -177,7 +168,6 @@ public sealed class StructTests
         expected.Encode(ref encoder);
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
-        Assert.That(buffer.WrittenMemory.Length, Is.EqualTo(9));
         Assert.That(decoder.DecodeInt(), Is.EqualTo(expected.I));
         Assert.That(decoder.DecodeInt(), Is.EqualTo(expected.J));
         Assert.That(decoder.DecodeVarInt(), Is.EqualTo(Slice2Definitions.TagEndMarker));
@@ -185,15 +175,15 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Encode_struct_as_trait()
+    public void Encode_trait()
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         var expected = new MyStruct(10, 20);
+
         expected.EncodeTrait(ref encoder);
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
-
         Assert.That(decoder.DecodeString(), Is.EqualTo(MyStruct.SliceTypeId));
         Assert.That(decoder.DecodeInt(), Is.EqualTo(10));
         Assert.That(decoder.DecodeInt(), Is.EqualTo(20));
@@ -214,15 +204,6 @@ public sealed class StructTests
 
         // Assert
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
-        // Payload:
-        //   int 4 bytes,
-        //   int 4 bytes,
-        //   bit-sequence 1 byte,
-        //   optional int 0|4 bytes,
-        //   optional int 0|4 bytes,
-        //   tag end marker 1 byte)
-        int size = 4 + 4 + 1 + (k == null ? 0 : 4) + (l == null ? 0 : 4) + 1;
-        Assert.That(buffer.WrittenMemory.Length, Is.EqualTo(size));
         var bitSequenceReader = decoder.GetBitSequenceReader(2);
         Assert.That(decoder.DecodeInt(), Is.EqualTo(10));
         Assert.That(decoder.DecodeInt(), Is.EqualTo(20));
@@ -246,6 +227,8 @@ public sealed class StructTests
         {
             Assert.That(bitSequenceReader.Read(), Is.False);
         }
+        Assert.That(decoder.DecodeVarInt(), Is.EqualTo(Slice2Definitions.TagEndMarker));
+        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
     [Test]
@@ -260,14 +243,6 @@ public sealed class StructTests
         expected.Encode(ref encoder);
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
-        // Payload:
-        //   int 4 bytes,
-        //   int 4 bytes,
-        //   tagged int 0 | tag(1) 1 byte, size 1 byte, data 4 bytes,
-        //   optional int 0 | tag(255) 2 bytes, size 1 byte, data 4 bytes,,
-        //   tag end marker 1 byte)
-        int size = 4 + 4 + (k == null ? 0 : 6) + (l == null ? 0 : 7) + 1;
-        Assert.That(buffer.WrittenMemory.Length, Is.EqualTo(size));
         Assert.That(decoder.DecodeInt(), Is.EqualTo(10));
         Assert.That(decoder.DecodeInt(), Is.EqualTo(20));
         if (k != null)
