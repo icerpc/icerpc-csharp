@@ -52,7 +52,6 @@ public sealed class TypeIdAttributeTests
             "::IceRpc::Slice::TypeIdAttributeTestNamespace::Inner::myException",
         [typeof(TypeIdAttributeTestNamespace.Inner.MyStruct)] =
             "::IceRpc::Slice::TypeIdAttributeTestNamespace::Inner::myStruct",
-
     };
 
     /// <summary>A collection of types generated from Slice definitions and its expected default path.</summary>
