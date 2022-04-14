@@ -6,8 +6,8 @@ namespace IceRpc.Tests;
 public static class InvalidConnection
 {
     /// <summary>An invalid ice connection.</summary>
-    public static Connection Ice { get; } = new Connection("ice://invalidhost");
+    public static Connection Ice { get; } = new("ice://invalidhost");
 
     /// <summary>An invalid icerpc connection.</summary>
-    public static Connection IceRpc { get; } = new Connection("icerpc://invalidhost");
+    public static Connection IceRpc { get; } = new("icerpc://invalidhost");
 }
