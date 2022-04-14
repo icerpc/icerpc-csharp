@@ -52,7 +52,7 @@ namespace IceRpc.Slice
 
         private ClassContext _classContext;
 
-        // Connection used when decoding proxies.
+        // Connection used when decoding relative proxies.
         private readonly Connection? _connection;
 
         // The current depth when decoding a type recursively.
@@ -74,10 +74,10 @@ namespace IceRpc.Slice
         /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="encoding">The Slice encoding version.</param>
-        /// <param name="connection">The connection.</param>
+        /// <param name="connection">The connection, used only when decoding relative proxies.</param>
         /// <param name="invoker">The invoker of proxies decoded by this decoder. Use null to get the default invoker.
         /// </param>
-        /// <param name="activator">The activator.</param>
+        /// <param name="activator">The optional activator.</param>
         /// <param name="maxDepth">The maximum depth when decoding a type recursively. <c>-1</c> uses the default.
         /// </param>
         public SliceDecoder(
@@ -349,7 +349,7 @@ namespace IceRpc.Slice
                         if (_connection == null)
                         {
                             throw new InvalidOperationException(
-                                "cannot decode a proxy from an decoder with a null Connection");
+                                "cannot decode a relative proxy from an decoder with a null Connection");
                         }
                         return Proxy.FromConnection(_connection, proxyString, _invoker);
                     }
