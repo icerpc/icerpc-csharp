@@ -200,7 +200,7 @@ namespace IceRpc
 
                     // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                    var connection = new Connection(networkConnection, Endpoint.Protocol, connectionOptions);
+                    var connection = new Connection(Endpoint, networkConnection, connectionOptions);
 #pragma warning restore CA2000
 
                     lock (_mutex)
