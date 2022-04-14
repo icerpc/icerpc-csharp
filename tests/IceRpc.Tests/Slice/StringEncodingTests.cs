@@ -11,8 +11,8 @@ namespace IceRpc.Slice.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class StringEncodingTests
 {
-    /// <summary>Tests the encoding of a string. The only difference between encoding strings with the 1.1 encoding and
-    /// the 2.0 encoding is how the size gets encoded. Since <see cref="Encoding_size(string, byte[], byte[])"/>
+    /// <summary>Tests the encoding of a string. The only difference between encoding strings with Slice1 and
+    /// Slice2 is how the size gets encoded. Since <see cref="Encoding_size(string, byte[], byte[])"/>
     /// tests the size encoding, this test only needs to verify how strings are encoded with 2.0. </summary>
     /// <param name="value">The string to be encoded.</param>
     [TestCase("")]

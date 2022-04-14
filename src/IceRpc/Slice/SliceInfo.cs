@@ -2,7 +2,7 @@
 
 namespace IceRpc.Slice
 {
-    /// <summary>SliceInfo encapsulates the details of a slice for an unknown class encoded with the Slice 1.1
+    /// <summary>SliceInfo encapsulates the details of a slice for an unknown class encoded with the Slice1
     /// encoding.</summary>
     public sealed class SliceInfo
     {

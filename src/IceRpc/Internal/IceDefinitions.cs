@@ -17,7 +17,7 @@ namespace IceRpc.Internal
         internal static readonly byte[] Magic = new byte[] { 0x49, 0x63, 0x65, 0x50 }; // 'I', 'c', 'e', 'P'
 
         // 4-bytes after magic that provide the protocol version (always 1.0 for an ice frame) and the encoding of the
-        // frame header (always set to 1.0 with the an ice frame, even though we use 1.1).
+        // frame header (always set to 1.0 with the an ice frame, even though we use Slice1).
         internal static readonly byte[] ProtocolBytes = new byte[] { 1, 0, 1, 0 };
 
         internal static readonly IcePrologue CloseConnectionFrame = new(
