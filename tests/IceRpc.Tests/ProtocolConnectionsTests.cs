@@ -17,8 +17,9 @@ namespace IceRpc.Tests;
 public sealed class ProtocolConnectionTests
 {
     private static readonly List<Protocol> _protocols = new() { Protocol.Ice, Protocol.IceRpc };
+    private static readonly List<Protocol> _protocolsWithDelayedPayloadReading = new() { Protocol.IceRpc };
 
-    private static IEnumerable<TestCaseData> ClientServerConnections
+    private static IEnumerable<TestCaseData> Protocol_on_server_and_client_connection
     {
         get
         {
@@ -30,229 +31,83 @@ public sealed class ProtocolConnectionTests
         }
     }
 
-    /// <summary>Provides test case data for the <see cref="Payload_completed_on_request_and_response"/> test. The test
-    /// case data provides the outgoing request to send, the dispatcher to provide the response and the payload reader
-    /// decorator used to ensure <see cref="PipeReader.Complete"/> is called. The test case test the completion of the
-    /// request/response payload and payload stream on a successful request or on various failure conditions.</summary>
-    private static IEnumerable<TestCaseData> RequestsAndResponses
+    private static IEnumerable<TestCaseData> Payload_completed_on_request
     {
         get
         {
             foreach (Protocol protocol in _protocols)
             {
-                foreach (TestCaseData testCase in GetTestCaseData(protocol, isOneway: false))
-                {
-                    testCase.TestName =
-                        $"Payload_completed_on_request_and_response_with_{testCase.TestName}({protocol},oneway)";
-                    yield return testCase;
-                }
-                foreach (TestCaseData testCase in GetTestCaseData(protocol, isOneway: true))
-                {
-                    testCase.TestName =
-                        $"Payload_completed_on_request_and_response_with_{testCase.TestName}({protocol},twoway)";
-                    yield return testCase;
-                }
-            }
-
-            static IEnumerable<TestCaseData> GetTestCaseData(Protocol protocol, bool isOneway)
-            {
-                // Valid requests with payload and payload stream
-                yield return CreateRequestTestCase("valid_request_payload", payload: EmptyPipeReader.Instance);
-
-                if (HasPayloadStreamSupport(protocol))
-                {
-                    yield return CreateRequestTestCase(
-                        "valid_request_payload_stream",
-                        payloadStream: EmptyPipeReader.Instance);
-
-                    yield return CreateRequestTestCase(
-                        "valid_request_payload_And_payload_stream",
-                        payload: EmptyPipeReader.Instance,
-                        payloadStream: EmptyPipeReader.Instance);
-                }
-
-                // Valid responses with payload and payload stream
-                yield return CreateResponseTestCase("valid_response_payload", payload: EmptyPipeReader.Instance);
-
-                if (HasPayloadStreamSupport(protocol))
-                {
-                    yield return CreateResponseTestCase(
-                        "valid_response_payload_stream",
-                        payloadStream: EmptyPipeReader.Instance);
-
-                    yield return CreateResponseTestCase(
-                        "valid_response_payload_And_payload_stream",
-                        payload: EmptyPipeReader.Instance,
-                        payloadStream: EmptyPipeReader.Instance);
-                }
-
-                // Invalid requests
-                yield return CreateRequestTestCase("invalid_request_payload", payload: InvalidPipeReader.Instance);
-                yield return CreateRequestTestCase("invalid_request_writer", writer: InvalidPayloadWriter);
-
-                yield return CreateRequestTestCase(
-                    "invalid_request_payload_stream",
-                    payloadStream: InvalidPipeReader.Instance);
-
-                if (protocol.HasFields)
-                {
-                    yield return CreateRequestTestCase("invalid_request_Fields", invalidFields: true);
-                }
-
-                if (isOneway)
-                {
-                    // No response, so there's no need to test response payload or payload stream completion.
-                    yield break;
-                }
-
-                // Invalid responses
-                yield return CreateResponseTestCase("invalid_response_payload", payload: InvalidPipeReader.Instance);
-                yield return CreateResponseTestCase("invalid_response_writer", writer: InvalidPayloadWriter);
-
-                yield return CreateResponseTestCase(
-                    "invalid_response_payload_stream",
-                    payloadStream: InvalidPipeReader.Instance);
-
-                if (protocol.HasFields)
-                {
-                    yield return CreateResponseTestCase("invalid_response_Fields", invalidFields: true);
-                }
-
-                TestCaseData CreateRequestTestCase(
-                    string name,
-                    PipeReader? payload = null,
-                    PipeReader? payloadStream = null,
-                    Func<PipeWriter, PipeWriter>? writer = null,
-                    bool invalidFields = false)
-                {
-                    PayloadPipeReaderDecorator? decorator = payload == null ? null : new(payload);
-                    PayloadPipeReaderDecorator? streamDecorator = payloadStream == null ? null : new(payloadStream);
-                    bool invalid = payload == InvalidPipeReader.Instance || payloadStream == InvalidPipeReader.Instance;
-                    var testCaseData = new TestCaseData(
-                        protocol,
-                        CreateRequest(
-                            protocol,
-                            isOneway,
-                            payload: decorator,
-                            payloadStream: streamDecorator,
-                            writer: writer,
-                            invalidFields: invalidFields),
-                        null, // dispatcher
-                        decorator,
-                        streamDecorator,
-                        invalid ? typeof(NotSupportedException) : null);
-                    testCaseData.SetName(name);
-                    return testCaseData;
-                }
-
-                TestCaseData CreateResponseTestCase(
-                    string name,
-                    PipeReader? payload = null,
-                    PipeReader? payloadStream = null,
-                    Func<PipeWriter, PipeWriter>? writer = null,
-                    bool invalidFields = false)
-                {
-                    PayloadPipeReaderDecorator? decorator = payload == null ? null : new(payload);
-                    PayloadPipeReaderDecorator? streamDecorator = payloadStream == null ? null : new(payloadStream);
-                    bool invalid = payload == InvalidPipeReader.Instance || payloadStream == InvalidPipeReader.Instance;
-                    var testCaseData = new TestCaseData(
-                        protocol,
-                        CreateRequest(protocol, isOneway),
-                        CreateResponseDispatcher(
-                            payload: decorator,
-                            payloadStream: streamDecorator,
-                            writer: writer,
-                            invalidFields: invalidFields),
-                        decorator,
-                        streamDecorator,
-                        invalid ? typeof(NotSupportedException) : null);
-                    testCaseData.SetName(name);
-                    return testCaseData;
-                }
+                yield return new TestCaseData(protocol);
             }
         }
     }
 
-    /// <summary>Provides test case data for the <see cref="payload_writer_completed_on_request_and_response"> test. The
-    /// test case data provides the outgoing request to send, the dispatcher to provide the response and the payload
-    /// writer interceptor use to ensure <see cref="PipeWriter.Complete"/> is called.</summary>
-    private static IEnumerable<TestCaseData> RequestsAndResponsesWithPayloadWriter
+    private static IEnumerable<TestCaseData> Payload_completed_on_twoway_and_oneway_request
     {
         get
         {
             foreach (Protocol protocol in _protocols)
             {
-                foreach ((string name, TestCaseData testCase) in GetTestCaseData(protocol, isOneway: false))
-                {
-                    testCase.SetName(
-                        $"payload_writer_completed_on_request_and_response_with_{name}({protocol},oneway)");
-                    yield return testCase;
-                }
-                foreach ((string name, TestCaseData testCase) in GetTestCaseData(protocol, isOneway: true))
-                {
-                    testCase.SetName(
-                        $"payload_writer_completed_on_request_and_response_with_{name}({protocol},twoway)");
-                    yield return testCase;
-                }
+                yield return new TestCaseData(protocol, false);
+                yield return new TestCaseData(protocol, true);
             }
+        }
+    }
 
-            static IEnumerable<(string, TestCaseData)> GetTestCaseData(Protocol protocol, bool isOneway)
+    private static IEnumerable<TestCaseData> Payload_completed_on_request_with_fields
+    {
+        get
+        {
+            foreach (Protocol protocol in _protocols.Where(protocol => protocol.HasFields))
             {
-                // Valid request
-                {
-                    var writerSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
-                    var request = CreateRequest(protocol, isOneway, writer: PayloadWriter(writerSource));
-                    var dispatcher = ConnectionOptions.DefaultDispatcher;
-                    yield return ("request_payload_writer",
-                                  new(protocol, request, dispatcher, writerSource.Task, null));
-                }
-
-                // Valid response
-                if (!isOneway)
-                {
-                    var writerSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
-                    var request = CreateRequest(protocol, isOneway);
-                    var dispatcher = CreateResponseDispatcher(writer: PayloadWriter(writerSource));
-                    yield return ("response_payload_writer",
-                                  new(protocol, request, dispatcher, writerSource.Task, null));
-                }
-
-                if (protocol == Protocol.Ice)
-                {
-                    // The Ice protocol reads payload before instantiating the payload writer so the test bellow
-                    // would hang since the payload writer will never be set.
-                    yield break;
-                }
-
-                // Invalid request payload
-                {
-                    var writerSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
-                    var request = CreateRequest(
-                        protocol, isOneway, InvalidPipeReader.Instance, writer: PayloadWriter(writerSource));
-                    var dispatcher = ConnectionOptions.DefaultDispatcher;
-                    yield return ("invalid_request_payload",
-                                  new(protocol, request, dispatcher, writerSource.Task, typeof(NotSupportedException)));
-                }
-
-                // Invalid response payload
-                if (!isOneway)
-                {
-                    var writerSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
-                    var request = CreateRequest(protocol, isOneway);
-                    var dispatcher = CreateResponseDispatcher(InvalidPipeReader.Instance, PayloadWriter(writerSource));
-                    yield return ("invalid_response_payload",
-                                  new(protocol, request, dispatcher, writerSource.Task, typeof(NotSupportedException)));
-                }
+                yield return new TestCaseData(protocol, false);
+                yield return new TestCaseData(protocol, true);
             }
+        }
+    }
 
-            static Func<PipeWriter, PipeWriter> PayloadWriter(
-                TaskCompletionSource<PayloadPipeWriterDecorator> source) =>
-                writer =>
-                {
-                    var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);
-                    source.SetResult(payloadWriterDecorator);
-                    return payloadWriterDecorator;
-                };
+    private static IEnumerable<TestCaseData> Payload_completed_on_response
+    {
+        get
+        {
+            foreach (Protocol protocol in _protocols)
+            {
+                yield return new TestCaseData(protocol);
+            }
+        }
+    }
+
+    private static IEnumerable<TestCaseData> PayloadStream_completed_on_request
+    {
+        get
+        {
+            foreach (Protocol protocol in _protocols.Where(protocol => HasPayloadStreamSupport(protocol)))
+            {
+                yield return new TestCaseData(protocol);
+            }
+        }
+    }
+
+    private static IEnumerable<TestCaseData> PayloadStream_completed_on_oneway_and_twoway_request
+    {
+        get
+        {
+            foreach (Protocol protocol in _protocols.Where(protocol => HasPayloadStreamSupport(protocol)))
+            {
+                yield return new TestCaseData(protocol, false);
+                yield return new TestCaseData(protocol, true);
+            }
+        }
+    }
+
+    private static IEnumerable<TestCaseData> PayloadStream_completed_on_response
+    {
+        get
+        {
+            foreach (Protocol protocol in _protocols.Where(protocol => HasPayloadStreamSupport(protocol)))
+            {
+                yield return new TestCaseData(protocol);
+            }
         }
     }
 
@@ -376,7 +231,7 @@ public sealed class ProtocolConnectionTests
 
     /// <summary>Ensures that the PeerShutdownInitiated callback is called when the peer initiates the
     /// shutdown.</summary>
-    [Test, TestCaseSource(nameof(ClientServerConnections))]
+    [Test, TestCaseSource(nameof(Protocol_on_server_and_client_connection))]
     public async Task PeerShutdownInitiated_callback_is_called(Protocol protocol, ConnectionType connectionType)
     {
         // Arrange
@@ -403,7 +258,7 @@ public sealed class ProtocolConnectionTests
 
     /// <summary>Ensures that the sending a request after shutdown fails.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    public async Task Sendrequest_on_shutdown_connection_fails(Protocol protocol)
+    public async Task Invoke_on_shutdown_connection_fails(Protocol protocol)
     {
         // Arrange
         await using var serviceProvider = new ProtocolServiceCollection().UseProtocol(protocol).BuildServiceProvider();
@@ -412,169 +267,537 @@ public sealed class ProtocolConnectionTests
         _ = sut.Client.ShutdownAsync("");
 
         // Act
-        Task<IncomingResponse> sendRequestTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
+        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
 
         // Assert
-        Assert.ThrowsAsync<ConnectionClosedException>(async () => await sendRequestTask);
+        Assert.ThrowsAsync<ConnectionClosedException>(async () => await invokeTask);
     }
 
-    /// <summary>Ensures that the request or response payload is always completed.</summary>
-    [Test, TestCaseSource(nameof(RequestsAndResponses))]
-    public async Task Payload_completed_on_request_and_response(
-        Protocol protocol,
-        OutgoingRequest request,
-        IDispatcher dispatcher,
-        PayloadPipeReaderDecorator? payload,
-        PayloadPipeReaderDecorator? payloadStream,
-        Type? exceptionType)
+    /// <summary>Ensures that the request payload is completed on valid request.</summary>
+    [Test, TestCaseSource(nameof(Payload_completed_on_twoway_and_oneway_request))]
+    public async Task Payload_completed_on_valid_request(Protocol protocol, bool isOneway)
     {
         // Arrange
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
-            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
             .BuildServiceProvider();
         await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
-        _ = sut.Server.AcceptRequestsAsync();
+
+        var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        var request = new OutgoingRequest(new Proxy(protocol))
+            {
+                IsOneway = isOneway,
+                Payload = payloadDecorator
+            };
 
         // Act
         _ = sut.Client.InvokeAsync(request);
+        bool payloadCompleted = await payloadDecorator.CompleteCalled;
 
         // Assert
-        Assert.Multiple(async () =>
-        {
-            if (payload != null)
-            {
-                Assert.That(await payload.CompleteCalled, Is.True);
-            }
-            if (payloadStream != null)
-            {
-                Assert.That(await payloadStream.CompleteCalled, Is.True);
-            }
-            Assert.That((payload ?? payloadStream)?.CompleteException?.GetType(), Is.EqualTo(exceptionType));
-        });
+        Assert.That(payloadCompleted, Is.True);
     }
 
-    /// <summary>Ensures that the request or response payload writer is always completed.</summary>
-    [Test, TestCaseSource(nameof(RequestsAndResponsesWithPayloadWriter))]
-    public async Task PayloadWriter_completed_on_request_and_response(
-        Protocol protocol,
-        OutgoingRequest request,
-        IDispatcher dispatcher,
-        Task<PayloadPipeWriterDecorator> payloadWriterTask,
-        Type? exceptionType)
+    /// <summary>Ensures that the request payload is completed if the payload is invalid.</summary>
+    [Test, TestCaseSource(nameof(Payload_completed_on_twoway_and_oneway_request))]
+    public async Task Payload_completed_on_invalid_request_payload(Protocol protocol, bool isOneway)
     {
         // Arrange
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
-            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
             .BuildServiceProvider();
         await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
-        _ = sut.Server.AcceptRequestsAsync();
+
+        var payloadDecorator = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
+        var request = new OutgoingRequest(new Proxy(protocol))
+        {
+            IsOneway = isOneway,
+            Payload = payloadDecorator
+        };
 
         // Act
         _ = sut.Client.InvokeAsync(request);
-        PayloadPipeWriterDecorator payloadWriter = await payloadWriterTask;
-        bool completedCalled = await payloadWriter.CompleteCalled;
+        bool payloadCompleted = await payloadDecorator.CompleteCalled;
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(completedCalled, Is.True);
-            Assert.That(payloadWriter.CompleteException?.GetType(), Is.EqualTo(exceptionType));
-        });
+        Assert.That(payloadCompleted, Is.True);
+        Assert.That(payloadDecorator.CompleteException, Is.InstanceOf<NotSupportedException>());
     }
 
-    /// <summary>Ensures that the request payload and payload stream pipe readers are completed if the connection is
-    /// shutdown.</summary>
-    [Test, TestCaseSource(nameof(_protocols))]
-    public async Task request_payload_completed_when_connection_is_shutdown(Protocol protocol)
+    /// <summary>Ensures that the request payload is completed if the payload is invalid.</summary>
+    [Test, TestCaseSource(nameof(Payload_completed_on_twoway_and_oneway_request))]
+    public async Task Payload_completed_on_invalid_request_payload_writer(Protocol protocol, bool isOneway)
+    {
+        // Arrange
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .BuildServiceProvider();
+        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+
+        var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        var request = new OutgoingRequest(new Proxy(protocol))
+        {
+            IsOneway = isOneway,
+            Payload = payloadDecorator
+        };
+        request.Use(writer => InvalidPipeWriter.Instance);
+
+        // Act
+        _ = sut.Client.InvokeAsync(request);
+        bool payloadCompleted = await payloadDecorator.CompleteCalled;
+
+        // Assert
+        Assert.That(payloadCompleted, Is.True);
+        Assert.That(payloadDecorator.CompleteException, Is.InstanceOf<NotSupportedException>());
+    }
+
+    /// <summary>Ensures that the request payload is completed if the request fields are invalid.</summary>
+    [Test, TestCaseSource(nameof(Payload_completed_on_request_with_fields))]
+    public async Task Payload_completed_on_invalid_request_fields(Protocol protocol, bool isOneway)
+    {
+        // Arrange
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .BuildServiceProvider();
+        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+
+        var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        var request = new OutgoingRequest(new Proxy(protocol))
+        {
+            IsOneway = isOneway,
+            Payload = payloadDecorator
+        };
+        request.Fields = request.Fields.With(
+            RequestFieldKey.Idempotent,
+            (ref SliceEncoder encoder) => throw new NotSupportedException("invalid request fields"));
+
+        // Act
+        _ = sut.Client.InvokeAsync(request);
+        bool payloadCompleted = await payloadDecorator.CompleteCalled;
+
+        // Assert
+        Assert.That(payloadCompleted, Is.True);
+        Assert.That(payloadDecorator.CompleteException, Is.InstanceOf<NotSupportedException>());
+    }
+
+    /// <summary>Ensures that the request payload is completed if the connection is shutdown.</summary>
+    [Test, TestCaseSource(nameof(Payload_completed_on_request))]
+    public async Task Payload_completed_on_request_when_connection_is_shutdown(Protocol protocol)
     {
         // Arrange
         await using var serviceProvider = new ProtocolServiceCollection().UseProtocol(protocol).BuildServiceProvider();
         await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
         _ = sut.Client.ShutdownAsync("", default);
 
-        var payload = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
-        PayloadPipeReaderDecorator? payloadStream = null;
-        if (HasPayloadStreamSupport(protocol))
+        var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        var request = new OutgoingRequest(new Proxy(protocol))
         {
-            payloadStream = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
-        }
-        var request = CreateRequest(protocol, isOneway: false, payload, payloadStream);
+            Payload = payloadDecorator,
+        };
 
         // Act
-        Task<IncomingResponse> sendRequestTask = sut.Client.InvokeAsync(request);
-        bool completeCalled = await payload.CompleteCalled;
+        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
+        bool completeCalled = await payloadDecorator.CompleteCalled;
 
         // Assert
-        Assert.Multiple(async () =>
+        Assert.Multiple(() =>
         {
-            Assert.ThrowsAsync<ConnectionClosedException>(() => sendRequestTask);
+            Assert.ThrowsAsync<ConnectionClosedException>(() => invokeTask);
             Assert.That(completeCalled, Is.True);
-            Assert.That(payload.CompleteException, Is.InstanceOf<ConnectionClosedException>());
-            if (payloadStream != null)
-            {
-                Assert.That(await payloadStream.CompleteCalled, Is.True);
-                Assert.That(payloadStream.CompleteException, Is.InstanceOf<ConnectionClosedException>());
-            }
+            Assert.That(payloadDecorator.CompleteException, Is.InstanceOf<ConnectionClosedException>());
         });
     }
 
-    private static OutgoingRequest CreateRequest(
-        Protocol protocol,
-        bool isOneway = false,
-        PipeReader? payload = null,
-        PipeReader? payloadStream = null,
-        Func<PipeWriter, PipeWriter>? writer = null,
-        bool invalidFields = false)
+    /// <summary>Ensures that the response payload is completed on valid response.</summary>
+    [Test, TestCaseSource(nameof(_protocols))]
+    public async Task Payload_completed_on_valid_response(Protocol protocol)
     {
-        var request = new OutgoingRequest(new Proxy(protocol))
-        {
-            IsOneway = isOneway,
-            Payload = payload ?? EmptyPipeReader.Instance,
-            PayloadStream = payloadStream
-        };
-        if (invalidFields)
-        {
-            request.Fields = request.Fields.With(
-                RequestFieldKey.Idempotent,
-                (ref SliceEncoder encoder) => throw new NotSupportedException("invalid request fields"));
-        }
-        if (writer != null)
-        {
-            request.Use(writer);
-        }
-        return request;
+        // Arrange
+        var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        var dispatcher = new InlineDispatcher((request, cancel) =>
+                new(new OutgoingResponse(request)
+                {
+                    Payload = payloadDecorator
+                }));
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .BuildServiceProvider();
+        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        _ = sut.Server.AcceptRequestsAsync();
+
+        // Act
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
+        bool completedCalled = await payloadDecorator.CompleteCalled;
+
+        // Assert
+        Assert.That(completedCalled, Is.True);
     }
 
-    private static IDispatcher CreateResponseDispatcher(
-        PipeReader? payload = null,
-        Func<PipeWriter, PipeWriter>? writer = null,
-        PipeReader? payloadStream = null,
-        bool invalidFields = false) =>
-        new InlineDispatcher((request, cancel) =>
+    /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>
+    [Test, TestCaseSource(nameof(_protocols))]
+    public async Task Payload_completed_on_invalid_response_payload(Protocol protocol)
+    {
+        // Arrange
+        var payloadDecorator = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
+        var dispatcher = new InlineDispatcher((request, cancel) =>
+                new(new OutgoingResponse(request)
+                {
+                    Payload = payloadDecorator
+                }));
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .BuildServiceProvider();
+        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        _ = sut.Server.AcceptRequestsAsync();
+
+        // Act
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
+        bool completedCalled = await payloadDecorator.CompleteCalled;
+
+        // Assert
+        Assert.That(completedCalled, Is.True);
+        Assert.That(payloadDecorator.CompleteException, Is.InstanceOf<NotSupportedException>());
+    }
+
+    /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>
+    [Test, TestCaseSource(nameof(_protocols))]
+    public async Task Payload_completed_on_invalid_response_fields(Protocol protocol)
+    {
+        // Arrange
+        var payloadDecorator = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
+        var dispatcher = new InlineDispatcher((request, cancel) =>
             {
                 var response = new OutgoingResponse(request)
-                {
-                    Payload = payload ?? EmptyPipeReader.Instance,
-                    PayloadStream = payloadStream
-                };
-                if (invalidFields)
-                {
-                    response.Fields = response.Fields.With(
-                        ResponseFieldKey.CompressionFormat,
-                        (ref SliceEncoder encoder) => throw new NotSupportedException("invalid response fields"));
-                }
-                if (writer != null)
-                {
-                    response.Use(writer);
-                }
+                    {
+                        Payload = payloadDecorator
+                    };
+                response.Fields = response.Fields.With(
+                    ResponseFieldKey.CompressionFormat,
+                    (ref SliceEncoder encoder) => throw new NotSupportedException("invalid request fields"));
                 return new(response);
             });
 
-    private static bool HasPayloadStreamSupport(Protocol protocol) => protocol == Protocol.IceRpc;
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .BuildServiceProvider();
+        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        _ = sut.Server.AcceptRequestsAsync();
 
-    private static PipeWriter InvalidPayloadWriter(PipeWriter _) => InvalidPipeWriter.Instance;
+        // Act
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
+        bool completedCalled = await payloadDecorator.CompleteCalled;
+
+        // Assert
+        Assert.That(completedCalled, Is.True);
+        Assert.That(payloadDecorator.CompleteException, Is.InstanceOf<NotSupportedException>());
+    }
+
+    /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>
+    [Test, TestCaseSource(nameof(_protocols))]
+    public async Task Payload_completed_on_invalid_response_payload_writer(Protocol protocol)
+    {
+        // Arrange
+        var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        var dispatcher = new InlineDispatcher((request, cancel) =>
+            {
+                var response = new OutgoingResponse(request)
+                {
+                    Payload = payloadDecorator
+                };
+                response.Use(writer => InvalidPipeWriter.Instance);
+                return new(response);
+            });
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .BuildServiceProvider();
+        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        _ = sut.Server.AcceptRequestsAsync();
+
+        // Act
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
+        bool completedCalled = await payloadDecorator.CompleteCalled;
+
+        // Assert
+        Assert.That(completedCalled, Is.True);
+        Assert.That(payloadDecorator.CompleteException, Is.InstanceOf<NotSupportedException>());
+    }
+
+    /// <summary>Ensures that the request payload stream is completed on valid request.</summary>
+    [Test, TestCaseSource(nameof(PayloadStream_completed_on_oneway_and_twoway_request))]
+    public async Task PayloadStream_completed_on_valid_request(Protocol protocol, bool isOneway)
+    {
+        // Arrange
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .BuildServiceProvider();
+        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+
+        var payloadStreamDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        var request = new OutgoingRequest(new Proxy(protocol))
+        {
+            IsOneway = isOneway,
+            PayloadStream = payloadStreamDecorator
+        };
+
+        // Act
+        _ = sut.Client.InvokeAsync(request);
+        bool payloadCompleted = await payloadStreamDecorator.CompleteCalled;
+
+        // Assert
+        Assert.That(payloadCompleted, Is.True);
+    }
+
+    /// <summary>Ensures that the request payload is completed if the payload is invalid.</summary>
+    [Test, TestCaseSource(nameof(Payload_completed_on_twoway_and_oneway_request))]
+    public async Task PayloadStream_completed_on_invalid_request_payload(Protocol protocol, bool isOneway)
+    {
+        // Arrange
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .BuildServiceProvider();
+        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+
+        var payloadStreamDecorator = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
+        var request = new OutgoingRequest(new Proxy(protocol))
+        {
+            IsOneway = isOneway,
+            PayloadStream = payloadStreamDecorator
+        };
+
+        // Act
+        _ = sut.Client.InvokeAsync(request);
+        bool payloadCompleted = await payloadStreamDecorator.CompleteCalled;
+
+        // Assert
+        Assert.That(payloadCompleted, Is.True);
+        Assert.That(payloadStreamDecorator.CompleteException, Is.InstanceOf<NotSupportedException>());
+    }
+
+    /// <summary>Ensures that the request payload stream is completed if the connection is shutdown.</summary>
+    [Test, TestCaseSource(nameof(PayloadStream_completed_on_request))]
+    public async Task PayloadStream_completed_on_request_when_connection_is_shutdown(Protocol protocol)
+    {
+        // Arrange
+        await using var serviceProvider = new ProtocolServiceCollection().UseProtocol(protocol).BuildServiceProvider();
+        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        _ = sut.Client.ShutdownAsync("", default);
+
+        var payloadStreamDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        var request = new OutgoingRequest(new Proxy(protocol))
+        {
+            PayloadStream = payloadStreamDecorator
+        };
+
+        // Act
+        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
+        bool completeCalled = await payloadStreamDecorator.CompleteCalled;
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.ThrowsAsync<ConnectionClosedException>(() => invokeTask);
+            Assert.That(completeCalled, Is.True);
+            Assert.That(payloadStreamDecorator.CompleteException, Is.InstanceOf<ConnectionClosedException>());
+        });
+    }
+
+    /// <summary>Ensures that the response payload stream is completed on valid response.</summary>
+    [Test, TestCaseSource(nameof(PayloadStream_completed_on_response))]
+    public async Task PayloadStream_completed_on_valid_response(Protocol protocol)
+    {
+        // Arrange
+        var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        var dispatcher = new InlineDispatcher((request, cancel) =>
+                new(new OutgoingResponse(request)
+                {
+                    Payload = payloadDecorator
+                }));
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .BuildServiceProvider();
+        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        _ = sut.Server.AcceptRequestsAsync();
+
+        // Act
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
+        bool completedCalled = await payloadDecorator.CompleteCalled;
+
+        // Assert
+        Assert.That(completedCalled, Is.True);
+    }
+
+    /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>
+    [Test, TestCaseSource(nameof(PayloadStream_completed_on_response))]
+    public async Task PayloadStream_completed_on_invalid_response_payload(Protocol protocol)
+    {
+        // Arrange
+        var payloadStreamDecorator = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
+        var dispatcher = new InlineDispatcher((request, cancel) =>
+                new(new OutgoingResponse(request)
+                {
+                    PayloadStream = payloadStreamDecorator
+                }));
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .BuildServiceProvider();
+        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        _ = sut.Server.AcceptRequestsAsync();
+
+        // Act
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
+        bool completedCalled = await payloadStreamDecorator.CompleteCalled;
+
+        // Assert
+        Assert.That(completedCalled, Is.True);
+        Assert.That(payloadStreamDecorator.CompleteException, Is.InstanceOf<NotSupportedException>());
+    }
+
+    /// <summary>Ensures that the request payload writer is completed on valid request.</summary>
+    [Test, TestCaseSource(nameof(_protocols))]
+    public async Task PayloadWriter_completed_with_valid_request(Protocol protocol)
+    {
+        // Arrange
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .BuildServiceProvider();
+        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        _ = sut.Server.AcceptRequestsAsync();
+
+        var request = new OutgoingRequest(new Proxy(protocol));
+        var payloadWriterSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
+        request.Use(writer =>
+            {
+                var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);
+                payloadWriterSource.SetResult(payloadWriterDecorator);
+                return payloadWriterDecorator;
+            });
+
+        // Act
+        _ = sut.Client.InvokeAsync(request);
+        PayloadPipeWriterDecorator payloadWriter = await payloadWriterSource.Task;
+        bool completedCalled = await payloadWriter.CompleteCalled;
+
+        // Assert
+        Assert.That(completedCalled, Is.True);
+    }
+
+    /// <summary>Ensures that the request payload writer is completed on valid response.</summary>
+    [Test, TestCaseSource(nameof(_protocols))]
+    public async Task PayloadWriter_completed_with_valid_response(Protocol protocol)
+    {
+        // Arrange
+        var payloadWriterSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
+        var dispatcher = new InlineDispatcher((request, cancel) =>
+            {
+                var response = new OutgoingResponse(request);
+                response.Use(writer =>
+                    {
+                        var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);
+                        payloadWriterSource.SetResult(payloadWriterDecorator);
+                        return payloadWriterDecorator;
+                    });
+                return new(response);
+            });
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .BuildServiceProvider();
+        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        _ = sut.Server.AcceptRequestsAsync();
+
+        // Act
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
+        PayloadPipeWriterDecorator payloadWriter = await payloadWriterSource.Task;
+        bool completedCalled = await payloadWriter.CompleteCalled;
+
+        // Assert
+        Assert.That(completedCalled, Is.True);
+    }
+
+    /// <summary>Ensures that the request payload writer is completed on invalid request.</summary>
+    [Test, TestCaseSource(nameof(_protocolsWithDelayedPayloadReading))]
+    public async Task PayloadWriter_completed_with_invalid_request(Protocol protocol)
+    {
+        // Arrange
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .BuildServiceProvider();
+        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        _ = sut.Server.AcceptRequestsAsync();
+
+        var request = new OutgoingRequest(new Proxy(protocol))
+            {
+                Payload = InvalidPipeReader.Instance
+            };
+        var payloadWriterSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
+        request.Use(writer =>
+            {
+                var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);
+                payloadWriterSource.SetResult(payloadWriterDecorator);
+                return payloadWriterDecorator;
+            });
+
+        // Act
+        _ = sut.Client.InvokeAsync(request);
+        PayloadPipeWriterDecorator payloadWriter = await payloadWriterSource.Task;
+        bool completedCalled = await payloadWriter.CompleteCalled;
+
+        // Assert
+        Assert.That(completedCalled, Is.True);
+        Assert.That(payloadWriter.CompleteException, Is.InstanceOf<NotSupportedException>());
+    }
+
+    /// <summary>Ensures that the request payload writer is completed on invalid response.</summary>
+    [Test, TestCaseSource(nameof(_protocolsWithDelayedPayloadReading))]
+    public async Task PayloadWriter_completed_with_invalid_response(Protocol protocol)
+    {
+        // Arrange
+        var payloadWriterSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
+        var dispatcher = new InlineDispatcher((request, cancel) =>
+            {
+                var response = new OutgoingResponse(request)
+                    {
+                        Payload = InvalidPipeReader.Instance
+                    };
+                response.Use(writer =>
+                    {
+                        var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);
+                        payloadWriterSource.SetResult(payloadWriterDecorator);
+                        return payloadWriterDecorator;
+                    });
+                return new(response);
+            });
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .BuildServiceProvider();
+        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        _ = sut.Server.AcceptRequestsAsync();
+
+        // Act
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
+        PayloadPipeWriterDecorator payloadWriter = await payloadWriterSource.Task;
+        bool completedCalled = await payloadWriter.CompleteCalled;
+
+        // Assert
+        Assert.That(completedCalled, Is.True);
+        Assert.That(payloadWriter.CompleteException, Is.InstanceOf<NotSupportedException>());
+    }
+
+    private static bool HasPayloadStreamSupport(Protocol protocol) => protocol == Protocol.IceRpc;
 }
 
 /// <summary>A payload pipe reader decorator to check if the complete method is called.</summary>
