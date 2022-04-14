@@ -5,7 +5,7 @@ encoding = 1;
 [cs:internal]
 module IceRpc::Slice::Internal;
 
-// These definitions help with the encoding of proxies with the Slice 1.1 encoding.
+// These definitions help with the encoding of proxies with Slice1.
 
 /// The fragment of a service, encoded as a sequence of 0 or 1 elements. The empty string is encoded as an empty
 /// sequence. A non-empty string is encoded as a sequence with 1 element. While the fragment string is
@@ -37,7 +37,7 @@ enum InvocationMode
     BatchDatagram,
 }
 
-/// With the Slice 1.1 encoding, a proxy is encoded as a kind of discriminated union with:
+/// With Slice1, a proxy is encoded as a kind of discriminated union with:
 /// - Identity
 /// - if Identity is not the null identity:
 ///     - ProxyData
