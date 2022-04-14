@@ -4,8 +4,8 @@ module IceRpc::Tests::Slice;
 
 typealias OptionalByteDict = dictionary<uint8 uint8?>;
 typealias OptionalBoolDict = dictionary<bool, bool?>;
-typealias OptionalShortDict = dictionary<short, short?>;
-typealias OptionalUShortDict = dictionary<ushort, ushort?>;
+typealias OptionalShortDict = dictionar<int16, int16?>;
+typealias OptionalUShortDict = dictionary<uint16, uint16?>;
 typealias OptionalIntDict = dictionary<int, int?>;
 typealias OptionalVarIntDict = dictionary<varint, varint?>;
 typealias OptionalUIntDict = dictionary<uint, uint?>;

@@ -9,7 +9,7 @@ interface OperationTagDouble
 
     opBool(p1: tag(1) bool?) -> (r1: tag(1) bool?, r2: tag(2) bool?);
 
-    opShort(p1: tag(1) short?) -> (r1: tag(1) short?, r2: tag(2) short?);
+    opShort(p1: tag(1) int16?) -> (r1: tag(1) int16?, r2: tag(2) int16?);
 
     opInt(p1: tag(1) int?) -> (r1: tag(1) int?, r2: tag(2) int?);
 

@@ -5,7 +5,7 @@ module IceRpc::Slice::Internal;
 
 /// TransportCode is used by Slice1 to encode a transport name (such as "tcp") as a short value.
 // Note: we cannot define this enumeration in an encoding = 1 file because we need to encode it to a short and decode
-// it from a short, and without ": short", it would get encoded/decoded as a single-byte size.
+// it from a int16, and without ": short", it would get encoded/decoded as a single-byte size.
 unchecked enum TransportCode : short
 {
     /// This endpoint encapsulation contains an endpoint URI string.

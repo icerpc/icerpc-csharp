@@ -4,8 +4,8 @@ module IceRpc::Tests::Slice;
 
 typealias ByteDict = dictionary<uint8, uint8>;
 typealias BoolDict = dictionary<bool, bool>;
-typealias ShortDict = dictionary<short, short>;
-typealias UShortDict = dictionary<ushort, ushort>;
+typealias ShortDict = dictionar<int16, int16>;
+typealias UShortDict = dictionary<uint16, uint16>;
 typealias IntDict = dictionary<int, int>;
 typealias VarIntDict = dictionary<varint, varint>;
 typealias UIntDict = dictionary<uint, uint>;
@@ -25,8 +25,8 @@ typealias AnotherCompactStructDict = dictionary<string, AnotherCompactStruct>;
 
 typealias ByteCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint8, uint8>;
 typealias BoolCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<bool, bool>;
-typealias ShortCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<short, short>;
-typealias UShortCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<ushort, ushort>;
+typealias ShortCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionar<int16, int16>;
+typealias UShortCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint16, uint16>;
 typealias IntCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<int, int>;
 typealias VarIntCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varint, varint>;
 typealias UIntCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint, uint>;

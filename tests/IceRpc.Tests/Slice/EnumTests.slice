@@ -9,7 +9,7 @@ enum MyEnum
     enum3,
 }
 
-enum MyFixedLengthEnum : short
+enum MyFixedLengthEnum : int16
 {
     senum1,
     senum2,

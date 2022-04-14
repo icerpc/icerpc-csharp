@@ -4,8 +4,8 @@ module IceRpc::Tests::Slice;
 
 typealias OptionalByteSeq = sequence<uint8?>;
 typealias OptionalBoolSeq = sequence<bool?>;
-typealias OptionalShortSeq = sequence<short?>;
-typealias OptionalUShortSeq = sequence<ushort?>;
+typealias OptionalShortSeq = sequence<int16?>;
+typealias OptionalUShortSeq = sequence<uint16?>;
 typealias OptionalIntSeq = sequence<int?>;
 typealias OptionalVarIntSeq = sequence<varint?>;
 typealias OptionalUIntSeq = sequence<uint?>;

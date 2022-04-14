@@ -17,7 +17,7 @@ enum MyEnum
     enum11 = 226,
 }
 
-enum MyFixedLengthEnum : short
+enum MyFixedLengthEnum : int16
 {
     senum1 = -3,
     senum2,

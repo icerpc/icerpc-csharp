@@ -4,8 +4,8 @@ module IceRpc::Tests::Slice;
 
 typealias ByteSeq = sequence<uint8>;
 typealias BoolSeq = sequence<bool>;
-typealias ShortSeq = sequence<short>;
-typealias UShortSeq = sequence<ushort>;
+typealias ShortSeq = sequenc<int16>;
+typealias UShortSeq = sequence<uint16>;
 typealias IntSeq = sequence<int>;
 typealias VarIntSeq = sequence<varint>;
 typealias UIntSeq = sequence<uint>;
@@ -33,8 +33,8 @@ typealias ByteCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequ
 typealias BoolList = [cs:generic("System.Collections.Generic.List")] sequence<bool>;
 typealias BoolCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<bool>;
 
-typealias ShortList = [cs:generic("System.Collections.Generic.List")] sequence<short>;
-typealias ShortCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<short>;
+typealias ShortList = [cs:generic("System.Collections.Generic.List")] sequenc<int16>;
+typealias ShortCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequenc<int16>;
 
 typealias IntList = [cs:generic("System.Collections.Generic.List")] sequence<int>;
 typealias IntCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<int>;

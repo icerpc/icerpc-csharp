@@ -11,12 +11,12 @@ compact struct MultiOptional
 {
     mByte: uint8?,
     mBool: bool?,
-    mShort: short?,
+    mShort: int16?,
     mInt: int?,
     mLong: long?,
     mFloat: float?,
     mDouble: double?,
-    mUShort: ushort?,
+    mUShort: uint16?,
     mUInt: uint?,
     mULong: ulong?,
     mVarInt: varint?,
@@ -56,7 +56,7 @@ interface OptionalOperations
 
     opBool(p1: bool?) -> (r1: bool?, r2: bool?);
 
-    opShort(p1: short?) -> (r1: short?, r2: short?);
+    opShort(p1: int16?) -> (r1: int16?, r2: int16?);
 
     opInt(p1: int?) -> (r1: int?, r2: int?);
 

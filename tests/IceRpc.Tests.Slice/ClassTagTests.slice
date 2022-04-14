@@ -13,7 +13,7 @@ class MultiTagged
 {
     mByte: tag(1 uint8?,
     mBool: tag(2) bool?,
-    mShort: tag(3) short?,
+    mShort: tag(3) int16?,
     mInt: tag(4) int?,
     mLong: tag(5) long?,
     mFloat: tag(6) float?,
