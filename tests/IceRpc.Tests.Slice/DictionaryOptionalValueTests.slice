@@ -2,7 +2,7 @@
 
 module IceRpc::Tests::Slice;
 
-typealias OptionalByteDict = dictionary<byte, byte?>;
+typealias OptionalByteDict = dictionary<uint8 uint8?>;
 typealias OptionalBoolDict = dictionary<bool, bool?>;
 typealias OptionalShortDict = dictionary<short, short?>;
 typealias OptionalUShortDict = dictionary<ushort, ushort?>;

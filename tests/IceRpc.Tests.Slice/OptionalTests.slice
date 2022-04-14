@@ -9,7 +9,7 @@ compact struct OneOptional
 
 compact struct MultiOptional
 {
-    mByte: byte?,
+    mByte: uint8?,
     mBool: bool?,
     mShort: short?,
     mInt: int?,
@@ -52,7 +52,7 @@ interface OptionalOperations
     pingPongOne(o: OneOptional?) -> OneOptional?;
     pingPongMulti(o: MultiOptional?) -> MultiOptional?;
 
-    opByte(p1: byte?) -> (r1: byte?, r2: byte?);
+    opByte(p1 uint8?) -> (r1 uint8?, r2 uint8?);
 
     opBool(p1: bool?) -> (r1: bool?, r2: bool?);
 

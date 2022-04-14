@@ -2,7 +2,7 @@
 
 module IceRpc::Tests::Slice;
 
-typealias ByteSeq = sequence<byte>;
+typealias ByteSeq = sequence<uint8>;
 typealias BoolSeq = sequence<bool>;
 typealias ShortSeq = sequence<short>;
 typealias UShortSeq = sequence<ushort>;
@@ -27,8 +27,8 @@ typealias OperationsSeq = sequence<Operations>;
 typealias AnotherCompactStructSeq = sequence<AnotherCompactStruct>;
 
 // Sequence mapping
-typealias ByteList = [cs:generic("System.Collections.Generic.List")] sequence<byte>;
-typealias ByteCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<byte>;
+typealias ByteList = [cs:generic("System.Collections.Generic.List")] sequence<uint8>;
+typealias ByteCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<uint8>;
 
 typealias BoolList = [cs:generic("System.Collections.Generic.List")] sequence<bool>;
 typealias BoolCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<bool>;

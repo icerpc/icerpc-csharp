@@ -5,7 +5,7 @@ module IceRpc::Tests::Slice;
 // For each tagged param, return 2 tagged return values.
 interface OperationTagDouble
 {
-    opByte(p1: tag(1) byte?) -> (r1: tag(1) byte?, r2: tag(2) byte?);
+    opByte(p1: tag(1 uint8?) -> (r1: tag(1 uint8?, r2: tag(2 uint8?);
 
     opBool(p1: tag(1) bool?) -> (r1: tag(1) bool?, r2: tag(2) bool?);
 

@@ -7,7 +7,7 @@ exception SomeException {}
 interface Operations
 {
     // Builtin types
-    opByte(p1: byte, p2: byte) -> (r1: byte, r2: byte);
+    opByte(p1 uint8, p2: uint8) -> (r1 uint8, r2: uint8);
     opBool(p1: bool, p2: bool) -> (r1: bool, r2: bool);
     opShort(p1: short, p2: short) -> (r1: short, r2: short);
     opUShort(p1: ushort, p2: ushort) -> (r1: ushort, r2: ushort);

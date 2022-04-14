@@ -2,7 +2,7 @@
 
 module IceRpc::Tests::Slice;
 
-typealias ByteDict = dictionary<byte, byte>;
+typealias ByteDict = dictionary<uint8, uint8>;
 typealias BoolDict = dictionary<bool, bool>;
 typealias ShortDict = dictionary<short, short>;
 typealias UShortDict = dictionary<ushort, ushort>;
@@ -23,7 +23,7 @@ typealias MyCompactStructDict = dictionary<MyCompactStruct, MyCompactStruct>;
 typealias OperationsDict = dictionary<string, Operations>;
 typealias AnotherCompactStructDict = dictionary<string, AnotherCompactStruct>;
 
-typealias ByteCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<byte, byte>;
+typealias ByteCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint8, uint8>;
 typealias BoolCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<bool, bool>;
 typealias ShortCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<short, short>;
 typealias UShortCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<ushort, ushort>;

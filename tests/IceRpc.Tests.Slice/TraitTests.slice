@@ -38,7 +38,7 @@ interface TraitOperations
     opTraitB(p1: MyTraitB) -> long;
 
     opTraitASeq(p1: sequence<MyTraitA>) -> sequence<string>;
-    opTraitBDict(p1: dictionary<byte, MyTraitB>) -> dictionary<byte, long>;
+    opTraitBDict(p1: dictionary<uint8, MyTraitB>) -> dictionary<uint8, long>;
     opNestedTraitStruct(p1: NestedTraitStruct) -> string;
     opOptionalNestedTraitStruct(p1: OptionalNestedTraitStruct) -> (s: string?, l: long?);
 

@@ -11,7 +11,7 @@ class OneTagged
 
 class MultiTagged
 {
-    mByte: tag(1) byte?,
+    mByte: tag(1 uint8?,
     mBool: tag(2) bool?,
     mShort: tag(3) short?,
     mInt: tag(4) int?,

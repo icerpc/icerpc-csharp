@@ -5,7 +5,7 @@
 module IceRpc::Transports::Internal;
 
 /// The Slic frame types
-enum FrameType : byte
+enum FrameType : uint8
 {
     /// The initialization frame is sent by the client-side Slic connection on connection establishment.
     Initialize = 1,
@@ -47,7 +47,7 @@ unchecked enum ParameterKey : int
     PauseWriterThreshold = 4,
 }
 
-typealias ParameterFields = dictionary<varint, sequence<byte>>;
+typealias ParameterFields = dictionary<varint, sequence<uint8>>;
 
 /// The Slic initialize frame body.
 [cs:readonly]
