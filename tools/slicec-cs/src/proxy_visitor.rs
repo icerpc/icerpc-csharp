@@ -222,9 +222,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
         ));
     }
 
-    let mut invoke_args = vec![
-        format!(r#""{}""#, operation.identifier()),
-    ];
+    let mut invoke_args = vec![format!(r#""{}""#, operation.identifier())];
 
     if void_return {
         invoke_args.push(encoding.to_owned());
@@ -246,9 +244,10 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
             "Request.{}({})",
             operation_name,
             parameters
-            .iter()
-            .map(|p| p.parameter_name())
-            .collect::<Vec<_>>().join(", ")
+                .iter()
+                .map(|p| p.parameter_name())
+                .collect::<Vec<_>>()
+                .join(", ")
         ));
     }
 
@@ -257,7 +256,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
         let stream_parameter_name = stream_parameter.parameter_name();
         let stream_type = stream_parameter.data_type();
         match stream_type.concrete_type() {
-            Types::Primitive(b) if matches!(b, Primitive::Byte) => {
+            Types::Primitive(b) if matches!(b, Primitive::uint8) => {
                 invoke_args.push(stream_parameter_name)
             }
             _ => invoke_args.push(format!(
@@ -415,7 +414,13 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             );
         }
 
-        builder.add_comment("returns", &format!("The payload encoded with <see cref=\"{}\"/>.", operation.encoding.to_cs_encoding()));
+        builder.add_comment(
+            "returns",
+            &format!(
+                "The payload encoded with <see cref=\"{}\"/>.",
+                operation.encoding.to_cs_encoding()
+            ),
+        );
 
         builder.set_body(encode_operation(operation, false, "return"));
 
@@ -504,8 +509,9 @@ await response.CheckVoidReturnValueAsync(
 
 return {decode_operation_stream}
 ",
-    encoding = encoding,
-    decode_operation_stream = decode_operation_stream(stream_member, namespace, encoding, false, false)
+                encoding = encoding,
+                decode_operation_stream =
+                    decode_operation_stream(stream_member, namespace, encoding, false, false)
             );
         } else {
             writeln!(

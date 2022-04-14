@@ -558,7 +558,7 @@ pub fn decode_operation_stream(
     let stream_type_str = stream_member.to_type_string(namespace, TypeContext::Decode, false);
 
     let create_stream_param: CodeBlock = match param_type.concrete_type() {
-        Types::Primitive(primitive) if matches!(primitive, Primitive::Byte) => {
+        Types::Primitive(primitive) if matches!(primitive, Primitive::uint8) => {
             if dispatch {
                 "request.Payload;".into()
             } else {
