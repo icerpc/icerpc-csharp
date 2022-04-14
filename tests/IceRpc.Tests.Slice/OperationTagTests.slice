@@ -5,19 +5,19 @@ module IceRpc::Tests::Slice;
 // For each tagged param, return 2 tagged return values.
 interface OperationTagDouble
 {
-    opByte(p1: tag(1) byte?) -> (r1: tag(1) byte?, r2: tag(2) byte?);
+    opByte(p1: tag(1) uint8?) -> (r1: tag(1) uint8?, r2: tag(2) uint8?);
 
     opBool(p1: tag(1) bool?) -> (r1: tag(1) bool?, r2: tag(2) bool?);
 
-    opShort(p1: tag(1) short?) -> (r1: tag(1) short?, r2: tag(2) short?);
+    opShort(p1: tag(1) int16?) -> (r1: tag(1) int16?, r2: tag(2) int16?);
 
-    opInt(p1: tag(1) int?) -> (r1: tag(1) int?, r2: tag(2) int?);
+    opInt(p1: tag(1) int32?) -> (r1: tag(1) int32?, r2: tag(2) int32?);
 
-    opLong(p1: tag(1) long?) -> (r1: tag(1) long?, r2: tag(2) long?);
+    opLong(p1: tag(1) int64?) -> (r1: tag(1) int64?, r2: tag(2) int64?);
 
-    opFloat(p1: tag(1) float?) -> (r1: tag(1) float?, r2: tag(2) float?);
+    opFloat(p1: tag(1) float32?) -> (r1: tag(1) float32?, r2: tag(2) float32?);
 
-    opDouble(p1: tag(1) double?) -> (r1: tag(1) double?, r2: tag(2) double?);
+    opDouble(p1: tag(1) float64?) -> (r1: tag(1) float64?, r2: tag(2) float64?);
 
     opString(p1: tag(1) string?) -> (r1: tag(1) string?, r2: tag(2) string?);
 
@@ -103,7 +103,7 @@ interface OperationTagEncodedResult
 
 interface OperationTag
 {
-    opInt(p1: tag(0) int?) -> tag(1) int?;
+    opInt(p1: tag(0) int32?) -> tag(1) int32?;
 
     opVoid();
 }
@@ -111,13 +111,13 @@ interface OperationTag
 // An interface compatible with OperationTag except with fewer tags.
 interface OperationTagMinus
 {
-    opInt() -> tag(1) int?;
+    opInt() -> tag(1) int32?;
 }
 
 // An interface compatible with OperationTag except with more tags.
 interface OperationTagPlus
 {
-    opInt(p1: tag(0) int?, p2: tag(1) string?) -> (r1: tag(1) int?, r2: tag(2) string?);
+    opInt(p1: tag(0) int32?, p2: tag(1) string?) -> (r1: tag(1) int32?, r2: tag(2) string?);
 
     opVoid(p1: tag(1) string?) -> tag(1) string?;
 }

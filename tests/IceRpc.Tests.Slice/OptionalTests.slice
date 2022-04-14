@@ -4,25 +4,25 @@ module IceRpc::Tests::Slice;
 
 compact struct OneOptional
 {
-    a: int?,
+    a: int32?,
 }
 
 compact struct MultiOptional
 {
-    mByte: byte?,
+    mByte: uint8?,
     mBool: bool?,
-    mShort: short?,
-    mInt: int?,
-    mLong: long?,
-    mFloat: float?,
-    mDouble: double?,
-    mUShort: ushort?,
-    mUInt: uint?,
-    mULong: ulong?,
-    mVarInt: varint?,
-    mVarLong: varlong?,
-    mVarUInt: varuint?,
-    mVarULong: varulong?,
+    mShort: int16?,
+    mInt: int32?,
+    mLong: int64?,
+    mFloat: float32?,
+    mDouble: float64?,
+    mUShort: uint16?,
+    mUInt: uint32?,
+    mULong: uint64?,
+    mVarInt: varint32?,
+    mVarLong: varint62?,
+    mVarUInt: varuint32?,
+    mVarULong: varuint62?,
     mString: string?,
 
     mMyEnum: MyEnum?,
@@ -52,19 +52,19 @@ interface OptionalOperations
     pingPongOne(o: OneOptional?) -> OneOptional?;
     pingPongMulti(o: MultiOptional?) -> MultiOptional?;
 
-    opByte(p1: byte?) -> (r1: byte?, r2: byte?);
+    opByte(p1: uint8?) -> (r1: uint8?, r2: uint8?);
 
     opBool(p1: bool?) -> (r1: bool?, r2: bool?);
 
-    opShort(p1: short?) -> (r1: short?, r2: short?);
+    opShort(p1: int16?) -> (r1: int16?, r2: int16?);
 
-    opInt(p1: int?) -> (r1: int?, r2: int?);
+    opInt(p1: int32?) -> (r1: int32?, r2: int32?);
 
-    opLong(p1: long?) -> (r1: long?, r2: long?);
+    opLong(p1: int64?) -> (r1: int64?, r2: int64?);
 
-    opFloat(p1: float?) -> (r1: float?, r2: float?);
+    opFloat(p1: float32?) -> (r1: float32?, r2: float32?);
 
-    opDouble(p1: double?) -> (r1: double?, r2: double?);
+    opDouble(p1: float64?) -> (r1: float64?, r2: float64?);
 
     opString(p1: string?) -> (r1: string?, r2: string?);
 

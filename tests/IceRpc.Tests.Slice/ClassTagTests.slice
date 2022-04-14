@@ -6,21 +6,21 @@ module IceRpc::Tests::Slice;
 
 class OneTagged
 {
-    a: tag(1) int?,
+    a: tag(1) int32?,
 }
 
 class MultiTagged
 {
-    mByte: tag(1) byte?,
+    mByte: tag(1) uint8?,
     mBool: tag(2) bool?,
-    mShort: tag(3) short?,
-    mInt: tag(4) int?,
-    mLong: tag(5) long?,
-    mFloat: tag(6) float?,
-    mDouble: tag(7) double?,
+    mShort: tag(3) int16?,
+    mInt: tag(4) int32?,
+    mLong: tag(5) int64?,
+    mFloat: tag(6) float32?,
+    mDouble: tag(7) float64?,
     mString: tag(15) string?,
 
-// TODO: These types and 2.0 only. We should either delete these or create our own copy for this test.
+// TODO: These types are Slice2 only. We should either delete these or create our own copy for this test.
 //    mMyEnum: tag(20) MyEnum?,
 //    mMyCompactStruct: tag(21) MyCompactStruct?,
 //    mAnotherCompactStruct: tag(22) AnotherCompactStruct?,
@@ -42,17 +42,17 @@ class MultiTagged
 
 class A
 {
-    mInt1: int,
-    mInt2: tag(1) int?,
-    mInt3: tag(50) int?,
-    mInt4: tag(500) int?,
+    mInt1: int32,
+    mInt2: tag(1) int32?,
+    mInt3: tag(50) int32?,
+    mInt4: tag(500) int32?,
 }
 
 [preserve-slice]
 class B : A
 {
-    mInt5: int,
-    mInt6: tag(10) int?,
+    mInt5: int32,
+    mInt6: tag(10) int32?,
 }
 
 class C : B

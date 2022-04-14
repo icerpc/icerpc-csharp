@@ -35,5 +35,5 @@ class Recursive
 interface ClassGraphOperations
 {
     sendClassGraph(p1: Recursive);
-    receiveClassGraph(size: int) -> Recursive;
+    receiveClassGraph(size: int32) -> Recursive;
 }

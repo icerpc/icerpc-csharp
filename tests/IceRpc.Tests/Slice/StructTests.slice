@@ -1,0 +1,31 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc::Slice::Tests;
+
+struct MyStruct
+{
+    i: int32,
+    j: int32,
+}
+
+struct MyStructWithOptionalMembers
+{
+    i: int32,
+    j: int32,
+    k: int32?,
+    l: int32?
+}
+
+struct MyStructWithTaggedMembers
+{
+    i: int32,
+    j: int32,
+    k: tag(1) int32?,
+    l: tag(255) int32?
+}
+
+compact struct MyCompactStruct
+{
+    i: int32,
+    j: int32,
+}

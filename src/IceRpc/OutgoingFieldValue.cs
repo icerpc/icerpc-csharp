@@ -13,7 +13,7 @@ namespace IceRpc
         public ReadOnlySequence<byte> ByteSequence { get; }
 
         /// <summary>When not null, holds the value of this outgoing field.</summary>
-        /// <value>An encode action used to create a Slice 2.0 encoded field value when the fields are about to be sent.
+        /// <value>An encode action used to create a Slice2 encoded field value when the fields are about to be sent.
         /// </value>
         public EncodeAction? EncodeAction { get; }
 
@@ -37,7 +37,7 @@ namespace IceRpc
             if (encoder.Encoding == SliceEncoding.Slice1)
             {
                 throw new NotSupportedException(
-                    $"cannot encode am {nameof(OutgoingFieldValue)} using the 1.1 encoding");
+                    $"cannot encode am {nameof(OutgoingFieldValue)} using the Slice1");
             }
 
             if (EncodeAction is EncodeAction encodeAction)

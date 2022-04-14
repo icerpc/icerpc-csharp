@@ -31,6 +31,7 @@ use exception_visitor::ExceptionVisitor;
 use generated_code::GeneratedCode;
 use module_visitor::ModuleVisitor;
 use proxy_visitor::ProxyVisitor;
+use slice::error::Error;
 use slice::slice_file::SliceFile;
 use std::fs::File;
 use std::io;
@@ -45,11 +46,11 @@ use crate::code_block::CodeBlock;
 pub fn main() {
     std::process::exit(match try_main() {
         Ok(()) => 0,
-        Err(()) => 1,
+        Err(_) => 1,
     })
 }
 
-fn try_main() -> Result<(), ()> {
+fn try_main() -> Result<(), Error> {
     let options = CsOptions::from_args();
     let slice_options = &options.slice_options;
     let slice_files = slice::parse_from_options(slice_options)?;
