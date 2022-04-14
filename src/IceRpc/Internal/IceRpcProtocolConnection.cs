@@ -217,6 +217,22 @@ namespace IceRpc.Internal
                             exception);
                     }
 
+                    // Attempt to encode this exception. If the encoding fail, we encode a DispatchException.
+                    PipeReader responsePayload;
+                    try
+                    {
+                        responsePayload = CreateExceptionPayload(remoteException);
+                    }
+                    catch (Exception encodeException)
+                    {
+                        // This should be extremely rare. For example, a middleware throwing a Slice1-only remote
+                        // exception.
+                        responsePayload = CreateExceptionPayload(
+                            new DispatchException(
+                                message: null,
+                                DispatchErrorCode.UnhandledException,
+                                encodeException));
+                    }
                     response = new OutgoingResponse(request)
                     {
                         Payload = CreateExceptionPayload(remoteException),
@@ -238,6 +254,8 @@ namespace IceRpc.Internal
                         var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
                         Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
                         int startPos = encoder.EncodedByteCount;
+
+                        // EncodeTrait throws for a Slice1-only exception.
                         exception.EncodeTrait(ref encoder);
                         SliceEncoder.EncodeVarULong((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
                         pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
