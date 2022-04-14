@@ -2,6 +2,7 @@
 
 using IceRpc.Configure;
 using IceRpc.Slice.Internal;
+using IceRpc.Tests;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
@@ -30,10 +31,8 @@ public class OperationTests
     public async Task Slice2_operation_decode_with_single_parameter()
     {
         // Arrange
-        await using var connection = new Connection(new ConnectionOptions());
-        var request = new IncomingRequest(Protocol.IceRpc)
+        var request = new IncomingRequest(InvalidConnection.IceRpc)
         {
-            Connection = connection,
             Payload = Encode(10)
         };
 
@@ -71,10 +70,8 @@ public class OperationTests
     [Test]
     public async Task Slice2_operation_decode_with_single_return()
     {
-        await using var connection = new Connection(new ConnectionOptions());
-        var response = new IncomingResponse(new OutgoingRequest(new Proxy(Protocol.IceRpc)))
+        var response = new IncomingResponse(new OutgoingRequest(new Proxy(Protocol.IceRpc)), InvalidConnection.IceRpc)
         {
-            Connection = connection,
             Payload = Encode(10)
         };
 
@@ -111,10 +108,8 @@ public class OperationTests
     [Test]
     public async Task Slice2_operation_decode_with_multiple_parameters()
     {
-        await using var connection = new Connection(new ConnectionOptions());
-        var request = new IncomingRequest(Protocol.IceRpc)
+        var request = new IncomingRequest(InvalidConnection.IceRpc)
         {
-            Connection = connection,
             Payload = Encode(10, "hello world!")
         };
 
@@ -155,10 +150,8 @@ public class OperationTests
     [Test]
     public async Task Slice2_operation_decode_with_multiple_return()
     {
-        await using var connection = new Connection(new ConnectionOptions());
-        var response = new IncomingResponse(new OutgoingRequest(new Proxy(Protocol.IceRpc)))
+        var response = new IncomingResponse(new OutgoingRequest(new Proxy(Protocol.IceRpc)), InvalidConnection.IceRpc)
         {
-            Connection = connection,
             Payload = Encode(10, "hello world!")
         };
 
@@ -230,10 +223,8 @@ public class OperationTests
     {
         const int p1 = 10;
         const string p2 = "hello world!";
-        await using var connection = new Connection(new ConnectionOptions());
-        var request = new IncomingRequest(Protocol.IceRpc)
+        var request = new IncomingRequest(InvalidConnection.IceRpc)
         {
-            Connection = connection,
             Payload = Encode(p1, p2, p3, p4)
         };
 
@@ -320,10 +311,8 @@ public class OperationTests
     {
         const int p1 = 10;
         const string p2 = "hello world!";
-        await using var connection = new Connection(new ConnectionOptions());
-        var response = new IncomingResponse(new OutgoingRequest(new Proxy(Protocol.IceRpc)))
+        var response = new IncomingResponse(new OutgoingRequest(new Proxy(Protocol.IceRpc)), InvalidConnection.IceRpc)
         {
-            Connection = connection,
             Payload = Encode(p1, p2, p3, p4)
         };
 
@@ -410,10 +399,8 @@ public class OperationTests
     {
         const int p1 = 10;
         const string p2 = "hello world!";
-        await using var connection = new Connection(new ConnectionOptions());
-        var request = new IncomingRequest(Protocol.IceRpc)
+        var request = new IncomingRequest(InvalidConnection.IceRpc)
         {
-            Connection = connection,
             Payload = Encode(p1, p2, p3, p4)
         };
 
@@ -507,10 +494,8 @@ public class OperationTests
     {
         const int p1 = 10;
         const string p2 = "hello world!";
-        await using var connection = new Connection(new ConnectionOptions());
-        var response = new IncomingResponse(new OutgoingRequest(new Proxy(Protocol.IceRpc)))
+        var response = new IncomingResponse(new OutgoingRequest(new Proxy(Protocol.IceRpc)), InvalidConnection.IceRpc)
         {
-            Connection = connection,
             Payload = Encode(p1, p2, p3, p4)
         };
 
