@@ -19,10 +19,11 @@ public class OperationTests
 
         // Assert
         Assert.That(payload.TryRead(out var readResult));
-        Assert.That(readResult.Buffer.Length, Is.EqualTo(8));
+        Assert.That(readResult.IsCompleted, Is.True);
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
-        Assert.That(decoder.DecodeVarULong(), Is.EqualTo(4));
+        Assert.That(decoder.DecodeSize(), Is.EqualTo(4));
         Assert.That(decoder.DecodeInt(), Is.EqualTo(10));
+        Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
     }
 
     [Test]
@@ -46,10 +47,8 @@ public class OperationTests
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
-
-            Span<byte> sizePlaceHolder = encoder.GetPlaceholderSpan(4);
+            encoder.EncodeSize(4);
             encoder.EncodeInt(value);
-            SliceEncoder.EncodeVarULong(4, sizePlaceHolder);
             return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.WrittenMemory));
         }
     }
@@ -62,10 +61,11 @@ public class OperationTests
 
         // Assert
         Assert.That(payload.TryRead(out var readResult));
-        Assert.That(readResult.Buffer.Length, Is.EqualTo(8));
+        Assert.That(readResult.IsCompleted, Is.True);
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
-        Assert.That(decoder.DecodeVarULong(), Is.EqualTo(4));
+        Assert.That(decoder.DecodeSize(), Is.EqualTo(4));
         Assert.That(decoder.DecodeInt(), Is.EqualTo(10));
+        Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
     }
 
     [Test]
@@ -86,10 +86,8 @@ public class OperationTests
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
-
-            Span<byte> sizePlaceHolder = encoder.GetPlaceholderSpan(4);
+            encoder.EncodeSize(4);
             encoder.EncodeInt(value);
-            SliceEncoder.EncodeVarULong(4, sizePlaceHolder);
             return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.WrittenMemory));
         }
     }
@@ -100,14 +98,14 @@ public class OperationTests
         var payload = MyOperationsPrx.Request.OpIntAndString(10, "hello world!");
 
         // Assert
-        // readResult: 17 bytes payload + 4 bytes payload size
         // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents)
         Assert.That(payload.TryRead(out var readResult));
-        Assert.That(readResult.Buffer.Length, Is.EqualTo(21));
+        Assert.That(readResult.IsCompleted, Is.True);
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
-        Assert.That(decoder.DecodeVarULong(), Is.EqualTo(17));
+        Assert.That(decoder.DecodeSize(), Is.EqualTo(17));
         Assert.That(decoder.DecodeInt(), Is.EqualTo(10));
         Assert.That(decoder.DecodeString(), Is.EqualTo("hello world!"));
+        Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
     }
 
     [Test]
@@ -129,12 +127,10 @@ public class OperationTests
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
-
-            Span<byte> sizePlaceHolder = encoder.GetPlaceholderSpan(4);
+            // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents)
+            encoder.EncodeSize(17);
             encoder.EncodeInt(value1);
             encoder.EncodeString(value2);
-            // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents)
-            SliceEncoder.EncodeVarULong(17, sizePlaceHolder);
             return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.WrittenMemory));
         }
     }
@@ -148,11 +144,12 @@ public class OperationTests
         // readResult: 17 bytes payload + 4 bytes payload size
         // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents)
         Assert.That(payload.TryRead(out var readResult));
-        Assert.That(readResult.Buffer.Length, Is.EqualTo(21));
+        Assert.That(readResult.IsCompleted, Is.True);
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
-        Assert.That(decoder.DecodeVarULong(), Is.EqualTo(17));
+        Assert.That(decoder.DecodeSize(), Is.EqualTo(17));
         Assert.That(decoder.DecodeInt(), Is.EqualTo(10));
         Assert.That(decoder.DecodeString(), Is.EqualTo("hello world!"));
+        Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
     }
 
     [Test]
@@ -174,12 +171,10 @@ public class OperationTests
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
-
-            Span<byte> sizePlaceHolder = encoder.GetPlaceholderSpan(4);
+            // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents)
+            encoder.EncodeSize(17);
             encoder.EncodeInt(value1);
             encoder.EncodeString(value2);
-            // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents)
-            SliceEncoder.EncodeVarULong(17, sizePlaceHolder);
             return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.WrittenMemory));
         }
     }
@@ -200,9 +195,9 @@ public class OperationTests
         // (optional int 0|4 bytes) + (optional string 0|13 bytes)
         int size = 1 + 4 + 13 + (p3 == null ? 0 : 4) + (p4 == null ? 0 : 13);
         Assert.That(payload.TryRead(out var readResult));
-        Assert.That(readResult.Buffer.Length, Is.EqualTo(size + 4));
+        Assert.That(readResult.IsCompleted, Is.True);
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
-        Assert.That(decoder.DecodeVarULong(), Is.EqualTo(size));
+        Assert.That(decoder.DecodeSize(), Is.EqualTo(size));
         var bitSequence = decoder.GetBitSequenceReader(2);
         Assert.That(decoder.DecodeInt(), Is.EqualTo(10));
         Assert.That(decoder.DecodeString(), Is.EqualTo("hello world!"));
@@ -225,6 +220,7 @@ public class OperationTests
         {
             Assert.That(bitSequence.Read(), Is.False);
         }
+        Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
     }
 
     [Test]
@@ -253,7 +249,10 @@ public class OperationTests
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
 
-            Span<byte> sizePlaceHolder = encoder.GetPlaceholderSpan(4);
+            // payload: (bitsequence 1 byte) (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
+            // (optional int 0|4 bytes) + (optional string 0|13 bytes)
+            int size = 1 + 4 + 13 + (p3 == null ? 0 : 4) + (p4 == null ? 0 : 13);
+            encoder.EncodeSize(size);
             var bitSequenceWriter = encoder.GetBitSequenceWriter(2);
             encoder.EncodeInt(p1);
             encoder.EncodeString(p2);
@@ -262,16 +261,11 @@ public class OperationTests
             {
                 encoder.EncodeInt(p3.Value);
             }
-
             bitSequenceWriter.Write(p4 != null);
             if (p4 != null)
             {
                 encoder.EncodeString(p4);
             }
-            // payload: (bitsequence 1 byte) (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
-            // (optional int 0|4 bytes) + (optional string 0|13 bytes)
-            int size = 1 + 4 + 13 + (p3 == null ? 0 : 4) + (p4 == null ? 0 : 13);
-            SliceEncoder.EncodeVarULong((ulong)size, sizePlaceHolder);
             return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.WrittenMemory));
         }
     }
@@ -287,14 +281,13 @@ public class OperationTests
         PipeReader payload = IMyOperations.Response.OpOptional(p1, p2, p3, p4);
 
         // Assert
-        // readResult: size + 4 bytes payload size
         // payload: (bitsequence 1 byte) (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
         // (optional int 0|4 bytes) + (optional string 0|13 bytes)
         int size = 1 + 4 + 13 + (p3 == null ? 0 : 4) + (p4 == null ? 0 : 13);
         Assert.That(payload.TryRead(out var readResult));
-        Assert.That(readResult.Buffer.Length, Is.EqualTo(size + 4));
+        Assert.That(readResult.IsCompleted, Is.True);
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
-        Assert.That(decoder.DecodeVarULong(), Is.EqualTo(size));
+        Assert.That(decoder.DecodeSize(), Is.EqualTo(size));
         var bitSequence = decoder.GetBitSequenceReader(2);
         Assert.That(decoder.DecodeInt(), Is.EqualTo(10));
         Assert.That(decoder.DecodeString(), Is.EqualTo("hello world!"));
@@ -317,6 +310,7 @@ public class OperationTests
         {
             Assert.That(bitSequence.Read(), Is.False);
         }
+        Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
     }
 
     [Test]
@@ -344,8 +338,10 @@ public class OperationTests
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
-
-            Span<byte> sizePlaceHolder = encoder.GetPlaceholderSpan(4);
+            // payload: (bitsequence 1 byte) (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
+            // (optional int 0|4 bytes) + (optional string 0|13 bytes)
+            int size = 1 + 4 + 13 + (p3 == null ? 0 : 4) + (p4 == null ? 0 : 13);
+            encoder.EncodeSize(size);
             var bitSequenceWriter = encoder.GetBitSequenceWriter(2);
             encoder.EncodeInt(p1);
             encoder.EncodeString(p2);
@@ -354,16 +350,11 @@ public class OperationTests
             {
                 encoder.EncodeInt(p3.Value);
             }
-
             bitSequenceWriter.Write(p4 != null);
             if (p4 != null)
             {
                 encoder.EncodeString(p4);
             }
-            // payload: (bitsequence 1 byte) (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
-            // (optional int 0|4 bytes) + (optional string 0|13 bytes)
-            int size = 1 + 4 + 13 + (p3 == null ? 0 : 4) + (p4 == null ? 0 : 13);
-            SliceEncoder.EncodeVarULong((ulong)size, sizePlaceHolder);
             return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.WrittenMemory));
         }
     }
@@ -385,9 +376,9 @@ public class OperationTests
         // (tagged string 0 |  tag 1 byte, size 4 byte, string 13 bytes)
         int size = 4 + 13 + (p3 == null ? 0 : 6) + (p4 == null ? 0 : 18);
         Assert.That(payload.TryRead(out var readResult));
-        Assert.That(readResult.Buffer.Length, Is.EqualTo(size + 4));
+        Assert.That(readResult.IsCompleted, Is.True);
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
-        Assert.That(decoder.DecodeVarULong(), Is.EqualTo(size));
+        Assert.That(decoder.DecodeSize(), Is.EqualTo(size));
         Assert.That(decoder.DecodeInt(), Is.EqualTo(p1));
         Assert.That(decoder.DecodeString(), Is.EqualTo(p2));
         if (p3 != null)
@@ -409,6 +400,7 @@ public class OperationTests
                     (ref SliceDecoder decoder) => decoder.DecodeString()),
                 Is.EqualTo(p4));
         }
+        Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
     }
 
     [Test]
@@ -437,7 +429,11 @@ public class OperationTests
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
 
-            Span<byte> sizePlaceHolder = encoder.GetPlaceholderSpan(4);
+            // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
+            // (tagged int 0 | tag 1 byte, size 1 byte, int 4 bytes) +
+            // (tagged string 0 |  tag 1 byte, size 4 byte, string 13 bytes)
+            int size = 4 + 13 + (p3 == null ? 0 : 6) + (p4 == null ? 0 : 18);
+            encoder.EncodeSize(size);
             encoder.EncodeInt(p1);
             encoder.EncodeString(p2);
             if (p3 != null)
@@ -449,7 +445,6 @@ public class OperationTests
                     p3.Value,
                     (ref SliceEncoder encoder, int value) => encoder.EncodeInt(value));
             }
-
             if (p4 != null)
             {
                 encoder.EncodeTagged(
@@ -458,11 +453,6 @@ public class OperationTests
                     p4,
                     (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
             }
-            // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
-            // (tagged int 0 | tag 1 byte, size 1 byte, int 4 bytes) +
-            // (tagged string 0 |  tag 1 byte, size 4 byte, string 13 bytes)
-            int size = 4 + 13 + (p3 == null ? 0 : 6) + (p4 == null ? 0 : 18);
-            SliceEncoder.EncodeVarULong((ulong)size, sizePlaceHolder);
             return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.WrittenMemory));
         }
     }
@@ -484,9 +474,9 @@ public class OperationTests
         // (tagged string 0 |  tag 1 byte, size 4 byte, string 13 bytes)
         int size = 4 + 13 + (p3 == null ? 0 : 6) + (p4 == null ? 0 : 18);
         Assert.That(payload.TryRead(out var readResult));
-        Assert.That(readResult.Buffer.Length, Is.EqualTo(size + 4));
+        Assert.That(readResult.IsCompleted, Is.True);
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
-        Assert.That(decoder.DecodeVarULong(), Is.EqualTo(size));
+        Assert.That(decoder.DecodeSize(), Is.EqualTo(size));
         Assert.That(decoder.DecodeInt(), Is.EqualTo(p1));
         Assert.That(decoder.DecodeString(), Is.EqualTo(p2));
         if (p3 != null)
@@ -498,7 +488,6 @@ public class OperationTests
                     (ref SliceDecoder decoder) => decoder.DecodeInt()),
                 Is.EqualTo(p3));
         }
-
         if (p4 != null)
         {
             Assert.That(
@@ -508,6 +497,7 @@ public class OperationTests
                     (ref SliceDecoder decoder) => decoder.DecodeString()),
                 Is.EqualTo(p4));
         }
+        Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
     }
 
     [Test]
@@ -535,8 +525,11 @@ public class OperationTests
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
-
-            Span<byte> sizePlaceHolder = encoder.GetPlaceholderSpan(4);
+            // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
+            // (tagged int 0 | tag 1 byte, size 1 byte, int 4 bytes) +
+            // (tagged string 0 |  tag 1 byte, size 4 byte, string 13 bytes)
+            int size = 4 + 13 + (p3 == null ? 0 : 6) + (p4 == null ? 0 : 18);
+            encoder.EncodeSize(size);
             encoder.EncodeInt(p1);
             encoder.EncodeString(p2);
             if (p3 != null)
@@ -557,11 +550,6 @@ public class OperationTests
                     p4,
                     (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
             }
-            // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
-            // (tagged int 0 | tag 1 byte, size 1 byte, int 4 bytes) +
-            // (tagged string 0 |  tag 1 byte, size 4 byte, string 13 bytes)
-            int size = 4 + 13 + (p3 == null ? 0 : 6) + (p4 == null ? 0 : 18);
-            SliceEncoder.EncodeVarULong((ulong)size, sizePlaceHolder);
             return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.WrittenMemory));
         }
     }
