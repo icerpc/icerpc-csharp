@@ -6,6 +6,7 @@ using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Collections.Immutable;
+using System.Net;
 
 namespace IceRpc.Tests.ClientServer
 {
@@ -125,7 +126,7 @@ namespace IceRpc.Tests.ClientServer
             public ValueTask<ProtocolBridgingTestPrx> OpNewProxyAsync(Dispatch dispatch, CancellationToken cancel)
             {
                 var proxy = new Proxy(dispatch.Protocol) { Path = dispatch.Path };
-                proxy.Endpoint = dispatch.Connection.NetworkConnectionInformation?.LocalEndpoint;
+                proxy.Endpoint = dispatch.Connection.Endpoint; 
                 return new(new ProtocolBridgingTestPrx(proxy));
             }
 

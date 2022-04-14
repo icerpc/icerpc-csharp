@@ -51,7 +51,7 @@ public sealed class ConnectionPoolTests
 
         // Assert
         Assert.That(connection1.State, Is.EqualTo(ConnectionState.Active));
-        Assert.That(connection1.RemoteEndpoint, Is.EqualTo(server1.Endpoint));
+        Assert.That(connection1.Endpoint, Is.EqualTo(server1.Endpoint));
         Assert.That(connection1, Is.Not.EqualTo(connection2));
         Assert.That(server1.Endpoint, Is.Not.EqualTo(server2.Endpoint));
     }
@@ -86,7 +86,7 @@ public sealed class ConnectionPoolTests
 
         // Assert
         Assert.That(connection.State, Is.EqualTo(ConnectionState.Active));
-        Assert.That(connection.RemoteEndpoint, Is.EqualTo(server.Endpoint));
+        Assert.That(connection.Endpoint, Is.EqualTo(server.Endpoint));
     }
 
     /// <summary>Verifies that the connection pool prefers connecting to the main endpoint.</summary>
@@ -125,7 +125,7 @@ public sealed class ConnectionPoolTests
 
         // Assert
         Assert.That(connection.State, Is.EqualTo(ConnectionState.Active));
-        Assert.That(connection.RemoteEndpoint, Is.EqualTo(server1.Endpoint));
+        Assert.That(connection.Endpoint, Is.EqualTo(server1.Endpoint));
     }
 
     /// <summary>Verifies that the connection pool reuses existing connection.</summary>
@@ -208,7 +208,7 @@ public sealed class ConnectionPoolTests
 
         // Assert
         Assert.That(connection2.State, Is.EqualTo(ConnectionState.Active));
-        Assert.That(connection2.RemoteEndpoint, Is.EqualTo(server2.Endpoint));
+        Assert.That(connection2.Endpoint, Is.EqualTo(server2.Endpoint));
         Assert.That(connection2, Is.EqualTo(connection1));
         Assert.That(server1.Endpoint, Is.Not.EqualTo(server2.Endpoint));
     }

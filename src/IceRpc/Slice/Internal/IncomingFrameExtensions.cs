@@ -178,7 +178,15 @@ namespace IceRpc.Slice.Internal
             IInvoker defaultInvoker,
             DecodeFunc<T> decodeFunc)
         {
-            Func<ReadOnlySequence<byte>, IEnumerable<T>> decodeBufferFunc = buffer =>
+            var streamDecoder = new StreamDecoder<T>(DecodeBufferFunc, decodePayloadOptions.StreamDecoderOptions);
+
+            _ = Task.Run(() => FillWriterAsync(), CancellationToken.None);
+
+            // when CancelPendingRead is called on reader, ReadSegmentAsync returns a ReadResult with IsCanceled
+            // set to true.
+            return streamDecoder.ReadAsync(() => frame.Payload.CancelPendingRead());
+
+            IEnumerable<T> DecodeBufferFunc(ReadOnlySequence<byte> buffer)
             {
                 var decoder = new SliceDecoder(
                     buffer,
@@ -196,15 +204,7 @@ namespace IceRpc.Slice.Internal
                 while (decoder.Consumed < buffer.Length);
 
                 return items;
-            };
-
-            var streamDecoder = new StreamDecoder<T>(decodeBufferFunc, decodePayloadOptions.StreamDecoderOptions);
-
-            _ = Task.Run(() => FillWriterAsync(), CancellationToken.None);
-
-            // when CancelPendingRead is called on reader, ReadSegmentAsync returns a ReadResult with IsCanceled
-            // set to true.
-            return streamDecoder.ReadAsync(() => frame.Payload.CancelPendingRead());
+            }
 
             async Task FillWriterAsync()
             {

@@ -40,7 +40,7 @@ namespace IceRpc.Transports.Internal
                 throw;
             }
 
-            Logger.LogConnect(Information.Value.LocalEndpoint, Information.Value.RemoteEndpoint);
+            Logger.LogConnect(Information.Value.LocalEndPoint, Information.Value.RemoteEndPoint);
             return Information.Value;
         }
 

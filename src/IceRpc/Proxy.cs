@@ -62,7 +62,7 @@ namespace IceRpc
             set
             {
                 CheckSupportedProtocol(nameof(Connection));
-                if (value?.Protocol is Protocol newProtocol && newProtocol != Protocol)
+                if (value?.Endpoint.Protocol is Protocol newProtocol && newProtocol != Protocol)
                 {
                     throw new ArgumentException("cannot change the protocol of a proxy", nameof(Connection));
                 }
@@ -211,16 +211,14 @@ namespace IceRpc
         private string _path = "/";
 
         /// <summary>Creates a proxy from a connection and a path.</summary>
-        /// <param name="connection">The connection of the new proxy. If it's a client connection, the endpoint of the
-        /// new proxy is <see cref="Connection.RemoteEndpoint"/>; otherwise, the new proxy has no endpoint.</param>
+        /// <param name="connection">The connection of the new proxy.</param>
         /// <param name="path">The path of the proxy.</param>
         /// <param name="invoker">The invoker of the new proxy.</param>
         /// <returns>The new proxy.</returns>
         public static Proxy FromConnection(Connection connection, string path, IInvoker? invoker = null) =>
-            new(connection.Protocol)
+            new(connection.Endpoint.Protocol)
             {
                 Path = path,
-                Endpoint = connection.IsServer ? (Endpoint?)null : connection.RemoteEndpoint,
                 Connection = connection,
                 Invoker = invoker ?? DefaultInvoker
             };

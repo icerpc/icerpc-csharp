@@ -209,7 +209,7 @@ namespace IceRpc.Tests.SliceInternal
             // an interceptor (client side).
 
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-                .UseProtocol(_serviceProvider.GetRequiredService<Connection>().Protocol.Name)
+                .UseProtocol(_serviceProvider.GetRequiredService<Connection>().Endpoint.Protocol.Name)
                 .AddTransient<IDispatcher>(_ =>
                 {
                     var router = new Router();
