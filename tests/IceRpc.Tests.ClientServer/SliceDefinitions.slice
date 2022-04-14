@@ -10,5 +10,5 @@ interface Greeter
 interface StressTest
 {
     opSendByteSeq(data: sequence<uint8>);
-    opReceiveByteSeq(size: int) -> sequence<uint8>;
+    opReceiveByteSeq(size: int32) -> sequence<uint8>;
 }

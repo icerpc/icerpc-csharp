@@ -31,7 +31,7 @@ compact struct IcePrologue
     encodingMinor: uint8,
     frameType: IceFrameType,
     compressionStatus: uint8,
-    frameSize: int
+    frameSize: int32
 }
 
 /// Determines the retry behavior an invocation in case of a (potentially) recoverable error. OperationMode is
@@ -58,7 +58,7 @@ enum OperationMode
 [cs:readonly]
 compact struct EncapsulationHeader
 {
-    encapsulationSize: int,
+    encapsulationSize: int32,
     payloadEncodingMajor: uint8,
     payloadEncodingMinor: uint8,
 }

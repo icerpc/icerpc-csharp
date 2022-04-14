@@ -9,15 +9,15 @@ exception RetrySystemFailure
 interface RetryBidirTest
 {
     otherReplica();
-    afterDelay(n: int);
+    afterDelay(n: int32);
 }
 
 interface RetryTest
 {
-    idempotent opIdempotent(failedAttempts: int, killConnection: bool);
-    opNotIdempotent(failedAttempts: int, killConnection: bool);
-    opWithData(failedAttempts: int, delay: int, data: sequence<uint8>); // TODO rename this parameter to 'retryData'.
-    opRetryAfterDelay(failedAttempts: int, delay: int);
+    idempotent opIdempotent(failedAttempts: int32, killConnection: bool);
+    opNotIdempotent(failedAttempts: int32, killConnection: bool);
+    opWithData(failedAttempts: int32, delay: int32, data: sequence<uint8>); // TODO rename this parameter to 'retryData'.
+    opRetryAfterDelay(failedAttempts: int32, delay: int32);
     opRetryNo();
 }
 

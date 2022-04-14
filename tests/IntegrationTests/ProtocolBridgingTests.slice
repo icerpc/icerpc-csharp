@@ -4,17 +4,17 @@ module IceRpc::Tests::ClientServer;
 
 exception ProtocolBridgingException
 {
-    number: int,
+    number: int32,
 }
 
 interface ProtocolBridgingTest
 {
     // Simple operations
-    op(x: int) -> int;
+    op(x: int32) -> int32;
     opVoid();
 
     // Oneway operation
-    [oneway] opOneway(x: int);
+    [oneway] opOneway(x: int32);
 
     // Operation that throws remote exception
     opException();

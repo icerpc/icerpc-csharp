@@ -6,15 +6,15 @@ interface StreamParamOperations
 {
     opStreamByteReceive0() -> stream uint8;
     opStreamByteReceive1() -> (r1 uint8, r2: stream uint8);
-    opStreamByteReceive2() -> (r1 uint8, r2: int, r3: stream uint8);
+    opStreamByteReceive2() -> (r1 uint8, r2: int32, r3: stream uint8);
 
     opStreamByteSend0(p1: stream uint8);
     opStreamByteSend1(p1 uint8, p2: stream uint8);
-    opStreamByteSend2(p1 uint8, p2: int, p3: stream uint8);
+    opStreamByteSend2(p1 uint8, p2: int32, p3: stream uint8);
 
     opStreamByteSendReceive0(p1: stream uint8) -> stream uint8;
     opStreamByteSendReceive1(p1 uint8, p2: stream uint8) -> (r1 uint8, r2: stream uint8);
-    opStreamByteSendReceive2(p1 uint8, p2: int, p3: stream uint8) -> (r1 uint8, r2: int, r3: stream uint8);
+    opStreamByteSendReceive2(p1 uint8, p2: int32, p3: stream uint8) -> (r1 uint8, r2: int32, r3: stream uint8);
 
     opStreamMyStructReceive0() -> stream MyStruct;
     opStreamMyStructReceive1() -> (r1: MyStruct, r2: stream MyStruct);

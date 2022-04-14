@@ -7,13 +7,13 @@ module IceRpc::Tests::Slice;
 compact struct TaggedExceptionStruct
 {
     s: string,
-    v: int,
+    v: int32,
 }
 
 exception TaggedException
 {
     mStruct: tag(50) TaggedExceptionStruct?,
-    mInt: tag(1) int?,
+    mInt: tag(1) int32?,
     mBool: bool,
     mString: tag(2) string?,
 }
@@ -22,7 +22,7 @@ exception TaggedExceptionPlus
 {
     mFloat: tag(3) float?,
     mStruct: tag(50) TaggedExceptionStruct?,
-    mInt: tag(1) int?,
+    mInt: tag(1) int32?,
     mBool: bool,
     mString: tag(2) string?,
 }
@@ -50,9 +50,9 @@ interface ExceptionTag
 {
     opTaggedException(p1: TaggedException) -> TaggedException;
 
-    ThrowTaggedException(p1: tag(1) int?, p2: tag(2) string?, p3: tag(3) TaggedExceptionStruct?);
+    ThrowTaggedException(p1: tag(1) int32?, p2: tag(2) string?, p3: tag(3) TaggedExceptionStruct?);
 
-    ThrowDerivedException(p1: tag(1) int?, p2: tag(2) string?, p3: tag(3) TaggedExceptionStruct?);
+    ThrowDerivedException(p1: tag(1) int32?, p2: tag(2) string?, p3: tag(3) TaggedExceptionStruct?);
 
-    ThrowRequiredException(p1: tag(1) int?, p2: tag(2) string?, p3: tag(3) TaggedExceptionStruct?);
+    ThrowRequiredException(p1: tag(1) int32?, p2: tag(2) string?, p3: tag(3) TaggedExceptionStruct?);
 }

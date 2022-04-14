@@ -9,13 +9,13 @@ module WithNamespace
     {
         compact struct S1
         {
-            i: int,
+            i: int32,
         }
     }
 
     class C1
     {
-        i: int,
+        i: int32,
     }
 
     class C2 : C1
@@ -25,7 +25,7 @@ module WithNamespace
 
     exception E1
     {
-        i: int,
+        i: int32,
     }
 
     exception E2 : E1
@@ -42,7 +42,7 @@ module M0
     {
         compact struct S2
         {
-            i: int,
+            i: int32,
         }
     }
 }

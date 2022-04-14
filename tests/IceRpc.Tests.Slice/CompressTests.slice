@@ -9,12 +9,12 @@ exception CompressMyException
 
 interface CompressTest
 {
-    [compress(args)] opCompressArgs(size: int, p1: sequence<uint8>);
-    [compress(return)] opCompressReturn(size: int) -> sequence<uint8>;
+    [compress(args)] opCompressArgs(size: int32, p1: sequence<uint8>);
+    [compress(return)] opCompressReturn(size: int32) -> sequence<uint8>;
     [compress(args, return)] opCompressArgsAndReturn(p1: sequence<uint8>) -> sequence<uint8>;
-    [compress(args, return)] opWithUserException(size: int);
+    [compress(args, return)] opWithUserException(size: int32);
 
-    [compress(args)] opCompressStreamArg(p1: stream uint8) -> int;
-    [compress(return)] opCompressReturnStream(size: int) -> stream uint8;
+    [compress(args)] opCompressStreamArg(p1: stream uint8) -> int32;
+    [compress(return)] opCompressReturnStream(size: int32) -> stream uint8;
     [compress(args, return)] opCompressStreamArgAndReturnStream(p1: stream uint8) -> stream uint8;
 }

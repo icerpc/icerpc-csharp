@@ -4,7 +4,7 @@ module IceRpc::Tests::Slice;
 
 compact struct OneOptional
 {
-    a: int?,
+    a: int32?,
 }
 
 compact struct MultiOptional
@@ -12,16 +12,16 @@ compact struct MultiOptional
     mByte: uint8?,
     mBool: bool?,
     mShort: int16?,
-    mInt: int?,
+    mInt: int32?,
     mLong: long?,
     mFloat: float?,
     mDouble: double?,
     mUShort: uint16?,
-    mUInt: uint?,
+    mUInt: uint32?,
     mULong: ulong?,
-    mVarInt: varint?,
+    mVarInt: varint32?,
     mVarLong: varlong?,
-    mVarUInt: varuint?,
+    mVarUInt: varuint32?,
     mVarULong: varulong?,
     mString: string?,
 
@@ -58,7 +58,7 @@ interface OptionalOperations
 
     opShort(p1: int16?) -> (r1: int16?, r2: int16?);
 
-    opInt(p1: int?) -> (r1: int?, r2: int?);
+    opInt(p1: int32?) -> (r1: int32?, r2: int32?);
 
     opLong(p1: long?) -> (r1: long?, r2: long?);
 

@@ -4,8 +4,8 @@ module IceRpc::Tests::Slice;
 
 compact struct MyCompactStruct
 {
-    i: int,
-    j: int,
+    i: int32,
+    j: int32,
 }
 
 compact struct AnotherCompactStruct
