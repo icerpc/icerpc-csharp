@@ -21,7 +21,8 @@ namespace IceRpc
 
         /// <summary>Constructs an incoming response.</summary>
         /// <param name="request">The corresponding outgoing request.</param>
-        public IncomingResponse(OutgoingRequest request)
-            : base(request.Protocol) => Request = request;
+        /// <param name="connection">The connection that received the response.</param>
+        public IncomingResponse(OutgoingRequest request, Connection connection)
+            : base(connection) => Request = request;
     }
 }
