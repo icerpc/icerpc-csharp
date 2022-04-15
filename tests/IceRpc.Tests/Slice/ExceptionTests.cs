@@ -10,6 +10,26 @@ namespace IceRpc.Slice.Encoding.Tests;
 [Parallelizable(ParallelScope.All)]
 public sealed class ExceptionTests
 {
+    public static IEnumerable<TestCaseData> Slice1OperationThrowsSource
+    {
+        get
+        {
+            yield return new TestCaseData(new InvalidDataException("invalid data"), DispatchErrorCode.InvalidData);
+            yield return new TestCaseData(new MyExceptionWithOptionalMembers(), DispatchErrorCode.UnhandledException);
+            yield return new TestCaseData(new InvalidOperationException(), DispatchErrorCode.UnhandledException);
+        }
+    }
+
+    public static IEnumerable<TestCaseData> Slice2OperationThrowsSource
+    {
+        get
+        {
+            yield return new TestCaseData(new InvalidDataException("invalid data"), DispatchErrorCode.InvalidData);
+            yield return new TestCaseData(new MyDerivedException(), DispatchErrorCode.UnhandledException);
+            yield return new TestCaseData(new InvalidOperationException(), DispatchErrorCode.UnhandledException);
+        }
+    }
+
     [Test]
     public void Decode_slice1_derived_exception()
     {
@@ -17,13 +37,13 @@ public sealed class ExceptionTests
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
 
         encoder.StartSlice(MyDerivedException.SliceTypeId);
-        encoder.EncodeInt(30);
-        encoder.EncodeInt(40);
+        encoder.EncodeInt32(30);
+        encoder.EncodeInt32(40);
         encoder.EndSlice(lastSlice: false);
 
         encoder.StartSlice(MyException.SliceTypeId);
-        encoder.EncodeInt(10);
-        encoder.EncodeInt(20);
+        encoder.EncodeInt32(10);
+        encoder.EncodeInt32(20);
         encoder.EndSlice(lastSlice: true);
 
         var decoder = new SliceDecoder(
@@ -47,8 +67,8 @@ public sealed class ExceptionTests
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
         encoder.StartSlice(MyException.SliceTypeId);
-        encoder.EncodeInt(10);
-        encoder.EncodeInt(20);
+        encoder.EncodeInt32(10);
+        encoder.EncodeInt32(20);
         if (taggedValue != null)
         {
             // Ensure that a tagged value not declared in the Slice definition is correctly skip
@@ -57,7 +77,7 @@ public sealed class ExceptionTests
                 TagFormat.F4,
                 size: 4,
                 taggedValue.Value,
-                (ref SliceEncoder encoder, int value) => encoder.EncodeInt(value));
+                (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
         }
         encoder.EndSlice(lastSlice: true);
         var decoder = new SliceDecoder(
@@ -81,8 +101,8 @@ public sealed class ExceptionTests
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
         encoder.StartSlice(MyExceptionWithTaggedMembers.SliceTypeId);
-        encoder.EncodeInt(10);
-        encoder.EncodeInt(20);
+        encoder.EncodeInt32(10);
+        encoder.EncodeInt32(20);
         if (k != null)
         {
             encoder.EncodeTagged(
@@ -90,7 +110,7 @@ public sealed class ExceptionTests
                 TagFormat.F4,
                 size: 4,
                 k.Value,
-                (ref SliceEncoder encoder, int value) => encoder.EncodeInt(value));
+                (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
         }
         if (l != null)
         {
@@ -99,7 +119,7 @@ public sealed class ExceptionTests
                 TagFormat.F4,
                 size: 4,
                 l.Value,
-                (ref SliceEncoder encoder, int value) => encoder.EncodeInt(value));
+                (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
         }
         encoder.EndSlice(lastSlice: true);
         var decoder = new SliceDecoder(
@@ -123,8 +143,8 @@ public sealed class ExceptionTests
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         encoder.EncodeString("my custom exception");
-        encoder.EncodeInt(10);
-        encoder.EncodeInt(20);
+        encoder.EncodeInt32(10);
+        encoder.EncodeInt32(20);
         if (taggedValue != null)
         {
             // Ensure that a tagged value not declared in the Slice definition is correctly skipped
@@ -133,9 +153,9 @@ public sealed class ExceptionTests
                 TagFormat.F4,
                 size: 4,
                 taggedValue.Value,
-                (ref SliceEncoder encoder, int value) => encoder.EncodeInt(value));
+                (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
         }
-        encoder.EncodeVarInt(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
         var value = new MyException(ref decoder);
@@ -154,19 +174,19 @@ public sealed class ExceptionTests
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         encoder.EncodeString("my exception with tagged members");
         var bitSequenceWriter = encoder.GetBitSequenceWriter(2);
-        encoder.EncodeInt(10);
-        encoder.EncodeInt(20);
+        encoder.EncodeInt32(10);
+        encoder.EncodeInt32(20);
         bitSequenceWriter.Write(k != null);
         if (k != null)
         {
-            encoder.EncodeInt(k.Value);
+            encoder.EncodeInt32(k.Value);
         }
         bitSequenceWriter.Write(l != null);
         if (l != null)
         {
-            encoder.EncodeInt(l.Value);
+            encoder.EncodeInt32(l.Value);
         }
-        encoder.EncodeVarInt(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
         var value = new MyExceptionWithOptionalMembers(ref decoder);
@@ -187,8 +207,8 @@ public sealed class ExceptionTests
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         encoder.EncodeString("my exception with tagged members");
-        encoder.EncodeInt(10);
-        encoder.EncodeInt(20);
+        encoder.EncodeInt32(10);
+        encoder.EncodeInt32(20);
         if (k != null)
         {
             encoder.EncodeTagged(
@@ -196,7 +216,7 @@ public sealed class ExceptionTests
                 TagFormat.F4,
                 size: 4,
                 k.Value,
-                (ref SliceEncoder encoder, int value) => encoder.EncodeInt(value));
+                (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
         }
         if (l != null)
         {
@@ -205,9 +225,9 @@ public sealed class ExceptionTests
                 TagFormat.F4,
                 size: 4,
                 l.Value,
-                (ref SliceEncoder encoder, int value) => encoder.EncodeInt(value));
+                (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
         }
-        encoder.EncodeVarInt(Slice2Definitions.TagEndMarker);
+        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
         var value = new MyExceptionWithTaggedMembers(ref decoder);
@@ -227,9 +247,9 @@ public sealed class ExceptionTests
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         encoder.EncodeString(MyException.SliceTypeId);
         encoder.EncodeString("my exception");
-        encoder.EncodeInt(10);
-        encoder.EncodeInt(20);
-        encoder.EncodeVarInt(Slice2Definitions.TagEndMarker);
+        encoder.EncodeInt32(10);
+        encoder.EncodeInt32(20);
+        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice2,
@@ -326,9 +346,9 @@ public sealed class ExceptionTests
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
         Assert.That(decoder.DecodeString(), Is.EqualTo(value.Message));
-        Assert.That(decoder.DecodeInt(), Is.EqualTo(value.I));
-        Assert.That(decoder.DecodeInt(), Is.EqualTo(value.J));
-        Assert.That(decoder.DecodeVarInt(), Is.EqualTo(Slice2Definitions.TagEndMarker));
+        Assert.That(decoder.DecodeInt32(), Is.EqualTo(value.I));
+        Assert.That(decoder.DecodeInt32(), Is.EqualTo(value.J));
+        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
@@ -346,17 +366,17 @@ public sealed class ExceptionTests
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
         Assert.That(decoder.DecodeString(), Is.EqualTo(value.Message));
         var bitSequenceReader = decoder.GetBitSequenceReader(2);
-        Assert.That(decoder.DecodeInt(), Is.EqualTo(value.I));
-        Assert.That(decoder.DecodeInt(), Is.EqualTo(value.J));
+        Assert.That(decoder.DecodeInt32(), Is.EqualTo(value.I));
+        Assert.That(decoder.DecodeInt32(), Is.EqualTo(value.J));
         if (bitSequenceReader.Read())
         {
-            Assert.That(decoder.DecodeInt(), Is.EqualTo(value.K));
+            Assert.That(decoder.DecodeInt32(), Is.EqualTo(value.K));
         }
         if (bitSequenceReader.Read())
         {
-            Assert.That(decoder.DecodeInt(), Is.EqualTo(value.L));
+            Assert.That(decoder.DecodeInt32(), Is.EqualTo(value.L));
         }
-        Assert.That(decoder.DecodeVarInt(), Is.EqualTo(Slice2Definitions.TagEndMarker));
+        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
@@ -373,21 +393,21 @@ public sealed class ExceptionTests
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
         Assert.That(decoder.DecodeString(), Is.EqualTo(value.Message));
-        Assert.That(decoder.DecodeInt(), Is.EqualTo(value.I));
-        Assert.That(decoder.DecodeInt(), Is.EqualTo(value.J));
+        Assert.That(decoder.DecodeInt32(), Is.EqualTo(value.I));
+        Assert.That(decoder.DecodeInt32(), Is.EqualTo(value.J));
         if (k != null)
         {
             Assert.That(
-                decoder.DecodeTagged(1, TagFormat.F4, (ref SliceDecoder decoder) => decoder.DecodeInt()),
+                decoder.DecodeTagged(1, TagFormat.F4, (ref SliceDecoder decoder) => decoder.DecodeInt32()),
                 Is.EqualTo(value.K));
         }
         if (l != null)
         {
             Assert.That(
-                decoder.DecodeTagged(255, TagFormat.F4, (ref SliceDecoder decoder) => decoder.DecodeInt()),
+                decoder.DecodeTagged(255, TagFormat.F4, (ref SliceDecoder decoder) => decoder.DecodeInt32()),
                 Is.EqualTo(value.L));
         }
-        Assert.That(decoder.DecodeVarInt(), Is.EqualTo(Slice2Definitions.TagEndMarker));
+        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
@@ -403,19 +423,21 @@ public sealed class ExceptionTests
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
         Assert.That(decoder.DecodeString(), Is.EqualTo(MyException.SliceTypeId));
         Assert.That(decoder.DecodeString(), Is.EqualTo(value.Message));
-        Assert.That(decoder.DecodeInt(), Is.EqualTo(value.I));
-        Assert.That(decoder.DecodeInt(), Is.EqualTo(value.J));
-        Assert.That(decoder.DecodeVarInt(), Is.EqualTo(Slice2Definitions.TagEndMarker));
+        Assert.That(decoder.DecodeInt32(), Is.EqualTo(value.I));
+        Assert.That(decoder.DecodeInt32(), Is.EqualTo(value.J));
+        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
-    [Test]
-    public async Task Slice2_operation_throws_slice1_exception_fails()
+    [Test, TestCaseSource(nameof(Slice2OperationThrowsSource))]
+    public async Task Slice2_operation_throws_slice1_exception_fails(
+        Exception throwException,
+        DispatchErrorCode errorCode)
     {
         var coloc = new ColocTransport();
         await using var server = new Server(new Configure.ServerOptions
         {
-            Dispatcher = new Slice2ExceptionOperations(),
+            Dispatcher = new Slice2ExceptionOperations(throwException),
             MultiplexedServerTransport = new SlicServerTransport(coloc.ServerTransport),
             Endpoint = $"icerpc://{Guid.NewGuid()}/"
         });
@@ -431,16 +453,18 @@ public sealed class ExceptionTests
         DispatchException? exception = Assert.CatchAsync<DispatchException>(() => prx.OpThrowsAsync());
 
         Assert.That(exception, Is.Not.Null);
-        Assert.That(exception.ErrorCode, Is.EqualTo(DispatchErrorCode.UnhandledException));
+        Assert.That(exception.ErrorCode, Is.EqualTo(errorCode));
     }
 
-    [Test]
-    public async Task Slice1_operation_throws_slice1_exception_fails()
+    [Test, TestCaseSource(nameof(Slice1OperationThrowsSource))]
+    public async Task Slice1_operation_throws_slice1_exception_fails(
+        Exception throwException,
+        DispatchErrorCode errorCode)
     {
         var coloc = new ColocTransport();
         await using var server = new Server(new Configure.ServerOptions
         {
-            Dispatcher = new Slice1ExceptionOperations(),
+            Dispatcher = new Slice1ExceptionOperations(throwException),
             MultiplexedServerTransport = new SlicServerTransport(coloc.ServerTransport),
             Endpoint = $"icerpc://{Guid.NewGuid()}/"
         });
@@ -453,21 +477,28 @@ public sealed class ExceptionTests
         });
         var prx = Slice1ExceptionOperationsPrx.FromConnection(connection);
 
-        DispatchException? exception = Assert.CatchAsync<DispatchException>(() => prx.OpThrowsAsync());
+        DispatchException? catchException = Assert.CatchAsync<DispatchException>(() => prx.OpThrowsAsync());
 
-        Assert.That(exception, Is.Not.Null);
-        Assert.That(exception.ErrorCode, Is.EqualTo(DispatchErrorCode.UnhandledException));
+        Assert.That(catchException, Is.Not.Null);
+        Assert.That(catchException.ErrorCode, Is.EqualTo(errorCode));
     }
 
     class Slice2ExceptionOperations : Service, ISlice2ExceptionOperations
     {
+        private readonly Exception _exception;
+
+        public Slice2ExceptionOperations(Exception exception) => _exception = exception;
+
         public ValueTask OpThrowsAsync(Dispatch dispatch, CancellationToken cancel = default) =>
-            throw new MyDerivedException();
+            throw _exception;
     }
 
     class Slice1ExceptionOperations : Service, ISlice1ExceptionOperations
     {
+        private readonly Exception _exception;
+
+        public Slice1ExceptionOperations(Exception exception) => _exception = exception;
         public ValueTask OpThrowsAsync(Dispatch dispatch, CancellationToken cancel = default) =>
-            throw new MyExceptionWithOptionalMembers();
+            throw _exception;
     }
 }

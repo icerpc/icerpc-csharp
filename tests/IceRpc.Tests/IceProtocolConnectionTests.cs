@@ -5,8 +5,6 @@ using IceRpc.Internal;
 using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System.Buffers;
-using System.Collections.Immutable;
 
 namespace IceRpc.Tests;
 
@@ -14,6 +12,17 @@ namespace IceRpc.Tests;
 [Parallelizable(ParallelScope.All)]
 public sealed class IceProtocolConnectionTests
 {
+    public static IEnumerable<TestCaseData> ExceptionIsEncodedAsDispatchExceptionSource
+    {
+        get
+        {
+            yield return new TestCaseData(new OperationCanceledException(), DispatchErrorCode.Canceled);
+            yield return new TestCaseData(new InvalidDataException("invalid data"), DispatchErrorCode.InvalidData);
+            yield return new TestCaseData(new MyException(), DispatchErrorCode.UnhandledException);
+            yield return new TestCaseData(new InvalidOperationException(), DispatchErrorCode.UnhandledException);
+        }
+    }
+
     /// <summary>Ensures that the request payload stream is completed even if the Ice protocol doesn't support
     /// it.</summary>
     [Test]
@@ -65,14 +74,16 @@ public sealed class IceProtocolConnectionTests
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
     }
 
-    /// <summary>Verifies that when a middleware throws a Slice exception other than a DispatchException, 
-    /// we encode a DispatchException with UnhandledException error code.</summary>
-    [Test]
-    public async Task Exception_is_encoded_as_a_dispatch_exception()
+    /// <summary>Verifies that with the ice protocol, when a middleware throws a Slice exception other than a
+    /// DispatchException, we encode a DispatchException with the expected error code.</summary>
+    [Test, TestCaseSource(nameof(ExceptionIsEncodedAsDispatchExceptionSource))]
+    public async Task Exception_is_encoded_as_a_dispatch_exception(
+        Exception trhownException,
+        DispatchErrorCode errorCode)
     {
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
-            throw new MyException();
+            throw trhownException;
         });
 
         await using var serviceProvider = new ProtocolServiceCollection()
@@ -90,6 +101,6 @@ public sealed class IceProtocolConnectionTests
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
         var exception = await response.DecodeFailureAsync() as DispatchException;
         Assert.That(exception, Is.Not.Null);
-        Assert.That(exception.ErrorCode, Is.EqualTo(DispatchErrorCode.UnhandledException));
+        Assert.That(exception.ErrorCode, Is.EqualTo(errorCode));
     }
 }

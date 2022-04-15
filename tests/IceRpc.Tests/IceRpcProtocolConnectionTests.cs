@@ -3,12 +3,10 @@
 using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Slice;
-using IceRpc.Slice.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
 using System.Collections.Immutable;
-using System.IO.Pipelines;
 
 namespace IceRpc.Tests;
 
@@ -16,6 +14,17 @@ namespace IceRpc.Tests;
 [Parallelizable(ParallelScope.All)]
 public sealed class IceRpcProtocolConnectionTests
 {
+    public static IEnumerable<TestCaseData> ExceptionIsEncodedAsDispatchExceptionSource
+    {
+        get
+        {
+            yield return new TestCaseData(new InvalidDataException("invalid data"), DispatchErrorCode.InvalidData);
+            // Slice1 only exception will get encoded as unhandled exception with Slice2
+            yield return new TestCaseData(new MyDerivedException(), DispatchErrorCode.UnhandledException);
+            yield return new TestCaseData(new InvalidOperationException(), DispatchErrorCode.UnhandledException);
+        }
+    }
+
     /// <summary>Ensures that the connection fields are correctly exchanged on the protocol connection
     /// initialization.</summary>
     [Test]
@@ -312,12 +321,14 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
     }
 
-    [Test]
-    public async Task Slice1_only_exception_is_encoded_as_a_dispatch_exception()
+    [Test, TestCaseSource(nameof(ExceptionIsEncodedAsDispatchExceptionSource))]
+    public async Task Exception_is_encoded_as_a_dispatch_exception(
+        Exception thrownException,
+        DispatchErrorCode errorCode)
     {
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
-            throw new MyDerivedException();
+            throw thrownException;
         });
 
         await using var serviceProvider = new ProtocolServiceCollection()
@@ -335,6 +346,6 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
         var exception = await response.DecodeFailureAsync() as DispatchException;
         Assert.That(exception, Is.Not.Null);
-        Assert.That(exception.ErrorCode, Is.EqualTo(DispatchErrorCode.UnhandledException));
+        Assert.That(exception.ErrorCode, Is.EqualTo(errorCode));
     }
 }
