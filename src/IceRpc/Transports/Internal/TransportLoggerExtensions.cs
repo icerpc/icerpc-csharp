@@ -16,8 +16,8 @@ namespace IceRpc.Transports.Internal
             EventId = (int)TransportEventIds.Connect,
             EventName = nameof(TransportEventIds.Connect),
             Level = LogLevel.Debug,
-            Message = "network connection established: LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint}")]
-        internal static partial void LogConnect(this ILogger logger, EndPoint localEndpoint, EndPoint remoteEndpoint);
+            Message = "network connection established: LocalEndPoint={LocalEndPoint}, RemoteEndPoint={RemoteEndPoint}")]
+        internal static partial void LogConnect(this ILogger logger, EndPoint localEndPoint, EndPoint remoteEndPoint);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.ConnectFailed,

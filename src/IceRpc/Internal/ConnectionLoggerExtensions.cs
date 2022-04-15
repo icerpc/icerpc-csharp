@@ -54,12 +54,12 @@ namespace IceRpc.Internal
             EventName = nameof(ConnectionEventIds.CreateProtocolConnection),
             Level = LogLevel.Information,
             Message = "{Protocol} connection established " +
-                "(LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint})")]
+                "(LocalEndPoint={LocalEndPoint}, RemoteEndPoint={RemoteEndPoint})")]
         internal static partial void LogCreateProtocolConnection(
             this ILogger logger,
             Protocol protocol,
-            EndPoint localEndpoint,
-            EndPoint remoteEndpoint);
+            EndPoint localEndPoint,
+            EndPoint remoteEndPoint);
 
         [LoggerMessage(
             EventId = (int)ConnectionEventIds.Ping,

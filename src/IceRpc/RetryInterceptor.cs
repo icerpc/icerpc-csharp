@@ -242,8 +242,8 @@ namespace IceRpc
             EventId = (int)RetryInterceptorEventIds.RetryRequest,
             EventName = nameof(RetryInterceptorEventIds.RetryRequest),
             Level = LogLevel.Information,
-            Message = "retrying request because of retryable exception (LocalEndpoint={LocalEndpoint}, " +
-                      "RemoteEndpoint={RemoteEndpoint}, Path={Path}, Operation={Operation}, " +
+            Message = "retrying request because of retryable exception (LocalEndPoint={LocalEndPoint}, " +
+                      "RemoteEndPoint={RemoteEndPoint}, Path={Path}, Operation={Operation}, " +
                       "RetryPolicy={RetryPolicy}, Attempt={Attempt}/{MaxAttempts})")]
         private static partial void LogRetryRequest(
             this ILogger logger,
