@@ -78,7 +78,7 @@ namespace IceRpc
             // Read W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,
             // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
 
-            byte traceIdVersion = decoder.DecodeByte();
+            byte traceIdVersion = decoder.DecodeUInt8();
 
             using IMemoryOwner<byte> memoryOwner = MemoryPool<byte>.Shared.Rent(16);
             Span<byte> traceIdSpan = memoryOwner.Memory.Span[0..16];
@@ -89,7 +89,7 @@ namespace IceRpc
             decoder.CopyTo(spanIdSpan);
             var spanId = ActivitySpanId.CreateFromBytes(spanIdSpan);
 
-            var traceFlags = (ActivityTraceFlags)decoder.DecodeByte();
+            var traceFlags = (ActivityTraceFlags)decoder.DecodeUInt8();
 
             activity.SetParentId(traceId, spanId, traceFlags);
 

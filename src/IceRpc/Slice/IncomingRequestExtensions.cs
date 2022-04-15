@@ -71,7 +71,7 @@ namespace IceRpc.Slice
                     Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
                     int startPos = encoder.EncodedByteCount;
                     remoteException.EncodeTrait(ref encoder);
-                    SliceEncoder.EncodeVarULong((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
+                    SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
                 }
 
                 pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.

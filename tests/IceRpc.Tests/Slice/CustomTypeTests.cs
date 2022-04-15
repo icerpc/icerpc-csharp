@@ -16,7 +16,7 @@ public static class SliceEncoderCustomTypeExtensions
     public static void EncodeCustomType(this ref SliceEncoder encoder, MyCustomType myCustom)
     {
         encoder.EncodeBool(myCustom.flag);
-        encoder.EncodeInt(myCustom.value);
+        encoder.EncodeInt32(myCustom.value);
     }
 }
 
@@ -26,7 +26,7 @@ public static class SliceDecoderCustomTypeExtensions
     {
         MyCustomType myCustom;
         myCustom.flag = decoder.DecodeBool();
-        myCustom.value = decoder.DecodeInt();
+        myCustom.value = decoder.DecodeInt32();
         return myCustom;
     }
 }

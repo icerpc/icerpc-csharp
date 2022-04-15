@@ -256,7 +256,7 @@ namespace IceRpc.Internal
 
                         // EncodeTrait throws for a Slice1-only exception.
                         exception.EncodeTrait(ref encoder);
-                        SliceEncoder.EncodeVarULong((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
+                        SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
                         pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
                         return pipe.Reader;
                     }
@@ -305,7 +305,7 @@ namespace IceRpc.Internal
                         (ref SliceEncoder encoder, OutgoingFieldValue value) => value.Encode(ref encoder));
 
                     // We're done with the header encoding, write the header size.
-                    SliceEncoder.EncodeVarULong((ulong)(encoder.EncodedByteCount - headerStartPos), sizePlaceholder);
+                    SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - headerStartPos), sizePlaceholder);
                 }
             }
 
@@ -480,7 +480,7 @@ namespace IceRpc.Internal
                     (ref SliceEncoder encoder, OutgoingFieldValue value) => value.Encode(ref encoder));
 
                 // We're done with the header encoding, write the header size.
-                SliceEncoder.EncodeVarULong((ulong)(encoder.EncodedByteCount - headerStartPos), sizePlaceholder);
+                SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - headerStartPos), sizePlaceholder);
             }
 
             static (IceRpcResponseHeader, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>>) DecodeHeader(
@@ -738,7 +738,7 @@ namespace IceRpc.Internal
                 Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2); // TODO: switch to MaxHeaderSize
                 int startPos = encoder.EncodedByteCount; // does not include the size
                 encodeAction?.Invoke(ref encoder);
-                SliceEncoder.EncodeVarULong((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
+                SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
             }
 
             return frameType == IceRpcControlFrameType.GoAwayCompleted ?

@@ -52,7 +52,7 @@ namespace IceRpc
 
                 request.Fields = request.Fields.With(
                     RequestFieldKey.Deadline,
-                    (ref SliceEncoder encoder) => encoder.EncodeVarLong(deadline));
+                    (ref SliceEncoder encoder) => encoder.EncodeVarInt62(deadline));
 
                 return await _next.InvokeAsync(request, linkedTokenSource.Token).ConfigureAwait(false);
             }
