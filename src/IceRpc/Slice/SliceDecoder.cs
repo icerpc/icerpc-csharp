@@ -230,7 +230,7 @@ namespace IceRpc.Slice
         public ushort DecodeUInt16() =>
             SequenceMarshal.TryRead(ref _reader, out ushort value) ? value : throw new EndOfBufferException();
 
-        /// <summary>Decodes a Slice varint32 into a int. This int is encoded using Slice's variable-size integer
+        /// <summary>Decodes a Slice varint32 into an int. This int is encoded using Slice's variable-size integer
         /// encoding.</summary>
         /// <returns>The int decoded by this decoder.</returns>
         public int DecodeVarInt32()
