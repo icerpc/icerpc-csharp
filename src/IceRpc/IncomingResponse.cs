@@ -22,7 +22,6 @@ namespace IceRpc
         /// <summary>Constructs an incoming response.</summary>
         /// <param name="request">The corresponding outgoing request.</param>
         /// <param name="connection">The connection that received the response.</param>
-        // TODO: is connection always equal to request.Connection?
         public IncomingResponse(OutgoingRequest request, Connection connection)
             : base(connection) => Request = request;
     }
