@@ -131,13 +131,37 @@ namespace IceRpc.Transports.Internal
                 return;
             }
 
-            TrySetReadCompleted();
+            _ = SendStopSendingFrameAndCompleteReadsAsync();
 
-            _connection.SendFrameAsync(
-                stream: this,
-                FrameType.StreamStopSending,
-                new StreamStopSendingBody(errorCode).Encode,
-                default).AsTask();
+            async Task SendStopSendingFrameAndCompleteReadsAsync()
+            {
+                if (IsRemote)
+                {
+                    // Complete reads before sending the stop sending frame to ensure the stream max count is decreased
+                    // before the peer receives the frame.
+                    TrySetReadCompleted();
+                }
+
+                try
+                {
+                    await _connection.SendFrameAsync(
+                        stream: this,
+                        FrameType.StreamStopSending,
+                        new StreamStopSendingBody(errorCode).Encode,
+                        default).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Ignore.
+                }
+
+                if (!IsRemote)
+                {
+                    // Complete reads after sending the stop sending frame to ensure the peer's stream max count is
+                    // decreased before it receives a frame for a new stream.
+                    TrySetReadCompleted();
+                }
+            }
         }
 
         internal void AbortWrite(long errorCode)
@@ -147,13 +171,37 @@ namespace IceRpc.Transports.Internal
                 return;
             }
 
-            TrySetWriteCompleted();
+            _ = SendResetFrameAndCompleteWritesAsync();
 
-            _connection.SendFrameAsync(
-                stream: this,
-                FrameType.StreamReset,
-                new StreamResetBody(errorCode).Encode,
-                default).AsTask();
+            async Task SendResetFrameAndCompleteWritesAsync()
+            {
+                if (IsRemote)
+                {
+                    // Complete writes before sending the reset frame to ensure the stream max count is decreased before
+                    // the peer receives the frame.
+                    TrySetWriteCompleted();
+                }
+
+                try
+                {
+                    await _connection.SendFrameAsync(
+                        stream: this,
+                        FrameType.StreamReset,
+                        new StreamResetBody(errorCode).Encode,
+                        default).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Ignore.
+                }
+
+                if (!IsRemote)
+                {
+                    // Complete writes after sending the reset frame to ensure the peer's stream max count is decreased
+                    // before it receives a frame for a new stream.
+                    TrySetWriteCompleted();
+                }
+            }
         }
 
         internal async ValueTask<int> AcquireSendCreditAsync(CancellationToken cancel)
