@@ -217,21 +217,13 @@ public class TcpTransportTests
         using var cancellationSource = new CancellationTokenSource();
         using var semaphore = new SemaphoreSlim(0);
         await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
-            authenticationOptions: new SslServerAuthenticationOptions
-            {
-                ClientCertificateRequired = true,
-                ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
-            });
+            authenticationOptions: DefaultSslServerAuthenticationOptions);
 
         await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(
             listener.Endpoint,
             authenticationOptions:
                 new SslClientAuthenticationOptions
                 {
-                    ClientCertificates = new X509CertificateCollection()
-                    {
-                        new X509Certificate2("../../../certs/client.p12", "password")
-                    },
                     RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
                     {
                         cancellationSource.Cancel();
@@ -241,7 +233,7 @@ public class TcpTransportTests
                 });
 
         Task<NetworkConnectionInformation> connectTask = clientConnection.ConnectAsync(cancellationSource.Token);
-        ISimpleNetworkConnection serverConnection =  await listener.AcceptAsync();
+        ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
         _ = serverConnection.ConnectAsync(cancellationSource.Token);
 
         // Act/Assert
