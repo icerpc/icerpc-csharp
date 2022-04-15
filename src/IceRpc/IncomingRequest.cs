@@ -40,9 +40,9 @@ namespace IceRpc
         private readonly string _fragment = "";
 
         /// <summary>Constructs an incoming request.</summary>
-        /// <param name="protocol">The <see cref="Protocol"/> used to receive the request.</param>
-        public IncomingRequest(Protocol protocol)
-            : base(protocol)
+        /// <param name="connection">The <see cref="Connection"/> used to receive the request.</param>
+        public IncomingRequest(Connection connection)
+            : base(connection)
         {
         }
     }

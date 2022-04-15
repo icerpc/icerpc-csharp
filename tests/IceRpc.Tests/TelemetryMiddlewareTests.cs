@@ -32,7 +32,7 @@ public sealed class TelemetryMiddlewareTests
             ActivitySource = activitySource
         });
 
-        var request = new IncomingRequest(Protocol.IceRpc)
+        var request = new IncomingRequest(InvalidConnection.IceRpc)
         {
             Operation = "Op",
             Path = "/"
@@ -69,7 +69,7 @@ public sealed class TelemetryMiddlewareTests
         });
 
         var sut = new TelemetryMiddleware(dispatcher, new Configure.TelemetryOptions());
-        var request = new IncomingRequest(Protocol.IceRpc)
+        var request = new IncomingRequest(InvalidConnection.IceRpc)
         {
             Operation = "Op",
             Path = "/"
@@ -116,7 +116,7 @@ public sealed class TelemetryMiddlewareTests
             LoggerFactory = loggerFactory
         });
 
-        var request = new IncomingRequest(Protocol.IceRpc)
+        var request = new IncomingRequest(InvalidConnection.IceRpc)
         {
             Operation = "Op",
             Path = "/"
@@ -183,7 +183,7 @@ public sealed class TelemetryMiddlewareTests
         });
 
         // Create an incoming request that carries the encoded trace context
-        var request = new IncomingRequest(Protocol.IceRpc)
+        var request = new IncomingRequest(InvalidConnection.IceRpc)
         {
             Operation = "Op",
             Path = "/",
@@ -230,7 +230,7 @@ public sealed class TelemetryMiddlewareTests
         });
 
         // Create an incoming request that carries an empty trace context field
-        var request = new IncomingRequest(Protocol.IceRpc)
+        var request = new IncomingRequest(InvalidConnection.IceRpc)
         {
             Operation = "Op",
             Path = "/",

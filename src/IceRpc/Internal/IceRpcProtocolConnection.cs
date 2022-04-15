@@ -112,9 +112,8 @@ namespace IceRpc.Internal
                     throw;
                 }
 
-                var request = new IncomingRequest(Protocol.IceRpc)
+                var request = new IncomingRequest(_connection)
                 {
-                    Connection = _connection,
                     Features = features,
                     Fields = fields,
                     IsOneway = !stream.IsBidirectional,
@@ -380,7 +379,7 @@ namespace IceRpc.Internal
 
             if (request.IsOneway)
             {
-                return new IncomingResponse(request);
+                return new IncomingResponse(request, _connection);
             }
 
             Debug.Assert(stream != null);
@@ -410,9 +409,8 @@ namespace IceRpc.Internal
                     request.Features = request.Features.With(retryPolicy);
                 }
 
-                return new IncomingResponse(request)
+                return new IncomingResponse(request, _connection)
                 {
-                    Connection = _connection,
                     Fields = fields,
                     Payload = stream.Input,
                     ResultType = header.ResultType

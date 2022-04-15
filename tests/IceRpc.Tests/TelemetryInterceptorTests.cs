@@ -21,7 +21,7 @@ public sealed class TelemetryInterceptorTests
         var invoker = new InlineInvoker((request, cancel) =>
         {
             invocationActivity = Activity.Current;
-            return Task.FromResult(new IncomingResponse(request));
+            return Task.FromResult(new IncomingResponse(request, request.Connection!));
         });
 
         // Add a mock activity listener that allows the activity source to create the invocation activity.
@@ -66,7 +66,7 @@ public sealed class TelemetryInterceptorTests
         var invoker = new InlineInvoker((request, cancel) =>
         {
             invocationActivity = Activity.Current;
-            return Task.FromResult(new IncomingResponse(request));
+            return Task.FromResult(new IncomingResponse(request, request.Connection!));
         });
 
         var sut = new TelemetryInterceptor(invoker, new Configure.TelemetryOptions());
@@ -107,7 +107,7 @@ public sealed class TelemetryInterceptorTests
         var invoker = new InlineInvoker((request, cancel) =>
         {
             invocationActivity = Activity.Current;
-            return Task.FromResult(new IncomingResponse(request));
+            return Task.FromResult(new IncomingResponse(request, request.Connection!));
         });
 
         // A mock logger factory to trigger the creation of the invocation activity
@@ -156,7 +156,7 @@ public sealed class TelemetryInterceptorTests
                 invocationActivity.AddBaggage("foo", "bar");
                 decodedActivity = DecodeTraceContextField(request.Fields, "/op");
             }
-            return Task.FromResult(new IncomingResponse(request));
+            return Task.FromResult(new IncomingResponse(request, request.Connection!));
         });
 
         var sut = new TelemetryInterceptor(invoker, new Configure.TelemetryOptions());
@@ -195,7 +195,7 @@ public sealed class TelemetryInterceptorTests
         var invoker = new InlineInvoker((request, cancel) =>
         {
             invocationActivity = Activity.Current;
-            return Task.FromResult(new IncomingResponse(request));
+            return Task.FromResult(new IncomingResponse(request, request.Connection!));
         });
 
         var sut = new TelemetryInterceptor(invoker, new Configure.TelemetryOptions());

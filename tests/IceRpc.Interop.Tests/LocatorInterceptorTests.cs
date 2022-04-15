@@ -12,7 +12,7 @@ public class LocatorInterceptorTests
     [Test]
     public async Task Location_resolver_not_called_if_the_request_has_a_connection()
     {
-        var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request)));
+        var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request, request.Connection!)));
         await using var connection = new Connection(new Configure.ConnectionOptions()
         {
             RemoteEndpoint = "ice://localhost:10000"
@@ -31,7 +31,7 @@ public class LocatorInterceptorTests
     [Test]
     public void Locator_interceptor_requires_non_null_locator_proxy()
     {
-        var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request)));
+        var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request, request.Connection!)));
 
         var locationResolver = new LocatorLocationResolver(new Configure.LocatorOptions());
         var sut = new LocatorInterceptor(invoker, locationResolver);
@@ -47,7 +47,7 @@ public class LocatorInterceptorTests
     [Test]
     public async Task Resolve_adapter_id()
     {
-        var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request)));
+        var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request, request.Connection!)));
         var expected = Proxy.Parse("ice://localhost:10000/foo");
         var locationResolver = new MockLocationResolver(expected, adapterId: true);
         var sut = new LocatorInterceptor(invoker, locationResolver);
@@ -69,7 +69,7 @@ public class LocatorInterceptorTests
     [Test]
     public async Task Resolve_well_known_proxy()
     {
-        var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request)));
+        var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request, request.Connection!)));
         var expected = Proxy.Parse("ice://localhost:10000/foo");
         var locationResolver = new MockLocationResolver(expected, adapterId: false);
         var sut = new LocatorInterceptor(invoker, locationResolver);
@@ -89,7 +89,7 @@ public class LocatorInterceptorTests
     public async Task Resolve_refresh_cache_on_the_second_lookup()
     {
         // Arrange
-        var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request)));
+        var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request, request.Connection!)));
         var locationResolver = new MockCachedLocationResolver();
         var sut = new LocatorInterceptor(invoker, locationResolver);
         var proxy = new Proxy(Protocol.Ice) { Path = "/foo" };
@@ -110,7 +110,7 @@ public class LocatorInterceptorTests
     public async Task Resolve_does_not_refresh_cache_after_getting_a_fresh_endpoint()
     {
         // Arrange
-        var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request)));
+        var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request, request.Connection!)));
         var locationResolver = new MockNonCachedLocationResolver();
         var sut = new LocatorInterceptor(invoker, locationResolver);
         var proxy = new Proxy(Protocol.Ice) { Path = "/foo" };
