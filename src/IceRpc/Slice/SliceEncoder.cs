@@ -24,10 +24,10 @@ namespace IceRpc.Slice
         /// <summary>The Slice encoding of this encoder.</summary>
         public SliceEncoding Encoding { get; }
 
-        internal const long VarLongMinValue = -2_305_843_009_213_693_952; // -2^61
-        internal const long VarLongMaxValue = 2_305_843_009_213_693_951; // 2^61 - 1
-        internal const ulong VarULongMinValue = 0;
-        internal const ulong VarULongMaxValue = 4_611_686_018_427_387_903; // 2^62 - 1
+        internal const long VarInt62MinValue = -2_305_843_009_213_693_952; // -2^61
+        internal const long VarInt62MaxValue = 2_305_843_009_213_693_951; // 2^61 - 1
+        internal const ulong VarUInt62MinValue = 0;
+        internal const ulong VarUInt62MaxValue = 4_611_686_018_427_387_903; // 2^62 - 1
 
         private static readonly UTF8Encoding _utf8 =
             new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true); // no BOM
@@ -161,7 +161,7 @@ namespace IceRpc.Slice
                     {
                         Debug.Assert(into.Length == 5);
                         into[0] = 255;
-                        EncodeInt(size, into[1..]);
+                        EncodeInt32(size, into[1..]);
                     }
                 }
                 else
@@ -354,7 +354,7 @@ namespace IceRpc.Slice
                 1 => (0x00u, 63), // 2^6 - 1
                 2 => (0x01u, 16_383), // 2^14 - 1
                 4 => (0x02u, 1_073_741_823), // 2^30 - 1
-                _ => (0x03u, (long)VarULongMaxValue)
+                _ => (0x03u, (long)VarUInt62MaxValue)
             };
 
             if (value > (ulong)maxSize)
@@ -394,7 +394,7 @@ namespace IceRpc.Slice
                     encodeAction(ref this, v);
 
                     // We don't include the size-length in the size we encode.
-                    EncodeInt(EncodedByteCount - startPos, placeholder);
+                    EncodeInt32(EncodedByteCount - startPos, placeholder);
                 }
                 else
                 {
@@ -588,7 +588,7 @@ namespace IceRpc.Slice
             _classContext = new ClassContext(classFormat);
         }
 
-        internal static void EncodeInt(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
+        internal static void EncodeInt32(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
 
         /// <summary>Encodes a fixed-size numeric value.</summary>
         /// <param name="v">The numeric value to encode.</param>
@@ -619,7 +619,7 @@ namespace IceRpc.Slice
         /// <returns>N where 2^N is the number of bytes needed to encode value with IceRPC's varint62 encoding.</returns>
         private static int GetVarInt62EncodedSizeExponent(long value)
         {
-            if (value < VarLongMinValue || value > VarLongMaxValue)
+            if (value < VarInt62MinValue || value > VarInt62MaxValue)
             {
                 throw new ArgumentOutOfRangeException(nameof(value), $"varint62 value '{value}' is out of range");
             }
@@ -639,7 +639,7 @@ namespace IceRpc.Slice
         /// <returns>N where 2^N is the number of bytes needed to encode value with varulong encoding.</returns>
         private static int GetVarUInt62EncodedSizeExponent(ulong value)
         {
-            if (value > VarULongMaxValue)
+            if (value > VarUInt62MaxValue)
             {
                 throw new ArgumentOutOfRangeException(nameof(value), $"varulong value '{value}' is out of range");
             }
@@ -738,7 +738,7 @@ namespace IceRpc.Slice
                         break;
                 }
 
-                EncodeInt(EncodedByteCount - startPos, sizePlaceholder);
+                EncodeInt32(EncodedByteCount - startPos, sizePlaceholder);
             }
         }
 

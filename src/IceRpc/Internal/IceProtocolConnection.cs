@@ -312,7 +312,7 @@ namespace IceRpc.Internal
                 requestHeader.Encode(ref encoder);
 
                 int frameSize = checked(encoder.EncodedByteCount + payloadSize);
-                SliceEncoder.EncodeInt(frameSize, sizePlaceholder);
+                SliceEncoder.EncodeInt32(frameSize, sizePlaceholder);
             }
         }
 
@@ -999,7 +999,7 @@ namespace IceRpc.Internal
                     // else the reply status (> UserException) is part of the payload
 
                     int frameSize = encoder.EncodedByteCount + payloadSize;
-                    SliceEncoder.EncodeInt(frameSize, sizePlaceholder);
+                    SliceEncoder.EncodeInt32(frameSize, sizePlaceholder);
                 }
             }
 

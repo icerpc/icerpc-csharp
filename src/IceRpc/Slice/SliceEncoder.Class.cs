@@ -74,7 +74,7 @@ namespace IceRpc.Slice
             if ((_classContext.Current.SliceFlags & SliceFlags.HasSliceSize) != 0)
             {
                 // Size includes the size length.
-                EncodeInt(EncodedByteCount - _classContext.Current.SliceSizeStartPos, _classContext.Current.SliceSizePlaceholder.Span);
+                EncodeInt32(EncodedByteCount - _classContext.Current.SliceSizeStartPos, _classContext.Current.SliceSizePlaceholder.Span);
             }
 
             if (_classContext.Current.IndirectionTable?.Count > 0)
