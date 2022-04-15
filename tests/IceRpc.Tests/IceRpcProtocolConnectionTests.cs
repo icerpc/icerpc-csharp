@@ -25,13 +25,13 @@ public sealed class IceRpcProtocolConnectionTests
             .UseServerConnectionOptions(new ConnectionOptions()
             {
                 Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>()
-                        .With(ConnectionFieldKey.MaxHeaderSize, (ref SliceEncoder encoder) => encoder.EncodeInt(56))
+                        .With(ConnectionFieldKey.MaxHeaderSize, (ref SliceEncoder encoder) => encoder.EncodeInt32(56))
             })
             .UseClientConnectionOptions(new ConnectionOptions()
             {
                 Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>()
-                        .With(ConnectionFieldKey.MaxHeaderSize, (ref SliceEncoder encoder) => encoder.EncodeInt(34))
-                        .With((ConnectionFieldKey)10, (ref SliceEncoder encoder) => encoder.EncodeInt(38))
+                        .With(ConnectionFieldKey.MaxHeaderSize, (ref SliceEncoder encoder) => encoder.EncodeInt32(34))
+                        .With((ConnectionFieldKey)10, (ref SliceEncoder encoder) => encoder.EncodeInt32(38))
             })
             .BuildServiceProvider();
 
@@ -51,7 +51,7 @@ public sealed class IceRpcProtocolConnectionTests
         static int DecodeField(
             ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>> fields,
             ConnectionFieldKey key) =>
-            fields.DecodeValue(key, (ref SliceDecoder decoder) => decoder.DecodeInt());
+            fields.DecodeValue(key, (ref SliceDecoder decoder) => decoder.DecodeInt32());
     }
 
     /// <summary>Ensures that the request payload is completed if the request fields are invalid.</summary>
