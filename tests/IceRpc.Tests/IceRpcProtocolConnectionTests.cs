@@ -334,7 +334,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Assert
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
 
-        // TODO https://github.com/zeroc-ice/icerpc-csharp/pull/1047 connection must be already asigned
+        // TODO https://github.com/zeroc-ice/icerpc-csharp/pull/1047 connection must be already assigned
         await using var connection = new Connection(new ConnectionOptions());
         response.Connection = connection;
         var exception = await response.DecodeFailureAsync() as DispatchException;
