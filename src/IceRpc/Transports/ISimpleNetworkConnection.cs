@@ -14,6 +14,7 @@ namespace IceRpc.Transports
         /// <exception cref="ConnectionLostException">Thrown if the peer closed its side of the connection.</exception>
         /// <exception cref="ObjectDisposedException">Thrown if the connection has been disposed.</exception>
         /// <exception cref="OperationCanceledException">Thrown if the cancellation token was canceled.</exception>
+        /// <exception cref="TransportException">Thrown if an unexpected error was encountered.</exception>
         ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel);
 
         /// <summary>Writes data over the connection.</summary>
@@ -23,6 +24,7 @@ namespace IceRpc.Transports
         /// <exception cref="ConnectionLostException">Thrown if the peer closed its side of the connection.</exception>
         /// <exception cref="ObjectDisposedException">Thrown if the connection has been disposed.</exception>
         /// <exception cref="OperationCanceledException">Thrown if the cancellation token was canceled.</exception>
+        /// <exception cref="TransportException">Thrown if an unexpected error was encountered.</exception>
         ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel);
     }
 }

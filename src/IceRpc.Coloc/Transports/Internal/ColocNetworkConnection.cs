@@ -19,6 +19,14 @@ namespace IceRpc.Transports.Internal
 
         public Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
         {
+            // Even if connect never blocks here, we throw OperationCanceledException if cancellation is requested. The
+            // IceRpc connection relies on ConnectAsync cancellation for the connect timeout so all protocols must
+            // support cancellation.
+            if (cancel.IsCancellationRequested)
+            {
+                throw new OperationCanceledException();
+            }
+
             var colocEndPoint = new ColocEndPoint(_endpoint);
             return Task.FromResult(new NetworkConnectionInformation(
                 colocEndPoint,

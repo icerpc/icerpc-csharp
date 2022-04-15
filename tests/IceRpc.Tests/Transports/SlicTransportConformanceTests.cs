@@ -4,7 +4,7 @@ using IceRpc.Configure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
-
+using IceRpc.Tests;
 namespace IceRpc.Transports.Tests;
 
 [Timeout(5000)]
@@ -61,7 +61,7 @@ public class SlicServiceCollection : ServiceCollection
             return serverTransport.Listen(
                 Endpoint.FromString($"icerpc://{Guid.NewGuid()}/"),
                 null,
-                NullLogger.Instance);
+                LogAttributeLoggerFactory.Instance.CreateLogger("TEST"));
         });
 
         this.UseTransportOptions();

@@ -126,62 +126,34 @@ namespace IceRpc.Transports.Internal
 
         internal void AbortRead(long errorCode)
         {
-            if (IsStarted && !IsShutdown)
+            if (!IsStarted || IsShutdown)
             {
-                // Notify the peer of the read abort by sending a stop sending frame.
-                _ = SendStopSendingFrameAndShutdownAsync();
-            }
-            else
-            {
-                TrySetReadCompleted();
+                return;
             }
 
-            async Task SendStopSendingFrameAndShutdownAsync()
-            {
-                try
-                {
-                    await _connection.SendFrameAsync(
-                        stream: this,
-                        FrameType.StreamStopSending,
-                        new StreamStopSendingBody(errorCode).Encode,
-                        default).ConfigureAwait(false);
-                }
-                catch
-                {
-                    // Ignore.
-                }
-                TrySetReadCompleted();
-            }
+            TrySetReadCompleted();
+
+            _connection.SendFrameAsync(
+                stream: this,
+                FrameType.StreamStopSending,
+                new StreamStopSendingBody(errorCode).Encode,
+                default).AsTask();
         }
 
         internal void AbortWrite(long errorCode)
         {
-            if (IsStarted && !IsShutdown)
+            if (!IsStarted || IsShutdown)
             {
-                // Notify the peer of the write abort by sending a reset frame.
-                _ = SendResetFrameAndCompleteWritesAsync();
-            }
-            else
-            {
-                TrySetWriteCompleted();
+                return;
             }
 
-            async Task SendResetFrameAndCompleteWritesAsync()
-            {
-                try
-                {
-                    await _connection.SendFrameAsync(
-                        stream: this,
-                        FrameType.StreamReset,
-                        new StreamResetBody(errorCode).Encode,
-                        default).ConfigureAwait(false);
-                }
-                catch
-                {
-                    // Ignore.
-                }
-                TrySetWriteCompleted();
-            }
+            TrySetWriteCompleted();
+
+            _connection.SendFrameAsync(
+                stream: this,
+                FrameType.StreamReset,
+                new StreamResetBody(errorCode).Encode,
+                default).AsTask();
         }
 
         internal async ValueTask<int> AcquireSendCreditAsync(CancellationToken cancel)

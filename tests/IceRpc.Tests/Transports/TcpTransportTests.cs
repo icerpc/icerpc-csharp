@@ -35,59 +35,6 @@ public class TcpTransportTests
             ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
         };
 
-    /// <summary>Verifies that the transport can accept tcp network connections.</summary>
-    [Test]
-    public async Task Accept_tcp_network_connection()
-    {
-        // Arrange
-        await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener();
-        await using TcpClientNetworkConnection clientConnection =
-            CreateTcpClientConnection(listener.Endpoint);
-
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-
-        // Act/Assert
-        Assert.That(
-            async () =>
-            {
-                await using ISimpleNetworkConnection _ = await acceptTask;
-            },
-            Throws.Nothing);
-    }
-
-    /// <summary>Verifies that calling connect on a tcp client connection with a canceled cancellation token fails with
-    /// <see cref="OperationCanceledException"/>.</summary>
-    [Test]
-    public async Task Calling_connect_with_canceled_cancellation_token_fails()
-    {
-        // Arrange
-        await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection();
-
-        // Act/Assert
-        Assert.That(async () => await clientConnection.ConnectAsync(new CancellationToken(canceled: true)),
-            Throws.InstanceOf<OperationCanceledException>());
-    }
-
-    /// <summary>Verifies that calling read on a client connection fails with <see cref="ConnectionLostException"/>.
-    /// </summary>
-    [Test]
-    public async Task Client_connection_read_from_disposed_peer_connection_fails()
-    {
-        // Arrange
-        await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener();
-        await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(listener.Endpoint);
-
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-        ISimpleNetworkConnection serverConnection = await acceptTask;
-        await serverConnection.DisposeAsync();
-
-        // Act/Assert
-        Assert.That(async () => await clientConnection.ReadAsync(new byte[1], default),
-            Throws.InstanceOf<ConnectionLostException>());
-    }
-
     /// <summary>Verifies that setting <see cref="TcpTransportOptions.ReceiveBufferSize"/> and
     /// <see cref="TcpTransportOptions.SendBufferSize"/> configures the respective socket properties.</summary>
     /// <param name="bufferSize">The buffer size to test with.</param>
@@ -106,24 +53,32 @@ public class TcpTransportTests
             });
 
         // Assert
-
-        // The OS might allocate more space than the requested size.
-        Assert.That(connection.Socket.SendBufferSize, Is.GreaterThanOrEqualTo(bufferSize));
-        Assert.That(connection.Socket.ReceiveBufferSize, Is.GreaterThanOrEqualTo(bufferSize));
+        Assert.Multiple(() =>
+        {
+            // The OS might allocate more space than the requested size.
+            Assert.That(connection.Socket.SendBufferSize, Is.GreaterThanOrEqualTo(bufferSize));
+            Assert.That(connection.Socket.ReceiveBufferSize, Is.GreaterThanOrEqualTo(bufferSize));
+        });
 
         // But ensure it doesn't allocate too much as well
         if (OperatingSystem.IsLinux())
         {
-            // Linux allocates twice the size.
-            Assert.That(connection.Socket.SendBufferSize, Is.LessThanOrEqualTo(2.5 * bufferSize));
-            Assert.That(connection.Socket.ReceiveBufferSize, Is.LessThanOrEqualTo(2.5 * bufferSize));
+            Assert.Multiple(() =>
+            {
+                // Linux allocates twice the size.
+                Assert.That(connection.Socket.SendBufferSize, Is.LessThanOrEqualTo(2.5 * bufferSize));
+                Assert.That(connection.Socket.ReceiveBufferSize, Is.LessThanOrEqualTo(2.5 * bufferSize));
+            });
         }
         else
         {
-            // Windows typically allocates the requested size and macOS allocates a little more than the
-            // requested size.
-            Assert.That(connection.Socket.SendBufferSize, Is.LessThanOrEqualTo(1.5 * bufferSize));
-            Assert.That(connection.Socket.ReceiveBufferSize, Is.LessThanOrEqualTo(1.5 * bufferSize));
+            Assert.Multiple(() =>
+            {
+                // Windows typically allocates the requested size and macOS allocates a little more than the
+                // requested size.
+                Assert.That(connection.Socket.SendBufferSize, Is.LessThanOrEqualTo(1.5 * bufferSize));
+                Assert.That(connection.Socket.ReceiveBufferSize, Is.LessThanOrEqualTo(1.5 * bufferSize));
+            });
         }
     }
 
@@ -171,31 +126,42 @@ public class TcpTransportTests
         await using var serverConnection = (TcpServerNetworkConnection)await acceptTask;
 
         // Assert
-
-        // The OS might allocate more space than the requested size.
-        Assert.That(serverConnection.Socket.SendBufferSize, Is.GreaterThanOrEqualTo(bufferSize));
-        Assert.That(serverConnection.Socket.ReceiveBufferSize, Is.GreaterThanOrEqualTo(bufferSize));
+        Assert.Multiple(() =>
+        {
+            // The OS might allocate more space than the requested size.
+            Assert.That(serverConnection.Socket.SendBufferSize, Is.GreaterThanOrEqualTo(bufferSize));
+            Assert.That(serverConnection.Socket.ReceiveBufferSize, Is.GreaterThanOrEqualTo(bufferSize));
+        });
 
         // But ensure it doesn't allocate too much as well
         if (OperatingSystem.IsMacOS())
         {
-            // macOS appears to have a low limit of a little more than 256KB for the receive buffer and
-            // 64KB for the send buffer.
-            Assert.That(serverConnection.Socket.SendBufferSize,
-                        Is.LessThanOrEqualTo(1.5 * Math.Max(bufferSize, 64 * 1024)));
-            Assert.That(serverConnection.Socket.ReceiveBufferSize,
-                        Is.LessThanOrEqualTo(1.5 * Math.Max(bufferSize, 256 * 1024)));
+            Assert.Multiple(() =>
+            {
+                // macOS appears to have a low limit of a little more than 256KB for the receive buffer and
+                // 64KB for the send buffer.
+                Assert.That(serverConnection.Socket.SendBufferSize,
+                            Is.LessThanOrEqualTo(1.5 * Math.Max(bufferSize, 64 * 1024)));
+                Assert.That(serverConnection.Socket.ReceiveBufferSize,
+                            Is.LessThanOrEqualTo(1.5 * Math.Max(bufferSize, 256 * 1024)));
+            });
         }
         else if (OperatingSystem.IsLinux())
         {
-            // Linux allocates twice the size
-            Assert.That(serverConnection.Socket.SendBufferSize, Is.LessThanOrEqualTo(2.5 * bufferSize));
-            Assert.That(serverConnection.Socket.ReceiveBufferSize, Is.LessThanOrEqualTo(2.5 * bufferSize));
+            Assert.Multiple(() =>
+            {
+                // Linux allocates twice the size
+                Assert.That(serverConnection.Socket.SendBufferSize, Is.LessThanOrEqualTo(2.5 * bufferSize));
+                Assert.That(serverConnection.Socket.ReceiveBufferSize, Is.LessThanOrEqualTo(2.5 * bufferSize));
+            });
         }
         else
         {
-            Assert.That(serverConnection.Socket.SendBufferSize, Is.LessThanOrEqualTo(1.5 * bufferSize));
-            Assert.That(serverConnection.Socket.ReceiveBufferSize, Is.LessThanOrEqualTo(1.5 * bufferSize));
+            Assert.Multiple(() =>
+            {
+                Assert.That(serverConnection.Socket.SendBufferSize, Is.LessThanOrEqualTo(1.5 * bufferSize));
+                Assert.That(serverConnection.Socket.ReceiveBufferSize, Is.LessThanOrEqualTo(1.5 * bufferSize));
+            });
         }
     }
 
@@ -242,135 +208,6 @@ public class TcpTransportTests
         await Task.WhenAll(connections.Select(connection => connection.DisposeAsync().AsTask()));
     }
 
-    /// <summary>Verifies that we can write using server and client connections.</summary>
-    [Test]
-    public async Task Connection_write(
-        [Values(1, 1024, 16 * 1024, 512 * 1023)] int size,
-        [Values(true, false)] bool useServerConnection)
-    {
-        // Arrange
-        await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener();
-        await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(listener.Endpoint);
-
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-        var serverConnection = (TcpServerNetworkConnection)await acceptTask;
-        byte[] writeBuffer = new byte[size];
-
-        TcpNetworkConnection writeConnection = useServerConnection ? serverConnection : clientConnection;
-        TcpNetworkConnection readConnection = useServerConnection ? clientConnection : serverConnection;
-
-        // Act
-        await writeConnection.WriteAsync(new ReadOnlyMemory<byte>[] { writeBuffer }, default);
-
-        // Assert
-        Memory<byte> readBuffer = new byte[size];
-        int offset = 0;
-        while (offset < size)
-        {
-            offset += await readConnection.ReadAsync(readBuffer[offset..], default);
-        }
-        Assert.That(offset, Is.EqualTo(size));
-    }
-
-    /// <summary>Verifies that calling listen twice fails with a <see cref="TransportException"/>.</summary>
-    [Test]
-    public async Task Listen_twice_on_the_same_address_fails_with_a_transport_exception()
-    {
-        // Arrange
-        IServerTransport<ISimpleNetworkConnection> serverTransport = new TcpServerTransport();
-        await using IListener<ISimpleNetworkConnection> listener = serverTransport.Listen(
-            new Endpoint(Protocol.IceRpc) { Host = "::0", Port = 0 },
-            authenticationOptions: null,
-            NullLogger.Instance);
-
-        // Act/Assert
-        Assert.That(
-            () => serverTransport.Listen(listener.Endpoint, authenticationOptions: null, NullLogger.Instance),
-            Throws.TypeOf<TransportException>());
-    }
-
-    /// <summary>Verifies that a read operation ends with <see cref="OperationCanceledException"/> if the given
-    /// cancellation token is canceled.</summary>
-    [Test]
-    public async Task Read_cancellation()
-    {
-        // Arrange
-        using var canceled = new CancellationTokenSource();
-        await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener();
-        await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(listener.Endpoint);
-
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-        ISimpleNetworkConnection serverConnection = await acceptTask;
-        ValueTask<int> readTask = clientConnection.ReadAsync(new byte[1], canceled.Token);
-
-        // Act
-        canceled.Cancel();
-
-        // Assert
-        Assert.That(async () => await readTask, Throws.TypeOf<OperationCanceledException>());
-    }
-
-    /// <summary>Verifies that calling read on a disposed tcp client connection fails with
-    /// <see cref="ObjectDisposedException"/>.</summary>
-    [Test]
-    public async Task Read_from_disposed_client_connection_fails()
-    {
-        // Arrange
-        await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection();
-        await clientConnection.DisposeAsync();
-
-        // Act/Assert
-        Assert.That(
-            async () => await clientConnection.ReadAsync(new byte[1], default),
-            Throws.TypeOf<ObjectDisposedException>());
-    }
-
-    /// <summary>Verifies that reading from the connection updates its last activity property.</summary>
-    [Test]
-    public async Task Read_updates_last_activity()
-    {
-        // Arrange
-        await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener();
-        await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(listener.Endpoint);
-
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-        ISimpleNetworkConnection serverConnection = await acceptTask;
-        await serverConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
-        var delay = TimeSpan.FromMilliseconds(2);
-        TimeSpan lastActivity = clientConnection.LastActivity;
-        await Task.Delay(delay);
-        var buffer = new Memory<byte>(new byte[1]);
-
-        // Act
-        await clientConnection.ReadAsync(buffer, default);
-
-        // Assert
-        Assert.That(clientConnection.LastActivity, Is.GreaterThanOrEqualTo(lastActivity + delay));
-    }
-
-    /// <summary>Verifies that calling read on a server connection fails with <see cref="ConnectionLostException"/> when
-    /// the peer connection is disposed.</summary>
-    [Test]
-    public async Task Server_connection_read_from_disposed_client_connection_fails()
-    {
-        // Arrange
-        await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener();
-        await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(listener.Endpoint);
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-        ISimpleNetworkConnection serverConnection = await acceptTask;
-        await clientConnection.DisposeAsync();
-
-        // Act
-        ValueTask<int> readTask = serverConnection.ReadAsync(new byte[1], default);
-
-        // Assert
-        Assert.That(async () => await readTask, Throws.InstanceOf<ConnectionLostException>());
-    }
-
     /// <summary>Verifies that the client connect call on a tls connection fails with
     /// <see cref="OperationCanceledException"/> when the cancellation token is canceled.</summary>
     [Test]
@@ -409,6 +246,7 @@ public class TcpTransportTests
 
         // Act/Assert
         Assert.That(async () => await connectTask, Throws.InstanceOf<OperationCanceledException>());
+        semaphore.Release();
     }
 
     /// <summary>Verifies that the server connect call on a tls connection fails if the client previously disposed its
@@ -437,7 +275,6 @@ public class TcpTransportTests
     /// <summary>Verifies that the server connect call on a tls connection fails with
     /// <see cref="OperationCanceledException"/> when the cancellation token is canceled.</summary>
     [Test]
-    [Ignore("Review this test hangs with CI")]
     public async Task Tls_server_connect_operation_canceled_exception()
     {
         // Arrange
@@ -465,139 +302,7 @@ public class TcpTransportTests
 
         // Act/Assert
         Assert.That(async () => await serverConnectTask, Throws.InstanceOf<OperationCanceledException>());
-    }
-
-    /// <summary>Verifies that pending write operation fails with <see cref="OperationCanceledException"/> once the
-    /// cancellation token is canceled.</summary>
-    [Test]
-    public async Task Write_cancellation()
-    {
-        // Arrange
-        await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
-            options: new TcpServerTransportOptions()
-            {
-                ReceiveBufferSize = 4096,
-            });
-        await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(
-            listener.Endpoint,
-            new TcpClientTransportOptions
-            {
-                SendBufferSize = 4096,
-            });
-
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-        ISimpleNetworkConnection serverConnection = await acceptTask;
-        var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1024 * 1024] };
-        using var canceled = new CancellationTokenSource();
-        // Write completes as soon as the data is copied to the socket buffer, the test relies on the calls
-        // not completing synchronously to be able to cancel them.
-        Task writeTask;
-        do
-        {
-            writeTask = clientConnection.WriteAsync(buffer, canceled.Token).AsTask();
-            await Task.WhenAny(Task.Delay(TimeSpan.FromMilliseconds(100)), writeTask);
-        }
-        while (writeTask.IsCompleted);
-
-        // Act
-        canceled.Cancel();
-
-        // Assert
-        Assert.That(async () => await writeTask, Throws.TypeOf<OperationCanceledException>());
-    }
-
-    /// <summary>Verifies that calling write fails with <see cref="ConnectionLostException"/> when the peer connection
-    /// is disposed.</summary>
-    [Test]
-    public async Task Write_connection_lost_exception()
-    {
-        // Arrange
-        await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener();
-        await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(listener.Endpoint);
-
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-        ISimpleNetworkConnection serverConnection = await acceptTask;
-        await serverConnection.DisposeAsync();
-
-        // Act
-        var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1] };
-        Exception exception;
-        try
-        {
-            // It can take few writes to detect the peer's connection closure.
-            while (true)
-            {
-                await clientConnection.WriteAsync(buffer, default);
-                await Task.Delay(50);
-            }
-        }
-        catch (Exception ex)
-        {
-            exception = ex;
-        }
-
-        // Assert
-        Assert.That(exception, Is.InstanceOf<ConnectionLostException>());
-    }
-
-    /// <summary>Verifies that reading from a disposed tcp server connection fails with <see
-    /// cref="ObjectDisposedException"/>.</summary>
-    [Test]
-    public async Task Write_to_disposed_client_connection_fails()
-    {
-        // Arrange
-        await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection();
-        await clientConnection.DisposeAsync();
-        var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1] { 0xFF } };
-
-        // Act/Assert
-        Assert.That(
-            async () => await clientConnection.WriteAsync(buffer, default),
-            Throws.TypeOf<ObjectDisposedException>());
-    }
-
-    /// <summary>Verifies that writing to the connection updates its last activity property.</summary>
-    [Test]
-    public async Task Write_updates_last_activity()
-    {
-        // Arrange
-        await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener();
-        await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(listener.Endpoint);
-
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-        ISimpleNetworkConnection serverConnection = await acceptTask;
-        var delay = TimeSpan.FromMilliseconds(2);
-        TimeSpan lastActivity = clientConnection.LastActivity;
-        await Task.Delay(delay);
-
-        // Act
-        await clientConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
-
-        // Assert
-        Assert.That(clientConnection.LastActivity, Is.GreaterThanOrEqualTo(lastActivity + delay));
-    }
-
-    /// <summary>Verifies that calling write with a canceled cancellation token fails with
-    /// <see cref="OperationCanceledException"/>.</summary>
-    [Test]
-    public async Task Write_with_canceled_cancellation_token()
-    {
-        // Arrange
-        await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener();
-        await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(listener.Endpoint);
-
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-        ISimpleNetworkConnection serverConnection = await acceptTask;
-        var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1] { 0xFF } };
-
-        // Act/Assert
-        Assert.That(
-            async () => await clientConnection.WriteAsync(buffer, new CancellationToken(canceled: true)),
-            Throws.InstanceOf<OperationCanceledException>());
+        semaphore.Release();
     }
 
     private static IListener<ISimpleNetworkConnection> CreateTcpListener(
