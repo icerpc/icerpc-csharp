@@ -6,7 +6,7 @@ using System.IO.Pipelines;
 namespace IceRpc
 {
     /// <summary>Base class for outgoing frames.</summary>
-    public abstract class   OutgoingFrame
+    public abstract class OutgoingFrame
     {
         /// <summary>Gets or sets the payload of this frame. The payload is sent together with the frame header and the
         /// sending operation awaits until the payload is fully sent.</summary>

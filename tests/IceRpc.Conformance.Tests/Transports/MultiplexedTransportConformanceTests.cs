@@ -5,8 +5,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
+
 namespace IceRpc.Transports.Tests;
-using System.Diagnostics;
 
 /// <summary>Conformance tests for the multiplexed transports.</summary>
 [Timeout(5000)]
@@ -265,7 +265,6 @@ public abstract class MultiplexedTransportConformanceTests
     /// <param name="streamMaxCount">The max stream count limit to use for the test.</param>
     /// <param name="streamMaxCountFactor">The multiplier factor to use for stream creation.</param>
     [Test]
-    [Repeat(100)]
     public async Task Max_bidirectional_stream_stress_test()
     {
         // Arrange
@@ -360,7 +359,6 @@ public abstract class MultiplexedTransportConformanceTests
     /// <param name="streamMaxCount">The max stream count limit to use for the test.</param>
     /// <param name="streamMaxCountFactor">The multiplier factor to use for stream creation.</param>
     [Test]
-    [Repeat(100)]
     public async Task Max_unidirectional_stream_stress_test()
     {
         // Arrange
