@@ -11,7 +11,7 @@ namespace IceRpc.Transports.Internal
         internal static (FrameType, int, long?, long) DecodeHeader(this ReadOnlySequence<byte> buffer)
         {
             var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
-            var type = (FrameType)decoder.DecodeByte();
+            var type = (FrameType)decoder.DecodeUInt8();
             int dataSize = decoder.DecodeSize();
             if (type < FrameType.Stream)
             {
@@ -19,8 +19,8 @@ namespace IceRpc.Transports.Internal
             }
             else
             {
-                ulong id = decoder.DecodeVarULong();
-                dataSize -= SliceEncoder.GetVarULongEncodedSize(id);
+                ulong id = decoder.DecodeVarUInt62();
+                dataSize -= SliceEncoder.GetVarUInt62EncodedSize(id);
                 return (type, dataSize, (long)id, decoder.Consumed);
             }
         }
@@ -28,7 +28,7 @@ namespace IceRpc.Transports.Internal
         // TODO: if we really want a separate method, it should go to a different class.
         internal static (uint, InitializeBody?) DecodeInitialize(this ref SliceDecoder decoder)
         {
-            uint version = decoder.DecodeVarUInt();
+            uint version = decoder.DecodeVarUInt32();
             if (version == SlicDefinitions.V1)
             {
                 return (version, new InitializeBody(ref decoder));

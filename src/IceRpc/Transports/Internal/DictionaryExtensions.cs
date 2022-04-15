@@ -14,6 +14,6 @@ namespace IceRpc.Transports.Internal
                 ((ParameterKey)pair.Key,
                  SliceEncoding.Slice2.DecodeBuffer(
                      new ReadOnlySequence<byte>(pair.Value.ToArray()), // TODO: fix to avoid copy
-                     (ref SliceDecoder decoder) => decoder.DecodeVarULong())));
+                     (ref SliceDecoder decoder) => decoder.DecodeVarUInt62())));
     }
 }

@@ -22,7 +22,7 @@ public class NumericTypesDecodingTests
     {
         var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice2);
 
-        long r1 = sut.DecodeLong();
+        long r1 = sut.DecodeInt64();
 
         Assert.That(r1, Is.EqualTo(expected));
         Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
@@ -31,19 +31,19 @@ public class NumericTypesDecodingTests
     /// <summary>Tests the decoding of variable size long.</summary>
     /// <param name="encodedBytes">An encoded byte array to decode.</param>
     /// <param name="expected">The expected long to be decoded.</param>
-    [TestCase(new byte[] { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 }, SliceEncoder.VarLongMinValue)]
+    [TestCase(new byte[] { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 }, SliceEncoder.VarInt62MinValue)]
     [TestCase(new byte[] { 0x02, 0x00, 0xFF, 0xFF }, -16384)]
     [TestCase(new byte[] { 0x01, 0xFC }, -256)]
     [TestCase(new byte[] { 0x00 }, 0)]
     [TestCase(new byte[] { (5 << 2) + 0x02, 0x00, 0x00, 0x00 }, 5)]
     [TestCase(new byte[] { 0x01, 0x04 }, 256)]
     [TestCase(new byte[] { 0x02, 0x00, 0x01, 0x00 }, 16384)]
-    [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F }, SliceEncoder.VarLongMaxValue)]
-    public void Decode_varlong_value(byte[] encodedBytes, long expected)
+    [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F }, SliceEncoder.VarInt62MaxValue)]
+    public void Decode_varint62_value(byte[] encodedBytes, long expected)
     {
         var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice2);
 
-        long r1 = sut.DecodeVarLong();
+        long r1 = sut.DecodeVarInt62();
 
         Assert.That(r1, Is.EqualTo(expected));
         Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
@@ -60,15 +60,15 @@ public class NumericTypesDecodingTests
         {
             var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice2);
 
-            sut.DecodeVarInt();
+            sut.DecodeVarInt32();
         }, Throws.InstanceOf<InvalidDataException>());
     }
 
     /// <summary>Tests the decoding of a variable size unsigned long.</summary>
     /// <param name="encodedBytes">>An encoded byte array to decode.</param>
     /// <param name="expected">The expected ulong to be decoded.</param>
-    [TestCase(new byte[] { 0x00 }, SliceEncoder.VarULongMinValue)]
-    [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, SliceEncoder.VarULongMaxValue)]
+    [TestCase(new byte[] { 0x00 }, SliceEncoder.VarUInt62MinValue)]
+    [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, SliceEncoder.VarUInt62MaxValue)]
     [TestCase(new byte[] { 0x16, 0x00, 0x00, 0x00 }, (ulong)5)]
     [TestCase(new byte[] { 0x01, 0x04 }, (ulong)256)]
     [TestCase(new byte[] { 0x02, 0x00, 0x01, 0x00 }, (ulong)16384)]
@@ -76,7 +76,7 @@ public class NumericTypesDecodingTests
     {
         var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice2);
 
-        ulong r1 = sut.DecodeVarULong();
+        ulong r1 = sut.DecodeVarUInt62();
 
         Assert.That(r1, Is.EqualTo(expected));
         Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
@@ -93,11 +93,11 @@ public class NumericTypesDecodingTests
             var buffer = new byte[256];
             var bufferWriter = new MemoryBufferWriter(buffer);
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
-            encoder.EncodeVarULong(value);
+            encoder.EncodeVarUInt62(value);
             var encodedBytes = buffer[0..bufferWriter.WrittenMemory.Length];
             var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice2);
 
-            sut.DecodeVarUInt();
+            sut.DecodeVarUInt32();
         }, Throws.InstanceOf<InvalidDataException>());
     }
 

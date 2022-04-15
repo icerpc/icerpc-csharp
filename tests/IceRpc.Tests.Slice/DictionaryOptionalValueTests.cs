@@ -31,7 +31,7 @@ namespace IceRpc.Tests.Slice
         {
             int size = 100;
             await TestDictAsync(
-                (p1, p2) => _prx.OpOptionalByteDictAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalUInt8DictAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => (byte)i).ToDictionary(
                     key => key,
                     value => value % 2 == 0 ? (byte?)value : null),
@@ -49,7 +49,7 @@ namespace IceRpc.Tests.Slice
                     value => value ? (bool?)true : null));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpOptionalShortDictAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalInt16DictAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => (short)i).ToDictionary(
                     key => key,
                     value => value % 2 == 0 ? (short?)value : null),
@@ -58,7 +58,7 @@ namespace IceRpc.Tests.Slice
                     value => value % 2 == 0 ? (short?)value : null));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpOptionalUShortDictAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalUInt16DictAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => (ushort)i).ToDictionary(
                     key => key,
                     value => value % 2 == 0 ? (ushort?)value : null),
@@ -67,7 +67,7 @@ namespace IceRpc.Tests.Slice
                     value => value % 2 == 0 ? (ushort?)value : null));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpOptionalIntDictAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalInt32DictAsync(p1, p2),
                 Enumerable.Range(0, size).ToDictionary(
                     key => key,
                     value => value % 2 == 0 ? (int?)value : null),
@@ -76,7 +76,7 @@ namespace IceRpc.Tests.Slice
                     value => value % 2 == 0 ? (int?)value : null));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpOptionalVarIntDictAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalVarInt32DictAsync(p1, p2),
                 Enumerable.Range(0, size).ToDictionary(
                     key => key,
                     value => value % 2 == 0 ? (int?)value : null),
@@ -85,7 +85,7 @@ namespace IceRpc.Tests.Slice
                     value => value % 2 == 0 ? (int?)value : null));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpOptionalUIntDictAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalUInt32DictAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(
                     key => key,
                     value => value % 2 == 0 ? (uint?)value : null),
@@ -94,7 +94,7 @@ namespace IceRpc.Tests.Slice
                     value => value % 2 == 0 ? (uint?)value : null));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpOptionalVarUIntDictAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalVarUInt32DictAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(
                     key => key,
                     value => value % 2 == 0 ? (uint?)value : null),
@@ -103,7 +103,7 @@ namespace IceRpc.Tests.Slice
                     value => value % 2 == 0 ? (uint?)value : null));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpOptionalLongDictAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalInt64DictAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(
                     key => key,
                     value => value % 2 == 0 ? (long?)value : null),
@@ -112,7 +112,7 @@ namespace IceRpc.Tests.Slice
                     value => value % 2 == 0 ? (long?)value : null));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpOptionalVarLongDictAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalVarInt62DictAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(
                     key => key,
                     value => value % 2 == 0 ? (long?)value : null),
@@ -121,7 +121,7 @@ namespace IceRpc.Tests.Slice
                     value => value % 2 == 0 ? (long?)value : null));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpOptionalULongDictAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalUInt64DictAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(
                     key => key,
                     value => value % 2 == 0 ? (ulong?)value : null),
@@ -130,7 +130,7 @@ namespace IceRpc.Tests.Slice
                     value => value % 2 == 0 ? (ulong?)value : null));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpOptionalVarULongDictAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalVarUInt62DictAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(
                     key => key,
                     value => value % 2 == 0 ? (ulong?)value : null),
@@ -224,7 +224,7 @@ namespace IceRpc.Tests.Slice
         public class DictionaryOperations : Service, IDictionaryOptionalValueOperations
         {
             // Optional builtin types dictionaries
-            public ValueTask<(IEnumerable<KeyValuePair<byte, byte?>> R1, IEnumerable<KeyValuePair<byte, byte?>> R2)> OpOptionalByteDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<byte, byte?>> R1, IEnumerable<KeyValuePair<byte, byte?>> R2)> OpOptionalUInt8DictAsync(
                 Dictionary<byte, byte?> p1,
                 Dictionary<byte, byte?> p2,
                 Dispatch dispatch,
@@ -236,61 +236,61 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<short, short?>> R1, IEnumerable<KeyValuePair<short, short?>> R2)> OpOptionalShortDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<short, short?>> R1, IEnumerable<KeyValuePair<short, short?>> R2)> OpOptionalInt16DictAsync(
                 Dictionary<short, short?> p1,
                 Dictionary<short, short?> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<ushort, ushort?>> R1, IEnumerable<KeyValuePair<ushort, ushort?>> R2)> OpOptionalUShortDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<ushort, ushort?>> R1, IEnumerable<KeyValuePair<ushort, ushort?>> R2)> OpOptionalUInt16DictAsync(
                 Dictionary<ushort, ushort?> p1,
                 Dictionary<ushort, ushort?> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<int, int?>> R1, IEnumerable<KeyValuePair<int, int?>> R2)> OpOptionalIntDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<int, int?>> R1, IEnumerable<KeyValuePair<int, int?>> R2)> OpOptionalInt32DictAsync(
                 Dictionary<int, int?> p1,
                 Dictionary<int, int?> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<int, int?>> R1, IEnumerable<KeyValuePair<int, int?>> R2)> OpOptionalVarIntDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<int, int?>> R1, IEnumerable<KeyValuePair<int, int?>> R2)> OpOptionalVarInt32DictAsync(
                 Dictionary<int, int?> p1,
                 Dictionary<int, int?> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<uint, uint?>> R1, IEnumerable<KeyValuePair<uint, uint?>> R2)> OpOptionalUIntDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<uint, uint?>> R1, IEnumerable<KeyValuePair<uint, uint?>> R2)> OpOptionalUInt32DictAsync(
                 Dictionary<uint, uint?> p1,
                 Dictionary<uint, uint?> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<uint, uint?>> R1, IEnumerable<KeyValuePair<uint, uint?>> R2)> OpOptionalVarUIntDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<uint, uint?>> R1, IEnumerable<KeyValuePair<uint, uint?>> R2)> OpOptionalVarUInt32DictAsync(
                 Dictionary<uint, uint?> p1,
                 Dictionary<uint, uint?> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<long, long?>> R1, IEnumerable<KeyValuePair<long, long?>> R2)> OpOptionalLongDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<long, long?>> R1, IEnumerable<KeyValuePair<long, long?>> R2)> OpOptionalInt64DictAsync(
                 Dictionary<long, long?> p1,
                 Dictionary<long, long?> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<long, long?>> R1, IEnumerable<KeyValuePair<long, long?>> R2)> OpOptionalVarLongDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<long, long?>> R1, IEnumerable<KeyValuePair<long, long?>> R2)> OpOptionalVarInt62DictAsync(
                 Dictionary<long, long?> p1,
                 Dictionary<long, long?> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<ulong, ulong?>> R1, IEnumerable<KeyValuePair<ulong, ulong?>> R2)> OpOptionalULongDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<ulong, ulong?>> R1, IEnumerable<KeyValuePair<ulong, ulong?>> R2)> OpOptionalUInt64DictAsync(
                 Dictionary<ulong, ulong?> p1,
                 Dictionary<ulong, ulong?> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<ulong, ulong?>> R1, IEnumerable<KeyValuePair<ulong, ulong?>> R2)> OpOptionalVarULongDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<ulong, ulong?>> R1, IEnumerable<KeyValuePair<ulong, ulong?>> R2)> OpOptionalVarUInt62DictAsync(
                 Dictionary<ulong, ulong?> p1,
                 Dictionary<ulong, ulong?> p2,
                 Dispatch dispatch,

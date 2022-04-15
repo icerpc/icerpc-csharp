@@ -126,18 +126,22 @@ namespace IceRpc.Transports.Internal
 
         internal void AbortRead(long errorCode)
         {
-            if (IsStarted && !IsShutdown)
+            if (!IsStarted || IsShutdown)
             {
-                // Notify the peer of the read abort by sending a stop sending frame.
-                _ = SendStopSendingFrameAndShutdownAsync();
-            }
-            else
-            {
-                TrySetReadCompleted();
+                return;
             }
 
-            async Task SendStopSendingFrameAndShutdownAsync()
+            _ = SendStopSendingFrameAndCompleteReadsAsync();
+
+            async Task SendStopSendingFrameAndCompleteReadsAsync()
             {
+                if (IsRemote)
+                {
+                    // Complete reads before sending the stop sending frame to ensure the stream max count is decreased
+                    // before the peer receives the frame.
+                    TrySetReadCompleted();
+                }
+
                 try
                 {
                     await _connection.SendFrameAsync(
@@ -150,24 +154,34 @@ namespace IceRpc.Transports.Internal
                 {
                     // Ignore.
                 }
-                TrySetReadCompleted();
+
+                if (!IsRemote)
+                {
+                    // Complete reads after sending the stop sending frame to ensure the peer's stream max count is
+                    // decreased before it receives a frame for a new stream.
+                    TrySetReadCompleted();
+                }
             }
         }
 
         internal void AbortWrite(long errorCode)
         {
-            if (IsStarted && !IsShutdown)
+            if (!IsStarted || IsShutdown)
             {
-                // Notify the peer of the write abort by sending a reset frame.
-                _ = SendResetFrameAndCompleteWritesAsync();
+                return;
             }
-            else
-            {
-                TrySetWriteCompleted();
-            }
+
+            _ = SendResetFrameAndCompleteWritesAsync();
 
             async Task SendResetFrameAndCompleteWritesAsync()
             {
+                if (IsRemote)
+                {
+                    // Complete writes before sending the reset frame to ensure the stream max count is decreased before
+                    // the peer receives the frame.
+                    TrySetWriteCompleted();
+                }
+
                 try
                 {
                     await _connection.SendFrameAsync(
@@ -180,7 +194,13 @@ namespace IceRpc.Transports.Internal
                 {
                     // Ignore.
                 }
-                TrySetWriteCompleted();
+
+                if (!IsRemote)
+                {
+                    // Complete writes after sending the reset frame to ensure the peer's stream max count is decreased
+                    // before it receives a frame for a new stream.
+                    TrySetWriteCompleted();
+                }
             }
         }
 

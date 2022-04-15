@@ -206,7 +206,7 @@ public class InvocationTests
             deadlineField.Encode(ref encoder);
             var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
             decoder.SkipSize();
-            long value = decoder.DecodeVarLong();
+            long value = decoder.DecodeVarInt62();
             return DateTime.UnixEpoch + TimeSpan.FromMilliseconds(value);
         }
         else
