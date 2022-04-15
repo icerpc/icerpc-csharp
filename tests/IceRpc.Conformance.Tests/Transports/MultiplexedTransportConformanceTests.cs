@@ -548,7 +548,7 @@ public abstract class MultiplexedTransportConformanceTests
         // Assert
         await Task.WhenAll(writeTasks.Concat(readTasks));
 
-        foreach(Task<byte[]> readTask in readTasks)
+        foreach (Task<byte[]> readTask in readTasks)
         {
             var readResult = new ArraySegment<byte>(await readTask);
             for (int i = 0; i < segments; ++i)
@@ -826,7 +826,7 @@ public abstract class MultiplexedTransportConformanceTests
 
     private static async Task CompleteStreamsAsync(IEnumerable<IMultiplexedStream> streams)
     {
-        foreach(IMultiplexedStream stream in streams)
+        foreach (IMultiplexedStream stream in streams)
         {
             await CompleteStreamAsync(stream);
         }

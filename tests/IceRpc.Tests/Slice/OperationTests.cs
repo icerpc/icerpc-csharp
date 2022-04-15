@@ -131,7 +131,7 @@ public class OperationTests
     }
 
     [Test]
-    public void  Slice2_operation_encode_with_multiple_return()
+    public void Slice2_operation_encode_with_multiple_return()
     {
         var payload = IMyOperations.Response.OpIntAndString(10, "hello world!");
 

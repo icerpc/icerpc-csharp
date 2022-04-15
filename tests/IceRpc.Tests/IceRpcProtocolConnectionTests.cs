@@ -266,9 +266,9 @@ public sealed class IceRpcProtocolConnectionTests
         _ = sut.Server.AcceptRequestsAsync();
 
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
-            {
-                Payload = InvalidPipeReader.Instance
-            };
+        {
+            Payload = InvalidPipeReader.Instance
+        };
         var payloadWriterSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
         request.Use(writer =>
             {
@@ -295,9 +295,9 @@ public sealed class IceRpcProtocolConnectionTests
         var dispatcher = new InlineDispatcher((request, cancel) =>
             {
                 var response = new OutgoingResponse(request)
-                    {
-                        Payload = InvalidPipeReader.Instance
-                    };
+                {
+                    Payload = InvalidPipeReader.Instance
+                };
                 response.Use(writer =>
                     {
                         var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);

@@ -81,8 +81,8 @@ public sealed class ExceptionTests
         }
         encoder.EndSlice(lastSlice: true);
         var decoder = new SliceDecoder(
-            buffer.WrittenMemory, 
-            SliceEncoding.Slice1, 
+            buffer.WrittenMemory,
+            SliceEncoding.Slice1,
             activator: SliceDecoder.GetActivator(typeof(MyException).Assembly));
 
         var value = decoder.DecodeUserException() as MyException;

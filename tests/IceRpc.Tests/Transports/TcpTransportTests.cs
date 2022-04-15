@@ -89,7 +89,7 @@ public class TcpTransportTests
     {
         var localEndPoint = new IPEndPoint(IPAddress.IPv6Loopback, 10000);
 
-        await using TcpClientNetworkConnection connection =  CreateTcpClientConnection(
+        await using TcpClientNetworkConnection connection = CreateTcpClientConnection(
             options: new TcpClientTransportOptions
             {
                 LocalEndPoint = localEndPoint,
@@ -363,12 +363,12 @@ public class TcpTransportTests
     private static TcpClientNetworkConnection CreateTcpClientConnection(
         Endpoint? endpoint = null,
         TcpClientTransportOptions? options = null,
-        SslClientAuthenticationOptions? authenticationOptions= null)
+        SslClientAuthenticationOptions? authenticationOptions = null)
     {
         IClientTransport<ISimpleNetworkConnection> transport = new TcpClientTransport(options ?? new());
         return (TcpClientNetworkConnection)transport.CreateConnection(
             endpoint ?? new Endpoint(Protocol.IceRpc),
-            authenticationOptions:authenticationOptions,
+            authenticationOptions: authenticationOptions,
             NullLogger.Instance);
     }
 }
