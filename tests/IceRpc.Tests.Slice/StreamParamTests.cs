@@ -189,6 +189,7 @@ namespace IceRpc.Tests.Slice.Stream
         }
 
         [Test]
+        [Ignore("#1050")]
         public async Task StreamParam_Send_MyStructCancellation()
         {
             using var semaphore = new SemaphoreSlim(0);
