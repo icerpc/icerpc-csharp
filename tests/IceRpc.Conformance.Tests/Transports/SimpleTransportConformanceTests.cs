@@ -30,6 +30,26 @@ public abstract class SimpleTransportConformanceTests
             Throws.Nothing);
     }
 
+    /// <summary>Verifies that calling read on a client connection with a disposed peer connection fails with <see
+    /// cref="ConnectionLostException"/>.</summary>
+    [Test]
+    public async Task Client_connection_read_from_disposed_peer_connection_fails()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
+        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
+        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
+
+        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
+        await clientConnection.ConnectAsync(default);
+        ISimpleNetworkConnection serverConnection = await acceptTask;
+        await serverConnection.DisposeAsync();
+
+        // Act/Assert
+        Assert.That(async () => await clientConnection.ReadAsync(new byte[1], default),
+            Throws.InstanceOf<ConnectionLostException>());
+    }
+
     /// <summary>Verifies that pending write operation fails with <see cref="OperationCanceledException"/> once the
     /// cancellation token is canceled.</summary>
     [Test]
@@ -87,6 +107,42 @@ public abstract class SimpleTransportConformanceTests
         Assert.That(async () => await writeTask, Throws.TypeOf<OperationCanceledException>());
     }
 
+    /// <summary>Verifies that we can write using server and client connections.</summary>
+    [Test]
+    public async Task Connection_write(
+        [Values(1, 1024, 16 * 1024, 512 * 1024)] int size,
+        [Values(true, false)] bool useServerConnection)
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
+        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
+        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
+
+        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
+        await clientConnection.ConnectAsync(default);
+        var serverConnection = await acceptTask;
+        byte[] writeBuffer = new byte[size];
+
+        ISimpleNetworkConnection writeConnection = useServerConnection ? serverConnection : clientConnection;
+        ISimpleNetworkConnection readConnection = useServerConnection ? clientConnection : serverConnection;
+
+        // Act
+
+        // The write is performed in the background. Otherwise, the transport flow control might cause it to block
+        // until data is read.
+        ValueTask writeTask = writeConnection.WriteAsync(new ReadOnlyMemory<byte>[] { writeBuffer }, default);
+
+        // Assert
+        Memory<byte> readBuffer = new byte[size];
+        int offset = 0;
+        while (offset < size)
+        {
+            offset += await readConnection.ReadAsync(readBuffer[offset..], default);
+        }
+        Assert.That(offset, Is.EqualTo(size));
+        await writeTask;
+    }
+
     /// <summary>Write data until the transport flow control start blocking, at this point we start
     /// a read task and ensure that this unblocks the pending write calls.</summary>
     [Test]
@@ -103,22 +159,32 @@ public abstract class SimpleTransportConformanceTests
 
         int writtenSize = 0;
         Task writeTask;
-        do
+        while (true)
         {
             writtenSize += payload[0].Length;
             writeTask = clientConnection.WriteAsync(payload, default).AsTask();
             await Task.Delay(TimeSpan.FromMilliseconds(100));
+            if (writeTask.IsCompleted)
+            {
+                await writeTask;
+            }
+            else
+            {
+                break;
+            }
         }
-        while (writeTask.IsCompleted);
 
         // Act
         Task readTask = ReadAsync(serverConnection, writtenSize);
 
         // Assert
-        Assert.That(async () => await writeTask, Throws.Nothing);
-        Assert.That(async () => await readTask, Throws.Nothing);
+        Assert.Multiple(() =>
+        {
+            Assert.That(async () => await writeTask, Throws.Nothing);
+            Assert.That(async () => await readTask, Throws.Nothing);
+        });
 
-        async Task ReadAsync(ISimpleNetworkConnection connection, int size)
+        static async Task ReadAsync(ISimpleNetworkConnection connection, int size)
         {
             var buffer = new byte[1024];
             while (size > 0)
@@ -151,6 +217,29 @@ public abstract class SimpleTransportConformanceTests
 
         Assert.CatchAsync<OperationCanceledException>(
             async () => await clientConnection.ReadAsync(buffer, new CancellationToken(canceled: true)));
+    }
+
+    /// <summary>Verifies that a read operation ends with <see cref="OperationCanceledException"/> if the given
+    /// cancellation token is canceled.</summary>
+    [Test]
+    public async Task Read_cancellation()
+    {
+        // Arrange
+        using var canceled = new CancellationTokenSource();
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
+        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
+        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
+
+        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
+        await clientConnection.ConnectAsync(default);
+        ISimpleNetworkConnection serverConnection = await acceptTask;
+        ValueTask<int> readTask = clientConnection.ReadAsync(new byte[1], canceled.Token);
+
+        // Act
+        canceled.Cancel();
+
+        // Assert
+        Assert.That(async () => await readTask, Throws.TypeOf<OperationCanceledException>());
     }
 
     /// <summary>Verifies that calling read on a connection fails with <see cref="ConnectionLostException"/> if the
@@ -229,6 +318,82 @@ public abstract class SimpleTransportConformanceTests
             Is.True);
     }
 
+    /// <summary>Verifies that pending write operation fails with <see cref="OperationCanceledException"/> once the
+    /// cancellation token is canceled.</summary>
+    [Test]
+    public async Task Write_cancellation()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
+        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
+        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
+
+        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
+        await clientConnection.ConnectAsync(default);
+        ISimpleNetworkConnection serverConnection = await acceptTask;
+        var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1024 * 1024] };
+        using var canceled = new CancellationTokenSource();
+
+        // Write data until flow control blocks the sending. Cancelling the blocked write, should throw
+        // OperationCanceledException.
+        Task writeTask;
+        while (true)
+        {
+            writeTask = clientConnection.WriteAsync(buffer, canceled.Token).AsTask();
+            await Task.Delay(TimeSpan.FromMilliseconds(20));
+            if (writeTask.IsCompleted)
+            {
+                await writeTask;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        // Act
+        canceled.Cancel();
+
+        // Assert
+        Assert.That(async () => await writeTask, Throws.TypeOf<OperationCanceledException>());
+    }
+
+    /// <summary>Verifies that calling write fails with <see cref="ConnectionLostException"/> when the peer connection
+    /// is disposed.</summary>
+    [Test]
+    public async Task Write_to_disposed_peer_connection_fails_with_connection_lost_exception()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
+        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
+        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
+
+        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
+        await clientConnection.ConnectAsync(default);
+        ISimpleNetworkConnection serverConnection = await acceptTask;
+
+        // Act
+        await serverConnection.DisposeAsync();
+
+        // Assert
+        var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1] };
+        Exception exception;
+        try
+        {
+            // It can take few writes to detect the peer's connection closure.
+            while (true)
+            {
+                await clientConnection.WriteAsync(buffer, default);
+                await Task.Delay(50);
+            }
+        }
+        catch (Exception ex)
+        {
+            exception = ex;
+        }
+        Assert.That(exception, Is.InstanceOf<ConnectionLostException>());
+    }
+
     /// <summary>Verifies that calling read on a disposed connection fails with <see cref="ObjectDisposedException"/>.
     /// </summary>
     [Test]
@@ -266,7 +431,7 @@ public abstract class SimpleTransportConformanceTests
         Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
         await clientConnection.ConnectAsync(default);
         ISimpleNetworkConnection serverConnection = await acceptTask;
-        var delay = TimeSpan.FromMilliseconds(2);
+        var delay = TimeSpan.FromMilliseconds(10);
         TimeSpan lastActivity = clientConnection.LastActivity;
         await Task.Delay(delay);
 
@@ -309,8 +474,11 @@ public abstract class SimpleTransportConformanceTests
             offset += await readConnection.ReadAsync(readBuffer[offset..], default);
         }
         await writeTask;
-        Assert.That(offset, Is.EqualTo(size));
-        Assert.That(readBuffer.ToArray(), Is.EqualTo(writeBuffer));
+        Assert.Multiple(() =>
+        {
+            Assert.That(offset, Is.EqualTo(size));
+            Assert.That(readBuffer.Span.SequenceEqual(writeBuffer), Is.True);
+        });
     }
 
     [Test]
