@@ -61,6 +61,7 @@ namespace IceRpc.Slice
                 var pipe = new Pipe(); // TODO: pipe options
                 var encoder = new SliceEncoder(pipe.Writer, encoding);
 
+                // Encode resp. EncodeTrait can throw if the exception does not support encoding.
                 if (encoding == SliceEncoding.Slice1)
                 {
                     remoteException.Encode(ref encoder);

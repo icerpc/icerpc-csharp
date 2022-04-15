@@ -3,7 +3,7 @@
 module IceRpc;
 
 /// Retryable is carried by remote exceptions to indicate the ability to retry.
-enum Retryable : byte
+enum Retryable : uint8
 {
     /// do not retry
     No,

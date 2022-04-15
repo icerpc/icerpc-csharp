@@ -7,20 +7,20 @@ exception SomeException {}
 interface Operations
 {
     // Builtin types
-    opByte(p1: byte, p2: byte) -> (r1: byte, r2: byte);
+    opByte(p1: uint8, p2: uint8) -> (r1: uint8, r2: uint8);
     opBool(p1: bool, p2: bool) -> (r1: bool, r2: bool);
-    opShort(p1: short, p2: short) -> (r1: short, r2: short);
-    opUShort(p1: ushort, p2: ushort) -> (r1: ushort, r2: ushort);
-    opInt(p1: int, p2: int) -> (r1: int, r2: int);
-    opVarInt(p1: varint, p2: varint) -> (r1: varint, r2: varint);
-    opUInt(p1: uint, p2: uint) -> (r1: uint, r2: uint);
-    opVarUInt(p1: varuint, p2: varuint) -> (r1: varuint, r2: varuint);
-    opLong(p1: long, p2: long) -> (r1: long, r2: long);
-    opVarLong(p1: varlong, p2: varlong) -> (r1: varlong, r2: varlong);
-    opULong(p1: ulong, p2: ulong) -> (r1: ulong, r2: ulong);
-    opVarULong(p1: varulong, p2: varulong) -> (r1: varulong, r2: varulong);
-    opFloat(p1: float, p2: float) -> (r1: float, r2: float);
-    opDouble(p1: double, p2: double) -> (r1: double, r2: double);
+    opShort(p1: int16, p2: int16) -> (r1: int16, r2: int16);
+    opUShort(p1: uint16, p2: uint16) -> (r1: uint16, r2: uint16);
+    opInt(p1: int32, p2: int32) -> (r1: int32, r2: int32);
+    opVarInt(p1: varint32, p2: varint32) -> (r1: varint32, r2: varint32);
+    opUInt(p1: uint32, p2: uint32) -> (r1: uint32, r2: uint32);
+    opVarUInt(p1: varuint32, p2: varuint32) -> (r1: varuint32, r2: varuint32);
+    opLong(p1: int64, p2: int64) -> (r1: int64, r2: int64);
+    opVarLong(p1: varint62, p2: varint62) -> (r1: varint62, r2: varint62);
+    opULong(p1: uint64, p2: uint64) -> (r1: uint64, r2: uint64);
+    opVarULong(p1: varuint62, p2: varuint62) -> (r1: varuint62, r2: varuint62);
+    opFloat(p1: float32, p2: float32) -> (r1: float32, r2: float32);
+    opDouble(p1: float64, p2: float64) -> (r1: float64, r2: float64);
     opString(p1: string, p2: string) -> (r1: string, r2: string);
 
     // Returns a proxy to a Service

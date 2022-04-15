@@ -5,16 +5,16 @@ module IceRpc::Slice::Tests;
 interface MyOperations
 {
     // Single input parameter and return value
-    opInt(p1: int) -> int;
+    opInt(p1: int32) -> int32;
 
     // Multiple input parameters and return values
-    opIntAndString(p1: int, p2: string) -> (r1: int, r2: string);
+    opIntAndString(p1: int32, p2: string) -> (r1: int32, r2: string);
 
     // Optional input parameters and return values
-    opOptional(p1: int, p2: string, p3: int?, p4: string?) ->
-        (r1: int, r2: string, r3: int?, r4: string?);
+    opOptional(p1: int32, p2: string, p3: int32?, p4: string?) ->
+        (r1: int32, r2: string, r3: int32?, r4: string?);
 
     // Tagged input parameters and return values
-    opTagged(p1: int, p2: string, p3: tag(1) int?, p4: tag(2) string?) ->
-        (r1: int, r2: string, r3: tag(1) int?, r4: tag(2) string?);
+    opTagged(p1: int32, p2: string, p3: tag(1) int32?, p4: tag(2) string?) ->
+        (r1: int32, r2: string, r3: tag(1) int32?, r4: tag(2) string?);
 }
