@@ -4,28 +4,28 @@ module IceRpc::Slice::Tests;
 
 struct MyStruct
 {
-    i: int,
-    j: int,
+    i: int32,
+    j: int32,
 }
 
 struct MyStructWithOptionalMembers
 {
-    i: int,
-    j: int,
-    k: int?,
-    l: int?
+    i: int32,
+    j: int32,
+    k: int32?,
+    l: int32?
 }
 
 struct MyStructWithTaggedMembers
 {
-    i: int,
-    j: int,
-    k: tag(1) int?,
-    l: tag(255) int?
+    i: int32,
+    j: int32,
+    k: tag(1) int32?,
+    l: tag(255) int32?
 }
 
 compact struct MyCompactStruct
 {
-    i: int,
-    j: int,
+    i: int32,
+    j: int32,
 }

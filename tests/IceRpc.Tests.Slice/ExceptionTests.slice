@@ -4,12 +4,12 @@ module IceRpc::Tests::Slice;
 
 exception MyExceptionA
 {
-    m1: int,
+    m1: int32,
 }
 
 exception MyExceptionB
 {
-    m1: int,
+    m1: int32,
 }
 
 struct MyExceptionBHolder
@@ -22,6 +22,6 @@ interface ExceptionOperations
     opMyExceptionA(p1: MyExceptionA) -> MyExceptionA;
     opMyExceptionBHolder(p1: MyExceptionBHolder) -> MyExceptionBHolder;
 
-    throwA(a: int);
-    throwAorB(a: int);
+    throwA(a: int32);
+    throwAorB(a: int32);
 }

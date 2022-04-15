@@ -4,8 +4,8 @@ module IceRpc::Tests::Slice;
 
 struct MyStruct
 {
-    i: int,
-    j: tag(1) int?,
+    i: int32,
+    j: tag(1) int32?,
 }
 
 struct AnotherStruct

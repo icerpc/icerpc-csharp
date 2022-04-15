@@ -132,7 +132,6 @@ namespace IceRpc.Tests.Internal
             serviceCollection.UseEndpoint(transport, host: "127.0.0.1", port: 0);
             await using var factory = new ConnectionFactory(serviceCollection);
 
-            
             Assert.That(factory.ClientConnection.NetworkConnectionInformation, Is.Not.Null);
             NetworkConnectionInformation clientInformation = factory.ClientConnection.NetworkConnectionInformation.Value;
 

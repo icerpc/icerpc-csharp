@@ -3,7 +3,7 @@
 module IceRpc;
 
 /// The keys of fields carried by icerpc request headers.
-// TODO: add varulong as underlying type
+// TODO: add varuint62 as underlying type
 unchecked enum RequestFieldKey
 {
     /// The string-string dictionary field.
