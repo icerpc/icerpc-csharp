@@ -3,10 +3,12 @@
 using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
 using System.Collections.Immutable;
+using System.IO.Pipelines;
 
 namespace IceRpc.Tests;
 
@@ -308,5 +310,35 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
+    }
+
+    [Test]
+    public async Task Slice1_only_exception_is_encoded_as_a_dispatch_exception()
+    {
+        var dispatcher = new InlineDispatcher((request, cancel) =>
+        {
+            throw new Slice.Encoding.Tests.MyDerivedException(0, 0, 0, 0);
+        });
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(Protocol.IceRpc)
+            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .BuildServiceProvider();
+
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        _ = sut.Server.AcceptRequestsAsync();
+
+        // Act
+        var response = await sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
+
+        // Assert
+        Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
+
+        // TODO https://github.com/zeroc-ice/icerpc-csharp/pull/1047 connection must be already asigned
+        await using var connection = new Connection(new ConnectionOptions());
+        response.Connection = connection;
+        var exception = await response.DecodeFailureAsync() as DispatchException;
+        Assert.That(exception, Is.Not.Null);
+        Assert.That(exception.ErrorCode, Is.EqualTo(DispatchErrorCode.UnhandledException));
     }
 }
