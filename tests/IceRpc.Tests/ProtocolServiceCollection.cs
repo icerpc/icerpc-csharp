@@ -78,11 +78,20 @@ namespace IceRpc.Tests
 
         private static Task<(INetworkConnection, IProtocolConnection)> GetClientProtocolConnectionAsync(
             this IServiceProvider serviceProvider) => serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ?
-            GetProtocolConnectionAsync(serviceProvider, false, serviceProvider.GetSimpleClientConnectionAsync) :
-            GetProtocolConnectionAsync(serviceProvider, false, serviceProvider.GetMultiplexedClientConnectionAsync);
+                GetProtocolConnectionAsync(
+                    serviceProvider,
+                    Protocol.Ice,
+                    isServer: false,
+                    serviceProvider.GetSimpleClientConnectionAsync) :
+                GetProtocolConnectionAsync(
+                    serviceProvider,
+                    Protocol.IceRpc,
+                    isServer: false,
+                    serviceProvider.GetMultiplexedClientConnectionAsync);
 
         private static async Task<(INetworkConnection, IProtocolConnection)> GetProtocolConnectionAsync<T>(
             IServiceProvider serviceProvider,
+            Protocol protocol,
             bool isServer,
             Func<Task<T>> networkConnectionFactory) where T : INetworkConnection
         {
@@ -91,7 +100,7 @@ namespace IceRpc.Tests
                 await serviceProvider.GetRequiredService<IProtocolConnectionFactory<T>>().CreateProtocolConnectionAsync(
                     networkConnection,
                     connectionInformation: new(),
-                    connection: null!,
+                    connection: protocol == Protocol.Ice ? InvalidConnection.Ice : InvalidConnection.IceRpc,
                     connectionOptions: isServer ?
                         serviceProvider.GetService<ServerConnectionOptions>()?.Value ?? new() :
                         serviceProvider.GetService<ClientConnectionOptions>()?.Value ?? new(),
@@ -102,8 +111,16 @@ namespace IceRpc.Tests
 
         private static Task<(INetworkConnection, IProtocolConnection)> GetServerProtocolConnectionAsync(
             this IServiceProvider serviceProvider) => serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ?
-            GetProtocolConnectionAsync(serviceProvider, true, serviceProvider.GetSimpleServerConnectionAsync) :
-            GetProtocolConnectionAsync(serviceProvider, true, serviceProvider.GetMultiplexedServerConnectionAsync);
+                GetProtocolConnectionAsync(
+                    serviceProvider,
+                    Protocol.Ice,
+                    isServer: true,
+                    serviceProvider.GetSimpleServerConnectionAsync) :
+                GetProtocolConnectionAsync(
+                    serviceProvider,
+                    Protocol.IceRpc,
+                    isServer: true,
+                    serviceProvider.GetMultiplexedServerConnectionAsync);
 
         private sealed class ClientConnectionOptions
         {
