@@ -262,17 +262,16 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     /// <summary>Verifies that connection cannot exceed the bidirectional stream max count.</summary>
-    /// <param name="streamMaxCount">The max stream count limit to use for the test.</param>
-    /// <param name="streamMaxCountFactor">The multiplier factor to use for stream creation.</param>
     [Test]
     public async Task Max_bidirectional_stream_stress_test()
     {
         // Arrange
-        var multiplexedOptions = new MultiplexedTransportOptions { BidirectionalStreamMaxCount = 16 };
+        const int streamMaxCount = 16;
+        const int createStreamCount = 32;
 
         await using ServiceProvider provider =
             CreateServiceCollection().
-            UseTransportOptions(bidirectionalStreamMaxCount: 16).
+            UseTransportOptions(bidirectionalStreamMaxCount: streamMaxCount).
             BuildServiceProvider();
         await using IMultiplexedNetworkConnection clientConnection = provider.CreateConnection();
         await using IMultiplexedNetworkConnection serverConnection =
@@ -289,7 +288,7 @@ public abstract class MultiplexedTransportConformanceTests
         var streams = new List<IMultiplexedStream>();
         var tasks = new List<Task>();
 
-        for (int i = 0; i < 32; ++i)
+        for (int i = 0; i < createStreamCount; ++i)
         {
             IMultiplexedStream stream = clientConnection.CreateStream(true);
             tasks.Add(ClientReadWriteAsync(stream));
@@ -297,14 +296,14 @@ public abstract class MultiplexedTransportConformanceTests
         }
 
         // Act
-        for (int i = 0; i < 32; ++i)
+        for (int i = 0; i < createStreamCount; ++i)
         {
             tasks.Add(ServerReadWriteAsync(await serverConnection.AcceptStreamAsync(default)));
         }
 
         // Assert
         await Task.WhenAll(tasks);
-        Assert.That(streamCountMax, Is.LessThanOrEqualTo(16));
+        Assert.That(streamCountMax, Is.LessThanOrEqualTo(streamMaxCount));
 
         await CompleteStreamsAsync(streams);
 
@@ -356,17 +355,16 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     /// <summary>Verifies that connection cannot exceed the unidirectional stream max count.</summary>
-    /// <param name="streamMaxCount">The max stream count limit to use for the test.</param>
-    /// <param name="streamMaxCountFactor">The multiplier factor to use for stream creation.</param>
     [Test]
     public async Task Max_unidirectional_stream_stress_test()
     {
         // Arrange
-        var multiplexedOptions = new MultiplexedTransportOptions { UnidirectionalStreamMaxCount = 16 };
+        const int streamMaxCount = 16;
+        const int createStreamCount = 32;
 
         await using ServiceProvider provider =
             CreateServiceCollection().
-            UseTransportOptions(unidirectionalStreamMaxCount: 16).
+            UseTransportOptions(unidirectionalStreamMaxCount: streamMaxCount).
             BuildServiceProvider();
         await using IMultiplexedNetworkConnection clientConnection = provider.CreateConnection();
         await using IMultiplexedNetworkConnection serverConnection =
@@ -382,7 +380,7 @@ public abstract class MultiplexedTransportConformanceTests
 
         var streams = new List<IMultiplexedStream>();
         var tasks = new List<Task>();
-        for (int i = 0; i < 32; ++i)
+        for (int i = 0; i < createStreamCount; ++i)
         {
             IMultiplexedStream stream = clientConnection.CreateStream(bidirectional: false);
             tasks.Add(ClientWriteAsync(stream));
@@ -390,14 +388,14 @@ public abstract class MultiplexedTransportConformanceTests
         }
 
         // Act
-        for (int i = 0; i < 32; ++i)
+        for (int i = 0; i < createStreamCount; ++i)
         {
             tasks.Add(ServerReadAsync(await serverConnection.AcceptStreamAsync(default)));
         }
 
         // Assert
         await Task.WhenAll(tasks);
-        Assert.That(streamCountMax, Is.LessThanOrEqualTo(16));
+        Assert.That(streamCountMax, Is.LessThanOrEqualTo(streamMaxCount));
 
         await CompleteStreamsAsync(streams);
 
@@ -469,6 +467,7 @@ public abstract class MultiplexedTransportConformanceTests
                     await Task.Delay(TimeSpan.FromMilliseconds(20));
                 }
             });
+        Assert.That(ex, Is.Not.Null);
         Assert.That(ex!.ErrorCode, Is.EqualTo(errorCode));
 
         // Complete the pipe readers/writers to shutdown the stream.
@@ -495,6 +494,7 @@ public abstract class MultiplexedTransportConformanceTests
         await Task.Delay(TimeSpan.FromMilliseconds(50));
         MultiplexedStreamAbortedException? ex = Assert.CatchAsync<MultiplexedStreamAbortedException>(
             async () => await sut.RemoteStream.Input.ReadAsync());
+        Assert.That(ex, Is.Not.Null);
         Assert.That(ex!.ErrorCode, Is.EqualTo(errorCode));
 
         // Complete the pipe readers/writers to shutdown the stream.

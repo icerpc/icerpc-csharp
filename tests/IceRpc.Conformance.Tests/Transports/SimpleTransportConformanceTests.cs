@@ -30,23 +30,8 @@ public abstract class SimpleTransportConformanceTests
             Throws.Nothing);
     }
 
-    /// <summary>Verifies that calling connect on a tcp client connection with a canceled cancellation token fails with
-    /// <see cref="OperationCanceledException"/>.</summary>
-    [Test]
-    public async Task Calling_connect_with_canceled_cancellation_token_fails()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
-        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
-        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
-
-        // Act/Assert
-        Assert.That(async () => await clientConnection.ConnectAsync(new CancellationToken(canceled: true)),
-            Throws.InstanceOf<OperationCanceledException>());
-    }
-
-    /// <summary>Verifies that calling read on a client connection fails with <see cref="ConnectionLostException"/>.
-    /// </summary>
+    /// <summary>Verifies that calling read on a client connection with a disposed peer connection fails with <see
+    /// cref="ConnectionLostException"/>.</summary>
     [Test]
     public async Task Client_connection_read_from_disposed_peer_connection_fails()
     {

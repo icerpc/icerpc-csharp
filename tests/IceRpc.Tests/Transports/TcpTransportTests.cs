@@ -208,6 +208,57 @@ public class TcpTransportTests
         await Task.WhenAll(connections.Select(connection => connection.DisposeAsync().AsTask()));
     }
 
+    /// <summary>Verifies that connect cancellation works if connect hangs.</summary>
+    [Test]
+    public async Task Connect_cancellation()
+    {
+        // Arrange
+        await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
+            options: new TcpServerTransportOptions
+            {
+                ListenerBackLog = 1
+            });
+
+        var clientTransport = new TcpClientTransport(new TcpClientTransportOptions());
+
+        using var cancellationTokenSource = new CancellationTokenSource();
+        Task<NetworkConnectionInformation> connectTask;
+        TcpClientNetworkConnection clientConnection;
+        while (true)
+        {
+            TcpClientNetworkConnection? connection = CreateTcpClientConnection(listener.Endpoint);
+            try
+            {
+                connectTask = connection.ConnectAsync(cancellationTokenSource.Token);
+                await Task.Delay(TimeSpan.FromMilliseconds(20));
+                if (connectTask.IsCompleted)
+                {
+                    await connectTask;
+                }
+                else
+                {
+                    clientConnection = connection;
+                    connection = null;
+                    break;
+                }
+            }
+            finally
+            {
+                if (connection != null)
+                {
+                    await connection.DisposeAsync();
+                }
+            }
+        }
+
+        // Act
+        cancellationTokenSource.Cancel();
+
+        // Assert
+        Assert.That(async () => await connectTask, Throws.InstanceOf<OperationCanceledException>());
+        await clientConnection.DisposeAsync();
+    }
+
     /// <summary>Verifies that the client connect call on a tls connection fails with
     /// <see cref="OperationCanceledException"/> when the cancellation token is canceled.</summary>
     [Test]
