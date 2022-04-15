@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-encoding = 1.1;
+encoding = 1;
 
 [cs:namespace(IceRpc)]
 module Ice;
@@ -23,5 +23,5 @@ interface Process
     /// @param message The message.
     ///
     /// @param fd 1 for stdout, 2 for stderr.
-    writeMessage(message: string, fd: int);
+    writeMessage(message: string, fd: int32);
 }

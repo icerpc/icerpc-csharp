@@ -35,8 +35,8 @@ public class InvocationTests
             "",
             SliceEncoding.Slice2,
             EmptyPipeReader.Instance,
-            null,
-            SliceDecoder.GetActivator(typeof(InvocationTests).Assembly),
+            payloadStream: null,
+            defaultActivator: null,
             invocation);
 
         // Assert
@@ -66,8 +66,8 @@ public class InvocationTests
             "",
             SliceEncoding.Slice2,
             EmptyPipeReader.Instance,
-            null,
-            SliceDecoder.GetActivator(typeof(InvocationTests).Assembly),
+            payloadStream: null,
+            defaultActivator: null,
             invocation,
             cancel: cancellationSource.Token);
 
@@ -100,8 +100,8 @@ public class InvocationTests
                 "",
                 SliceEncoding.Slice2,
                 EmptyPipeReader.Instance,
-                null,
-                SliceDecoder.GetActivator(typeof(InvocationTests).Assembly),
+                payloadStream: null,
+                defaultActivator: null,
                 new Invocation { Timeout = TimeSpan.FromMilliseconds(20) }),
             Throws.TypeOf<TaskCanceledException>());
 
@@ -135,8 +135,8 @@ public class InvocationTests
             "",
             SliceEncoding.Slice2,
             EmptyPipeReader.Instance,
-            null,
-            SliceDecoder.GetActivator(typeof(InvocationTests).Assembly),
+            payloadStream: null,
+            defaultActivator: null,
             new Invocation() { Timeout = invocationTimeout });
 
         // Assert
@@ -166,8 +166,8 @@ public class InvocationTests
             "",
             SliceEncoding.Slice2,
             EmptyPipeReader.Instance,
-            null,
-            SliceDecoder.GetActivator(typeof(InvocationTests).Assembly),
+            payloadStream: null,
+            defaultActivator: null,
             new Invocation { Timeout = Timeout.InfiniteTimeSpan });
 
         // Assert
@@ -190,8 +190,8 @@ public class InvocationTests
                 "",
                 SliceEncoding.Slice2,
                 EmptyPipeReader.Instance,
-                null,
-                SliceDecoder.GetActivator(typeof(InvocationTests).Assembly),
+                payloadStream: null,
+                defaultActivator: null,
                 new Invocation { Deadline = DateTime.Now + TimeSpan.FromSeconds(60) },
                 cancel: CancellationToken.None));
     }

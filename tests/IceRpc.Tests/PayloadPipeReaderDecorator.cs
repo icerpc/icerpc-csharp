@@ -7,13 +7,11 @@ namespace IceRpc.Tests
     /// <summary>A payload pipe reader decorator to check if the complete method is called.</summary>
     internal sealed class PayloadPipeReaderDecorator : PipeReader
     {
-        public Task<bool> CompleteCalled => _completeCalled.Task;
+        public Task<Exception?> Completed => _completed.Task;
 
-        public Exception? CompleteException { get; private set; }
-
-        private readonly PipeReader _decoratee;
-        private readonly TaskCompletionSource<bool> _completeCalled =
+        private readonly TaskCompletionSource<Exception?> _completed =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly PipeReader _decoratee;
 
         public override void AdvanceTo(SequencePosition consumed) => _decoratee.AdvanceTo(consumed);
 
@@ -24,8 +22,7 @@ namespace IceRpc.Tests
 
         public override void Complete(Exception? exception = null)
         {
-            CompleteException = exception;
-            _completeCalled.SetResult(true);
+            _completed.SetResult(exception);
             _decoratee.Complete(exception);
         }
 

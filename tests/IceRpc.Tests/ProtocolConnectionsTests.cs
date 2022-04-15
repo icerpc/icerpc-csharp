@@ -60,7 +60,7 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         var result = new TaskCompletionSource<bool>();
-        ProtocolConnectionPair? sut = null;
+        ClientServerProtocolConnection? sut = null;
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
             .UseServerConnectionOptions(new ConnectionOptions()
@@ -73,7 +73,7 @@ public sealed class ProtocolConnectionTests
                 })
             .BuildServiceProvider();
 
-        sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Value.Server.AcceptRequestsAsync();
 
         // Act
@@ -90,7 +90,7 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         var result = new TaskCompletionSource<bool>();
-        ProtocolConnectionPair? sut = null;
+        ClientServerProtocolConnection? sut = null;
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
             .UseServerConnectionOptions(new ConnectionOptions()
@@ -103,7 +103,7 @@ public sealed class ProtocolConnectionTests
             })
             .BuildServiceProvider();
 
-        sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Value.Server.AcceptRequestsAsync();
 
         // Act
@@ -119,7 +119,7 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         await using var serviceProvider = new ProtocolServiceCollection().UseProtocol(protocol).BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
         // Act
         sut.Client.Dispose();
@@ -133,7 +133,7 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         await using var serviceProvider = new ProtocolServiceCollection().UseProtocol(protocol).BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
         IProtocolConnection connection1 = connectionType == ConnectionType.Client ? sut.Server : sut.Client;
         IProtocolConnection connection2 = connectionType == ConnectionType.Client ? sut.Client : sut.Server;
@@ -160,7 +160,7 @@ public sealed class ProtocolConnectionTests
         // Arrange
         await using var serviceProvider = new ProtocolServiceCollection().UseProtocol(protocol).BuildServiceProvider();
 
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Client.ShutdownAsync("");
 
         // Act
@@ -178,7 +178,7 @@ public sealed class ProtocolConnectionTests
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
         var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var request = new OutgoingRequest(new Proxy(protocol))
@@ -189,10 +189,9 @@ public sealed class ProtocolConnectionTests
 
         // Act
         _ = sut.Client.InvokeAsync(request);
-        bool payloadCompleted = await payloadDecorator.CompleteCalled;
 
         // Assert
-        Assert.That(payloadCompleted, Is.True);
+        Assert.That(await payloadDecorator.Completed, Is.Null);
     }
 
     /// <summary>Ensures that the request payload is completed if the payload is invalid.</summary>
@@ -203,7 +202,7 @@ public sealed class ProtocolConnectionTests
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
         var payloadDecorator = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
         var request = new OutgoingRequest(new Proxy(protocol))
@@ -214,14 +213,9 @@ public sealed class ProtocolConnectionTests
 
         // Act
         _ = sut.Client.InvokeAsync(request);
-        bool payloadCompleted = await payloadDecorator.CompleteCalled;
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(payloadCompleted, Is.True);
-            Assert.That(payloadDecorator.CompleteException, Is.InstanceOf<NotSupportedException>());
-        });
+        Assert.That(await payloadDecorator.Completed, Is.InstanceOf<NotSupportedException>());
     }
 
     /// <summary>Ensures that the request payload is completed if the payload writer is invalid.</summary>
@@ -232,7 +226,7 @@ public sealed class ProtocolConnectionTests
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
         var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var request = new OutgoingRequest(new Proxy(protocol))
@@ -244,14 +238,9 @@ public sealed class ProtocolConnectionTests
 
         // Act
         _ = sut.Client.InvokeAsync(request);
-        bool payloadCompleted = await payloadDecorator.CompleteCalled;
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(payloadCompleted, Is.True);
-            Assert.That(payloadDecorator.CompleteException, Is.InstanceOf<NotSupportedException>());
-        });
+        Assert.That(await payloadDecorator.Completed, Is.InstanceOf<NotSupportedException>());
     }
 
     /// <summary>Ensures that the request payload is completed if the connection is shutdown.</summary>
@@ -260,7 +249,7 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         await using var serviceProvider = new ProtocolServiceCollection().UseProtocol(protocol).BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Client.ShutdownAsync("", default);
 
         var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
@@ -271,15 +260,9 @@ public sealed class ProtocolConnectionTests
 
         // Act
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
-        bool completeCalled = await payloadDecorator.CompleteCalled;
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.ThrowsAsync<ConnectionClosedException>(() => invokeTask);
-            Assert.That(completeCalled, Is.True);
-            Assert.That(payloadDecorator.CompleteException, Is.InstanceOf<ConnectionClosedException>());
-        });
+        Assert.That(await payloadDecorator.Completed, Is.InstanceOf<ConnectionClosedException>());
     }
 
     /// <summary>Ensures that the response payload is completed on a valid response.</summary>
@@ -298,15 +281,14 @@ public sealed class ProtocolConnectionTests
             .UseProtocol(protocol)
             .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Server.AcceptRequestsAsync();
 
         // Act
         _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
-        bool completedCalled = await payloadDecorator.CompleteCalled;
 
         // Assert
-        Assert.That(completedCalled, Is.True);
+        Assert.That(await payloadDecorator.Completed, Is.Null);
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>
@@ -325,19 +307,14 @@ public sealed class ProtocolConnectionTests
             .UseProtocol(protocol)
             .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Server.AcceptRequestsAsync();
 
         // Act
         _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
-        bool completedCalled = await payloadDecorator.CompleteCalled;
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(completedCalled, Is.True);
-            Assert.That(payloadDecorator.CompleteException, Is.InstanceOf<NotSupportedException>());
-        });
+        Assert.That(await payloadDecorator.Completed, Is.InstanceOf<NotSupportedException>());
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload writer.</summary>
@@ -360,19 +337,14 @@ public sealed class ProtocolConnectionTests
             .UseProtocol(protocol)
             .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Server.AcceptRequestsAsync();
 
         // Act
         _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
-        bool completedCalled = await payloadDecorator.CompleteCalled;
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(completedCalled, Is.True);
-            Assert.That(payloadDecorator.CompleteException, Is.InstanceOf<NotSupportedException>());
-        });
+        Assert.That(await payloadDecorator.Completed, Is.InstanceOf<NotSupportedException>());
     }
 
     /// <summary>Ensures that the request payload writer is completed on valid request.</summary>
@@ -383,7 +355,7 @@ public sealed class ProtocolConnectionTests
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Server.AcceptRequestsAsync();
 
         var request = new OutgoingRequest(new Proxy(protocol));
@@ -397,11 +369,9 @@ public sealed class ProtocolConnectionTests
 
         // Act
         _ = sut.Client.InvokeAsync(request);
-        PayloadPipeWriterDecorator payloadWriter = await payloadWriterSource.Task;
-        bool completedCalled = await payloadWriter.CompleteCalled;
 
         // Assert
-        Assert.That(completedCalled, Is.True);
+        Assert.That(await (await payloadWriterSource.Task).Completed, Is.Null);
     }
 
     /// <summary>Ensures that the request payload writer is completed on valid response.</summary>
@@ -426,16 +396,14 @@ public sealed class ProtocolConnectionTests
             .UseProtocol(protocol)
             .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Server.AcceptRequestsAsync();
 
         // Act
         _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
-        PayloadPipeWriterDecorator payloadWriter = await payloadWriterSource.Task;
-        bool completedCalled = await payloadWriter.CompleteCalled;
 
         // Assert
-        Assert.That(completedCalled, Is.True);
+        Assert.That(await (await payloadWriterSource.Task).Completed, Is.Null);
     }
 
     /// <summary>Ensures that the request payload writer is completed on an invalid request.</summary>
@@ -448,7 +416,7 @@ public sealed class ProtocolConnectionTests
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Server.AcceptRequestsAsync();
 
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
@@ -465,15 +433,9 @@ public sealed class ProtocolConnectionTests
 
         // Act
         _ = sut.Client.InvokeAsync(request);
-        PayloadPipeWriterDecorator payloadWriter = await payloadWriterSource.Task;
-        bool completedCalled = await payloadWriter.CompleteCalled;
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(completedCalled, Is.True);
-            Assert.That(payloadWriter.CompleteException, Is.InstanceOf<NotSupportedException>());
-        });
+        Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
     }
 
     /// <summary>Ensures that the request payload writer is completed on an invalid response.</summary>
@@ -503,19 +465,13 @@ public sealed class ProtocolConnectionTests
             .UseProtocol(Protocol.IceRpc)
             .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Server.AcceptRequestsAsync();
 
         // Act
         _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
-        PayloadPipeWriterDecorator payloadWriter = await payloadWriterSource.Task;
-        bool completedCalled = await payloadWriter.CompleteCalled;
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(completedCalled, Is.True);
-            Assert.That(payloadWriter.CompleteException, Is.InstanceOf<NotSupportedException>());
-        });
+        Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
     }
 }

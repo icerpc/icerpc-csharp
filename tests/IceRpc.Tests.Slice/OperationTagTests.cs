@@ -481,13 +481,13 @@ namespace IceRpc.Tests.Slice
 
             IncomingResponse response = await _prx.Proxy.Invoker.InvokeAsync(request);
 
-            Assert.DoesNotThrowAsync(async () => await response.CheckVoidReturnValueAsync(
+            Assert.DoesNotThrowAsync(async () => await response.DecodeVoidReturnValueAsync(
                 SliceEncoding.Slice2,
                 SliceDecoder.GetActivator(typeof(OperationTagTests).Assembly),
                 hasStream: false,
                 default));
 
-            PipeReader CreatePayload()
+            static PipeReader CreatePayload()
             {
                 // Build a request payload with 2 tagged values
                 var pipe = new Pipe(); // TODO: pipe options

@@ -217,9 +217,25 @@ namespace IceRpc.Internal
                             exception);
                     }
 
+                    // Attempt to encode this exception. If the encoding fails, we encode a DispatchException.
+                    PipeReader responsePayload;
+                    try
+                    {
+                        responsePayload = CreateExceptionPayload(remoteException);
+                    }
+                    catch (Exception encodeException)
+                    {
+                        // This should be extremely rare. For example, a middleware throwing a Slice1-only remote
+                        // exception.
+                        responsePayload = CreateExceptionPayload(
+                            new DispatchException(
+                                message: null,
+                                DispatchErrorCode.UnhandledException,
+                                encodeException));
+                    }
                     response = new OutgoingResponse(request)
                     {
-                        Payload = SliceEncoding.Slice2.CreatePayloadFromRemoteException(remoteException),
+                        Payload = responsePayload,
                         ResultType = ResultType.Failure
                     };
 
@@ -229,6 +245,21 @@ namespace IceRpc.Internal
                         response.Fields = response.Fields.With(
                             ResponseFieldKey.RetryPolicy,
                             (ref SliceEncoder encoder) => retryPolicy.Encode(ref encoder));
+                    }
+
+                    static PipeReader CreateExceptionPayload(RemoteException exception)
+                    {
+                        var pipe = new Pipe(); // TODO: pipe options
+
+                        var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
+                        Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+                        int startPos = encoder.EncodedByteCount;
+
+                        // EncodeTrait throws for a Slice1-only exception.
+                        exception.EncodeTrait(ref encoder);
+                        SliceEncoder.EncodeVarULong((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
+                        pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
+                        return pipe.Reader;
                     }
                 }
                 finally

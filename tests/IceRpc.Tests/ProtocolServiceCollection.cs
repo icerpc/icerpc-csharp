@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace IceRpc.Tests
 {
     /// <summary>A helper struct to ensure the network and protocol connections are correctly disposed.</summary>
-    internal struct ProtocolConnectionPair : IAsyncDisposable
+    internal struct ClientServerProtocolConnection : IAsyncDisposable
     {
         internal IProtocolConnection Client { get; }
         internal INetworkConnection ClientNetworkConnection { get; }
@@ -23,7 +23,7 @@ namespace IceRpc.Tests
             await ServerNetworkConnection.DisposeAsync();
         }
 
-        internal ProtocolConnectionPair(
+        internal ClientServerProtocolConnection(
             INetworkConnection clientNetworkConnection,
             INetworkConnection serverNetworkConnection,
             IProtocolConnection clientConnection,
@@ -60,14 +60,16 @@ namespace IceRpc.Tests
             ConnectionOptions options) =>
             collection.AddSingleton(new ClientConnectionOptions(options));
 
-        internal static async Task<ProtocolConnectionPair> GetProtocolConnectionPairAsync(
+        internal static async Task<ClientServerProtocolConnection> GetClientServerProtocolConnectionAsync(
             this IServiceProvider serviceProvider)
         {
-            Task<(INetworkConnection, IProtocolConnection)> serverTask = serviceProvider.GetServerProtocolConnectionAsync();
+            Task<(INetworkConnection, IProtocolConnection)> serverTask =
+                serviceProvider.GetServerProtocolConnectionAsync();
             (INetworkConnection clientNetworkConnection, IProtocolConnection clientProtocolConnection) =
                 await serviceProvider.GetClientProtocolConnectionAsync();
-            (INetworkConnection serverNetworkConnection, IProtocolConnection serverProtocolConnection) = await serverTask;
-            return new ProtocolConnectionPair(
+            (INetworkConnection serverNetworkConnection, IProtocolConnection serverProtocolConnection) =
+                await serverTask;
+            return new ClientServerProtocolConnection(
                 clientNetworkConnection,
                 serverNetworkConnection,
                 clientProtocolConnection,

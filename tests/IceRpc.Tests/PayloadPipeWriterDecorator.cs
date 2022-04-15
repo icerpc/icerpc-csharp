@@ -7,19 +7,17 @@ namespace IceRpc.Tests
     /// <summary>A payload pipe writer decorator to check if the complete method is called.</summary>
     internal sealed class PayloadPipeWriterDecorator : PipeWriter
     {
-        public Task<bool> CompleteCalled => _completeCalled.Task;
-        public Exception? CompleteException { get; private set; }
+        public Task<Exception?> Completed => _completed.Task;
 
-        private readonly PipeWriter _decoratee;
-        private readonly TaskCompletionSource<bool> _completeCalled =
+        private readonly TaskCompletionSource<Exception?> _completed =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly PipeWriter _decoratee;
 
         public override void CancelPendingFlush() => _decoratee.CancelPendingFlush();
 
         public override void Complete(Exception? exception = null)
         {
-            CompleteException = exception;
-            _completeCalled.SetResult(true);
+            _completed.SetResult(exception);
             _decoratee.Complete(exception);
         }
 

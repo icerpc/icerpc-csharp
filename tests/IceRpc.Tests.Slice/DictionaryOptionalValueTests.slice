@@ -2,18 +2,18 @@
 
 module IceRpc::Tests::Slice;
 
-typealias OptionalByteDict = dictionary<byte, byte?>;
+typealias OptionalByteDict = dictionary<uint8, uint8?>;
 typealias OptionalBoolDict = dictionary<bool, bool?>;
-typealias OptionalShortDict = dictionary<short, short?>;
-typealias OptionalUShortDict = dictionary<ushort, ushort?>;
-typealias OptionalIntDict = dictionary<int, int?>;
-typealias OptionalVarIntDict = dictionary<varint, varint?>;
-typealias OptionalUIntDict = dictionary<uint, uint?>;
-typealias OptionalVarUIntDict = dictionary<varuint, varuint?>;
-typealias OptionalLongDict = dictionary<long, long?>;
-typealias OptionalVarLongDict = dictionary<varlong, varlong?>;
-typealias OptionalULongDict = dictionary<ulong, ulong?>;
-typealias OptionalVarULongDict = dictionary<varulong, varulong?>;
+typealias OptionalShortDict = dictionary<int16, int16?>;
+typealias OptionalUShortDict = dictionary<uint16, uint16?>;
+typealias OptionalIntDict = dictionary<int32, int32?>;
+typealias OptionalVarIntDict = dictionary<varint32, varint32?>;
+typealias OptionalUIntDict = dictionary<uint32, uint32?>;
+typealias OptionalVarUIntDict = dictionary<varuint32, varuint32?>;
+typealias OptionalLongDict = dictionary<int64, int64?>;
+typealias OptionalVarLongDict = dictionary<varint62, varint62?>;
+typealias OptionalULongDict = dictionary<uint64,uint64?>;
+typealias OptionalVarULongDict = dictionary<varuint62, varuint62?>;
 typealias OptionalStringDict = dictionary<string, string?>;
 
 typealias OptionalMyEnumDict = dictionary<MyEnum, MyEnum?>;

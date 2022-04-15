@@ -22,7 +22,7 @@ namespace IceRpc.Slice
             if (hasStream && encoding == SliceEncoding.Slice1)
             {
                 throw new ArgumentException(
-                    $"{nameof(hasStream)} must be false when encoding is 1.1", nameof(hasStream));
+                    $"{nameof(hasStream)} must be false when encoding is Slice1", nameof(hasStream));
             }
 
             return hasStream ? PipeReader.Create(_payloadWithZeroSize) : EmptyPipeReader.Instance;
@@ -36,39 +36,9 @@ namespace IceRpc.Slice
         {
             if (encoding == SliceEncoding.Slice1)
             {
-                throw new NotSupportedException("streaming is not supported with encoding 1.1");
+                throw new NotSupportedException("streaming is not supported with Slice1");
             }
             return new PayloadStreamPipeReader<T>(encoding, asyncEnumerable, encodeAction);
-        }
-
-        /// <summary>Creates the payload of a response from a remote exception.</summary>
-        /// <param name="encoding">The Slice encoding.</param>
-        /// <param name="exception">The remote exception.</param>
-        /// <returns>A new payload.</returns>
-        public static PipeReader CreatePayloadFromRemoteException(this SliceEncoding encoding, RemoteException exception)
-        {
-            var pipe = new Pipe(); // TODO: pipe options
-
-            var encoder = new SliceEncoder(pipe.Writer, encoding);
-            Span<byte> sizePlaceholder = encoding == SliceEncoding.Slice1 ? default : encoder.GetPlaceholderSpan(4);
-            int startPos = encoder.EncodedByteCount;
-
-            if (encoding == SliceEncoding.Slice1 && exception is DispatchException dispatchException)
-            {
-                encoder.EncodeDispatchExceptionAsSystemException(dispatchException);
-            }
-            else
-            {
-                exception.EncodeTrait(ref encoder);
-            }
-
-            if (encoding != SliceEncoding.Slice1)
-            {
-                SliceEncoder.EncodeVarULong((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
-            }
-
-            pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
-            return pipe.Reader;
         }
 
 #pragma warning disable CA1001 // CompleteAsync disposes the cancellation source token.

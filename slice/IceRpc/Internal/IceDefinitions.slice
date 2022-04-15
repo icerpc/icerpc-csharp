@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-encoding = 1.1;
+encoding = 1;
 
 [cs:internal]
 module IceRpc::Internal;
@@ -21,17 +21,17 @@ enum IceFrameType
 [cs:readonly]
 compact struct IcePrologue
 {
-    magic1: byte,
-    magic2: byte,
-    magic3: byte,
-    magic4: byte,
-    protocolMajor: byte,
-    protocolMinor: byte,
-    encodingMajor: byte,
-    encodingMinor: byte,
+    magic1: uint8,
+    magic2: uint8,
+    magic3: uint8,
+    magic4: uint8,
+    protocolMajor: uint8,
+    protocolMinor: uint8,
+    encodingMajor: uint8,
+    encodingMinor: uint8,
     frameType: IceFrameType,
-    compressionStatus: byte,
-    frameSize: int
+    compressionStatus: uint8,
+    frameSize: int32
 }
 
 /// Determines the retry behavior an invocation in case of a (potentially) recoverable error. OperationMode is
@@ -58,9 +58,9 @@ enum OperationMode
 [cs:readonly]
 compact struct EncapsulationHeader
 {
-    encapsulationSize: int,
-    payloadEncodingMajor: byte,
-    payloadEncodingMinor: byte,
+    encapsulationSize: int32,
+    payloadEncodingMajor: uint8,
+    payloadEncodingMinor: uint8,
 }
 
 /// Each ice request frame has:

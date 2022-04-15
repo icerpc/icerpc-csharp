@@ -1,13 +1,16 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports.Internal;
 using System.Buffers;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+
 using static IceRpc.Slice.Internal.Slice1Definitions;
 
 namespace IceRpc.Slice
@@ -18,7 +21,7 @@ namespace IceRpc.Slice
         /// <summary>The number of bytes encoded by this encoder into the underlying buffer writer.</summary>
         public int EncodedByteCount { get; private set; }
 
-        /// <summary>The Slice encoding associated with this encoder.</summary>
+        /// <summary>The Slice encoding of this encoder.</summary>
         public SliceEncoding Encoding { get; }
 
         internal const long VarLongMinValue = -2_305_843_009_213_693_952; // -2^61
@@ -38,7 +41,7 @@ namespace IceRpc.Slice
         /// <summary>Constructs an Slice encoder.</summary>
         /// <param name="pipeWriter">The pipe writer that provides the buffers to write into.</param>
         /// <param name="encoding">The Slice encoding.</param>
-        /// <param name="classFormat">The class format (1.1 only).</param>
+        /// <param name="classFormat">The class format (Slice1 only).</param>
         public SliceEncoder(PipeWriter pipeWriter, SliceEncoding encoding, FormatType classFormat = default)
             : this((IBufferWriter<byte>)pipeWriter, encoding, classFormat)
         {
@@ -248,11 +251,6 @@ namespace IceRpc.Slice
         /// <param name="proxy">The proxy to encode.</param>
         public void EncodeProxy(Proxy proxy)
         {
-            if (proxy.Connection?.IsServer ?? false)
-            {
-                throw new InvalidOperationException("cannot encode a proxy bound to a server connection");
-            }
-
             if (Encoding == SliceEncoding.Slice1)
             {
                 this.EncodeIdentityPath(proxy.Path);
@@ -286,7 +284,7 @@ namespace IceRpc.Slice
                     if (proxy.Params.Count > maxCount)
                     {
                         throw new NotSupportedException(
-                            "cannot encode proxy with parameter other than adapter-id using Slice 1.1");
+                            "cannot encode proxy with parameter other than adapter-id using Slice1");
                     }
                     EncodeString(adapterId ?? "");
                 }
@@ -294,6 +292,36 @@ namespace IceRpc.Slice
             else
             {
                 EncodeString(proxy.ToString()); // a URI or an absolute path
+            }
+        }
+
+        /// <summary>Encodes a dispatch exception as a Slice1 system exception.</summary>
+        /// <param name="v">The dispatch exception to encode.</param>
+        /// <param name="path">The path to include in some system exceptions.</param>
+        /// <param name="fragment">The fragment to include in some system exceptions.</param>
+        /// <param name="operation">The operation to include in some system exceptions.</param>
+        /// <remarks>A dispatch exception cannot be encoded directly with Slice1.</remarks>
+        public void EncodeSystemException(DispatchException v, string path, string fragment, string operation)
+        {
+            Debug.Assert(Encoding == SliceEncoding.Slice1);
+
+            DispatchErrorCode errorCode = v.ErrorCode;
+
+            switch (errorCode)
+            {
+                case DispatchErrorCode.ServiceNotFound:
+                case DispatchErrorCode.OperationNotFound:
+                    this.EncodeReplyStatus(errorCode == DispatchErrorCode.ServiceNotFound ?
+                        ReplyStatus.ObjectNotExistException : ReplyStatus.OperationNotExistException);
+
+                    new RequestFailedExceptionData(path, fragment, operation).Encode(ref this);
+                    break;
+
+                default:
+                    this.EncodeReplyStatus(ReplyStatus.UnknownException);
+                    // We encode the error code in the message.
+                    EncodeString($"[{((byte)errorCode).ToString(CultureInfo.InvariantCulture)}] {v.Message}");
+                    break;
             }
         }
 
@@ -631,7 +659,7 @@ namespace IceRpc.Slice
             EncodedByteCount += count;
         }
 
-        /// <summary>Encodes an endpoint in a nested encapsulation (1.1 only).</summary>
+        /// <summary>Encodes an endpoint in a nested encapsulation (Slice1 only).</summary>
         /// <param name="endpoint">The endpoint to encode.</param>
         private void EncodeEndpoint(Endpoint endpoint)
         {
@@ -643,7 +671,7 @@ namespace IceRpc.Slice
                 transport = TransportNames.Tcp;
             }
 
-            // The 1.1 encoding of ice endpoints is transport-specific, and hard-coded here. The preferred and
+            // The Slice1 encoding of ice endpoints is transport-specific, and hard-coded here. The preferred and
             // fallback encoding for new transports is TransportCode.Uri.
 
             if (endpoint.Protocol == Protocol.Ice && transport == TransportNames.Opaque)
@@ -714,7 +742,7 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes the header for a tagged parameter or data member. Slice 1.1 only.</summary>
+        /// <summary>Encodes the header for a tagged parameter or data member. Slice1 only.</summary>
         /// <param name="tag">The numeric tag associated with the parameter or data member.</param>
         /// <param name="format">The tag format.</param>
         private void EncodeTaggedParamHeader(int tag, TagFormat format)

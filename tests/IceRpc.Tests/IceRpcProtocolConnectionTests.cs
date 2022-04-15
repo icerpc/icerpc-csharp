@@ -22,12 +22,12 @@ public sealed class IceRpcProtocolConnectionTests
         // Arrange
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
-            .UseServerConnectionOptions(new()
+            .UseServerConnectionOptions(new ConnectionOptions()
             {
                 Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>()
                         .With(ConnectionFieldKey.MaxHeaderSize, (ref SliceEncoder encoder) => encoder.EncodeInt(56))
             })
-            .UseClientConnectionOptions(new()
+            .UseClientConnectionOptions(new ConnectionOptions()
             {
                 Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>()
                         .With(ConnectionFieldKey.MaxHeaderSize, (ref SliceEncoder encoder) => encoder.EncodeInt(34))
@@ -36,7 +36,7 @@ public sealed class IceRpcProtocolConnectionTests
             .BuildServiceProvider();
 
         // Act
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
         // Assert
         Assert.Multiple(() =>
@@ -62,7 +62,7 @@ public sealed class IceRpcProtocolConnectionTests
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
         var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
@@ -76,14 +76,9 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Act
         _ = sut.Client.InvokeAsync(request);
-        bool payloadCompleted = await payloadDecorator.CompleteCalled;
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(payloadCompleted, Is.True);
-            Assert.That(payloadDecorator.CompleteException, Is.InstanceOf<NotSupportedException>());
-        });
+        Assert.That(await payloadDecorator.Completed, Is.InstanceOf<NotSupportedException>());
     }
 
     /// <summary>Ensures that the response payload is completed if the response fields are invalid.</summary>
@@ -108,19 +103,14 @@ public sealed class IceRpcProtocolConnectionTests
             .UseProtocol(Protocol.IceRpc)
             .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Server.AcceptRequestsAsync();
 
         // Act
         _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
-        bool completedCalled = await payloadDecorator.CompleteCalled;
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(completedCalled, Is.True);
-            Assert.That(payloadDecorator.CompleteException, Is.InstanceOf<NotSupportedException>());
-        });
+        Assert.That(await payloadDecorator.Completed, Is.InstanceOf<NotSupportedException>());
     }
 
     /// <summary>Ensures that the request payload stream is completed on valid request.</summary>
@@ -131,7 +121,7 @@ public sealed class IceRpcProtocolConnectionTests
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
         var payloadStreamDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
@@ -142,10 +132,9 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Act
         _ = sut.Client.InvokeAsync(request);
-        bool payloadCompleted = await payloadStreamDecorator.CompleteCalled;
 
         // Assert
-        Assert.That(payloadCompleted, Is.True);
+        Assert.That(await payloadStreamDecorator.Completed, Is.Null);
     }
 
     /// <summary>Ensures that the request payload is completed if the payload stream is invalid.</summary>
@@ -156,7 +145,7 @@ public sealed class IceRpcProtocolConnectionTests
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
         var payloadStreamDecorator = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
@@ -167,14 +156,9 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Act
         _ = sut.Client.InvokeAsync(request);
-        bool payloadCompleted = await payloadStreamDecorator.CompleteCalled;
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(payloadCompleted, Is.True);
-            Assert.That(payloadStreamDecorator.CompleteException, Is.InstanceOf<NotSupportedException>());
-        });
+        Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
     }
 
     /// <summary>Ensures that the request payload stream is completed if the connection is shutdown.</summary>
@@ -185,7 +169,7 @@ public sealed class IceRpcProtocolConnectionTests
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Client.ShutdownAsync("", default);
 
         var payloadStreamDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
@@ -196,14 +180,12 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Act
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
-        bool completeCalled = await payloadStreamDecorator.CompleteCalled;
 
         // Assert
-        Assert.Multiple(() =>
+        Assert.Multiple(async () =>
         {
             Assert.ThrowsAsync<ConnectionClosedException>(() => invokeTask);
-            Assert.That(completeCalled, Is.True);
-            Assert.That(payloadStreamDecorator.CompleteException, Is.InstanceOf<ConnectionClosedException>());
+            Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<ConnectionClosedException>());
         });
     }
 
@@ -223,15 +205,14 @@ public sealed class IceRpcProtocolConnectionTests
             .UseProtocol(Protocol.IceRpc)
             .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Server.AcceptRequestsAsync();
 
         // Act
         _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
-        bool completedCalled = await payloadStreamDecorator.CompleteCalled;
 
         // Assert
-        Assert.That(completedCalled, Is.True);
+        Assert.That(await payloadStreamDecorator.Completed, Is.Null);
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload stream.</summary>
@@ -250,19 +231,14 @@ public sealed class IceRpcProtocolConnectionTests
             .UseProtocol(Protocol.IceRpc)
             .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Server.AcceptRequestsAsync();
 
         // Act
         _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
-        bool completedCalled = await payloadStreamDecorator.CompleteCalled;
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(completedCalled, Is.True);
-            Assert.That(payloadStreamDecorator.CompleteException, Is.InstanceOf<NotSupportedException>());
-        });
+        Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
     }
 
     /// <summary>Ensures that the request payload writer is completed on an invalid request.</summary>
@@ -275,7 +251,7 @@ public sealed class IceRpcProtocolConnectionTests
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Server.AcceptRequestsAsync();
 
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
@@ -292,15 +268,9 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Act
         _ = sut.Client.InvokeAsync(request);
-        PayloadPipeWriterDecorator payloadWriter = await payloadWriterSource.Task;
-        bool completedCalled = await payloadWriter.CompleteCalled;
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(completedCalled, Is.True);
-            Assert.That(payloadWriter.CompleteException, Is.InstanceOf<NotSupportedException>());
-        });
+        Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
     }
 
     /// <summary>Ensures that the request payload writer is completed on an invalid response.</summary>
@@ -330,19 +300,13 @@ public sealed class IceRpcProtocolConnectionTests
             .UseProtocol(Protocol.IceRpc)
             .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetProtocolConnectionPairAsync();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Server.AcceptRequestsAsync();
 
         // Act
         _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
-        PayloadPipeWriterDecorator payloadWriter = await payloadWriterSource.Task;
-        bool completedCalled = await payloadWriter.CompleteCalled;
 
         // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(completedCalled, Is.True);
-            Assert.That(payloadWriter.CompleteException, Is.InstanceOf<NotSupportedException>());
-        });
+        Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
     }
 }

@@ -1,13 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-encoding = 1.1;
+encoding = 1;
 
 module IceRpc::Tests::Slice;
 
 compact struct MyClassCompactStruct
 {
-    i: int,
-    j: int,
+    i: int32,
+    j: int32,
 }
 
 class MyClassA
@@ -140,7 +140,7 @@ interface ClassOperations
     getCompact() -> MyCompactClass;
 
     opM(p1: MyClassM) -> (r1: MyClassM, r2: MyClassM);
-    opE(p1: MyClassE, p2: int) -> (r1: MyClassE, r2: MyClassE);
+    opE(p1: MyClassE, p2: int32) -> (r1: MyClassE, r2: MyClassE);
 
     getMyDerivedClass1() -> MyDerivedClass1;
     getMyDerivedClass2() -> MyDerivedClass2;

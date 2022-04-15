@@ -1,13 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-encoding = 1.1;
+encoding = 1;
 
 // Ensure that using the same type names in different modules, doesn't cause any conflicts and generates correct code.
 module IceRpc::Tests::Slice::Scope
 {
     compact struct S
     {
-        v: int,
+        v: int32,
     }
 
     typealias SMap = dictionary<string, S>;
@@ -77,14 +77,14 @@ module IceRpc::Tests::Slice::Scope
     {
         compact struct S
         {
-            v: int,
+            v: int32,
         }
 
         module Inner2
         {
             compact struct S
             {
-                v: int,
+                v: int32,
             }
 
             typealias SMap = dictionary<string, S>;
