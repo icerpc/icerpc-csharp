@@ -1,0 +1,30 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+encoding = 1;
+
+module IceRpc::Slice::Encoding::Tests;
+
+exception MyException
+{
+    i: int32,
+    j: int32,
+}
+
+exception MyExceptionWithTaggedMembers
+{
+    i: int32,
+    j: int32,
+    k: tag(1) int32?,
+    l: tag(255) int32?
+}
+
+exception MyDerivedException : MyException
+{
+    k: int32,
+    l: int32,
+}
+
+interface Slice1ExceptionOperations
+{
+    opThrows();
+}

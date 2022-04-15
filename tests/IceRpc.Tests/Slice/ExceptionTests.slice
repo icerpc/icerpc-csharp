@@ -1,0 +1,16 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc::Slice::Encoding::Tests;
+
+exception MyExceptionWithOptionalMembers
+{
+    i: int32,
+    j: int32,
+    k: int32?,
+    l: int32?
+}
+
+interface Slice2ExceptionOperations
+{
+    opThrows();
+}
