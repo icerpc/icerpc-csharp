@@ -25,7 +25,7 @@ public class SequenceEncodingTests
                     var encoder = new SliceEncoder(bufferWriter, encoding);
                     foreach (long value in values)
                     {
-                        encoder.EncodeLong(value);
+                        encoder.EncodeInt64(value);
                     }
                     int sizeLength = encoder.GetSizeLength(size);
                     byte[] expected = buffer[0..bufferWriter.WrittenMemory.Length];
@@ -72,7 +72,7 @@ public class SequenceEncodingTests
     /// <see cref="SliceDecoderExtensions.DecodeSequence"/> with a value type. Includes testing
     /// the <see cref="T[]"/>, <see cref="ImmutableArray{T}"/>, and <see cref="ArraySegment{T}"/>
     /// cases for <see cref="SliceEncoderExtensions.EncodeSequence"/>. Finally, covers
-    /// <see cref="SliceDecoder.DecodeLong"/>.</summary>
+    /// <see cref="SliceDecoder.DecodeInt64"/>.</summary>
     /// <param name="encoding">The <see cref="SliceEncoding"/> to use for the encoding.</param>
     /// <param name="value">The <see cref="IEnumerable{long}"/> to be encoded.</param>
     /// <param name="expected">The expected byte array from encoding the sequence of longs</param>

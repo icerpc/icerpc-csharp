@@ -67,14 +67,14 @@ namespace IceRpc.Slice
             // before the indirection table and are included in the slice size.
             if ((_classContext.Current.SliceFlags & SliceFlags.HasTaggedMembers) != 0)
             {
-                EncodeByte(Slice1Definitions.TagEndMarker);
+                EncodeUInt8(Slice1Definitions.TagEndMarker);
             }
 
             // Encodes the slice size if necessary.
             if ((_classContext.Current.SliceFlags & SliceFlags.HasSliceSize) != 0)
             {
                 // Size includes the size length.
-                EncodeInt(EncodedByteCount - _classContext.Current.SliceSizeStartPos, _classContext.Current.SliceSizePlaceholder.Span);
+                EncodeInt32(EncodedByteCount - _classContext.Current.SliceSizeStartPos, _classContext.Current.SliceSizePlaceholder.Span);
             }
 
             if (_classContext.Current.IndirectionTable?.Count > 0)

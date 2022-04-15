@@ -62,7 +62,7 @@ public class SequenceDecodingTests
     {
         var sut = new SliceDecoder(value, encoding);
 
-        long[] result = sut.DecodeSequence(minElementSize: 8, (ref SliceDecoder decoder) => decoder.DecodeLong());
+        long[] result = sut.DecodeSequence(minElementSize: 8, (ref SliceDecoder decoder) => decoder.DecodeInt64());
 
         Assert.That(result, Is.EqualTo(expected));
         Assert.That(sut.Consumed, Is.EqualTo(value.Length));

@@ -169,7 +169,7 @@ namespace IceRpc.Slice
                 long deadline = (long)(invocation.Deadline - DateTime.UnixEpoch).TotalMilliseconds;
                 request.Fields = request.Fields.With(
                     RequestFieldKey.Deadline,
-                    (ref SliceEncoder encoder) => encoder.EncodeVarLong(deadline));
+                    (ref SliceEncoder encoder) => encoder.EncodeVarInt62(deadline));
             }
         }
 

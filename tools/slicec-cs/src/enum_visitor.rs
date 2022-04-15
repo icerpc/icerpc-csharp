@@ -57,12 +57,13 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
     let access = enum_def.access_modifier();
     let escaped_identifier = enum_def.escape_identifier();
     let namespace = &enum_def.namespace();
-    let underlying_type = enum_def.underlying_type().cs_keyword();
+    let type_suffix = enum_def.underlying_type().type_suffix();
+    let cs_type = enum_def.underlying_type().cs_keyword();
     let mut builder = ContainerBuilder::new(
         &format!("{} static class", access),
         &format!(
             "{}{}Extensions",
-            fix_case(underlying_type, CaseStyle::Pascal),
+            fix_case(type_suffix, CaseStyle::Pascal),
             fix_case(enum_def.identifier(), CaseStyle::Pascal)
         ),
     );
@@ -71,9 +72,9 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
     builder.add_comment(
         "summary",
         &format!(
-            r#"Provides an extension method for creating a <see cref="{enum_name}"/> from a {underlying_type}"#,
+            r#"Provides an extension method for creating a <see cref="{enum_name}"/> from a <see cref="{underlying_type}"/>"#,
             enum_name = escaped_identifier,
-            underlying_type = underlying_type
+            underlying_type = cs_type
         ),
     );
 
@@ -96,7 +97,7 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
                 "\
 private static readonly global::System.Collections.Generic.HashSet<{underlying}> _enumeratorValues =
     new global::System.Collections.Generic.HashSet<{underlying}> {{ {enum_values} }};",
-                underlying = underlying_type,
+                underlying = cs_type,
                 enum_values = enum_def
                     .enumerators()
                     .iter()
@@ -116,7 +117,7 @@ private static readonly global::System.Collections.Generic.HashSet<{underlying}>
     );
     as_enum_block
         .add_parameter(
-            format!("this {}", underlying_type).as_str(),
+            format!("this {}", cs_type).as_str(),
             "value",
             None,
             Some("The value being converted."),
@@ -127,7 +128,7 @@ private static readonly global::System.Collections.Generic.HashSet<{underlying}>
                 r#"
 Converts a <see cref="{underlying_type}"/> into the corresponding <see cref="{escaped_identifier}"/>
 enumerator."#,
-                underlying_type = underlying_type,
+                underlying_type = cs_type,
                 escaped_identifier = escaped_identifier
             )
             .as_str(),
@@ -234,7 +235,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
 
     let underlying_extensions_class = format!(
         "{}{}Extensions",
-        fix_case(enum_def.underlying_type().cs_keyword(), CaseStyle::Pascal),
+        fix_case(enum_def.underlying_type().type_suffix(), CaseStyle::Pascal),
         fix_case(enum_def.identifier(), CaseStyle::Pascal)
     );
 

@@ -292,11 +292,11 @@ namespace IceRpc.Internal
                 // Write the request header.
                 encoder.WriteByteSpan(IceDefinitions.FramePrologue);
                 encoder.EncodeIceFrameType(IceFrameType.Request);
-                encoder.EncodeByte(0); // compression status
+                encoder.EncodeUInt8(0); // compression status
 
                 Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
 
-                encoder.EncodeInt(requestId);
+                encoder.EncodeInt32(requestId);
 
                 byte encodingMajor = 1;
                 byte encodingMinor = 1;
@@ -312,7 +312,7 @@ namespace IceRpc.Internal
                 requestHeader.Encode(ref encoder);
 
                 int frameSize = checked(encoder.EncodedByteCount + payloadSize);
-                SliceEncoder.EncodeInt(frameSize, sizePlaceholder);
+                SliceEncoder.EncodeInt32(frameSize, sizePlaceholder);
             }
         }
 
@@ -688,7 +688,7 @@ namespace IceRpc.Internal
                             ReadOnlySequence<byte> requestIdBuffer = readResult.Buffer.Slice(0, 4);
                             int requestId = SliceEncoding.Slice1.DecodeBuffer(
                                 requestIdBuffer,
-                                (ref SliceDecoder decoder) => decoder.DecodeInt());
+                                (ref SliceDecoder decoder) => decoder.DecodeInt32());
                             replyFrameReader.AdvanceTo(requestIdBuffer.End);
 
                             lock (_mutex)
@@ -977,10 +977,10 @@ namespace IceRpc.Internal
 
                     encoder.WriteByteSpan(IceDefinitions.FramePrologue);
                     encoder.EncodeIceFrameType(IceFrameType.Reply);
-                    encoder.EncodeByte(0); // compression status
+                    encoder.EncodeUInt8(0); // compression status
                     Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
 
-                    encoder.EncodeInt(requestId);
+                    encoder.EncodeInt32(requestId);
 
                     if (replyStatus <= ReplyStatus.UserException)
                     {
@@ -999,7 +999,7 @@ namespace IceRpc.Internal
                     // else the reply status (> UserException) is part of the payload
 
                     int frameSize = encoder.EncodedByteCount + payloadSize;
-                    SliceEncoder.EncodeInt(frameSize, sizePlaceholder);
+                    SliceEncoder.EncodeInt32(frameSize, sizePlaceholder);
                 }
             }
 
@@ -1008,7 +1008,7 @@ namespace IceRpc.Internal
             {
                 var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
 
-                int requestId = decoder.DecodeInt();
+                int requestId = decoder.DecodeInt32();
                 var requestHeader = new IceRequestHeader(ref decoder);
 
                 if (requestHeader.EncapsulationHeader.PayloadEncodingMajor != 1 ||

@@ -501,7 +501,7 @@ namespace IceRpc.Tests.Slice
                     TagFormat.F4,
                     size: 4,
                     15,
-                    (ref SliceEncoder encoder, int v) => encoder.EncodeInt(v));
+                    (ref SliceEncoder encoder, int v) => encoder.EncodeInt32(v));
 
                 encoder.EncodeTagged(
                     1, // duplicate tag ignored by the server
@@ -509,7 +509,7 @@ namespace IceRpc.Tests.Slice
                     "test",
                     (ref SliceEncoder encoder, string v) => encoder.EncodeString(v));
 
-                SliceEncoder.EncodeVarULong((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
+                SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
 
                 pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
                 return pipe.Reader;
