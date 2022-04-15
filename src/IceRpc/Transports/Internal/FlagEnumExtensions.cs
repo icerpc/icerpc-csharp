@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The flag enum extensions help with atomically set/get enumeration flags on a integer value. The
+    /// <summary>The flag enum extensions help with atomically set/get enumeration flags on an integer value. The
     /// enumeration underlying type must be an integer as well.</summary>
     internal static class FlagEnumExtensions
     {

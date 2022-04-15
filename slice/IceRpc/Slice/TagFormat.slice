@@ -12,7 +12,7 @@ enum TagFormat
     /// A fixed size numeric encoded on 1 byte such as bool or byte.
     F1 = 0,
 
-    /// A fixed size numeric encoded on 2 bytes such as short.
+    /// A fixed size numeric encoded on 2 bytes such as int16.
     F2 = 1,
 
     /// A fixed size numeric encoded on 4 bytes such as int32 or float32.
