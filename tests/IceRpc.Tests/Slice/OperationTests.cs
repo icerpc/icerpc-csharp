@@ -22,7 +22,7 @@ public class OperationTests
         Assert.That(readResult.IsCompleted, Is.True);
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(4));
-        Assert.That(decoder.DecodeInt(), Is.EqualTo(10));
+        Assert.That(decoder.DecodeInt32(), Is.EqualTo(10));
         Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
     }
 
@@ -48,7 +48,7 @@ public class OperationTests
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
             encoder.EncodeSize(4);
-            encoder.EncodeInt(value);
+            encoder.EncodeInt32(value);
             return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.WrittenMemory));
         }
     }
@@ -64,7 +64,7 @@ public class OperationTests
         Assert.That(readResult.IsCompleted, Is.True);
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(4));
-        Assert.That(decoder.DecodeInt(), Is.EqualTo(10));
+        Assert.That(decoder.DecodeInt32(), Is.EqualTo(10));
         Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
     }
 
@@ -87,7 +87,7 @@ public class OperationTests
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
             encoder.EncodeSize(4);
-            encoder.EncodeInt(value);
+            encoder.EncodeInt32(value);
             return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.WrittenMemory));
         }
     }
@@ -103,7 +103,7 @@ public class OperationTests
         Assert.That(readResult.IsCompleted, Is.True);
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(17));
-        Assert.That(decoder.DecodeInt(), Is.EqualTo(10));
+        Assert.That(decoder.DecodeInt32(), Is.EqualTo(10));
         Assert.That(decoder.DecodeString(), Is.EqualTo("hello world!"));
         Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
     }
@@ -129,7 +129,7 @@ public class OperationTests
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
             // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents)
             encoder.EncodeSize(17);
-            encoder.EncodeInt(value1);
+            encoder.EncodeInt32(value1);
             encoder.EncodeString(value2);
             return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.WrittenMemory));
         }
@@ -147,7 +147,7 @@ public class OperationTests
         Assert.That(readResult.IsCompleted, Is.True);
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(17));
-        Assert.That(decoder.DecodeInt(), Is.EqualTo(10));
+        Assert.That(decoder.DecodeInt32(), Is.EqualTo(10));
         Assert.That(decoder.DecodeString(), Is.EqualTo("hello world!"));
         Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
     }
@@ -173,7 +173,7 @@ public class OperationTests
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
             // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents)
             encoder.EncodeSize(17);
-            encoder.EncodeInt(value1);
+            encoder.EncodeInt32(value1);
             encoder.EncodeString(value2);
             return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.WrittenMemory));
         }
@@ -199,12 +199,12 @@ public class OperationTests
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(size));
         var bitSequence = decoder.GetBitSequenceReader(2);
-        Assert.That(decoder.DecodeInt(), Is.EqualTo(10));
+        Assert.That(decoder.DecodeInt32(), Is.EqualTo(10));
         Assert.That(decoder.DecodeString(), Is.EqualTo("hello world!"));
         if (p3 != null)
         {
             Assert.That(bitSequence.Read(), Is.True);
-            Assert.That(decoder.DecodeInt(), Is.EqualTo(p3.Value));
+            Assert.That(decoder.DecodeInt32(), Is.EqualTo(p3.Value));
         }
         else
         {
@@ -254,12 +254,12 @@ public class OperationTests
             int size = 1 + 4 + 13 + (p3 == null ? 0 : 4) + (p4 == null ? 0 : 13);
             encoder.EncodeSize(size);
             var bitSequenceWriter = encoder.GetBitSequenceWriter(2);
-            encoder.EncodeInt(p1);
+            encoder.EncodeInt32(p1);
             encoder.EncodeString(p2);
             bitSequenceWriter.Write(p3 != null);
             if (p3 != null)
             {
-                encoder.EncodeInt(p3.Value);
+                encoder.EncodeInt32(p3.Value);
             }
             bitSequenceWriter.Write(p4 != null);
             if (p4 != null)
@@ -289,12 +289,12 @@ public class OperationTests
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(size));
         var bitSequence = decoder.GetBitSequenceReader(2);
-        Assert.That(decoder.DecodeInt(), Is.EqualTo(10));
+        Assert.That(decoder.DecodeInt32(), Is.EqualTo(10));
         Assert.That(decoder.DecodeString(), Is.EqualTo("hello world!"));
         if (p3 != null)
         {
             Assert.That(bitSequence.Read(), Is.True);
-            Assert.That(decoder.DecodeInt(), Is.EqualTo(p3.Value));
+            Assert.That(decoder.DecodeInt32(), Is.EqualTo(p3.Value));
         }
         else
         {
@@ -343,12 +343,12 @@ public class OperationTests
             int size = 1 + 4 + 13 + (p3 == null ? 0 : 4) + (p4 == null ? 0 : 13);
             encoder.EncodeSize(size);
             var bitSequenceWriter = encoder.GetBitSequenceWriter(2);
-            encoder.EncodeInt(p1);
+            encoder.EncodeInt32(p1);
             encoder.EncodeString(p2);
             bitSequenceWriter.Write(p3 != null);
             if (p3 != null)
             {
-                encoder.EncodeInt(p3.Value);
+                encoder.EncodeInt32(p3.Value);
             }
             bitSequenceWriter.Write(p4 != null);
             if (p4 != null)
@@ -379,7 +379,7 @@ public class OperationTests
         Assert.That(readResult.IsCompleted, Is.True);
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(size));
-        Assert.That(decoder.DecodeInt(), Is.EqualTo(p1));
+        Assert.That(decoder.DecodeInt32(), Is.EqualTo(p1));
         Assert.That(decoder.DecodeString(), Is.EqualTo(p2));
         if (p3 != null)
         {
@@ -387,7 +387,7 @@ public class OperationTests
                 decoder.DecodeTagged(
                     1,
                     TagFormat.F4,
-                    (ref SliceDecoder decoder) => decoder.DecodeInt()),
+                    (ref SliceDecoder decoder) => decoder.DecodeInt32()),
                 Is.EqualTo(p3));
         }
 
@@ -434,7 +434,7 @@ public class OperationTests
             // (tagged string 0 |  tag 1 byte, size 4 byte, string 13 bytes)
             int size = 4 + 13 + (p3 == null ? 0 : 6) + (p4 == null ? 0 : 18);
             encoder.EncodeSize(size);
-            encoder.EncodeInt(p1);
+            encoder.EncodeInt32(p1);
             encoder.EncodeString(p2);
             if (p3 != null)
             {
@@ -443,7 +443,7 @@ public class OperationTests
                     TagFormat.F4,
                     size: 4,
                     p3.Value,
-                    (ref SliceEncoder encoder, int value) => encoder.EncodeInt(value));
+                    (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
             }
             if (p4 != null)
             {
@@ -477,7 +477,7 @@ public class OperationTests
         Assert.That(readResult.IsCompleted, Is.True);
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(size));
-        Assert.That(decoder.DecodeInt(), Is.EqualTo(p1));
+        Assert.That(decoder.DecodeInt32(), Is.EqualTo(p1));
         Assert.That(decoder.DecodeString(), Is.EqualTo(p2));
         if (p3 != null)
         {
@@ -485,7 +485,7 @@ public class OperationTests
                 decoder.DecodeTagged(
                     1,
                     TagFormat.F4,
-                    (ref SliceDecoder decoder) => decoder.DecodeInt()),
+                    (ref SliceDecoder decoder) => decoder.DecodeInt32()),
                 Is.EqualTo(p3));
         }
         if (p4 != null)
@@ -530,7 +530,7 @@ public class OperationTests
             // (tagged string 0 |  tag 1 byte, size 4 byte, string 13 bytes)
             int size = 4 + 13 + (p3 == null ? 0 : 6) + (p4 == null ? 0 : 18);
             encoder.EncodeSize(size);
-            encoder.EncodeInt(p1);
+            encoder.EncodeInt32(p1);
             encoder.EncodeString(p2);
             if (p3 != null)
             {
@@ -539,7 +539,7 @@ public class OperationTests
                     TagFormat.F4,
                     size: 4,
                     p3.Value,
-                    (ref SliceEncoder encoder, int value) => encoder.EncodeInt(value));
+                    (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
             }
 
             if (p4 != null)

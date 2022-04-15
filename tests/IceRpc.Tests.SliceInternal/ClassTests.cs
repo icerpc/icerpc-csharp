@@ -68,7 +68,7 @@ namespace IceRpc.Tests.SliceInternal
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
-                    var sliceFlags = (SliceFlags)decoder.DecodeByte();
+                    var sliceFlags = (SliceFlags)decoder.DecodeUInt8();
                     // The Slice includes a size for the sliced format
                     Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.True);
                 }
@@ -79,7 +79,7 @@ namespace IceRpc.Tests.SliceInternal
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
-                    var sliceFlags = (SliceFlags)decoder.DecodeByte();
+                    var sliceFlags = (SliceFlags)decoder.DecodeUInt8();
                     // The Slice includes a size for the sliced format
                     Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.True);
                 }
@@ -105,7 +105,7 @@ namespace IceRpc.Tests.SliceInternal
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
-                    var sliceFlags = (SliceFlags)decoder.DecodeByte();
+                    var sliceFlags = (SliceFlags)decoder.DecodeUInt8();
                     // The Slice does not include a size when using the compact format
                     Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
                 }
@@ -116,7 +116,7 @@ namespace IceRpc.Tests.SliceInternal
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
-                    var sliceFlags = (SliceFlags)decoder.DecodeByte();
+                    var sliceFlags = (SliceFlags)decoder.DecodeUInt8();
                     // The Slice does not include a size when using the compact format
                     Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
                 }
@@ -142,7 +142,7 @@ namespace IceRpc.Tests.SliceInternal
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
-                    var sliceFlags = (SliceFlags)decoder.DecodeByte();
+                    var sliceFlags = (SliceFlags)decoder.DecodeUInt8();
                     // The Slice does not include a size when using the compact format
                     Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
                 }
@@ -153,7 +153,7 @@ namespace IceRpc.Tests.SliceInternal
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
-                    var sliceFlags = (SliceFlags)decoder.DecodeByte();
+                    var sliceFlags = (SliceFlags)decoder.DecodeUInt8();
                     // The Slice does not include a size when using the compact format
                     Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
                 }
@@ -180,7 +180,7 @@ namespace IceRpc.Tests.SliceInternal
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
-                    var sliceFlags = (SliceFlags)decoder.DecodeByte();
+                    var sliceFlags = (SliceFlags)decoder.DecodeUInt8();
                     // The Slice includes a size for the sliced format
                     Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.True);
                 }
@@ -191,7 +191,7 @@ namespace IceRpc.Tests.SliceInternal
 
                     // Read the instance marker
                     Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
-                    var sliceFlags = (SliceFlags)decoder.DecodeByte();
+                    var sliceFlags = (SliceFlags)decoder.DecodeUInt8();
                     // The Slice includes a size for the sliced format
                     Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.True);
                 }

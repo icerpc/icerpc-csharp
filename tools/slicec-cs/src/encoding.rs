@@ -652,7 +652,7 @@ int startPos_ = encoder_.EncodedByteCount;",
         },
         rewrite_size = match operation.encoding {
             Encoding::Slice1 => "",
-            _ => "SliceEncoder.EncodeVarULong((ulong)(encoder_.EncodedByteCount - startPos_), sizePlaceholder_);",
+            _ => "SliceEncoder.EncodeVarUInt62((ulong)(encoder_.EncodedByteCount - startPos_), sizePlaceholder_);",
         },
         encoding = operation.encoding.to_cs_encoding(),
         class_format = operation.format_type(),

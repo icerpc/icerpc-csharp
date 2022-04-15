@@ -123,7 +123,7 @@ namespace IceRpc.Slice
                             hasNext = moveNext.Result;
                         }
 
-                        SliceEncoder.EncodeVarULong((ulong)size, sizePlaceholder.Span);
+                        SliceEncoder.EncodeVarUInt62((ulong)size, sizePlaceholder.Span);
 
                         if (hasNext)
                         {

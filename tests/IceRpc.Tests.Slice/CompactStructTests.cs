@@ -127,14 +127,14 @@ namespace IceRpc.Tests.Slice
     public static class SliceEncoderMyTimeSpanExtensions
     {
         public static void EncodeMyTimeSpan(ref SliceEncoder encoder, TimeSpan value) =>
-            encoder.EncodeLong(checked((long)value.TotalMilliseconds));
+            encoder.EncodeInt64(checked((long)value.TotalMilliseconds));
     }
 
     public static class SliceDecoderMyTimeSpanExtensions
     {
 
         public static TimeSpan DecodeMyTimeSpan(ref SliceDecoder decoder) =>
-            TimeSpan.FromMilliseconds(decoder.DecodeLong());
+            TimeSpan.FromMilliseconds(decoder.DecodeInt64());
     }
 
     public static class SliceEncoderMyListExtensions

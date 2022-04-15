@@ -22,7 +22,7 @@ public class NumericTypesEncodingTests
         var bufferWriter = new MemoryBufferWriter(buffer);
         var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
 
-        encoder.EncodeLong(value);
+        encoder.EncodeInt64(value);
 
         Assert.That(encoder.EncodedByteCount, Is.EqualTo(sizeof(long)));
         Assert.That(buffer[0..bufferWriter.WrittenMemory.Length], Is.EqualTo(expected));
@@ -44,13 +44,13 @@ public class NumericTypesEncodingTests
         var bufferWriter = new MemoryBufferWriter(buffer);
         var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
 
-        encoder.EncodeVarLong(value);
+        encoder.EncodeVarInt62(value);
 
         Assert.That(encoder.EncodedByteCount, Is.EqualTo(expected.Length));
         Assert.That(buffer[0..bufferWriter.WrittenMemory.Length], Is.EqualTo(expected));
     }
 
-    /// <summary>Tests that <see cref="SliceEncoder.EncodeVarLong"/> will throw an ArgumentOutOfRangeException
+    /// <summary>Tests that <see cref="SliceEncoder.EncodeVarInt62"/> will throw an ArgumentOutOfRangeException
     /// if the parameter is larger than the max value of a varlong or smaller than the min value of a varlong.</summary>
     /// <param name="value">The varlong to be encoded.</param>
     [TestCase(SliceEncoder.VarLongMinValue - 1)]
@@ -67,7 +67,7 @@ public class NumericTypesEncodingTests
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
 
             // Act
-            encoder.EncodeVarLong(value);
+            encoder.EncodeVarInt62(value);
         }, Throws.InstanceOf<ArgumentOutOfRangeException>());
     }
 
@@ -84,13 +84,13 @@ public class NumericTypesEncodingTests
         var bufferWriter = new MemoryBufferWriter(buffer);
         var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
 
-        encoder.EncodeVarULong(value);
+        encoder.EncodeVarUInt62(value);
 
         Assert.That(encoder.EncodedByteCount, Is.EqualTo(expected.Length));
         Assert.That(buffer[0..bufferWriter.WrittenMemory.Length], Is.EqualTo(expected));
     }
 
-    /// <summary>Tests that <see cref="SliceEncoder.EncodeVarULong"/> will throw an ArgumentOutOfRangeException
+    /// <summary>Tests that <see cref="SliceEncoder.EncodeVarUInt62"/> will throw an ArgumentOutOfRangeException
     /// if the parameter is larger than the max value of a varulong.</summary>
     /// <param name="value">The value to be encoded.</param>
     [TestCase(SliceEncoder.VarULongMaxValue + 1)]
@@ -104,7 +104,7 @@ public class NumericTypesEncodingTests
             var bufferWriter = new MemoryBufferWriter(buffer);
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
 
-            encoder.EncodeVarULong(value);
+            encoder.EncodeVarUInt62(value);
         }, Throws.InstanceOf<ArgumentOutOfRangeException>());
     }
 

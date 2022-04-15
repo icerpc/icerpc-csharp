@@ -121,7 +121,7 @@ impl<'a> Visitor for StructVisitor<'a> {
             if !struct_def.is_compact {
                 writeln!(
                     encode_body,
-                    "encoder.EncodeVarInt(Slice2Definitions.TagEndMarker);"
+                    "encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);"
                 );
             }
             builder.add_block(

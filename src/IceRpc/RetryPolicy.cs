@@ -45,7 +45,7 @@ namespace IceRpc
         {
             Retryable = decoder.DecodeRetryable();
             Delay = Retryable == Retryable.AfterDelay ?
-                TimeSpan.FromMilliseconds(decoder.DecodeVarULong()) : TimeSpan.Zero;
+                TimeSpan.FromMilliseconds(decoder.DecodeVarUInt62()) : TimeSpan.Zero;
         }
 
         internal void Encode(ref SliceEncoder encoder)
@@ -53,7 +53,7 @@ namespace IceRpc
             encoder.EncodeRetryable(Retryable);
             if (Retryable == Retryable.AfterDelay)
             {
-                encoder.EncodeVarUInt((uint)Delay.TotalMilliseconds);
+                encoder.EncodeVarUInt32((uint)Delay.TotalMilliseconds);
             }
         }
 

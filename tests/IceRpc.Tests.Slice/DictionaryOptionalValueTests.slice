@@ -2,18 +2,18 @@
 
 module IceRpc::Tests::Slice;
 
-typealias OptionalByteDict = dictionary<uint8, uint8?>;
+typealias OptionalUInt8Dict = dictionary<uint8, uint8?>;
 typealias OptionalBoolDict = dictionary<bool, bool?>;
-typealias OptionalShortDict = dictionary<int16, int16?>;
-typealias OptionalUShortDict = dictionary<uint16, uint16?>;
-typealias OptionalIntDict = dictionary<int32, int32?>;
-typealias OptionalVarIntDict = dictionary<varint32, varint32?>;
-typealias OptionalUIntDict = dictionary<uint32, uint32?>;
-typealias OptionalVarUIntDict = dictionary<varuint32, varuint32?>;
-typealias OptionalLongDict = dictionary<int64, int64?>;
-typealias OptionalVarLongDict = dictionary<varint62, varint62?>;
-typealias OptionalULongDict = dictionary<uint64,uint64?>;
-typealias OptionalVarULongDict = dictionary<varuint62, varuint62?>;
+typealias OptionalInt16Dict = dictionary<int16, int16?>;
+typealias OptionalUInt16Dict = dictionary<uint16, uint16?>;
+typealias OptionalInt32Dict = dictionary<int32, int32?>;
+typealias OptionalVarInt32Dict = dictionary<varint32, varint32?>;
+typealias OptionalUInt32Dict = dictionary<uint32, uint32?>;
+typealias OptionalVarUInt32Dict = dictionary<varuint32, varuint32?>;
+typealias OptionalInt64Dict = dictionary<int64, int64?>;
+typealias OptionalVarInt62Dict = dictionary<varint62, varint62?>;
+typealias OptionalUInt64Dict = dictionary<uint64,uint64?>;
+typealias OptionalVarUInt62Dict = dictionary<varuint62, varuint62?>;
 typealias OptionalStringDict = dictionary<string, string?>;
 
 typealias OptionalMyEnumDict = dictionary<MyEnum, MyEnum?>;
@@ -28,38 +28,38 @@ typealias OptionalStringCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDicti
 interface DictionaryOptionalValueOperations
 {
     // Optional builtin type dictionaries
-    opOptionalByteDict(p1: OptionalByteDict, p2: OptionalByteDict) -> (r1: OptionalByteDict, r2: OptionalByteDict);
+    opOptionalUInt8Dict(p1: OptionalUInt8Dict, p2: OptionalUInt8Dict) -> (r1: OptionalUInt8Dict, r2: OptionalUInt8Dict);
     opOptionalBoolDict(p1: OptionalBoolDict, p2: OptionalBoolDict) -> (r1: OptionalBoolDict, r2: OptionalBoolDict);
-    opOptionalShortDict(p1: OptionalShortDict, p2: OptionalShortDict) -> (
-        r1: OptionalShortDict,
-        r2: OptionalShortDict,
+    opOptionalInt16Dict(p1: OptionalInt16Dict, p2: OptionalInt16Dict) -> (
+        r1: OptionalInt16Dict,
+        r2: OptionalInt16Dict,
     );
-    opOptionalUShortDict(p1: OptionalUShortDict, p2: OptionalUShortDict) -> (
-        r1: OptionalUShortDict,
-        r2: OptionalUShortDict,
+    opOptionalUInt16Dict(p1: OptionalUInt16Dict, p2: OptionalUInt16Dict) -> (
+        r1: OptionalUInt16Dict,
+        r2: OptionalUInt16Dict,
     );
-    opOptionalIntDict(p1: OptionalIntDict, p2: OptionalIntDict) -> (r1: OptionalIntDict, r2: OptionalIntDict);
-    opOptionalVarIntDict(p1: OptionalVarIntDict, p2: OptionalVarIntDict) -> (
-        r1: OptionalVarIntDict,
-        r2: OptionalVarIntDict,
+    opOptionalInt32Dict(p1: OptionalInt32Dict, p2: OptionalInt32Dict) -> (r1: OptionalInt32Dict, r2: OptionalInt32Dict);
+    opOptionalVarInt32Dict(p1: OptionalVarInt32Dict, p2: OptionalVarInt32Dict) -> (
+        r1: OptionalVarInt32Dict,
+        r2: OptionalVarInt32Dict,
     );
-    opOptionalUIntDict(p1: OptionalUIntDict, p2: OptionalUIntDict) -> (r1: OptionalUIntDict, r2: OptionalUIntDict);
-    opOptionalVarUIntDict(p1: OptionalVarUIntDict, p2: OptionalVarUIntDict) -> (
-        r1: OptionalVarUIntDict,
-        r2: OptionalVarUIntDict,
+    opOptionalUInt32Dict(p1: OptionalUInt32Dict, p2: OptionalUInt32Dict) -> (r1: OptionalUInt32Dict, r2: OptionalUInt32Dict);
+    opOptionalVarUInt32Dict(p1: OptionalVarUInt32Dict, p2: OptionalVarUInt32Dict) -> (
+        r1: OptionalVarUInt32Dict,
+        r2: OptionalVarUInt32Dict,
     );
-    opOptionalLongDict(p1: OptionalLongDict, p2: OptionalLongDict) -> (r1: OptionalLongDict, r2: OptionalLongDict);
-    opOptionalVarLongDict(p1: OptionalVarLongDict, p2: OptionalVarLongDict) -> (
-        r1: OptionalVarLongDict,
-        r2: OptionalVarLongDict,
+    opOptionalInt64Dict(p1: OptionalInt64Dict, p2: OptionalInt64Dict) -> (r1: OptionalInt64Dict, r2: OptionalInt64Dict);
+    opOptionalVarInt62Dict(p1: OptionalVarInt62Dict, p2: OptionalVarInt62Dict) -> (
+        r1: OptionalVarInt62Dict,
+        r2: OptionalVarInt62Dict,
     );
-    opOptionalULongDict(p1: OptionalULongDict, p2: OptionalULongDict) -> (
-        r1: OptionalULongDict,
-        r2: OptionalULongDict,
+    opOptionalUInt64Dict(p1: OptionalUInt64Dict, p2: OptionalUInt64Dict) -> (
+        r1: OptionalUInt64Dict,
+        r2: OptionalUInt64Dict,
     );
-    opOptionalVarULongDict(p1: OptionalVarULongDict, p2: OptionalVarULongDict) -> (
-        r1: OptionalVarULongDict,
-        r2: OptionalVarULongDict,
+    opOptionalVarUInt62Dict(p1: OptionalVarUInt62Dict, p2: OptionalVarUInt62Dict) -> (
+        r1: OptionalVarUInt62Dict,
+        r2: OptionalVarUInt62Dict,
     );
     opOptionalStringDict(p1: OptionalStringDict, p2: OptionalStringDict) -> (
         r1: OptionalStringDict,

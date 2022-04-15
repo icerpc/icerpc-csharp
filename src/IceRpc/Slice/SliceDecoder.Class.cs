@@ -316,7 +316,7 @@ namespace IceRpc.Slice
         /// <returns>The type ID or the compact ID of the current slice.</returns>
         private string? DecodeSliceHeaderIntoCurrent()
         {
-            _classContext.Current.SliceFlags = (SliceFlags)DecodeByte();
+            _classContext.Current.SliceFlags = (SliceFlags)DecodeUInt8();
 
             string? typeId;
             // Decode the type ID. For class slices, the type ID is encoded as a string or as an index or as a compact
@@ -361,7 +361,7 @@ namespace IceRpc.Slice
         /// <returns>The slice of the current slice, not including the size length.</returns>
         private int DecodeSliceSize()
         {
-            int size = DecodeInt();
+            int size = DecodeInt32();
             if (size < 4)
             {
                 throw new InvalidDataException($"invalid slice size: {size}");
@@ -442,7 +442,7 @@ namespace IceRpc.Slice
                     SliceFlags sliceFlags;
                     do
                     {
-                        sliceFlags = (SliceFlags)DecodeByte();
+                        sliceFlags = (SliceFlags)DecodeUInt8();
 
                         // Skip type ID - can update _typeIdMap
                         _ = DecodeTypeId(sliceFlags.GetTypeIdKind());

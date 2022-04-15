@@ -51,11 +51,11 @@ namespace IceRpc.Slice
 
         /// <summary>Encodes a boolean.</summary>
         /// <param name="v">The boolean to encode.</param>
-        public void EncodeBool(bool v) => EncodeByte(v ? (byte)1 : (byte)0);
+        public void EncodeBool(bool v) => EncodeUInt8(v ? (byte)1 : (byte)0);
 
         /// <summary>Encodes a byte.</summary>
         /// <param name="v">The byte to encode.</param>
-        public void EncodeByte(byte v)
+        public void EncodeUInt8(byte v)
         {
             Span<byte> span = _bufferWriter.GetSpan();
             span[0] = v;
@@ -64,23 +64,23 @@ namespace IceRpc.Slice
 
         /// <summary>Encodes a double.</summary>
         /// <param name="v">The double to encode.</param>
-        public void EncodeDouble(double v) => EncodeFixedSizeNumeric(v);
+        public void EncodeFloat64(double v) => EncodeFixedSizeNumeric(v);
 
         /// <summary>Encodes a float.</summary>
         /// <param name="v">The float to encode.</param>
-        public void EncodeFloat(float v) => EncodeFixedSizeNumeric(v);
+        public void EncodeFloat32(float v) => EncodeFixedSizeNumeric(v);
 
         /// <summary>Encodes an int.</summary>
         /// <param name="v">The int to encode.</param>
-        public void EncodeInt(int v) => EncodeFixedSizeNumeric(v);
+        public void EncodeInt32(int v) => EncodeFixedSizeNumeric(v);
 
         /// <summary>Encodes a long.</summary>
         /// <param name="v">The long to encode.</param>
-        public void EncodeLong(long v) => EncodeFixedSizeNumeric(v);
+        public void EncodeInt64(long v) => EncodeFixedSizeNumeric(v);
 
         /// <summary>Encodes a short.</summary>
         /// <param name="v">The short to encode.</param>
-        public void EncodeShort(short v) => EncodeFixedSizeNumeric(v);
+        public void EncodeInt16(short v) => EncodeFixedSizeNumeric(v);
 
         /// <summary>Encodes a size on variable number of bytes.</summary>
         /// <param name="v">The size to encode.</param>
@@ -90,17 +90,17 @@ namespace IceRpc.Slice
             {
                 if (v < 255)
                 {
-                    EncodeByte((byte)v);
+                    EncodeUInt8((byte)v);
                 }
                 else
                 {
-                    EncodeByte(255);
-                    EncodeInt(v);
+                    EncodeUInt8(255);
+                    EncodeInt32(v);
                 }
             }
             else
             {
-                EncodeVarULong((ulong)v);
+                EncodeVarUInt62((ulong)v);
             }
         }
 
@@ -166,33 +166,33 @@ namespace IceRpc.Slice
                 }
                 else
                 {
-                    EncodeVarULong((ulong)size, into);
+                    EncodeVarUInt62((ulong)size, into);
                 }
             }
         }
 
         /// <summary>Encodes a uint.</summary>
         /// <param name="v">The uint to encode.</param>
-        public void EncodeUInt(uint v) => EncodeFixedSizeNumeric(v);
+        public void EncodeUInt32(uint v) => EncodeFixedSizeNumeric(v);
 
         /// <summary>Encodes a ulong.</summary>
         /// <param name="v">The ulong to encode.</param>
-        public void EncodeULong(ulong v) => EncodeFixedSizeNumeric(v);
+        public void EncodeUInt64(ulong v) => EncodeFixedSizeNumeric(v);
 
         /// <summary>Encodes a ushort.</summary>
         /// <param name="v">The ushort to encode.</param>
-        public void EncodeUShort(ushort v) => EncodeFixedSizeNumeric(v);
+        public void EncodeUInt16(ushort v) => EncodeFixedSizeNumeric(v);
 
         /// <summary>Encodes an int using IceRPC's variable-size integer encoding.</summary>
         /// <param name="v">The int to encode.</param>
-        public void EncodeVarInt(int v) => EncodeVarLong(v);
+        public void EncodeVarInt32(int v) => EncodeVarInt62(v);
 
         /// <summary>Encodes a long using IceRPC's variable-size integer encoding, with the minimum number of bytes
         /// required by the encoding.</summary>
         /// <param name="v">The long to encode. It must be in the range [-2^61..2^61 - 1].</param>
-        public void EncodeVarLong(long v)
+        public void EncodeVarInt62(long v)
         {
-            int encodedSizeExponent = GetVarLongEncodedSizeExponent(v);
+            int encodedSizeExponent = GetVarInt62EncodedSizeExponent(v);
             v <<= 2;
             v |= (uint)encodedSizeExponent;
 
@@ -203,14 +203,14 @@ namespace IceRpc.Slice
 
         /// <summary>Encodes a uint using IceRPC's variable-size integer encoding.</summary>
         /// <param name="v">The uint to encode.</param>
-        public void EncodeVarUInt(uint v) => EncodeVarULong(v);
+        public void EncodeVarUInt32(uint v) => EncodeVarUInt62(v);
 
         /// <summary>Encodes a ulong using IceRPC's variable-size integer encoding, with the minimum
         /// number of bytes required by the encoding.</summary>
         /// <param name="v">The ulong to encode. It must be in the range [0..2^62 - 1].</param>
-        public void EncodeVarULong(ulong v)
+        public void EncodeVarUInt62(ulong v)
         {
-            int encodedSizeExponent = GetVarULongEncodedSizeExponent(v);
+            int encodedSizeExponent = GetVarUInt62EncodedSizeExponent(v);
             v <<= 2;
             v |= (uint)encodedSizeExponent;
 
@@ -332,19 +332,19 @@ namespace IceRpc.Slice
         /// <param name="value">The long value.</param>
         /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.
         /// </returns>
-        public static int GetVarLongEncodedSize(long value) => 1 << GetVarLongEncodedSizeExponent(value);
+        public static int GetVarInt62EncodedSize(long value) => 1 << GetVarInt62EncodedSizeExponent(value);
 
         /// <summary>Computes the minimum number of bytes required to encode a ulong value using the Slice encoding
         /// variable-size encoded representation.</summary>
         /// <param name="value">The ulong value.</param>
         /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.
         /// </returns>
-        public static int GetVarULongEncodedSize(ulong value) => 1 << GetVarULongEncodedSizeExponent(value);
+        public static int GetVarUInt62EncodedSize(ulong value) => 1 << GetVarUInt62EncodedSizeExponent(value);
 
         /// <summary>Encodes a var ulong into a span of bytes using a fixed number of bytes.</summary>
         /// <param name="value">The value to encode.</param>
         /// <param name="into">The destination byte buffer, which must be 1, 2, 4 or 8 bytes long.</param>
-        public static void EncodeVarULong(ulong value, Span<byte> into)
+        public static void EncodeVarUInt62(ulong value, Span<byte> into)
         {
             int sizeLength = into.Length;
             Debug.Assert(sizeLength == 1 || sizeLength == 2 || sizeLength == 4 || sizeLength == 8);
@@ -408,11 +408,11 @@ namespace IceRpc.Slice
             }
             else
             {
-                EncodeVarInt(tag); // the key
+                EncodeVarInt32(tag); // the key
                 Span<byte> sizePlaceholder = GetPlaceholderSpan(4);
                 int startPos = EncodedByteCount;
                 encodeAction(ref this, v);
-                EncodeVarULong((ulong)(EncodedByteCount - startPos), sizePlaceholder);
+                EncodeVarUInt62((ulong)(EncodedByteCount - startPos), sizePlaceholder);
             }
         }
 
@@ -467,7 +467,7 @@ namespace IceRpc.Slice
             }
             else
             {
-                EncodeVarInt(tag); // the key
+                EncodeVarInt32(tag); // the key
                 EncodeSize(size);
                 startPos = EncodedByteCount;
                 encodeAction(ref this, v);
@@ -570,7 +570,7 @@ namespace IceRpc.Slice
         /// <param name="size">The size.</param>
         /// <returns>The minimum number of bytes.</returns>
         public int GetSizeLength(int size) => Encoding == SliceEncoding.Slice1 ?
-            (size < 255 ? 1 : 5) : GetVarULongEncodedSize(checked((ulong)size));
+            (size < 255 ? 1 : 5) : GetVarUInt62EncodedSize(checked((ulong)size));
 
         /// <summary>Copies a span of bytes to the underlying buffer writer.</summary>
         /// <param name="span">The span to copy.</param>
@@ -617,7 +617,7 @@ namespace IceRpc.Slice
         /// exponent of 2.</summary>
         /// <param name="value">The value to encode.</param>
         /// <returns>N where 2^N is the number of bytes needed to encode value with IceRPC's varlong encoding.</returns>
-        private static int GetVarLongEncodedSizeExponent(long value)
+        private static int GetVarInt62EncodedSizeExponent(long value)
         {
             if (value < VarLongMinValue || value > VarLongMaxValue)
             {
@@ -637,7 +637,7 @@ namespace IceRpc.Slice
         /// exponent of 2.</summary>
         /// <param name="value">The value to encode.</param>
         /// <returns>N where 2^N is the number of bytes needed to encode value with varulong encoding.</returns>
-        private static int GetVarULongEncodedSizeExponent(ulong value)
+        private static int GetVarUInt62EncodedSizeExponent(ulong value)
         {
             if (value > VarULongMaxValue)
             {
@@ -682,9 +682,9 @@ namespace IceRpc.Slice
                     endpoint.ParseOpaqueParams();
 
                 this.EncodeTransportCode(transportCode);
-                EncodeInt(4 + 2 + bytes.Length); // encapsulation size includes size-length and 2 bytes for encoding
-                EncodeByte(encodingMajor);
-                EncodeByte(encodingMinor);
+                EncodeInt32(4 + 2 + bytes.Length); // encapsulation size includes size-length and 2 bytes for encoding
+                EncodeUInt8(encodingMajor);
+                EncodeUInt8(encodingMinor);
                 WriteByteSpan(bytes.Span);
             }
             else
@@ -717,8 +717,8 @@ namespace IceRpc.Slice
 
                 int startPos = EncodedByteCount; // size includes size-length
                 Span<byte> sizePlaceholder = GetPlaceholderSpan(4); // encapsulation size
-                EncodeByte(1); // encoding version major
-                EncodeByte(1); // encoding version minor
+                EncodeUInt8(1); // encoding version major
+                EncodeUInt8(1); // encoding version minor
 
                 switch (transportCode)
                 {
@@ -726,8 +726,8 @@ namespace IceRpc.Slice
                     case TransportCode.Ssl:
                     {
                         EncodeString(endpoint.Host);
-                        EncodeInt(endpoint.Port);
-                        EncodeInt(timeout);
+                        EncodeInt32(endpoint.Port);
+                        EncodeInt32(timeout);
                         EncodeBool(compress);
                         break;
                     }
@@ -754,12 +754,12 @@ namespace IceRpc.Slice
             if (tag < 30)
             {
                 v |= tag << 3;
-                EncodeByte((byte)v);
+                EncodeUInt8((byte)v);
             }
             else
             {
                 v |= 0x0F0; // tag = 30
-                EncodeByte((byte)v);
+                EncodeUInt8((byte)v);
                 EncodeSize(tag);
             }
 

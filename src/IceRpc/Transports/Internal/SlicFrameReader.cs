@@ -46,7 +46,7 @@ namespace IceRpc.Transports.Internal
                 var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
 
                 // Decode the frame type and frame size.
-                if (!decoder.TryDecodeByte(out byte frameType) ||
+                if (!decoder.TryDecodeUInt8(out byte frameType) ||
                     !decoder.TryDecodeSize(out header.FrameSize))
                 {
                     return false;
@@ -57,7 +57,7 @@ namespace IceRpc.Transports.Internal
                 if (header.FrameType >= FrameType.Stream)
                 {
                     consumed = (int)decoder.Consumed;
-                    if (!decoder.TryDecodeVarULong(out ulong streamId))
+                    if (!decoder.TryDecodeVarUInt62(out ulong streamId))
                     {
                         return false;
                     }

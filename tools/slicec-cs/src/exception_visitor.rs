@@ -200,7 +200,7 @@ encoder.EndSlice(lastSlice: {is_last_slice});
             "\
 encoder.EncodeString(Message);
 {encode_data_members}
-encoder.EncodeVarInt(Slice2Definitions.TagEndMarker);",
+encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);",
             encode_data_members = &encode_data_members(members, namespace, FieldType::Exception),
         ).into()
     )

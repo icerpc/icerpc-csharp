@@ -22,7 +22,7 @@ public class NumericTypesDecodingTests
     {
         var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice2);
 
-        long r1 = sut.DecodeLong();
+        long r1 = sut.DecodeInt64();
 
         Assert.That(r1, Is.EqualTo(expected));
         Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
@@ -43,7 +43,7 @@ public class NumericTypesDecodingTests
     {
         var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice2);
 
-        long r1 = sut.DecodeVarLong();
+        long r1 = sut.DecodeVarInt62();
 
         Assert.That(r1, Is.EqualTo(expected));
         Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
@@ -60,7 +60,7 @@ public class NumericTypesDecodingTests
         {
             var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice2);
 
-            sut.DecodeVarInt();
+            sut.DecodeVarInt32();
         }, Throws.InstanceOf<InvalidDataException>());
     }
 
@@ -76,7 +76,7 @@ public class NumericTypesDecodingTests
     {
         var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice2);
 
-        ulong r1 = sut.DecodeVarULong();
+        ulong r1 = sut.DecodeVarUInt62();
 
         Assert.That(r1, Is.EqualTo(expected));
         Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
@@ -93,11 +93,11 @@ public class NumericTypesDecodingTests
             var buffer = new byte[256];
             var bufferWriter = new MemoryBufferWriter(buffer);
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
-            encoder.EncodeVarULong(value);
+            encoder.EncodeVarUInt62(value);
             var encodedBytes = buffer[0..bufferWriter.WrittenMemory.Length];
             var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice2);
 
-            sut.DecodeVarUInt();
+            sut.DecodeVarUInt32();
         }, Throws.InstanceOf<InvalidDataException>());
     }
 

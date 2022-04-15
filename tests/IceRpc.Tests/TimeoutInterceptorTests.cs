@@ -56,7 +56,7 @@ public sealed class TimeoutInterceptorTests
                 deadlineField.Encode(ref encoder);
                 var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
                 decoder.SkipSize();
-                deadline = DateTime.UnixEpoch + TimeSpan.FromMilliseconds(decoder.DecodeVarLong());
+                deadline = DateTime.UnixEpoch + TimeSpan.FromMilliseconds(decoder.DecodeVarInt62());
             }
             return Task.FromResult(new IncomingResponse(request));
         });

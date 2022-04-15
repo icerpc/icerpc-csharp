@@ -145,7 +145,7 @@ namespace IceRpc.Transports.Internal
                     FrameType.Initialize,
                     (ref SliceEncoder encoder) =>
                     {
-                        encoder.EncodeVarUInt(SlicDefinitions.V1);
+                        encoder.EncodeVarUInt32(SlicDefinitions.V1);
                         initializeBody.Encode(ref encoder);
                     },
                     cancel).ConfigureAwait(false);
@@ -496,9 +496,9 @@ namespace IceRpc.Transports.Internal
 
             static KeyValuePair<int, IList<byte>> EncodeParameter(ParameterKey key, ulong value)
             {
-                int sizeLength = SliceEncoder.GetVarULongEncodedSize(value);
+                int sizeLength = SliceEncoder.GetVarUInt62EncodedSize(value);
                 byte[] buffer = new byte[sizeLength];
-                SliceEncoder.EncodeVarULong(value, buffer);
+                SliceEncoder.EncodeVarUInt62(value, buffer);
                 return new((int)key, buffer);
             }
         }

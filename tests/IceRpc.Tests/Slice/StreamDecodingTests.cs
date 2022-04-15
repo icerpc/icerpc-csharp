@@ -18,7 +18,7 @@ public sealed class StreamDecodingTests
         var items = new int[buffer.Length / 4];
         for (int i = 0; i < items.Length; ++i)
         {
-            items[i] = decoder.DecodeInt();
+            items[i] = decoder.DecodeInt32();
         }
         return items;
     }
@@ -29,7 +29,7 @@ public sealed class StreamDecodingTests
         var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
         for (int i = 0; i < count; ++i)
         {
-            encoder.EncodeInt(value);
+            encoder.EncodeInt32(value);
         }
         Assert.That(bufferWriter.WrittenMemory.Length, Is.EqualTo(count * 4));
         return new ReadOnlySequence<byte>(bufferWriter.WrittenMemory);
