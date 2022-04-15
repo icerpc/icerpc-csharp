@@ -8,8 +8,6 @@ namespace IceRpc.Transports.Internal
     /// <summary>Extension methods for class Endpoint.</summary>
     internal static class EndpointExtensions
     {
-        internal const int DefaultTcpTimeout = 60_000; // 60s
-
         internal static (TransportCode TransportCode, byte EncodingMajor, byte EncodingMinor, ReadOnlyMemory<byte> Bytes) ParseOpaqueParams(
            this Endpoint endpoint)
         {
@@ -88,46 +86,31 @@ namespace IceRpc.Transports.Internal
             return (transportCode.Value, encodingMajor, encodingMinor, bytes);
         }
 
-        internal static (bool Compress, int Timeout) ParseTcpParams(this Endpoint endpoint)
+        /// <summary>Checks the parameters of a tcp endpoint and returns the value of the transport parameter. The "t"
+        /// and "z" parameters are supported and ignored for compatibility with ZeroC Ice.</summary>
+        /// <returns>The value of the transport parameter, or null if the transport parameter is not set.</returns>
+        /// <exception cref="FormatException">Thrown when an endpoint parameter is unknown or transport has an invalid
+        /// value.</exception>
+        internal static string? ParseTcpParams(this Endpoint endpoint)
         {
-            bool compress = false;
-            int? timeout = null;
+            string? transportValue = null;
 
             foreach ((string name, string value) in endpoint.Params)
             {
                 switch (name)
                 {
                     case "transport":
-                        if (value != TransportNames.Tcp && value != TransportNames.Ssl)
+                        transportValue = value switch
                         {
-                            throw new FormatException(
-                                $"invalid value for transport parameter in endpoint '{endpoint}'");
-                        }
+                            TransportNames.Tcp or TransportNames.Ssl => value,
+                            _ => throw new FormatException(
+                                    $"invalid value for transport parameter in endpoint '{endpoint}'")
+                        };
                         break;
 
                     case "t":
-                        if (value == "infinite")
-                        {
-                            timeout = -1;
-                        }
-                        else
-                        {
-                            timeout = int.Parse(value, CultureInfo.InvariantCulture); // timeout in ms, or -1
-                            if (timeout == 0 || timeout < -1)
-                            {
-                                throw new FormatException(
-                                    $"invalid value for t parameter in endpoint '{endpoint}'");
-                            }
-                        }
-                        break;
-
                     case "z":
-                        if (value.Length > 0)
-                        {
-                            throw new FormatException(
-                                $"invalid value '{value}' for parameter z in endpoint '{endpoint}'");
-                        }
-                        compress = true;
+                        // we don't check the value since we ignore it
                         break;
 
                     default:
@@ -135,7 +118,7 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            return (compress, timeout ?? DefaultTcpTimeout);
+            return transportValue;
         }
 
         /// <summary>Adds the transport parameter to this endpoint if null, and does nothing if it's already set to the

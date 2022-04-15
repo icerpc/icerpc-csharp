@@ -848,7 +848,7 @@ namespace IceRpc.Slice
                                 "transport",
                                 transportCode == TransportCode.Tcp ? TransportNames.Tcp : TransportNames.Ssl);
 
-                            if (timeout != Transports.Internal.EndpointExtensions.DefaultTcpTimeout)
+                            if (timeout != SliceEncoder.DefaultTcpTimeout)
                             {
                                 builder.Add("t", timeout.ToString(CultureInfo.InvariantCulture));
                             }
