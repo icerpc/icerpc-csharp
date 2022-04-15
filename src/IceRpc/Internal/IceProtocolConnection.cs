@@ -186,7 +186,7 @@ namespace IceRpc.Internal
             if (request.IsOneway)
             {
                 // We're done, there's no response for oneway requests.
-                return new IncomingResponse(request);
+                return new IncomingResponse(request, _connection);
             }
 
             Debug.Assert(responseCompletionSource != null);
@@ -249,9 +249,8 @@ namespace IceRpc.Internal
                         request.Features = request.Features.With(RetryPolicy.OtherReplica);
                     }
 
-                    return new IncomingResponse(request)
+                    return new IncomingResponse(request, _connection)
                     {
-                        Connection = _connection,
                         Payload = frameReader,
                         ResultType = replyStatus switch
                         {
@@ -768,9 +767,8 @@ namespace IceRpc.Internal
                 throw;
             }
 
-            var request = new IncomingRequest(Protocol.Ice)
+            var request = new IncomingRequest(_connection)
             {
-                Connection = _connection,
                 Fields = requestHeader.OperationMode == OperationMode.Normal ?
                     ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields,
                 Fragment = requestHeader.Fragment,

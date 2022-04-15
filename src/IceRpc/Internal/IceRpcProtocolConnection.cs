@@ -112,9 +112,8 @@ namespace IceRpc.Internal
                     throw;
                 }
 
-                var request = new IncomingRequest(Protocol.IceRpc)
+                var request = new IncomingRequest(_connection)
                 {
-                    Connection = _connection,
                     Features = features,
                     Fields = fields,
                     IsOneway = !stream.IsBidirectional,
@@ -217,9 +216,25 @@ namespace IceRpc.Internal
                             exception);
                     }
 
+                    // Attempt to encode this exception. If the encoding fails, we encode a DispatchException.
+                    PipeReader responsePayload;
+                    try
+                    {
+                        responsePayload = CreateExceptionPayload(remoteException);
+                    }
+                    catch (Exception encodeException)
+                    {
+                        // This should be extremely rare. For example, a middleware throwing a Slice1-only remote
+                        // exception.
+                        responsePayload = CreateExceptionPayload(
+                            new DispatchException(
+                                message: null,
+                                DispatchErrorCode.UnhandledException,
+                                encodeException));
+                    }
                     response = new OutgoingResponse(request)
                     {
-                        Payload = CreateExceptionPayload(remoteException),
+                        Payload = responsePayload,
                         ResultType = ResultType.Failure
                     };
 
@@ -238,6 +253,8 @@ namespace IceRpc.Internal
                         var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
                         Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
                         int startPos = encoder.EncodedByteCount;
+
+                        // EncodeTrait throws for a Slice1-only exception.
                         exception.EncodeTrait(ref encoder);
                         SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
                         pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
@@ -362,7 +379,7 @@ namespace IceRpc.Internal
 
             if (request.IsOneway)
             {
-                return new IncomingResponse(request);
+                return new IncomingResponse(request, _connection);
             }
 
             Debug.Assert(stream != null);
@@ -392,9 +409,8 @@ namespace IceRpc.Internal
                     request.Features = request.Features.With(retryPolicy);
                 }
 
-                return new IncomingResponse(request)
+                return new IncomingResponse(request, _connection)
                 {
-                    Connection = _connection,
                     Fields = fields,
                     Payload = stream.Input,
                     ResultType = header.ResultType

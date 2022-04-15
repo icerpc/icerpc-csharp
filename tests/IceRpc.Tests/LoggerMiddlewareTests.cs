@@ -11,9 +11,9 @@ public sealed class LoggerMiddlewareTests
     {
         var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
         using var loggerFactory = new TestLoggerFactory();
-        var request = new IncomingRequest(Protocol.IceRpc)
+        await using var connection = new Connection("icerpc://127.0.0.1");
+        var request = new IncomingRequest(connection)
         {
-            Connection = new Connection(Endpoint.FromString("icerpc://127.0.0.1")),
             Path = "/path",
             Operation = "operation"
         };
@@ -35,9 +35,9 @@ public sealed class LoggerMiddlewareTests
     {
         var dispatcher = new InlineDispatcher((request, cancel) => throw new InvalidOperationException());
         using var loggerFactory = new TestLoggerFactory();
-        var request = new IncomingRequest(Protocol.IceRpc)
+        await using var connection = new Connection("icerpc://127.0.0.1");
+        var request = new IncomingRequest(connection)
         {
-            Connection = new Connection(Endpoint.FromString("icerpc://127.0.0.1")),
             Path = "/path",
             Operation = "operation"
         };
