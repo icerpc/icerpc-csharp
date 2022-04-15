@@ -39,7 +39,7 @@ public class NumericTypesDecodingTests
     [TestCase(new byte[] { 0x01, 0x04 }, 256)]
     [TestCase(new byte[] { 0x02, 0x00, 0x01, 0x00 }, 16384)]
     [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F }, SliceEncoder.VarLongMaxValue)]
-    public void Decode_varlong_value(byte[] encodedBytes, long expected)
+    public void Decode_varint62_value(byte[] encodedBytes, long expected)
     {
         var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice2);
 

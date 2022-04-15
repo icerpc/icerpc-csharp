@@ -53,7 +53,7 @@ namespace IceRpc.Slice
         /// <param name="v">The boolean to encode.</param>
         public void EncodeBool(bool v) => EncodeUInt8(v ? (byte)1 : (byte)0);
 
-        /// <summary>Encodes a byte.</summary>
+        /// <summary>Encodes a byte into a Slice uint8.</summary>
         /// <param name="v">The byte to encode.</param>
         public void EncodeUInt8(byte v)
         {
@@ -62,23 +62,23 @@ namespace IceRpc.Slice
             Advance(1);
         }
 
-        /// <summary>Encodes a double.</summary>
+        /// <summary>Encodes a double into a Slice float64.</summary>
         /// <param name="v">The double to encode.</param>
         public void EncodeFloat64(double v) => EncodeFixedSizeNumeric(v);
 
-        /// <summary>Encodes a float.</summary>
+        /// <summary>Encodes a float into a Slice float32.</summary>
         /// <param name="v">The float to encode.</param>
         public void EncodeFloat32(float v) => EncodeFixedSizeNumeric(v);
 
-        /// <summary>Encodes an int.</summary>
+        /// <summary>Encodes an int into a Slice int32.</summary>
         /// <param name="v">The int to encode.</param>
         public void EncodeInt32(int v) => EncodeFixedSizeNumeric(v);
 
-        /// <summary>Encodes a long.</summary>
+        /// <summary>Encodes a long into a Slice int64.</summary>
         /// <param name="v">The long to encode.</param>
         public void EncodeInt64(long v) => EncodeFixedSizeNumeric(v);
 
-        /// <summary>Encodes a short.</summary>
+        /// <summary>Encodes a short into a Slice int16.</summary>
         /// <param name="v">The short to encode.</param>
         public void EncodeInt16(short v) => EncodeFixedSizeNumeric(v);
 
@@ -171,23 +171,23 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes a uint.</summary>
+        /// <summary>Encodes a uint into a Slice uint32.</summary>
         /// <param name="v">The uint to encode.</param>
         public void EncodeUInt32(uint v) => EncodeFixedSizeNumeric(v);
 
-        /// <summary>Encodes a ulong.</summary>
+        /// <summary>Encodes a ulong into a Slice uint64.</summary>
         /// <param name="v">The ulong to encode.</param>
         public void EncodeUInt64(ulong v) => EncodeFixedSizeNumeric(v);
 
-        /// <summary>Encodes a ushort.</summary>
+        /// <summary>Encodes a ushort into a Slice uint16.</summary>
         /// <param name="v">The ushort to encode.</param>
         public void EncodeUInt16(ushort v) => EncodeFixedSizeNumeric(v);
 
-        /// <summary>Encodes an int using IceRPC's variable-size integer encoding.</summary>
+        /// <summary>Encodes an int into a Slice varint32 using IceRPC's variable-size integer encoding.</summary>
         /// <param name="v">The int to encode.</param>
         public void EncodeVarInt32(int v) => EncodeVarInt62(v);
 
-        /// <summary>Encodes a long using IceRPC's variable-size integer encoding, with the minimum number of bytes
+        /// <summary>Encodes a long into a Slice varint62 using IceRPC's variable-size integer encoding, with the minimum number of bytes
         /// required by the encoding.</summary>
         /// <param name="v">The long to encode. It must be in the range [-2^61..2^61 - 1].</param>
         public void EncodeVarInt62(long v)
@@ -201,12 +201,12 @@ namespace IceRpc.Slice
             Advance(1 << encodedSizeExponent);
         }
 
-        /// <summary>Encodes a uint using IceRPC's variable-size integer encoding.</summary>
+        /// <summary>Encodes a uint into a Slice varuint32 using IceRPC's variable-size integer encoding.</summary>
         /// <param name="v">The uint to encode.</param>
         public void EncodeVarUInt32(uint v) => EncodeVarUInt62(v);
 
-        /// <summary>Encodes a ulong using IceRPC's variable-size integer encoding, with the minimum
-        /// number of bytes required by the encoding.</summary>
+        /// <summary>Encodes a ulong into a Slice varuint62 using IceRPC's variable-size integer encoding, with the
+        /// minimum number of bytes required by the encoding.</summary>
         /// <param name="v">The ulong to encode. It must be in the range [0..2^62 - 1].</param>
         public void EncodeVarUInt62(ulong v)
         {
@@ -613,15 +613,15 @@ namespace IceRpc.Slice
             return placeholder;
         }
 
-        /// <summary>Gets the minimum number of bytes needed to encode a long value with the varlong encoding as an
+        /// <summary>Gets the minimum number of bytes needed to encode a long value with the varint62 encoding as an
         /// exponent of 2.</summary>
         /// <param name="value">The value to encode.</param>
-        /// <returns>N where 2^N is the number of bytes needed to encode value with IceRPC's varlong encoding.</returns>
+        /// <returns>N where 2^N is the number of bytes needed to encode value with IceRPC's varint62 encoding.</returns>
         private static int GetVarInt62EncodedSizeExponent(long value)
         {
             if (value < VarLongMinValue || value > VarLongMaxValue)
             {
-                throw new ArgumentOutOfRangeException(nameof(value), $"varlong value '{value}' is out of range");
+                throw new ArgumentOutOfRangeException(nameof(value), $"varint62 value '{value}' is out of range");
             }
 
             return (value << 2) switch

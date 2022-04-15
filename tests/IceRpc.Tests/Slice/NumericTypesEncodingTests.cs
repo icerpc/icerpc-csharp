@@ -38,7 +38,7 @@ public class NumericTypesEncodingTests
     [TestCase(256, new byte[] { 0x01, 0x04 })]
     [TestCase(16384, new byte[] { 0x02, 0x00, 0x01, 0x00 })]
     [TestCase(SliceEncoder.VarLongMaxValue, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F })]
-    public void Encode_varlong_value(long value, byte[] expected)
+    public void Encode_varint62_value(long value, byte[] expected)
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
