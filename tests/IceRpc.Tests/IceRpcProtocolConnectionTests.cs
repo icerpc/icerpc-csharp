@@ -317,7 +317,7 @@ public sealed class IceRpcProtocolConnectionTests
     {
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
-            throw new Slice.Encoding.Tests.MyDerivedException(0, 0, 0, 0);
+            throw new MyDerivedException();
         });
 
         await using var serviceProvider = new ProtocolServiceCollection()
@@ -333,10 +333,6 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
-
-        // TODO https://github.com/zeroc-ice/icerpc-csharp/pull/1047 connection must be already assigned
-        await using var connection = new Connection(new ConnectionOptions());
-        response.Connection = connection;
         var exception = await response.DecodeFailureAsync() as DispatchException;
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception.ErrorCode, Is.EqualTo(DispatchErrorCode.UnhandledException));

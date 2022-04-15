@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice.Internal;
+using IceRpc.Transports;
 using NUnit.Framework;
 
 namespace IceRpc.Slice.Encoding.Tests;
@@ -406,5 +407,67 @@ public sealed class ExceptionTests
         Assert.That(decoder.DecodeInt(), Is.EqualTo(value.J));
         Assert.That(decoder.DecodeVarInt(), Is.EqualTo(Slice2Definitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+    }
+
+    [Test]
+    public async Task Slice2_operation_throws_slice1_exception_fails()
+    {
+        var coloc = new ColocTransport();
+        await using var server = new Server(new Configure.ServerOptions
+        {
+            Dispatcher = new Slice2ExceptionOperations(),
+            MultiplexedServerTransport = new SlicServerTransport(coloc.ServerTransport),
+            Endpoint = $"icerpc://{Guid.NewGuid()}/"
+        });
+        server.Listen();
+
+        await using var connection = new Connection(new Configure.ConnectionOptions
+        {
+            RemoteEndpoint = server.Endpoint,
+            MultiplexedClientTransport = new SlicClientTransport(coloc.ClientTransport),
+        });
+        var prx = Slice2ExceptionOperationsPrx.FromConnection(connection);
+
+        DispatchException? exception = Assert.CatchAsync<DispatchException>(() => prx.OpThrowsAsync());
+
+        Assert.That(exception, Is.Not.Null);
+        Assert.That(exception.ErrorCode, Is.EqualTo(DispatchErrorCode.UnhandledException));
+    }
+
+    [Test]
+    public async Task Slice1_operation_throws_slice1_exception_fails()
+    {
+        var coloc = new ColocTransport();
+        await using var server = new Server(new Configure.ServerOptions
+        {
+            Dispatcher = new Slice1ExceptionOperations(),
+            MultiplexedServerTransport = new SlicServerTransport(coloc.ServerTransport),
+            Endpoint = $"icerpc://{Guid.NewGuid()}/"
+        });
+        server.Listen();
+
+        await using var connection = new Connection(new Configure.ConnectionOptions
+        {
+            RemoteEndpoint = server.Endpoint,
+            MultiplexedClientTransport = new SlicClientTransport(coloc.ClientTransport),
+        });
+        var prx = Slice1ExceptionOperationsPrx.FromConnection(connection);
+
+        DispatchException? exception = Assert.CatchAsync<DispatchException>(() => prx.OpThrowsAsync());
+
+        Assert.That(exception, Is.Not.Null);
+        Assert.That(exception.ErrorCode, Is.EqualTo(DispatchErrorCode.UnhandledException));
+    }
+
+    class Slice2ExceptionOperations : Service, ISlice2ExceptionOperations
+    {
+        public ValueTask OpThrowsAsync(Dispatch dispatch, CancellationToken cancel = default) =>
+            throw new MyDerivedException();
+    }
+
+    class Slice1ExceptionOperations : Service, ISlice1ExceptionOperations
+    {
+        public ValueTask OpThrowsAsync(Dispatch dispatch, CancellationToken cancel = default) =>
+            throw new MyExceptionWithOptionalMembers();
     }
 }

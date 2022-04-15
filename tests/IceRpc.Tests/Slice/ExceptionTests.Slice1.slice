@@ -23,3 +23,8 @@ exception MyDerivedException : MyException
     k: int32,
     l: int32,
 }
+
+interface Slice1ExceptionOperations
+{
+    opThrows();
+}

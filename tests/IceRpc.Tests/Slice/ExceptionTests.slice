@@ -9,3 +9,8 @@ exception MyExceptionWithOptionalMembers
     k: int32?,
     l: int32?
 }
+
+interface Slice2ExceptionOperations
+{
+    opThrows();
+}

@@ -64,4 +64,32 @@ public sealed class IceProtocolConnectionTests
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
     }
+
+    /// <summary>Verifies that when a middleware throws a Slice exception other than a DispatchException, 
+    /// we encode a DispatchException with UnhandledException error code.</summary>
+    [Test]
+    public async Task Exception_is_encoded_as_a_dispatch_exception()
+    {
+        var dispatcher = new InlineDispatcher((request, cancel) =>
+        {
+            throw new MyException();
+        });
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(Protocol.Ice)
+            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .BuildServiceProvider();
+
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        _ = sut.Server.AcceptRequestsAsync();
+
+        // Act
+        var response = await sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.Ice)));
+
+        // Assert
+        Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
+        var exception = await response.DecodeFailureAsync() as DispatchException;
+        Assert.That(exception, Is.Not.Null);
+        Assert.That(exception.ErrorCode, Is.EqualTo(DispatchErrorCode.UnhandledException));
+    }
 }
