@@ -9,7 +9,7 @@ module IceRpc::Slice;
 /// not known to the receiver.
 enum TagFormat
 {
-    /// A fixed size numeric encoded on 1 byte such as bool or byte.
+    /// A fixed size numeric encoded on 1 byte such as bool or uint8.
     F1 = 0,
 
     /// A fixed size numeric encoded on 2 bytes such as int16.
