@@ -36,7 +36,7 @@ namespace IceRpc.Tests.Slice
             await TestAsync((prx, p1, p2) => prx.OpBoolAsync(p1, p2), false, true);
             await TestAsync((prx, p1, p2) => prx.OpShortAsync(p1, p2), short.MinValue, short.MaxValue);
             await TestAsync((prx, p1, p2) => prx.OpUShortAsync(p1, p2), ushort.MinValue, ushort.MaxValue);
-            await TestAsync((prx, p1, p2) => prx.OpIntAsync(p1, p2), int.MinValue, int.MaxValue);
+            await TestAsync((prx, p1, p2) => prx.OpInt32Async(p1, p2), int.MinValue, int.MaxValue);
             await TestAsync((prx, p1, p2) => prx.OpVarIntAsync(p1, p2), int.MinValue, int.MaxValue);
             await TestAsync((prx, p1, p2) => prx.OpUIntAsync(p1, p2), uint.MinValue, uint.MaxValue);
             await TestAsync((prx, p1, p2) => prx.OpVarUIntAsync(p1, p2), uint.MinValue, uint.MaxValue);
@@ -109,7 +109,7 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(int, int)> OpIntAsync(
+            public ValueTask<(int, int)> OpInt32Async(
                 int p1,
                 int p2,
                 Dispatch dispatch,

@@ -217,11 +217,11 @@ namespace IceRpc.Tests.Slice
             }
 
             {
-                (int? r1, int? r2) = await _prx.OpIntAsync(null);
+                (int? r1, int? r2) = await _prx.OpInt32Async(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                (r1, r2) = await _prx.OpIntAsync(42);
+                (r1, r2) = await _prx.OpInt32Async(42);
                 Assert.That(r1, Is.EqualTo(42));
                 Assert.That(r2, Is.EqualTo(42));
             }
@@ -689,7 +689,7 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
-            public ValueTask<(int? R1, int? R2)> OpIntAsync(
+            public ValueTask<(int? R1, int? R2)> OpInt32Async(
                 int? p1,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));

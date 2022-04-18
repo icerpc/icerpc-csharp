@@ -11,7 +11,7 @@ interface Operations
     opBool(p1: bool, p2: bool) -> (r1: bool, r2: bool);
     opShort(p1: int16, p2: int16) -> (r1: int16, r2: int16);
     opUShort(p1: uint16, p2: uint16) -> (r1: uint16, r2: uint16);
-    opInt(p1: int32, p2: int32) -> (r1: int32, r2: int32);
+    opInt32(p1: int32, p2: int32) -> (r1: int32, r2: int32);
     opVarInt(p1: varint32, p2: varint32) -> (r1: varint32, r2: varint32);
     opUInt(p1: uint32, p2: uint32) -> (r1: uint32, r2: uint32);
     opVarUInt(p1: varuint32, p2: varuint32) -> (r1: varuint32, r2: varuint32);

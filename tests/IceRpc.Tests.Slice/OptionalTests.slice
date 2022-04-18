@@ -58,7 +58,7 @@ interface OptionalOperations
 
     opShort(p1: int16?) -> (r1: int16?, r2: int16?);
 
-    opInt(p1: int32?) -> (r1: int32?, r2: int32?);
+    opInt32(p1: int32?) -> (r1: int32?, r2: int32?);
 
     opLong(p1: int64?) -> (r1: int64?, r2: int64?);
 

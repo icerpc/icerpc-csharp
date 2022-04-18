@@ -11,7 +11,7 @@ interface OperationTagDouble
 
     opShort(p1: tag(1) int16?) -> (r1: tag(1) int16?, r2: tag(2) int16?);
 
-    opInt(p1: tag(1) int32?) -> (r1: tag(1) int32?, r2: tag(2) int32?);
+    opInt32(p1: tag(1) int32?) -> (r1: tag(1) int32?, r2: tag(2) int32?);
 
     opLong(p1: tag(1) int64?) -> (r1: tag(1) int64?, r2: tag(2) int64?);
 
@@ -103,7 +103,7 @@ interface OperationTagEncodedResult
 
 interface OperationTag
 {
-    opInt(p1: tag(0) int32?) -> tag(1) int32?;
+    opInt32(p1: tag(0) int32?) -> tag(1) int32?;
 
     opVoid();
 }
@@ -111,13 +111,13 @@ interface OperationTag
 // An interface compatible with OperationTag except with fewer tags.
 interface OperationTagMinus
 {
-    opInt() -> tag(1) int32?;
+    opInt32() -> tag(1) int32?;
 }
 
 // An interface compatible with OperationTag except with more tags.
 interface OperationTagPlus
 {
-    opInt(p1: tag(0) int32?, p2: tag(1) string?) -> (r1: tag(1) int32?, r2: tag(2) string?);
+    opInt32(p1: tag(0) int32?, p2: tag(1) string?) -> (r1: tag(1) int32?, r2: tag(2) string?);
 
     opVoid(p1: tag(1) string?) -> tag(1) string?;
 }
