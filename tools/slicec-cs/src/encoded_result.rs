@@ -5,8 +5,6 @@ use slice::grammar::*;
 
 use crate::builders::{CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
 use crate::code_block::CodeBlock;
-use crate::encoding::encode_operation;
-use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
 
 pub fn encoded_result_struct(operation: &Operation) -> CodeBlock {
@@ -15,9 +13,6 @@ pub fn encoded_result_struct(operation: &Operation) -> CodeBlock {
     let struct_name = format!("{}EncodedResult", operation_name);
     let namespace = operation.namespace();
     let access = operation.access_modifier();
-    let parameters = operation.return_members();
-    let returns_classes = operation.returns_classes();
-    let dispatch_parameter = escape_parameter_name(&parameters, "dispatch");
 
     let mut container_builder =
         ContainerBuilder::new(&format!("{} readonly record struct", access), &struct_name);
@@ -42,7 +37,7 @@ pub fn encoded_result_struct(operation: &Operation) -> CodeBlock {
     );
 
     let mut constructor_builder =
-        FunctionBuilder::new(&access, "", &struct_name, FunctionType::BlockBody);
+        FunctionBuilder::new(&access, "", &struct_name, FunctionType::ExpressionBody);
 
     constructor_builder.add_comment(
         "summary",
@@ -62,23 +57,38 @@ immediately encodes the return value of operation {operation_name}."#,
                 None,
                 None,
             );
+
+            constructor_builder.set_body(
+                format!(
+                    "Payload = Response.{operation_name}(returnValue)",
+                    operation_name = operation_name
+                )
+                .into(),
+            );
         }
-        _ => {
-            for parameter in operation.return_members() {
+        parameters => {
+            for parameter in parameters {
                 let parameter_type =
                     parameter.to_type_string(&namespace, TypeContext::Encode, false);
                 let parameter_name = parameter.parameter_name();
 
                 constructor_builder.add_parameter(&parameter_type, &parameter_name, None, None);
             }
+
+            constructor_builder.set_body(
+                format!(
+                    "Payload = Response.{operation_name}({args})",
+                    operation_name = operation_name,
+                    args = parameters
+                        .iter()
+                        .map(|p| p.parameter_name())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+                .into(),
+            );
         }
     }
-
-    if !returns_classes {
-        constructor_builder.add_parameter("IceRpc.Slice.Dispatch", &dispatch_parameter, None, None);
-    }
-
-    constructor_builder.set_body(encode_operation(operation, true, "Payload ="));
 
     container_builder.add_block(constructor_builder.build());
     container_builder.build().into()

@@ -703,7 +703,7 @@ namespace IceRpc.Tests.Slice
                 Dictionary<int, int>? p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IOptionalOperations.OpIntDictMarshaledResultEncodedResult(p1, dispatch));
+                new(new IOptionalOperations.OpIntDictMarshaledResultEncodedResult(p1));
 
             public ValueTask<(IEnumerable<int>? R1, IEnumerable<int>? R2)> OpIntListAsync(
                 List<int>? p1,
@@ -749,7 +749,7 @@ namespace IceRpc.Tests.Slice
                 MyCompactStruct? p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IOptionalOperations.OpMyCompactStructMarshaledResultEncodedResult(p1, dispatch));
+                new(new IOptionalOperations.OpMyCompactStructMarshaledResultEncodedResult(p1));
 
             public ValueTask<(IEnumerable<MyCompactStruct>? R1, IEnumerable<MyCompactStruct>? R2)> OpMyCompactStructSeqAsync(
                 MyCompactStruct[]? p1,
@@ -794,7 +794,7 @@ namespace IceRpc.Tests.Slice
             public ValueTask<IOptionalOperations.OpStringSeqMarshaledResultEncodedResult> OpStringSeqMarshaledResultAsync(
                 string[]? p1,
                 Dispatch dispatch,
-                CancellationToken cancel) => new(new IOptionalOperations.OpStringSeqMarshaledResultEncodedResult(p1, dispatch));
+                CancellationToken cancel) => new(new IOptionalOperations.OpStringSeqMarshaledResultEncodedResult(p1));
 
             public ValueTask<OneOptional?> PingPongOneAsync(OneOptional? o, Dispatch dispatch, CancellationToken cancel) =>
                 new(o);
