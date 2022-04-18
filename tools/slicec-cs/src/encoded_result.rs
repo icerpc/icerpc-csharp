@@ -61,7 +61,7 @@ immediately encodes the return value of operation {operation_name}."#,
             constructor_builder.set_body(
                 format!(
                     "Payload = Response.{operation_name}(returnValue)",
-                    operation_name = operation.escape_identifier()
+                    operation_name = operation_name
                 )
                 .into(),
             );
