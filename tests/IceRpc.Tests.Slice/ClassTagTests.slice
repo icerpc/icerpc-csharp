@@ -35,7 +35,7 @@ class MultiTagged
 //    mInt32Dict: tag(40) Int32Dict?,
 //    mStringDict: tag(41) StringDict?,
 //
-//    mByteDict: tag(50) ByteDict?,
+//    mUInt8Dict: tag(50) UInt8Dict?,
 //    mMyCompactStructDict: tag(51) MyCompactStructDict?,
 //    mAnotherCompactStructDict: tag(52) AnotherCompactStructDict?,
 }

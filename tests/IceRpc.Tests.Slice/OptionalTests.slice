@@ -42,7 +42,7 @@ compact struct MultiOptional
     mVarULongSeq: VarULongSeq?,
     mVarIntSeq: VarIntSeq?,
 
-    mByteDict: ByteDict?,
+    mUInt8Dict: UInt8Dict?,
     mMyCompactStructDict: MyCompactStructDict?,
     mAnotherCompactStructDict: AnotherCompactStructDict?,
 }

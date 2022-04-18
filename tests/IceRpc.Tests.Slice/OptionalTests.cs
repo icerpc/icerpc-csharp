@@ -79,7 +79,7 @@ namespace IceRpc.Tests.Slice
             };
             multiOptional.MVarIntSeq = new int[] { 1 };
 
-            multiOptional.MByteDict = new Dictionary<byte, byte>() { { 1, 1 } };
+            multiOptional.MUInt8Dict = new Dictionary<byte, byte>() { { 1, 1 } };
             multiOptional.MAnotherCompactStructDict = new Dictionary<string, AnotherCompactStruct>()
             {
                 { "key", multiOptional.MAnotherCompactStruct.Value}
@@ -120,7 +120,7 @@ namespace IceRpc.Tests.Slice
             Assert.That(multiOptional1.MVarULongSeq, Is.Null);
             Assert.That(multiOptional1.MVarIntSeq, Is.EqualTo(multiOptional.MVarIntSeq));
 
-            Assert.That(multiOptional1.MByteDict, Is.EqualTo(multiOptional.MByteDict));
+            Assert.That(multiOptional1.MUInt8Dict, Is.EqualTo(multiOptional.MUInt8Dict));
             Assert.That(multiOptional1.MMyCompactStructDict, Is.Null);
             Assert.That(multiOptional1.MAnotherCompactStructDict, Is.EqualTo(multiOptional.MAnotherCompactStructDict));
 
@@ -182,7 +182,7 @@ namespace IceRpc.Tests.Slice
             Assert.That(multiOptional1.MVarULongSeq, Is.Null);
             Assert.That(multiOptional1.MVarIntSeq, Is.EqualTo(multiOptional.MVarIntSeq));
 
-            Assert.That(multiOptional1.MByteDict, Is.Null);
+            Assert.That(multiOptional1.MUInt8Dict, Is.Null);
             Assert.That(multiOptional1.MMyCompactStructDict, Is.EqualTo(multiOptional.MMyCompactStructDict));
             Assert.That(multiOptional1.MAnotherCompactStructDict, Is.Null);
 
@@ -609,7 +609,7 @@ namespace IceRpc.Tests.Slice
             Assert.That(multiOptional.MVarULongSeq, Is.Null);
             Assert.That(multiOptional.MVarIntSeq, Is.Null);
 
-            Assert.That(multiOptional.MByteDict, Is.Null);
+            Assert.That(multiOptional.MUInt8Dict, Is.Null);
             Assert.That(multiOptional.MMyCompactStructDict, Is.Null);
             Assert.That(multiOptional.MAnotherCompactStructDict, Is.Null);
         }

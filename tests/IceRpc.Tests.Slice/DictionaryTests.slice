@@ -2,7 +2,7 @@
 
 module IceRpc::Tests::Slice;
 
-typealias ByteDict = dictionary<uint8, uint8>;
+typealias UInt8Dict = dictionary<uint8, uint8>;
 typealias BoolDict = dictionary<bool, bool>;
 typealias Int16Dict = dictionary<int16, int16>;
 typealias UInt16Dict = dictionary<uint16, uint16>;
@@ -23,7 +23,7 @@ typealias MyCompactStructDict = dictionary<MyCompactStruct, MyCompactStruct>;
 typealias OperationsDict = dictionary<string, Operations>;
 typealias AnotherCompactStructDict = dictionary<string, AnotherCompactStruct>;
 
-typealias ByteCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint8, uint8>;
+typealias UInt8CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint8, uint8>;
 typealias BoolCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<bool, bool>;
 typealias Int16CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<int16, int16>;
 typealias UInt16CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint16, uint16>;
@@ -44,7 +44,7 @@ typealias MyUncheckedEnumCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDict
 interface DictionaryOperations
 {
     // Builtin type dictionaries
-    opByteDict(p1: ByteDict, p2: ByteDict) -> (r1: ByteDict, r2: ByteDict);
+    opUInt8Dict(p1: UInt8Dict, p2: UInt8Dict) -> (r1: UInt8Dict, r2: UInt8Dict);
     opBoolDict(p1: BoolDict, p2: BoolDict) -> (r1: BoolDict, r2: BoolDict);
     opInt16Dict(p1: Int16Dict, p2: Int16Dict) -> (r1: Int16Dict, r2: Int16Dict);
     opUInt16Dict(p1: UInt16Dict, p2: UInt16Dict) -> (r1: UInt16Dict, r2: UInt16Dict);
@@ -79,7 +79,7 @@ interface DictionaryOperations
     );
 
     // Sorted dictionaries with builtin types
-    opByteCustomDict(p1: ByteCustomDict, p2: ByteCustomDict) -> (r1: ByteCustomDict, r2: ByteCustomDict);
+    opUInt8CustomDict(p1: UInt8CustomDict, p2: UInt8CustomDict) -> (r1: UInt8CustomDict, r2: UInt8CustomDict);
     opBoolCustomDict(p1: BoolCustomDict, p2: BoolCustomDict) -> (r1: BoolCustomDict, r2: BoolCustomDict);
     opInt16CustomDict(p1: Int16CustomDict, p2: Int16CustomDict) -> (r1: Int16CustomDict, r2: Int16CustomDict);
     opUInt16CustomDict(p1: UInt16CustomDict, p2: UInt16CustomDict) -> (r1: UInt16CustomDict, r2: UInt16CustomDict);

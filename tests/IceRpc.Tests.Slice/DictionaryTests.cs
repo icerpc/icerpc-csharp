@@ -31,7 +31,7 @@ namespace IceRpc.Tests.Slice
         {
             int size = 100;
             await TestDictAsync(
-                (p1, p2) => _prx.OpByteDictAsync(p1, p2),
+                (p1, p2) => _prx.OpUInt8DictAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => (byte)i).ToDictionary(key => key, value => value),
                 Enumerable.Range(0, size).Select(i => (byte)i).ToDictionary(key => key, value => value));
 
@@ -97,7 +97,7 @@ namespace IceRpc.Tests.Slice
 
             // Sorted dictionaries
             await TestCustomDictAsync(
-               (p1, p2) => _prx.OpByteCustomDictAsync(p1, p2),
+               (p1, p2) => _prx.OpUInt8CustomDictAsync(p1, p2),
                new CustomDictionary<byte, byte>(
                    Enumerable.Range(0, size).Select(i => (byte)i).ToDictionary(key => key, value => value)),
                new CustomDictionary<byte, byte>(
@@ -276,7 +276,7 @@ namespace IceRpc.Tests.Slice
         public class DictionaryOperations : Service, IDictionaryOperations
         {
             // Builtin types dictionaries
-            public ValueTask<(IEnumerable<KeyValuePair<byte, byte>> R1, IEnumerable<KeyValuePair<byte, byte>> R2)> OpByteDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<byte, byte>> R1, IEnumerable<KeyValuePair<byte, byte>> R2)> OpUInt8DictAsync(
                 Dictionary<byte, byte> p1,
                 Dictionary<byte, byte> p2,
                 Dispatch dispatch,
@@ -391,7 +391,7 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<byte, byte>> R1, IEnumerable<KeyValuePair<byte, byte>> R2)> OpByteCustomDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<byte, byte>> R1, IEnumerable<KeyValuePair<byte, byte>> R2)> OpUInt8CustomDictAsync(
                 CustomDictionary<byte, byte> p1,
                 CustomDictionary<byte, byte> p2,
                 Dispatch dispatch, CancellationToken cancel) => new((p1, p2));
