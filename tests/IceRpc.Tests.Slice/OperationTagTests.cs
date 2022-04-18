@@ -402,12 +402,12 @@ namespace IceRpc.Tests.Slice
             }
 
             {
-                (CustomDictionary<int, int>? r1, CustomDictionary<int, int>? r2) = await doublePrx.OpIntCustomDictAsync(null);
+                (CustomDictionary<int, int>? r1, CustomDictionary<int, int>? r2) = await doublePrx.OpInt32CustomDictAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
                 var p1 = new CustomDictionary<int, int> { { 1, 1 } };
-                (r1, r2) = await doublePrx.OpIntCustomDictAsync(p1);
+                (r1, r2) = await doublePrx.OpInt32CustomDictAsync(p1);
                 Assert.That(r1, Is.EqualTo(p1));
                 Assert.That(r2, Is.EqualTo(p1));
             }
@@ -631,7 +631,7 @@ namespace IceRpc.Tests.Slice
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(IEnumerable<KeyValuePair<int, int>>? R1, IEnumerable<KeyValuePair<int, int>>? R2)> OpIntCustomDictAsync(
+        public ValueTask<(IEnumerable<KeyValuePair<int, int>>? R1, IEnumerable<KeyValuePair<int, int>>? R2)> OpInt32CustomDictAsync(
             CustomDictionary<int, int>? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));

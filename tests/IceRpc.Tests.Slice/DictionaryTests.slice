@@ -25,16 +25,16 @@ typealias AnotherCompactStructDict = dictionary<string, AnotherCompactStruct>;
 
 typealias ByteCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint8, uint8>;
 typealias BoolCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<bool, bool>;
-typealias ShortCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<int16, int16>;
-typealias UShortCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint16, uint16>;
-typealias IntCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<int32, int32>;
-typealias VarIntCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varint32, varint32>;
-typealias UIntCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint32, uint32>;
-typealias VarUIntCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varuint32, varuint32>;
-typealias LongCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<int64, int64>;
-typealias VarLongCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varint62, varint62>;
-typealias ULongCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint64,uint64>;
-typealias VarULongCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varuint62, varuint62>;
+typealias Int16CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<int16, int16>;
+typealias UInt16CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint16, uint16>;
+typealias Int32CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<int32, int32>;
+typealias VarInt32CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varint32, varint32>;
+typealias UInt32CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint32, uint32>;
+typealias VarUInt32CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varuint32, varuint32>;
+typealias Int64CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<int64, int64>;
+typealias VarInt62CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varint62, varint62>;
+typealias UInt64CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint64,uint64>;
+typealias VarUInt62CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varuint62, varuint62>;
 typealias StringCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<string, string>;
 
 typealias MyEnumCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<MyEnum, MyEnum>;
@@ -81,24 +81,24 @@ interface DictionaryOperations
     // Sorted dictionaries with builtin types
     opByteCustomDict(p1: ByteCustomDict, p2: ByteCustomDict) -> (r1: ByteCustomDict, r2: ByteCustomDict);
     opBoolCustomDict(p1: BoolCustomDict, p2: BoolCustomDict) -> (r1: BoolCustomDict, r2: BoolCustomDict);
-    opShortCustomDict(p1: ShortCustomDict, p2: ShortCustomDict) -> (r1: ShortCustomDict, r2: ShortCustomDict);
-    opUShortCustomDict(p1: UShortCustomDict, p2: UShortCustomDict) -> (r1: UShortCustomDict, r2: UShortCustomDict);
-    opIntCustomDict(p1: IntCustomDict, p2: IntCustomDict) -> (r1: IntCustomDict, r2: IntCustomDict);
-    opVarIntCustomDict(p1: VarIntCustomDict, p2: VarIntCustomDict) -> (r1: VarIntCustomDict, r2: VarIntCustomDict);
-    opUIntCustomDict(p1: UIntCustomDict, p2: UIntCustomDict) -> (r1: UIntCustomDict, r2: UIntCustomDict);
-    opVarUIntCustomDict(p1: VarUIntCustomDict, p2: VarUIntCustomDict) -> (
-        r1: VarUIntCustomDict,
-        r2: VarUIntCustomDict,
+    opInt16CustomDict(p1: Int16CustomDict, p2: Int16CustomDict) -> (r1: Int16CustomDict, r2: Int16CustomDict);
+    opUInt16CustomDict(p1: UInt16CustomDict, p2: UInt16CustomDict) -> (r1: UInt16CustomDict, r2: UInt16CustomDict);
+    opInt32CustomDict(p1: Int32CustomDict, p2: Int32CustomDict) -> (r1: Int32CustomDict, r2: Int32CustomDict);
+    opVarInt32CustomDict(p1: VarInt32CustomDict, p2: VarInt32CustomDict) -> (r1: VarInt32CustomDict, r2: VarInt32CustomDict);
+    opUInt32CustomDict(p1: UInt32CustomDict, p2: UInt32CustomDict) -> (r1: UInt32CustomDict, r2: UInt32CustomDict);
+    opVarUInt32CustomDict(p1: VarUInt32CustomDict, p2: VarUInt32CustomDict) -> (
+        r1: VarUInt32CustomDict,
+        r2: VarUInt32CustomDict,
     );
-    opLongCustomDict(p1: LongCustomDict, p2: LongCustomDict) -> (r1: LongCustomDict, r2: LongCustomDict);
-    opVarLongCustomDict(p1: VarLongCustomDict, p2: VarLongCustomDict) -> (
-        r1: VarLongCustomDict,
-        r2: VarLongCustomDict,
+    opInt64CustomDict(p1: Int64CustomDict, p2: Int64CustomDict) -> (r1: Int64CustomDict, r2: Int64CustomDict);
+    opVarInt62CustomDict(p1: VarInt62CustomDict, p2: VarInt62CustomDict) -> (
+        r1: VarInt62CustomDict,
+        r2: VarInt62CustomDict,
     );
-    opULongCustomDict(p1: ULongCustomDict, p2: ULongCustomDict) -> (r1: ULongCustomDict, r2: ULongCustomDict);
-    opVarULongCustomDict(p1: VarULongCustomDict, p2: VarULongCustomDict) -> (
-        r1: VarULongCustomDict,
-        r2: VarULongCustomDict,
+    opUInt64CustomDict(p1: UInt64CustomDict, p2: UInt64CustomDict) -> (r1: UInt64CustomDict, r2: UInt64CustomDict);
+    opVarUInt62CustomDict(p1: VarUInt62CustomDict, p2: VarUInt62CustomDict) -> (
+        r1: VarUInt62CustomDict,
+        r2: VarUInt62CustomDict,
     );
     opStringCustomDict(p1: StringCustomDict, p2: StringCustomDict) -> (r1: StringCustomDict, r2: StringCustomDict);
 

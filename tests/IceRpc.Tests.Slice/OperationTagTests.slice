@@ -87,7 +87,7 @@ interface OperationTagDouble
     opInt32Dict(p1: tag(1) Int32Dict?) -> (r1: tag(1) Int32Dict?, r2: tag(2) Int32Dict?);
     opStringDict(p1: tag(1) StringDict?) -> (r1: tag(1) StringDict?, r2: tag(2) StringDict?);
 
-    opIntCustomDict(p1: tag(1) IntCustomDict?) -> (r1: tag(1) IntCustomDict?, r2: tag(2) IntCustomDict?);
+    opInt32CustomDict(p1: tag(1) Int32CustomDict?) -> (r1: tag(1) Int32CustomDict?, r2: tag(2) Int32CustomDict?);
     opStringCustomDict(p1: tag(1) StringCustomDict?) -> (
         r1: tag(1) StringCustomDict?,
         r2: tag(2) StringCustomDict?,
