@@ -1,0 +1,29 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+encoding = 1;
+
+module IceRpc::Slice::Tests;
+
+class MyClassA
+{
+    theB: MyClassB?,
+    theC: MyClassC?,
+}
+
+class MyClassB : MyClassA
+{
+    theA: MyClassA?,
+}
+
+class MyClassC
+{
+    theB: MyClassB?,
+}
+
+class MyCompactClass(1)
+{
+}
+
+class MyDerivedCompactClass(789) : MyCompactClass
+{
+}
