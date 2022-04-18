@@ -52,19 +52,19 @@ interface OptionalOperations
     pingPongOne(o: OneOptional?) -> OneOptional?;
     pingPongMulti(o: MultiOptional?) -> MultiOptional?;
 
-    opByte(p1: uint8?) -> (r1: uint8?, r2: uint8?);
+    opUInt8(p1: uint8?) -> (r1: uint8?, r2: uint8?);
 
     opBool(p1: bool?) -> (r1: bool?, r2: bool?);
 
-    opShort(p1: int16?) -> (r1: int16?, r2: int16?);
+    opInt16(p1: int16?) -> (r1: int16?, r2: int16?);
 
     opInt32(p1: int32?) -> (r1: int32?, r2: int32?);
 
-    opLong(p1: int64?) -> (r1: int64?, r2: int64?);
+    opInt64(p1: int64?) -> (r1: int64?, r2: int64?);
 
-    opFloat(p1: float32?) -> (r1: float32?, r2: float32?);
+    opFloat32(p1: float32?) -> (r1: float32?, r2: float32?);
 
-    opDouble(p1: float64?) -> (r1: float64?, r2: float64?);
+    opFloat64(p1: float64?) -> (r1: float64?, r2: float64?);
 
     opString(p1: string?) -> (r1: string?, r2: string?);
 
@@ -74,26 +74,26 @@ interface OptionalOperations
 
     opAnotherCompactStruct(p1: AnotherCompactStruct?) -> (r1: AnotherCompactStruct?, r2: AnotherCompactStruct?);
 
-    opByteSeq(p1: ByteSeq?) -> (r1: ByteSeq?, r2: ByteSeq?);
-    opByteList(p1: ByteList?) -> (r1: ByteList?, r2: ByteList?);
+    opUInt8Seq(p1: ByteSeq?) -> (r1: ByteSeq?, r2: ByteSeq?);
+    opUInt8List(p1: ByteList?) -> (r1: ByteList?, r2: ByteList?);
 
     opBoolSeq(p1: BoolSeq?) -> (r1: BoolSeq?, r2: BoolSeq?);
     opBoolList(p1: BoolList?) -> (r1: BoolList?, r2: BoolList?);
 
-    opShortSeq(p1: ShortSeq?) -> (r1: ShortSeq?, r2: ShortSeq?);
-    opShortList(p1: ShortList?) -> (r1: ShortList?, r2: ShortList?);
+    opInt16Seq(p1: ShortSeq?) -> (r1: ShortSeq?, r2: ShortSeq?);
+    opInt16List(p1: ShortList?) -> (r1: ShortList?, r2: ShortList?);
 
-    opIntSeq(p1: IntSeq?) -> (r1: IntSeq?, r2: IntSeq?);
-    opIntList(p1: IntList?) -> (r1: IntList?, r2: IntList?);
+    opInt32Seq(p1: IntSeq?) -> (r1: IntSeq?, r2: IntSeq?);
+    opInt32List(p1: IntList?) -> (r1: IntList?, r2: IntList?);
 
-    opLongSeq(p1: LongSeq?) -> (r1: LongSeq?, r2: LongSeq?);
-    opLongList(p1: LongList?) -> (r1: LongList?, r2: LongList?);
+    opInt64Seq(p1: LongSeq?) -> (r1: LongSeq?, r2: LongSeq?);
+    opInt64List(p1: LongList?) -> (r1: LongList?, r2: LongList?);
 
-    opFloatSeq(p1: FloatSeq?) -> (r1: FloatSeq?, r2: FloatSeq?);
-    opFloatList(p1: FloatList?) -> (r1: FloatList?, r2: FloatList?);
+    opFloat32Seq(p1: FloatSeq?) -> (r1: FloatSeq?, r2: FloatSeq?);
+    opFloat32List(p1: FloatList?) -> (r1: FloatList?, r2: FloatList?);
 
-    opDoubleSeq(p1: DoubleSeq?) -> (r1: DoubleSeq?, r2: DoubleSeq?);
-    opDoubleList(p1: DoubleList?) -> (r1: DoubleList?, r2: DoubleList?);
+    opFloat64Seq(p1: DoubleSeq?) -> (r1: DoubleSeq?, r2: DoubleSeq?);
+    opFloat64List(p1: DoubleList?) -> (r1: DoubleList?, r2: DoubleList?);
 
     opStringSeq(p1: StringSeq?) -> (r1: StringSeq?, r2: StringSeq?);
     opStringList(p1: StringList?) -> (r1: StringList?, r2: StringList?);
