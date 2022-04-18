@@ -25,9 +25,9 @@ class MultiTagged
 //    mMyCompactStruct: tag(21) MyCompactStruct?,
 //    mAnotherCompactStruct: tag(22) AnotherCompactStruct?,
 //
-//    mByteSeq: tag(30) ByteSeq?,
+//    mUInt8Seq: tag(30) UInt8Seq?,
 //    mStringSeq: tag(31) StringSeq?,
-//    mShortSeq: tag(32) ShortSeq?,
+//    mInt16Seq: tag(32) Int16Seq?,
 //    mMyEnumSeq: tag(33) MyEnumSeq?,
 //    mMyCompactStructSeq: tag(34) MyCompactStructSeq?,
 //    mAnotherCompactStructSeq: tag(35) AnotherCompactStructSeq?,

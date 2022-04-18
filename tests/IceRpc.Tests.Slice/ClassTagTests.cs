@@ -68,7 +68,7 @@ namespace IceRpc.Tests.Slice
             // {
             //     { "key", "value" }
             // };
-            // multiTagged.MVarIntSeq = new int[] { 1 };
+            // multiTagged.MVarInt32Seq = new int[] { 1 };
 
             // multiTagged.MUInt8Dict = new Dictionary<byte, byte>() { { 1, 1 } };
             // multiTagged.MAnotherCompactStructDict = new Dictionary<string, AnotherCompactStruct>()
@@ -92,18 +92,18 @@ namespace IceRpc.Tests.Slice
             // Assert.That(multiTagged1.MMyCompactStruct, Is.EqualTo(multiTagged.MMyCompactStruct));
             // Assert.That(multiTagged1.MAnotherCompactStruct, Is.EqualTo(multiTagged.MAnotherCompactStruct));
 
-            // Assert.That(multiTagged1.MByteSeq, Is.Null);
+            // Assert.That(multiTagged1.MUInt8Seq, Is.Null);
             // Assert.That(multiTagged1.MStringSeq, Is.EqualTo(multiTagged.MStringSeq));
-            // Assert.That(multiTagged1.MShortSeq, Is.Null);
+            // Assert.That(multiTagged1.MInt16Seq, Is.Null);
             // Assert.That(multiTagged1.MMyEnumSeq, Is.EqualTo(multiTagged.MMyEnumSeq));
             // Assert.That(multiTagged1.MMyCompactStructSeq, Is.Null);
             // Assert.That(multiTagged1.MAnotherCompactStructSeq, Is.EqualTo(multiTagged.MAnotherCompactStructSeq));
 
             // Assert.That(multiTagged1.MInt32Dict, Is.Null);
             // Assert.That(multiTagged1.MStringDict, Is.EqualTo(multiTagged.MStringDict));
-            // Assert.That(multiTagged1.MUShortSeq, Is.Null);
-            // Assert.That(multiTagged1.MVarULongSeq, Is.Null);
-            // Assert.That(multiTagged1.MVarIntSeq, Is.EqualTo(multiTagged.MVarIntSeq));
+            // Assert.That(multiTagged1.MUInt16Seq, Is.Null);
+            // Assert.That(multiTagged1.MVarUInt62Seq, Is.Null);
+            // Assert.That(multiTagged1.MVarInt32Seq, Is.EqualTo(multiTagged.MVarInt32Seq));
 
             // Assert.That(multiTagged1.MUInt8Dict, Is.EqualTo(multiTagged.MUInt8Dict));
             // Assert.That(multiTagged1.MMyCompactStructDict, Is.Null);
@@ -117,13 +117,13 @@ namespace IceRpc.Tests.Slice
             // multiTagged.MMyEnum = MyEnum.enum1;
             // multiTagged.MMyCompactStruct = new MyCompactStruct(1, 1);
 
-            // multiTagged.MByteSeq = new byte[] { 1 };
-            // multiTagged.MShortSeq = new short[] { 1 };
+            // multiTagged.MUInt8Seq = new byte[] { 1 };
+            // multiTagged.MInt16Seq = new short[] { 1 };
             // multiTagged.MMyCompactStructSeq = new MyCompactStruct[] { new MyCompactStruct(1, 1) };
 
             // multiTagged.MInt32Dict = new Dictionary<int, int> { { 1, 1 } };
-            // multiTagged.MUShortSeq = new ushort[] { 1 };
-            // multiTagged.MVarIntSeq = new int[] { 1 };
+            // multiTagged.MUInt16Seq = new ushort[] { 1 };
+            // multiTagged.MVarInt32Seq = new int[] { 1 };
             // multiTagged.MMyCompactStructDict = new Dictionary<MyCompactStruct, MyCompactStruct>()
             // {
             //     { new MyCompactStruct(1, 1), new MyCompactStruct(1, 1) }
@@ -149,18 +149,18 @@ namespace IceRpc.Tests.Slice
             // Assert.That(multiTagged1.MMyCompactStruct, Is.EqualTo(multiTagged.MMyCompactStruct));
             // Assert.That(multiTagged1.MAnotherCompactStruct, Is.EqualTo(multiTagged.MAnotherCompactStruct));
 
-            // Assert.That(multiTagged1.MByteSeq, Is.EqualTo(multiTagged.MByteSeq));
+            // Assert.That(multiTagged1.MUInt8Seq, Is.EqualTo(multiTagged.MUInt8Seq));
             // Assert.That(multiTagged1.MStringSeq, Is.Null);
-            // Assert.That(multiTagged1.MShortSeq, Is.EqualTo(multiTagged.MShortSeq));
+            // Assert.That(multiTagged1.MInt16Seq, Is.EqualTo(multiTagged.MInt16Seq));
             // Assert.That(multiTagged1.MMyEnumSeq, Is.Null);
             // Assert.That(multiTagged1.MMyCompactStructSeq, Is.EqualTo(multiTagged.MMyCompactStructSeq));
             // Assert.That(multiTagged1.MAnotherCompactStructSeq, Is.Null);
 
             // Assert.That(multiTagged1.MInt32Dict, Is.EqualTo(multiTagged.MInt32Dict));
             // Assert.That(multiTagged1.MStringDict, Is.Null);
-            // Assert.That(multiTagged1.MUShortSeq, Is.EqualTo(multiTagged.MUShortSeq));
-            // Assert.That(multiTagged1.MVarULongSeq, Is.Null);
-            // Assert.That(multiTagged1.MVarIntSeq, Is.EqualTo(multiTagged.MVarIntSeq));
+            // Assert.That(multiTagged1.MUInt16Seq, Is.EqualTo(multiTagged.MUInt16Seq));
+            // Assert.That(multiTagged1.MVarUInt62Seq, Is.Null);
+            // Assert.That(multiTagged1.MVarInt32Seq, Is.EqualTo(multiTagged.MVarInt32Seq));
 
             // Assert.That(multiTagged1.MUInt8Dict, Is.Null);
             // Assert.That(multiTagged1.MMyCompactStructDict, Is.EqualTo(multiTagged.MMyCompactStructDict));
@@ -202,18 +202,18 @@ namespace IceRpc.Tests.Slice
             // Assert.That(multiTagged.MMyCompactStruct.HasValue, Is.False);
             // Assert.That(multiTagged.MAnotherCompactStruct.HasValue, Is.False);
 
-            // Assert.That(multiTagged.MByteSeq, Is.Null);
+            // Assert.That(multiTagged.MUInt8Seq, Is.Null);
             // Assert.That(multiTagged.MStringSeq, Is.Null);
-            // Assert.That(multiTagged.MShortSeq, Is.Null);
+            // Assert.That(multiTagged.MInt16Seq, Is.Null);
             // Assert.That(multiTagged.MMyEnumSeq, Is.Null);
             // Assert.That(multiTagged.MMyCompactStructSeq, Is.Null);
             // Assert.That(multiTagged.MAnotherCompactStructSeq, Is.Null);
 
             // Assert.That(multiTagged.MInt32Dict, Is.Null);
             // Assert.That(multiTagged.MStringDict, Is.Null);
-            // Assert.That(multiTagged.MUShortSeq, Is.Null);
-            // Assert.That(multiTagged.MVarULongSeq, Is.Null);
-            // Assert.That(multiTagged.MVarIntSeq, Is.Null);
+            // Assert.That(multiTagged.MUInt16Seq, Is.Null);
+            // Assert.That(multiTagged.MVarUInt62Seq, Is.Null);
+            // Assert.That(multiTagged.MVarInt32Seq, Is.Null);
 
             // Assert.That(multiTagged.MUInt8Dict, Is.Null);
             // Assert.That(multiTagged.MMyCompactStructDict, Is.Null);
