@@ -86,41 +86,6 @@ namespace IceRpc.Transports.Internal
             return (transportCode.Value, encodingMajor, encodingMinor, bytes);
         }
 
-        /// <summary>Checks the parameters of a tcp endpoint and returns the value of the transport parameter. The "t"
-        /// and "z" parameters are supported and ignored for compatibility with ZeroC Ice.</summary>
-        /// <returns>The value of the transport parameter, or null if the transport parameter is not set.</returns>
-        /// <exception cref="FormatException">Thrown when an endpoint parameter is unknown or transport has an invalid
-        /// value.</exception>
-        internal static string? ParseTcpParams(this Endpoint endpoint)
-        {
-            string? transportValue = null;
-
-            foreach ((string name, string value) in endpoint.Params)
-            {
-                switch (name)
-                {
-                    case "transport":
-                        transportValue = value switch
-                        {
-                            TransportNames.Tcp or TransportNames.Ssl => value,
-                            _ => throw new FormatException(
-                                    $"invalid value for transport parameter in endpoint '{endpoint}'")
-                        };
-                        break;
-
-                    case "t":
-                    case "z":
-                        // we don't check the value since we ignore it
-                        break;
-
-                    default:
-                        throw new FormatException($"unknown parameter '{name}' in endpoint '{endpoint}'");
-                }
-            }
-
-            return transportValue;
-        }
-
         /// <summary>Adds the transport parameter to this endpoint if null, and does nothing if it's already set to the
         /// correct value.</summary>
         /// <exception cref="ArgumentException">Thrown if endpoint already holds another transport.</exception>

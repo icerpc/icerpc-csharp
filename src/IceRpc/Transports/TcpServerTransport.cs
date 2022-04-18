@@ -35,7 +35,7 @@ namespace IceRpc.Transports
             // This is the composition root of the tcp server transport, where we install log decorators when logging
             // is enabled.
 
-            string? endpointTransport = endpoint.ParseTcpParams();
+            string? endpointTransport = TcpClientTransport.ParseEndpointParams(endpoint);
 
             if (endpointTransport == null)
             {

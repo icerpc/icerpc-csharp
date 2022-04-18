@@ -308,7 +308,7 @@ namespace IceRpc.Transports.Internal
 
         public override bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
-            _ = remoteEndpoint.ParseTcpParams(); // make sure remoteEndpoint is ok
+            _ = TcpClientTransport.ParseEndpointParams(remoteEndpoint); // make sure remoteEndpoint is ok
             return true;
         }
 
