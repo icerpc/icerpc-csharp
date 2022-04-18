@@ -12,14 +12,18 @@ public class ConnectionTests
     /// <summary>Verifies that concurrent dispatches on a given connection are limited to max_dispatches.</summary>
     [TestCase("ice://colochost", 1)]
     [TestCase("ice://colochost", 10)]
-    public async Task Connection_dispatches_requests_concurrently_up_to_max_dispatches(
+    public async Task Connection_dispatches_requests_concurrently_up_to_max_concurrent_dispatches(
         string endpoint,
-        int maxDispatchesPerConnection)
+        int maxConcurrentDispatches)
     {
         // Arrange
         var colocTransport = new ColocTransport();
         var serverOptions = CreateServerOptions(endpoint, colocTransport);
-        serverOptions.MaxDispatchesPerConnection = maxDispatchesPerConnection;
+        serverOptions.IceProtocolOptions = new IceProtocolOptions
+        {
+            MaxConcurrentDispatches = maxConcurrentDispatches
+        };
+
         using var startSemaphore = new SemaphoreSlim(0);
         using var workSemaphore = new SemaphoreSlim(0);
         int count = 0;
@@ -63,28 +67,28 @@ public class ConnectionTests
         var responseTasks = new List<Task<IncomingResponse>>();
 
         // Act
-        for (int i = 0; i < maxDispatchesPerConnection + 1; ++i)
+        for (int i = 0; i < maxConcurrentDispatches + 1; ++i)
         {
             responseTasks.Add(proxy.Invoker.InvokeAsync(request, default));
         }
         // wait for maxDispatchesPerConnection dispatches to start
-        for (int i = 0; i < maxDispatchesPerConnection; ++i)
+        for (int i = 0; i < maxConcurrentDispatches; ++i)
         {
             await startSemaphore.WaitAsync();
         }
 
         // Assert
-        for (int i = 0; i < maxDispatchesPerConnection + 1; ++i)
+        for (int i = 0; i < maxConcurrentDispatches + 1; ++i)
         {
             Assert.That(responseTasks[i].IsCompleted, Is.False);
         }
 
-        workSemaphore.Release(maxDispatchesPerConnection + 1);
+        workSemaphore.Release(maxConcurrentDispatches + 1);
 
         Assert.Multiple(async () =>
         {
             await Task.WhenAll(responseTasks);
-            Assert.That(maxCount, Is.EqualTo(maxDispatchesPerConnection));
+            Assert.That(maxCount, Is.EqualTo(maxConcurrentDispatches));
         });
     }
 

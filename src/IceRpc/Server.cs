@@ -172,8 +172,7 @@ namespace IceRpc
                     Dispatcher = _options.Dispatcher,
                     Fields = _options.Fields,
                     IceProtocolOptions = _options.IceProtocolOptions,
-                    KeepAlive = _options.KeepAlive,
-                    MaxDispatches = _options.MaxDispatchesPerConnection
+                    KeepAlive = _options.KeepAlive
                 };
 
                 while (true)
