@@ -9,77 +9,48 @@ namespace IceRpc.Slice.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class SequenceDecodingTests
 {
-    /// <summary>Provides test case data for
-    /// <see cref="Decode_fixed_sized_numeric_sequence((SliceEncoding, byte[], IEnumerable{long})"/> test.</summary>
-    private static IEnumerable<TestCaseData> SequenceLongData
-    {
-        get
-        {
-            foreach (SliceEncoding encoding in Enum.GetValues(typeof(SliceEncoding)))
-            {
-                foreach (int size in new int[] { 0, 256 })
-                {
-                    var buffer = new byte[1024 * 1024];
-                    var expected = Enumerable.Range(0, size).Select(i => (long)i);
-                    var bufferWriter = new MemoryBufferWriter(buffer);
-                    var encoder = new SliceEncoder(bufferWriter, encoding);
-                    encoder.EncodeSequence(expected);
-                    yield return new TestCaseData(encoding, buffer[0..bufferWriter.WrittenMemory.Length], expected);
-                }
-            }
-        }
-    }
-
-    /// <summary>Provides test case data for
-    /// <see cref="Decode_string_sequence((SliceEncoding, byte[], IEnumerable{string})"/> test.</summary>
-    private static IEnumerable<TestCaseData> SequenceStringData
-    {
-        get
-        {
-            foreach (SliceEncoding encoding in Enum.GetValues(typeof(SliceEncoding)))
-            {
-                foreach (int size in new int[] { 0, 256 })
-                {
-                    var expected = Enumerable.Range(0, size).Select(i => $"string-{i}");
-                    var buffer = new byte[1024 * 1024];
-                    var bufferWriter = new MemoryBufferWriter(buffer);
-                    var encoder = new SliceEncoder(bufferWriter, encoding);
-                    encoder.EncodeSequence(expected, (ref SliceEncoder encoder, string value) =>
-                         encoder.EncodeString(value));
-                    yield return new TestCaseData(encoding, buffer[0..bufferWriter.WrittenMemory.Length], expected);
-                }
-            }
-        }
-    }
-
     /// <summary>Tests <see cref="SliceDecoderExtensions.DecodeSequence"/> with a fixed-size numeric value type.
     /// </summary>
     /// <param name="encoding">The <see cref="SliceEncoding"/> to use for the decoding.</param>
-    /// <param name="value">The byte array to decode.</param>
-    /// <param name="expected">The expected <see cref="long[]"/> to be decoded</param>
-    [Test, TestCaseSource(nameof(SequenceLongData))]
-    public void Decode_fixed_sized_numeric_sequence(SliceEncoding encoding, byte[] value, IEnumerable<long> expected)
+    [Test]
+    public void Decode_fixed_sized_numeric_sequence(
+        [Values(SliceEncoding.Slice1, SliceEncoding.Slice2)] SliceEncoding encoding)
     {
-        var sut = new SliceDecoder(value, encoding);
+        int[] expected = Enumerable.Range(0, 256).Select(i => i).ToArray();
+        var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
+        var encoder = new SliceEncoder(buffer, encoding);
+        encoder.EncodeSize(expected.Length);
+        foreach (int value in expected)
+        {
+            encoder.EncodeInt32(value);
+        }
+        var sut = new SliceDecoder(buffer.WrittenMemory, encoding);
 
-        long[] result = sut.DecodeSequence(minElementSize: 8, (ref SliceDecoder decoder) => decoder.DecodeInt64());
+        int[] result = sut.DecodeSequence(minElementSize: 4, (ref SliceDecoder decoder) => decoder.DecodeInt32());
 
         Assert.That(result, Is.EqualTo(expected));
-        Assert.That(sut.Consumed, Is.EqualTo(value.Length));
+        Assert.That(sut.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
-    /// <summary>Tests <see cref="SliceDecoderExtensions.DecodeSequence"/> with a string.</summary>
+    /// <summary>Tests <see cref="SliceDecoderExtensions.DecodeSequence"/> with a string sequence.</summary>
     /// <param name="encoding">The <see cref="SliceEncoding"/> to use for the decoding.</param>
-    /// <param name="value">The byte array to decode.</param>
-    /// <param name="expected">The expected <see cref="string[]"/> to be decoded</param>
-    [Test, TestCaseSource(nameof(SequenceStringData))]
-    public void Decode_string_sequence(SliceEncoding encoding, byte[] value, IEnumerable<string> expected)
+    [Test]
+    public void Decode_string_sequence(
+        [Values(SliceEncoding.Slice1, SliceEncoding.Slice2)] SliceEncoding encoding)
     {
-        var sut = new SliceDecoder(value, encoding);
+        string[] expected = Enumerable.Range(0, 256).Select(i => $"string-{i}").ToArray();
+        var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
+        var encoder = new SliceEncoder(buffer, encoding);
+        encoder.EncodeSize(expected.Length);
+        foreach (string value in expected)
+        {
+            encoder.EncodeString(value);
+        }
+        var sut = new SliceDecoder(buffer.WrittenMemory, encoding);
 
-        string[] result = sut.DecodeSequence(minElementSize: 1, (ref SliceDecoder decoder) => decoder.DecodeString());
+        string[] decoded = sut.DecodeSequence(minElementSize: 1, (ref SliceDecoder decoder) => decoder.DecodeString());
 
-        Assert.That(result, Is.EqualTo(expected));
-        Assert.That(sut.Consumed, Is.EqualTo(value.Length));
+        Assert.That(decoded, Is.EqualTo(expected));
+        Assert.That(sut.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 }
