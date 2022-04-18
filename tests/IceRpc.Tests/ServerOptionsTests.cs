@@ -11,6 +11,7 @@ public class ServerOptionsTests
 {
     /// <summary>Verifies that a <see cref="ServerOptions"/> instance created with the default constructor has the
     /// expected default values for all its properties.</summary>
+    // TODO: move this test to Configure
     [Test]
     public void Server_options_default_values()
     {
@@ -26,6 +27,7 @@ public class ServerOptionsTests
             Assert.That(options.Fields, Is.Empty);
             Assert.That(options.KeepAlive, Is.False);
             Assert.That(options.LoggerFactory, Is.EqualTo(NullLoggerFactory.Instance));
+            Assert.That(options.MaxDispatchesPerConnection, Is.EqualTo(0));
             Assert.That(options.MultiplexedServerTransport, Is.EqualTo(ServerOptions.DefaultMultiplexedServerTransport));
             Assert.That(options.SimpleServerTransport, Is.EqualTo(ServerOptions.DefaultSimpleServerTransport));
         });

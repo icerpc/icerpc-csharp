@@ -19,6 +19,7 @@ namespace IceRpc.Internal
                 connection,
                 connectionOptions.Dispatcher,
                 networkConnection,
+                connectionOptions.MaxDispatches,
                 connectionOptions.IceProtocolOptions ?? Configure.IceProtocolOptions.Default);
 
             try
