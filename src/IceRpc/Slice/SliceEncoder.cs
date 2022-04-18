@@ -24,9 +24,6 @@ namespace IceRpc.Slice
         /// <summary>The Slice encoding of this encoder.</summary>
         public SliceEncoding Encoding { get; }
 
-        /// <summary>The default timeout value for tcp/ssl endpoints with Slice1.</summary>
-        internal const int DefaultTcpTimeout = 60_000; // 60s
-
         internal const long VarInt62MinValue = -2_305_843_009_213_693_952; // -2^61
         internal const long VarInt62MaxValue = 2_305_843_009_213_693_951; // 2^61 - 1
         internal const ulong VarUInt62MinValue = 0;
@@ -712,13 +709,7 @@ namespace IceRpc.Slice
                 {
                     case TransportCode.Tcp:
                     case TransportCode.Ssl:
-                        EncodeString(endpoint.Host);
-                        EncodeInt32(endpoint.Port);
-                        int timeout = endpoint.Params.TryGetValue("t", out string? timeoutValue) ?
-                            timeoutValue == "infinite" ? -1 : int.Parse(timeoutValue, CultureInfo.InvariantCulture) :
-                            DefaultTcpTimeout;
-                        EncodeInt32(timeout);
-                        EncodeBool(endpoint.Params.ContainsKey("z"));
+                        Transports.TcpClientTransport.EncodeEndpoint(ref this, endpoint);
                         break;
 
                     default:
