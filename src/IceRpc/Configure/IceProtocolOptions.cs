@@ -5,10 +5,10 @@ namespace IceRpc.Configure
     /// <summary>A property bag used to configure the ice protocol.</summary>
     public sealed record class IceProtocolOptions
     {
-        /// <summary>Gets or sets the maximum number of requests that the connection can dispatch concurrently.
+        /// <summary>Gets or sets the maximum number of requests that an ice connection can dispatch concurrently.
         /// </summary>
-        /// <value>The maximum number of requests that the connection can dispatch concurrently. 0 means a connection
-        /// can dispatch any number of requests concurrently. The default value is 100.</value>
+        /// <value>The maximum number of requests that an ice connection can dispatch concurrently. 0 means no maximum.
+        /// The default value is 100 requests.</value>
         public int MaxConcurrentDispatches
         {
             get => _maxConcurrentDispatches;
