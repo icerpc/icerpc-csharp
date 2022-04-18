@@ -4,16 +4,16 @@ module IceRpc::Tests::Slice;
 
 typealias ByteDict = dictionary<uint8, uint8>;
 typealias BoolDict = dictionary<bool, bool>;
-typealias ShortDict = dictionary<int16, int16>;
-typealias UShortDict = dictionary<uint16, uint16>;
-typealias IntDict = dictionary<int32, int32>;
-typealias VarIntDict = dictionary<varint32, varint32>;
-typealias UIntDict = dictionary<uint32, uint32>;
-typealias VarUIntDict = dictionary<varuint32, varuint32>;
-typealias LongDict = dictionary<int64, int64>;
-typealias VarLongDict = dictionary<varint62, varint62>;
-typealias ULongDict = dictionary<uint64,uint64>;
-typealias VarULongDict = dictionary<varuint62, varuint62>;
+typealias Int16Dict = dictionary<int16, int16>;
+typealias UInt16Dict = dictionary<uint16, uint16>;
+typealias Int32Dict = dictionary<int32, int32>;
+typealias VarInt32Dict = dictionary<varint32, varint32>;
+typealias UInt32Dict = dictionary<uint32, uint32>;
+typealias VarUInt32Dict = dictionary<varuint32, varuint32>;
+typealias Int64Dict = dictionary<int64, int64>;
+typealias VarInt62Dict = dictionary<varint62, varint62>;
+typealias UInt64Dict = dictionary<uint64,uint64>;
+typealias VarUInt62Dict = dictionary<varuint62, varuint62>;
 typealias StringDict = dictionary<string, string>;
 
 typealias MyEnumDict = dictionary<MyEnum, MyEnum>;
@@ -46,16 +46,16 @@ interface DictionaryOperations
     // Builtin type dictionaries
     opByteDict(p1: ByteDict, p2: ByteDict) -> (r1: ByteDict, r2: ByteDict);
     opBoolDict(p1: BoolDict, p2: BoolDict) -> (r1: BoolDict, r2: BoolDict);
-    opShortDict(p1: ShortDict, p2: ShortDict) -> (r1: ShortDict, r2: ShortDict);
-    opUShortDict(p1: UShortDict, p2: UShortDict) -> (r1: UShortDict, r2: UShortDict);
-    opIntDict(p1: IntDict, p2: IntDict) -> (r1: IntDict, r2: IntDict);
-    opVarIntDict(p1: VarIntDict, p2: VarIntDict) -> (r1: VarIntDict, r2: VarIntDict);
-    opUIntDict(p1: UIntDict, p2: UIntDict) -> (r1: UIntDict, r2: UIntDict);
-    opVarUIntDict(p1: VarUIntDict, p2: VarUIntDict) -> (r1: VarUIntDict, r2: VarUIntDict);
-    opLongDict(p1: LongDict, p2: LongDict) -> (r1: LongDict, r2: LongDict);
-    opVarLongDict(p1: VarLongDict, p2: VarLongDict) -> (r1: VarLongDict, r2: VarLongDict);
-    opULongDict(p1: ULongDict, p2: ULongDict) -> (r1: ULongDict, r2: ULongDict);
-    opVarULongDict(p1: VarULongDict, p2: VarULongDict) -> (r1: VarULongDict, r2: VarULongDict);
+    opInt16Dict(p1: Int16Dict, p2: Int16Dict) -> (r1: Int16Dict, r2: Int16Dict);
+    opUInt16Dict(p1: UInt16Dict, p2: UInt16Dict) -> (r1: UInt16Dict, r2: UInt16Dict);
+    opInt32Dict(p1: Int32Dict, p2: Int32Dict) -> (r1: Int32Dict, r2: Int32Dict);
+    opVarInt32Dict(p1: VarInt32Dict, p2: VarInt32Dict) -> (r1: VarInt32Dict, r2: VarInt32Dict);
+    opUInt32Dict(p1: UInt32Dict, p2: UInt32Dict) -> (r1: UInt32Dict, r2: UInt32Dict);
+    opVarUInt32Dict(p1: VarUInt32Dict, p2: VarUInt32Dict) -> (r1: VarUInt32Dict, r2: VarUInt32Dict);
+    opInt64Dict(p1: Int64Dict, p2: Int64Dict) -> (r1: Int64Dict, r2: Int64Dict);
+    opVarInt62Dict(p1: VarInt62Dict, p2: VarInt62Dict) -> (r1: VarInt62Dict, r2: VarInt62Dict);
+    opUInt64Dict(p1: UInt64Dict, p2: UInt64Dict) -> (r1: UInt64Dict, r2: UInt64Dict);
+    opVarUInt62Dict(p1: VarUInt62Dict, p2: VarUInt62Dict) -> (r1: VarUInt62Dict, r2: VarUInt62Dict);
     opStringDict(p1: StringDict, p2: StringDict) -> (r1: StringDict, r2: StringDict);
 
     // Dictionaries with constructed types

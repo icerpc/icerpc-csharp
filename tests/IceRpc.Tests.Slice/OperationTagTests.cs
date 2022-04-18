@@ -391,12 +391,12 @@ namespace IceRpc.Tests.Slice
             }
 
             {
-                (Dictionary<int, int>? r1, Dictionary<int, int>? r2) = await doublePrx.OpIntDictAsync(null);
+                (Dictionary<int, int>? r1, Dictionary<int, int>? r2) = await doublePrx.OpInt32DictAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
                 var p1 = new Dictionary<int, int> { { 1, 1 } };
-                (r1, r2) = await doublePrx.OpIntDictAsync(p1);
+                (r1, r2) = await doublePrx.OpInt32DictAsync(p1);
                 Assert.That(r1, Is.EqualTo(p1));
                 Assert.That(r2, Is.EqualTo(p1));
             }
@@ -451,11 +451,11 @@ namespace IceRpc.Tests.Slice
             }
 
             {
-                Dictionary<int, int>? r1 = await encodedResultPrx.OpIntDictAsync(null);
+                Dictionary<int, int>? r1 = await encodedResultPrx.OpInt32DictAsync(null);
                 Assert.That(r1, Is.Null);
 
                 var p1 = new Dictionary<int, int> { { 1, 1 } };
-                r1 = await encodedResultPrx.OpIntDictAsync(p1);
+                r1 = await encodedResultPrx.OpInt32DictAsync(p1);
                 Assert.That(r1, Is.EqualTo(p1));
             }
 
@@ -626,7 +626,7 @@ namespace IceRpc.Tests.Slice
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(IEnumerable<KeyValuePair<int, int>>? R1, IEnumerable<KeyValuePair<int, int>>? R2)> OpIntDictAsync(
+        public ValueTask<(IEnumerable<KeyValuePair<int, int>>? R1, IEnumerable<KeyValuePair<int, int>>? R2)> OpInt32DictAsync(
             Dictionary<int, int>? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
@@ -744,10 +744,10 @@ namespace IceRpc.Tests.Slice
 
     public class OperationTagEncodedResult : Service, IOperationTagEncodedResult
     {
-        public ValueTask<IOperationTagEncodedResult.OpIntDictEncodedResult> OpIntDictAsync(
+        public ValueTask<IOperationTagEncodedResult.OpInt32DictEncodedResult> OpInt32DictAsync(
             Dictionary<int, int>? p1,
             Dispatch dispatch,
-            CancellationToken cancel) => new(new IOperationTagEncodedResult.OpIntDictEncodedResult(p1, dispatch));
+            CancellationToken cancel) => new(new IOperationTagEncodedResult.OpInt32DictEncodedResult(p1, dispatch));
 
         public ValueTask<IOperationTagEncodedResult.OpStringSeqEncodedResult> OpStringSeqAsync(
             string[]? p1,

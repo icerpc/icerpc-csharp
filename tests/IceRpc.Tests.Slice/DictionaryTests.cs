@@ -41,52 +41,52 @@ namespace IceRpc.Tests.Slice
                 Enumerable.Range(0, 2).Select(i => i % 2 == 0).ToDictionary(key => key, value => value));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpShortDictAsync(p1, p2),
+                (p1, p2) => _prx.OpInt16DictAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => (short)i).ToDictionary(key => key, value => value),
                 Enumerable.Range(0, size).Select(i => (short)i).ToDictionary(key => key, value => value));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpUShortDictAsync(p1, p2),
+                (p1, p2) => _prx.OpUInt16DictAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => (ushort)i).ToDictionary(key => key, value => value),
                 Enumerable.Range(0, size).Select(i => (ushort)i).ToDictionary(key => key, value => value));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpIntDictAsync(p1, p2),
+                (p1, p2) => _prx.OpInt32DictAsync(p1, p2),
                 Enumerable.Range(0, size).ToDictionary(key => key, value => value),
                 Enumerable.Range(0, size).ToDictionary(key => key, value => value));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpVarIntDictAsync(p1, p2),
+                (p1, p2) => _prx.OpVarInt32DictAsync(p1, p2),
                 Enumerable.Range(0, size).ToDictionary(key => key, value => value),
                 Enumerable.Range(0, size).ToDictionary(key => key, value => value));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpUIntDictAsync(p1, p2),
+                (p1, p2) => _prx.OpUInt32DictAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(key => key, value => value),
                 Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(key => key, value => value));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpVarUIntDictAsync(p1, p2),
+                (p1, p2) => _prx.OpVarUInt32DictAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(key => key, value => value),
                 Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(key => key, value => value));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpLongDictAsync(p1, p2),
+                (p1, p2) => _prx.OpInt64DictAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(key => key, value => value),
                 Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(key => key, value => value));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpVarLongDictAsync(p1, p2),
+                (p1, p2) => _prx.OpVarInt62DictAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(key => key, value => value),
                 Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(key => key, value => value));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpULongDictAsync(p1, p2),
+                (p1, p2) => _prx.OpUInt64DictAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(key => key, value => value),
                 Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(key => key, value => value));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpVarULongDictAsync(p1, p2),
+                (p1, p2) => _prx.OpVarUInt62DictAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(key => key, value => value),
                 Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(key => key, value => value));
 
@@ -288,61 +288,61 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<short, short>> R1, IEnumerable<KeyValuePair<short, short>> R2)> OpShortDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<short, short>> R1, IEnumerable<KeyValuePair<short, short>> R2)> OpInt16DictAsync(
                 Dictionary<short, short> p1,
                 Dictionary<short, short> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<ushort, ushort>> R1, IEnumerable<KeyValuePair<ushort, ushort>> R2)> OpUShortDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<ushort, ushort>> R1, IEnumerable<KeyValuePair<ushort, ushort>> R2)> OpUInt16DictAsync(
                 Dictionary<ushort, ushort> p1,
                 Dictionary<ushort, ushort> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<int, int>> R1, IEnumerable<KeyValuePair<int, int>> R2)> OpIntDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<int, int>> R1, IEnumerable<KeyValuePair<int, int>> R2)> OpInt32DictAsync(
                 Dictionary<int, int> p1,
                 Dictionary<int, int> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<int, int>> R1, IEnumerable<KeyValuePair<int, int>> R2)> OpVarIntDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<int, int>> R1, IEnumerable<KeyValuePair<int, int>> R2)> OpVarInt32DictAsync(
                 Dictionary<int, int> p1,
                 Dictionary<int, int> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<uint, uint>> R1, IEnumerable<KeyValuePair<uint, uint>> R2)> OpUIntDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<uint, uint>> R1, IEnumerable<KeyValuePair<uint, uint>> R2)> OpUInt32DictAsync(
                 Dictionary<uint, uint> p1,
                 Dictionary<uint, uint> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<uint, uint>> R1, IEnumerable<KeyValuePair<uint, uint>> R2)> OpVarUIntDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<uint, uint>> R1, IEnumerable<KeyValuePair<uint, uint>> R2)> OpVarUInt32DictAsync(
                 Dictionary<uint, uint> p1,
                 Dictionary<uint, uint> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<long, long>> R1, IEnumerable<KeyValuePair<long, long>> R2)> OpLongDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<long, long>> R1, IEnumerable<KeyValuePair<long, long>> R2)> OpInt64DictAsync(
                 Dictionary<long, long> p1,
                 Dictionary<long, long> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<long, long>> R1, IEnumerable<KeyValuePair<long, long>> R2)> OpVarLongDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<long, long>> R1, IEnumerable<KeyValuePair<long, long>> R2)> OpVarInt62DictAsync(
                 Dictionary<long, long> p1,
                 Dictionary<long, long> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<ulong, ulong>> R1, IEnumerable<KeyValuePair<ulong, ulong>> R2)> OpULongDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<ulong, ulong>> R1, IEnumerable<KeyValuePair<ulong, ulong>> R2)> OpUInt64DictAsync(
                 Dictionary<ulong, ulong> p1,
                 Dictionary<ulong, ulong> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<ulong, ulong>> R1, IEnumerable<KeyValuePair<ulong, ulong>> R2)> OpVarULongDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<ulong, ulong>> R1, IEnumerable<KeyValuePair<ulong, ulong>> R2)> OpVarUInt62DictAsync(
                 Dictionary<ulong, ulong> p1,
                 Dictionary<ulong, ulong> p2,
                 Dispatch dispatch,

@@ -114,7 +114,7 @@ namespace IceRpc.Tests.Slice
             Assert.That(multiOptional1.MMyCompactStructSeq, Is.Null);
             Assert.That(multiOptional1.MAnotherCompactStructSeq, Is.EqualTo(multiOptional.MAnotherCompactStructSeq));
 
-            Assert.That(multiOptional1.MIntDict, Is.Null);
+            Assert.That(multiOptional1.MInt32Dict, Is.Null);
             Assert.That(multiOptional1.MStringDict, Is.EqualTo(multiOptional.MStringDict));
             Assert.That(multiOptional1.MUShortSeq, Is.Null);
             Assert.That(multiOptional1.MVarULongSeq, Is.Null);
@@ -139,7 +139,7 @@ namespace IceRpc.Tests.Slice
             multiOptional.MShortSeq = new short[] { 1 };
             multiOptional.MMyCompactStructSeq = new MyCompactStruct[] { new MyCompactStruct(1, 1) };
 
-            multiOptional.MIntDict = new Dictionary<int, int> { { 1, 1 } };
+            multiOptional.MInt32Dict = new Dictionary<int, int> { { 1, 1 } };
             multiOptional.MUShortSeq = new ushort[] { 1 };
             multiOptional.MVarIntSeq = new int[] { 1 };
             multiOptional.MMyCompactStructDict = new Dictionary<MyCompactStruct, MyCompactStruct>()
@@ -176,7 +176,7 @@ namespace IceRpc.Tests.Slice
             Assert.That(multiOptional1.MMyCompactStructSeq, Is.EqualTo(multiOptional.MMyCompactStructSeq));
             Assert.That(multiOptional1.MAnotherCompactStructSeq, Is.Null);
 
-            Assert.That(multiOptional1.MIntDict, Is.EqualTo(multiOptional.MIntDict));
+            Assert.That(multiOptional1.MInt32Dict, Is.EqualTo(multiOptional.MInt32Dict));
             Assert.That(multiOptional1.MStringDict, Is.Null);
             Assert.That(multiOptional1.MUShortSeq, Is.EqualTo(multiOptional.MUShortSeq));
             Assert.That(multiOptional1.MVarULongSeq, Is.Null);
@@ -555,22 +555,22 @@ namespace IceRpc.Tests.Slice
             }
 
             {
-                (Dictionary<int, int>? r1, Dictionary<int, int>? r2) = await _prx.OpIntDictAsync(null);
+                (Dictionary<int, int>? r1, Dictionary<int, int>? r2) = await _prx.OpInt32DictAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
                 var p1 = new Dictionary<int, int> { { 1, 1 } };
-                (r1, r2) = await _prx.OpIntDictAsync(p1);
+                (r1, r2) = await _prx.OpInt32DictAsync(p1);
                 Assert.That(r1, Is.EqualTo(p1));
                 Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
-                Dictionary<int, int>? r1 = await _prx.OpIntDictMarshaledResultAsync(null);
+                Dictionary<int, int>? r1 = await _prx.OpInt32DictMarshaledResultAsync(null);
                 Assert.That(r1, Is.Null);
 
                 var p1 = new Dictionary<int, int> { { 1, 1 } };
-                r1 = await _prx.OpIntDictMarshaledResultAsync(p1);
+                r1 = await _prx.OpInt32DictMarshaledResultAsync(p1);
                 Assert.That(r1, Is.EqualTo(p1));
             }
         }
@@ -603,7 +603,7 @@ namespace IceRpc.Tests.Slice
             Assert.That(multiOptional.MMyCompactStructSeq, Is.Null);
             Assert.That(multiOptional.MAnotherCompactStructSeq, Is.Null);
 
-            Assert.That(multiOptional.MIntDict, Is.Null);
+            Assert.That(multiOptional.MInt32Dict, Is.Null);
             Assert.That(multiOptional.MStringDict, Is.Null);
             Assert.That(multiOptional.MUShortSeq, Is.Null);
             Assert.That(multiOptional.MVarULongSeq, Is.Null);
@@ -694,16 +694,16 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
-            public ValueTask<(IEnumerable<KeyValuePair<int, int>>? R1, IEnumerable<KeyValuePair<int, int>>? R2)> OpIntDictAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<int, int>>? R1, IEnumerable<KeyValuePair<int, int>>? R2)> OpInt32DictAsync(
                 Dictionary<int, int>? p1,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
-            public ValueTask<IOptionalOperations.OpIntDictMarshaledResultEncodedResult> OpIntDictMarshaledResultAsync(
+            public ValueTask<IOptionalOperations.OpInt32DictMarshaledResultEncodedResult> OpInt32DictMarshaledResultAsync(
                 Dictionary<int, int>? p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IOptionalOperations.OpIntDictMarshaledResultEncodedResult(p1, dispatch));
+                new(new IOptionalOperations.OpInt32DictMarshaledResultEncodedResult(p1, dispatch));
 
             public ValueTask<(IEnumerable<int>? R1, IEnumerable<int>? R2)> OpIntListAsync(
                 List<int>? p1,

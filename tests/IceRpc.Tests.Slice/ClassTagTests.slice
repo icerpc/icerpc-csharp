@@ -32,7 +32,7 @@ class MultiTagged
 //    mMyCompactStructSeq: tag(34) MyCompactStructSeq?,
 //    mAnotherCompactStructSeq: tag(35) AnotherCompactStructSeq?,
 //
-//    mIntDict: tag(40) IntDict?,
+//    mInt32Dict: tag(40) Int32Dict?,
 //    mStringDict: tag(41) StringDict?,
 //
 //    mByteDict: tag(50) ByteDict?,
