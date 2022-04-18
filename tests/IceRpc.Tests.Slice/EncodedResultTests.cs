@@ -77,37 +77,37 @@ namespace IceRpc.Tests.Slice
                 AnotherCompactStruct p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IEncodedResultOperations.OpAnotherCompactStruct1EncodedResult(p1, dispatch));
+                new(new IEncodedResultOperations.OpAnotherCompactStruct1EncodedResult(p1));
 
             public ValueTask<IEncodedResultOperations.OpAnotherCompactStruct2EncodedResult> OpAnotherCompactStruct2Async(
                 AnotherCompactStruct p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IEncodedResultOperations.OpAnotherCompactStruct2EncodedResult(p1, p1, dispatch));
+                new(new IEncodedResultOperations.OpAnotherCompactStruct2EncodedResult(p1, p1));
 
             public ValueTask<IEncodedResultOperations.OpStringSeq1EncodedResult> OpStringSeq1Async(
                 string[] p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IEncodedResultOperations.OpStringSeq1EncodedResult(p1, dispatch));
+                new(new IEncodedResultOperations.OpStringSeq1EncodedResult(p1));
 
             public ValueTask<IEncodedResultOperations.OpStringSeq2EncodedResult> OpStringSeq2Async(
                 string[] p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IEncodedResultOperations.OpStringSeq2EncodedResult(p1, p1, dispatch));
+                new(new IEncodedResultOperations.OpStringSeq2EncodedResult(p1, p1));
 
             public ValueTask<IEncodedResultOperations.OpStringDict1EncodedResult> OpStringDict1Async(
                 Dictionary<string, string> p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IEncodedResultOperations.OpStringDict1EncodedResult(p1, dispatch));
+                new(new IEncodedResultOperations.OpStringDict1EncodedResult(p1));
 
             public ValueTask<IEncodedResultOperations.OpStringDict2EncodedResult> OpStringDict2Async(
                 Dictionary<string, string> p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IEncodedResultOperations.OpStringDict2EncodedResult(p1, p1, dispatch));
+                new(new IEncodedResultOperations.OpStringDict2EncodedResult(p1, p1));
         }
     }
 }
