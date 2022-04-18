@@ -32,20 +32,20 @@ namespace IceRpc.Tests.Slice
         [Test]
         public async Task Operations_BuiltinTypesAsync()
         {
-            await TestAsync((prx, p1, p2) => prx.OpByteAsync(p1, p2), byte.MinValue, byte.MaxValue);
+            await TestAsync((prx, p1, p2) => prx.OpUInt8Async(p1, p2), byte.MinValue, byte.MaxValue);
             await TestAsync((prx, p1, p2) => prx.OpBoolAsync(p1, p2), false, true);
-            await TestAsync((prx, p1, p2) => prx.OpShortAsync(p1, p2), short.MinValue, short.MaxValue);
-            await TestAsync((prx, p1, p2) => prx.OpUShortAsync(p1, p2), ushort.MinValue, ushort.MaxValue);
-            await TestAsync((prx, p1, p2) => prx.OpIntAsync(p1, p2), int.MinValue, int.MaxValue);
-            await TestAsync((prx, p1, p2) => prx.OpVarIntAsync(p1, p2), int.MinValue, int.MaxValue);
-            await TestAsync((prx, p1, p2) => prx.OpUIntAsync(p1, p2), uint.MinValue, uint.MaxValue);
-            await TestAsync((prx, p1, p2) => prx.OpVarUIntAsync(p1, p2), uint.MinValue, uint.MaxValue);
-            await TestAsync((prx, p1, p2) => prx.OpLongAsync(p1, p2), long.MinValue, long.MaxValue);
-            await TestAsync((prx, p1, p2) => prx.OpVarLongAsync(p1, p2), int.MinValue, (long)int.MaxValue);
-            await TestAsync((prx, p1, p2) => prx.OpULongAsync(p1, p2), ulong.MinValue, ulong.MaxValue);
-            await TestAsync((prx, p1, p2) => prx.OpVarULongAsync(p1, p2), ulong.MinValue, uint.MaxValue);
-            await TestAsync((prx, p1, p2) => prx.OpFloatAsync(p1, p2), float.MinValue, float.MaxValue);
-            await TestAsync((prx, p1, p2) => prx.OpDoubleAsync(p1, p2), double.MinValue, double.MaxValue);
+            await TestAsync((prx, p1, p2) => prx.OpInt16Async(p1, p2), short.MinValue, short.MaxValue);
+            await TestAsync((prx, p1, p2) => prx.OpUInt16Async(p1, p2), ushort.MinValue, ushort.MaxValue);
+            await TestAsync((prx, p1, p2) => prx.OpInt32Async(p1, p2), int.MinValue, int.MaxValue);
+            await TestAsync((prx, p1, p2) => prx.OpVarInt32Async(p1, p2), int.MinValue, int.MaxValue);
+            await TestAsync((prx, p1, p2) => prx.OpUInt32Async(p1, p2), uint.MinValue, uint.MaxValue);
+            await TestAsync((prx, p1, p2) => prx.OpVarUInt32Async(p1, p2), uint.MinValue, uint.MaxValue);
+            await TestAsync((prx, p1, p2) => prx.OpInt64Async(p1, p2), long.MinValue, long.MaxValue);
+            await TestAsync((prx, p1, p2) => prx.OpVarInt62Async(p1, p2), int.MinValue, (long)int.MaxValue);
+            await TestAsync((prx, p1, p2) => prx.OpUInt64Async(p1, p2), ulong.MinValue, ulong.MaxValue);
+            await TestAsync((prx, p1, p2) => prx.OpVarUInt62Async(p1, p2), ulong.MinValue, uint.MaxValue);
+            await TestAsync((prx, p1, p2) => prx.OpFloat32Async(p1, p2), float.MinValue, float.MaxValue);
+            await TestAsync((prx, p1, p2) => prx.OpFloat64Async(p1, p2), double.MinValue, double.MaxValue);
             await TestAsync((prx, p1, p2) => prx.OpStringAsync(p1, p2), "hello", "world");
 
             async Task TestAsync<T>(Func<IOperationsPrx, T, T, Task<(T, T)>> invoker, T p1, T p2)
@@ -85,7 +85,7 @@ namespace IceRpc.Tests.Slice
         public class Operations : Service, IOperations
         {
             // Builtin types
-            public ValueTask<(byte, byte)> OpByteAsync(
+            public ValueTask<(byte, byte)> OpUInt8Async(
                 byte p1,
                 byte p2,
                 Dispatch dispatch,
@@ -97,73 +97,73 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(short, short)> OpShortAsync(
+            public ValueTask<(short, short)> OpInt16Async(
                 short p1,
                 short p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(ushort, ushort)> OpUShortAsync(
+            public ValueTask<(ushort, ushort)> OpUInt16Async(
                 ushort p1,
                 ushort p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(int, int)> OpIntAsync(
+            public ValueTask<(int, int)> OpInt32Async(
                 int p1,
                 int p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(int, int)> OpVarIntAsync(
+            public ValueTask<(int, int)> OpVarInt32Async(
                 int p1,
                 int p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(uint, uint)> OpUIntAsync(
+            public ValueTask<(uint, uint)> OpUInt32Async(
                 uint p1,
                 uint p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(uint, uint)> OpVarUIntAsync(
+            public ValueTask<(uint, uint)> OpVarUInt32Async(
                 uint p1,
                 uint p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(long, long)> OpLongAsync(
+            public ValueTask<(long, long)> OpInt64Async(
                 long p1,
                 long p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(long, long)> OpVarLongAsync(
+            public ValueTask<(long, long)> OpVarInt62Async(
                 long p1,
                 long p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(ulong, ulong)> OpULongAsync(
+            public ValueTask<(ulong, ulong)> OpUInt64Async(
                 ulong p1,
                 ulong p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(ulong, ulong)> OpVarULongAsync(
+            public ValueTask<(ulong, ulong)> OpVarUInt62Async(
                 ulong p1,
                 ulong p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(float, float)> OpFloatAsync(
+            public ValueTask<(float, float)> OpFloat32Async(
                 float p1,
                 float p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(double, double)> OpDoubleAsync(
+            public ValueTask<(double, double)> OpFloat64Async(
                 double p1,
                 double p2,
                 Dispatch dispatch,
