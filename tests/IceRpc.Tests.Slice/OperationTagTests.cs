@@ -747,18 +747,18 @@ namespace IceRpc.Tests.Slice
         public ValueTask<IOperationTagEncodedResult.OpInt32DictEncodedResult> OpInt32DictAsync(
             Dictionary<int, int>? p1,
             Dispatch dispatch,
-            CancellationToken cancel) => new(new IOperationTagEncodedResult.OpInt32DictEncodedResult(p1, dispatch));
+            CancellationToken cancel) => new(new IOperationTagEncodedResult.OpInt32DictEncodedResult(p1));
 
         public ValueTask<IOperationTagEncodedResult.OpStringSeqEncodedResult> OpStringSeqAsync(
             string[]? p1,
             Dispatch dispatch,
-            CancellationToken cancel) => new(new IOperationTagEncodedResult.OpStringSeqEncodedResult(p1, dispatch));
+            CancellationToken cancel) => new(new IOperationTagEncodedResult.OpStringSeqEncodedResult(p1));
 
         public ValueTask<IOperationTagEncodedResult.OpMyCompactStructEncodedResult> OpMyCompactStructAsync(
             MyCompactStruct? p1,
             Dispatch dispatch,
             CancellationToken cancel) =>
-            new(new IOperationTagEncodedResult.OpMyCompactStructEncodedResult(p1, dispatch));
+            new(new IOperationTagEncodedResult.OpMyCompactStructEncodedResult(p1));
     }
 
     public class OperationTag : Service, IOperationTag
