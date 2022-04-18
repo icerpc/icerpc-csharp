@@ -102,7 +102,7 @@ namespace IceRpc
             EventId = (int)LoggerMiddlewareEventIds.DispatchException,
             EventName = nameof(LoggerMiddlewareEventIds.DispatchException),
             Level = LogLevel.Information,
-            Message = "request dispatch exception (LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint}, " +
+            Message = "request dispatch exception (LocalEndPoint={LocalEndPoint}, RemoteEndPoint={RemoteEndPoint}, " +
                       "Path={Path}, Operation={Operation})")]
         private static partial void LogDispatchException(
             this ILogger logger,
@@ -116,7 +116,7 @@ namespace IceRpc
             EventId = (int)LoggerMiddlewareEventIds.ReceivedRequest,
             EventName = nameof(LoggerMiddlewareEventIds.ReceivedRequest),
             Level = LogLevel.Information,
-            Message = "received request (LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint}, " +
+            Message = "received request (LocalEndPoint={LocalEndPoint}, RemoteEndPoint={RemoteEndPoint}, " +
                       "Path={Path}, Operation={Operation})")]
         private static partial void LogReceivedRequest(
             this ILogger logger,
@@ -129,7 +129,7 @@ namespace IceRpc
             EventId = (int)LoggerMiddlewareEventIds.SendingResponse,
             EventName = nameof(LoggerMiddlewareEventIds.SendingResponse),
             Level = LogLevel.Information,
-            Message = "sending response (LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint}, " +
+            Message = "sending response (LocalEndPoint={LocalEndPoint}, RemoteEndPoint={RemoteEndPoint}, " +
                       "Path={Path}, Operation={Operation}, ResultType={ResultType})")]
         private static partial void LogSendingResponse(
             this ILogger logger,

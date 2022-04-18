@@ -19,102 +19,63 @@ public class SequenceEncodingTests
             {
                 foreach (int size in new int[] { 0, 256 })
                 {
-                    var values = Enumerable.Range(0, size).Select(i => (long)i);
-                    var buffer = new byte[1024 * 1024];
-                    var bufferWriter = new MemoryBufferWriter(buffer);
-                    var encoder = new SliceEncoder(bufferWriter, encoding);
-                    foreach (long value in values)
-                    {
-                        encoder.EncodeInt64(value);
-                    }
-                    int sizeLength = encoder.GetSizeLength(size);
-                    byte[] expected = buffer[0..bufferWriter.WrittenMemory.Length];
-                    yield return new TestCaseData(encoding, values, expected, sizeLength);
-                    yield return new TestCaseData(encoding, ImmutableArray.CreateRange(values), expected, sizeLength);
-                    yield return new TestCaseData(
-                        encoding,
-                        new ArraySegment<long>(values.ToArray()),
-                        expected,
-                        sizeLength);
-                    yield return new TestCaseData(encoding, values.ToArray(), expected, sizeLength);
+                    IEnumerable<int> values = Enumerable.Range(0, size).Select(i => i);
+
+                    yield return new TestCaseData(encoding, values);
+                    yield return new TestCaseData(encoding, ImmutableArray.CreateRange(values));
+                    yield return new TestCaseData(encoding, new ArraySegment<int>(values.ToArray()));
+                    yield return new TestCaseData(encoding, values.ToArray());
                 };
             }
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Encode_string_sequence(SliceEncoding, int, byte[])"/> test.
-    /// </summary>
-    private static IEnumerable<TestCaseData> EncodeStringSequenceDataSource
-    {
-        get
-        {
-            foreach (SliceEncoding encoding in Enum.GetValues(typeof(SliceEncoding)))
-            {
-                foreach (int size in new int[] { 0, 256 })
-                {
-                    IEnumerable<string> values = Enumerable.Range(0, size).Select(i => $"string-{i}");
-                    var buffer = new byte[1024 * 1024];
-                    var bufferWriter = new MemoryBufferWriter(buffer);
-                    var encoder = new SliceEncoder(bufferWriter, encoding);
-                    foreach (string value in values)
-                    {
-                        encoder.EncodeString(value);
-                    }
-                    int sizeLength = encoder.GetSizeLength(size);
-                    byte[] expected = buffer[0..bufferWriter.WrittenMemory.Length];
-                    yield return new TestCaseData(encoding, values, expected, sizeLength);
-                }
-            }
-        }
-    }
-
-    /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSequence"/> and
-    /// <see cref="SliceDecoderExtensions.DecodeSequence"/> with a value type. Includes testing
+    /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSequence"/> with a value type. Includes testing
     /// the <see cref="T[]"/>, <see cref="ImmutableArray{T}"/>, and <see cref="ArraySegment{T}"/>
-    /// cases for <see cref="SliceEncoderExtensions.EncodeSequence"/>. Finally, covers
-    /// <see cref="SliceDecoder.DecodeInt64"/>.</summary>
+    /// cases for <see cref="SliceEncoderExtensions.EncodeSequence"/>.</summary>
     /// <param name="encoding">The <see cref="SliceEncoding"/> to use for the encoding.</param>
-    /// <param name="value">The <see cref="IEnumerable{long}"/> to be encoded.</param>
-    /// <param name="expected">The expected byte array from encoding the sequence of longs</param>
-    /// <param name="sizeLength">The number of bytes required to encode the sequence size.</param>
+    /// <param name="expected">The <see cref="IEnumerable{long}"/> to be encoded.</param>
     [Test, TestCaseSource(nameof(SequenceLongData))]
-    public void Encode_fixed_sized_numeric_sequence(
-        SliceEncoding encoding,
-        IEnumerable<long> value,
-        byte[] expected,
-        int sizeLength)
+    public void Encode_fixed_sized_numeric_sequence(SliceEncoding encoding, IEnumerable<int> expected)
     {
-        var bufferWriter = new MemoryBufferWriter(new byte[1024 * 1024]);
-        var sut = new SliceEncoder(bufferWriter, encoding);
+        var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
+        var sut = new SliceEncoder(buffer, encoding);
+        int size = expected.Count();
 
-        sut.EncodeSequence(value);
+        sut.EncodeSequence(expected);
 
-        var encoded = bufferWriter.WrittenMemory[sizeLength..].ToArray();
-        Assert.That(encoded, Is.EqualTo(expected.ToArray()));
-        Assert.That(bufferWriter.WrittenMemory.Length, Is.EqualTo(sut.EncodedByteCount));
+        var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
+        Assert.That(decoder.DecodeSize(), Is.EqualTo(size));
+        var decoded = new List<int>();
+        for (int i = 0; i < size; ++i)
+        {
+            decoded.Add(decoder.DecodeInt32());
+        }
+        Assert.That(decoded, Is.EqualTo(expected));
+        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
-    /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSequence"/> and
-    /// <see cref="SliceDecoderExtensions.DecodeSequence"/> with a reference type.
-    /// Also tests <see cref="SliceDecoder.DecodeString"/>.</summary>
+    /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSequence"/> with a sequence of non numeric types.
+    /// </summary>
     /// <param name="encoding">The <see cref="SliceEncoding"/> to use for the encoding.</param>
-    /// <param name="value">The <see cref="IEnumerable{string}"/> to be encoded.</param>
-    /// <param name="expected">The expected byte array from encoding the sequence of strings</param>
-    /// <param name="sizeLength">The number of bytes required to encode the sequence size.</param>
-    [Test, TestCaseSource(nameof(EncodeStringSequenceDataSource))]
+    [Test]
     public void Encode_string_sequence(
-        SliceEncoding encoding,
-        IEnumerable<string> value,
-        byte[] expected,
-        int sizeLength)
+        [Values(SliceEncoding.Slice1, SliceEncoding.Slice2)] SliceEncoding encoding)
     {
-        var bufferWriter = new MemoryBufferWriter(new byte[1024 * 1024]);
-        var sut = new SliceEncoder(bufferWriter, encoding);
+        var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
+        var sut = new SliceEncoder(buffer, encoding);
+        string[] expected = Enumerable.Range(0, 1024).Select(i => $"value-{i}").ToArray();
 
-        sut.EncodeSequence(value, (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
+        sut.EncodeSequence(expected, (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
 
-        byte[] encoded = bufferWriter.WrittenMemory[sizeLength..].ToArray();
-        Assert.That(encoded, Is.EqualTo(expected));
-        Assert.That(encoded.Length, Is.EqualTo(sut.EncodedByteCount - sizeLength));
+        var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
+        Assert.That(decoder.DecodeSize(), Is.EqualTo(expected.Length));
+        var decoded = new List<string>();
+        for (int i = 0; i < expected.Length; ++i)
+        {
+            decoded.Add(decoder.DecodeString());
+        }
+        Assert.That(decoded, Is.EqualTo(expected));
+        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 }

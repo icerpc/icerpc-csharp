@@ -41,11 +41,11 @@ namespace IceRpc.Tests.Slice
             var doublePrx = OperationTagDoublePrx.FromConnection(_prx.Proxy.Connection!);
 
             {
-                (byte? r1, byte? r2) = await doublePrx.OpByteAsync(null);
+                (byte? r1, byte? r2) = await doublePrx.OpUInt8Async(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                (r1, r2) = await doublePrx.OpByteAsync(42);
+                (r1, r2) = await doublePrx.OpUInt8Async(42);
                 Assert.That(r1, Is.EqualTo(42));
                 Assert.That(r2, Is.EqualTo(42));
             }
@@ -61,51 +61,51 @@ namespace IceRpc.Tests.Slice
             }
 
             {
-                (short? r1, short? r2) = await doublePrx.OpShortAsync(null);
+                (short? r1, short? r2) = await doublePrx.OpInt16Async(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                (r1, r2) = await doublePrx.OpShortAsync(42);
+                (r1, r2) = await doublePrx.OpInt16Async(42);
                 Assert.That(r1, Is.EqualTo(42));
                 Assert.That(r2, Is.EqualTo(42));
             }
 
             {
-                (int? r1, int? r2) = await doublePrx.OpIntAsync(null);
+                (int? r1, int? r2) = await doublePrx.OpInt32Async(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                (r1, r2) = await doublePrx.OpIntAsync(42);
+                (r1, r2) = await doublePrx.OpInt32Async(42);
                 Assert.That(r1, Is.EqualTo(42));
                 Assert.That(r2, Is.EqualTo(42));
             }
 
             {
-                (long? r1, long? r2) = await doublePrx.OpLongAsync(null);
+                (long? r1, long? r2) = await doublePrx.OpInt64Async(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                (r1, r2) = await doublePrx.OpLongAsync(42);
+                (r1, r2) = await doublePrx.OpInt64Async(42);
                 Assert.That(r1, Is.EqualTo(42));
                 Assert.That(r2, Is.EqualTo(42));
             }
 
             {
-                (float? r1, float? r2) = await doublePrx.OpFloatAsync(null);
+                (float? r1, float? r2) = await doublePrx.OpFloat32Async(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                (r1, r2) = await doublePrx.OpFloatAsync(42);
+                (r1, r2) = await doublePrx.OpFloat32Async(42);
                 Assert.That(r1, Is.EqualTo(42));
                 Assert.That(r2, Is.EqualTo(42));
             }
 
             {
-                (double? r1, double? r2) = await doublePrx.OpDoubleAsync(null);
+                (double? r1, double? r2) = await doublePrx.OpFloat64Async(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                (r1, r2) = await doublePrx.OpDoubleAsync(42);
+                (r1, r2) = await doublePrx.OpFloat64Async(42);
                 Assert.That(r1, Is.EqualTo(42));
                 Assert.That(r2, Is.EqualTo(42));
             }
@@ -157,23 +157,23 @@ namespace IceRpc.Tests.Slice
             }
 
             {
-                (byte[]? r1, byte[]? r2) = await doublePrx.OpByteSeqAsync(null);
+                (byte[]? r1, byte[]? r2) = await doublePrx.OpUInt8SeqAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
                 byte[] p1 = new byte[] { 42 };
-                (r1, r2) = await doublePrx.OpByteSeqAsync(p1);
+                (r1, r2) = await doublePrx.OpUInt8SeqAsync(p1);
                 Assert.That(r1, Is.EqualTo(p1));
                 Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
-                (List<byte>? r1, List<byte>? r2) = await doublePrx.OpByteListAsync(null);
+                (List<byte>? r1, List<byte>? r2) = await doublePrx.OpUInt8ListAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
                 var p1 = new List<byte> { 42 };
-                (r1, r2) = await doublePrx.OpByteListAsync(p1);
+                (r1, r2) = await doublePrx.OpUInt8ListAsync(p1);
                 Assert.That(r1, Is.EqualTo(p1));
                 Assert.That(r2, Is.EqualTo(p1));
             }
@@ -201,111 +201,111 @@ namespace IceRpc.Tests.Slice
             }
 
             {
-                (short[]? r1, short[]? r2) = await doublePrx.OpShortSeqAsync(null);
+                (short[]? r1, short[]? r2) = await doublePrx.OpInt16SeqAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
                 short[] p1 = new short[] { 42 };
-                (r1, r2) = await doublePrx.OpShortSeqAsync(p1);
+                (r1, r2) = await doublePrx.OpInt16SeqAsync(p1);
                 Assert.That(r1, Is.EqualTo(p1));
                 Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
-                (List<short>? r1, List<short>? r2) = await doublePrx.OpShortListAsync(null);
+                (List<short>? r1, List<short>? r2) = await doublePrx.OpInt16ListAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
                 var p1 = new List<short> { 42 };
-                (r1, r2) = await doublePrx.OpShortListAsync(p1);
+                (r1, r2) = await doublePrx.OpInt16ListAsync(p1);
                 Assert.That(r1, Is.EqualTo(p1));
                 Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
-                (int[]? r1, int[]? r2) = await doublePrx.OpIntSeqAsync(null);
+                (int[]? r1, int[]? r2) = await doublePrx.OpInt32SeqAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
                 int[] p1 = new int[] { 42 };
-                (r1, r2) = await doublePrx.OpIntSeqAsync(p1);
+                (r1, r2) = await doublePrx.OpInt32SeqAsync(p1);
                 Assert.That(r1, Is.EqualTo(p1));
                 Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
-                (List<int>? r1, List<int>? r2) = await doublePrx.OpIntListAsync(null);
+                (List<int>? r1, List<int>? r2) = await doublePrx.OpInt32ListAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
                 var p1 = new List<int> { 42 };
-                (r1, r2) = await doublePrx.OpIntListAsync(p1);
+                (r1, r2) = await doublePrx.OpInt32ListAsync(p1);
                 Assert.That(r1, Is.EqualTo(p1));
                 Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
-                (long[]? r1, long[]? r2) = await doublePrx.OpLongSeqAsync(null);
+                (long[]? r1, long[]? r2) = await doublePrx.OpInt64SeqAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
                 long[] p1 = new long[] { 42 };
-                (r1, r2) = await doublePrx.OpLongSeqAsync(p1);
+                (r1, r2) = await doublePrx.OpInt64SeqAsync(p1);
                 Assert.That(r1, Is.EqualTo(p1));
                 Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
-                (List<long>? r1, List<long>? r2) = await doublePrx.OpLongListAsync(null);
+                (List<long>? r1, List<long>? r2) = await doublePrx.OpInt64ListAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
                 var p1 = new List<long> { 42 };
-                (r1, r2) = await doublePrx.OpLongListAsync(p1);
+                (r1, r2) = await doublePrx.OpInt64ListAsync(p1);
                 Assert.That(r1, Is.EqualTo(p1));
                 Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
-                (float[]? r1, float[]? r2) = await doublePrx.OpFloatSeqAsync(null);
+                (float[]? r1, float[]? r2) = await doublePrx.OpFloat32SeqAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
                 float[] p1 = new float[] { 42 };
-                (r1, r2) = await doublePrx.OpFloatSeqAsync(p1);
+                (r1, r2) = await doublePrx.OpFloat32SeqAsync(p1);
                 Assert.That(r1, Is.EqualTo(p1));
                 Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
-                (List<float>? r1, List<float>? r2) = await doublePrx.OpFloatListAsync(null);
+                (List<float>? r1, List<float>? r2) = await doublePrx.OpFloat32ListAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
                 var p1 = new List<float> { 42 };
-                (r1, r2) = await doublePrx.OpFloatListAsync(p1);
+                (r1, r2) = await doublePrx.OpFloat32ListAsync(p1);
                 Assert.That(r1, Is.EqualTo(p1));
                 Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
-                (double[]? r1, double[]? r2) = await doublePrx.OpDoubleSeqAsync(null);
+                (double[]? r1, double[]? r2) = await doublePrx.OpFloat64SeqAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
                 double[] p1 = new double[] { 42 };
-                (r1, r2) = await doublePrx.OpDoubleSeqAsync(p1);
+                (r1, r2) = await doublePrx.OpFloat64SeqAsync(p1);
                 Assert.That(r1, Is.EqualTo(p1));
                 Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
-                (List<double>? r1, List<double>? r2) = await doublePrx.OpDoubleListAsync(null);
+                (List<double>? r1, List<double>? r2) = await doublePrx.OpFloat64ListAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
                 var p1 = new List<double> { 42 };
-                (r1, r2) = await doublePrx.OpDoubleListAsync(p1);
+                (r1, r2) = await doublePrx.OpFloat64ListAsync(p1);
                 Assert.That(r1, Is.EqualTo(p1));
                 Assert.That(r2, Is.EqualTo(p1));
             }
@@ -391,23 +391,23 @@ namespace IceRpc.Tests.Slice
             }
 
             {
-                (Dictionary<int, int>? r1, Dictionary<int, int>? r2) = await doublePrx.OpIntDictAsync(null);
+                (Dictionary<int, int>? r1, Dictionary<int, int>? r2) = await doublePrx.OpInt32DictAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
                 var p1 = new Dictionary<int, int> { { 1, 1 } };
-                (r1, r2) = await doublePrx.OpIntDictAsync(p1);
+                (r1, r2) = await doublePrx.OpInt32DictAsync(p1);
                 Assert.That(r1, Is.EqualTo(p1));
                 Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
-                (CustomDictionary<int, int>? r1, CustomDictionary<int, int>? r2) = await doublePrx.OpIntCustomDictAsync(null);
+                (CustomDictionary<int, int>? r1, CustomDictionary<int, int>? r2) = await doublePrx.OpInt32CustomDictAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
                 var p1 = new CustomDictionary<int, int> { { 1, 1 } };
-                (r1, r2) = await doublePrx.OpIntCustomDictAsync(p1);
+                (r1, r2) = await doublePrx.OpInt32CustomDictAsync(p1);
                 Assert.That(r1, Is.EqualTo(p1));
                 Assert.That(r2, Is.EqualTo(p1));
             }
@@ -451,11 +451,11 @@ namespace IceRpc.Tests.Slice
             }
 
             {
-                Dictionary<int, int>? r1 = await encodedResultPrx.OpIntDictAsync(null);
+                Dictionary<int, int>? r1 = await encodedResultPrx.OpInt32DictAsync(null);
                 Assert.That(r1, Is.Null);
 
                 var p1 = new Dictionary<int, int> { { 1, 1 } };
-                r1 = await encodedResultPrx.OpIntDictAsync(p1);
+                r1 = await encodedResultPrx.OpInt32DictAsync(p1);
                 Assert.That(r1, Is.EqualTo(p1));
             }
 
@@ -521,7 +521,7 @@ namespace IceRpc.Tests.Slice
         {
             // We use a compatible interface with fewer tags:
             var minusPrx = new OperationTagMinusPrx(_prx.Proxy);
-            int? r1 = await minusPrx.OpIntAsync();
+            int? r1 = await minusPrx.OpInt32Async();
             Assert.That(r1, Is.Null);
         }
 
@@ -532,7 +532,7 @@ namespace IceRpc.Tests.Slice
             var plusPrx = new OperationTagPlusPrx(_prx.Proxy);
 
             {
-                (int? r1, string? r2) = await plusPrx.OpIntAsync(42, "42");
+                (int? r1, string? r2) = await plusPrx.OpInt32Async(42, "42");
                 Assert.That(r1, Is.EqualTo(42));
                 Assert.That(r2, Is.Null);
             }
@@ -576,87 +576,87 @@ namespace IceRpc.Tests.Slice
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(byte? R1, byte? R2)> OpByteAsync(
+        public ValueTask<(byte? R1, byte? R2)> OpUInt8Async(
             byte? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(IEnumerable<byte>? R1, IEnumerable<byte>? R2)> OpByteListAsync(
+        public ValueTask<(IEnumerable<byte>? R1, IEnumerable<byte>? R2)> OpUInt8ListAsync(
             List<byte>? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(ReadOnlyMemory<byte> R1, ReadOnlyMemory<byte> R2)> OpByteSeqAsync(
+        public ValueTask<(ReadOnlyMemory<byte> R1, ReadOnlyMemory<byte> R2)> OpUInt8SeqAsync(
             byte[]? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(double? R1, double? R2)> OpDoubleAsync(
+        public ValueTask<(double? R1, double? R2)> OpFloat64Async(
             double? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(IEnumerable<double>? R1, IEnumerable<double>? R2)> OpDoubleListAsync(
+        public ValueTask<(IEnumerable<double>? R1, IEnumerable<double>? R2)> OpFloat64ListAsync(
             List<double>? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(ReadOnlyMemory<double> R1, ReadOnlyMemory<double> R2)> OpDoubleSeqAsync(
+        public ValueTask<(ReadOnlyMemory<double> R1, ReadOnlyMemory<double> R2)> OpFloat64SeqAsync(
             double[]? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(float? R1, float? R2)> OpFloatAsync(
+        public ValueTask<(float? R1, float? R2)> OpFloat32Async(
             float? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(IEnumerable<float>? R1, IEnumerable<float>? R2)> OpFloatListAsync(
+        public ValueTask<(IEnumerable<float>? R1, IEnumerable<float>? R2)> OpFloat32ListAsync(
             List<float>? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(ReadOnlyMemory<float> R1, ReadOnlyMemory<float> R2)> OpFloatSeqAsync(
+        public ValueTask<(ReadOnlyMemory<float> R1, ReadOnlyMemory<float> R2)> OpFloat32SeqAsync(
             float[]? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(int? R1, int? R2)> OpIntAsync(
+        public ValueTask<(int? R1, int? R2)> OpInt32Async(
             int? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(IEnumerable<KeyValuePair<int, int>>? R1, IEnumerable<KeyValuePair<int, int>>? R2)> OpIntDictAsync(
+        public ValueTask<(IEnumerable<KeyValuePair<int, int>>? R1, IEnumerable<KeyValuePair<int, int>>? R2)> OpInt32DictAsync(
             Dictionary<int, int>? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(IEnumerable<KeyValuePair<int, int>>? R1, IEnumerable<KeyValuePair<int, int>>? R2)> OpIntCustomDictAsync(
+        public ValueTask<(IEnumerable<KeyValuePair<int, int>>? R1, IEnumerable<KeyValuePair<int, int>>? R2)> OpInt32CustomDictAsync(
             CustomDictionary<int, int>? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(IEnumerable<int>? R1, IEnumerable<int>? R2)> OpIntListAsync(
+        public ValueTask<(IEnumerable<int>? R1, IEnumerable<int>? R2)> OpInt32ListAsync(
             List<int>? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(ReadOnlyMemory<int> R1, ReadOnlyMemory<int> R2)> OpIntSeqAsync(
+        public ValueTask<(ReadOnlyMemory<int> R1, ReadOnlyMemory<int> R2)> OpInt32SeqAsync(
             int[]? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(long? R1, long? R2)> OpLongAsync(
+        public ValueTask<(long? R1, long? R2)> OpInt64Async(
             long? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(IEnumerable<long>? R1, IEnumerable<long>? R2)> OpLongListAsync(
+        public ValueTask<(IEnumerable<long>? R1, IEnumerable<long>? R2)> OpInt64ListAsync(
             List<long>? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(ReadOnlyMemory<long> R1, ReadOnlyMemory<long> R2)> OpLongSeqAsync(
+        public ValueTask<(ReadOnlyMemory<long> R1, ReadOnlyMemory<long> R2)> OpInt64SeqAsync(
             long[]? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
@@ -681,17 +681,17 @@ namespace IceRpc.Tests.Slice
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(short? R1, short? R2)> OpShortAsync(
+        public ValueTask<(short? R1, short? R2)> OpInt16Async(
             short? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(IEnumerable<short>? R1, IEnumerable<short>? R2)> OpShortListAsync(
+        public ValueTask<(IEnumerable<short>? R1, IEnumerable<short>? R2)> OpInt16ListAsync(
             List<short>? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(ReadOnlyMemory<short> R1, ReadOnlyMemory<short> R2)> OpShortSeqAsync(
+        public ValueTask<(ReadOnlyMemory<short> R1, ReadOnlyMemory<short> R2)> OpInt16SeqAsync(
             short[]? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
@@ -744,27 +744,27 @@ namespace IceRpc.Tests.Slice
 
     public class OperationTagEncodedResult : Service, IOperationTagEncodedResult
     {
-        public ValueTask<IOperationTagEncodedResult.OpIntDictEncodedResult> OpIntDictAsync(
+        public ValueTask<IOperationTagEncodedResult.OpInt32DictEncodedResult> OpInt32DictAsync(
             Dictionary<int, int>? p1,
             Dispatch dispatch,
-            CancellationToken cancel) => new(new IOperationTagEncodedResult.OpIntDictEncodedResult(p1, dispatch));
+            CancellationToken cancel) => new(new IOperationTagEncodedResult.OpInt32DictEncodedResult(p1));
 
         public ValueTask<IOperationTagEncodedResult.OpStringSeqEncodedResult> OpStringSeqAsync(
             string[]? p1,
             Dispatch dispatch,
-            CancellationToken cancel) => new(new IOperationTagEncodedResult.OpStringSeqEncodedResult(p1, dispatch));
+            CancellationToken cancel) => new(new IOperationTagEncodedResult.OpStringSeqEncodedResult(p1));
 
         public ValueTask<IOperationTagEncodedResult.OpMyCompactStructEncodedResult> OpMyCompactStructAsync(
             MyCompactStruct? p1,
             Dispatch dispatch,
             CancellationToken cancel) =>
-            new(new IOperationTagEncodedResult.OpMyCompactStructEncodedResult(p1, dispatch));
+            new(new IOperationTagEncodedResult.OpMyCompactStructEncodedResult(p1));
     }
 
     public class OperationTag : Service, IOperationTag
     {
         public ValueTask OpVoidAsync(Dispatch dispatch, CancellationToken cancel) => default;
 
-        public ValueTask<int?> OpIntAsync(int? p1, Dispatch dispatch, CancellationToken cancel) => new(p1);
+        public ValueTask<int?> OpInt32Async(int? p1, Dispatch dispatch, CancellationToken cancel) => new(p1);
     }
 }

@@ -87,15 +87,15 @@ public class TcpTransportTests
     [Test]
     public async Task Configure_client_connection_local_endpoint()
     {
-        var localEndpoint = new IPEndPoint(IPAddress.IPv6Loopback, 10000);
+        var localEndPoint = new IPEndPoint(IPAddress.IPv6Loopback, 10000);
 
-        await using TcpClientNetworkConnection connection =  CreateTcpClientConnection(
+        await using TcpClientNetworkConnection connection = CreateTcpClientConnection(
             options: new TcpClientTransportOptions
             {
-                LocalEndPoint = localEndpoint,
+                LocalEndPoint = localEndPoint,
             });
 
-        Assert.That(connection.Socket.LocalEndPoint, Is.EqualTo(localEndpoint));
+        Assert.That(connection.Socket.LocalEndPoint, Is.EqualTo(localEndPoint));
     }
 
     /// <summary>Verifies that setting <see cref="TcpTransportOptions.ReceiveBufferSize"/> and
@@ -363,12 +363,12 @@ public class TcpTransportTests
     private static TcpClientNetworkConnection CreateTcpClientConnection(
         Endpoint? endpoint = null,
         TcpClientTransportOptions? options = null,
-        SslClientAuthenticationOptions? authenticationOptions= null)
+        SslClientAuthenticationOptions? authenticationOptions = null)
     {
         IClientTransport<ISimpleNetworkConnection> transport = new TcpClientTransport(options ?? new());
         return (TcpClientNetworkConnection)transport.CreateConnection(
             endpoint ?? new Endpoint(Protocol.IceRpc),
-            authenticationOptions:authenticationOptions,
+            authenticationOptions: authenticationOptions,
             NullLogger.Instance);
     }
 }

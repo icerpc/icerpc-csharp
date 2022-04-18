@@ -7,20 +7,20 @@ exception SomeException {}
 interface Operations
 {
     // Builtin types
-    opByte(p1: uint8, p2: uint8) -> (r1: uint8, r2: uint8);
+    opUInt8(p1: uint8, p2: uint8) -> (r1: uint8, r2: uint8);
     opBool(p1: bool, p2: bool) -> (r1: bool, r2: bool);
-    opShort(p1: int16, p2: int16) -> (r1: int16, r2: int16);
-    opUShort(p1: uint16, p2: uint16) -> (r1: uint16, r2: uint16);
-    opInt(p1: int32, p2: int32) -> (r1: int32, r2: int32);
-    opVarInt(p1: varint32, p2: varint32) -> (r1: varint32, r2: varint32);
-    opUInt(p1: uint32, p2: uint32) -> (r1: uint32, r2: uint32);
-    opVarUInt(p1: varuint32, p2: varuint32) -> (r1: varuint32, r2: varuint32);
-    opLong(p1: int64, p2: int64) -> (r1: int64, r2: int64);
-    opVarLong(p1: varint62, p2: varint62) -> (r1: varint62, r2: varint62);
-    opULong(p1: uint64, p2: uint64) -> (r1: uint64, r2: uint64);
-    opVarULong(p1: varuint62, p2: varuint62) -> (r1: varuint62, r2: varuint62);
-    opFloat(p1: float32, p2: float32) -> (r1: float32, r2: float32);
-    opDouble(p1: float64, p2: float64) -> (r1: float64, r2: float64);
+    opInt16(p1: int16, p2: int16) -> (r1: int16, r2: int16);
+    opUInt16(p1: uint16, p2: uint16) -> (r1: uint16, r2: uint16);
+    opInt32(p1: int32, p2: int32) -> (r1: int32, r2: int32);
+    opVarInt32(p1: varint32, p2: varint32) -> (r1: varint32, r2: varint32);
+    opUInt32(p1: uint32, p2: uint32) -> (r1: uint32, r2: uint32);
+    opVarUInt32(p1: varuint32, p2: varuint32) -> (r1: varuint32, r2: varuint32);
+    opInt64(p1: int64, p2: int64) -> (r1: int64, r2: int64);
+    opVarInt62(p1: varint62, p2: varint62) -> (r1: varint62, r2: varint62);
+    opUInt64(p1: uint64, p2: uint64) -> (r1: uint64, r2: uint64);
+    opVarUInt62(p1: varuint62, p2: varuint62) -> (r1: varuint62, r2: varuint62);
+    opFloat32(p1: float32, p2: float32) -> (r1: float32, r2: float32);
+    opFloat64(p1: float64, p2: float64) -> (r1: float64, r2: float64);
     opString(p1: string, p2: string) -> (r1: string, r2: string);
 
     // Returns a proxy to a Service

@@ -72,20 +72,20 @@ typealias AnotherCompactStructCustomSeq = [cs:generic("IceRpc.Tests.Slice.Custom
 interface SequenceOperations
 {
     // Builtin types sequences
-    opByteSeq(p1: ByteSeq, p2: ByteSeq) -> (r1: ByteSeq, r2: ByteSeq);
+    opUInt8Seq(p1: ByteSeq, p2: ByteSeq) -> (r1: ByteSeq, r2: ByteSeq);
     opBoolSeq(p1: BoolSeq, p2: BoolSeq) -> (r1: BoolSeq, r2: BoolSeq);
-    opShortSeq(p1: ShortSeq, p2: ShortSeq) -> (r1: ShortSeq, r2: ShortSeq);
-    opUShortSeq(p1: UShortSeq, p2: UShortSeq) -> (r1: UShortSeq, r2: UShortSeq);
-    opIntSeq(p1: IntSeq, p2: IntSeq) -> (r1: IntSeq, r2: IntSeq);
-    opVarIntSeq(p1: VarIntSeq, p2: VarIntSeq) -> (r1: VarIntSeq, r2: VarIntSeq);
-    opUIntSeq(p1: UIntSeq, p2: UIntSeq) -> (r1: UIntSeq, r2: UIntSeq);
-    opVarUIntSeq(p1: VarUIntSeq, p2: VarUIntSeq) -> (r1: VarUIntSeq, r2: VarUIntSeq);
-    opLongSeq(p1: LongSeq, p2: LongSeq) -> (r1: LongSeq, r2: LongSeq);
-    opVarLongSeq(p1: VarLongSeq, p2: VarLongSeq) -> (r1: VarLongSeq, r2: VarLongSeq);
-    opULongSeq(p1: ULongSeq, p2: ULongSeq) -> (r1: ULongSeq, r2: ULongSeq);
-    opVarULongSeq(p1: VarULongSeq, p2: VarULongSeq) -> (r1: VarULongSeq, r2: VarULongSeq);
-    opFloatSeq(p1: FloatSeq, p2: FloatSeq) -> (r1: FloatSeq, r2: FloatSeq);
-    opDoubleSeq(p1: DoubleSeq, p2: DoubleSeq) -> (r1: DoubleSeq, r2: DoubleSeq);
+    opInt16Seq(p1: ShortSeq, p2: ShortSeq) -> (r1: ShortSeq, r2: ShortSeq);
+    opUInt16Seq(p1: UShortSeq, p2: UShortSeq) -> (r1: UShortSeq, r2: UShortSeq);
+    opInt32Seq(p1: IntSeq, p2: IntSeq) -> (r1: IntSeq, r2: IntSeq);
+    opVarInt32Seq(p1: VarIntSeq, p2: VarIntSeq) -> (r1: VarIntSeq, r2: VarIntSeq);
+    opUInt32Seq(p1: UIntSeq, p2: UIntSeq) -> (r1: UIntSeq, r2: UIntSeq);
+    opVarUInt32Seq(p1: VarUIntSeq, p2: VarUIntSeq) -> (r1: VarUIntSeq, r2: VarUIntSeq);
+    opInt64Seq(p1: LongSeq, p2: LongSeq) -> (r1: LongSeq, r2: LongSeq);
+    opVarInt62Seq(p1: VarLongSeq, p2: VarLongSeq) -> (r1: VarLongSeq, r2: VarLongSeq);
+    opUInt64Seq(p1: ULongSeq, p2: ULongSeq) -> (r1: ULongSeq, r2: ULongSeq);
+    opVarUInt3262Seq(p1: VarULongSeq, p2: VarULongSeq) -> (r1: VarULongSeq, r2: VarULongSeq);
+    opFloat32Seq(p1: FloatSeq, p2: FloatSeq) -> (r1: FloatSeq, r2: FloatSeq);
+    opFloat64Seq(p1: DoubleSeq, p2: DoubleSeq) -> (r1: DoubleSeq, r2: DoubleSeq);
     opStringSeq(p1: StringSeq, p2: StringSeq) -> (r1: StringSeq, r2: StringSeq);
 
     // Defined types sequences
@@ -109,20 +109,20 @@ interface SequenceOperations
     );
 
     // Sequence mapping
-    opByteList(p1: ByteList, p2: ByteList) -> (r1: ByteList, r2: ByteList);
-    opByteCustomSeq(p1: ByteCustomSeq, p2: ByteCustomSeq) -> (r1: ByteCustomSeq, r2: ByteCustomSeq);
+    opUInt8List(p1: ByteList, p2: ByteList) -> (r1: ByteList, r2: ByteList);
+    opUInt8CustomSeq(p1: ByteCustomSeq, p2: ByteCustomSeq) -> (r1: ByteCustomSeq, r2: ByteCustomSeq);
 
     opBoolList(p1: BoolList, p2: BoolList) -> (r1: BoolList, r2: BoolList);
     opBoolCustomSeq(p1: BoolCustomSeq, p2: BoolCustomSeq) -> (r1: BoolCustomSeq, r2: BoolCustomSeq);
 
-    opIntList(p1: IntList, p2: IntList) -> (r1: IntList, r2: IntList);
+    opInt32List(p1: IntList, p2: IntList) -> (r1: IntList, r2: IntList);
     opIntCustomSeq(p1: IntCustomSeq, p2: IntCustomSeq) -> (r1: IntCustomSeq, r2: IntCustomSeq);
 
-    opLongList(p1: LongList, p2: LongList) -> (r1: LongList, r2: LongList);
-    opLongCustomSeq(p1: LongCustomSeq, p2: LongCustomSeq) -> (r1: LongCustomSeq, r2: LongCustomSeq);
+    opInt64List(p1: LongList, p2: LongList) -> (r1: LongList, r2: LongList);
+    opInt64CustomSeq(p1: LongCustomSeq, p2: LongCustomSeq) -> (r1: LongCustomSeq, r2: LongCustomSeq);
 
-    opFloatList(p1: FloatList, p2: FloatList) -> (r1: FloatList, r2: FloatList);
-    opFloatCustomSeq(p1: FloatCustomSeq, p2: FloatCustomSeq) -> (r1: FloatCustomSeq, r2: FloatCustomSeq);
+    opFloat32List(p1: FloatList, p2: FloatList) -> (r1: FloatList, r2: FloatList);
+    opFloat32CustomSeq(p1: FloatCustomSeq, p2: FloatCustomSeq) -> (r1: FloatCustomSeq, r2: FloatCustomSeq);
 
     opStringList(p1: StringList, p2: StringList) -> (r1: StringList, r2: StringList);
     opStringCustomSeq(p1: StringCustomSeq, p2: StringCustomSeq) -> (r1: StringCustomSeq, r2: StringCustomSeq);

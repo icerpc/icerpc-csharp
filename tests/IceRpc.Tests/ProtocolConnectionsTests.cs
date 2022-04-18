@@ -64,13 +64,13 @@ public sealed class ProtocolConnectionTests
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
             .UseServerConnectionOptions(new ConnectionOptions()
-                {
-                    Dispatcher = new InlineDispatcher((request, cancel) =>
-                        {
-                            result.SetResult(sut!.Value.Client.HasInvocationsInProgress);
-                            return new(new OutgoingResponse(request));
-                        })
-                })
+            {
+                Dispatcher = new InlineDispatcher((request, cancel) =>
+                    {
+                        result.SetResult(sut!.Value.Client.HasInvocationsInProgress);
+                        return new(new OutgoingResponse(request));
+                    })
+            })
             .BuildServiceProvider();
 
         sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
@@ -182,10 +182,10 @@ public sealed class ProtocolConnectionTests
 
         var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var request = new OutgoingRequest(new Proxy(protocol))
-            {
-                IsOneway = isOneway,
-                Payload = payloadDecorator
-            };
+        {
+            IsOneway = isOneway,
+            Payload = payloadDecorator
+        };
 
         // Act
         _ = sut.Client.InvokeAsync(request);
@@ -420,9 +420,9 @@ public sealed class ProtocolConnectionTests
         _ = sut.Server.AcceptRequestsAsync();
 
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
-            {
-                Payload = InvalidPipeReader.Instance
-            };
+        {
+            Payload = InvalidPipeReader.Instance
+        };
         var payloadWriterSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
         request.Use(writer =>
             {
@@ -449,9 +449,9 @@ public sealed class ProtocolConnectionTests
         var dispatcher = new InlineDispatcher((request, cancel) =>
             {
                 var response = new OutgoingResponse(request)
-                    {
-                        Payload = InvalidPipeReader.Instance
-                    };
+                {
+                    Payload = InvalidPipeReader.Instance
+                };
                 response.Use(writer =>
                     {
                         var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);

@@ -14,6 +14,17 @@ namespace IceRpc.Tests;
 [Parallelizable(ParallelScope.All)]
 public sealed class IceRpcProtocolConnectionTests
 {
+    public static IEnumerable<TestCaseData> ExceptionIsEncodedAsDispatchExceptionSource
+    {
+        get
+        {
+            yield return new TestCaseData(new InvalidDataException("invalid data"), DispatchErrorCode.InvalidData);
+            // Slice1 only exception will get encoded as unhandled exception with Slice2
+            yield return new TestCaseData(new MyDerivedException(), DispatchErrorCode.UnhandledException);
+            yield return new TestCaseData(new InvalidOperationException(), DispatchErrorCode.UnhandledException);
+        }
+    }
+
     /// <summary>Ensures that the connection fields are correctly exchanged on the protocol connection
     /// initialization.</summary>
     [Test]
@@ -255,9 +266,9 @@ public sealed class IceRpcProtocolConnectionTests
         _ = sut.Server.AcceptRequestsAsync();
 
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
-            {
-                Payload = InvalidPipeReader.Instance
-            };
+        {
+            Payload = InvalidPipeReader.Instance
+        };
         var payloadWriterSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
         request.Use(writer =>
             {
@@ -284,9 +295,9 @@ public sealed class IceRpcProtocolConnectionTests
         var dispatcher = new InlineDispatcher((request, cancel) =>
             {
                 var response = new OutgoingResponse(request)
-                    {
-                        Payload = InvalidPipeReader.Instance
-                    };
+                {
+                    Payload = InvalidPipeReader.Instance
+                };
                 response.Use(writer =>
                     {
                         var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);
@@ -308,5 +319,33 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
+    }
+
+    [Test, TestCaseSource(nameof(ExceptionIsEncodedAsDispatchExceptionSource))]
+    public async Task Exception_is_encoded_as_a_dispatch_exception(
+        Exception thrownException,
+        DispatchErrorCode errorCode)
+    {
+        var dispatcher = new InlineDispatcher((request, cancel) =>
+        {
+            throw thrownException;
+        });
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(Protocol.IceRpc)
+            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .BuildServiceProvider();
+
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        _ = sut.Server.AcceptRequestsAsync();
+
+        // Act
+        var response = await sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
+
+        // Assert
+        Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
+        var exception = await response.DecodeFailureAsync() as DispatchException;
+        Assert.That(exception, Is.Not.Null);
+        Assert.That(exception.ErrorCode, Is.EqualTo(errorCode));
     }
 }

@@ -16,7 +16,7 @@ public class OperationTests
     public void Slice2_operation_encode_with_single_parameter()
     {
         // Act
-        PipeReader payload = MyOperationsPrx.Request.OpInt(10);
+        PipeReader payload = MyOperationsPrx.Request.OpInt32(10);
 
         // Assert
         Assert.That(payload.TryRead(out var readResult));
@@ -37,7 +37,7 @@ public class OperationTests
         };
 
         // Act
-        int decoded = await IMyOperations.Request.OpIntAsync(request, default);
+        int decoded = await IMyOperations.Request.OpInt32Async(request, default);
 
         // Assert
         Assert.That(decoded, Is.EqualTo(10));
@@ -56,7 +56,7 @@ public class OperationTests
     public void Slice2_operation_encode_with_single_return()
     {
         // Act
-        PipeReader payload = IMyOperations.Response.OpInt(10);
+        PipeReader payload = IMyOperations.Response.OpInt32(10);
 
         // Assert
         Assert.That(payload.TryRead(out var readResult));
@@ -75,7 +75,7 @@ public class OperationTests
             Payload = Encode(10)
         };
 
-        int value = await MyOperationsPrx.Response.OpIntAsync(response, default);
+        int value = await MyOperationsPrx.Response.OpInt32Async(response, default);
 
         Assert.That(value, Is.EqualTo(10));
 
@@ -92,7 +92,7 @@ public class OperationTests
     [Test]
     public void Slice2_operation_encode_with_multiple_parameters()
     {
-        var payload = MyOperationsPrx.Request.OpIntAndString(10, "hello world!");
+        var payload = MyOperationsPrx.Request.OpInt32AndString(10, "hello world!");
 
         // Assert
         // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents)
@@ -113,7 +113,7 @@ public class OperationTests
             Payload = Encode(10, "hello world!")
         };
 
-        var decoded = await IMyOperations.Request.OpIntAndStringAsync(request, default);
+        var decoded = await IMyOperations.Request.OpInt32AndStringAsync(request, default);
 
         Assert.That(decoded.P1, Is.EqualTo(10));
         Assert.That(decoded.P2, Is.EqualTo("hello world!"));
@@ -131,9 +131,9 @@ public class OperationTests
     }
 
     [Test]
-    public void  Slice2_operation_encode_with_multiple_return()
+    public void Slice2_operation_encode_with_multiple_return()
     {
-        var payload = IMyOperations.Response.OpIntAndString(10, "hello world!");
+        var payload = IMyOperations.Response.OpInt32AndString(10, "hello world!");
 
         // Assert
         // readResult: 17 bytes payload + 4 bytes payload size
@@ -155,7 +155,7 @@ public class OperationTests
             Payload = Encode(10, "hello world!")
         };
 
-        (int r1, string r2) = await MyOperationsPrx.Response.OpIntAndStringAsync(response, default);
+        (int r1, string r2) = await MyOperationsPrx.Response.OpInt32AndStringAsync(response, default);
 
         Assert.That(r1, Is.EqualTo(10));
         Assert.That(r2, Is.EqualTo("hello world!"));
