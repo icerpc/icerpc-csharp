@@ -64,18 +64,18 @@ public class SequenceEncodingTests
     {
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
         var sut = new SliceEncoder(buffer, encoding);
-        string[] exepected = Enumerable.Range(0, 1024).Select(i => $"value-{i}").ToArray();
+        string[] expected = Enumerable.Range(0, 1024).Select(i => $"value-{i}").ToArray();
 
-        sut.EncodeSequence(exepected, (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
+        sut.EncodeSequence(expected, (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
-        Assert.That(decoder.DecodeSize(), Is.EqualTo(exepected.Length));
+        Assert.That(decoder.DecodeSize(), Is.EqualTo(expected.Length));
         var decoded = new List<string>();
-        for (int i = 0; i < exepected.Length; ++i)
+        for (int i = 0; i < expected.Length; ++i)
         {
             decoded.Add(decoder.DecodeString());
         }
-        Assert.That(decoded, Is.EqualTo(exepected));
+        Assert.That(decoded, Is.EqualTo(expected));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 }
