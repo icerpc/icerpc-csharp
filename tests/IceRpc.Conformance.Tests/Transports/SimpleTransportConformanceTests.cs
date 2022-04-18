@@ -3,6 +3,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
+using System.Net.Security;
 
 namespace IceRpc.Transports.Tests;
 
@@ -19,7 +20,7 @@ public abstract class SimpleTransportConformanceTests
         await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
 
         Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
+        _ = clientConnection.ConnectAsync(default);
 
         // Act/Assert
         Assert.That(
@@ -37,16 +38,11 @@ public abstract class SimpleTransportConformanceTests
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
-        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
-        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
-
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-        ISimpleNetworkConnection serverConnection = await acceptTask;
-        await serverConnection.DisposeAsync();
+        await using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
+        await sut.ServerConnection.DisposeAsync();
 
         // Act/Assert
-        Assert.That(async () => await clientConnection.ReadAsync(new byte[1], default),
+        Assert.That(async () => await sut.ClientConnection.ReadAsync(new byte[1], default),
             Throws.InstanceOf<ConnectionLostException>());
     }
 
@@ -57,15 +53,10 @@ public abstract class SimpleTransportConformanceTests
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
-        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
-        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
-
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-        ISimpleNetworkConnection serverConnection = await acceptTask;
+        await using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
         var buffer = new Memory<byte>(new byte[1]);
         using var canceled = new CancellationTokenSource();
-        Task readTask = clientConnection.ReadAsync(buffer, canceled.Token).AsTask();
+        Task readTask = sut.ClientConnection.ReadAsync(buffer, canceled.Token).AsTask();
         await Task.Delay(TimeSpan.FromMilliseconds(10));
 
         // Act
@@ -82,12 +73,7 @@ public abstract class SimpleTransportConformanceTests
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
-        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
-        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
-
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-        await using ISimpleNetworkConnection serverConnection = await acceptTask;
+        await using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
         var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1024 * 1024] };
         using var canceled = new CancellationTokenSource();
         // Write completes as soon as the data is copied to the socket buffer, the test relies on the calls
@@ -95,7 +81,7 @@ public abstract class SimpleTransportConformanceTests
         Task writeTask;
         do
         {
-            writeTask = clientConnection.WriteAsync(buffer, canceled.Token).AsTask();
+            writeTask = sut.ClientConnection.WriteAsync(buffer, canceled.Token).AsTask();
             await Task.WhenAny(Task.Delay(TimeSpan.FromMilliseconds(100)), writeTask);
         }
         while (writeTask.IsCompleted);
@@ -115,16 +101,11 @@ public abstract class SimpleTransportConformanceTests
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
-        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
-        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
-
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-        var serverConnection = await acceptTask;
+        await using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
         byte[] writeBuffer = new byte[size];
 
-        ISimpleNetworkConnection writeConnection = useServerConnection ? serverConnection : clientConnection;
-        ISimpleNetworkConnection readConnection = useServerConnection ? clientConnection : serverConnection;
+        ISimpleNetworkConnection writeConnection = useServerConnection ? sut.ServerConnection : sut.ClientConnection;
+        ISimpleNetworkConnection readConnection = useServerConnection ? sut.ClientConnection : sut.ServerConnection;
 
         // Act
 
@@ -150,19 +131,14 @@ public abstract class SimpleTransportConformanceTests
     {
         var payload = new List<ReadOnlyMemory<byte>>() { new byte[1024 * 1024] };
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
-        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
-        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
-
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-        await using ISimpleNetworkConnection serverConnection = await acceptTask;
+        await using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
 
         int writtenSize = 0;
         Task writeTask;
         while (true)
         {
             writtenSize += payload[0].Length;
-            writeTask = clientConnection.WriteAsync(payload, default).AsTask();
+            writeTask = sut.ClientConnection.WriteAsync(payload, default).AsTask();
             await Task.Delay(TimeSpan.FromMilliseconds(100));
             if (writeTask.IsCompleted)
             {
@@ -175,7 +151,7 @@ public abstract class SimpleTransportConformanceTests
         }
 
         // Act
-        Task readTask = ReadAsync(serverConnection, writtenSize);
+        Task readTask = ReadAsync(sut.ServerConnection, writtenSize);
 
         // Assert
         Assert.Multiple(() =>
@@ -227,13 +203,8 @@ public abstract class SimpleTransportConformanceTests
         // Arrange
         using var canceled = new CancellationTokenSource();
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
-        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
-        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
-
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-        ISimpleNetworkConnection serverConnection = await acceptTask;
-        ValueTask<int> readTask = clientConnection.ReadAsync(new byte[1], canceled.Token);
+        await using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
+        ValueTask<int> readTask = sut.ClientConnection.ReadAsync(new byte[1], canceled.Token);
 
         // Act
         canceled.Cancel();
@@ -251,14 +222,10 @@ public abstract class SimpleTransportConformanceTests
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
         await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
-        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
+        await using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
 
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-        ISimpleNetworkConnection serverConnection = await acceptTask;
-
-        ISimpleNetworkConnection readFrom = readFromServer ? serverConnection : clientConnection;
-        ISimpleNetworkConnection disposedPeer = readFromServer ? clientConnection : serverConnection;
+        ISimpleNetworkConnection readFrom = readFromServer ? sut.ServerConnection : sut.ClientConnection;
+        ISimpleNetworkConnection disposedPeer = readFromServer ? sut.ClientConnection : sut.ServerConnection;
 
         await disposedPeer.DisposeAsync();
 
@@ -275,13 +242,8 @@ public abstract class SimpleTransportConformanceTests
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
-        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
-        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
-
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-        ISimpleNetworkConnection serverConnection = await acceptTask;
-        ISimpleNetworkConnection disposedConnection = disposeServerConnection ? serverConnection : clientConnection;
+        await using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
+        ISimpleNetworkConnection disposedConnection = disposeServerConnection ? sut.ServerConnection : sut.ClientConnection;
 
         await disposedConnection.DisposeAsync();
 
@@ -297,24 +259,19 @@ public abstract class SimpleTransportConformanceTests
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
-        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
-        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
-
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-        ISimpleNetworkConnection serverConnection = await acceptTask;
-        await serverConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
+        await using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
+        await sut.ServerConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
         var delay = TimeSpan.FromMilliseconds(2);
-        TimeSpan lastActivity = clientConnection.LastActivity;
+        TimeSpan lastActivity = sut.ClientConnection.LastActivity;
         await Task.Delay(delay);
         var buffer = new Memory<byte>(new byte[1]);
 
         // Act
-        await clientConnection.ReadAsync(buffer, default);
+        await sut.ClientConnection.ReadAsync(buffer, default);
 
         // Assert
         Assert.That(
-            clientConnection.LastActivity >= delay + lastActivity || clientConnection.LastActivity == TimeSpan.Zero,
+            sut.ClientConnection.LastActivity >= delay + lastActivity || sut.ClientConnection.LastActivity == TimeSpan.Zero,
             Is.True);
     }
 
@@ -325,12 +282,7 @@ public abstract class SimpleTransportConformanceTests
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
-        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
-        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
-
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-        ISimpleNetworkConnection serverConnection = await acceptTask;
+        await using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
         var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1024 * 1024] };
         using var canceled = new CancellationTokenSource();
 
@@ -339,7 +291,7 @@ public abstract class SimpleTransportConformanceTests
         Task writeTask;
         while (true)
         {
-            writeTask = clientConnection.WriteAsync(buffer, canceled.Token).AsTask();
+            writeTask = sut.ClientConnection.WriteAsync(buffer, canceled.Token).AsTask();
             await Task.Delay(TimeSpan.FromMilliseconds(20));
             if (writeTask.IsCompleted)
             {
@@ -365,15 +317,10 @@ public abstract class SimpleTransportConformanceTests
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
-        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
-        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
-
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-        ISimpleNetworkConnection serverConnection = await acceptTask;
+        await using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
 
         // Act
-        await serverConnection.DisposeAsync();
+        await sut.ServerConnection.DisposeAsync();
 
         // Assert
         var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1] };
@@ -383,7 +330,7 @@ public abstract class SimpleTransportConformanceTests
             // It can take few writes to detect the peer's connection closure.
             while (true)
             {
-                await clientConnection.WriteAsync(buffer, default);
+                await sut.ClientConnection.WriteAsync(buffer, default);
                 await Task.Delay(50);
             }
         }
@@ -401,13 +348,9 @@ public abstract class SimpleTransportConformanceTests
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
-        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
-        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
-
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-        ISimpleNetworkConnection serverConnection = await acceptTask;
-        ISimpleNetworkConnection disposedConnection = disposeServerConnection ? serverConnection : clientConnection;
+        await using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
+        ISimpleNetworkConnection disposedConnection =
+            disposeServerConnection ? sut.ServerConnection : sut.ClientConnection;
 
         await disposedConnection.DisposeAsync();
 
@@ -425,22 +368,18 @@ public abstract class SimpleTransportConformanceTests
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
-        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
-        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
-
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-        ISimpleNetworkConnection serverConnection = await acceptTask;
+        await using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
         var delay = TimeSpan.FromMilliseconds(10);
-        TimeSpan lastActivity = clientConnection.LastActivity;
+        TimeSpan lastActivity = sut.ClientConnection.LastActivity;
         await Task.Delay(delay);
 
         // Act
-        await clientConnection.WriteAsync(new List<ReadOnlyMemory<byte>>() { new byte[1] }, default);
+        await sut.ClientConnection.WriteAsync(new List<ReadOnlyMemory<byte>>() { new byte[1] }, default);
 
         // Assert
         Assert.That(
-            clientConnection.LastActivity >= delay + lastActivity || clientConnection.LastActivity == TimeSpan.Zero,
+            sut.ClientConnection.LastActivity >= delay + lastActivity ||
+            sut.ClientConnection.LastActivity == TimeSpan.Zero,
             Is.True);
     }
 
@@ -452,16 +391,11 @@ public abstract class SimpleTransportConformanceTests
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
-        await using IListener<ISimpleNetworkConnection> listener = provider.GetListener();
-        await using ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
-
-        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        await clientConnection.ConnectAsync(default);
-        ISimpleNetworkConnection serverConnection = await acceptTask;
+        await using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
         byte[] writeBuffer = Enumerable.Range(0, size).Select(i => (byte)(i % 255)).ToArray();
 
-        ISimpleNetworkConnection writeConnection = useServerConnection ? serverConnection : clientConnection;
-        ISimpleNetworkConnection readConnection = useServerConnection ? clientConnection : serverConnection;
+        ISimpleNetworkConnection writeConnection = useServerConnection ? sut.ServerConnection : sut.ClientConnection;
+        ISimpleNetworkConnection readConnection = useServerConnection ? sut.ClientConnection : sut.ServerConnection;
 
         // Act
         ValueTask writeTask = writeConnection.WriteAsync(new ReadOnlyMemory<byte>[] { writeBuffer }, default);
@@ -503,20 +437,27 @@ public class SimpleTransportServiceCollection : ServiceCollection
     {
         this.AddScoped(provider =>
         {
+            SslServerAuthenticationOptions? serverAuthenticationOptions =
+                provider.GetService<SslServerAuthenticationOptions>();
             IServerTransport<ISimpleNetworkConnection>? serverTransport =
-            provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>();
+                provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>();
             return serverTransport.Listen(
                 provider.GetRequiredService<Endpoint>(),
-                null,
+                serverAuthenticationOptions,
                 NullLogger.Instance);
         });
 
         this.AddScoped(provider =>
         {
+            SslClientAuthenticationOptions? clientAuthenticationOptions =
+                provider.GetService<SslClientAuthenticationOptions>();
             IListener<ISimpleNetworkConnection> listener = provider.GetListener();
             IClientTransport<ISimpleNetworkConnection> clientTransport =
                 provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>();
-            return clientTransport.CreateConnection(listener.Endpoint, null, NullLogger.Instance);
+            return clientTransport.CreateConnection(
+                listener.Endpoint,
+                clientAuthenticationOptions,
+                NullLogger.Instance);
         });
     }
 }
@@ -528,11 +469,46 @@ public static class SimpleTransportServiceProviderExtensions
 
     public static IListener<ISimpleNetworkConnection> CreateListener(this IServiceProvider provider, Endpoint endpoint)
     {
+        SslServerAuthenticationOptions? serverAuthenticationOptions =
+            provider.GetService<SslServerAuthenticationOptions>();
         IServerTransport<ISimpleNetworkConnection>? serverTransport =
             provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>();
-        return serverTransport.Listen(endpoint, null, NullLogger.Instance);
+        return serverTransport.Listen(endpoint, serverAuthenticationOptions, NullLogger.Instance);
     }
 
     public static ISimpleNetworkConnection GetClientConnection(this IServiceProvider provider) =>
         provider.GetRequiredService<ISimpleNetworkConnection>();
+
+    public static async Task<ClientServerSimpleTransportConnection> ConnectAndAcceptAsync(
+        this IServiceProvider provider)
+    {
+        var listener = provider.GetRequiredService<IListener<ISimpleNetworkConnection>>();
+        ISimpleNetworkConnection clientConnection = provider.GetClientConnection();
+        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
+        Task<NetworkConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
+        ISimpleNetworkConnection serverConnection = await acceptTask;
+        Task<NetworkConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
+        await Task.WhenAll(clientConnectTask, serverConnectTask);
+        return new ClientServerSimpleTransportConnection(clientConnection, serverConnection);
+    }
+}
+
+public record struct ClientServerSimpleTransportConnection : IAsyncDisposable
+{
+    public ISimpleNetworkConnection ClientConnection { get; }
+    public ISimpleNetworkConnection ServerConnection { get; }
+
+    public ClientServerSimpleTransportConnection(
+        ISimpleNetworkConnection clientConnection,
+        ISimpleNetworkConnection serverConnection)
+    {
+        ClientConnection = clientConnection;
+        ServerConnection = serverConnection;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await ClientConnection.DisposeAsync();
+        await ServerConnection.DisposeAsync();
+    }
 }
