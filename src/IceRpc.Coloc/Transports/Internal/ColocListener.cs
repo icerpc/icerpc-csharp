@@ -25,14 +25,7 @@ namespace IceRpc.Transports.Internal
             return default;
         }
 
-        internal ColocListener(Endpoint endpoint)
-        {
-           if (!ColocTransport.CheckEndpointParams(endpoint.Params))
-            {
-                throw new FormatException($"cannot create a Coloc listener for endpoint '{endpoint}'");
-            }
-            Endpoint = endpoint;
-        }
+        internal ColocListener(Endpoint endpoint) => Endpoint = endpoint;
 
         internal (PipeReader, PipeWriter) NewClientConnection()
         {

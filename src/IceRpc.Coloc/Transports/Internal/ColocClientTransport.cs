@@ -31,6 +31,8 @@ namespace IceRpc.Transports.Internal
                 throw new FormatException($"cannot create a Coloc connection to endpoint '{remoteEndpoint}'");
             }
 
+            remoteEndpoint = remoteEndpoint.WithTransport(Name);
+
             if (_listeners.TryGetValue(remoteEndpoint, out ColocListener? listener))
             {
                 (PipeReader reader, PipeWriter writer) = listener.NewClientConnection();
