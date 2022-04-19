@@ -55,6 +55,9 @@ namespace IceRpc.Internal
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly HashSet<CancellationTokenSource> _dispatches = new();
+
+        private readonly SemaphoreSlim? _dispatchSemaphore;
+
         private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
         private bool _isAborted;
         private bool _isShuttingDown;
@@ -387,6 +390,13 @@ namespace IceRpc.Internal
             _dispatcher = dispatcher;
             _options = options;
 
+            if (options.MaxConcurrentDispatches > 0)
+            {
+                _dispatchSemaphore = new SemaphoreSlim(
+                    initialCount: options.MaxConcurrentDispatches,
+                    maxCount: options.MaxConcurrentDispatches);
+            }
+
             // TODO: get the pool and minimum segment size from an option class, but which one? The Slic connection
             // gets these from SlicOptions but another option could be to add Pool/MinimunSegmentSize on
             // ConnectionOptions/ServerOptions. These properties would be used by:
@@ -475,6 +485,8 @@ namespace IceRpc.Internal
 
             CancelInvocations(exception);
             CancelDispatches();
+
+            _dispatchSemaphore?.Dispose();
 
             _networkConnectionReader.Dispose();
             _networkConnectionWriter.Dispose();
@@ -806,8 +818,11 @@ namespace IceRpc.Internal
             }
             else
             {
-                // TODO: at this point - before reading the actual request frame - we could easily wait until
-                // _dispatches.Count < MaxConcurrentDispatches.
+                if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
+                {
+                    // This prevents us from receiving any frame until WaitAsync returns.
+                    await dispatchSemaphore.WaitAsync().ConfigureAwait(false);
+                }
 
                 Debug.Assert(cancelDispatchSource != null);
                 _ = Task.Run(() => DispatchRequestAsync(request, cancelDispatchSource));
@@ -953,6 +968,8 @@ namespace IceRpc.Internal
 
                     lock (_mutex)
                     {
+                        _dispatchSemaphore?.Release();
+
                         // Dispatch is done, remove the cancellation token source for the dispatch.
                         if (_dispatches.Remove(cancelDispatchSource))
                         {
