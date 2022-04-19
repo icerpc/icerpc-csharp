@@ -106,7 +106,7 @@ public sealed class StructTests
     public void Decode_struct_with_tagged_members(
         [Values(10, null)] int? k,
         [Values(20, null)] int? l,
-        [Values(30, null)] ulong? m)
+        [Values(30ul, null)] ulong? m)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
@@ -127,7 +127,7 @@ public sealed class StructTests
             encoder.EncodeTagged(
                 255,
                 TagFormat.F4,
-                size: 4,
+                size: 1,
                 l.Value,
                 (ref SliceEncoder encoder, int value) => encoder.EncodeVarInt32(value));
         }
@@ -135,11 +135,11 @@ public sealed class StructTests
         if (m != null)
         {
             encoder.EncodeTagged(
-                0,
+                256,
                 TagFormat.F4,
-                size: 4,
-                l.Value,
-                (ref SliceEncoder encoder, int value) => encoder.EncodeVarUInt62(value));
+                size: 1,
+                m.Value,
+                (ref SliceEncoder encoder, ulong value) => encoder.EncodeVarUInt62(value));
         }
         encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
@@ -246,7 +246,7 @@ public sealed class StructTests
     public void Encode_struct_with_tagged_members(
         [Values(10, null)] int? k,
         [Values(20, null)] int? l,
-        [Values(30, null)] int? m)
+        [Values(30ul, null)] ulong? m)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
@@ -274,7 +274,7 @@ public sealed class StructTests
         if (m != null)
         {
             Assert.That(
-                decoder.DecodeTagged(0, TagFormat.F4, (ref SliceDecoder decoder) => decoder.DecodeVarUInt62()),
+                decoder.DecodeTagged(256, TagFormat.F4, (ref SliceDecoder decoder) => decoder.DecodeVarUInt62()),
                 Is.EqualTo(m));
         }
         Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
