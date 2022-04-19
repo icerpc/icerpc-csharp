@@ -66,7 +66,7 @@ namespace IceRpc.Tests.Slice
             Assert.That(ex.MFloat32, Is.Null);
 
             Assert.That(ex.MBool, Is.EqualTo(false));
-            Assert.That(ex.MInt, Is.Null);
+            Assert.That(ex.MInt32, Is.Null);
             Assert.That(ex.MString, Is.EqualTo("foo"));
             Assert.That(ex.MStruct, Is.Not.Null);
             Assert.That(ex.MStruct.Value, Is.EqualTo(ts));
@@ -85,7 +85,7 @@ namespace IceRpc.Tests.Slice
         //     Assert.That(result.MStruct, Is.Not.Null);
         //     Assert.That(result.MStruct.Value.S, Is.EqualTo("bar"));
         //     Assert.That(result.MStruct.Value.V, Is.EqualTo(0));
-        //     Assert.That(result.MInt, Is.Null);
+        //     Assert.That(result.MInt32, Is.Null);
         //     Assert.That(result.MBool, Is.EqualTo(false));
         //     Assert.That(result.MString, Is.EqualTo("foo"));
         // }
@@ -133,7 +133,7 @@ namespace IceRpc.Tests.Slice
         //     void CheckException(TaggedException ex)
         //     {
         //         Assert.That(ex.MBool, Is.EqualTo(false));
-        //         Assert.That(ex.MInt, Is.Null);
+        //         Assert.That(ex.MInt32, Is.Null);
         //         Assert.That(ex.MString, Is.EqualTo("foo"));
         //         Assert.That(ex.MStruct, Is.Not.Null);
         //         Assert.That(ex.MStruct.Value, Is.EqualTo(ts));
@@ -172,7 +172,7 @@ namespace IceRpc.Tests.Slice
             TaggedExceptionStruct? p3,
             Dispatch dispatch,
             CancellationToken cancel) => throw new DerivedException(mStruct: p3,
-                                                                    mInt: p1,
+                                                                    mInt32: p1,
                                                                     mBool: false,
                                                                     mString: p2,
                                                                     mString1: p2,
@@ -185,7 +185,7 @@ namespace IceRpc.Tests.Slice
             Dispatch dispatch,
             CancellationToken cancel) =>
             throw new RequiredException(mStruct: p3,
-                                        mInt: p1,
+                                        mInt32: p1,
                                         mBool: false,
                                         mString: p2,
                                         mString1: p2 ?? "test",
@@ -197,7 +197,7 @@ namespace IceRpc.Tests.Slice
             TaggedExceptionStruct? p3,
             Dispatch dispatch,
             CancellationToken cancel) => throw new TaggedException(mStruct: p3,
-                                                                   mInt: p1,
+                                                                   mInt32: p1,
                                                                    mBool: false,
                                                                    mString: p2);
     }

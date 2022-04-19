@@ -14,7 +14,7 @@ class MultiTagged
     mUInt8: tag(1) uint8?,
     mBool: tag(2) bool?,
     mInt16: tag(3) int16?,
-    mInt: tag(4) int32?,
+    mInt32: tag(4) int32?,
     mInt64: tag(5) int64?,
     mFloat32: tag(6) float32?,
     mFloat64: tag(7) float64?,
