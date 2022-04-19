@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace IceRpc.Tests;
 
 [Timeout(30000)]
-public class ConnectionTests
+public class ConnectionOptionsTests
 {
     [Test]
     public void Connection_Options_ArgumentException()
