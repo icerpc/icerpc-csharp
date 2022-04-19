@@ -341,7 +341,7 @@ namespace IceRpc.Slice
         /// </returns>
         public static int GetVarUInt62EncodedSize(ulong value) => 1 << GetVarUInt62EncodedSizeExponent(value);
 
-        /// <summary>Encodes a ulong as a Slice varuint62 into a span of bytes using a fixed number of bytes. </summary>
+        /// <summary>Encodes a ulong as a Slice varuint62 into a span of bytes using a fixed number of bytes.</summary>
         /// <param name="value">The value to encode.</param>
         /// <param name="into">The destination byte buffer, which must be 1, 2, 4 or 8 bytes long.</param>
         public static void EncodeVarUInt62(ulong value, Span<byte> into)
