@@ -30,7 +30,7 @@ namespace IceRpc.Tests.Slice
         {
             int size = 100;
             await TestOptionalSeqAsync(
-                (p1, p2) => _prx.OpOptionalByteSeqAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalUInt8SeqAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (byte?)i : null).ToArray(),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (byte?)i : null).ToArray());
 
@@ -40,62 +40,62 @@ namespace IceRpc.Tests.Slice
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (bool?)false : null).ToArray());
 
             await TestOptionalSeqAsync(
-                (p1, p2) => _prx.OpOptionalShortSeqAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalInt16SeqAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (short?)i : null).ToArray(),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (short?)i : null).ToArray());
 
             await TestOptionalSeqAsync(
-                (p1, p2) => _prx.OpOptionalUShortSeqAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalUInt16SeqAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (ushort?)i : null).ToArray(),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (ushort?)i : null).ToArray());
 
             await TestOptionalSeqAsync(
-                (p1, p2) => _prx.OpOptionalIntSeqAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalInt32SeqAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (int?)i : null).ToArray(),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (int?)i : null).ToArray());
 
             await TestOptionalSeqAsync(
-                (p1, p2) => _prx.OpOptionalVarIntSeqAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalVarInt32SeqAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (int?)i : null).ToArray(),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (int?)i : null).ToArray());
 
             await TestOptionalSeqAsync(
-                (p1, p2) => _prx.OpOptionalUIntSeqAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalUInt32SeqAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (uint?)i : null).ToArray(),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (uint?)i : null).ToArray());
 
             await TestOptionalSeqAsync(
-                (p1, p2) => _prx.OpOptionalVarUIntSeqAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalVarUInt32SeqAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (uint?)i : null).ToArray(),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (uint?)i : null).ToArray());
 
             await TestOptionalSeqAsync(
-                (p1, p2) => _prx.OpOptionalLongSeqAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalInt64SeqAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (long?)i : null).ToArray(),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (long?)i : null).ToArray());
 
             await TestOptionalSeqAsync(
-                (p1, p2) => _prx.OpOptionalVarLongSeqAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalVarInt62SeqAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (long?)i : null).ToArray(),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (long?)i : null).ToArray());
 
             await TestOptionalSeqAsync(
-                (p1, p2) => _prx.OpOptionalULongSeqAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalUInt64SeqAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (ulong?)i : null).ToArray(),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (ulong?)i : null).ToArray());
 
             await TestOptionalSeqAsync(
-                (p1, p2) => _prx.OpOptionalVarULongSeqAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalVarUInt62SeqAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (ulong?)i : null).ToArray(),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (ulong?)i : null).ToArray());
 
             await TestOptionalSeqAsync(
-                (p1, p2) => _prx.OpOptionalFloatSeqAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalFloat32SeqAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (float?)i : null).ToArray(),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (float?)i : null).ToArray());
 
             await TestOptionalSeqAsync(
-                (p1, p2) => _prx.OpOptionalDoubleSeqAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalFloat64SeqAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (double?)i : null).ToArray(),
                 Enumerable.Range(0, size).Select(i => i % 2 == 0 ? (double?)i : null).ToArray());
 
@@ -152,7 +152,7 @@ namespace IceRpc.Tests.Slice
         {
             // Optional builtin type sequences
 
-            public ValueTask<(IEnumerable<byte?> R1, IEnumerable<byte?> R2)> OpOptionalByteSeqAsync(
+            public ValueTask<(IEnumerable<byte?> R1, IEnumerable<byte?> R2)> OpOptionalUInt8SeqAsync(
                 byte?[] p1,
                 byte?[] p2,
                 Dispatch dispatch,
@@ -164,73 +164,73 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<short?> R1, IEnumerable<short?> R2)> OpOptionalShortSeqAsync(
+            public ValueTask<(IEnumerable<short?> R1, IEnumerable<short?> R2)> OpOptionalInt16SeqAsync(
                 short?[] p1,
                 short?[] p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<ushort?> R1, IEnumerable<ushort?> R2)> OpOptionalUShortSeqAsync(
+            public ValueTask<(IEnumerable<ushort?> R1, IEnumerable<ushort?> R2)> OpOptionalUInt16SeqAsync(
                 ushort?[] p1,
                 ushort?[] p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<int?> R1, IEnumerable<int?> R2)> OpOptionalIntSeqAsync(
+            public ValueTask<(IEnumerable<int?> R1, IEnumerable<int?> R2)> OpOptionalInt32SeqAsync(
                 int?[] p1,
                 int?[] p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<int?> R1, IEnumerable<int?> R2)> OpOptionalVarIntSeqAsync(
+            public ValueTask<(IEnumerable<int?> R1, IEnumerable<int?> R2)> OpOptionalVarInt32SeqAsync(
                 int?[] p1,
                 int?[] p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<uint?> R1, IEnumerable<uint?> R2)> OpOptionalUIntSeqAsync(
+            public ValueTask<(IEnumerable<uint?> R1, IEnumerable<uint?> R2)> OpOptionalUInt32SeqAsync(
                 uint?[] p1,
                 uint?[] p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<uint?> R1, IEnumerable<uint?> R2)> OpOptionalVarUIntSeqAsync(
+            public ValueTask<(IEnumerable<uint?> R1, IEnumerable<uint?> R2)> OpOptionalVarUInt32SeqAsync(
                 uint?[] p1,
                 uint?[] p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<long?> R1, IEnumerable<long?> R2)> OpOptionalLongSeqAsync(
+            public ValueTask<(IEnumerable<long?> R1, IEnumerable<long?> R2)> OpOptionalInt64SeqAsync(
                 long?[] p1,
                 long?[] p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<long?> R1, IEnumerable<long?> R2)> OpOptionalVarLongSeqAsync(
+            public ValueTask<(IEnumerable<long?> R1, IEnumerable<long?> R2)> OpOptionalVarInt62SeqAsync(
                 long?[] p1,
                 long?[] p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<ulong?> R1, IEnumerable<ulong?> R2)> OpOptionalULongSeqAsync(
+            public ValueTask<(IEnumerable<ulong?> R1, IEnumerable<ulong?> R2)> OpOptionalUInt64SeqAsync(
                 ulong?[] p1,
                 ulong?[] p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<ulong?> R1, IEnumerable<ulong?> R2)> OpOptionalVarULongSeqAsync(
+            public ValueTask<(IEnumerable<ulong?> R1, IEnumerable<ulong?> R2)> OpOptionalVarUInt62SeqAsync(
                 ulong?[] p1,
                 ulong?[] p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<float?> R1, IEnumerable<float?> R2)> OpOptionalFloatSeqAsync(
+            public ValueTask<(IEnumerable<float?> R1, IEnumerable<float?> R2)> OpOptionalFloat32SeqAsync(
                 float?[] p1,
                 float?[] p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<double?> R1, IEnumerable<double?> R2)> OpOptionalDoubleSeqAsync(
+            public ValueTask<(IEnumerable<double?> R1, IEnumerable<double?> R2)> OpOptionalFloat64SeqAsync(
                 double?[] p1,
                 double?[] p2,
                 Dispatch dispatch,

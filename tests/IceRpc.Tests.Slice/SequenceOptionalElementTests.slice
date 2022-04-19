@@ -2,20 +2,20 @@
 
 module IceRpc::Tests::Slice;
 
-typealias OptionalByteSeq = sequence<uint8?>;
+typealias OptionalUInt8Seq = sequence<uint8?>;
 typealias OptionalBoolSeq = sequence<bool?>;
-typealias OptionalShortSeq = sequence<int16?>;
-typealias OptionalUShortSeq = sequence<uint16?>;
-typealias OptionalIntSeq = sequence<int32?>;
-typealias OptionalVarIntSeq = sequence<varint32?>;
-typealias OptionalUIntSeq = sequence<uint32?>;
-typealias OptionalVarUIntSeq = sequence<varuint32?>;
-typealias OptionalLongSeq = sequence<int64?>;
-typealias OptionalVarLongSeq = sequence<varint62?>;
-typealias OptionalULongSeq = sequence<uint64?>;
-typealias OptionalVarULongSeq = sequence<varuint62?>;
-typealias OptionalFloatSeq = sequence<float32?>;
-typealias OptionalDoubleSeq = sequence<float64?>;
+typealias OptionalInt16Seq = sequence<int16?>;
+typealias OptionalUInt16Seq = sequence<uint16?>;
+typealias OptionalInt32Seq = sequence<int32?>;
+typealias OptionalVarInt32Seq = sequence<varint32?>;
+typealias OptionalUInt32Seq = sequence<uint32?>;
+typealias OptionalVarUInt32Seq = sequence<varuint32?>;
+typealias OptionalInt64Seq = sequence<int64?>;
+typealias OptionalVarInt62Seq = sequence<varint62?>;
+typealias OptionalUInt64Seq = sequence<uint64?>;
+typealias OptionalVarUInt62Seq = sequence<varuint62?>;
+typealias OptionalFloat32Seq = sequence<float32?>;
+typealias OptionalFloat64Seq = sequence<float64?>;
 typealias OptionalStringSeq = sequence<string?>;
 
 typealias OptionalMyEnumSeq = sequence<MyEnum?>;
@@ -29,40 +29,40 @@ typealias OptionalAnotherCompactStructSeq = sequence<AnotherCompactStruct?>;
 interface SequenceOptionalElementOperations
 {
     // Optional builtin types sequences
-    opOptionalByteSeq(p1: OptionalByteSeq, p2: OptionalByteSeq) -> (r1: OptionalByteSeq, r2: OptionalByteSeq);
+    opOptionalUInt8Seq(p1: OptionalUInt8Seq, p2: OptionalUInt8Seq) -> (r1: OptionalUInt8Seq, r2: OptionalUInt8Seq);
     opOptionalBoolSeq(p1: OptionalBoolSeq, p2: OptionalBoolSeq) -> (r1: OptionalBoolSeq, r2: OptionalBoolSeq);
-    opOptionalShortSeq(p1: OptionalShortSeq, p2: OptionalShortSeq) -> (r1: OptionalShortSeq, r2: OptionalShortSeq);
-    opOptionalUShortSeq(p1: OptionalUShortSeq, p2: OptionalUShortSeq) -> (
-        r1: OptionalUShortSeq,
-        r2: OptionalUShortSeq,
+    opOptionalInt16Seq(p1: OptionalInt16Seq, p2: OptionalInt16Seq) -> (r1: OptionalInt16Seq, r2: OptionalInt16Seq);
+    opOptionalUInt16Seq(p1: OptionalUInt16Seq, p2: OptionalUInt16Seq) -> (
+        r1: OptionalUInt16Seq,
+        r2: OptionalUInt16Seq,
     );
-    opOptionalIntSeq(p1: OptionalIntSeq, p2: OptionalIntSeq) -> (r1: OptionalIntSeq, r2: OptionalIntSeq);
-    opOptionalVarIntSeq(p1: OptionalVarIntSeq, p2: OptionalVarIntSeq) -> (
-        r1: OptionalVarIntSeq,
-        r2: OptionalVarIntSeq,
+    opOptionalInt32Seq(p1: OptionalInt32Seq, p2: OptionalInt32Seq) -> (r1: OptionalInt32Seq, r2: OptionalInt32Seq);
+    opOptionalVarInt32Seq(p1: OptionalVarInt32Seq, p2: OptionalVarInt32Seq) -> (
+        r1: OptionalVarInt32Seq,
+        r2: OptionalVarInt32Seq,
     );
-    opOptionalUIntSeq(p1: OptionalUIntSeq, p2: OptionalUIntSeq) -> (r1: OptionalUIntSeq, r2: OptionalUIntSeq);
-    opOptionalVarUIntSeq(p1: OptionalVarUIntSeq, p2: OptionalVarUIntSeq) -> (
-        r1: OptionalVarUIntSeq,
-        r2: OptionalVarUIntSeq,
+    opOptionalUInt32Seq(p1: OptionalUInt32Seq, p2: OptionalUInt32Seq) -> (r1: OptionalUInt32Seq, r2: OptionalUInt32Seq);
+    opOptionalVarUInt32Seq(p1: OptionalVarUInt32Seq, p2: OptionalVarUInt32Seq) -> (
+        r1: OptionalVarUInt32Seq,
+        r2: OptionalVarUInt32Seq,
     );
-    opOptionalLongSeq(p1: OptionalLongSeq, p2: OptionalLongSeq) -> (r1: OptionalLongSeq, r2: OptionalLongSeq);
-    opOptionalVarLongSeq(p1: OptionalVarLongSeq, p2: OptionalVarLongSeq) -> (
-        r1: OptionalVarLongSeq,
-        r2: OptionalVarLongSeq,
+    opOptionalInt64Seq(p1: OptionalInt64Seq, p2: OptionalInt64Seq) -> (r1: OptionalInt64Seq, r2: OptionalInt64Seq);
+    opOptionalVarInt62Seq(p1: OptionalVarInt62Seq, p2: OptionalVarInt62Seq) -> (
+        r1: OptionalVarInt62Seq,
+        r2: OptionalVarInt62Seq,
     );
-    opOptionalULongSeq(p1: OptionalULongSeq, p2: OptionalULongSeq) -> (
-        r1: OptionalULongSeq,
-        r2: OptionalULongSeq,
+    opOptionalUInt64Seq(p1: OptionalUInt64Seq, p2: OptionalUInt64Seq) -> (
+        r1: OptionalUInt64Seq,
+        r2: OptionalUInt64Seq,
     );
-    opOptionalVarULongSeq(p1: OptionalVarULongSeq, p2: OptionalVarULongSeq) -> (
-        r1: OptionalVarULongSeq,
-        r2: OptionalVarULongSeq,
+    opOptionalVarUInt62Seq(p1: OptionalVarUInt62Seq, p2: OptionalVarUInt62Seq) -> (
+        r1: OptionalVarUInt62Seq,
+        r2: OptionalVarUInt62Seq,
     );
-    opOptionalFloatSeq(p1: OptionalFloatSeq, p2: OptionalFloatSeq) -> (r1: OptionalFloatSeq, r2: OptionalFloatSeq);
-    opOptionalDoubleSeq(p1: OptionalDoubleSeq, p2: OptionalDoubleSeq) -> (
-        r1: OptionalDoubleSeq,
-        r2: OptionalDoubleSeq,
+    opOptionalFloat32Seq(p1: OptionalFloat32Seq, p2: OptionalFloat32Seq) -> (r1: OptionalFloat32Seq, r2: OptionalFloat32Seq);
+    opOptionalFloat64Seq(p1: OptionalFloat64Seq, p2: OptionalFloat64Seq) -> (
+        r1: OptionalFloat64Seq,
+        r2: OptionalFloat64Seq,
     );
     opOptionalStringSeq(p1: OptionalStringSeq, p2: OptionalStringSeq) -> (
         r1: OptionalStringSeq,

@@ -30,26 +30,26 @@ interface OperationTagDouble
         r2: tag(2) AnotherCompactStruct?,
     );
 
-    opUInt8Seq(p1: tag(1) ByteSeq?) -> (r1: tag(1) ByteSeq?, r2: tag(2) ByteSeq?);
-    opUInt8List(p1: tag(1) ByteList?) -> (r1: tag(1) ByteList?, r2: tag(2) ByteList?);
+    opUInt8Seq(p1: tag(1) UInt8Seq?) -> (r1: tag(1) UInt8Seq?, r2: tag(2) UInt8Seq?);
+    opUInt8List(p1: tag(1) UInt8List?) -> (r1: tag(1) UInt8List?, r2: tag(2) UInt8List?);
 
     opBoolSeq(p1: tag(1) BoolSeq?) -> (r1: tag(1) BoolSeq?, r2: tag(2) BoolSeq?);
     opBoolList(p1: tag(1) BoolList?) -> (r1: tag(1) BoolList?, r2: tag(2) BoolList?);
 
-    opInt16Seq(p1: tag(1) ShortSeq?) -> (r1: tag(1) ShortSeq?, r2: tag(2) ShortSeq?);
-    opInt16List(p1: tag(1) ShortList?) -> (r1: tag(1) ShortList?, r2: tag(2) ShortList?);
+    opInt16Seq(p1: tag(1) Int16Seq?) -> (r1: tag(1) Int16Seq?, r2: tag(2) Int16Seq?);
+    opInt16List(p1: tag(1) Int16List?) -> (r1: tag(1) Int16List?, r2: tag(2) Int16List?);
 
-    opInt32Seq(p1: tag(1) IntSeq?) -> (r1: tag(1) IntSeq?, r2: tag(2) IntSeq?);
-    opInt32List(p1: tag(1) IntList?) -> (r1: tag(1) IntList?, r2: tag(2) IntList?);
+    opInt32Seq(p1: tag(1) Int32Seq?) -> (r1: tag(1) Int32Seq?, r2: tag(2) Int32Seq?);
+    opInt32List(p1: tag(1) Int32List?) -> (r1: tag(1) Int32List?, r2: tag(2) Int32List?);
 
-    opInt64Seq(p1: tag(1) LongSeq?) -> (r1: tag(1) LongSeq?, r2: tag(2) LongSeq?);
-    opInt64List(p1: tag(1) LongList?) -> (r1: tag(1) LongList?, r2: tag(2) LongList?);
+    opInt64Seq(p1: tag(1) Int64Seq?) -> (r1: tag(1) Int64Seq?, r2: tag(2) Int64Seq?);
+    opInt64List(p1: tag(1) Int64List?) -> (r1: tag(1) Int64List?, r2: tag(2) Int64List?);
 
-    opFloat32Seq(p1: tag(1) FloatSeq?) -> (r1: tag(1) FloatSeq?, r2: tag(2) FloatSeq?);
-    opFloat32List(p1: tag(1) FloatList?) -> (r1: tag(1) FloatList?, r2: tag(2) FloatList?);
+    opFloat32Seq(p1: tag(1) Float32Seq?) -> (r1: tag(1) Float32Seq?, r2: tag(2) Float32Seq?);
+    opFloat32List(p1: tag(1) Float32List?) -> (r1: tag(1) Float32List?, r2: tag(2) Float32List?);
 
-    opFloat64Seq(p1: tag(1) DoubleSeq?) -> (r1: tag(1) DoubleSeq?, r2: tag(2) DoubleSeq?);
-    opFloat64List(p1: tag(1) DoubleList?) -> (r1: tag(1) DoubleList?, r2: tag(2) DoubleList?);
+    opFloat64Seq(p1: tag(1) Float64Seq?) -> (r1: tag(1) Float64Seq?, r2: tag(2) Float64Seq?);
+    opFloat64List(p1: tag(1) Float64List?) -> (r1: tag(1) Float64List?, r2: tag(2) Float64List?);
 
     opStringSeq(p1: tag(1) StringSeq?) -> (r1: tag(1) StringSeq?, r2: tag(2) StringSeq?);
     opStringList(p1: tag(1) StringList?) -> (r1: tag(1) StringList?, r2: tag(2) StringList?);

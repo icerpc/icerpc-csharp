@@ -54,13 +54,13 @@ namespace IceRpc.Tests.Slice
             var multiOptional = multiOptionalOpt.Value;
             CheckMultiOptionalHasNoValue(multiOptional);
 
-            multiOptional.MByte = 1;
-            multiOptional.MShort = 1;
-            multiOptional.MLong = 1;
-            multiOptional.MDouble = 1.0;
-            multiOptional.MUShort = 1;
-            multiOptional.MULong = 1;
-            multiOptional.MVarLong = 1;
+            multiOptional.MUInt8 = 1;
+            multiOptional.MInt16 = 1;
+            multiOptional.MInt64 = 1;
+            multiOptional.MFloat64 = 1.0;
+            multiOptional.MUInt16 = 1;
+            multiOptional.MUInt64 = 1;
+            multiOptional.MVarInt62 = 1;
             multiOptional.MString = "1";
             multiOptional.MMyEnum = MyEnum.enum1;
             multiOptional.MAnotherCompactStruct = new AnotherCompactStruct(
@@ -77,7 +77,7 @@ namespace IceRpc.Tests.Slice
             {
                 { "key", "value" }
             };
-            multiOptional.MVarIntSeq = new int[] { 1 };
+            multiOptional.MVarInt32Seq = new int[] { 1 };
 
             multiOptional.MUInt8Dict = new Dictionary<byte, byte>() { { 1, 1 } };
             multiOptional.MAnotherCompactStructDict = new Dictionary<string, AnotherCompactStruct>()
@@ -88,37 +88,37 @@ namespace IceRpc.Tests.Slice
             MultiOptional? multiOptional1Opt = await _prx.PingPongMultiAsync(multiOptional);
             Assert.That(multiOptional1Opt, Is.Not.Null);
             var multiOptional1 = multiOptional1Opt.Value;
-            Assert.That(multiOptional1.MByte, Is.EqualTo(multiOptional.MByte));
+            Assert.That(multiOptional1.MUInt8, Is.EqualTo(multiOptional.MUInt8));
             Assert.That(multiOptional1.MBool, Is.EqualTo(multiOptional.MBool));
-            Assert.That(multiOptional1.MShort, Is.EqualTo(multiOptional.MShort));
-            Assert.That(multiOptional1.MInt, Is.EqualTo(multiOptional.MInt));
-            Assert.That(multiOptional1.MLong, Is.EqualTo(multiOptional.MLong));
-            Assert.That(multiOptional1.MFloat, Is.EqualTo(multiOptional.MFloat));
-            Assert.That(multiOptional1.MDouble, Is.EqualTo(multiOptional.MDouble));
-            Assert.That(multiOptional1.MUShort, Is.EqualTo(multiOptional.MUShort));
-            Assert.That(multiOptional1.MUInt, Is.EqualTo(multiOptional.MUInt));
-            Assert.That(multiOptional1.MULong, Is.EqualTo(multiOptional.MULong));
-            Assert.That(multiOptional1.MVarInt, Is.EqualTo(multiOptional.MVarInt));
-            Assert.That(multiOptional1.MVarLong, Is.EqualTo(multiOptional.MVarLong));
-            Assert.That(multiOptional1.MVarUInt, Is.EqualTo(multiOptional.MVarUInt));
-            Assert.That(multiOptional1.MVarULong, Is.EqualTo(multiOptional.MVarULong));
+            Assert.That(multiOptional1.MInt16, Is.EqualTo(multiOptional.MInt16));
+            Assert.That(multiOptional1.MInt32, Is.EqualTo(multiOptional.MInt32));
+            Assert.That(multiOptional1.MInt64, Is.EqualTo(multiOptional.MInt64));
+            Assert.That(multiOptional1.MFloat32, Is.EqualTo(multiOptional.MFloat32));
+            Assert.That(multiOptional1.MFloat64, Is.EqualTo(multiOptional.MFloat64));
+            Assert.That(multiOptional1.MUInt16, Is.EqualTo(multiOptional.MUInt16));
+            Assert.That(multiOptional1.MUInt32, Is.EqualTo(multiOptional.MUInt32));
+            Assert.That(multiOptional1.MUInt64, Is.EqualTo(multiOptional.MUInt64));
+            Assert.That(multiOptional1.MVarInt32, Is.EqualTo(multiOptional.MVarInt32));
+            Assert.That(multiOptional1.MVarInt62, Is.EqualTo(multiOptional.MVarInt62));
+            Assert.That(multiOptional1.MVarUInt32, Is.EqualTo(multiOptional.MVarUInt32));
+            Assert.That(multiOptional1.MVarUInt62, Is.EqualTo(multiOptional.MVarUInt62));
             Assert.That(multiOptional1.MString, Is.EqualTo(multiOptional.MString));
             Assert.That(multiOptional1.MMyEnum, Is.EqualTo(multiOptional.MMyEnum));
             Assert.That(multiOptional1.MMyCompactStruct, Is.EqualTo(multiOptional.MMyCompactStruct));
             Assert.That(multiOptional1.MAnotherCompactStruct, Is.EqualTo(multiOptional.MAnotherCompactStruct));
 
-            Assert.That(multiOptional1.MByteSeq, Is.Null);
+            Assert.That(multiOptional1.MUInt8Seq, Is.Null);
             Assert.That(multiOptional1.MStringSeq, Is.EqualTo(multiOptional.MStringSeq));
-            Assert.That(multiOptional1.MShortSeq, Is.Null);
+            Assert.That(multiOptional1.MInt16Seq, Is.Null);
             Assert.That(multiOptional1.MMyEnumSeq, Is.EqualTo(multiOptional.MMyEnumSeq));
             Assert.That(multiOptional1.MMyCompactStructSeq, Is.Null);
             Assert.That(multiOptional1.MAnotherCompactStructSeq, Is.EqualTo(multiOptional.MAnotherCompactStructSeq));
 
             Assert.That(multiOptional1.MInt32Dict, Is.Null);
             Assert.That(multiOptional1.MStringDict, Is.EqualTo(multiOptional.MStringDict));
-            Assert.That(multiOptional1.MUShortSeq, Is.Null);
-            Assert.That(multiOptional1.MVarULongSeq, Is.Null);
-            Assert.That(multiOptional1.MVarIntSeq, Is.EqualTo(multiOptional.MVarIntSeq));
+            Assert.That(multiOptional1.MUInt16Seq, Is.Null);
+            Assert.That(multiOptional1.MVarUInt62Seq, Is.Null);
+            Assert.That(multiOptional1.MVarInt32Seq, Is.EqualTo(multiOptional.MVarInt32Seq));
 
             Assert.That(multiOptional1.MUInt8Dict, Is.EqualTo(multiOptional.MUInt8Dict));
             Assert.That(multiOptional1.MMyCompactStructDict, Is.Null);
@@ -126,22 +126,22 @@ namespace IceRpc.Tests.Slice
 
             multiOptional = new MultiOptional();
             multiOptional.MBool = true;
-            multiOptional.MInt = 1;
-            multiOptional.MFloat = 1;
-            multiOptional.MUShort = 1;
-            multiOptional.MULong = 1;
-            multiOptional.MVarLong = 1;
-            multiOptional.MVarULong = 1;
+            multiOptional.MInt32 = 1;
+            multiOptional.MFloat32 = 1;
+            multiOptional.MUInt16 = 1;
+            multiOptional.MUInt64 = 1;
+            multiOptional.MVarInt62 = 1;
+            multiOptional.MVarUInt62 = 1;
             multiOptional.MMyEnum = MyEnum.enum1;
             multiOptional.MMyCompactStruct = new MyCompactStruct(1, 1);
 
-            multiOptional.MByteSeq = new byte[] { 1 };
-            multiOptional.MShortSeq = new short[] { 1 };
+            multiOptional.MUInt8Seq = new byte[] { 1 };
+            multiOptional.MInt16Seq = new short[] { 1 };
             multiOptional.MMyCompactStructSeq = new MyCompactStruct[] { new MyCompactStruct(1, 1) };
 
             multiOptional.MInt32Dict = new Dictionary<int, int> { { 1, 1 } };
-            multiOptional.MUShortSeq = new ushort[] { 1 };
-            multiOptional.MVarIntSeq = new int[] { 1 };
+            multiOptional.MUInt16Seq = new ushort[] { 1 };
+            multiOptional.MVarInt32Seq = new int[] { 1 };
             multiOptional.MMyCompactStructDict = new Dictionary<MyCompactStruct, MyCompactStruct>()
             {
                 { new MyCompactStruct(1, 1), new MyCompactStruct(1, 1) }
@@ -150,37 +150,37 @@ namespace IceRpc.Tests.Slice
             multiOptional1Opt = await _prx.PingPongMultiAsync(multiOptional);
             Assert.That(multiOptional1Opt, Is.Not.Null);
             multiOptional1 = multiOptional1Opt.Value;
-            Assert.That(multiOptional1.MByte, Is.EqualTo(multiOptional.MByte));
+            Assert.That(multiOptional1.MUInt8, Is.EqualTo(multiOptional.MUInt8));
             Assert.That(multiOptional1.MBool, Is.EqualTo(multiOptional.MBool));
-            Assert.That(multiOptional1.MShort, Is.EqualTo(multiOptional.MShort));
-            Assert.That(multiOptional1.MInt, Is.EqualTo(multiOptional.MInt));
-            Assert.That(multiOptional1.MLong, Is.EqualTo(multiOptional.MLong));
-            Assert.That(multiOptional1.MFloat, Is.EqualTo(multiOptional.MFloat));
-            Assert.That(multiOptional1.MDouble, Is.EqualTo(multiOptional.MDouble));
-            Assert.That(multiOptional1.MUShort, Is.EqualTo(multiOptional.MUShort));
-            Assert.That(multiOptional1.MUInt, Is.EqualTo(multiOptional.MUInt));
-            Assert.That(multiOptional1.MULong, Is.EqualTo(multiOptional.MULong));
-            Assert.That(multiOptional1.MVarInt, Is.EqualTo(multiOptional.MVarInt));
-            Assert.That(multiOptional1.MVarLong, Is.EqualTo(multiOptional.MVarLong));
-            Assert.That(multiOptional1.MVarUInt, Is.EqualTo(multiOptional.MVarUInt));
-            Assert.That(multiOptional1.MVarULong, Is.EqualTo(multiOptional.MVarULong));
+            Assert.That(multiOptional1.MInt16, Is.EqualTo(multiOptional.MInt16));
+            Assert.That(multiOptional1.MInt32, Is.EqualTo(multiOptional.MInt32));
+            Assert.That(multiOptional1.MInt64, Is.EqualTo(multiOptional.MInt64));
+            Assert.That(multiOptional1.MFloat32, Is.EqualTo(multiOptional.MFloat32));
+            Assert.That(multiOptional1.MFloat64, Is.EqualTo(multiOptional.MFloat64));
+            Assert.That(multiOptional1.MUInt16, Is.EqualTo(multiOptional.MUInt16));
+            Assert.That(multiOptional1.MUInt32, Is.EqualTo(multiOptional.MUInt32));
+            Assert.That(multiOptional1.MUInt64, Is.EqualTo(multiOptional.MUInt64));
+            Assert.That(multiOptional1.MVarInt32, Is.EqualTo(multiOptional.MVarInt32));
+            Assert.That(multiOptional1.MVarInt62, Is.EqualTo(multiOptional.MVarInt62));
+            Assert.That(multiOptional1.MVarUInt32, Is.EqualTo(multiOptional.MVarUInt32));
+            Assert.That(multiOptional1.MVarUInt62, Is.EqualTo(multiOptional.MVarUInt62));
             Assert.That(multiOptional1.MString, Is.EqualTo(multiOptional.MString));
             Assert.That(multiOptional1.MMyEnum, Is.EqualTo(multiOptional.MMyEnum));
             Assert.That(multiOptional1.MMyCompactStruct, Is.EqualTo(multiOptional.MMyCompactStruct));
             Assert.That(multiOptional1.MAnotherCompactStruct, Is.EqualTo(multiOptional.MAnotherCompactStruct));
 
-            Assert.That(multiOptional1.MByteSeq, Is.EqualTo(multiOptional.MByteSeq));
+            Assert.That(multiOptional1.MUInt8Seq, Is.EqualTo(multiOptional.MUInt8Seq));
             Assert.That(multiOptional1.MStringSeq, Is.Null);
-            Assert.That(multiOptional1.MShortSeq, Is.EqualTo(multiOptional.MShortSeq));
+            Assert.That(multiOptional1.MInt16Seq, Is.EqualTo(multiOptional.MInt16Seq));
             Assert.That(multiOptional1.MMyEnumSeq, Is.Null);
             Assert.That(multiOptional1.MMyCompactStructSeq, Is.EqualTo(multiOptional.MMyCompactStructSeq));
             Assert.That(multiOptional1.MAnotherCompactStructSeq, Is.Null);
 
             Assert.That(multiOptional1.MInt32Dict, Is.EqualTo(multiOptional.MInt32Dict));
             Assert.That(multiOptional1.MStringDict, Is.Null);
-            Assert.That(multiOptional1.MUShortSeq, Is.EqualTo(multiOptional.MUShortSeq));
-            Assert.That(multiOptional1.MVarULongSeq, Is.Null);
-            Assert.That(multiOptional1.MVarIntSeq, Is.EqualTo(multiOptional.MVarIntSeq));
+            Assert.That(multiOptional1.MUInt16Seq, Is.EqualTo(multiOptional.MUInt16Seq));
+            Assert.That(multiOptional1.MVarUInt62Seq, Is.Null);
+            Assert.That(multiOptional1.MVarInt32Seq, Is.EqualTo(multiOptional.MVarInt32Seq));
 
             Assert.That(multiOptional1.MUInt8Dict, Is.Null);
             Assert.That(multiOptional1.MMyCompactStructDict, Is.EqualTo(multiOptional.MMyCompactStructDict));
@@ -577,37 +577,37 @@ namespace IceRpc.Tests.Slice
 
         private static void CheckMultiOptionalHasNoValue(MultiOptional multiOptional)
         {
-            Assert.That(multiOptional.MByte.HasValue, Is.False);
+            Assert.That(multiOptional.MUInt8.HasValue, Is.False);
             Assert.That(multiOptional.MBool.HasValue, Is.False);
-            Assert.That(multiOptional.MShort.HasValue, Is.False);
-            Assert.That(multiOptional.MInt.HasValue, Is.False);
-            Assert.That(multiOptional.MLong.HasValue, Is.False);
-            Assert.That(multiOptional.MFloat.HasValue, Is.False);
-            Assert.That(multiOptional.MDouble.HasValue, Is.False);
-            Assert.That(multiOptional.MUShort.HasValue, Is.False);
-            Assert.That(multiOptional.MUInt.HasValue, Is.False);
-            Assert.That(multiOptional.MULong.HasValue, Is.False);
-            Assert.That(multiOptional.MVarInt.HasValue, Is.False);
-            Assert.That(multiOptional.MVarLong.HasValue, Is.False);
-            Assert.That(multiOptional.MVarUInt.HasValue, Is.False);
-            Assert.That(multiOptional.MVarULong.HasValue, Is.False);
+            Assert.That(multiOptional.MInt16.HasValue, Is.False);
+            Assert.That(multiOptional.MInt32.HasValue, Is.False);
+            Assert.That(multiOptional.MInt64.HasValue, Is.False);
+            Assert.That(multiOptional.MFloat32.HasValue, Is.False);
+            Assert.That(multiOptional.MFloat64.HasValue, Is.False);
+            Assert.That(multiOptional.MUInt16.HasValue, Is.False);
+            Assert.That(multiOptional.MUInt32.HasValue, Is.False);
+            Assert.That(multiOptional.MUInt64.HasValue, Is.False);
+            Assert.That(multiOptional.MVarInt32.HasValue, Is.False);
+            Assert.That(multiOptional.MVarInt62.HasValue, Is.False);
+            Assert.That(multiOptional.MVarUInt32.HasValue, Is.False);
+            Assert.That(multiOptional.MVarUInt62.HasValue, Is.False);
             Assert.That(multiOptional.MString, Is.Null);
             Assert.That(multiOptional.MMyEnum.HasValue, Is.False);
             Assert.That(multiOptional.MMyCompactStruct.HasValue, Is.False);
             Assert.That(multiOptional.MAnotherCompactStruct.HasValue, Is.False);
 
-            Assert.That(multiOptional.MByteSeq, Is.Null);
+            Assert.That(multiOptional.MUInt8Seq, Is.Null);
             Assert.That(multiOptional.MStringSeq, Is.Null);
-            Assert.That(multiOptional.MShortSeq, Is.Null);
+            Assert.That(multiOptional.MInt16Seq, Is.Null);
             Assert.That(multiOptional.MMyEnumSeq, Is.Null);
             Assert.That(multiOptional.MMyCompactStructSeq, Is.Null);
             Assert.That(multiOptional.MAnotherCompactStructSeq, Is.Null);
 
             Assert.That(multiOptional.MInt32Dict, Is.Null);
             Assert.That(multiOptional.MStringDict, Is.Null);
-            Assert.That(multiOptional.MUShortSeq, Is.Null);
-            Assert.That(multiOptional.MVarULongSeq, Is.Null);
-            Assert.That(multiOptional.MVarIntSeq, Is.Null);
+            Assert.That(multiOptional.MUInt16Seq, Is.Null);
+            Assert.That(multiOptional.MVarUInt62Seq, Is.Null);
+            Assert.That(multiOptional.MVarInt32Seq, Is.Null);
 
             Assert.That(multiOptional.MUInt8Dict, Is.Null);
             Assert.That(multiOptional.MMyCompactStructDict, Is.Null);

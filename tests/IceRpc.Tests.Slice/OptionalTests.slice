@@ -9,38 +9,38 @@ compact struct OneOptional
 
 compact struct MultiOptional
 {
-    mByte: uint8?,
+    mUInt8: uint8?,
     mBool: bool?,
-    mShort: int16?,
-    mInt: int32?,
-    mLong: int64?,
-    mFloat: float32?,
-    mDouble: float64?,
-    mUShort: uint16?,
-    mUInt: uint32?,
-    mULong: uint64?,
-    mVarInt: varint32?,
-    mVarLong: varint62?,
-    mVarUInt: varuint32?,
-    mVarULong: varuint62?,
+    mInt16: int16?,
+    mInt32: int32?,
+    mInt64: int64?,
+    mFloat32: float32?,
+    mFloat64: float64?,
+    mUInt16: uint16?,
+    mUInt32: uint32?,
+    mUInt64: uint64?,
+    mVarInt32: varint32?,
+    mVarInt62: varint62?,
+    mVarUInt32: varuint32?,
+    mVarUInt62: varuint62?,
     mString: string?,
 
     mMyEnum: MyEnum?,
     mMyCompactStruct: MyCompactStruct?,
     mAnotherCompactStruct: AnotherCompactStruct?,
 
-    mByteSeq: ByteSeq?,
+    mUInt8Seq: UInt8Seq?,
     mStringSeq: StringSeq?,
-    mShortSeq: ShortSeq?,
+    mInt16Seq: Int16Seq?,
     mMyEnumSeq: MyEnumSeq?,
     mMyCompactStructSeq: MyCompactStructSeq?,
     mAnotherCompactStructSeq: AnotherCompactStructSeq?,
 
     mInt32Dict: Int32Dict?,
     mStringDict: StringDict?,
-    mUShortSeq: UShortSeq?,
-    mVarULongSeq: VarULongSeq?,
-    mVarIntSeq: VarIntSeq?,
+    mUInt16Seq: UInt16Seq?,
+    mVarUInt62Seq: VarUInt62Seq?,
+    mVarInt32Seq: VarInt32Seq?,
 
     mUInt8Dict: UInt8Dict?,
     mMyCompactStructDict: MyCompactStructDict?,
@@ -74,26 +74,26 @@ interface OptionalOperations
 
     opAnotherCompactStruct(p1: AnotherCompactStruct?) -> (r1: AnotherCompactStruct?, r2: AnotherCompactStruct?);
 
-    opUInt8Seq(p1: ByteSeq?) -> (r1: ByteSeq?, r2: ByteSeq?);
-    opUInt8List(p1: ByteList?) -> (r1: ByteList?, r2: ByteList?);
+    opUInt8Seq(p1: UInt8Seq?) -> (r1: UInt8Seq?, r2: UInt8Seq?);
+    opUInt8List(p1: UInt8List?) -> (r1: UInt8List?, r2: UInt8List?);
 
     opBoolSeq(p1: BoolSeq?) -> (r1: BoolSeq?, r2: BoolSeq?);
     opBoolList(p1: BoolList?) -> (r1: BoolList?, r2: BoolList?);
 
-    opInt16Seq(p1: ShortSeq?) -> (r1: ShortSeq?, r2: ShortSeq?);
-    opInt16List(p1: ShortList?) -> (r1: ShortList?, r2: ShortList?);
+    opInt16Seq(p1: Int16Seq?) -> (r1: Int16Seq?, r2: Int16Seq?);
+    opInt16List(p1: Int16List?) -> (r1: Int16List?, r2: Int16List?);
 
-    opInt32Seq(p1: IntSeq?) -> (r1: IntSeq?, r2: IntSeq?);
-    opInt32List(p1: IntList?) -> (r1: IntList?, r2: IntList?);
+    opInt32Seq(p1: Int32Seq?) -> (r1: Int32Seq?, r2: Int32Seq?);
+    opInt32List(p1: Int32List?) -> (r1: Int32List?, r2: Int32List?);
 
-    opInt64Seq(p1: LongSeq?) -> (r1: LongSeq?, r2: LongSeq?);
-    opInt64List(p1: LongList?) -> (r1: LongList?, r2: LongList?);
+    opInt64Seq(p1: Int64Seq?) -> (r1: Int64Seq?, r2: Int64Seq?);
+    opInt64List(p1: Int64List?) -> (r1: Int64List?, r2: Int64List?);
 
-    opFloat32Seq(p1: FloatSeq?) -> (r1: FloatSeq?, r2: FloatSeq?);
-    opFloat32List(p1: FloatList?) -> (r1: FloatList?, r2: FloatList?);
+    opFloat32Seq(p1: Float32Seq?) -> (r1: Float32Seq?, r2: Float32Seq?);
+    opFloat32List(p1: Float32List?) -> (r1: Float32List?, r2: Float32List?);
 
-    opFloat64Seq(p1: DoubleSeq?) -> (r1: DoubleSeq?, r2: DoubleSeq?);
-    opFloat64List(p1: DoubleList?) -> (r1: DoubleList?, r2: DoubleList?);
+    opFloat64Seq(p1: Float64Seq?) -> (r1: Float64Seq?, r2: Float64Seq?);
+    opFloat64List(p1: Float64List?) -> (r1: Float64List?, r2: Float64List?);
 
     opStringSeq(p1: StringSeq?) -> (r1: StringSeq?, r2: StringSeq?);
     opStringList(p1: StringList?) -> (r1: StringList?, r2: StringList?);
