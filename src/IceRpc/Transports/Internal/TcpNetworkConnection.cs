@@ -238,33 +238,15 @@ namespace IceRpc.Transports.Internal
         private readonly SslClientAuthenticationOptions? _authenticationOptions;
 
         private bool _connected;
+
         private readonly TimeSpan _idleTimeout;
 
-        private readonly Endpoint _remoteEndpoint;
         private SslStream? _sslStream;
 
         public override async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
         {
             Debug.Assert(!_connected);
             _connected = true;
-
-            Endpoint remoteEndpoint = _remoteEndpoint;
-
-            SslClientAuthenticationOptions? authenticationOptions = null;
-            if (_authenticationOptions != null)
-            {
-                // Add the endpoint protocol to the SSL application protocols (used by TLS ALPN) and set the
-                // TargetHost to the endpoint host. On the client side, the application doesn't necessarily
-                // need to provide authentication options if it relies on system certificates and doesn't
-                // specific certificate validation so it's fine for _authenticationOptions to be
-                // null.
-                authenticationOptions = _authenticationOptions.Clone();
-                authenticationOptions.TargetHost ??= remoteEndpoint.Host;
-                authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
-                {
-                    new SslApplicationProtocol(remoteEndpoint.Protocol.Name)
-                };
-            }
 
             try
             {
@@ -273,12 +255,12 @@ namespace IceRpc.Transports.Internal
                 // Connect to the peer.
                 await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
 
-                if (authenticationOptions != null)
+                if (_authenticationOptions != null)
                 {
                     // This can only be created with a connected socket.
                     _sslStream = new SslStream(new NetworkStream(Socket, false), false);
                     await _sslStream.AuthenticateAsClientAsync(
-                        authenticationOptions,
+                        _authenticationOptions,
                         cancel).WaitAsync(cancel).ConfigureAwait(false);
                 }
 
@@ -306,22 +288,18 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override bool HasCompatibleParams(Endpoint remoteEndpoint)
-        {
-            _ = TcpClientTransport.ParseEndpointParams(remoteEndpoint); // make sure remoteEndpoint is ok
-            return true;
-        }
+        public override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
+            TcpClientTransport.CheckEndpointParams(remoteEndpoint.Params, out string? remoteEndpointTransport) &&
+                (remoteEndpointTransport != TransportNames.Ssl || _sslStream != null);
 
         internal TcpClientNetworkConnection(
             Endpoint remoteEndpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             TcpClientTransportOptions options)
         {
-            _remoteEndpoint = remoteEndpoint;
-
-            _addr = IPAddress.TryParse(_remoteEndpoint.Host, out IPAddress? ipAddress) ?
-                new IPEndPoint(ipAddress, _remoteEndpoint.Port) :
-                new DnsEndPoint(_remoteEndpoint.Host, _remoteEndpoint.Port);
+            _addr = IPAddress.TryParse(remoteEndpoint.Host, out IPAddress? ipAddress) ?
+                new IPEndPoint(ipAddress, remoteEndpoint.Port) :
+                new DnsEndPoint(remoteEndpoint.Host, remoteEndpoint.Port);
 
             // When using IPv6 address family we use the socket constructor without AddressFamiliy parameter to ensure
             // dual-mode socket are used in platforms that support them.
@@ -353,7 +331,20 @@ namespace IceRpc.Transports.Internal
                 throw new TransportException(ex);
             }
 
-            _authenticationOptions = authenticationOptions;
+            if (authenticationOptions != null)
+            {
+                // Add the endpoint protocol to the SSL application protocols (used by TLS ALPN) and set the
+                // TargetHost to the endpoint host. On the client side, the application doesn't necessarily
+                // need to provide authentication options if it relies on system certificates and doesn't specify
+                // certificate validation.
+                _authenticationOptions = authenticationOptions.Clone();
+                _authenticationOptions.TargetHost ??= remoteEndpoint.Host;
+                _authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
+                {
+                    new SslApplicationProtocol(remoteEndpoint.Protocol.Name)
+                };
+            }
+
             _idleTimeout = options.IdleTimeout;
         }
     }

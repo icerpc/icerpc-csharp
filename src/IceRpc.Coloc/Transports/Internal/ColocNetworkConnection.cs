@@ -51,14 +51,8 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public bool HasCompatibleParams(Endpoint remoteEndpoint)
-        {
-            if (remoteEndpoint.Params.Count > 1)
-            {
-                throw new FormatException($"unknown parameter in endpoint '{remoteEndpoint}'");
-            }
-            return !_isServer;
-        }
+        public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
+            ColocTransport.CheckEndpointParams(remoteEndpoint.Params);
 
         public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {

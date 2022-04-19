@@ -35,17 +35,22 @@ namespace IceRpc.Transports
             // This is the composition root of the tcp server transport, where we install log decorators when logging
             // is enabled.
 
-            string? endpointTransport = TcpClientTransport.ParseEndpointParams(endpoint);
-
-            if (endpointTransport == null)
+            if (TcpClientTransport.CheckEndpointParams(endpoint.Params, out string? endpointTransport))
             {
-                endpoint = endpoint with { Params = endpoint.Params.Add("transport", Name) };
+                if (endpointTransport == null)
+                {
+                    endpoint = endpoint with { Params = endpoint.Params.Add("transport", Name) };
+                }
+                else if (endpointTransport == TransportNames.Ssl && authenticationOptions == null)
+                {
+                    throw new ArgumentNullException(
+                        nameof(authenticationOptions),
+                        $"{nameof(authenticationOptions)} cannot be null with the ssl transport");
+                }
             }
-            else if (endpointTransport == TransportNames.Ssl && authenticationOptions == null)
+            else
             {
-                throw new ArgumentNullException(
-                    nameof(authenticationOptions),
-                    $"{nameof(authenticationOptions)} cannot be null with the ssl transport");
+                throw new FormatException($"cannot create a TCP listener for endpoint '{endpoint}'");
             }
 
             Func<TcpServerNetworkConnection, ISimpleNetworkConnection> serverConnectionDecorator =

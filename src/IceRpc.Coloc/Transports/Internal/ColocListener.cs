@@ -27,9 +27,9 @@ namespace IceRpc.Transports.Internal
 
         internal ColocListener(Endpoint endpoint)
         {
-            if (endpoint.Params.Count > 1)
+           if (!ColocTransport.CheckEndpointParams(endpoint.Params))
             {
-                throw new ArgumentException("unknown endpoint parameter", nameof(endpoint));
+                throw new FormatException($"cannot create a Coloc listener for endpoint '{endpoint}'");
             }
             Endpoint = endpoint;
         }

@@ -42,16 +42,17 @@ namespace IceRpc.Transports
             // This is the composition root of the tcp client transport, where we install log decorators when logging
             // is enabled.
 
-            string? endpointTransport = ParseEndpointParams(remoteEndpoint);
-
-            if (endpointTransport == null)
+            if (CheckEndpointParams(remoteEndpoint.Params, out string? remoteEndpointTransport))
             {
-                remoteEndpoint = remoteEndpoint with { Params = remoteEndpoint.Params.Add("transport", Name) };
+                if (remoteEndpointTransport == TransportNames.Ssl)
+                {
+                    // With ssl, we always "turn on" SSL
+                    authenticationOptions ??= new SslClientAuthenticationOptions();
+                }
             }
-            else if (endpointTransport == TransportNames.Ssl)
+            else
             {
-                // With ssl, we always "turn on" SSL
-                authenticationOptions ??= new SslClientAuthenticationOptions();
+                throw new FormatException($"cannot create a TCP connection to endpoint '{remoteEndpoint}'");
             }
 
             var clientConnection = new TcpClientNetworkConnection(
@@ -61,6 +62,43 @@ namespace IceRpc.Transports
 
             return logger.IsEnabled(TcpLoggerExtensions.MaxLogLevel) ?
                 new LogTcpNetworkConnectionDecorator(clientConnection, logger) : clientConnection;
+        }
+
+        /// <summary>Checks the parameters of a tcp endpoint and returns the value of the transport parameter. The "t"
+        /// and "z" parameters are supported and ignored for compatibility with ZeroC Ice.</summary>
+        /// <returns><c>true</c> when the endpoint parameters are valid; otherwise, <c>false</c>.</returns>
+        internal static bool CheckEndpointParams(
+            ImmutableDictionary<string, string> endpointParams,
+            out string? transportValue)
+        {
+            transportValue = null;
+
+            foreach ((string name, string value) in endpointParams)
+            {
+                switch (name)
+                {
+                    case "transport":
+                        if (value is TransportNames.Tcp or TransportNames.Ssl)
+                        {
+                            transportValue = value;
+                        }
+                        else
+                        {
+                            return false;
+                        }
+                        break;
+
+                    case "t":
+                    case "z":
+                        // we don't check the value since we ignore it
+                        break;
+
+                    default:
+                        return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>Decodes the body of a tcp or ssl ice endpoint encoded using Slice1.</summary>
@@ -108,41 +146,6 @@ namespace IceRpc.Transports
                 DefaultTcpTimeout;
             encoder.EncodeInt32(timeout);
             encoder.EncodeBool(endpoint.Params.ContainsKey("z"));
-        }
-
-        /// <summary>Checks the parameters of a tcp endpoint and returns the value of the transport parameter. The "t"
-        /// and "z" parameters are supported and ignored for compatibility with ZeroC Ice.</summary>
-        /// <returns>The value of the transport parameter, or null if the transport parameter is not set.</returns>
-        /// <exception cref="FormatException">Thrown when an endpoint parameter is unknown or transport has an invalid
-        /// value.</exception>
-        internal static string? ParseEndpointParams(Endpoint endpoint)
-        {
-            string? transportValue = null;
-
-            foreach ((string name, string value) in endpoint.Params)
-            {
-                switch (name)
-                {
-                    case "transport":
-                        transportValue = value switch
-                        {
-                            TransportNames.Tcp or TransportNames.Ssl => value,
-                            _ => throw new FormatException(
-                                $"invalid value for transport parameter in endpoint '{endpoint}'")
-                        };
-                        break;
-
-                    case "t":
-                    case "z":
-                        // we don't check the value since we ignore it
-                        break;
-
-                    default:
-                        throw new FormatException($"unknown parameter '{name}' in endpoint '{endpoint}'");
-                }
-            }
-
-            return transportValue;
         }
     }
 }
