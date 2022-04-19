@@ -102,11 +102,8 @@ public sealed class IceProtocolConnectionTests
 
         workSemaphore.Release(maxConcurrentDispatches + 1);
 
-        Assert.Multiple(async () =>
-        {
-            await Task.WhenAll(responseTasks);
-            Assert.That(maxCount, Is.EqualTo(maxConcurrentDispatches));
-        });
+        await Task.WhenAll(responseTasks);
+        Assert.That(maxCount, Is.EqualTo(maxConcurrentDispatches));
     }
 
     /// <summary>Ensures that the request payload stream is completed even if the Ice protocol doesn't support
@@ -150,11 +147,11 @@ public sealed class IceProtocolConnectionTests
             .UseProtocol(Protocol.Ice)
             .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Server.AcceptRequestsAsync();
+        await using var clientServerProtocolConnection = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        _ = clientServerProtocolConnection.Server.AcceptRequestsAsync();
 
         // Act
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.Ice)));
+        _ = clientServerProtocolConnection.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.Ice)));
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());

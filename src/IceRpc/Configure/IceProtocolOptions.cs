@@ -17,8 +17,8 @@ namespace IceRpc.Configure
         }
 
         /// <summary>Gets or sets the maximum size of an incoming ice frame.</summary>
-        /// <value>The maximum size of an incoming ice frame, in bytes. This value must be between at least 256. The
-        /// default value is 1 MB.</value>
+        /// <value>The maximum size of an incoming ice frame, in bytes. This value must be at least 256. The default
+        /// value is 1 MB.</value>
         public int MaxIncomingFrameSize
         {
             get => _maxIncomingFrameSize;
