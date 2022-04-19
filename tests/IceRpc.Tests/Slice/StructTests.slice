@@ -22,7 +22,7 @@ struct MyStructWithTaggedMembers
     j: int32,
     k: tag(1) int32?,
     l: tag(255) varint32?,
-    l: tag(0) varuint62?,
+    m: tag(0) varuint62?,
 }
 
 compact struct MyCompactStruct
