@@ -28,6 +28,23 @@ public class NumericTypesEncodingTests
         Assert.That(buffer[0..bufferWriter.WrittenMemory.Length], Is.EqualTo(expected));
     }
 
+    /// <summary>Tests the encoding of an sbyte.</summary>
+    /// <param name="value">The sbyte to be encoded.</param>
+    /// <param name="expected">The expected byte array produced from encoding value.</param>
+    [TestCase(sbyte.MinValue, new byte[] { 0x80 })]
+    [TestCase(sbyte.MaxValue, new byte[] { 0x7F })]
+    public void Encode_int8_value(sbyte value, byte[] expected)
+    {
+        var buffer = new byte[256];
+        var bufferWriter = new MemoryBufferWriter(buffer);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+
+        encoder.EncodeInt8(value);
+
+        Assert.That(encoder.EncodedByteCount, Is.EqualTo(sizeof(sbyte)));
+        Assert.That(buffer[0..bufferWriter.WrittenMemory.Length], Is.EqualTo(expected));
+    }
+
     /// <summary>Tests the encoding of a variable size long.</summary>
     /// <param name="value">The long to be encoded.</param>
     /// <param name="expected">The expected byte array produced from encoding value.</param>

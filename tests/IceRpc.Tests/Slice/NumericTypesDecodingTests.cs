@@ -28,6 +28,21 @@ public class NumericTypesDecodingTests
         Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
     }
 
+    /// <summary>Tests the decoding of an int8.</summary>
+    /// <param name="encodedBytes">An encoded byte array to decode.</param>
+    /// <param name="expected">The expected sbyte to be decoded.</param>
+    [TestCase(new byte[] { 0x80 }, sbyte.MinValue)]
+    [TestCase(new byte[] { 0x7F }, sbyte.MaxValue)]
+    public void Decode_int8_value(byte[] encodedBytes, sbyte expected)
+    {
+        var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice2);
+
+        sbyte r1 = sut.DecodeInt8();
+
+        Assert.That(r1, Is.EqualTo(expected));
+        Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
+    }
+
     /// <summary>Tests the decoding of variable size long.</summary>
     /// <param name="encodedBytes">An encoded byte array to decode.</param>
     /// <param name="expected">The expected long to be decoded.</param>

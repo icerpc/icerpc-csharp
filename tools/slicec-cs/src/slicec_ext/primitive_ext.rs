@@ -14,6 +14,7 @@ impl PrimitiveExt for Primitive {
     fn type_suffix(&self) -> &'static str {
         match self {
             Primitive::Bool => "Bool",
+            Primitive::Int8 => "Int8",
             Primitive::UInt8 => "UInt8",
             Primitive::Int16 => "Int16",
             Primitive::UInt16 => "UInt16",
@@ -35,6 +36,7 @@ impl PrimitiveExt for Primitive {
     fn cs_keyword(&self) -> &'static str {
         match self {
             Primitive::Bool => "bool",
+            Primitive::Int8 => "sbyte",
             Primitive::UInt8 => "byte",
             Primitive::Int16 => "short",
             Primitive::UInt16 => "ushort",

@@ -70,6 +70,10 @@ namespace IceRpc.Slice
         /// <param name="v">The float to encode.</param>
         public void EncodeFloat32(float v) => EncodeFixedSizeNumeric(v);
 
+        /// <summary>Encodes an sbyte into a Slice int8.</summary>
+        /// <param name="v">The sbyte to encode.</param>
+        public void EncodeInt8(sbyte v) => EncodeUInt8((byte)v);
+
         /// <summary>Encodes an int into a Slice int32.</summary>
         /// <param name="v">The int to encode.</param>
         public void EncodeInt32(int v) => EncodeFixedSizeNumeric(v);
