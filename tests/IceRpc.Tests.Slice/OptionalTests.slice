@@ -9,13 +9,13 @@ compact struct OneOptional
 
 compact struct MultiOptional
 {
-    mByte: uint8?,
+   mUInt8: uint8?,
     mBool: bool?,
-    mShort: int16?,
+    mInt16: int16?,
     mInt: int32?,
-    mLong: int64?,
-    mFloat: float32?,
-    mDouble: float64?,
+    mInt64: int64?,
+    mFloat32: float32?,
+    mFloat64: float64?,
     mUShort: uint16?,
     mUInt: uint32?,
     mULong: uint64?,

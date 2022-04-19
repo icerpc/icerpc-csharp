@@ -54,10 +54,10 @@ namespace IceRpc.Tests.Slice
             var multiOptional = multiOptionalOpt.Value;
             CheckMultiOptionalHasNoValue(multiOptional);
 
-            multiOptional.MByte = 1;
-            multiOptional.MShort = 1;
-            multiOptional.MLong = 1;
-            multiOptional.MDouble = 1.0;
+            multiOptional.MUInt8 = 1;
+            multiOptional.MInt16 = 1;
+            multiOptional.MInt64 = 1;
+            multiOptional.MFloat64 = 1.0;
             multiOptional.MUShort = 1;
             multiOptional.MULong = 1;
             multiOptional.MVarLong = 1;
@@ -88,13 +88,13 @@ namespace IceRpc.Tests.Slice
             MultiOptional? multiOptional1Opt = await _prx.PingPongMultiAsync(multiOptional);
             Assert.That(multiOptional1Opt, Is.Not.Null);
             var multiOptional1 = multiOptional1Opt.Value;
-            Assert.That(multiOptional1.MByte, Is.EqualTo(multiOptional.MByte));
+            Assert.That(multiOptional1.MUInt8, Is.EqualTo(multiOptional.MUInt8));
             Assert.That(multiOptional1.MBool, Is.EqualTo(multiOptional.MBool));
-            Assert.That(multiOptional1.MShort, Is.EqualTo(multiOptional.MShort));
+            Assert.That(multiOptional1.MInt16, Is.EqualTo(multiOptional.MInt16));
             Assert.That(multiOptional1.MInt, Is.EqualTo(multiOptional.MInt));
-            Assert.That(multiOptional1.MLong, Is.EqualTo(multiOptional.MLong));
-            Assert.That(multiOptional1.MFloat, Is.EqualTo(multiOptional.MFloat));
-            Assert.That(multiOptional1.MDouble, Is.EqualTo(multiOptional.MDouble));
+            Assert.That(multiOptional1.MInt64, Is.EqualTo(multiOptional.MInt64));
+            Assert.That(multiOptional1.MFloat32, Is.EqualTo(multiOptional.MFloat32));
+            Assert.That(multiOptional1.MFloat64, Is.EqualTo(multiOptional.MFloat64));
             Assert.That(multiOptional1.MUShort, Is.EqualTo(multiOptional.MUShort));
             Assert.That(multiOptional1.MUInt, Is.EqualTo(multiOptional.MUInt));
             Assert.That(multiOptional1.MULong, Is.EqualTo(multiOptional.MULong));
@@ -127,7 +127,7 @@ namespace IceRpc.Tests.Slice
             multiOptional = new MultiOptional();
             multiOptional.MBool = true;
             multiOptional.MInt = 1;
-            multiOptional.MFloat = 1;
+            multiOptional.MFloat32 = 1;
             multiOptional.MUShort = 1;
             multiOptional.MULong = 1;
             multiOptional.MVarLong = 1;
@@ -150,13 +150,13 @@ namespace IceRpc.Tests.Slice
             multiOptional1Opt = await _prx.PingPongMultiAsync(multiOptional);
             Assert.That(multiOptional1Opt, Is.Not.Null);
             multiOptional1 = multiOptional1Opt.Value;
-            Assert.That(multiOptional1.MByte, Is.EqualTo(multiOptional.MByte));
+            Assert.That(multiOptional1.MUInt8, Is.EqualTo(multiOptional.MUInt8));
             Assert.That(multiOptional1.MBool, Is.EqualTo(multiOptional.MBool));
-            Assert.That(multiOptional1.MShort, Is.EqualTo(multiOptional.MShort));
+            Assert.That(multiOptional1.MInt16, Is.EqualTo(multiOptional.MInt16));
             Assert.That(multiOptional1.MInt, Is.EqualTo(multiOptional.MInt));
-            Assert.That(multiOptional1.MLong, Is.EqualTo(multiOptional.MLong));
-            Assert.That(multiOptional1.MFloat, Is.EqualTo(multiOptional.MFloat));
-            Assert.That(multiOptional1.MDouble, Is.EqualTo(multiOptional.MDouble));
+            Assert.That(multiOptional1.MInt64, Is.EqualTo(multiOptional.MInt64));
+            Assert.That(multiOptional1.MFloat32, Is.EqualTo(multiOptional.MFloat32));
+            Assert.That(multiOptional1.MFloat64, Is.EqualTo(multiOptional.MFloat64));
             Assert.That(multiOptional1.MUShort, Is.EqualTo(multiOptional.MUShort));
             Assert.That(multiOptional1.MUInt, Is.EqualTo(multiOptional.MUInt));
             Assert.That(multiOptional1.MULong, Is.EqualTo(multiOptional.MULong));
@@ -577,13 +577,13 @@ namespace IceRpc.Tests.Slice
 
         private static void CheckMultiOptionalHasNoValue(MultiOptional multiOptional)
         {
-            Assert.That(multiOptional.MByte.HasValue, Is.False);
+            Assert.That(multiOptional.MUInt8.HasValue, Is.False);
             Assert.That(multiOptional.MBool.HasValue, Is.False);
-            Assert.That(multiOptional.MShort.HasValue, Is.False);
+            Assert.That(multiOptional.MInt16.HasValue, Is.False);
             Assert.That(multiOptional.MInt.HasValue, Is.False);
-            Assert.That(multiOptional.MLong.HasValue, Is.False);
-            Assert.That(multiOptional.MFloat.HasValue, Is.False);
-            Assert.That(multiOptional.MDouble.HasValue, Is.False);
+            Assert.That(multiOptional.MInt64.HasValue, Is.False);
+            Assert.That(multiOptional.MFloat32.HasValue, Is.False);
+            Assert.That(multiOptional.MFloat64.HasValue, Is.False);
             Assert.That(multiOptional.MUShort.HasValue, Is.False);
             Assert.That(multiOptional.MUInt.HasValue, Is.False);
             Assert.That(multiOptional.MULong.HasValue, Is.False);

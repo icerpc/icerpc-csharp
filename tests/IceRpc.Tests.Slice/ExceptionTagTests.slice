@@ -20,7 +20,7 @@ exception TaggedException
 
 exception TaggedExceptionPlus
 {
-    mFloat: tag(3) float32?,
+    mFloat32: tag(3) float32?,
     mStruct: tag(50) TaggedExceptionStruct?,
     mInt: tag(1) int32?,
     mBool: bool,

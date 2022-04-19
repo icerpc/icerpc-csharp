@@ -54,7 +54,7 @@ namespace IceRpc.Tests.Slice
             var pipeline = new Pipeline();
             var prx = new ExceptionTagPrx(_prx with { Invoker = pipeline });
 
-            // We decode TaggedException as a TaggedExceptionPlus using a custom activator and get a null MFloat
+            // We decode TaggedException as a TaggedExceptionPlus using a custom activator and get a null MFloat32
 
             pipeline.UseFeature(new SliceDecodePayloadOptions { Activator = new ActivatorPlus() });
 
@@ -63,7 +63,7 @@ namespace IceRpc.Tests.Slice
             TaggedExceptionPlus ex =
                 Assert.ThrowsAsync<TaggedExceptionPlus>(async () => await prx.ThrowTaggedExceptionAsync(null, "foo", ts));
 
-            Assert.That(ex.MFloat, Is.Null);
+            Assert.That(ex.MFloat32, Is.Null);
 
             Assert.That(ex.MBool, Is.EqualTo(false));
             Assert.That(ex.MInt, Is.Null);

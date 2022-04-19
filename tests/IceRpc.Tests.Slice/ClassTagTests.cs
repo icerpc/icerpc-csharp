@@ -47,10 +47,10 @@ namespace IceRpc.Tests.Slice
             var multiTagged = (MultiTagged)await _prx.PingPongAsync(new MultiTagged());
             CheckMultiTaggedHasNoValue(multiTagged);
 
-            multiTagged.MByte = 1;
-            multiTagged.MShort = 1;
-            multiTagged.MLong = 1;
-            multiTagged.MDouble = 1.0;
+            multiTagged.MUInt8 = 1;
+            multiTagged.MInt16 = 1;
+            multiTagged.MInt64 = 1;
+            multiTagged.MFloat64 = 1.0;
             multiTagged.MString = "1";
             // TODO: These types are Slice2 only. We should either delete these or create our own copy for this test.
             // multiTagged.MMyEnum = MyEnum.enum1;
@@ -77,13 +77,13 @@ namespace IceRpc.Tests.Slice
             // };
 
             var multiTagged1 = (MultiTagged)await _prx.PingPongAsync(multiTagged);
-            Assert.That(multiTagged1.MByte, Is.EqualTo(multiTagged.MByte));
+            Assert.That(multiTagged1.MUInt8, Is.EqualTo(multiTagged.MUInt8));
             Assert.That(multiTagged1.MBool, Is.EqualTo(multiTagged.MBool));
-            Assert.That(multiTagged1.MShort, Is.EqualTo(multiTagged.MShort));
+            Assert.That(multiTagged1.MInt16, Is.EqualTo(multiTagged.MInt16));
             Assert.That(multiTagged1.MInt, Is.EqualTo(multiTagged.MInt));
-            Assert.That(multiTagged1.MLong, Is.EqualTo(multiTagged.MLong));
-            Assert.That(multiTagged1.MFloat, Is.EqualTo(multiTagged.MFloat));
-            Assert.That(multiTagged1.MDouble, Is.EqualTo(multiTagged.MDouble));
+            Assert.That(multiTagged1.MInt64, Is.EqualTo(multiTagged.MInt64));
+            Assert.That(multiTagged1.MFloat32, Is.EqualTo(multiTagged.MFloat32));
+            Assert.That(multiTagged1.MFloat64, Is.EqualTo(multiTagged.MFloat64));
             // Assert.That(multiTagged1.MUShort, Is.EqualTo(multiTagged.MUShort));
             // Assert.That(multiTagged1.MUInt, Is.EqualTo(multiTagged.MUInt));
             // Assert.That(multiTagged1.MULong, Is.EqualTo(multiTagged.MULong));
@@ -112,7 +112,7 @@ namespace IceRpc.Tests.Slice
             multiTagged = new MultiTagged();
             multiTagged.MBool = true;
             multiTagged.MInt = 1;
-            multiTagged.MFloat = 1;
+            multiTagged.MFloat32 = 1;
             // multiTagged.MUShort = 1;
             // multiTagged.MMyEnum = MyEnum.enum1;
             // multiTagged.MMyCompactStruct = new MyCompactStruct(1, 1);
@@ -130,13 +130,13 @@ namespace IceRpc.Tests.Slice
             // };
 
             multiTagged1 = (MultiTagged)await _prx.PingPongAsync(multiTagged);
-            Assert.That(multiTagged1.MByte, Is.EqualTo(multiTagged.MByte));
+            Assert.That(multiTagged1.MUInt8, Is.EqualTo(multiTagged.MUInt8));
             Assert.That(multiTagged1.MBool, Is.EqualTo(multiTagged.MBool));
-            Assert.That(multiTagged1.MShort, Is.EqualTo(multiTagged.MShort));
+            Assert.That(multiTagged1.MInt16, Is.EqualTo(multiTagged.MInt16));
             Assert.That(multiTagged1.MInt, Is.EqualTo(multiTagged.MInt));
-            Assert.That(multiTagged1.MLong, Is.EqualTo(multiTagged.MLong));
-            Assert.That(multiTagged1.MFloat, Is.EqualTo(multiTagged.MFloat));
-            Assert.That(multiTagged1.MDouble, Is.EqualTo(multiTagged.MDouble));
+            Assert.That(multiTagged1.MInt64, Is.EqualTo(multiTagged.MInt64));
+            Assert.That(multiTagged1.MFloat32, Is.EqualTo(multiTagged.MFloat32));
+            Assert.That(multiTagged1.MFloat64, Is.EqualTo(multiTagged.MFloat64));
             // Assert.That(multiTagged1.MUShort, Is.EqualTo(multiTagged.MUShort));
             // Assert.That(multiTagged1.MUInt, Is.EqualTo(multiTagged.MUInt));
             // Assert.That(multiTagged1.MULong, Is.EqualTo(multiTagged.MULong));
@@ -183,13 +183,13 @@ namespace IceRpc.Tests.Slice
 
         private static void CheckMultiTaggedHasNoValue(MultiTagged multiTagged)
         {
-            Assert.That(multiTagged.MByte.HasValue, Is.False);
+            Assert.That(multiTagged.MUInt8.HasValue, Is.False);
             Assert.That(multiTagged.MBool.HasValue, Is.False);
-            Assert.That(multiTagged.MShort.HasValue, Is.False);
+            Assert.That(multiTagged.MInt16.HasValue, Is.False);
             Assert.That(multiTagged.MInt.HasValue, Is.False);
-            Assert.That(multiTagged.MLong.HasValue, Is.False);
-            Assert.That(multiTagged.MFloat.HasValue, Is.False);
-            Assert.That(multiTagged.MDouble.HasValue, Is.False);
+            Assert.That(multiTagged.MInt64.HasValue, Is.False);
+            Assert.That(multiTagged.MFloat32.HasValue, Is.False);
+            Assert.That(multiTagged.MFloat64.HasValue, Is.False);
             // Assert.That(multiTagged.MUShort.HasValue, Is.False);
             // Assert.That(multiTagged.MUInt.HasValue, Is.False);
             // Assert.That(multiTagged.MULong.HasValue, Is.False);

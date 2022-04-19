@@ -11,13 +11,13 @@ class OneTagged
 
 class MultiTagged
 {
-    mByte: tag(1) uint8?,
+    mUInt8: tag(1) uint8?,
     mBool: tag(2) bool?,
-    mShort: tag(3) int16?,
+    mInt16: tag(3) int16?,
     mInt: tag(4) int32?,
-    mLong: tag(5) int64?,
-    mFloat: tag(6) float32?,
-    mDouble: tag(7) float64?,
+    mInt64: tag(5) int64?,
+    mFloat32: tag(6) float32?,
+    mFloat64: tag(7) float64?,
     mString: tag(15) string?,
 
 // TODO: These types are Slice2 only. We should either delete these or create our own copy for this test.
