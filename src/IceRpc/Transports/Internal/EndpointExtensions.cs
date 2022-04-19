@@ -8,8 +8,6 @@ namespace IceRpc.Transports.Internal
     /// <summary>Extension methods for class Endpoint.</summary>
     internal static class EndpointExtensions
     {
-        internal const int DefaultTcpTimeout = 60_000; // 60s
-
         internal static (TransportCode TransportCode, byte EncodingMajor, byte EncodingMinor, ReadOnlyMemory<byte> Bytes) ParseOpaqueParams(
            this Endpoint endpoint)
         {
@@ -86,56 +84,6 @@ namespace IceRpc.Transports.Internal
             }
 
             return (transportCode.Value, encodingMajor, encodingMinor, bytes);
-        }
-
-        internal static (bool Compress, int Timeout) ParseTcpParams(this Endpoint endpoint)
-        {
-            bool compress = false;
-            int? timeout = null;
-
-            foreach ((string name, string value) in endpoint.Params)
-            {
-                switch (name)
-                {
-                    case "transport":
-                        if (value != TransportNames.Tcp && value != TransportNames.Ssl)
-                        {
-                            throw new FormatException(
-                                $"invalid value for transport parameter in endpoint '{endpoint}'");
-                        }
-                        break;
-
-                    case "t":
-                        if (value == "infinite")
-                        {
-                            timeout = -1;
-                        }
-                        else
-                        {
-                            timeout = int.Parse(value, CultureInfo.InvariantCulture); // timeout in ms, or -1
-                            if (timeout == 0 || timeout < -1)
-                            {
-                                throw new FormatException(
-                                    $"invalid value for t parameter in endpoint '{endpoint}'");
-                            }
-                        }
-                        break;
-
-                    case "z":
-                        if (value.Length > 0)
-                        {
-                            throw new FormatException(
-                                $"invalid value '{value}' for parameter z in endpoint '{endpoint}'");
-                        }
-                        compress = true;
-                        break;
-
-                    default:
-                        throw new FormatException($"unknown parameter '{name}' in endpoint '{endpoint}'");
-                }
-            }
-
-            return (compress, timeout ?? DefaultTcpTimeout);
         }
 
         /// <summary>Adds the transport parameter to this endpoint if null, and does nothing if it's already set to the

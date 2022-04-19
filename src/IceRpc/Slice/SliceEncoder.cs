@@ -689,29 +689,14 @@ namespace IceRpc.Slice
             }
             else
             {
-                TransportCode transportCode = TransportCode.Uri;
-                bool compress = false;
-                int timeout = -1;
-
-                if (endpoint.Protocol == Protocol.Ice)
-                {
-                    switch (transport)
+                TransportCode transportCode = endpoint.Protocol == Protocol.Ice ?
+                    transport switch
                     {
-                        case TransportNames.Ssl:
-                            (compress, timeout) = endpoint.ParseTcpParams();
-                            transportCode = TransportCode.Ssl;
-                            break;
-
-                        case TransportNames.Tcp:
-                            (compress, timeout) = endpoint.ParseTcpParams();
-                            transportCode = TransportCode.Tcp;
-                            break;
-
-                        default:
-                            break;
-                    }
-                }
-                // else transportCode remains Uri
+                        TransportNames.Ssl => TransportCode.Ssl,
+                        TransportNames.Tcp => TransportCode.Tcp,
+                        _ => TransportCode.Uri
+                    } :
+                    TransportCode.Uri;
 
                 this.EncodeTransportCode(transportCode);
 
@@ -724,13 +709,8 @@ namespace IceRpc.Slice
                 {
                     case TransportCode.Tcp:
                     case TransportCode.Ssl:
-                    {
-                        EncodeString(endpoint.Host);
-                        EncodeInt32(endpoint.Port);
-                        EncodeInt32(timeout);
-                        EncodeBool(compress);
+                        Transports.TcpClientTransport.EncodeEndpoint(ref this, endpoint);
                         break;
-                    }
 
                     default:
                         Debug.Assert(transportCode == TransportCode.Uri);
