@@ -28,7 +28,7 @@ public class NumericTypesEncodingTests
         Assert.That(buffer[0..bufferWriter.WrittenMemory.Length], Is.EqualTo(expected));
     }
 
-    /// <summary>Tests the encoding of a sbyte.</summary>
+    /// <summary>Tests the encoding of an sbyte.</summary>
     /// <param name="value">The sbyte to be encoded.</param>
     /// <param name="expected">The expected byte array produced from encoding value.</param>
     [TestCase(sbyte.MinValue, new byte[] { 0x80 })]
