@@ -139,6 +139,11 @@ namespace IceRpc.Slice
         public double DecodeFloat64() =>
             SequenceMarshal.TryRead(ref _reader, out double value) ? value : throw new EndOfBufferException();
 
+        /// <summary>Decodes a Slice int8 into a sbyte.</summary>
+        /// <returns>The sbyte decoded by this decoder.</returns>
+        public sbyte DecodeInt8() =>
+            SequenceMarshal.TryRead(ref _reader, out sbyte value) ? value : throw new EndOfBufferException();
+
         /// <summary>Decodes a Slice int16 into a short.</summary>
         /// <returns>The short decoded by this decoder.</returns>
         public short DecodeInt16() =>
