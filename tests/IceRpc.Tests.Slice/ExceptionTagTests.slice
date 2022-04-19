@@ -13,16 +13,16 @@ compact struct TaggedExceptionStruct
 exception TaggedException
 {
     mStruct: tag(50) TaggedExceptionStruct?,
-    mInt: tag(1) int32?,
+    mInt32: tag(1) int32?,
     mBool: bool,
     mString: tag(2) string?,
 }
 
 exception TaggedExceptionPlus
 {
-    mFloat: tag(3) float32?,
+    mFloat32: tag(3) float32?,
     mStruct: tag(50) TaggedExceptionStruct?,
-    mInt: tag(1) int32?,
+    mInt32: tag(1) int32?,
     mBool: bool,
     mString: tag(2) string?,
 }

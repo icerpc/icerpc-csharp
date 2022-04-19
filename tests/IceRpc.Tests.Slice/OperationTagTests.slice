@@ -5,19 +5,19 @@ module IceRpc::Tests::Slice;
 // For each tagged param, return 2 tagged return values.
 interface OperationTagDouble
 {
-    opByte(p1: tag(1) uint8?) -> (r1: tag(1) uint8?, r2: tag(2) uint8?);
+    opUInt8(p1: tag(1) uint8?) -> (r1: tag(1) uint8?, r2: tag(2) uint8?);
 
     opBool(p1: tag(1) bool?) -> (r1: tag(1) bool?, r2: tag(2) bool?);
 
-    opShort(p1: tag(1) int16?) -> (r1: tag(1) int16?, r2: tag(2) int16?);
+    opInt16(p1: tag(1) int16?) -> (r1: tag(1) int16?, r2: tag(2) int16?);
 
-    opInt(p1: tag(1) int32?) -> (r1: tag(1) int32?, r2: tag(2) int32?);
+    opInt32(p1: tag(1) int32?) -> (r1: tag(1) int32?, r2: tag(2) int32?);
 
-    opLong(p1: tag(1) int64?) -> (r1: tag(1) int64?, r2: tag(2) int64?);
+    opInt64(p1: tag(1) int64?) -> (r1: tag(1) int64?, r2: tag(2) int64?);
 
-    opFloat(p1: tag(1) float32?) -> (r1: tag(1) float32?, r2: tag(2) float32?);
+    opFloat32(p1: tag(1) float32?) -> (r1: tag(1) float32?, r2: tag(2) float32?);
 
-    opDouble(p1: tag(1) float64?) -> (r1: tag(1) float64?, r2: tag(2) float64?);
+    opFloat64(p1: tag(1) float64?) -> (r1: tag(1) float64?, r2: tag(2) float64?);
 
     opString(p1: tag(1) string?) -> (r1: tag(1) string?, r2: tag(2) string?);
 
@@ -30,26 +30,26 @@ interface OperationTagDouble
         r2: tag(2) AnotherCompactStruct?,
     );
 
-    opByteSeq(p1: tag(1) ByteSeq?) -> (r1: tag(1) ByteSeq?, r2: tag(2) ByteSeq?);
-    opByteList(p1: tag(1) ByteList?) -> (r1: tag(1) ByteList?, r2: tag(2) ByteList?);
+    opUInt8Seq(p1: tag(1) UInt8Seq?) -> (r1: tag(1) UInt8Seq?, r2: tag(2) UInt8Seq?);
+    opUInt8List(p1: tag(1) UInt8List?) -> (r1: tag(1) UInt8List?, r2: tag(2) UInt8List?);
 
     opBoolSeq(p1: tag(1) BoolSeq?) -> (r1: tag(1) BoolSeq?, r2: tag(2) BoolSeq?);
     opBoolList(p1: tag(1) BoolList?) -> (r1: tag(1) BoolList?, r2: tag(2) BoolList?);
 
-    opShortSeq(p1: tag(1) ShortSeq?) -> (r1: tag(1) ShortSeq?, r2: tag(2) ShortSeq?);
-    opShortList(p1: tag(1) ShortList?) -> (r1: tag(1) ShortList?, r2: tag(2) ShortList?);
+    opInt16Seq(p1: tag(1) Int16Seq?) -> (r1: tag(1) Int16Seq?, r2: tag(2) Int16Seq?);
+    opInt16List(p1: tag(1) Int16List?) -> (r1: tag(1) Int16List?, r2: tag(2) Int16List?);
 
-    opIntSeq(p1: tag(1) IntSeq?) -> (r1: tag(1) IntSeq?, r2: tag(2) IntSeq?);
-    opIntList(p1: tag(1) IntList?) -> (r1: tag(1) IntList?, r2: tag(2) IntList?);
+    opInt32Seq(p1: tag(1) Int32Seq?) -> (r1: tag(1) Int32Seq?, r2: tag(2) Int32Seq?);
+    opInt32List(p1: tag(1) Int32List?) -> (r1: tag(1) Int32List?, r2: tag(2) Int32List?);
 
-    opLongSeq(p1: tag(1) LongSeq?) -> (r1: tag(1) LongSeq?, r2: tag(2) LongSeq?);
-    opLongList(p1: tag(1) LongList?) -> (r1: tag(1) LongList?, r2: tag(2) LongList?);
+    opInt64Seq(p1: tag(1) Int64Seq?) -> (r1: tag(1) Int64Seq?, r2: tag(2) Int64Seq?);
+    opInt64List(p1: tag(1) Int64List?) -> (r1: tag(1) Int64List?, r2: tag(2) Int64List?);
 
-    opFloatSeq(p1: tag(1) FloatSeq?) -> (r1: tag(1) FloatSeq?, r2: tag(2) FloatSeq?);
-    opFloatList(p1: tag(1) FloatList?) -> (r1: tag(1) FloatList?, r2: tag(2) FloatList?);
+    opFloat32Seq(p1: tag(1) Float32Seq?) -> (r1: tag(1) Float32Seq?, r2: tag(2) Float32Seq?);
+    opFloat32List(p1: tag(1) Float32List?) -> (r1: tag(1) Float32List?, r2: tag(2) Float32List?);
 
-    opDoubleSeq(p1: tag(1) DoubleSeq?) -> (r1: tag(1) DoubleSeq?, r2: tag(2) DoubleSeq?);
-    opDoubleList(p1: tag(1) DoubleList?) -> (r1: tag(1) DoubleList?, r2: tag(2) DoubleList?);
+    opFloat64Seq(p1: tag(1) Float64Seq?) -> (r1: tag(1) Float64Seq?, r2: tag(2) Float64Seq?);
+    opFloat64List(p1: tag(1) Float64List?) -> (r1: tag(1) Float64List?, r2: tag(2) Float64List?);
 
     opStringSeq(p1: tag(1) StringSeq?) -> (r1: tag(1) StringSeq?, r2: tag(2) StringSeq?);
     opStringList(p1: tag(1) StringList?) -> (r1: tag(1) StringList?, r2: tag(2) StringList?);
@@ -84,10 +84,10 @@ interface OperationTagDouble
         r2: tag(2) AnotherCompactStructList?,
     );
 
-    opIntDict(p1: tag(1) IntDict?) -> (r1: tag(1) IntDict?, r2: tag(2) IntDict?);
+    opInt32Dict(p1: tag(1) Int32Dict?) -> (r1: tag(1) Int32Dict?, r2: tag(2) Int32Dict?);
     opStringDict(p1: tag(1) StringDict?) -> (r1: tag(1) StringDict?, r2: tag(2) StringDict?);
 
-    opIntCustomDict(p1: tag(1) IntCustomDict?) -> (r1: tag(1) IntCustomDict?, r2: tag(2) IntCustomDict?);
+    opInt32CustomDict(p1: tag(1) Int32CustomDict?) -> (r1: tag(1) Int32CustomDict?, r2: tag(2) Int32CustomDict?);
     opStringCustomDict(p1: tag(1) StringCustomDict?) -> (
         r1: tag(1) StringCustomDict?,
         r2: tag(2) StringCustomDict?,
@@ -98,12 +98,12 @@ interface OperationTagEncodedResult
 {
     [cs:encoded-result] opMyCompactStruct(p1: tag(1) MyCompactStruct?) -> tag(1) MyCompactStruct?;
     [cs:encoded-result] opStringSeq(p1: tag(1) StringSeq?) -> tag(1) StringSeq?;
-    [cs:encoded-result] opIntDict(p1: tag(1) IntDict?) -> tag(1) IntDict?;
+    [cs:encoded-result] opInt32Dict(p1: tag(1) Int32Dict?) -> tag(1) Int32Dict?;
 }
 
 interface OperationTag
 {
-    opInt(p1: tag(0) int32?) -> tag(1) int32?;
+    opInt32(p1: tag(0) int32?) -> tag(1) int32?;
 
     opVoid();
 }
@@ -111,13 +111,13 @@ interface OperationTag
 // An interface compatible with OperationTag except with fewer tags.
 interface OperationTagMinus
 {
-    opInt() -> tag(1) int32?;
+    opInt32() -> tag(1) int32?;
 }
 
 // An interface compatible with OperationTag except with more tags.
 interface OperationTagPlus
 {
-    opInt(p1: tag(0) int32?, p2: tag(1) string?) -> (r1: tag(1) int32?, r2: tag(2) string?);
+    opInt32(p1: tag(0) int32?, p2: tag(1) string?) -> (r1: tag(1) int32?, r2: tag(2) string?);
 
     opVoid(p1: tag(1) string?) -> tag(1) string?;
 }

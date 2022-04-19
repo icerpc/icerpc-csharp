@@ -127,23 +127,22 @@ namespace IceRpc.Slice
 
         /// <summary>Decodes a bool.</summary>
         /// <returns>The bool decoded by this decoder.</returns>
-        public bool DecodeBool() =>
-            _reader.TryRead(out byte value) ? value != 0 : throw new EndOfBufferException();
+        public bool DecodeBool() => _reader.TryRead(out byte value) ? value != 0 : throw new EndOfBufferException();
 
-        /// <summary>Decodes a Slice uint8 into a byte.</summary>
-        /// <returns>The byte decoded by this decoder.</returns>
-        public byte DecodeUInt8() =>
-            _reader.TryRead(out byte value) ? value : throw new EndOfBufferException();
+        /// <summary>Decodes a Slice float32 into a float.</summary>
+        /// <returns>The float decoded by this decoder.</returns>
+        public float DecodeFloat32() =>
+            SequenceMarshal.TryRead(ref _reader, out float value) ? value : throw new EndOfBufferException();
 
         /// <summary>Decodes a Slice float64 into a double.</summary>
         /// <returns>The double decoded by this decoder.</returns>
         public double DecodeFloat64() =>
             SequenceMarshal.TryRead(ref _reader, out double value) ? value : throw new EndOfBufferException();
 
-        /// <summary>Decodes a Slice float32 into a float.</summary>
-        /// <returns>The float decoded by this decoder.</returns>
-        public float DecodeFloat32() =>
-            SequenceMarshal.TryRead(ref _reader, out float value) ? value : throw new EndOfBufferException();
+        /// <summary>Decodes a Slice int16 into a short.</summary>
+        /// <returns>The short decoded by this decoder.</returns>
+        public short DecodeInt16() =>
+            SequenceMarshal.TryRead(ref _reader, out short value) ? value : throw new EndOfBufferException();
 
         /// <summary>Decodes a Slice int32 into an int.</summary>
         /// <returns>The int decoded by this decoder.</returns>
@@ -154,11 +153,6 @@ namespace IceRpc.Slice
         /// <returns>The long decoded by this decoder.</returns>
         public long DecodeInt64() =>
             SequenceMarshal.TryRead(ref _reader, out long value) ? value : throw new EndOfBufferException();
-
-        /// <summary>Decodes a Slice int16 into a short.</summary>
-        /// <returns>The short decoded by this decoder.</returns>
-        public short DecodeInt16() =>
-            SequenceMarshal.TryRead(ref _reader, out short value) ? value : throw new EndOfBufferException();
 
         /// <summary>Decodes a size encoded on a variable number of bytes.</summary>
         /// <returns>The size decoded by this decoder.</returns>
@@ -215,6 +209,15 @@ namespace IceRpc.Slice
             }
         }
 
+        /// <summary>Decodes a Slice uint8 into a byte.</summary>
+        /// <returns>The byte decoded by this decoder.</returns>
+        public byte DecodeUInt8() => _reader.TryRead(out byte value) ? value : throw new EndOfBufferException();
+
+        /// <summary>Decodes a Slice uint16 into a ushort.</summary>
+        /// <returns>The ushort decoded by this decoder.</returns>
+        public ushort DecodeUInt16() =>
+            SequenceMarshal.TryRead(ref _reader, out ushort value) ? value : throw new EndOfBufferException();
+
         /// <summary>Decodes a Slice uint32 into a unit.</summary>
         /// <returns>The uint decoded by this decoder.</returns>
         public uint DecodeUInt32() =>
@@ -224,11 +227,6 @@ namespace IceRpc.Slice
         /// <returns>The ulong decoded by this decoder.</returns>
         public ulong DecodeUInt64() =>
             SequenceMarshal.TryRead(ref _reader, out ulong value) ? value : throw new EndOfBufferException();
-
-        /// <summary>Decodes a Slice uint16 into a ushort.</summary>
-        /// <returns>The ushort decoded by this decoder.</returns>
-        public ushort DecodeUInt16() =>
-            SequenceMarshal.TryRead(ref _reader, out ushort value) ? value : throw new EndOfBufferException();
 
         /// <summary>Decodes a Slice varint32 into an int. This int is encoded using Slice's variable-size integer
         /// encoding.</summary>
@@ -275,7 +273,8 @@ namespace IceRpc.Slice
         /// <summary>Decodes a Slice varuint62 into a ulong. This ulong is encoded using Slice's variable-size integer
         /// encoding.</summary>
         /// <returns>The ulong decoded by this decoder.</returns>
-        public ulong DecodeVarUInt62() => TryDecodeVarUInt62(out ulong value) ? value : throw new EndOfBufferException();
+        public ulong DecodeVarUInt62() =>
+            TryDecodeVarUInt62(out ulong value) ? value : throw new EndOfBufferException();
 
         // Decode methods for constructed types
 

@@ -2,20 +2,20 @@
 
 module IceRpc::Tests::Slice;
 
-typealias ByteSeq = sequence<uint8>;
+typealias UInt8Seq = sequence<uint8>;
 typealias BoolSeq = sequence<bool>;
-typealias ShortSeq = sequence<int16>;
-typealias UShortSeq = sequence<uint16>;
-typealias IntSeq = sequence<int32>;
-typealias VarIntSeq = sequence<varint32>;
-typealias UIntSeq = sequence<uint32>;
-typealias VarUIntSeq = sequence<varuint32>;
-typealias LongSeq = sequence<int64>;
-typealias VarLongSeq = sequence<varint62>;
-typealias ULongSeq = sequence<uint64>;
-typealias VarULongSeq = sequence<varuint62>;
-typealias FloatSeq = sequence<float32>;
-typealias DoubleSeq = sequence<float64>;
+typealias Int16Seq = sequence<int16>;
+typealias UInt16Seq = sequence<uint16>;
+typealias Int32Seq = sequence<int32>;
+typealias VarInt32Seq = sequence<varint32>;
+typealias UInt32Seq = sequence<uint32>;
+typealias VarUInt32Seq = sequence<varuint32>;
+typealias Int64Seq = sequence<int64>;
+typealias VarInt62Seq = sequence<varint62>;
+typealias UInt64Seq = sequence<uint64>;
+typealias VarUInt62Seq = sequence<varuint62>;
+typealias Float32Seq = sequence<float32>;
+typealias Float64Seq = sequence<float64>;
 typealias StringSeq = sequence<string>;
 
 typealias MyEnumSeq = sequence<MyEnum>;
@@ -27,26 +27,26 @@ typealias OperationsSeq = sequence<Operations>;
 typealias AnotherCompactStructSeq = sequence<AnotherCompactStruct>;
 
 // Sequence mapping
-typealias ByteList = [cs:generic("System.Collections.Generic.List")] sequence<uint8>;
-typealias ByteCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<uint8>;
+typealias UInt8List = [cs:generic("System.Collections.Generic.List")] sequence<uint8>;
+typealias UInt8CustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<uint8>;
 
 typealias BoolList = [cs:generic("System.Collections.Generic.List")] sequence<bool>;
 typealias BoolCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<bool>;
 
-typealias ShortList = [cs:generic("System.Collections.Generic.List")] sequence<int16>;
-typealias ShortCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<int16>;
+typealias Int16List = [cs:generic("System.Collections.Generic.List")] sequence<int16>;
+typealias Int16CustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<int16>;
 
-typealias IntList = [cs:generic("System.Collections.Generic.List")] sequence<int32>;
-typealias IntCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<int32>;
+typealias Int32List = [cs:generic("System.Collections.Generic.List")] sequence<int32>;
+typealias Int32CustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<int32>;
 
-typealias LongList = [cs:generic("System.Collections.Generic.List")] sequence<int64>;
-typealias LongCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<int64>;
+typealias Int64List = [cs:generic("System.Collections.Generic.List")] sequence<int64>;
+typealias Int64CustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<int64>;
 
-typealias FloatList = [cs:generic("System.Collections.Generic.List")] sequence<float32>;
-typealias FloatCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<float32>;
+typealias Float32List = [cs:generic("System.Collections.Generic.List")] sequence<float32>;
+typealias Float32CustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<float32>;
 
-typealias DoubleList = [cs:generic("System.Collections.Generic.List")] sequence<float64>;
-typealias DoubleCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<float64>;
+typealias Float64List = [cs:generic("System.Collections.Generic.List")] sequence<float64>;
+typealias Float64CustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<float64>;
 
 typealias StringList = [cs:generic("System.Collections.Generic.List")] sequence<string>;
 typealias StringCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<string>;
@@ -72,20 +72,20 @@ typealias AnotherCompactStructCustomSeq = [cs:generic("IceRpc.Tests.Slice.Custom
 interface SequenceOperations
 {
     // Builtin types sequences
-    opByteSeq(p1: ByteSeq, p2: ByteSeq) -> (r1: ByteSeq, r2: ByteSeq);
+    opUInt8Seq(p1: UInt8Seq, p2: UInt8Seq) -> (r1: UInt8Seq, r2: UInt8Seq);
     opBoolSeq(p1: BoolSeq, p2: BoolSeq) -> (r1: BoolSeq, r2: BoolSeq);
-    opShortSeq(p1: ShortSeq, p2: ShortSeq) -> (r1: ShortSeq, r2: ShortSeq);
-    opUShortSeq(p1: UShortSeq, p2: UShortSeq) -> (r1: UShortSeq, r2: UShortSeq);
-    opIntSeq(p1: IntSeq, p2: IntSeq) -> (r1: IntSeq, r2: IntSeq);
-    opVarIntSeq(p1: VarIntSeq, p2: VarIntSeq) -> (r1: VarIntSeq, r2: VarIntSeq);
-    opUIntSeq(p1: UIntSeq, p2: UIntSeq) -> (r1: UIntSeq, r2: UIntSeq);
-    opVarUIntSeq(p1: VarUIntSeq, p2: VarUIntSeq) -> (r1: VarUIntSeq, r2: VarUIntSeq);
-    opLongSeq(p1: LongSeq, p2: LongSeq) -> (r1: LongSeq, r2: LongSeq);
-    opVarLongSeq(p1: VarLongSeq, p2: VarLongSeq) -> (r1: VarLongSeq, r2: VarLongSeq);
-    opULongSeq(p1: ULongSeq, p2: ULongSeq) -> (r1: ULongSeq, r2: ULongSeq);
-    opVarULongSeq(p1: VarULongSeq, p2: VarULongSeq) -> (r1: VarULongSeq, r2: VarULongSeq);
-    opFloatSeq(p1: FloatSeq, p2: FloatSeq) -> (r1: FloatSeq, r2: FloatSeq);
-    opDoubleSeq(p1: DoubleSeq, p2: DoubleSeq) -> (r1: DoubleSeq, r2: DoubleSeq);
+    opInt16Seq(p1: Int16Seq, p2: Int16Seq) -> (r1: Int16Seq, r2: Int16Seq);
+    opUInt16Seq(p1: UInt16Seq, p2: UInt16Seq) -> (r1: UInt16Seq, r2: UInt16Seq);
+    opInt32Seq(p1: Int32Seq, p2: Int32Seq) -> (r1: Int32Seq, r2: Int32Seq);
+    opVarInt32Seq(p1: VarInt32Seq, p2: VarInt32Seq) -> (r1: VarInt32Seq, r2: VarInt32Seq);
+    opUInt32Seq(p1: UInt32Seq, p2: UInt32Seq) -> (r1: UInt32Seq, r2: UInt32Seq);
+    opVarUInt32Seq(p1: VarUInt32Seq, p2: VarUInt32Seq) -> (r1: VarUInt32Seq, r2: VarUInt32Seq);
+    opInt64Seq(p1: Int64Seq, p2: Int64Seq) -> (r1: Int64Seq, r2: Int64Seq);
+    opVarInt62Seq(p1: VarInt62Seq, p2: VarInt62Seq) -> (r1: VarInt62Seq, r2: VarInt62Seq);
+    opUInt64Seq(p1: UInt64Seq, p2: UInt64Seq) -> (r1: UInt64Seq, r2: UInt64Seq);
+    opVarUInt3262Seq(p1: VarUInt62Seq, p2: VarUInt62Seq) -> (r1: VarUInt62Seq, r2: VarUInt62Seq);
+    opFloat32Seq(p1: Float32Seq, p2: Float32Seq) -> (r1: Float32Seq, r2: Float32Seq);
+    opFloat64Seq(p1: Float64Seq, p2: Float64Seq) -> (r1: Float64Seq, r2: Float64Seq);
     opStringSeq(p1: StringSeq, p2: StringSeq) -> (r1: StringSeq, r2: StringSeq);
 
     // Defined types sequences
@@ -109,20 +109,20 @@ interface SequenceOperations
     );
 
     // Sequence mapping
-    opByteList(p1: ByteList, p2: ByteList) -> (r1: ByteList, r2: ByteList);
-    opByteCustomSeq(p1: ByteCustomSeq, p2: ByteCustomSeq) -> (r1: ByteCustomSeq, r2: ByteCustomSeq);
+    opUInt8List(p1: UInt8List, p2: UInt8List) -> (r1: UInt8List, r2: UInt8List);
+    opUInt8CustomSeq(p1: UInt8CustomSeq, p2: UInt8CustomSeq) -> (r1: UInt8CustomSeq, r2: UInt8CustomSeq);
 
     opBoolList(p1: BoolList, p2: BoolList) -> (r1: BoolList, r2: BoolList);
     opBoolCustomSeq(p1: BoolCustomSeq, p2: BoolCustomSeq) -> (r1: BoolCustomSeq, r2: BoolCustomSeq);
 
-    opIntList(p1: IntList, p2: IntList) -> (r1: IntList, r2: IntList);
-    opIntCustomSeq(p1: IntCustomSeq, p2: IntCustomSeq) -> (r1: IntCustomSeq, r2: IntCustomSeq);
+    opInt32List(p1: Int32List, p2: Int32List) -> (r1: Int32List, r2: Int32List);
+    opInt32CustomSeq(p1: Int32CustomSeq, p2: Int32CustomSeq) -> (r1: Int32CustomSeq, r2: Int32CustomSeq);
 
-    opLongList(p1: LongList, p2: LongList) -> (r1: LongList, r2: LongList);
-    opLongCustomSeq(p1: LongCustomSeq, p2: LongCustomSeq) -> (r1: LongCustomSeq, r2: LongCustomSeq);
+    opInt64List(p1: Int64List, p2: Int64List) -> (r1: Int64List, r2: Int64List);
+    opInt64CustomSeq(p1: Int64CustomSeq, p2: Int64CustomSeq) -> (r1: Int64CustomSeq, r2: Int64CustomSeq);
 
-    opFloatList(p1: FloatList, p2: FloatList) -> (r1: FloatList, r2: FloatList);
-    opFloatCustomSeq(p1: FloatCustomSeq, p2: FloatCustomSeq) -> (r1: FloatCustomSeq, r2: FloatCustomSeq);
+    opFloat32List(p1: Float32List, p2: Float32List) -> (r1: Float32List, r2: Float32List);
+    opFloat32CustomSeq(p1: Float32CustomSeq, p2: Float32CustomSeq) -> (r1: Float32CustomSeq, r2: Float32CustomSeq);
 
     opStringList(p1: StringList, p2: StringList) -> (r1: StringList, r2: StringList);
     opStringCustomSeq(p1: StringCustomSeq, p2: StringCustomSeq) -> (r1: StringCustomSeq, r2: StringCustomSeq);
