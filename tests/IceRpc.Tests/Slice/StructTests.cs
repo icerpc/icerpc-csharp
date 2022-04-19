@@ -105,7 +105,8 @@ public sealed class StructTests
     [Test]
     public void Decode_struct_with_tagged_members(
         [Values(10, null)] int? k,
-        [Values(20, null)] int? l)
+        [Values(20, null)] int? l,
+        [Values(30, null)] ulong? m)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
@@ -128,7 +129,17 @@ public sealed class StructTests
                 TagFormat.F4,
                 size: 4,
                 l.Value,
-                (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
+                (ref SliceEncoder encoder, int value) => encoder.EncodeVarInt32(value));
+        }
+
+        if (m != null)
+        {
+            encoder.EncodeTagged(
+                0,
+                TagFormat.F4,
+                size: 4,
+                l.Value,
+                (ref SliceEncoder encoder, int value) => encoder.EncodeVarUInt62(value));
         }
         encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
@@ -138,6 +149,7 @@ public sealed class StructTests
         Assert.That(decoded.J, Is.EqualTo(20));
         Assert.That(decoded.K, Is.EqualTo(k));
         Assert.That(decoded.L, Is.EqualTo(l));
+        Assert.That(decoded.M, Is.EqualTo(m));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
@@ -233,11 +245,12 @@ public sealed class StructTests
     [Test]
     public void Encode_struct_with_tagged_members(
         [Values(10, null)] int? k,
-        [Values(20, null)] int? l)
+        [Values(20, null)] int? l,
+        [Values(30, null)] int? m)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        var expected = new MyStructWithTaggedMembers(10, 20, k, l);
+        var expected = new MyStructWithTaggedMembers(10, 20, k, l, m);
 
         expected.Encode(ref encoder);
 
@@ -254,8 +267,15 @@ public sealed class StructTests
         if (l != null)
         {
             Assert.That(
-                decoder.DecodeTagged(255, TagFormat.F4, (ref SliceDecoder decoder) => decoder.DecodeInt32()),
+                decoder.DecodeTagged(255, TagFormat.F4, (ref SliceDecoder decoder) => decoder.DecodeVarInt32()),
                 Is.EqualTo(l));
+        }
+
+        if (m != null)
+        {
+            Assert.That(
+                decoder.DecodeTagged(0, TagFormat.F4, (ref SliceDecoder decoder) => decoder.DecodeVarUInt62()),
+                Is.EqualTo(m));
         }
         Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
