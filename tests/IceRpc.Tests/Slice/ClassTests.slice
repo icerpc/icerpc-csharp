@@ -20,7 +20,7 @@ class MyClassC
     theB: MyClassB?,
 }
 
-class MyCompactClass(1)
+class MyCompactClass(15)
 {
 }
 
