@@ -246,13 +246,11 @@ fn encode_tagged_type(
         Types::Primitive(primitive_def) if !matches!(primitive_def, Primitive::String) => {
             if primitive_def.is_unsigned_numeric() {
                 (
-                    // TODO add a test for this!
                     Some(format!("SliceEncoder.GetVarUInt62EncodedSize({})", value)),
                     None,
                 )
             } else {
                 (
-                    // TODO add a test for this!
                     Some(format!("SliceEncoder.GetVarInt62EncodedSize({})", value)),
                     None,
                 )
