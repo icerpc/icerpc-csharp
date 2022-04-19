@@ -126,12 +126,15 @@ namespace IceRpc.Transports.Internal
 
         internal void AbortRead(long errorCode)
         {
-            if (!IsStarted || IsShutdown)
+            if (!IsStarted)
             {
-                return;
+                // If the stream is not started, there's no need to send a stop sending frame.
+                TrySetReadCompleted();
             }
-
-            _ = SendStopSendingFrameAndCompleteReadsAsync();
+            else if (!ReadsCompleted)
+            {
+                _ = SendStopSendingFrameAndCompleteReadsAsync();
+            }
 
             async Task SendStopSendingFrameAndCompleteReadsAsync()
             {
@@ -166,12 +169,15 @@ namespace IceRpc.Transports.Internal
 
         internal void AbortWrite(long errorCode)
         {
-            if (!IsStarted || IsShutdown)
+            if (!IsStarted)
             {
-                return;
+                // If the stream is not started, there's no need to send a reset frame.
+                TrySetWriteCompleted();
             }
-
-            _ = SendResetFrameAndCompleteWritesAsync();
+            else if (!WritesCompleted)
+            {
+                _ = SendResetFrameAndCompleteWritesAsync();
+            }
 
             async Task SendResetFrameAndCompleteWritesAsync()
             {
