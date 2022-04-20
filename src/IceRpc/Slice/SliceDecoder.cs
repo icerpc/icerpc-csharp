@@ -534,7 +534,7 @@ namespace IceRpc.Slice
                         "bitSequenceSize must be greater than 0");
                 }
 
-                int size = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0);
+                int size = SliceEncoder.GetBitSequenceByteCount(bitSequenceSize);
                 ReadOnlySequence<byte> bitSequence = _reader.UnreadSequence.Slice(0, size);
                 _reader.Advance(size);
                 Debug.Assert(bitSequence.Length == size);
@@ -561,14 +561,18 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Decodes a sequence size and makes sure there is enough space in the underlying buffer to decode the
-        /// sequence. This validation is performed to make sure we do not allocate a large container based on an
+        /// <summary>Decodes a dictionary size and makes sure there is enough space in the underlying buffer to decode
+        /// the dictionary. This validation is performed to make sure we do not allocate a large dictionary based on an
         /// invalid encoded size.</summary>
-        /// <param name="minElementSize">The minimum encoded size of an element of the sequence, in bytes. This value is
-        /// 0 for sequence of nullable types other than mapped Slice classes and proxies.</param>
-        /// <returns>The number of elements in the sequence.</returns>
-        internal int DecodeAndCheckSeqSize(int minElementSize)
+        /// <param name="minKeySize">The minimum encoded size of a key, in bytes.</param>
+        /// <param name="minValueSize">The minimum encoded size of a value, in bytes. It's 0 for values with an optional
+        /// type.</param>
+        /// <returns>The number of elements in the dictionary.</returns>
+        internal int DecodeAndCheckDictionarySize(int minKeySize, int minValueSize)
         {
+            Debug.Assert(minKeySize > 0);
+            Debug.Assert(minValueSize >= 0);
+
             int size = DecodeSize();
 
             if (size == 0)
@@ -576,8 +580,36 @@ namespace IceRpc.Slice
                 return 0;
             }
 
-            // When minElementSize is 0, we only count of bytes that hold the bit sequence.
-            int minSize = minElementSize > 0 ? size * minElementSize : (size >> 3) + ((size & 0x07) != 0 ? 1 : 0);
+            int minSize = (size * minKeySize) +
+                (minValueSize > 0 ? size * minValueSize : SliceEncoder.GetBitSequenceByteCount(size));
+
+            _minTotalSeqSize += minSize;
+
+            if (_reader.Remaining < minSize || _minTotalSeqSize > _reader.Length)
+            {
+                throw new InvalidDataException("invalid dictionary size");
+            }
+            return size;
+        }
+
+        /// <summary>Decodes a sequence size and makes sure there is enough space in the underlying buffer to decode the
+        /// sequence. This validation is performed to make sure we do not allocate a large container based on an
+        /// invalid encoded size.</summary>
+        /// <param name="minElementSize">The minimum encoded size of an element of the sequence, in bytes. It's 0 for an
+        /// optional type.</param>
+        /// <returns>The number of elements in the sequence.</returns>
+        internal int DecodeAndCheckSequenceSize(int minElementSize)
+        {
+            Debug.Assert(minElementSize >= 0);
+
+            int size = DecodeSize();
+
+            if (size == 0)
+            {
+                return 0;
+            }
+
+            int minSize = minElementSize > 0 ? size * minElementSize : SliceEncoder.GetBitSequenceByteCount(size);
 
             // With _minTotalSeqSize, we make sure that multiple sequences within a buffer can't trigger maliciously
             // the allocation of a large amount of memory before we decode these sequences.
@@ -1057,7 +1089,7 @@ namespace IceRpc.Slice
 
             // The min size for an Endpoint with Slice1 is: transport (short = 2 bytes) + encapsulation
             // header (6 bytes), for a total of 8 bytes.
-            int size = DecodeAndCheckSeqSize(8);
+            int size = DecodeAndCheckSequenceSize(8);
 
             Endpoint? endpoint = null;
             IEnumerable<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;

@@ -504,7 +504,7 @@ namespace IceRpc.Slice
                         $"{nameof(bitSequenceSize)} must be greater than 0");
                 }
 
-                int remaining = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0); // size in bytes
+                int remaining = GetBitSequenceByteCount(bitSequenceSize);
 
                 Span<byte> firstSpan = _bufferWriter.GetSpan();
                 Span<byte> secondSpan = default;
@@ -584,15 +584,20 @@ namespace IceRpc.Slice
             EncodedByteCount += span.Length;
         }
 
-        internal SliceEncoder(IBufferWriter<byte> bufferWriter, SliceEncoding encoding, FormatType classFormat = default)
+        internal static int GetBitSequenceByteCount(int bitCount) => (bitCount >> 3) + ((bitCount & 0x07) != 0 ? 1 : 0);
+
+        internal static void EncodeInt32(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
+
+        internal SliceEncoder(
+            IBufferWriter<byte> bufferWriter,
+            SliceEncoding encoding,
+            FormatType classFormat = default)
             : this()
         {
             Encoding = encoding;
             _bufferWriter = bufferWriter;
             _classContext = new ClassContext(classFormat);
         }
-
-        internal static void EncodeInt32(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
 
         /// <summary>Encodes a fixed-size numeric value.</summary>
         /// <param name="v">The numeric value to encode.</param>
