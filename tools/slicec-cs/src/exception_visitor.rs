@@ -89,7 +89,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
         let mut decode_body_slice2 = decode_data_members(
             &members,
             &namespace,
-            Encoding::Slice2,
+            false, // this block is for Slice2, which never uses tag formats
             FieldType::Exception
         );
         writeln!(decode_body_slice2, "decoder.SkipTaggedParams();");
@@ -135,7 +135,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
                 code.writeln(&decode_data_members(
                     &members,
                     namespace,
-                    Encoding::Slice1,
+                    true, // this block is for Slice1, which always uses tag formats
                     FieldType::Exception,
                 ));
                 code.writeln("decoder.EndSlice();");
@@ -194,8 +194,8 @@ encoder.EndSlice(lastSlice: {is_last_slice});
             encode_data_members = &encode_data_members(
                 members,
                 namespace,
-                Encoding::Slice1,
                 FieldType::Exception,
+                true, // this block is for Slice1, which always uses tag formats
             ),
             is_last_slice = !has_base,
             encode_base = if has_base {
@@ -215,8 +215,8 @@ encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);",
             encode_data_members = &encode_data_members(
                 members,
                 namespace,
-                Encoding::Slice2,
                 FieldType::Exception,
+                false, // this block is for Slice2, which never uses tag formats
             ),
         ).into()
     )

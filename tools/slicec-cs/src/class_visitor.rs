@@ -12,7 +12,7 @@ use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
 use slice::code_gen_util::TypeContext;
-use slice::grammar::{Attributable, Class, DataMember, Encoding};
+use slice::grammar::{Attributable, Class, DataMember};
 use slice::visitor::Visitor;
 
 pub struct ClassVisitor<'a> {
@@ -246,8 +246,8 @@ public override global::System.Collections.Immutable.ImmutableList<IceRpc.Slice.
         code.writeln(&encode_data_members(
             &members,
             namespace,
-            Encoding::Slice1, // Classes are Slice1 only.
             FieldType::Class,
+            true, // classes are Slice1 only, and always use tag formats
         ));
 
         if has_base_class {
@@ -274,7 +274,7 @@ public override global::System.Collections.Immutable.ImmutableList<IceRpc.Slice.
         code.writeln(&decode_data_members(
             &members,
             namespace,
-            Encoding::Slice1, // Classes are Slice1 only.
+            true, // classes are Slice1 only, and always use tag formats
             FieldType::Class
         ));
         code.writeln("decoder.EndSlice();");

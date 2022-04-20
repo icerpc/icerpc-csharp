@@ -10,8 +10,8 @@ use crate::slicec_ext::*;
 pub fn encode_data_members(
     members: &[&DataMember],
     namespace: &str,
-    tag_encoding: Encoding,
     field_type: FieldType,
+    use_tag_format: bool,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
 
@@ -48,8 +48,8 @@ pub fn encode_data_members(
             namespace,
             &param,
             "encoder",
-            &tag_encoding,
             TypeContext::DataMember,
+            use_tag_format,
         ));
     }
 
@@ -213,8 +213,8 @@ fn encode_tagged_type(
     namespace: &str,
     param: &str,
     encoder_param: &str,
-    encoding: &Encoding,
     type_context: TypeContext,
+    use_tag_format: bool,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
     let data_type = member.data_type();
@@ -331,7 +331,7 @@ fn encode_tagged_type(
     };
 
     let mut encode_tagged_args = vec![tag.to_string()];
-    if *encoding == Encoding::Slice1 {
+    if use_tag_format {
         encode_tagged_args.push(format!(
             "IceRpc.Slice.TagFormat.{}",
             data_type.tag_format().unwrap()
@@ -631,8 +631,8 @@ fn encode_operation_parameters(
             namespace,
             name.as_str(),
             encoder_param,
-            &operation.encoding,
             TypeContext::Encode,
+            operation.encoding == Encoding::Slice1, //tag formats are only used with Slice1
         ));
     }
 
