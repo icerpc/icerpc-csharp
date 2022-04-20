@@ -262,7 +262,8 @@ public abstract class SimpleTransportConformanceTests
         await using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
         await sut.ServerConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
         var delay = TimeSpan.FromMilliseconds(2);
-        TimeSpan lastActivity = sut.ClientConnection.LastActivity;
+        // Task.Delay sometime returns a little too early so we add a 1ms tolerance.
+        TimeSpan lastActivity = sut.ClientConnection.LastActivity - TimeSpan.FromMilliseconds(1);
         await Task.Delay(delay);
         var buffer = new Memory<byte>(new byte[1]);
 
@@ -270,9 +271,8 @@ public abstract class SimpleTransportConformanceTests
         await sut.ClientConnection.ReadAsync(buffer, default);
 
         // Assert
-        Assert.That(
-            sut.ClientConnection.LastActivity >= delay + lastActivity || sut.ClientConnection.LastActivity == TimeSpan.Zero,
-            Is.True);
+        Assert.That(sut.ClientConnection.LastActivity,
+                    Is.GreaterThanOrEqualTo(delay + lastActivity).Or.EqualTo(TimeSpan.Zero));
     }
 
     /// <summary>Verifies that pending write operation fails with <see cref="OperationCanceledException"/> once the
@@ -370,17 +370,16 @@ public abstract class SimpleTransportConformanceTests
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
         await using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
         var delay = TimeSpan.FromMilliseconds(10);
-        TimeSpan lastActivity = sut.ClientConnection.LastActivity;
+        // Task.Delay sometime returns a little too early so we add a 1ms tolerance.
+        TimeSpan lastActivity = sut.ClientConnection.LastActivity - TimeSpan.FromMilliseconds(1);
         await Task.Delay(delay);
 
         // Act
         await sut.ClientConnection.WriteAsync(new List<ReadOnlyMemory<byte>>() { new byte[1] }, default);
 
         // Assert
-        Assert.That(
-            sut.ClientConnection.LastActivity >= delay + lastActivity ||
-            sut.ClientConnection.LastActivity == TimeSpan.Zero,
-            Is.True);
+        Assert.That(sut.ClientConnection.LastActivity,
+                    Is.GreaterThanOrEqualTo(delay + lastActivity).Or.EqualTo(TimeSpan.Zero));
     }
 
     /// <summary>Verifies that we can write using server and client connections.</summary>
