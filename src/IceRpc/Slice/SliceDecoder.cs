@@ -125,7 +125,7 @@ namespace IceRpc.Slice
 
         // Decode methods for basic types
 
-        /// <summary>Decodes a bool.</summary>
+        /// <summary>Decodes a slice bool into a bool.</summary>
         /// <returns>The bool decoded by this decoder.</returns>
         public bool DecodeBool() => _reader.TryRead(out byte value) ? value != 0 : throw new EndOfBufferException();
 
@@ -162,7 +162,7 @@ namespace IceRpc.Slice
         /// <returns>The size decoded by this decoder.</returns>
         public int DecodeSize() => TryDecodeSize(out int value) ? value : throw new EndOfBufferException();
 
-        /// <summary>Decodes a string.</summary>
+        /// <summary>Decodes a Slice string into a string.</summary>
         /// <returns>The string decoded by this decoder.</returns>
         public string DecodeString()
         {
