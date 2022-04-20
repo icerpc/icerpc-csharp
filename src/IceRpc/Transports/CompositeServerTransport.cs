@@ -16,7 +16,7 @@ namespace IceRpc.Transports
         private string? _defaultTransport; // the name of the first transport added to _transports
         private IReadOnlyDictionary<string, IServerTransport<T>>? _transports;
 
-        /// <summary>Adds a new server transport to this composite server transport with the specifed name.</summary>
+        /// <summary>Adds a new server transport to this composite server transport with the specified name.</summary>
         /// <param name="name">The transport name.</param>
         /// <param name="transport">The transport instance.</param>
         /// <returns>This composite transport.</returns>
