@@ -117,7 +117,12 @@ impl<'a> Visitor for StructVisitor<'a> {
             );
 
             // Encode method
-            let mut encode_body = encode_data_members(&members, &namespace, FieldType::NonMangled);
+            let mut encode_body = encode_data_members(
+                &members,
+                &namespace,
+                Encoding::Slice2, // Only used for tags and structs with tags are Slice2 only.
+                FieldType::NonMangled,
+            );
             if !struct_def.is_compact {
                 writeln!(
                     encode_body,

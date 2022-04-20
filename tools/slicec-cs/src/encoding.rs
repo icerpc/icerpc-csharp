@@ -10,6 +10,7 @@ use crate::slicec_ext::*;
 pub fn encode_data_members(
     members: &[&DataMember],
     namespace: &str,
+    tag_encoding: Encoding,
     field_type: FieldType,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
@@ -47,6 +48,7 @@ pub fn encode_data_members(
             namespace,
             &param,
             "encoder",
+            &tag_encoding,
             TypeContext::DataMember,
         ));
     }
@@ -211,6 +213,7 @@ fn encode_tagged_type(
     namespace: &str,
     param: &str,
     encoder_param: &str,
+    encoding: &Encoding,
     type_context: TypeContext,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
@@ -332,7 +335,7 @@ fn encode_tagged_type(
         "\
 if ({null_check})
 {{{count_variable}
-    {encoder_param}.EncodeTagged({tag}, IceRpc.Slice.TagFormat.{format}{size}, {value}, {action});
+    {encoder_param}.EncodeTagged({tag}{tag_format}{size}, {value}, {action});
 }}",
         null_check = null_check,
         count_variable = count_value.map_or(
@@ -341,7 +344,12 @@ if ({null_check})
         ),
         encoder_param = encoder_param,
         tag = tag,
-        format = data_type.tag_format(),
+        tag_format = if encoding == SliceEncoding::Slice1 {
+            // All types usable with Slice1 return `Some(tag)`, so it's safe to unwrap.
+            format!(", IceRpc.Slice.TagFormat.{}", data_type.tag_format().unwrap())
+        } else {
+            "".to_owned()
+        },
         size = size_parameter.map_or(
             "".to_owned(),
             |v| format!(", size: {}", v),
@@ -619,6 +627,7 @@ fn encode_operation_parameters(
             namespace,
             name.as_str(),
             encoder_param,
+            &operation.encoding,
             TypeContext::Encode,
         ));
     }

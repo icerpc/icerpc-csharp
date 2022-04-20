@@ -243,7 +243,12 @@ public override global::System.Collections.Immutable.ImmutableList<IceRpc.Slice.
             start_slice_args.join(", ")
         );
 
-        code.writeln(&encode_data_members(&members, namespace, FieldType::Class));
+        code.writeln(&encode_data_members(
+            &members,
+            namespace,
+            Encoding::Slice1, // Classes are Slice1 only.
+            FieldType::Class,
+        ));
 
         if has_base_class {
             code.writeln("encoder.EndSlice(false);");

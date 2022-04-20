@@ -427,7 +427,6 @@ public class OperationTests
             {
                 encoder.EncodeTagged(
                     1,
-                    TagFormat.F4,
                     size: 4,
                     p3.Value,
                     (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
@@ -436,7 +435,6 @@ public class OperationTests
             {
                 encoder.EncodeTagged(
                     2,
-                    TagFormat.OVSize,
                     p4,
                     (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
             }
@@ -521,7 +519,6 @@ public class OperationTests
             {
                 encoder.EncodeTagged(
                     1,
-                    TagFormat.F4,
                     size: 4,
                     p3.Value,
                     (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
@@ -531,7 +528,6 @@ public class OperationTests
             {
                 encoder.EncodeTagged(
                     2,
-                    TagFormat.OVSize,
                     p4,
                     (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
             }

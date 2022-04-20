@@ -150,7 +150,6 @@ public sealed class ExceptionTests
             // Ensure that a tagged value not declared in the Slice definition is correctly skipped
             encoder.EncodeTagged(
                 10,
-                TagFormat.F4,
                 size: 4,
                 taggedValue.Value,
                 (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
@@ -213,7 +212,6 @@ public sealed class ExceptionTests
         {
             encoder.EncodeTagged(
                 1,
-                TagFormat.F4,
                 size: 4,
                 k.Value,
                 (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
@@ -222,7 +220,6 @@ public sealed class ExceptionTests
         {
             encoder.EncodeTagged(
                 255,
-                TagFormat.F4,
                 size: 4,
                 l.Value,
                 (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));

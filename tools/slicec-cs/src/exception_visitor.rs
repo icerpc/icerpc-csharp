@@ -185,7 +185,12 @@ encoder.StartSlice(SliceTypeId);
 {encode_data_members}
 encoder.EndSlice(lastSlice: {is_last_slice});
 {encode_base}",
-            encode_data_members = &encode_data_members(members, namespace, FieldType::Exception),
+            encode_data_members = &encode_data_members(
+                members,
+                namespace,
+                Encoding::Slice1,
+                FieldType::Exception,
+            ),
             is_last_slice = !has_base,
             encode_base = if has_base {
                 "base.EncodeCore(ref encoder);"
@@ -201,7 +206,12 @@ encoder.EndSlice(lastSlice: {is_last_slice});
 encoder.EncodeString(Message);
 {encode_data_members}
 encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);",
-            encode_data_members = &encode_data_members(members, namespace, FieldType::Exception),
+            encode_data_members = &encode_data_members(
+                members,
+                namespace,
+                Encoding::Slice2,
+                FieldType::Exception,
+            ),
         ).into()
     )
     .build();

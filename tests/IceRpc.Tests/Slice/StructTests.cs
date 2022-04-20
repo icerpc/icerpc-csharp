@@ -116,7 +116,6 @@ public sealed class StructTests
         {
             encoder.EncodeTagged(
                 1,
-                TagFormat.F4,
                 size: 4,
                 k.Value,
                 (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
@@ -126,7 +125,6 @@ public sealed class StructTests
         {
             encoder.EncodeTagged(
                 255,
-                TagFormat.F4,
                 size: 1,
                 l.Value,
                 (ref SliceEncoder encoder, int value) => encoder.EncodeVarInt32(value));
@@ -136,7 +134,6 @@ public sealed class StructTests
         {
             encoder.EncodeTagged(
                 256,
-                TagFormat.F4,
                 size: 1,
                 m.Value,
                 (ref SliceEncoder encoder, ulong value) => encoder.EncodeVarUInt62(value));
