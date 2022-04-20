@@ -64,10 +64,6 @@ namespace IceRpc.Slice
         // The maximum depth when decoding a type recursively.
         private readonly int _maxDepth;
 
-        // The sum of all the minimum sizes (in bytes) of the sequences decoded from this buffer. Must not exceed the
-        // buffer size.
-        private int _minTotalSeqSize;
-
         // The sequence reader.
         private SequenceReader<byte> _reader;
 
@@ -100,7 +96,6 @@ namespace IceRpc.Slice
                 (maxDepth >= 1 ? maxDepth :
                     throw new ArgumentException($"{nameof(maxDepth)} must be -1 or greater than 1", nameof(maxDepth)));
 
-            _minTotalSeqSize = 0;
             _reader = new SequenceReader<byte>(buffer);
         }
 
@@ -583,13 +578,7 @@ namespace IceRpc.Slice
             int minSize = (size * minKeySize) +
                 (minValueSize > 0 ? size * minValueSize : SliceEncoder.GetBitSequenceByteCount(size));
 
-            _minTotalSeqSize += minSize;
-
-            if (_reader.Remaining < minSize || _minTotalSeqSize > _reader.Length)
-            {
-                throw new InvalidDataException("invalid dictionary size");
-            }
-            return size;
+            return _reader.Remaining >= minSize ? size : throw new InvalidDataException("invalid dictionary size");
         }
 
         /// <summary>Decodes a sequence size and makes sure there is enough space in the underlying buffer to decode the
@@ -611,15 +600,7 @@ namespace IceRpc.Slice
 
             int minSize = minElementSize > 0 ? size * minElementSize : SliceEncoder.GetBitSequenceByteCount(size);
 
-            // With _minTotalSeqSize, we make sure that multiple sequences within a buffer can't trigger maliciously
-            // the allocation of a large amount of memory before we decode these sequences.
-            _minTotalSeqSize += minSize;
-
-            if (_reader.Remaining < minSize || _minTotalSeqSize > _reader.Length)
-            {
-                throw new InvalidDataException("invalid sequence size");
-            }
-            return size;
+            return _reader.Remaining >= minSize ? size : throw new InvalidDataException("invalid sequence size");
         }
 
         /// <summary>Decodes fields.</summary>
