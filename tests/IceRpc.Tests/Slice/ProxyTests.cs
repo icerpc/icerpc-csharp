@@ -1,7 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Slice.Internal;
 using NUnit.Framework;
+using System.IO.Pipelines;
 
 namespace IceRpc.Slice.Tests;
 
@@ -83,5 +85,22 @@ public class ProxyTests
         Proxy decoded = sut.DecodeProxy();
 
         Assert.That(decoded, Is.EqualTo(expected));
+    }
+
+    /// <summary>Verifies that a relative proxy gets the decoder connection.</summary>
+    [Test]
+    public async Task Decode_relative_proxy()
+    {
+        await using var connection = new Connection("icerpc://localhost");
+        Assert.That(() =>
+        {
+            var bufferWriter = new MemoryBufferWriter(new byte[256]);
+            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            encoder.EncodeProxy(Proxy.FromPath("/foo"));            
+
+            var decoder = new SliceDecoder(bufferWriter.WrittenMemory, encoding: SliceEncoding.Slice2, connection);
+            return decoder.DecodeProxy().Connection;
+        },
+        Is.EqualTo(connection));
     }
 }
