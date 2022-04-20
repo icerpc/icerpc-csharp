@@ -49,30 +49,25 @@ namespace IceRpc.Slice
 
         // Encode methods for basic types
 
-        /// <summary>Encodes a boolean.</summary>
+        /// <summary>Encodes a bool into a Slice bool.</summary>
         /// <param name="v">The boolean to encode.</param>
         public void EncodeBool(bool v) => EncodeUInt8(v ? (byte)1 : (byte)0);
-
-        /// <summary>Encodes a byte into a Slice uint8.</summary>
-        /// <param name="v">The byte to encode.</param>
-        public void EncodeUInt8(byte v)
-        {
-            Span<byte> span = _bufferWriter.GetSpan();
-            span[0] = v;
-            Advance(1);
-        }
-
-        /// <summary>Encodes a double into a Slice float64.</summary>
-        /// <param name="v">The double to encode.</param>
-        public void EncodeFloat64(double v) => EncodeFixedSizeNumeric(v);
 
         /// <summary>Encodes a float into a Slice float32.</summary>
         /// <param name="v">The float to encode.</param>
         public void EncodeFloat32(float v) => EncodeFixedSizeNumeric(v);
 
+        /// <summary>Encodes a double into a Slice float64.</summary>
+        /// <param name="v">The double to encode.</param>
+        public void EncodeFloat64(double v) => EncodeFixedSizeNumeric(v);
+
         /// <summary>Encodes an sbyte into a Slice int8.</summary>
         /// <param name="v">The sbyte to encode.</param>
         public void EncodeInt8(sbyte v) => EncodeUInt8((byte)v);
+
+        /// <summary>Encodes a short into a Slice int16.</summary>
+        /// <param name="v">The short to encode.</param>
+        public void EncodeInt16(short v) => EncodeFixedSizeNumeric(v);
 
         /// <summary>Encodes an int into a Slice int32.</summary>
         /// <param name="v">The int to encode.</param>
@@ -81,10 +76,6 @@ namespace IceRpc.Slice
         /// <summary>Encodes a long into a Slice int64.</summary>
         /// <param name="v">The long to encode.</param>
         public void EncodeInt64(long v) => EncodeFixedSizeNumeric(v);
-
-        /// <summary>Encodes a short into a Slice int16.</summary>
-        /// <param name="v">The short to encode.</param>
-        public void EncodeInt16(short v) => EncodeFixedSizeNumeric(v);
 
         /// <summary>Encodes a size on variable number of bytes.</summary>
         /// <param name="v">The size to encode.</param>
@@ -108,7 +99,7 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes a string.</summary>
+        /// <summary>Encodes a string into a Slice string.</summary>
         /// <param name="v">The string to encode.</param>
         public void EncodeString(string v)
         {
@@ -175,6 +166,19 @@ namespace IceRpc.Slice
             }
         }
 
+        /// <summary>Encodes a byte into a Slice uint8.</summary>
+        /// <param name="v">The byte to encode.</param>
+        public void EncodeUInt8(byte v)
+        {
+            Span<byte> span = _bufferWriter.GetSpan();
+            span[0] = v;
+            Advance(1);
+        }
+
+        /// <summary>Encodes a ushort into a Slice uint16.</summary>
+        /// <param name="v">The ushort to encode.</param>
+        public void EncodeUInt16(ushort v) => EncodeFixedSizeNumeric(v);
+
         /// <summary>Encodes a uint into a Slice uint32.</summary>
         /// <param name="v">The uint to encode.</param>
         public void EncodeUInt32(uint v) => EncodeFixedSizeNumeric(v);
@@ -182,10 +186,6 @@ namespace IceRpc.Slice
         /// <summary>Encodes a ulong into a Slice uint64.</summary>
         /// <param name="v">The ulong to encode.</param>
         public void EncodeUInt64(ulong v) => EncodeFixedSizeNumeric(v);
-
-        /// <summary>Encodes a ushort into a Slice uint16.</summary>
-        /// <param name="v">The ushort to encode.</param>
-        public void EncodeUInt16(ushort v) => EncodeFixedSizeNumeric(v);
 
         /// <summary>Encodes an int into a Slice varint32.</summary>
         /// <param name="v">The int to encode.</param>
@@ -331,20 +331,6 @@ namespace IceRpc.Slice
 
         // Other methods
 
-        /// <summary>Computes the minimum number of bytes required to encode a long value using the Slice encoding's
-        /// variable-size encoded representation.</summary>
-        /// <param name="value">The long value.</param>
-        /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.
-        /// </returns>
-        public static int GetVarInt62EncodedSize(long value) => 1 << GetVarInt62EncodedSizeExponent(value);
-
-        /// <summary>Computes the minimum number of bytes required to encode a ulong value using the Slice encoding's
-        /// variable-size encoded representation.</summary>
-        /// <param name="value">The ulong value.</param>
-        /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.
-        /// </returns>
-        public static int GetVarUInt62EncodedSize(ulong value) => 1 << GetVarUInt62EncodedSizeExponent(value);
-
         /// <summary>Encodes a ulong as a Slice varuint62 into a span of bytes using a fixed number of bytes.</summary>
         /// <param name="value">The value to encode.</param>
         /// <param name="into">The destination byte buffer, which must be 1, 2, 4 or 8 bytes long.</param>
@@ -375,6 +361,20 @@ namespace IceRpc.Slice
             MemoryMarshal.Write(ulongBuf, ref value);
             ulongBuf[0..sizeLength].CopyTo(into);
         }
+
+        /// <summary>Computes the minimum number of bytes required to encode a long value using the Slice encoding's
+        /// variable-size encoded representation.</summary>
+        /// <param name="value">The long value.</param>
+        /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.
+        /// </returns>
+        public static int GetVarInt62EncodedSize(long value) => 1 << GetVarInt62EncodedSizeExponent(value);
+
+        /// <summary>Computes the minimum number of bytes required to encode a ulong value using the Slice encoding's
+        /// variable-size encoded representation.</summary>
+        /// <param name="value">The ulong value.</param>
+        /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.
+        /// </returns>
+        public static int GetVarUInt62EncodedSize(ulong value) => 1 << GetVarUInt62EncodedSizeExponent(value);
 
         /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is not known before
         /// encoding this value.</summary>
