@@ -153,20 +153,20 @@ pub fn decode_tagged_member(
     let data_type = member.data_type();
 
     assert!(data_type.is_optional && member.tag().is_some());
+
+    let mut decode_tagged_args = vec![member.tag().unwrap().to_string()];
+    if *encoding == Encoding::Slice1 {
+        decode_tagged_args.push(format!(
+            "IceRpc.Slice.TagFormat.{}",
+            data_type.tag_format().unwrap()
+        ));
+    }
+    decode_tagged_args.push(decode_func(data_type, namespace).to_string());
+
     format!(
-        "\
-{param} = decoder.DecodeTagged(
-    {tag}{tag_format},
-    {decode_func});",
+        "{param} = decoder.DecodeTagged({args});",
         param = param,
-        tag = member.tag().unwrap(),
-        tag_format = if *encoding == Encoding::Slice1 {
-            // All types usable with Slice1 return `Some(tag)`, so it's safe to unwrap.
-            format!("\n, IceRpc.Slice.TagFormat.{}", data_type.tag_format().unwrap())
-        } else {
-            "".to_owned()
-        },
-        decode_func = decode_func(data_type, namespace)
+        args = decode_tagged_args.join(", ")
     )
     .into()
 }

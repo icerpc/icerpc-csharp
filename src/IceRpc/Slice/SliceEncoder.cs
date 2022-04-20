@@ -376,8 +376,8 @@ namespace IceRpc.Slice
         /// </returns>
         public static int GetVarUInt62EncodedSize(ulong value) => 1 << GetVarUInt62EncodedSizeExponent(value);
 
-        /// <summary>Encodes a non-null tagged value with a Slice2 size. The number of bytes needed to encode the value
-        /// is not known before encoding this value (Slice2 only).</summary>
+        /// <summary>Encodes a non-null Slice2 encoded tagged value. The number of bytes needed to encode the value is
+        /// not known before encoding this value (Slice2 only).</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The value to encode.</param>
         /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
@@ -392,8 +392,8 @@ namespace IceRpc.Slice
             EncodeVarUInt62((ulong)(EncodedByteCount - startPos), sizePlaceholder);
         }
 
-        /// <summary>Encodes a non-null tagged value with a Slice2 size. The number of bytes needed to encode the value
-        /// is known before encoding the value (Slice2 only).</summary>
+        /// <summary>Encodes a non-null Slice2 encoded tagged value. The number of bytes needed to encode the value is
+        /// known before encoding the value (Slice2 only).</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="size">The number of bytes needed to encode the value.</param>
         /// <param name="v">The value to encode.</param>
@@ -416,8 +416,8 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes a non-null tagged value with a Slice1 TagFormat. The number of bytes needed to encode the
-        /// value is not known before encoding this value.</summary>
+        /// <summary>Encodes a non-null Slice1 encoded tagged value. The number of bytes needed to encode the value is
+        /// not known before encoding this value.</summary>
         /// <param name="tag">The tag. Must be either FSize or OVSize.</param>
         /// <param name="tagFormat">The tag format.</param>
         /// <param name="v">The value to encode.</param>
@@ -451,7 +451,7 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes a non-null tagged value with a Slice1 TagFormat. The number of bytes needed to encode the
+        /// <summary>Encodes a non-null Slice1 encoded tagged value. The number of bytes needed to encode the
         /// value is known before encoding the value.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="tagFormat">The tag format. Can have any value except FSize.</param>

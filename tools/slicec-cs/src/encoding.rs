@@ -330,12 +330,32 @@ fn encode_tagged_type(
         )
     };
 
+    let mut encode_tagged_args = vec![tag.to_string()];
+    if *encoding == Encoding::Slice1 {
+        encode_tagged_args.push(format!(
+            "IceRpc.Slice.TagFormat.{}",
+            data_type.tag_format().unwrap()
+        ));
+    }
+    if let Some(size) = size_parameter {
+        encode_tagged_args.push(format!(
+            "size: {}",
+            size
+        ));
+    }
+    encode_tagged_args.push(
+        if read_only_memory { value } else { unwrapped_name }
+    );
+    encode_tagged_args.push(
+        encode_action(&clone_as_non_optional(data_type), type_context, namespace).to_string()
+    );
+
     writeln!(
         code,
         "\
 if ({null_check})
 {{{count_variable}
-    {encoder_param}.EncodeTagged({tag}{tag_format}{size}, {value}, {action});
+    {encoder_param}.EncodeTagged({args});
 }}",
         null_check = null_check,
         count_variable = count_value.map_or(
@@ -343,23 +363,7 @@ if ({null_check})
             |v| format!("\nint count_ = {}.Count();", v),
         ),
         encoder_param = encoder_param,
-        tag = tag,
-        tag_format = if *encoding == Encoding::Slice1 {
-            // All types usable with Slice1 return `Some(tag)`, so it's safe to unwrap.
-            format!(", IceRpc.Slice.TagFormat.{}", data_type.tag_format().unwrap())
-        } else {
-            "".to_owned()
-        },
-        size = size_parameter.map_or(
-            "".to_owned(),
-            |v| format!(", size: {}", v),
-        ),
-        value = if read_only_memory {
-            &value
-        } else {
-            &unwrapped_name
-        },
-        action = encode_action(&clone_as_non_optional(data_type), type_context, namespace),
+        args = encode_tagged_args.join(", ")
     );
 
     code

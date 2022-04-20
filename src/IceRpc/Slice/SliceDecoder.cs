@@ -386,7 +386,7 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Decodes a tagged parameter or data member with a Slice2 size.</summary>
+        /// <summary>Decodes a Slice2 encoded tagged parameter or data member.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="decodeFunc">A decode function that decodes the value of this tag.</param>
         /// <returns>The decoded value of the tagged parameter or data member, or null if not found.</returns>
@@ -424,7 +424,7 @@ namespace IceRpc.Slice
             return default!;
         }
 
-        /// <summary>Decodes a tagged parameter or data member with a Slice1 TagFormat.</summary>
+        /// <summary>Decodes a Slice1 encoded tagged parameter or data member.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="tagFormat">The expected tag format of this tag when found in the underlying buffer.</param>
         /// <param name="decodeFunc">A decode function that decodes the value of this tag.</param>
