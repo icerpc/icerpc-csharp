@@ -393,7 +393,9 @@ namespace IceRpc.Slice
         /// <remarks>When T is a value type, it should be a nullable value type such as int?.</remarks>
         public T DecodeTagged<T>(int tag, DecodeFunc<T> decodeFunc)
         {
-            Debug.Assert(Encoding != SliceEncoding.Slice1);
+            if (Encoding == SliceEncoding.Slice1) {
+                throw new InvalidOperationException("Slice1 encoded tags must be decoded with tag formats");
+            }
 
             int requestedTag = tag;
 
@@ -432,7 +434,9 @@ namespace IceRpc.Slice
         /// <remarks>When T is a value type, it should be a nullable value type such as int?.</remarks>
         public T DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<T> decodeFunc)
         {
-            Debug.Assert(Encoding == SliceEncoding.Slice1);
+            if (Encoding != SliceEncoding.Slice1) {
+                throw new InvalidOperationException("tag formats can only be used with the Slice1 encoding");
+            }
 
             if (DecodeTaggedParamHeader(tag, tagFormat))
             {

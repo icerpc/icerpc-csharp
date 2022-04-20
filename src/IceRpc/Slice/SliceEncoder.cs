@@ -383,7 +383,9 @@ namespace IceRpc.Slice
         /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
         public void EncodeTagged<T>(int tag, T v, EncodeAction<T> encodeAction) where T : notnull
         {
-            Debug.Assert(Encoding != SliceEncoding.Slice1);
+            if (Encoding == SliceEncoding.Slice1) {
+                throw new InvalidOperationException("Slice1 encoded tags must be encoded with tag formats");
+            }
 
             EncodeVarInt32(tag); // the key
             Span<byte> sizePlaceholder = GetPlaceholderSpan(4);
@@ -400,7 +402,9 @@ namespace IceRpc.Slice
         /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
         public void EncodeTagged<T>(int tag, int size, T v, EncodeAction<T> encodeAction) where T : notnull
         {
-            Debug.Assert(Encoding != SliceEncoding.Slice1);
+            if (Encoding == SliceEncoding.Slice1) {
+                throw new InvalidOperationException("Slice1 encoded tags must be encoded with tag formats");
+            }
             Debug.Assert(size > 0);
 
             EncodeVarInt32(tag); // the key
@@ -428,7 +432,9 @@ namespace IceRpc.Slice
             T v,
             EncodeAction<T> encodeAction) where T : notnull
         {
-            Debug.Assert(Encoding == SliceEncoding.Slice1);
+            if (Encoding != SliceEncoding.Slice1) {
+                throw new InvalidOperationException("tag formats can only be used with the Slice1 encoding");
+            }
 
             if (tagFormat == TagFormat.FSize)
             {
@@ -465,7 +471,9 @@ namespace IceRpc.Slice
             T v,
             EncodeAction<T> encodeAction) where T : notnull
         {
-            Debug.Assert(Encoding == SliceEncoding.Slice1);
+            if (Encoding != SliceEncoding.Slice1) {
+                throw new InvalidOperationException("tag formats can only be used with the Slice1 encoding");
+            }
             Debug.Assert(tagFormat != TagFormat.FSize);
             Debug.Assert(size > 0);
 
