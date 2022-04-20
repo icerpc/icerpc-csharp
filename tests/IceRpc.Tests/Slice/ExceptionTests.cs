@@ -71,7 +71,7 @@ public sealed class ExceptionTests
         encoder.EncodeInt32(20);
         if (taggedValue != null)
         {
-            // Ensure that a tagged value not declared in the Slice definition is correctly skip
+            // Ensure that a tagged value not declared in the Slice definition is correctly skipped
             encoder.EncodeTagged(
                 10,
                 TagFormat.F4,

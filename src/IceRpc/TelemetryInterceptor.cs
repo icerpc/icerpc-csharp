@@ -94,14 +94,14 @@ namespace IceRpc
             // struct ActivityContext
             // {
             //    // ActivityID version 1 byte
-            //    byte version;
+            //    uint8 version;
             //    // ActivityTraceId 16 bytes
-            //    ulong activityTraceId0;
-            //    ulong activityTraceId1;
+            //    uint64 activityTraceId0;
+            //    uint64 activityTraceId1;
             //    // ActivitySpanId 8 bytes
-            //    ulong activitySpanId
+            //    uint64 activitySpanId
             //    // ActivityTraceFlags 1 byte
-            //    byte ActivityTraceFlags;
+            //    uint8 ActivityTraceFlags;
             //    string traceStateString;
             //    Baggage baggage;
             // }

@@ -70,9 +70,9 @@ public class ProxyTests
     {
         get
         {
-            foreach ((string str, Endpoint[] altEntpoints) in _altEdpoints)
+            foreach ((string str, Endpoint[] altEndpoints) in _altEndpoints)
             {
-                yield return new TestCaseData(str, altEntpoints);
+                yield return new TestCaseData(str, altEndpoints);
             }
         }
     }
@@ -158,7 +158,7 @@ public class ProxyTests
             ("foobar:path#fragment", "path", "fragment"),
         };
 
-    private static readonly Dictionary<string, Endpoint[]> _altEdpoints = new()
+    private static readonly Dictionary<string, Endpoint[]> _altEndpoints = new()
     {
         ["icerpc://localhost/path?alt-endpoint=host1,host2"] = new Endpoint[]
         {
