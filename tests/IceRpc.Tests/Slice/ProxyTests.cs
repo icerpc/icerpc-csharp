@@ -97,8 +97,8 @@ public class ProxyTests
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
             encoder.EncodeProxy(Proxy.FromPath("/foo"));
-
             var decoder = new SliceDecoder(bufferWriter.WrittenMemory, encoding: SliceEncoding.Slice2, connection);
+
             return decoder.DecodeProxy().Connection;
         },
         Is.EqualTo(connection));
