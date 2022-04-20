@@ -58,7 +58,7 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes a sequence of fixed-size numeric values, such as int32 or uint8.</summary>
+        /// <summary>Encodes a sequence of fixed-size numeric values, such as int or ulong.</summary>
         /// <param name="encoder">The Slice encoder.</param>
         /// <param name="v">The sequence of numeric values.</param>
         public static void EncodeSequence<T>(this ref SliceEncoder encoder, IEnumerable<T> v) where T : struct
@@ -130,7 +130,7 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes a span of fixed-size numeric values, such as int32 or uint8.</summary>
+        /// <summary>Encodes a span of fixed-size numeric values, such as int or ulong.</summary>
         /// <param name="encoder">The Slice encoder.</param>
         /// <param name="v">The span of numeric values represented by a <see cref="ReadOnlySpan{T}"/>.</param>
         // This method works because (as long as) there is no padding in the memory representation of the ReadOnlySpan.
