@@ -389,7 +389,8 @@ public sealed class ClassTests
         Assert.That(
             decoder.DecodeUInt8(),
             Is.EqualTo(
-                (byte)Slice1Definitions.TypeIdKind.CompactId |
+                (byte)Slice1Definitions.TypeIdKind.CompactId |
+
                 (byte)Slice1Definitions.SliceFlags.HasSliceSize |
                 (byte)Slice1Definitions.SliceFlags.IsLastSlice));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(typeof(MyCompactClass).GetCompactSliceTypeId()!.Value));
