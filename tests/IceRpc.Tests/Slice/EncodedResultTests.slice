@@ -1,0 +1,14 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc::Slice::Tests;
+
+[cs:encoded-result]
+interface EncodedResultOperations1
+{
+    opString(p1: string) -> string;
+}
+
+interface EncodedResultOperations2
+{
+    [cs:encoded-result] opString(p1: string) -> string;
+}
