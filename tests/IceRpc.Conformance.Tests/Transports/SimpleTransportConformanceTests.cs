@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Transports.Tests;
 
@@ -459,6 +460,31 @@ public class SimpleTransportServiceCollection : ServiceCollection
                 clientAuthenticationOptions,
                 NullLogger.Instance);
         });
+    }
+}
+
+public static class SimpleTransportServiceCollectionExtensions
+{
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Security",
+        "CA5359:Do Not Disable Certificate Validation",
+        Justification = "The transport tests do not rely on certificate validation")]
+    public static ServiceCollection UseSsl(this ServiceCollection serviceCollection)
+    {
+        serviceCollection.AddScoped(_ => new SslClientAuthenticationOptions
+        {
+            ClientCertificates = new X509CertificateCollection()
+            {
+                new X509Certificate2("../../../certs/client.p12", "password")
+            },
+            RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true,
+        });
+        serviceCollection.AddScoped(_ => new SslServerAuthenticationOptions
+        {
+            ClientCertificateRequired = false,
+            ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
+        });
+        return serviceCollection;
     }
 }
 
