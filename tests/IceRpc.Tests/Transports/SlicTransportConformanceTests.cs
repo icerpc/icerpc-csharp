@@ -24,7 +24,7 @@ public class SlicServiceCollection : ServiceCollection
         this.AddScoped<IServerTransport<IMultiplexedNetworkConnection>>(provider =>
         {
             var colocTransport = provider.GetRequiredService<ColocTransport>();
-            var serverOptions = new SlicServerTransportOptions();
+            var serverOptions = provider.GetService<SlicServerTransportOptions>() ?? new SlicServerTransportOptions();
             var multiplexedTransportOptions = provider.GetRequiredService<MultiplexedTransportOptions>();
             if (multiplexedTransportOptions.BidirectionalStreamMaxCount is int bidirectionalStreamMaxCount)
             {
@@ -41,7 +41,7 @@ public class SlicServiceCollection : ServiceCollection
         this.AddScoped<IClientTransport<IMultiplexedNetworkConnection>>(provider =>
         {
             var colocTransport = provider.GetRequiredService<ColocTransport>();
-            var clientOptions = new SlicClientTransportOptions();
+            var clientOptions = provider.GetService<SlicClientTransportOptions>() ?? new SlicClientTransportOptions();
             var multiplexedTransportOptions = provider.GetRequiredService<MultiplexedTransportOptions>();
             if (multiplexedTransportOptions.BidirectionalStreamMaxCount is int bidirectionalStreamMaxCount)
             {

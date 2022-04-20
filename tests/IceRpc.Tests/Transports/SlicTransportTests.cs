@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
-using IceRpc.Tests;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -18,21 +17,24 @@ public class SlicTransportTests
     public async Task Stream_peer_options_are_set_after_connect()
     {
         // Arrange
-        await using ServiceProvider serviceProvider = CreateServiceCollection(
-            new SlicServerTransportOptions
-            {
-                PauseWriterThreshold = 6893,
-                ResumeWriterThreshold = 2000,
-                PacketMaxSize = 2098
-            },
-            new SlicClientTransportOptions
-            {
-                PauseWriterThreshold = 2405,
-                ResumeWriterThreshold = 2000,
-                PacketMaxSize = 4567
-            }).BuildServiceProvider();
-        Task<IMultiplexedNetworkConnection> acceptTask = serviceProvider.GetMultiplexedServerConnectionAsync();
-        var clientConnection = (SlicNetworkConnection)await serviceProvider.GetMultiplexedClientConnectionAsync();
+        await using ServiceProvider serviceProvider = new SlicServiceCollection()
+            .AddScoped(
+                _ =>  new SlicServerTransportOptions
+                {
+                    PauseWriterThreshold = 6893,
+                    ResumeWriterThreshold = 2000,
+                    PacketMaxSize = 2098
+                })
+            .AddScoped(
+                _ => new SlicClientTransportOptions
+                {
+                    PauseWriterThreshold = 2405,
+                    ResumeWriterThreshold = 2000,
+                    PacketMaxSize = 4567
+                }).BuildServiceProvider();
+
+        await using var clientConnection = (SlicNetworkConnection) serviceProvider.CreateConnection();
+        Task<IMultiplexedNetworkConnection> acceptTask = serviceProvider.AcceptConnectionAsync(clientConnection);
 
         // Act
         var serverConnection = (SlicNetworkConnection)await acceptTask;
@@ -51,17 +53,17 @@ public class SlicTransportTests
         int pauseThreshold)
     {
         // Arrange
-        await using ServiceProvider serviceProvider = CreateServiceCollection(
-            serverOptions: new SlicServerTransportOptions
-            {
-                PauseWriterThreshold = pauseThreshold
-            }).BuildServiceProvider();
+        await using ServiceProvider serviceProvider = new SlicServiceCollection()
+            .AddScoped(
+                _ => new SlicServerTransportOptions
+                {
+                    PauseWriterThreshold = pauseThreshold
+                }).BuildServiceProvider();
 
         byte[] payload = new byte[pauseThreshold - 1];
 
-        Task<IMultiplexedNetworkConnection> acceptTask = serviceProvider.GetMultiplexedServerConnectionAsync();
-        await using IMultiplexedNetworkConnection clientConnection =
-            await serviceProvider.GetMultiplexedClientConnectionAsync();
+        await using var clientConnection = (SlicNetworkConnection)serviceProvider.CreateConnection();
+        Task<IMultiplexedNetworkConnection> acceptTask = serviceProvider.AcceptConnectionAsync(clientConnection);
         await using IMultiplexedNetworkConnection serverConnection = await acceptTask;
 
         (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
@@ -86,15 +88,15 @@ public class SlicTransportTests
     {
         // Arrange
         byte[] payload = new byte[pauseThreshold - 1];
-        await using ServiceProvider serviceProvider = CreateServiceCollection(
-            serverOptions: new SlicServerTransportOptions
-            {
-                PauseWriterThreshold = pauseThreshold
-            }).BuildServiceProvider();
+        await using ServiceProvider serviceProvider = new SlicServiceCollection()
+            .AddScoped(
+                _ => new SlicServerTransportOptions
+                {
+                    PauseWriterThreshold = pauseThreshold
+                }).BuildServiceProvider();
 
-        Task<IMultiplexedNetworkConnection> acceptTask = serviceProvider.GetMultiplexedServerConnectionAsync();
-        await using IMultiplexedNetworkConnection clientConnection =
-            await serviceProvider.GetMultiplexedClientConnectionAsync();
+        await using var clientConnection = (SlicNetworkConnection)serviceProvider.CreateConnection();
+        Task<IMultiplexedNetworkConnection> acceptTask = serviceProvider.AcceptConnectionAsync(clientConnection);
         await using IMultiplexedNetworkConnection serverConnection = await acceptTask;
 
         (IMultiplexedStream localStream1, IMultiplexedStream remoteStream1) =
@@ -127,16 +129,16 @@ public class SlicTransportTests
         int resumeThreshold)
     {
         // Arrange
-        await using ServiceProvider serviceProvider = CreateServiceCollection(
-            serverOptions: new SlicServerTransportOptions
-            {
-                PauseWriterThreshold = pauseThreshold,
-                ResumeWriterThreshold = resumeThreshold,
-            }).BuildServiceProvider();
+        await using ServiceProvider serviceProvider = new SlicServiceCollection()
+            .AddScoped(
+                _ => new SlicServerTransportOptions
+                {
+                    PauseWriterThreshold = pauseThreshold,
+                    ResumeWriterThreshold = resumeThreshold,
+                }).BuildServiceProvider();
 
-        Task<IMultiplexedNetworkConnection>? acceptTask = serviceProvider.GetMultiplexedServerConnectionAsync();
-        await using IMultiplexedNetworkConnection clientConnection =
-            await serviceProvider.GetMultiplexedClientConnectionAsync();
+        await using var clientConnection = (SlicNetworkConnection)serviceProvider.CreateConnection();
+        Task<IMultiplexedNetworkConnection> acceptTask = serviceProvider.AcceptConnectionAsync(clientConnection);
         await using IMultiplexedNetworkConnection serverConnection = await acceptTask;
 
         IMultiplexedStream stream = clientConnection.CreateStream(bidirectional: true);
@@ -174,22 +176,5 @@ public class SlicTransportTests
         ReadResult readResult = await remoteStream.Input.ReadAsync();
         remoteStream.Input.AdvanceTo(readResult.Buffer.End);
         return (localStream, remoteStream);
-    }
-
-    private static IServiceCollection CreateServiceCollection(
-        SlicServerTransportOptions? serverOptions = null,
-        SlicClientTransportOptions? clientOptions = null)
-    {
-        var coloc = new ColocTransport();
-
-        serverOptions ??= new SlicServerTransportOptions();
-        serverOptions.SimpleServerTransport ??= coloc.ServerTransport;
-
-        clientOptions ??= new SlicClientTransportOptions();
-        clientOptions.SimpleClientTransport ??= coloc.ClientTransport;
-
-        return new TransportServiceCollection()
-            .AddTransient(_ => clientOptions)
-            .AddTransient(_ => serverOptions);
     }
 }
