@@ -11,7 +11,7 @@ edition = "2018"
 
 [dependencies]
 # Uses the github repo when built locally, and Crates.io when published.
-slicec = { git = "ssh://git@github.com/zeroc-ice/icerpc", version = "0.1.0" }
+slicec = { git = "ssh://git@github.com/zeroc-ice/icerpc", rev = "3dbbef866ca80e5a07c728189bda6e4a4e118dd7" }
 structopt = "0.3.13"
 regex = "1.5"
 blake2 = "0.9.2"

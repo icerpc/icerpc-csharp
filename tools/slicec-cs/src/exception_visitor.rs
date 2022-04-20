@@ -86,7 +86,12 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
             );
         }
 
-        let mut decode_body_slice2 = decode_data_members(&members, &namespace, FieldType::Exception);
+        let mut decode_body_slice2 = decode_data_members(
+            &members,
+            &namespace,
+            Encoding::Slice2,
+            FieldType::Exception
+        );
         writeln!(decode_body_slice2, "decoder.SkipTaggedParams();");
 
         exception_class_builder.add_block(
@@ -130,6 +135,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
                 code.writeln(&decode_data_members(
                     &members,
                     namespace,
+                    Encoding::Slice1,
                     FieldType::Exception,
                 ));
                 code.writeln("decoder.EndSlice();");

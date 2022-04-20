@@ -344,7 +344,7 @@ if ({null_check})
         ),
         encoder_param = encoder_param,
         tag = tag,
-        tag_format = if encoding == SliceEncoding::Slice1 {
+        tag_format = if *encoding == Encoding::Slice1 {
             // All types usable with Slice1 return `Some(tag)`, so it's safe to unwrap.
             format!(", IceRpc.Slice.TagFormat.{}", data_type.tag_format().unwrap())
         } else {

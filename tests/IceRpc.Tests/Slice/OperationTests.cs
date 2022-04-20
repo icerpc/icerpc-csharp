@@ -373,20 +373,14 @@ public class OperationTests
         if (p3 != null)
         {
             Assert.That(
-                decoder.DecodeTagged(
-                    1,
-                    TagFormat.F4,
-                    (ref SliceDecoder decoder) => decoder.DecodeInt32()),
+                decoder.DecodeTagged(1, (ref SliceDecoder decoder) => decoder.DecodeInt32()),
                 Is.EqualTo(p3));
         }
 
         if (p4 != null)
         {
             Assert.That(
-                decoder.DecodeTagged(
-                    2,
-                    TagFormat.OVSize,
-                    (ref SliceDecoder decoder) => decoder.DecodeString()),
+                decoder.DecodeTagged(2, (ref SliceDecoder decoder) => decoder.DecodeString()),
                 Is.EqualTo(p4));
         }
         Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
@@ -467,19 +461,13 @@ public class OperationTests
         if (p3 != null)
         {
             Assert.That(
-                decoder.DecodeTagged(
-                    1,
-                    TagFormat.F4,
-                    (ref SliceDecoder decoder) => decoder.DecodeInt32()),
+                decoder.DecodeTagged(1, (ref SliceDecoder decoder) => decoder.DecodeInt32()),
                 Is.EqualTo(p3));
         }
         if (p4 != null)
         {
             Assert.That(
-                decoder.DecodeTagged(
-                    2,
-                    TagFormat.OVSize,
-                    (ref SliceDecoder decoder) => decoder.DecodeString()),
+                decoder.DecodeTagged(2, (ref SliceDecoder decoder) => decoder.DecodeString()),
                 Is.EqualTo(p4));
         }
         Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));

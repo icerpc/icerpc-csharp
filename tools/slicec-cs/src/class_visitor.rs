@@ -12,7 +12,7 @@ use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
 use slice::code_gen_util::TypeContext;
-use slice::grammar::{Attributable, Class, DataMember};
+use slice::grammar::{Attributable, Class, DataMember, Encoding};
 use slice::visitor::Visitor;
 
 pub struct ClassVisitor<'a> {
@@ -271,7 +271,12 @@ public override global::System.Collections.Immutable.ImmutableList<IceRpc.Slice.
     .set_body({
         let mut code = CodeBlock::new();
         code.writeln("decoder.StartSlice();");
-        code.writeln(&decode_data_members(&members, namespace, FieldType::Class));
+        code.writeln(&decode_data_members(
+            &members,
+            namespace,
+            Encoding::Slice1, // Classes are Slice1 only.
+            FieldType::Class
+        ));
         code.writeln("decoder.EndSlice();");
         if has_base_class {
             code.writeln("base.DecodeCore(ref decoder);");

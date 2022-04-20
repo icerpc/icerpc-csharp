@@ -8,6 +8,7 @@ use slice::grammar::*;
 pub fn decode_data_members(
     members: &[&DataMember],
     namespace: &str,
+    encoding: Encoding,
     field_type: FieldType,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
@@ -33,7 +34,7 @@ pub fn decode_data_members(
     // Decode tagged members
     for member in tagged_members {
         let param = format!("this.{}", member.field_name(field_type));
-        code.writeln(&decode_tagged_member(member, namespace, &param));
+        code.writeln(&decode_tagged_member(member, namespace, &param, &encoding));
     }
 
     code
@@ -143,18 +144,29 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str) -> CodeBloc
     code
 }
 
-pub fn decode_tagged_member(member: &impl Member, namespace: &str, param: &str) -> CodeBlock {
-    assert!(member.data_type().is_optional && member.tag().is_some());
+pub fn decode_tagged_member(
+    member: &impl Member,
+    namespace: &str,
+    param: &str,
+    encoding: &Encoding
+) -> CodeBlock {
+    let data_type = member.data_type();
+
+    assert!(data_type.is_optional && member.tag().is_some());
     format!(
         "\
 {param} = decoder.DecodeTagged(
-    {tag},
-    IceRpc.Slice.TagFormat.{tag_format},
+    {tag}{tag_format},
     {decode_func});",
         param = param,
         tag = member.tag().unwrap(),
-        tag_format = member.data_type().tag_format(),
-        decode_func = decode_func(member.data_type(), namespace)
+        tag_format = if *encoding == Encoding::Slice1 {
+            // All types usable with Slice1 return `Some(tag)`, so it's safe to unwrap.
+            format!("\n, IceRpc.Slice.TagFormat.{}", data_type.tag_format().unwrap())
+        } else {
+            "".to_owned()
+        },
+        decode_func = decode_func(data_type, namespace)
     )
     .into()
 }
@@ -532,6 +544,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
                 member,
                 namespace,
                 &member.parameter_name_with_prefix("sliceP_"),
+                &operation.encoding,
             )
         )
     }

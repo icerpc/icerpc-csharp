@@ -386,7 +386,45 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Decodes a tagged parameter or data member.</summary>
+        /// <summary>Decodes a tagged parameter or data member with a Slice2 size.</summary>
+        /// <param name="tag">The tag.</param>
+        /// <param name="decodeFunc">A decode function that decodes the value of this tag.</param>
+        /// <returns>The decoded value of the tagged parameter or data member, or null if not found.</returns>
+        /// <remarks>When T is a value type, it should be a nullable value type such as int?.</remarks>
+        public T DecodeTagged<T>(int tag, DecodeFunc<T> decodeFunc)
+        {
+            Debug.Assert(Encoding != SliceEncoding.Slice1);
+
+            int requestedTag = tag;
+
+            // For decoding parameters, return values, and exception data members we rely on the end of the buffer
+            // to detect the end of the tag 'dictionary'. Struct data members use TagEndMarker.
+            while (!_reader.End)
+            {
+                long startPos = _reader.Consumed;
+                tag = DecodeVarInt32();
+
+                if (tag == requestedTag)
+                {
+                    // Found requested tag, so skip size:
+                    SkipSize();
+                    return decodeFunc(ref this);
+                }
+                else if (tag == Slice2Definitions.TagEndMarker || tag > requestedTag)
+                {
+                    _reader.Rewind(_reader.Consumed - startPos); // rewind
+                    break; // while
+                }
+                else
+                {
+                    Skip(DecodeSize());
+                    // and continue while loop
+                }
+            }
+            return default!;
+        }
+
+        /// <summary>Decodes a tagged parameter or data member with a Slice1 TagFormat.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="tagFormat">The expected tag format of this tag when found in the underlying buffer.</param>
         /// <param name="decodeFunc">A decode function that decodes the value of this tag.</param>
@@ -394,54 +432,23 @@ namespace IceRpc.Slice
         /// <remarks>When T is a value type, it should be a nullable value type such as int?.</remarks>
         public T DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<T> decodeFunc)
         {
-            if (Encoding == SliceEncoding.Slice1)
+            Debug.Assert(Encoding == SliceEncoding.Slice1);
+
+            if (DecodeTaggedParamHeader(tag, tagFormat))
             {
-                if (DecodeTaggedParamHeader(tag, tagFormat))
+                if (tagFormat == TagFormat.VSize)
                 {
-                    if (tagFormat == TagFormat.VSize)
-                    {
-                        SkipSize();
-                    }
-                    else if (tagFormat == TagFormat.FSize)
-                    {
-                        Skip(4);
-                    }
-                    return decodeFunc(ref this);
+                    SkipSize();
                 }
-                else
+                else if (tagFormat == TagFormat.FSize)
                 {
-                    return default!; // i.e. null
+                    Skip(4);
                 }
+                return decodeFunc(ref this);
             }
             else
             {
-                int requestedTag = tag;
-
-                // For decoding parameters, return values, and exception data members we rely on the end of the buffer
-                // to detect the end of the tag 'dictionary'. Struct data members use TagEndMarker.
-                while (!_reader.End)
-                {
-                    long startPos = _reader.Consumed;
-                    tag = DecodeVarInt32();
-
-                    if (tag == requestedTag)
-                    {
-                        // Found requested tag, so skip size:
-                        SkipSize();
-                        return decodeFunc(ref this);
-                    }
-                    else if (tag == Slice2Definitions.TagEndMarker || tag > requestedTag)
-                    {
-                        _reader.Rewind(_reader.Consumed - startPos); // rewind
-                        break; // while
-                    }
-                    else
-                    {
-                        Skip(DecodeSize());
-                        // and continue while loop
-                    }
-                }
-                return default!;
+                return default!; // i.e. null
             }
         }
 
