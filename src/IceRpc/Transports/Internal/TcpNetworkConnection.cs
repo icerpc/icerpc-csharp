@@ -289,8 +289,7 @@ namespace IceRpc.Transports.Internal
         }
 
         public override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
-            TcpClientTransport.CheckEndpointParams(remoteEndpoint.Params, out string? remoteEndpointTransport) &&
-                (remoteEndpointTransport != TransportNames.Ssl || _sslStream != null);
+            TcpClientTransport.CheckEndpointParams(remoteEndpoint.Params, out string? _);
 
         internal TcpClientNetworkConnection(
             string host,
