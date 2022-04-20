@@ -293,13 +293,16 @@ namespace IceRpc.Transports.Internal
                 (remoteEndpointTransport != TransportNames.Ssl || _sslStream != null);
 
         internal TcpClientNetworkConnection(
-            Endpoint remoteEndpoint,
+            string host,
+            ushort port,
             SslClientAuthenticationOptions? authenticationOptions,
             TcpClientTransportOptions options)
         {
-            _addr = IPAddress.TryParse(remoteEndpoint.Host, out IPAddress? ipAddress) ?
-                new IPEndPoint(ipAddress, remoteEndpoint.Port) :
-                new DnsEndPoint(remoteEndpoint.Host, remoteEndpoint.Port);
+            _addr = IPAddress.TryParse(host, out IPAddress? ipAddress) ?
+                new IPEndPoint(ipAddress, port) :
+                new DnsEndPoint(host, port);
+
+            _authenticationOptions = authenticationOptions;
 
             // When using IPv6 address family we use the socket constructor without AddressFamiliy parameter to ensure
             // dual-mode socket are used in platforms that support them.
@@ -329,20 +332,6 @@ namespace IceRpc.Transports.Internal
             {
                 Socket.Dispose();
                 throw new TransportException(ex);
-            }
-
-            if (authenticationOptions != null)
-            {
-                // Add the endpoint protocol to the SSL application protocols (used by TLS ALPN) and set the
-                // TargetHost to the endpoint host. On the client side, the application doesn't necessarily
-                // need to provide authentication options if it relies on system certificates and doesn't specify
-                // certificate validation.
-                _authenticationOptions = authenticationOptions.Clone();
-                _authenticationOptions.TargetHost ??= remoteEndpoint.Host;
-                _authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
-                {
-                    new SslApplicationProtocol(remoteEndpoint.Protocol.Name)
-                };
             }
 
             _idleTimeout = options.IdleTimeout;

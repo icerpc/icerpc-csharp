@@ -42,21 +42,30 @@ namespace IceRpc.Transports
             // This is the composition root of the tcp client transport, where we install log decorators when logging
             // is enabled.
 
-            if (CheckEndpointParams(remoteEndpoint.Params, out string? remoteEndpointTransport))
-            {
-                if (remoteEndpointTransport == TransportNames.Ssl)
-                {
-                    // With ssl, we always "turn on" SSL
-                    authenticationOptions ??= new SslClientAuthenticationOptions();
-                }
-            }
-            else
+            if (!CheckEndpointParams(remoteEndpoint.Params, out string? remoteEndpointTransport))
             {
                 throw new FormatException($"cannot create a TCP connection to endpoint '{remoteEndpoint}'");
             }
 
+            authenticationOptions = authenticationOptions?.Clone() ??
+                (remoteEndpointTransport == TransportNames.Ssl ? new SslClientAuthenticationOptions() : null);
+
+            if (authenticationOptions != null)
+            {
+                // Add the endpoint protocol to the SSL application protocols (used by TLS ALPN) and set the
+                // TargetHost to the endpoint host. On the client side, the application doesn't necessarily
+                // need to provide authentication options if it relies on system certificates and doesn't specify
+                // certificate validation.
+                authenticationOptions.TargetHost ??= remoteEndpoint.Host;
+                authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
+                {
+                    new SslApplicationProtocol(remoteEndpoint.Protocol.Name)
+                };
+            }
+
             var clientConnection = new TcpClientNetworkConnection(
-                remoteEndpoint,
+                remoteEndpoint.Host,
+                remoteEndpoint.Port,
                 authenticationOptions,
                 _options);
 
