@@ -53,13 +53,13 @@ pub fn main() {
 fn try_main() -> Result<(), Error> {
     let options = CsOptions::from_args();
     let slice_options = &options.slice_options;
-    let slice_files = slice::parse_from_options(slice_options)?;
+    let (mut error_reporter, slice_files) = slice::parse_from_options(slice_options)?;
 
-    let mut cs_validator = CsValidator;
+    let mut cs_validator = CsValidator{ error_reporter: &mut error_reporter };
     for slice_file in slice_files.values() {
         slice_file.visit_with(&mut cs_validator);
     }
-    slice::handle_errors(slice_options.warn_as_error, &slice_files)?;
+    slice::handle_errors(slice_options.warn_as_error, &slice_files, &mut error_reporter)?;
 
     if !slice_options.validate {
         for slice_file in slice_files.values().filter(|file| file.is_source) {
@@ -133,7 +133,7 @@ fn try_main() -> Result<(), Error> {
                 match write_file(&path, &code_string) {
                     Ok(_) => (),
                     Err(err) => {
-                        slice::report_error(
+                        error_reporter.report_error(
                             format!("failed to write to file {}: {}", &path.display(), err),
                             None,
                         );
@@ -145,7 +145,7 @@ fn try_main() -> Result<(), Error> {
         }
     }
 
-    slice::handle_errors(true, &slice_files)
+    slice::handle_errors(true, &slice_files, &mut error_reporter)
 }
 
 fn preamble(slice_file: &SliceFile) -> CodeBlock {
