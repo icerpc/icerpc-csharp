@@ -429,16 +429,13 @@ namespace IceRpc.Transports.Internal
                         lastStreamFrame,
                         cancel).ConfigureAwait(false);
                 }
-                catch (MultiplexedStreamAbortedException ex)
+                catch (ObjectDisposedException)
                 {
-                    if (ex.ToSlicError() == SlicStreamError.NoError)
-                    {
-                        return new FlushResult(isCanceled: false, isCompleted: true);
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    // The simple network connection can only be disposed if this connection is aborted either because
+                    // it was disposed or because the connection was lost. We throw the abort exception to ensure that
+                    // the cause of the connection aborption (connection disposed or lost) is correctly reported.
+                    Debug.Assert(_exception != null);
+                    throw ExceptionUtil.Throw(_exception);
                 }
                 finally
                 {
