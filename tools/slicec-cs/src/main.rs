@@ -53,7 +53,7 @@ pub fn main() {
 fn try_main() -> Result<(), Error> {
     let options = CsOptions::from_args();
     let slice_options = &options.slice_options;
-    let (mut error_reporter, slice_files) = slice::parse_from_options(slice_options)?;
+    let (ast, mut error_reporter, slice_files) = slice::parse_from_options(slice_options)?;
 
     let mut cs_validator = CsValidator{ error_reporter: &mut error_reporter };
     for slice_file in slice_files.values() {
