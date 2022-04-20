@@ -26,12 +26,12 @@ namespace IceRpc.Transports.Internal
                 throw new NotSupportedException("cannot create a secure Coloc connection");
             }
 
-            remoteEndpoint = remoteEndpoint.WithTransport(Name);
-
-            if (remoteEndpoint.Params.Count > 1)
+            if (!ColocTransport.CheckEndpointParams(remoteEndpoint.Params))
             {
-                throw new ArgumentException("unknown endpoint parameter", nameof(remoteEndpoint));
+                throw new FormatException($"cannot create a Coloc connection to endpoint '{remoteEndpoint}'");
             }
+
+            remoteEndpoint = remoteEndpoint.WithTransport(Name);
 
             if (_listeners.TryGetValue(remoteEndpoint, out ColocListener? listener))
             {

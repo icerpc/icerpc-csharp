@@ -2,6 +2,7 @@
 
 using IceRpc.Transports.Internal;
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 
 namespace IceRpc.Transports
 {
@@ -25,5 +26,9 @@ namespace IceRpc.Transports
             ClientTransport = new ColocClientTransport(listeners);
             ServerTransport = new ColocServerTransport(listeners);
         }
+
+        internal static bool CheckEndpointParams(ImmutableDictionary<string, string> endpointParams) =>
+            endpointParams.TryGetValue("transport", out string? transportValue) ?
+                transportValue == Name && endpointParams.Count == 1 : endpointParams.Count == 0;
     }
 }

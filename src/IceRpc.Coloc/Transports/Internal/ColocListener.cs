@@ -25,14 +25,7 @@ namespace IceRpc.Transports.Internal
             return default;
         }
 
-        internal ColocListener(Endpoint endpoint)
-        {
-            if (endpoint.Params.Count > 1)
-            {
-                throw new ArgumentException("unknown endpoint parameter", nameof(endpoint));
-            }
-            Endpoint = endpoint;
-        }
+        internal ColocListener(Endpoint endpoint) => Endpoint = endpoint;
 
         internal (PipeReader, PipeWriter) NewClientConnection()
         {
