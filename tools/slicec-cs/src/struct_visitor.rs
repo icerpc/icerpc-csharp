@@ -93,7 +93,12 @@ impl<'a> Visitor for StructVisitor<'a> {
             builder.add_block(main_constructor.build());
 
             // Decode constructor
-            let mut decode_body = decode_data_members(&members, &namespace, FieldType::NonMangled);
+            let mut decode_body = decode_data_members(
+                &members,
+                &namespace,
+                false, // tags in structs are only supported by Slice2, which never uses tag formats
+                FieldType::NonMangled,
+            );
             if !struct_def.is_compact {
                 writeln!(decode_body, "decoder.SkipTaggedParams();");
             }
@@ -117,7 +122,12 @@ impl<'a> Visitor for StructVisitor<'a> {
             );
 
             // Encode method
-            let mut encode_body = encode_data_members(&members, &namespace, FieldType::NonMangled);
+            let mut encode_body = encode_data_members(
+                &members,
+                &namespace,
+                FieldType::NonMangled,
+                false, // tags in structs are only supported by Slice2, which never uses tag formats
+            );
             if !struct_def.is_compact {
                 writeln!(
                     encode_body,

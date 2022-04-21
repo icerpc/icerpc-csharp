@@ -170,7 +170,6 @@ namespace IceRpc.Slice
                 _segmentSizeFlushThreshold = 32 * 1024;
                 _encodeAction = encodeAction;
                 _encoding = encoding;
-                _cancellationSource = new CancellationTokenSource();
                 _asyncEnumerator = asyncEnumerable.GetAsyncEnumerator(_cancellationSource.Token);
             }
         }

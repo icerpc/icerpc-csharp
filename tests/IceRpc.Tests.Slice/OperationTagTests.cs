@@ -498,14 +498,12 @@ namespace IceRpc.Tests.Slice
 
                 encoder.EncodeTagged(
                     1,
-                    TagFormat.F4,
                     size: 4,
                     15,
                     (ref SliceEncoder encoder, int v) => encoder.EncodeInt32(v));
 
                 encoder.EncodeTagged(
                     1, // duplicate tag ignored by the server
-                    TagFormat.OVSize,
                     "test",
                     (ref SliceEncoder encoder, string v) => encoder.EncodeString(v));
 
