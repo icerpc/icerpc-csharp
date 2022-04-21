@@ -189,19 +189,25 @@ namespace IceRpc.Tests.Slice.Stream
         }
 
         [Test]
-        [Ignore("#1050")]
         public async Task StreamParam_Send_MyStructCancellation()
         {
             using var semaphore = new SemaphoreSlim(0);
-            var canceled = new TaskCompletionSource<bool>();
+            var canceled = new TaskCompletionSource();
 
             async IAsyncEnumerable<MyStruct> MyStructEnemerable0Async(
                 [EnumeratorCancellation] CancellationToken cancel = default)
             {
-                using CancellationTokenRegistration _ = cancel.Register(() => canceled.SetResult(true));
                 while (true)
                 {
-                    await semaphore.WaitAsync(cancel);
+                    try
+                    {
+                        await semaphore.WaitAsync(cancel);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        canceled.SetResult();
+                        yield break;
+                    }
                     yield return new MyStruct(1, 1);
                 }
             }
@@ -211,13 +217,10 @@ namespace IceRpc.Tests.Slice.Stream
             // Start streaming data, the server cancels its enumerable after receiving the first 20 items
             semaphore.Release(20);
             await _servant.EnumerableReceived.WaitAsync();
+
             await canceled.Task;
 
-            Assert.Multiple(() =>
-            {
-                Assert.That(_servant.MyStructs, Has.Count.EqualTo(20));
-                Assert.That(canceled.Task.Result, Is.True);
-            });
+            Assert.That(_servant.MyStructs, Has.Count.EqualTo(20));
         }
 
         [Test]
