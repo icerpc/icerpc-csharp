@@ -565,7 +565,11 @@ namespace IceRpc.Slice
         /// <returns>The number of elements in the dictionary.</returns>
         internal int DecodeAndCheckDictionarySize(int minKeySize, int minValueSize)
         {
-            Debug.Assert(minKeySize > 0);
+            if (minKeySize <= 0)
+            {
+                throw new ArgumentException($"{nameof(minKeySize)} must be greater than 0", nameof(minKeySize));
+            }
+
             Debug.Assert(minValueSize >= 0);
 
             int size = DecodeSize();
