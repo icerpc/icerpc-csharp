@@ -70,7 +70,7 @@ impl<'a> Visitor for ClassVisitor<'_> {
                 .into(),
         );
 
-        // Class static TypeId string
+        // Class static type ID string
         class_builder.add_block(
             format!(
                 "{} static{} readonly string SliceTypeId = typeof({}).GetSliceTypeId()!;",
