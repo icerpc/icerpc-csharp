@@ -555,6 +555,61 @@ namespace IceRpc.Slice
             }
         }
 
+        /// <summary>Skips the remaining tagged data members or parameters.</summary>
+        public void SkipTagged(bool useTagEndMarker)
+        {
+            if (Encoding == SliceEncoding.Slice1)
+            {
+                Debug.Assert(useTagEndMarker == (_classContext.Current.InstanceType != InstanceType.None));
+
+                while (true)
+                {
+                    if (!useTagEndMarker && _reader.End)
+                    {
+                        // When we don't use an end marker, the end of the buffer indicates the end of the tagged params
+                        // or members.
+                        break;
+                    }
+
+                    int v = DecodeUInt8();
+                    if (useTagEndMarker && v == TagEndMarker)
+                    {
+                        // When we use an end marker, the end marker (and only the end marker) indicates the end of the
+                        // tagged params / member.
+                        break;
+                    }
+
+                    var format = (TagFormat)(v & 0x07); // Read first 3 bits.
+                    if ((v >> 3) == 30)
+                    {
+                        SkipSize();
+                    }
+                    SkipTaggedValue(format);
+                }
+            }
+            else if (useTagEndMarker)
+            {
+                while (true)
+                {
+                    if (DecodeVarInt32() == Slice2Definitions.TagEndMarker)
+                    {
+                        break; // while
+                    }
+
+                    // Skip tagged value
+                    Skip(DecodeSize());
+                }
+            }
+            else
+            {
+                while (!_reader.End)
+                {
+                    Skip(DecodeVarInt62Length(PeekByte()));
+                    Skip(DecodeSize());
+                }
+            }
+        }
+
         // Applies to all var type: varint62, varuint62 etc.
         internal static int DecodeVarInt62Length(byte from) => 1 << (from & 0x03);
 
@@ -565,7 +620,7 @@ namespace IceRpc.Slice
         {
             if (skipTaggedParams)
             {
-                SkipTaggedParams();
+                SkipTagged(useTagEndMarker: false);
             }
 
             if (!_reader.End)
@@ -1013,56 +1068,6 @@ namespace IceRpc.Slice
         }
 
         private byte PeekByte() => _reader.TryPeek(out byte value) ? value : throw new EndOfBufferException();
-
-        /// <summary>Skips the remaining tagged parameters, return value _or_ data members.</summary>
-        public void SkipTaggedParams()
-        {
-            if (Encoding == SliceEncoding.Slice1)
-            {
-                bool withTagEndMarker = _classContext.Current.InstanceType != InstanceType.None;
-
-                while (true)
-                {
-                    if (!withTagEndMarker && _reader.End)
-                    {
-                        // When we don't use an end marker, the end of the buffer indicates the end of the tagged params
-                        // or members.
-                        break;
-                    }
-
-                    int v = DecodeUInt8();
-                    if (withTagEndMarker && v == TagEndMarker)
-                    {
-                        // When we use an end marker, the end marker (and only the end marker) indicates the end of the
-                        // tagged params / member.
-                        break;
-                    }
-
-                    var format = (TagFormat)(v & 0x07); // Read first 3 bits.
-                    if ((v >> 3) == 30)
-                    {
-                        SkipSize();
-                    }
-                    SkipTaggedValue(format);
-                }
-            }
-            else
-            {
-                // For decoding parameters, return values, and exception data members we rely on the end of the buffer
-                // to detect the end of the tag 'dictionary'. Struct data members use TagEndMarker.
-                while (!_reader.End)
-                {
-                    // Read the next tag and skip it. If we read the tag end marker, exit the loop.
-                    if (DecodeVarInt32() == Slice2Definitions.TagEndMarker)
-                    {
-                        break; // while
-                    }
-
-                    // Skip tagged value
-                    Skip(DecodeSize());
-                }
-            }
-        }
 
         /// <summary>Helper method to decode a proxy encoded with Slice1.</summary>
         /// <param name="path">The decoded path.</param>

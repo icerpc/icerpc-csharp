@@ -100,7 +100,7 @@ namespace IceRpc.Slice
 
             if ((_classContext.Current.SliceFlags & SliceFlags.HasTaggedMembers) != 0)
             {
-                SkipTaggedParams();
+                SkipTagged(useTagEndMarker: true);
             }
             if ((_classContext.Current.SliceFlags & SliceFlags.HasIndirectionTable) != 0)
             {
