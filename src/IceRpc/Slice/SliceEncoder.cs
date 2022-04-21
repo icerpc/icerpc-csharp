@@ -383,7 +383,8 @@ namespace IceRpc.Slice
         /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
         public void EncodeTagged<T>(int tag, T v, EncodeAction<T> encodeAction) where T : notnull
         {
-            if (Encoding == SliceEncoding.Slice1) {
+            if (Encoding == SliceEncoding.Slice1)
+            {
                 throw new InvalidOperationException("Slice1 encoded tags must be encoded with tag formats");
             }
 
@@ -402,7 +403,8 @@ namespace IceRpc.Slice
         /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
         public void EncodeTagged<T>(int tag, int size, T v, EncodeAction<T> encodeAction) where T : notnull
         {
-            if (Encoding == SliceEncoding.Slice1) {
+            if (Encoding == SliceEncoding.Slice1)
+            {
                 throw new InvalidOperationException("Slice1 encoded tags must be encoded with tag formats");
             }
             Debug.Assert(size > 0);
@@ -432,7 +434,8 @@ namespace IceRpc.Slice
             T v,
             EncodeAction<T> encodeAction) where T : notnull
         {
-            if (Encoding != SliceEncoding.Slice1) {
+            if (Encoding != SliceEncoding.Slice1)
+            {
                 throw new InvalidOperationException("tag formats can only be used with the Slice1 encoding");
             }
 
@@ -471,7 +474,8 @@ namespace IceRpc.Slice
             T v,
             EncodeAction<T> encodeAction) where T : notnull
         {
-            if (Encoding != SliceEncoding.Slice1) {
+            if (Encoding != SliceEncoding.Slice1)
+            {
                 throw new InvalidOperationException("tag formats can only be used with the Slice1 encoding");
             }
             Debug.Assert(tagFormat != TagFormat.FSize);
