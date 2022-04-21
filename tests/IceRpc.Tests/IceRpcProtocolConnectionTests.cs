@@ -338,6 +338,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Server.AcceptRequestsAsync();
+        _ = sut.Client.AcceptRequestsAsync();
 
         // Act
         var response = await sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));

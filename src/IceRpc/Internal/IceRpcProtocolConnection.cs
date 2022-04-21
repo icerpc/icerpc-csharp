@@ -592,6 +592,7 @@ namespace IceRpc.Internal
             // We can now close the connection. This will cause the peer AcceptStreamAsync call to return.
             try
             {
+                // TODO: Error code constant?
                 await _networkConnection.CloseAsync(0, cancel).ConfigureAwait(false);
             }
             catch (MultiplexedNetworkConnectionClosedException)

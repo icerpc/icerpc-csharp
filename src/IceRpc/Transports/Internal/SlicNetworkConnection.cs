@@ -40,6 +40,7 @@ namespace IceRpc.Transports.Internal
         private long _nextBidirectionalId;
         private long _nextUnidirectionalId;
         private readonly int _packetMaxSize;
+        private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly ISlicFrameReader _reader;
         private readonly AsyncSemaphore _sendSemaphore = new(1, 1);
         private readonly ISimpleNetworkConnection _simpleNetworkConnection;
@@ -63,7 +64,7 @@ namespace IceRpc.Transports.Internal
                 new CloseBody(applicationErrorCode).Encode,
                 cancel).ConfigureAwait(false);
 
-            Abort(new MultiplexedNetworkConnectionClosedException(applicationErrorCode));
+            await _pendingClose.Task.ConfigureAwait(false);
         }
 
         public async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
@@ -201,7 +202,7 @@ namespace IceRpc.Transports.Internal
                     }
                     catch (Exception exception)
                     {
-                        Abort(exception);
+                        await AbortAsync(exception).ConfigureAwait(false);
                     }
                 },
                 CancellationToken.None);
@@ -213,13 +214,7 @@ namespace IceRpc.Transports.Internal
             // TODO: Cache SliceMultiplexedStream
             new SlicMultiplexedStream(this, bidirectional, remote: false, _reader, _writer);
 
-        public ValueTask DisposeAsync()
-        {
-            Abort(new ObjectDisposedException($"{typeof(SlicNetworkConnection)}"));
-            _simpleNetworkConnectionReader.Dispose();
-            _simpleNetworkConnectionWriter.Dispose();
-            return _simpleNetworkConnection.DisposeAsync();
-        }
+        public ValueTask DisposeAsync() => AbortAsync(new ObjectDisposedException($"{typeof(SlicNetworkConnection)}"));
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             _simpleNetworkConnection.HasCompatibleParams(remoteEndpoint);
@@ -465,18 +460,16 @@ namespace IceRpc.Transports.Internal
             return new FlushResult(isCanceled: false, isCompleted: false);
         }
 
-        private void Abort(Exception exception)
+        private ValueTask AbortAsync(Exception exception)
         {
             lock (_mutex)
             {
                 if (_exception != null)
                 {
-                    return;
+                    return new();
                 }
                 _exception = exception;
             }
-
-            _acceptedStreamQueue.TryComplete(exception);
 
             // Unblock requests waiting on the semaphores.
             _bidirectionalStreamSemaphore?.Complete(exception);
@@ -487,6 +480,14 @@ namespace IceRpc.Transports.Internal
             {
                 stream.Abort(exception);
             }
+
+            _acceptedStreamQueue.TryComplete(_exception);
+
+            _pendingClose.TrySetResult();
+
+            _simpleNetworkConnectionReader.Dispose();
+            _simpleNetworkConnectionWriter.Dispose();
+            return _simpleNetworkConnection.DisposeAsync();
         }
 
         private Dictionary<int, IList<byte>> GetParameters()
@@ -537,7 +538,8 @@ namespace IceRpc.Transports.Internal
                             (ref SliceDecoder decoder) => new CloseBody(ref decoder),
                             cancel).ConfigureAwait(false);
 
-                        Abort(new MultiplexedNetworkConnectionClosedException(closeBody.ApplicationProtocolErrorCode));
+                        await AbortAsync(new MultiplexedNetworkConnectionClosedException(
+                            closeBody.ApplicationProtocolErrorCode)).ConfigureAwait(false);
                         break;
                     }
                     case FrameType.Stream:

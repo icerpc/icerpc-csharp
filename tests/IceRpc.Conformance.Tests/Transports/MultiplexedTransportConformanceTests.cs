@@ -158,22 +158,9 @@ public abstract class MultiplexedTransportConformanceTests
         await closedConnection.CloseAsync(4, CancellationToken.None);
 
         // Assert
-
-        // The streams get MultiplexedNetworkConnectionCloseException.
-        IMultiplexedStream disposedStream = closedConnection.CreateStream(true);
-        Assert.ThrowsAsync<MultiplexedNetworkConnectionClosedException>(
-            async () => await disposedStream.Output.WriteAsync(_oneBytePayload));
-
         IMultiplexedStream peerStream = peerConnection.CreateStream(true);
         Assert.ThrowsAsync<MultiplexedNetworkConnectionClosedException>(async () =>
-            {
-                // It can take few writes for the peer to detect the connection closure.
-                while (true)
-                {
-                    await peerStream.Output.WriteAsync(_oneBytePayload);
-                    await Task.Delay(TimeSpan.FromMilliseconds(20));
-                }
-            });
+            await peerStream.Output.WriteAsync(_oneBytePayload));
     }
 
     /// <summary>Verify streams cannot be created after disposing the connection.</summary>
