@@ -428,6 +428,8 @@ namespace IceRpc.Slice
         /// <param name="tagFormat">The tag format.</param>
         /// <param name="v">The value to encode.</param>
         /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="tagFormat"/> is not FSize or OVSize.
+        /// </exception>
         public void EncodeTagged<T>(
             int tag,
             TagFormat tagFormat,
@@ -453,7 +455,10 @@ namespace IceRpc.Slice
             {
                 // A VSize where the size is optimized out. Used here for strings (and only strings) because we cannot
                 // easily compute the number of UTF-8 bytes in a C# string before encoding it.
-                Debug.Assert(tagFormat == TagFormat.OVSize);
+                if (tagFormat != TagFormat.OVSize)
+                {
+                    throw new ArgumentException($"invalid value {tagFormat}", nameof(tagFormat));
+                }
 
                 EncodeTaggedParamHeader(tag, TagFormat.VSize);
                 encodeAction(ref this, v);
@@ -463,10 +468,11 @@ namespace IceRpc.Slice
         /// <summary>Encodes a non-null Slice1 encoded tagged value. The number of bytes needed to encode the
         /// value is known before encoding the value.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="tagFormat">The tag format. Can have any value except FSize.</param>
+        /// <param name="tagFormat">The tag format.</param>
         /// <param name="size">The number of bytes needed to encode the value.</param>
         /// <param name="v">The value to encode.</param>
         /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="tagFormat"/> is FSize.</exception>
         public void EncodeTagged<T>(
             int tag,
             TagFormat tagFormat,
@@ -478,26 +484,13 @@ namespace IceRpc.Slice
             {
                 throw new InvalidOperationException("tag formats can only be used with the Slice1 encoding");
             }
-            Debug.Assert(tagFormat != TagFormat.FSize);
+            if (tagFormat == TagFormat.FSize)
+            {
+                throw new ArgumentException($"invalid value {tagFormat}", nameof(tagFormat));
+            }
             Debug.Assert(size > 0);
 
-            tagFormat = tagFormat switch
-            {
-                TagFormat.VInt => size switch
-                {
-                    1 => TagFormat.F1,
-                    2 => TagFormat.F2,
-                    4 => TagFormat.F4,
-                    8 => TagFormat.F8,
-                    _ => throw new ArgumentException($"invalid value for size: {size}", nameof(size))
-                },
-
-                TagFormat.OVSize => TagFormat.VSize, // size encoding is optimized out
-
-                _ => tagFormat
-            };
-
-            EncodeTaggedParamHeader(tag, tagFormat);
+            EncodeTaggedParamHeader(tag, tagFormat == TagFormat.OVSize ? TagFormat.VSize : tagFormat);
 
             if (tagFormat == TagFormat.VSize)
             {
@@ -510,8 +503,9 @@ namespace IceRpc.Slice
             int actualSize = EncodedByteCount - startPos;
             if (actualSize != size)
             {
-                throw new ArgumentException($"value of size ({size}) does not match encoded size ({actualSize})",
-                                            nameof(size));
+                throw new ArgumentException(
+                    $"value of size ({size}) does not match encoded size ({actualSize})",
+                    nameof(size));
             }
         }
 
@@ -767,7 +761,7 @@ namespace IceRpc.Slice
         private void EncodeTaggedParamHeader(int tag, TagFormat format)
         {
             Debug.Assert(Encoding == SliceEncoding.Slice1);
-            Debug.Assert(format != TagFormat.VInt && format != TagFormat.OVSize); // VInt/OVSize cannot be encoded
+            Debug.Assert(format != TagFormat.OVSize); // OVSize cannot be encoded
 
             int v = (int)format;
             if (tag < 30)
