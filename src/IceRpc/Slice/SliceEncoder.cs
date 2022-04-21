@@ -441,27 +441,26 @@ namespace IceRpc.Slice
                 throw new InvalidOperationException("tag formats can only be used with the Slice1 encoding");
             }
 
-            if (tagFormat == TagFormat.FSize)
+            switch (tagFormat)
             {
-                EncodeTaggedParamHeader(tag, tagFormat);
-                Span<byte> placeholder = GetPlaceholderSpan(4);
-                int startPos = EncodedByteCount;
-                encodeAction(ref this, v);
+                case TagFormat.FSize:
+                    EncodeTaggedParamHeader(tag, tagFormat);
+                    Span<byte> placeholder = GetPlaceholderSpan(4);
+                    int startPos = EncodedByteCount;
+                    encodeAction(ref this, v);
+                    // We don't include the size-length in the size we encode.
+                    EncodeInt32(EncodedByteCount - startPos, placeholder);
+                    break;
 
-                // We don't include the size-length in the size we encode.
-                EncodeInt32(EncodedByteCount - startPos, placeholder);
-            }
-            else
-            {
-                // A VSize where the size is optimized out. Used here for strings (and only strings) because we cannot
-                // easily compute the number of UTF-8 bytes in a C# string before encoding it.
-                if (tagFormat != TagFormat.OVSize)
-                {
+                case TagFormat.OVSize:
+                    // A VSize where the size is optimized out. Used here for strings (and only strings) because we
+                    // cannot easily compute the number of UTF-8 bytes in a C# string before encoding it.
+                    EncodeTaggedParamHeader(tag, TagFormat.VSize);
+                    encodeAction(ref this, v);
+                    break;
+
+                default:
                     throw new ArgumentException($"invalid value {tagFormat}", nameof(tagFormat));
-                }
-
-                EncodeTaggedParamHeader(tag, TagFormat.VSize);
-                encodeAction(ref this, v);
             }
         }
 
