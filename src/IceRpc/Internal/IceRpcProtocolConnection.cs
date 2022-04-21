@@ -69,7 +69,16 @@ namespace IceRpc.Internal
             while (true)
             {
                 // Accepts a new stream.
-                IMultiplexedStream stream = await _networkConnection.AcceptStreamAsync(default).ConfigureAwait(false);
+                IMultiplexedStream stream;
+                try
+                {
+                    stream = await _networkConnection.AcceptStreamAsync(default).ConfigureAwait(false);
+                }
+                catch(MultiplexedNetworkConnectionClosedException)
+                {
+                    // The peer closed the connection following graceful shutdown, we can just return.
+                    return;
+                }
 
                 IceRpcRequestHeader header;
                 IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields;
@@ -322,7 +331,12 @@ namespace IceRpc.Internal
             }
         }
 
-        public void Dispose() => _shutdownCancellationSource.Dispose();
+        public void Dispose()
+        {
+            _shutdownCancellationSource.Dispose();
+            _controlStream?.Output.Complete(null);
+            _remoteControlStream?.Input.Complete(null);
+        }
 
         public Task PingAsync(CancellationToken cancel) =>
             SendControlFrameAsync(IceRpcControlFrameType.Ping, encodeAction: null, cancel).AsTask();
@@ -571,18 +585,24 @@ namespace IceRpc.Internal
                 await _streamsCompleted.Task.ConfigureAwait(false);
             }
 
-            // We are done with the shutdown, notify the peer that shutdown completed on our side.
-            await SendControlFrameAsync(
-                IceRpcControlFrameType.GoAwayCompleted,
-                encodeAction: null,
-                CancellationToken.None).ConfigureAwait(false);
+            // Close the control stream and wait for the peer to close it's control stream.
+            await _controlStream!.Output.CompleteAsync(null).ConfigureAwait(false);
+            await _remoteControlStream!.Input.ReadAsync(CancellationToken.None).ConfigureAwait(false);
 
-            // Wait for the peer to complete its side of the shutdown.
-            await ReceiveControlFrameHeaderAsync(
-                IceRpcControlFrameType.GoAwayCompleted,
-                CancellationToken.None).ConfigureAwait(false);
-
-            // GoAwayCompleted has no body
+            // We can now close the connection. This will cause the peer AcceptStreamAsync call to return.
+            try
+            {
+                await _networkConnection.CloseAsync(0, cancel).ConfigureAwait(false);
+            }
+            catch (MultiplexedNetworkConnectionClosedException)
+            {
+                // Graceful close
+            }
+            catch (Exception exception)
+            {
+                // Unexpected connection close failure.
+                throw new ConnectionLostException(exception);
+            }
         }
 
         /// <inheritdoc/>

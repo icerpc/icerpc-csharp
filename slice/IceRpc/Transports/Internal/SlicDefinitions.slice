@@ -14,6 +14,8 @@ enum FrameType : uint8
     InitializeAck,
     /// The Slic versions supported by the server if the version from the Initialize frame is not supported.
     Version,
+    /// The close frame is sent by the peer when it explicitly closes the connection.
+    Close,
     /// The stream frame is sent send data over a Slic stream.
     Stream,
     /// The last stream frame is the last frame used to send data over a Slic stream.
@@ -77,6 +79,14 @@ compact struct VersionBody
 {
     /// The supported Slic versions.
     versions: sequence<varuint32>,
+}
+
+/// The body of a Slic close frame. This frame is sent when the connection is explicitly closed.
+[cs:readonly]
+compact struct CloseBody
+{
+    /// The application protocol error code indicating the reason of the closure.
+    applicationProtocolErrorCode: varint62,
 }
 
 /// The body of the Stream reset frame. This frame is sent to notify the peer that sender is no longer interested in

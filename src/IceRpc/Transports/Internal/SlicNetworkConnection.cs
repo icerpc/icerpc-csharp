@@ -54,6 +54,18 @@ namespace IceRpc.Transports.Internal
         public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel) =>
             _acceptedStreamQueue.DequeueAsync(cancel);
 
+        public async ValueTask CloseAsync(int applicationErrorCode, CancellationToken cancel)
+        {
+            // Send the frame before aborting the connection since the abort will prevent further sends.
+            await SendFrameAsync(
+                stream: null,
+                FrameType.Close,
+                new CloseBody(applicationErrorCode).Encode,
+                cancel).ConfigureAwait(false);
+
+            Abort(new MultiplexedNetworkConnectionClosedException(applicationErrorCode));
+        }
+
         public async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
         {
             // Connect the simple network connection.
@@ -189,7 +201,7 @@ namespace IceRpc.Transports.Internal
                     }
                     catch (Exception exception)
                     {
-                        await AbortAsync(exception).ConfigureAwait(false);
+                        Abort(exception);
                     }
                 },
                 CancellationToken.None);
@@ -201,7 +213,13 @@ namespace IceRpc.Transports.Internal
             // TODO: Cache SliceMultiplexedStream
             new SlicMultiplexedStream(this, bidirectional, remote: false, _reader, _writer);
 
-        public ValueTask DisposeAsync() => AbortAsync(new ObjectDisposedException($"{typeof(SlicNetworkConnection)}"));
+        public ValueTask DisposeAsync()
+        {
+            Abort(new ObjectDisposedException($"{typeof(SlicNetworkConnection)}"));
+            _simpleNetworkConnectionReader.Dispose();
+            _simpleNetworkConnectionWriter.Dispose();
+            return _simpleNetworkConnection.DisposeAsync();
+        }
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             _simpleNetworkConnection.HasCompatibleParams(remoteEndpoint);
@@ -447,7 +465,7 @@ namespace IceRpc.Transports.Internal
             return new FlushResult(isCanceled: false, isCompleted: false);
         }
 
-        private async ValueTask AbortAsync(Exception exception)
+        private void Abort(Exception exception)
         {
             lock (_mutex)
             {
@@ -469,10 +487,6 @@ namespace IceRpc.Transports.Internal
             {
                 stream.Abort(exception);
             }
-
-            await _simpleNetworkConnection.DisposeAsync().ConfigureAwait(false);
-            _simpleNetworkConnectionReader.Dispose();
-            _simpleNetworkConnectionWriter.Dispose();
         }
 
         private Dictionary<int, IList<byte>> GetParameters()
@@ -509,17 +523,27 @@ namespace IceRpc.Transports.Internal
 
                 // Only stream frames are expected at this point. Non stream frames are only exchanged at the
                 // initialization step.
-                if (type < FrameType.Stream)
+                if (type < FrameType.Close)
                 {
                     throw new InvalidDataException($"unexpected Slic frame with frame type '{type}'");
                 }
-                Debug.Assert(streamId != null);
 
                 switch (type)
                 {
+                    case FrameType.Close:
+                    {
+                        CloseBody closeBody = await ReadFrameAsync(
+                            dataSize,
+                            (ref SliceDecoder decoder) => new CloseBody(ref decoder),
+                            cancel).ConfigureAwait(false);
+
+                        Abort(new MultiplexedNetworkConnectionClosedException(closeBody.ApplicationProtocolErrorCode));
+                        break;
+                    }
                     case FrameType.Stream:
                     case FrameType.StreamLast:
                     {
+                        Debug.Assert(streamId != null);
                         bool endStream = type == FrameType.StreamLast;
                         bool isRemote = streamId % 2 == (IsServer ? 0 : 1);
                         bool isBidirectional = streamId % 4 < 2;
@@ -625,6 +649,7 @@ namespace IceRpc.Transports.Internal
                     }
                     case FrameType.StreamConsumed:
                     {
+                        Debug.Assert(streamId != null);
                         if (dataSize == 0)
                         {
                             throw new InvalidDataException("stream consumed frame too small");
@@ -646,6 +671,7 @@ namespace IceRpc.Transports.Internal
                     }
                     case FrameType.StreamReset:
                     {
+                        Debug.Assert(streamId != null);
                         if (dataSize == 0)
                         {
                             throw new InvalidDataException("stream reset frame too small");
@@ -667,6 +693,7 @@ namespace IceRpc.Transports.Internal
                     }
                     case FrameType.StreamStopSending:
                     {
+                        Debug.Assert(streamId != null);
                         if (dataSize == 0)
                         {
                             throw new InvalidDataException("stream stop sending frame too small");
@@ -688,6 +715,7 @@ namespace IceRpc.Transports.Internal
                     }
                     case FrameType.UnidirectionalStreamReleased:
                     {
+                        Debug.Assert(streamId != null);
                         if (dataSize > 0)
                         {
                             throw new InvalidDataException("unidirectional stream released frame too large");
