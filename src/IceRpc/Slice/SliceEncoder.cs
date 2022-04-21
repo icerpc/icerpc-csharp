@@ -376,8 +376,54 @@ namespace IceRpc.Slice
         /// </returns>
         public static int GetVarUInt62EncodedSize(ulong value) => 1 << GetVarUInt62EncodedSizeExponent(value);
 
-        /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is not known before
-        /// encoding this value.</summary>
+        /// <summary>Encodes a non-null Slice2 encoded tagged value. The number of bytes needed to encode the value is
+        /// not known before encoding this value (Slice2 only).</summary>
+        /// <param name="tag">The tag.</param>
+        /// <param name="v">The value to encode.</param>
+        /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
+        public void EncodeTagged<T>(int tag, T v, EncodeAction<T> encodeAction) where T : notnull
+        {
+            if (Encoding == SliceEncoding.Slice1)
+            {
+                throw new InvalidOperationException("Slice1 encoded tags must be encoded with tag formats");
+            }
+
+            EncodeVarInt32(tag); // the key
+            Span<byte> sizePlaceholder = GetPlaceholderSpan(4);
+            int startPos = EncodedByteCount;
+            encodeAction(ref this, v);
+            EncodeVarUInt62((ulong)(EncodedByteCount - startPos), sizePlaceholder);
+        }
+
+        /// <summary>Encodes a non-null Slice2 encoded tagged value. The number of bytes needed to encode the value is
+        /// known before encoding the value (Slice2 only).</summary>
+        /// <param name="tag">The tag.</param>
+        /// <param name="size">The number of bytes needed to encode the value.</param>
+        /// <param name="v">The value to encode.</param>
+        /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
+        public void EncodeTagged<T>(int tag, int size, T v, EncodeAction<T> encodeAction) where T : notnull
+        {
+            if (Encoding == SliceEncoding.Slice1)
+            {
+                throw new InvalidOperationException("Slice1 encoded tags must be encoded with tag formats");
+            }
+            Debug.Assert(size > 0);
+
+            EncodeVarInt32(tag); // the key
+            EncodeSize(size);
+            int startPos = EncodedByteCount;
+            encodeAction(ref this, v);
+
+            int actualSize = EncodedByteCount - startPos;
+            if (actualSize != size)
+            {
+                throw new ArgumentException($"value of size ({size}) does not match encoded size ({actualSize})",
+                                            nameof(size));
+            }
+        }
+
+        /// <summary>Encodes a non-null Slice1 encoded tagged value. The number of bytes needed to encode the value is
+        /// not known before encoding this value.</summary>
         /// <param name="tag">The tag. Must be either FSize or OVSize.</param>
         /// <param name="tagFormat">The tag format.</param>
         /// <param name="v">The value to encode.</param>
@@ -388,40 +434,34 @@ namespace IceRpc.Slice
             T v,
             EncodeAction<T> encodeAction) where T : notnull
         {
-            if (Encoding == SliceEncoding.Slice1)
+            if (Encoding != SliceEncoding.Slice1)
             {
-                if (tagFormat == TagFormat.FSize)
-                {
-                    EncodeTaggedParamHeader(tag, tagFormat);
-                    Span<byte> placeholder = GetPlaceholderSpan(4);
-                    int startPos = EncodedByteCount;
-                    encodeAction(ref this, v);
+                throw new InvalidOperationException("tag formats can only be used with the Slice1 encoding");
+            }
 
-                    // We don't include the size-length in the size we encode.
-                    EncodeInt32(EncodedByteCount - startPos, placeholder);
-                }
-                else
-                {
-                    // A VSize where the size is optimized out. Used here for strings (and only strings) because we cannot
-                    // easily compute the number of UTF-8 bytes in a C# string before encoding it.
-                    Debug.Assert(tagFormat == TagFormat.OVSize);
+            if (tagFormat == TagFormat.FSize)
+            {
+                EncodeTaggedParamHeader(tag, tagFormat);
+                Span<byte> placeholder = GetPlaceholderSpan(4);
+                int startPos = EncodedByteCount;
+                encodeAction(ref this, v);
 
-                    EncodeTaggedParamHeader(tag, TagFormat.VSize);
-                    encodeAction(ref this, v);
-                }
+                // We don't include the size-length in the size we encode.
+                EncodeInt32(EncodedByteCount - startPos, placeholder);
             }
             else
             {
-                EncodeVarInt32(tag); // the key
-                Span<byte> sizePlaceholder = GetPlaceholderSpan(4);
-                int startPos = EncodedByteCount;
+                // A VSize where the size is optimized out. Used here for strings (and only strings) because we cannot
+                // easily compute the number of UTF-8 bytes in a C# string before encoding it.
+                Debug.Assert(tagFormat == TagFormat.OVSize);
+
+                EncodeTaggedParamHeader(tag, TagFormat.VSize);
                 encodeAction(ref this, v);
-                EncodeVarUInt62((ulong)(EncodedByteCount - startPos), sizePlaceholder);
             }
         }
 
-        /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is known before
-        /// encoding the value.</summary>
+        /// <summary>Encodes a non-null Slice1 encoded tagged value. The number of bytes needed to encode the
+        /// value is known before encoding the value.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="tagFormat">The tag format. Can have any value except FSize.</param>
         /// <param name="size">The number of bytes needed to encode the value.</param>
@@ -434,48 +474,38 @@ namespace IceRpc.Slice
             T v,
             EncodeAction<T> encodeAction) where T : notnull
         {
-            int startPos;
-
-            if (Encoding == SliceEncoding.Slice1)
+            if (Encoding != SliceEncoding.Slice1)
             {
-                Debug.Assert(tagFormat != TagFormat.FSize);
-                Debug.Assert(size > 0);
-
-                bool encodeSize = tagFormat == TagFormat.VSize;
-
-                tagFormat = tagFormat switch
-                {
-                    TagFormat.VInt => size switch
-                    {
-                        1 => TagFormat.F1,
-                        2 => TagFormat.F2,
-                        4 => TagFormat.F4,
-                        8 => TagFormat.F8,
-                        _ => throw new ArgumentException($"invalid value for size: {size}", nameof(size))
-                    },
-
-                    TagFormat.OVSize => TagFormat.VSize, // size encoding is optimized out
-
-                    _ => tagFormat
-                };
-
-                EncodeTaggedParamHeader(tag, tagFormat);
-
-                if (encodeSize)
-                {
-                    EncodeSize(size);
-                }
-
-                startPos = EncodedByteCount;
-                encodeAction(ref this, v);
+                throw new InvalidOperationException("tag formats can only be used with the Slice1 encoding");
             }
-            else
+            Debug.Assert(tagFormat != TagFormat.FSize);
+            Debug.Assert(size > 0);
+
+            tagFormat = tagFormat switch
             {
-                EncodeVarInt32(tag); // the key
+                TagFormat.VInt => size switch
+                {
+                    1 => TagFormat.F1,
+                    2 => TagFormat.F2,
+                    4 => TagFormat.F4,
+                    8 => TagFormat.F8,
+                    _ => throw new ArgumentException($"invalid value for size: {size}", nameof(size))
+                },
+
+                TagFormat.OVSize => TagFormat.VSize, // size encoding is optimized out
+
+                _ => tagFormat
+            };
+
+            EncodeTaggedParamHeader(tag, tagFormat);
+
+            if (tagFormat == TagFormat.VSize)
+            {
                 EncodeSize(size);
-                startPos = EncodedByteCount;
-                encodeAction(ref this, v);
             }
+
+            int startPos = EncodedByteCount;
+            encodeAction(ref this, v);
 
             int actualSize = EncodedByteCount - startPos;
             if (actualSize != size)

@@ -116,7 +116,6 @@ public sealed class StructTests
         {
             encoder.EncodeTagged(
                 1,
-                TagFormat.F4,
                 size: 4,
                 k.Value,
                 (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
@@ -126,7 +125,6 @@ public sealed class StructTests
         {
             encoder.EncodeTagged(
                 255,
-                TagFormat.F4,
                 size: 1,
                 l.Value,
                 (ref SliceEncoder encoder, int value) => encoder.EncodeVarInt32(value));
@@ -136,7 +134,6 @@ public sealed class StructTests
         {
             encoder.EncodeTagged(
                 256,
-                TagFormat.F4,
                 size: 1,
                 m.Value,
                 (ref SliceEncoder encoder, ulong value) => encoder.EncodeVarUInt62(value));
@@ -260,21 +257,21 @@ public sealed class StructTests
         if (k != null)
         {
             Assert.That(
-                decoder.DecodeTagged(1, TagFormat.F4, (ref SliceDecoder decoder) => decoder.DecodeInt32()),
+                decoder.DecodeTagged(1, (ref SliceDecoder decoder) => decoder.DecodeInt32()),
                 Is.EqualTo(k));
         }
 
         if (l != null)
         {
             Assert.That(
-                decoder.DecodeTagged(255, TagFormat.F4, (ref SliceDecoder decoder) => decoder.DecodeVarInt32()),
+                decoder.DecodeTagged(255, (ref SliceDecoder decoder) => decoder.DecodeVarInt32()),
                 Is.EqualTo(l));
         }
 
         if (m != null)
         {
             Assert.That(
-                decoder.DecodeTagged(256, TagFormat.F4, (ref SliceDecoder decoder) => decoder.DecodeVarUInt62()),
+                decoder.DecodeTagged(256, (ref SliceDecoder decoder) => decoder.DecodeVarUInt62()),
                 Is.EqualTo(m));
         }
         Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));

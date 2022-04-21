@@ -477,19 +477,26 @@ namespace IceRpc.Internal
 
         private void Abort(Exception exception)
         {
-            if (_isAborted)
+            lock (_mutex)
             {
-                return;
+                if (_isAborted)
+                {
+                    return;
+                }
+                _isAborted = true;
             }
-            _isAborted = true;
+
+            // First close the network connection pipe reader/writer. This ensures that pending dispatches won't send
+            // responses and in particular it will ensure that the dispatch cancellation below doesn't send a
+            // DispatchException. If dispatches are in progress and the connection forcefully closed the peer
+            // invocations will fail with ConnectionLostException.
+            _networkConnectionReader.Dispose();
+            _networkConnectionWriter.Dispose();
 
             CancelInvocations(exception);
             CancelDispatches();
 
             _dispatchSemaphore?.Dispose();
-
-            _networkConnectionReader.Dispose();
-            _networkConnectionWriter.Dispose();
 
             // Unblock ShutdownAsync which might be waiting for the connection to be disposed.
             _pendingClose.SetResult();

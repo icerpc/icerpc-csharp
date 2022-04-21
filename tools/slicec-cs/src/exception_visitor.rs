@@ -86,7 +86,12 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
             );
         }
 
-        let mut decode_body_slice2 = decode_data_members(&members, &namespace, FieldType::Exception);
+        let mut decode_body_slice2 = decode_data_members(
+            &members,
+            &namespace,
+            false, // this block is for Slice2, which never uses tag formats
+            FieldType::Exception
+        );
         writeln!(decode_body_slice2, "decoder.SkipTaggedParams();");
 
         exception_class_builder.add_block(
@@ -130,6 +135,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
                 code.writeln(&decode_data_members(
                     &members,
                     namespace,
+                    true, // this block is for Slice1, which always uses tag formats
                     FieldType::Exception,
                 ));
                 code.writeln("decoder.EndSlice();");
@@ -185,7 +191,12 @@ encoder.StartSlice(SliceTypeId);
 {encode_data_members}
 encoder.EndSlice(lastSlice: {is_last_slice});
 {encode_base}",
-            encode_data_members = &encode_data_members(members, namespace, FieldType::Exception),
+            encode_data_members = &encode_data_members(
+                members,
+                namespace,
+                FieldType::Exception,
+                true, // this block is for Slice1, which always uses tag formats
+            ),
             is_last_slice = !has_base,
             encode_base = if has_base {
                 "base.EncodeCore(ref encoder);"
@@ -201,7 +212,12 @@ encoder.EndSlice(lastSlice: {is_last_slice});
 encoder.EncodeString(Message);
 {encode_data_members}
 encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);",
-            encode_data_members = &encode_data_members(members, namespace, FieldType::Exception),
+            encode_data_members = &encode_data_members(
+                members,
+                namespace,
+                FieldType::Exception,
+                false, // this block is for Slice2, which never uses tag formats
+            ),
         ).into()
     )
     .build();

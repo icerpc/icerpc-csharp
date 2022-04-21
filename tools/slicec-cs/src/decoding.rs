@@ -8,6 +8,7 @@ use slice::grammar::*;
 pub fn decode_data_members(
     members: &[&DataMember],
     namespace: &str,
+    use_tag_format: bool,
     field_type: FieldType,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
@@ -33,7 +34,7 @@ pub fn decode_data_members(
     // Decode tagged members
     for member in tagged_members {
         let param = format!("this.{}", member.field_name(field_type));
-        code.writeln(&decode_tagged_member(member, namespace, &param));
+        code.writeln(&decode_tagged_member(member, namespace, &param, use_tag_format));
     }
 
     code
@@ -143,18 +144,29 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str) -> CodeBloc
     code
 }
 
-pub fn decode_tagged_member(member: &impl Member, namespace: &str, param: &str) -> CodeBlock {
-    assert!(member.data_type().is_optional && member.tag().is_some());
+pub fn decode_tagged_member(
+    member: &impl Member,
+    namespace: &str,
+    param: &str,
+    use_tag_format: bool,
+) -> CodeBlock {
+    let data_type = member.data_type();
+
+    assert!(data_type.is_optional && member.tag().is_some());
+
+    let mut decode_tagged_args = vec![member.tag().unwrap().to_string()];
+    if use_tag_format {
+        decode_tagged_args.push(format!(
+            "IceRpc.Slice.TagFormat.{}",
+            data_type.tag_format().unwrap()
+        ));
+    }
+    decode_tagged_args.push(decode_func(data_type, namespace).to_string());
+
     format!(
-        "\
-{param} = decoder.DecodeTagged(
-    {tag},
-    IceRpc.Slice.TagFormat.{tag_format},
-    {decode_func});",
+        "{param} = decoder.DecodeTagged({args});",
         param = param,
-        tag = member.tag().unwrap(),
-        tag_format = member.data_type().tag_format(),
-        decode_func = decode_func(member.data_type(), namespace)
+        args = decode_tagged_args.join(", ")
     )
     .into()
 }
@@ -532,6 +544,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
                 member,
                 namespace,
                 &member.parameter_name_with_prefix("sliceP_"),
+                operation.encoding == Encoding::Slice1, // we only use tag_formats with Slice1
             )
         )
     }
