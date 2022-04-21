@@ -360,7 +360,6 @@ namespace IceRpc.Tests.Internal
         [TestCase("ice", "tcp", true)]
         [TestCase("icerpc", "coloc", false)]
         [TestCase("icerpc", "coloc", true)]
-        [Repeat(100)]
         public async Task Connection_ShutdownAsync(string protocol, string transport, bool closeClientSide)
         {
             using var waitForDispatchSemaphore = new SemaphoreSlim(0);

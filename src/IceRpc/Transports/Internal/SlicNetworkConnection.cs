@@ -57,13 +57,14 @@ namespace IceRpc.Transports.Internal
 
         public async ValueTask CloseAsync(int applicationErrorCode, CancellationToken cancel)
         {
-            // Send the frame before aborting the connection since the abort will prevent further sends.
+            // Send the close frame.
             await SendFrameAsync(
                 stream: null,
                 FrameType.Close,
                 new CloseBody(applicationErrorCode).Encode,
                 cancel).ConfigureAwait(false);
 
+            // Wait for the peer to close the simple network connection.
             await _pendingClose.Task.ConfigureAwait(false);
         }
 

@@ -74,9 +74,10 @@ namespace IceRpc.Internal
                 {
                     stream = await _networkConnection.AcceptStreamAsync(default).ConfigureAwait(false);
                 }
-                catch(MultiplexedNetworkConnectionClosedException)
+                catch(MultiplexedNetworkConnectionClosedException exception)
                 {
                     // The peer closed the connection following graceful shutdown, we can just return.
+                    Debug.Assert(exception.ApplicationErrorCode == 0); // Only the 0 error code is used for now.
                     return;
                 }
 

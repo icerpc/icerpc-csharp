@@ -60,8 +60,8 @@ namespace IceRpc.Internal
 
         private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
         private bool _isAborted;
-        private bool _isShuttingDown;
         private bool _isShutdown;
+        private bool _isShuttingDown;
         private readonly MemoryPool<byte> _memoryPool;
         private readonly int _minimumSegmentSize;
 
@@ -372,10 +372,10 @@ namespace IceRpc.Internal
                 // Cancel any pending requests waiting for sending.
                 _sendSemaphore.Complete(exception);
 
-                // Mark the connection has been shut down at this point. This is necessary to ensure AcceptRequestsAsync
+                // Mark the connection as shut down at this point. This is necessary to ensure AcceptRequestsAsync
                 // returns successfully on a successful graceful connection shutdown. This needs to be set before
-                // sending the close connection frame since the peer will close the connection has soon as it receives
-                // the frame.
+                // sending the close connection frame since the peer will close the simple network connection has soon
+                // as it receives the frame.
                 _isShutdown = true;
 
                 // Send the CloseConnection frame once all the dispatches are done.
@@ -617,8 +617,8 @@ namespace IceRpc.Internal
                 }
                 catch (ConnectionLostException) when (_isShutdown)
                 {
-                    // Peer closed the connection after the sending of the close connection frame. Just return since
-                    // this indicates a successful graceful shutdown.
+                    // The peer closed the simple network connection after the sending of the close connection frame.
+                    // Just return since this indicates a successful graceful shutdown.
                     return;
                 }
 
@@ -674,10 +674,10 @@ namespace IceRpc.Internal
                                 $"{nameof(PeerShutdownInitiated)} raised unexpected exception\n{ex}");
                         }
 
-                        Abort(new ConnectionClosedException("connection shutdown by peer"));
-
                         // The peer waits for the network connection to be closed.
                         await _networkConnection.DisposeAsync().ConfigureAwait(false);
+
+                        Abort(new ConnectionClosedException("connection shutdown by peer"));
 
                         return;
                     }

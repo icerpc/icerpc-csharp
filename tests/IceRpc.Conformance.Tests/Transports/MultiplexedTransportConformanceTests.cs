@@ -35,8 +35,7 @@ public abstract class MultiplexedTransportConformanceTests
         await CompleteStreamAsync(localStream);
     }
 
-    /// <summary>Verifies that both peers can initiate and accept streams.</summary>
-    /// <param name="serverInitiated">Whether the stream is initiated by the server or by the client.</param>
+    /// <summary>Verifies that no new streams can be accepted after the connection is closed.</summary>
     [Test]
     public async Task Accepting_a_stream_fails_after_close()
     {
