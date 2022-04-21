@@ -33,9 +33,6 @@ enum TagFormat
     /// Represents a class, but is no longer encoded or decoded.
     Class = 7,
 
-    /// Pseudo non-encoded format that means one of F1, F2, F4 or F8.
-    VInt = 8,
-
     /// Pseudo non-encoded format: like VSize but the size is optimized out.
-    OVSize = 9,
+    OVSize = 8,
 }
