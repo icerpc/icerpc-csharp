@@ -175,7 +175,7 @@ namespace IceRpc.Slice
         /// <returns>The indirection table.</returns>
         private AnyClass[] DecodeIndirectionTable()
         {
-            int size = DecodeAndCheckSeqSize(1);
+            int size = DecodeAndCheckSequenceSize(1);
             if (size == 0)
             {
                 throw new InvalidDataException("invalid empty indirection table");
