@@ -1003,11 +1003,7 @@ namespace IceRpc.Slice
                         expectedFormat = TagFormat.VSize; // fix virtual tag format
                     }
 
-                    // When expected format is VInt, format can be any of F1 through F8. Note that the exact format
-                    // received does not matter in this case.
-
-                    if (format != expectedFormat &&
-                        (expectedFormat != TagFormat.VInt || (int)format > (int)TagFormat.F8))
+                    if (format != expectedFormat)
                     {
                         throw new InvalidDataException($"invalid tagged parameter '{tag}': unexpected format");
                     }
