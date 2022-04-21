@@ -31,10 +31,10 @@ pub fn decode_data_members(
         code.writeln(&decode_member(member, namespace, &param));
     }
 
-    // Decode tagged members
+    // Decode tagged data members
     for member in tagged_members {
         let param = format!("this.{}", member.field_name(field_type));
-        code.writeln(&decode_tagged_member(member, namespace, &param, use_tag_format));
+        code.writeln(&decode_tagged(member, namespace, &param, use_tag_format, true));
     }
 
     code
@@ -144,11 +144,12 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str) -> CodeBloc
     code
 }
 
-pub fn decode_tagged_member(
+pub fn decode_tagged(
     member: &impl Member,
     namespace: &str,
     param: &str,
     use_tag_format: bool,
+    use_tag_end_marker: bool,
 ) -> CodeBlock {
     let data_type = member.data_type();
 
@@ -162,6 +163,7 @@ pub fn decode_tagged_member(
         ));
     }
     decode_tagged_args.push(decode_func(data_type, namespace).to_string());
+    decode_tagged_args.push(format!("useTagEndMarker: {}", use_tag_end_marker));
 
     format!(
         "{param} = decoder.DecodeTagged({args});",
@@ -540,11 +542,12 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
                     .to_type_string(namespace, TypeContext::Decode, false),
                 false => String::from("var"),
             },
-            decode = decode_tagged_member(
+            decode = decode_tagged(
                 member,
                 namespace,
                 &member.parameter_name_with_prefix("sliceP_"),
                 operation.encoding == Encoding::Slice1, // we only use tag_formats with Slice1
+                false, // no tag end marker for operations
             )
         )
     }

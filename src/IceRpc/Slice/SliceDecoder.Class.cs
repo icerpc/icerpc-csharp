@@ -487,8 +487,8 @@ namespace IceRpc.Slice
             byte[] bytes;
             if (hasTaggedMembers)
             {
-                // Don't include the tag end marker. It will be re-written by EndSlice when the sliced data is
-                // re-written.
+                // Don't include the tag end marker. It will be re-written by SliceEncoder.EndSlice when the sliced data
+                // is re-written.
                 bytes = new byte[_classContext.Current.SliceSize - 1];
                 CopyTo(bytes.AsSpan());
                 Skip(1);

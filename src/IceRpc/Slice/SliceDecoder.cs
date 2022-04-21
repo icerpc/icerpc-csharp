@@ -381,78 +381,6 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Decodes a Slice2 encoded tagged parameter or data member.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="decodeFunc">A decode function that decodes the value of this tag.</param>
-        /// <returns>The decoded value of the tagged parameter or data member, or null if not found.</returns>
-        /// <remarks>When T is a value type, it should be a nullable value type such as int?.</remarks>
-        public T DecodeTagged<T>(int tag, DecodeFunc<T> decodeFunc)
-        {
-            if (Encoding == SliceEncoding.Slice1)
-            {
-                throw new InvalidOperationException("Slice1 encoded tags must be decoded with tag formats");
-            }
-
-            int requestedTag = tag;
-
-            // For decoding parameters, return values, and exception data members we rely on the end of the buffer
-            // to detect the end of the tag 'dictionary'. Struct data members use TagEndMarker.
-            while (!_reader.End)
-            {
-                long startPos = _reader.Consumed;
-                tag = DecodeVarInt32();
-
-                if (tag == requestedTag)
-                {
-                    // Found requested tag, so skip size:
-                    SkipSize();
-                    return decodeFunc(ref this);
-                }
-                else if (tag == Slice2Definitions.TagEndMarker || tag > requestedTag)
-                {
-                    _reader.Rewind(_reader.Consumed - startPos); // rewind
-                    break; // while
-                }
-                else
-                {
-                    Skip(DecodeSize());
-                    // and continue while loop
-                }
-            }
-            return default!;
-        }
-
-        /// <summary>Decodes a Slice1 encoded tagged parameter or data member.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="tagFormat">The expected tag format of this tag when found in the underlying buffer.</param>
-        /// <param name="decodeFunc">A decode function that decodes the value of this tag.</param>
-        /// <returns>The decoded value of the tagged parameter or data member, or null if not found.</returns>
-        /// <remarks>When T is a value type, it should be a nullable value type such as int?.</remarks>
-        public T DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<T> decodeFunc)
-        {
-            if (Encoding != SliceEncoding.Slice1)
-            {
-                throw new InvalidOperationException("tag formats can only be used with the Slice1 encoding");
-            }
-
-            if (DecodeTaggedParamHeader(tag, tagFormat))
-            {
-                if (tagFormat == TagFormat.VSize)
-                {
-                    SkipSize();
-                }
-                else if (tagFormat == TagFormat.FSize)
-                {
-                    Skip(4);
-                }
-                return decodeFunc(ref this);
-            }
-            else
-            {
-                return default!; // i.e. null
-            }
-        }
-
         /// <summary>Decodes a Slice1 system exception.</summary>
         public DispatchException DecodeSystemException()
         {
@@ -521,6 +449,83 @@ namespace IceRpc.Slice
             {
                 ConvertToUnhandled = true,
             };
+        }
+
+        /// <summary>Decodes a Slice2-encoded tagged parameter or data member.</summary>
+        /// <param name="tag">The tag.</param>
+        /// <param name="decodeFunc">A decode function that decodes the value of this tagged parameter or data member.
+        /// </param>
+        /// <param name="useTagEndMarker">When <c>true</c>, we are decoding a data member and a tag end marker marks the
+        /// end of the tagged data members. When <c>false</c>, we are decoding a parameter and the end of the buffer
+        /// marks the end of the tagged parameters.</param>
+        /// <returns>The decoded value of the tagged parameter or data member, or null if not found.</returns>
+        /// <remarks>When T is a value type, it should be a nullable value type such as int?.</remarks>
+        public T DecodeTagged<T>(int tag, DecodeFunc<T> decodeFunc, bool useTagEndMarker)
+        {
+            if (Encoding == SliceEncoding.Slice1)
+            {
+                throw new InvalidOperationException("Slice1 encoded tags must be decoded with tag formats");
+            }
+
+            int requestedTag = tag;
+
+            while (useTagEndMarker || !_reader.End)
+            {
+                long startPos = _reader.Consumed;
+                tag = DecodeVarInt32();
+
+                if (tag == requestedTag)
+                {
+                    // Found requested tag, so skip size:
+                    SkipSize();
+                    return decodeFunc(ref this);
+                }
+                else if ((useTagEndMarker && tag == Slice2Definitions.TagEndMarker) || tag > requestedTag)
+                {
+                    _reader.Rewind(_reader.Consumed - startPos); // rewind
+                    break; // while
+                }
+                else
+                {
+                    Skip(DecodeSize());
+                    // and continue while loop
+                }
+            }
+            return default!;
+        }
+
+        /// <summary>Decodes a Slice1-encoded tagged parameter or data member.</summary>
+        /// <param name="tag">The tag.</param>
+        /// <param name="tagFormat">The expected tag format of this tag when found in the underlying buffer.</param>
+        /// <param name="decodeFunc">A decode function that decodes the value of this tag.</param>
+        /// <param name="useTagEndMarker">When <c>true</c>, we are decoding a data member and a tag end marker marks the
+        /// end of the tagged data members. When <c>false</c>, we are decoding a parameter and the end of the buffer
+        /// marks the end of the tagged parameters.</param>
+        /// <returns>The decoded value of the tagged parameter or data member, or null if not found.</returns>
+        /// <remarks>When T is a value type, it should be a nullable value type such as int?.</remarks>
+        public T DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<T> decodeFunc, bool useTagEndMarker)
+        {
+            if (Encoding != SliceEncoding.Slice1)
+            {
+                throw new InvalidOperationException($"{nameof(DecodeTagged)} is not compatible with {Encoding}");
+            }
+
+            if (DecodeTagHeader(tag, tagFormat, useTagEndMarker))
+            {
+                if (tagFormat == TagFormat.VSize)
+                {
+                    SkipSize();
+                }
+                else if (tagFormat == TagFormat.FSize)
+                {
+                    Skip(4);
+                }
+                return decodeFunc(ref this);
+            }
+            else
+            {
+                return default!; // i.e. null
+            }
         }
 
         /// <summary>Gets a bit sequence reader to read the underlying bit sequence later on.</summary>
@@ -941,32 +946,27 @@ namespace IceRpc.Slice
             return endpoint.Value;
         }
 
-        /// <summary>Determines if a tagged parameter or data member is available.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="expectedFormat">The expected format of the tagged parameter.</param>
-        /// <returns>True if the tagged parameter is present; otherwise, false.</returns>
-        private bool DecodeTaggedParamHeader(int tag, TagFormat expectedFormat)
+        private bool DecodeTagHeader(int tag, TagFormat expectedFormat, bool useTagEndMarker)
         {
             Debug.Assert(Encoding == SliceEncoding.Slice1);
 
-            bool withTagEndMarker = false;
-
             if (_classContext.Current.InstanceType != InstanceType.None)
             {
+                Debug.Assert(useTagEndMarker);
+
                 // tagged member of a class or exception
                 if ((_classContext.Current.SliceFlags & SliceFlags.HasTaggedMembers) == 0)
                 {
                     // The current slice has no tagged parameter.
                     return false;
                 }
-                withTagEndMarker = true;
             }
 
             int requestedTag = tag;
 
             while (true)
             {
-                if (!withTagEndMarker && _reader.End)
+                if (!useTagEndMarker && _reader.End)
                 {
                     return false; // End of buffer indicates end of tagged parameters.
                 }
@@ -974,7 +974,7 @@ namespace IceRpc.Slice
                 long savedPos = _reader.Consumed;
 
                 int v = DecodeUInt8();
-                if (withTagEndMarker && v == TagEndMarker)
+                if (useTagEndMarker && v == TagEndMarker)
                 {
                     _reader.Rewind(_reader.Consumed - savedPos);
                     return false;
