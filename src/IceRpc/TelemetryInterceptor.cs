@@ -106,7 +106,7 @@ namespace IceRpc
             //    Baggage baggage;
             // }
 
-            // W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,
+            // W3C traceparent binary encoding (1 byte version, 16 bytes trace-ID, 8 bytes span-ID,
             // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
             encoder.EncodeUInt8(0);
 

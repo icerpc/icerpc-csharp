@@ -8,7 +8,7 @@ namespace IceRpc.Tests;
 
 public class LocatorEndpointFinderTests
 {
-    /// <summary>Verifies that <see cref="LocatorEndpointFinder"/> correctly resolves an adapter Id.</summary>
+    /// <summary>Verifies that <see cref="LocatorEndpointFinder"/> correctly resolves an adapter ID.</summary>
     [Test]
     public async Task Find_adapter_by_id()
     {
@@ -34,7 +34,7 @@ public class LocatorEndpointFinderTests
         Assert.That(proxy, Is.Null);
     }
 
-    /// <summary>Verifies that <see cref="LocatorEndpointFinder"/> correctly resolves an object Id.</summary>
+    /// <summary>Verifies that <see cref="LocatorEndpointFinder"/> correctly resolves an object ID.</summary>
     [Test]
     public void Find_adapter_by_id_returning_a_proxy_without_endpoint_fails()
     {
@@ -47,7 +47,7 @@ public class LocatorEndpointFinderTests
             Throws.TypeOf<InvalidDataException>());
     }
 
-    /// <summary>Verifies that <see cref="LocatorEndpointFinder"/> correctly resolves an object Id.</summary>
+    /// <summary>Verifies that <see cref="LocatorEndpointFinder"/> correctly resolves an object ID.</summary>
     [Test]
     public async Task Find_object_by_id()
     {
@@ -73,7 +73,7 @@ public class LocatorEndpointFinderTests
         Assert.That(proxy, Is.Null);
     }
 
-    /// <summary>Verifies that <see cref="LocatorEndpointFinder"/> correctly resolves an object Id.</summary>
+    /// <summary>Verifies that <see cref="LocatorEndpointFinder"/> correctly resolves an object ID.</summary>
     [Test]
     public void Find_object_by_id_returning_proxy_without_endpoint_fails()
     {
@@ -86,7 +86,7 @@ public class LocatorEndpointFinderTests
             Throws.TypeOf<InvalidDataException>());
     }
 
-    /// <summary>Verifies that <see cref="LocatorEndpointFinder"/> correctly resolves an object Id.</summary>
+    /// <summary>Verifies that <see cref="LocatorEndpointFinder"/> correctly resolves an object ID.</summary>
     [Test]
     public void Find_object_by_id_returning_proxy_without_ice_protocol_fails()
     {
