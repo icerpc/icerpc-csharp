@@ -761,9 +761,7 @@ namespace IceRpc.Internal
                 SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
             }
 
-            return frameType == IceRpcControlFrameType.GoAwayCompleted ?
-                output.WriteAsync(ReadOnlySequence<byte>.Empty, endStream: true, cancel) :
-                output.FlushAsync(cancel);
+            return output.FlushAsync(cancel);
         }
 
         /// <summary>Sends the payload and payload stream of an outgoing frame. SendPayloadAsync completes the payload
