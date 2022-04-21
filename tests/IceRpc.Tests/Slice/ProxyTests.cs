@@ -92,15 +92,15 @@ public class ProxyTests
     public async Task Decode_relative_proxy()
     {
         await using var connection = new Connection("icerpc://localhost");
-        var bufferWriter = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
-        encoder.EncodeProxy(Proxy.FromPath("/foo"));
-        var sut = new SliceDecoder(bufferWriter.WrittenMemory, encoding: SliceEncoding.Slice2, connection);
-        
-        // Act
-        var decodedConnection = decoder.DecodeProxy().Connection;
-        
-        // Assert
-        Assert.That(decodedConnection, Is.EqualTo(connection));
+        Assert.That(() =>
+        {
+            var bufferWriter = new MemoryBufferWriter(new byte[256]);
+            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+            encoder.EncodeProxy(Proxy.FromPath("/foo"));
+            var decoder = new SliceDecoder(bufferWriter.WrittenMemory, encoding: SliceEncoding.Slice2, connection);
+
+            return decoder.DecodeProxy().Connection;
+        },
+        Is.EqualTo(connection));
     }
 }
