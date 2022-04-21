@@ -31,6 +31,7 @@ namespace IceRpc.Transports.Internal
         private int _bidirectionalStreamCount;
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly int _bidirectionalMaxStreams;
+        private long? _closeApplicationErrorCode;
         private Exception? _exception;
         private long _lastRemoteBidirectionalStreamId = -1;
         private long _lastRemoteUnidirectionalStreamId = -1;
@@ -57,6 +58,10 @@ namespace IceRpc.Transports.Internal
 
         public async ValueTask CloseAsync(int applicationErrorCode, CancellationToken cancel)
         {
+            // Save the close application error code. AcceptStreamAsync will raise
+            // MultiplexedNetworkConnectionClosedException if this is set instead of ConnectionLostException.
+            _closeApplicationErrorCode = applicationErrorCode;
+
             // Send the close frame.
             await SendFrameAsync(
                 stream: null,
@@ -482,7 +487,15 @@ namespace IceRpc.Transports.Internal
                 stream.Abort(exception);
             }
 
-            _acceptedStreamQueue.TryComplete(_exception);
+            if (_exception is not MultiplexedNetworkConnectionClosedException &&
+                _closeApplicationErrorCode is long errorCode)
+            {
+                _acceptedStreamQueue.TryComplete(new MultiplexedNetworkConnectionClosedException(errorCode));
+            }
+            else
+            {
+                _acceptedStreamQueue.TryComplete(_exception);
+            }
 
             _pendingClose.TrySetResult();
 
