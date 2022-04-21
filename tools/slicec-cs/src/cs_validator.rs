@@ -1,15 +1,15 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+use slice::error::ErrorReporter;
 use slice::grammar::*;
 use slice::visitor::Visitor;
-use slice::error::ErrorReporter;
 
 /// CsValidator visits all the elements in a slice file to check for errors and warnings specific to
 /// the slicec-cs compiler. This is the final validation step, and the last phase of compilation
 /// before code generation occurs.
 #[derive(Debug)]
 pub(crate) struct CsValidator<'a> {
-    error_reporter: &'a mut ErrorReporter,
+    pub error_reporter: &'a mut ErrorReporter,
 }
 
 fn cs_attributes(attributes: &[Attribute]) -> Vec<Attribute> {
