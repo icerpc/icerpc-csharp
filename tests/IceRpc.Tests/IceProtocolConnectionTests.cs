@@ -25,6 +25,39 @@ public sealed class IceProtocolConnectionTests
     }
 
     [Test]
+    public async Task Canceling_shutdown_cancels_pending_dispatches()
+    {
+        // Arrange
+        using var start = new SemaphoreSlim(0);
+        using var hold = new SemaphoreSlim(0);
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(Protocol.Ice)
+            .UseServerConnectionOptions(new ConnectionOptions()
+            {
+                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                {
+                    start.Release();
+                    await hold.WaitAsync(cancel);
+                    return new OutgoingResponse(request);
+                })
+            })
+            .BuildServiceProvider();
+
+        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.Ice)));
+        await start.WaitAsync(); // Wait for the dispatch to start
+
+        // Act
+        await sut.Server.ShutdownAsync("", new CancellationToken(canceled: true));
+
+        // Assert
+        var response = await invokeTask;
+        Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
+        hold.Release();
+    }
+
+    [Test]
     public async Task Connection_dispose_cancels_invocations()
     {
         // Arrange
