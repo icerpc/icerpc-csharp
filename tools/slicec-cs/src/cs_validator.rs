@@ -9,7 +9,7 @@ use slice::error::ErrorReporter;
 /// before code generation occurs.
 #[derive(Debug)]
 pub(crate) struct CsValidator<'a> {
-    pub error_reporter: &'a mut ErrorReporter,
+    error_reporter: &'a mut ErrorReporter,
 }
 
 fn cs_attributes(attributes: &[Attribute]) -> Vec<Attribute> {
