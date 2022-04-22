@@ -560,7 +560,18 @@ namespace IceRpc.Slice
         {
             if (Encoding == SliceEncoding.Slice1)
             {
-                Debug.Assert(useTagEndMarker == (_classContext.Current.InstanceType != InstanceType.None));
+                if (!useTagEndMarker && _classContext.Current.InstanceType != InstanceType.None)
+                {
+                    throw new ArgumentException(
+                        $"{nameof(useTagEndMarker)} must be true when decoding a class/exception data members",
+                        nameof(useTagEndMarker));
+                }
+                else if (useTagEndMarker && _classContext.Current.InstanceType == InstanceType.None)
+                {
+                    throw new ArgumentException(
+                        $"{nameof(useTagEndMarker)} must be false when decoding parameters",
+                        nameof(useTagEndMarker));
+                }
 
                 while (true)
                 {
@@ -1005,10 +1016,21 @@ namespace IceRpc.Slice
         {
             Debug.Assert(Encoding == SliceEncoding.Slice1);
 
+            if (!useTagEndMarker && _classContext.Current.InstanceType != InstanceType.None)
+            {
+                throw new ArgumentException(
+                    $"{nameof(useTagEndMarker)} must be true when decoding a class/exception data members",
+                    nameof(useTagEndMarker));
+            }
+            else if (useTagEndMarker && _classContext.Current.InstanceType == InstanceType.None)
+            {
+                throw new ArgumentException(
+                    $"{nameof(useTagEndMarker)} must be false when decoding parameters",
+                    nameof(useTagEndMarker));
+            }
+
             if (_classContext.Current.InstanceType != InstanceType.None)
             {
-                Debug.Assert(useTagEndMarker);
-
                 // tagged member of a class or exception
                 if ((_classContext.Current.SliceFlags & SliceFlags.HasTaggedMembers) == 0)
                 {
