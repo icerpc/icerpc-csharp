@@ -113,8 +113,8 @@ namespace IceRpc.Transports.Internal
         }
 
         [LoggerMessage(
-            EventId = (int)SlicEventIds.SendCloseFrame,
-            EventName = nameof(SlicEventIds.SendCloseFrame),
+            EventId = (int)SlicEventIds.SentCloseFrame,
+            EventName = nameof(SlicEventIds.SentCloseFrame),
             Level = LogLevel.Debug,
             Message = "sent Slic Close frame (FrameSize={FrameSize}, ErrorCode={ErrorCode})")]
         internal static partial void LogSentSlicCloseFrame(
