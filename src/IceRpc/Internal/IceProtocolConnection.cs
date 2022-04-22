@@ -60,6 +60,7 @@ namespace IceRpc.Internal
 
         private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
         private bool _isAborted;
+        private bool _isShutdown;
         private bool _isShuttingDown;
         private readonly MemoryPool<byte> _memoryPool;
         private readonly int _minimumSegmentSize;
@@ -73,11 +74,21 @@ namespace IceRpc.Internal
         private readonly Configure.IceProtocolOptions _options;
         private readonly IcePayloadPipeWriter _payloadWriter;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly TaskCompletionSource _receiveFramesCompleted = new();
         private readonly AsyncSemaphore _sendSemaphore = new(1, 1);
 
         /// <inheritdoc/>
-        public Task AcceptRequestsAsync() => _receiveFramesCompleted.Task;
+        public async Task AcceptRequestsAsync()
+        {
+            try
+            {
+                await ReceiveFramesAsync().ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                Abort(exception);
+                throw;
+            }
+        }
 
         /// <inheritdoc/>
         public void Dispose() => Abort(new ObjectDisposedException($"{typeof(IceProtocolConnection)}"));
@@ -361,6 +372,12 @@ namespace IceRpc.Internal
                 // Cancel any pending requests waiting for sending.
                 _sendSemaphore.Complete(exception);
 
+                // Mark the connection as shut down at this point. This is necessary to ensure ReceiveFramesAsync
+                // returns successfully on a graceful connection shutdown. This needs to be set before sending the close
+                // connection frame since the peer will close the simple network connection as soon as it receives the
+                // frame.
+                _isShutdown = true;
+
                 // Send the CloseConnection frame once all the dispatches are done.
                 EncodeCloseConnectionFrame(_networkConnectionWriter);
 
@@ -447,20 +464,6 @@ namespace IceRpc.Internal
                     throw new InvalidDataException(@$"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'");
                 }
             }
-
-            _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await ReceiveFramesAsync().ConfigureAwait(false);
-                    }
-                    catch (Exception exception)
-                    {
-                        Abort(exception);
-                        _receiveFramesCompleted.SetException(exception);
-                    }
-                },
-                CancellationToken.None);
 
             static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
             {
@@ -596,10 +599,7 @@ namespace IceRpc.Internal
                 throw new ArgumentException("the payload size is greater than int.MaxValue", nameof(payload));
         }
 
-        /// <summary>Receives incoming frames and returns once a request frame is received.</summary>
-        /// <returns>The size of the request frame.</returns>
-        /// <remarks>When this method returns, only the frame prologue has been read from the network. The caller is
-        /// responsible to read the remainder of the request frame from _networkConnectionReader.</remarks>
+        /// <summary>Receives incoming frames and returns on graceful connection shutdown.</summary>
         private async ValueTask ReceiveFramesAsync()
         {
             // Reads are not cancelable. This method returns once a request frame is read or when the connection is
@@ -608,9 +608,19 @@ namespace IceRpc.Internal
 
             while (true)
             {
-                ReadOnlySequence<byte> buffer = await _networkConnectionReader.ReadAtLeastAsync(
-                    IceDefinitions.PrologueSize,
-                    cancel).ConfigureAwait(false);
+                ReadOnlySequence<byte> buffer;
+                try
+                {
+                    buffer = await _networkConnectionReader.ReadAtLeastAsync(
+                        IceDefinitions.PrologueSize,
+                        cancel).ConfigureAwait(false);
+                }
+                catch (ConnectionLostException) when (_isShutdown)
+                {
+                    // The peer closed the simple network connection after the sending of the close connection frame.
+                    // Just return since this indicates a successful graceful shutdown.
+                    return;
+                }
 
                 // First decode and check the prologue.
 
@@ -667,7 +677,9 @@ namespace IceRpc.Internal
                         // The peer waits for the network connection to be closed.
                         await _networkConnection.DisposeAsync().ConfigureAwait(false);
 
-                        throw new ConnectionClosedException("connection shutdown by peer");
+                        Abort(new ConnectionClosedException("connection shutdown by peer"));
+
+                        return;
                     }
 
                     case IceFrameType.Request:

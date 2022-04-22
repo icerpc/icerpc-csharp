@@ -126,9 +126,9 @@ namespace IceRpc.Transports.Internal
 
         internal void AbortRead(long errorCode)
         {
-            if (!IsStarted)
+            if (!IsStarted || _connection.IsAborted)
             {
-                // If the stream is not started, there's no need to send a stop sending frame.
+                // If the stream is not started or the connection aborted, there's no need to send a stop sending frame.
                 TrySetReadCompleted();
             }
             else if (!ReadsCompleted)
@@ -169,9 +169,9 @@ namespace IceRpc.Transports.Internal
 
         internal void AbortWrite(long errorCode)
         {
-            if (!IsStarted)
+            if (!IsStarted || _connection.IsAborted)
             {
-                // If the stream is not started, there's no need to send a reset frame.
+                // If the stream is not started or the connection aborted, there's no need to send a reset frame.
                 TrySetWriteCompleted();
             }
             else if (!WritesCompleted)
