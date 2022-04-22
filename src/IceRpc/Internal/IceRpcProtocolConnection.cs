@@ -594,7 +594,7 @@ namespace IceRpc.Internal
             try
             {
                 // TODO: Error code constant?
-                await _networkConnection.CloseAsync(0, cancel).ConfigureAwait(false);
+                await _networkConnection.CloseAsync(0, CancellationToken.None).ConfigureAwait(false);
             }
             catch (MultiplexedNetworkConnectionClosedException)
             {
