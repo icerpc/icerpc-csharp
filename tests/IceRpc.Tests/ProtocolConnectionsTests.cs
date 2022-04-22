@@ -102,9 +102,10 @@ public sealed class ProtocolConnectionTests
             .BuildServiceProvider();
 
         var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        sut.Client.PeerShutdownInitiated += (message) => sut.Client.ShutdownAsync("shudown", default);
+        sut.Client.PeerShutdownInitiated += (message) => sut.Client.ShutdownAsync("shutdown", default);
         var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
         _ = sut.Server.AcceptRequestsAsync();
+        _ = sut.Client.AcceptRequestsAsync();
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
