@@ -66,22 +66,5 @@ namespace IceRpc
         public OutgoingRequest(Proxy proxy)
             : base(proxy.Protocol) =>
             Proxy = proxy;
-
-        /// <summary></summary>
-        public void SetConnection(Connection connection)
-        {
-            if (Proxy.Connection == connection)
-            {
-                if (!Features.IsReadOnly)
-                {
-                    Features.Set<Connection>(null);
-                }
-                // else already null
-            }
-            else
-            {
-                Features = Features.With(connection);
-            }
-        }
     }
 }
