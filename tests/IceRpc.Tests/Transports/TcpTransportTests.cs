@@ -266,7 +266,6 @@ public class TcpTransportTests
     {
         // Arrange
         using var cancellationSource = new CancellationTokenSource();
-        using var semaphore = new SemaphoreSlim(0);
         await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
             authenticationOptions: DefaultSslServerAuthenticationOptions);
 
@@ -278,7 +277,7 @@ public class TcpTransportTests
                     RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
                     {
                         cancellationSource.Cancel();
-                        semaphore.Wait();
+                        Thread.Sleep(100);
                         return false;
                     }
                 });
@@ -289,7 +288,6 @@ public class TcpTransportTests
 
         // Act/Assert
         Assert.That(async () => await connectTask, Throws.InstanceOf<OperationCanceledException>());
-        semaphore.Release();
     }
 
     /// <summary>Verifies that the server connect call on a tls connection fails if the client previously disposed its
@@ -322,7 +320,6 @@ public class TcpTransportTests
     {
         // Arrange
         using var cancellationSource = new CancellationTokenSource();
-        using var semaphore = new SemaphoreSlim(0);
         await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
             authenticationOptions: new SslServerAuthenticationOptions
             {
@@ -330,7 +327,7 @@ public class TcpTransportTests
                 RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
                 {
                     cancellationSource.Cancel();
-                    semaphore.Wait();
+                    Thread.Sleep(100);
                     return false;
                 }
             });
@@ -345,7 +342,6 @@ public class TcpTransportTests
 
         // Act/Assert
         Assert.That(async () => await serverConnectTask, Throws.InstanceOf<OperationCanceledException>());
-        semaphore.Release();
     }
 
     private static IListener<ISimpleNetworkConnection> CreateTcpListener(
