@@ -234,6 +234,7 @@ public sealed class ProtocolConnectionTests
         var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         var response = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
         _ = sut.Server.AcceptRequestsAsync();
+        _ = sut.Client.AcceptRequestsAsync();
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
