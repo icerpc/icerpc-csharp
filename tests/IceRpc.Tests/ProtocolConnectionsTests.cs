@@ -2,8 +2,11 @@
 
 using IceRpc.Configure;
 using IceRpc.Internal;
+using IceRpc.Slice;
+using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.IO.Pipelines;
 
 namespace IceRpc.Tests;
 
@@ -50,6 +53,100 @@ public sealed class ProtocolConnectionTests
             {
                 yield return new TestCaseData(protocol, ConnectionType.Client);
                 yield return new TestCaseData(protocol, ConnectionType.Server);
+            }
+        }
+    }
+
+    /// <summary>Verifies that a connection will not accept further request after shutdown was called, and it will
+    /// allow pending dispatches to finish.</summary>
+    [Test, TestCaseSource(nameof(_protocols))]
+    public async Task Connection_shutdown_prevents_accepting_new_requests_and_let_pending_dispatches_finish(
+        Protocol protocol)
+    {
+        // Arrange
+        using var start = new SemaphoreSlim(0);
+        using var hold = new SemaphoreSlim(0);
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .UseServerConnectionOptions(new ConnectionOptions()
+            {
+                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                {
+                    start.Release();
+                    await hold.WaitAsync(cancel);
+                    return new OutgoingResponse(request);
+                })
+            })
+            .BuildServiceProvider();
+
+        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        sut.Client.PeerShutdownInitiated = message => _ = sut.Client.ShutdownAsync(message);
+        var invokeTask1 = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
+        var serverAcceptTask = sut.Server.AcceptRequestsAsync();
+        await start.WaitAsync(); // Wait for the dispatch to start
+
+        // Act
+        var shutdownTask = sut.Server.ShutdownAsync("", default);
+
+        // Assert
+        var invokeTask2 = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
+        hold.Release();
+        Assert.That(async () => await invokeTask1, Throws.Nothing);
+        Assert.That(async () => await invokeTask2, Throws.TypeOf<ConnectionClosedException>());
+        Assert.That(async () => await shutdownTask, Throws.Nothing);
+    }
+
+    [Test, TestCaseSource(nameof(_protocols))]
+    public async Task Canceling_shutdown_cancels_pending_dispatches(Protocol protocol)
+    {
+        // Arrange
+        using var start = new SemaphoreSlim(0);
+        using var hold = new SemaphoreSlim(0);
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .UseServerConnectionOptions(new ConnectionOptions()
+            {
+                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                {
+                    start.Release();
+                    await hold.WaitAsync(cancel);
+                    return new OutgoingResponse(request);
+                })
+            })
+            .BuildServiceProvider();
+
+        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        sut.Client.PeerShutdownInitiated += (message) => sut.Client.ShutdownAsync("shudown", default);
+        var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
+        _ = sut.Server.AcceptRequestsAsync();
+        await start.WaitAsync(); // Wait for the dispatch to start
+
+        // Act
+        await sut.Server.ShutdownAsync("", new CancellationToken(canceled: true));
+
+        // Assert
+        Exception ex = Assert.CatchAsync(async () =>
+            {
+                IncomingResponse response = await invokeTask;
+                DecodeAndThrowException(response);
+            });
+        Assert.That(ex, Is.TypeOf<OperationCanceledException>());
+        
+        // TODO should we raise OperationCanceledException directly from Ice, here with Ice we get a DispatchException
+        // with DispatchErrorCode.Canceled and with IceRpc we get OperationCanceledException
+        static void DecodeAndThrowException(IncomingResponse response)
+        {
+            if (response.Payload.TryRead(out ReadResult readResult))
+            {
+                var decoder = new SliceDecoder(readResult.Buffer, response.Protocol.SliceEncoding);
+                DispatchException dispatchException = decoder.DecodeSystemException();
+                if (dispatchException.ErrorCode == DispatchErrorCode.Canceled)
+                {
+                    throw new OperationCanceledException();
+                }
+                throw dispatchException;
             }
         }
     }
