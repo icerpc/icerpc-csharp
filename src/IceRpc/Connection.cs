@@ -630,6 +630,7 @@ namespace IceRpc
                 {
                     try
                     {
+                        // TODO: pass a null exception instead? See issue #1100.
                         _closed?.Invoke(
                             this,
                             new ClosedEventArgs(
