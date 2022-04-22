@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
@@ -67,6 +68,13 @@ namespace IceRpc.Transports.Internal
                     {
                         _logger.LogReceivedSlicVersionFrame(dataSize, versionBody!.Value);
                     }
+                    break;
+                }
+                case FrameType.Close:
+                {
+                    var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+                    var closeBody = new CloseBody(ref decoder);
+                    _logger.LogReceivedSlicCloseFrame(dataSize, closeBody.ApplicationProtocolErrorCode);
                     break;
                 }
                 case FrameType.Stream:
