@@ -108,42 +108,6 @@ public sealed class IceProtocolConnectionTests
         Assert.That(maxCount, Is.EqualTo(maxConcurrentDispatches));
     }
 
-    [Test]
-    public async Task Connection_shutdown_cancels_invocations()
-    {
-        // Arrange
-        using var start = new SemaphoreSlim(0);
-        using var hold = new SemaphoreSlim(0);
-
-        await using var serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(Protocol.Ice)
-            .UseServerConnectionOptions(new ConnectionOptions()
-            {
-                Dispatcher = new InlineDispatcher(async (request, cancel) =>
-                {
-                    start.Release();
-                    await hold.WaitAsync(cancel);
-                    return new OutgoingResponse(request);
-                })
-            })
-            .BuildServiceProvider();
-
-        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        var clientAcceptTask = sut.Client.AcceptRequestsAsync();
-        _ = sut.Server.AcceptRequestsAsync();
-        sut.Server.PeerShutdownInitiated = message => sut.Server.ShutdownAsync("");
-        var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.Ice)));
-        await start.WaitAsync(); // Wait for the dispatch to start
-
-        // Act
-        _ = sut.Client.ShutdownAsync("", default);
-
-        // Assert
-        Assert.That(async () => await invokeTask, Throws.TypeOf<OperationCanceledException>());
-
-        hold.Release();
-    }
-
     /// <summary>Verifies that with the ice protocol, when a middleware throws a Slice exception other than a
     /// DispatchException, we encode a DispatchException with the expected error code.</summary>
     [Test, TestCaseSource(nameof(MiddlewareExceptionIsEncodedAsADispatchExceptionSource))]
@@ -224,5 +188,44 @@ public sealed class IceProtocolConnectionTests
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
+    }
+
+    /// <summary>With Ice protocol the connection shutdown triggers the cancellation of invocations. This is different
+    /// with IceRpc see <see cref="IceRpcProtocolConnectionTests.Shutdown_waits_for_pending_invocations_to_finish"/>.
+    /// </summary>
+    [Test]
+    public async Task Shutdown_cancels_invocations()
+    {
+        // Arrange
+        using var start = new SemaphoreSlim(0);
+        using var hold = new SemaphoreSlim(0);
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(Protocol.Ice)
+            .UseServerConnectionOptions(new ConnectionOptions()
+            {
+                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                {
+                    start.Release();
+                    await hold.WaitAsync(cancel);
+                    return new OutgoingResponse(request);
+                })
+            })
+            .BuildServiceProvider();
+
+        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        var clientAcceptTask = sut.Client.AcceptRequestsAsync();
+        _ = sut.Server.AcceptRequestsAsync();
+        sut.Server.PeerShutdownInitiated = message => sut.Server.ShutdownAsync("");
+        var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.Ice)));
+        await start.WaitAsync(); // Wait for the dispatch to start
+
+        // Act
+        _ = sut.Client.ShutdownAsync("", default);
+
+        // Assert
+        Assert.That(async () => await invokeTask, Throws.TypeOf<OperationCanceledException>());
+
+        hold.Release();
     }
 }
