@@ -618,7 +618,7 @@ namespace IceRpc.Internal
                 catch (ConnectionLostException) when (_isShutdown)
                 {
                     // The peer closed the simple network connection after the sending of the close connection frame.
-                    // Just return since this indicates a successful graceful shutdown.
+                    // unblock ShutdownAsync and return since this indicates a successful graceful shutdown.
                     _pendingClose.TrySetResult();
                     return;
                 }
