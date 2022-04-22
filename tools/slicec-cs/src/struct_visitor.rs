@@ -100,7 +100,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                 FieldType::NonMangled,
             );
             if !struct_def.is_compact {
-                writeln!(decode_body, "decoder.SkipTaggedParams();");
+                writeln!(decode_body, "decoder.SkipTagged(useTagEndMarker: true);");
             }
             builder.add_block(
                 FunctionBuilder::new(

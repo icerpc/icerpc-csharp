@@ -395,13 +395,13 @@ public sealed class ExceptionTests
         if (k != null)
         {
             Assert.That(
-                decoder.DecodeTagged(1, (ref SliceDecoder decoder) => decoder.DecodeInt32()),
+                decoder.DecodeTagged(1, (ref SliceDecoder decoder) => decoder.DecodeInt32(), useTagEndMarker: true),
                 Is.EqualTo(value.K));
         }
         if (l != null)
         {
             Assert.That(
-                decoder.DecodeTagged(255, (ref SliceDecoder decoder) => decoder.DecodeInt32()),
+                decoder.DecodeTagged(255, (ref SliceDecoder decoder) => decoder.DecodeInt32(), useTagEndMarker: true),
                 Is.EqualTo(value.L));
         }
         Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
