@@ -8,6 +8,16 @@ namespace IceRpc.Transports.Internal
     internal static partial class SlicLoggerExtensions
     {
         [LoggerMessage(
+            EventId = (int)SlicEventIds.ReceivedCloseFrame,
+            EventName = nameof(SlicEventIds.ReceivedCloseFrame),
+            Level = LogLevel.Debug,
+            Message = "received Slic Close frame (FrameSize={FrameSize}, ErrorCode={ErrorCode})")]
+        internal static partial void LogReceivedSlicCloseFrame(
+            this ILogger logger,
+            int frameSize,
+            long errorCode);
+
+        [LoggerMessage(
             EventId = (int)SlicEventIds.ReceivedStreamResetFrame,
             EventName = nameof(SlicEventIds.ReceivedStreamResetFrame),
             Level = LogLevel.Debug,
@@ -101,6 +111,16 @@ namespace IceRpc.Transports.Internal
                 logger.LogReceivedSlicVersionFrame(frameSize, string.Join(", ", body.Versions));
             }
         }
+
+        [LoggerMessage(
+            EventId = (int)SlicEventIds.SendCloseFrame,
+            EventName = nameof(SlicEventIds.SendCloseFrame),
+            Level = LogLevel.Debug,
+            Message = "sent Slic Close frame (FrameSize={FrameSize}, ErrorCode={ErrorCode})")]
+        internal static partial void LogSentSlicCloseFrame(
+            this ILogger logger,
+            int frameSize,
+            long errorCode);
 
         [LoggerMessage(
             EventId = (int)SlicEventIds.SendFailure,

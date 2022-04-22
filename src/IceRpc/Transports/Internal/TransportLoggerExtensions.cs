@@ -13,20 +13,6 @@ namespace IceRpc.Transports.Internal
                 "MultiplexedStream(ID={ID}, InitiatedBy={InitiatedBy}, Kind={Kind})");
 
         [LoggerMessage(
-            EventId = (int)TransportEventIds.Connect,
-            EventName = nameof(TransportEventIds.Connect),
-            Level = LogLevel.Debug,
-            Message = "network connection established: LocalEndPoint={LocalEndPoint}, RemoteEndPoint={RemoteEndPoint}")]
-        internal static partial void LogConnect(this ILogger logger, EndPoint localEndPoint, EndPoint remoteEndPoint);
-
-        [LoggerMessage(
-            EventId = (int)TransportEventIds.ConnectFailed,
-            EventName = nameof(TransportEventIds.ConnectFailed),
-            Level = LogLevel.Debug,
-            Message = "connect failed")]
-        internal static partial void LogConnectFailed(this ILogger logger, Exception exception);
-
-        [LoggerMessage(
             EventId = (int)TransportEventIds.ListenerAcceptFailed,
             EventName = nameof(TransportEventIds.ListenerAcceptFailed),
             Level = LogLevel.Error,
@@ -51,6 +37,15 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogListenerDispose(this ILogger logger, Endpoint endpoint);
 
         [LoggerMessage(
+            EventId = (int)TransportEventIds.MultiplexedNetworkConnectionClose,
+            EventName = nameof(TransportEventIds.MultiplexedNetworkConnectionClose),
+            Level = LogLevel.Trace,
+            Message = "connection closed ({ErrorCode})")]
+        internal static partial void LogMultiplexedNetworkConnectionClose(
+            this ILogger logger,
+            long errorCode);
+
+        [LoggerMessage(
             EventId = (int)TransportEventIds.MultiplexedStreamRead,
             EventName = nameof(TransportEventIds.MultiplexedStreamRead),
             Level = LogLevel.Trace,
@@ -71,6 +66,30 @@ namespace IceRpc.Transports.Internal
             string data);
 
         [LoggerMessage(
+            EventId = (int)TransportEventIds.NetworkConnectionConnect,
+            EventName = nameof(TransportEventIds.NetworkConnectionConnect),
+            Level = LogLevel.Debug,
+            Message = "network connection established: LocalEndPoint={LocalEndPoint}, RemoteEndPoint={RemoteEndPoint}")]
+        internal static partial void LogNetworkConnectionConnect(
+            this ILogger logger,
+            EndPoint localEndPoint,
+            EndPoint remoteEndPoint);
+
+        [LoggerMessage(
+            EventId = (int)TransportEventIds.NetworkConnectionConnectFailed,
+            EventName = nameof(TransportEventIds.NetworkConnectionConnectFailed),
+            Level = LogLevel.Debug,
+            Message = "network connection establishment failed")]
+        internal static partial void LogNetworkConnectionConnectFailed(this ILogger logger, Exception exception);
+
+        [LoggerMessage(
+            EventId = (int)TransportEventIds.NetworkConnectionDispose,
+            EventName = nameof(TransportEventIds.NetworkConnectionDispose),
+            Level = LogLevel.Debug,
+            Message = "network connection disposed")]
+        internal static partial void LogNetworkConnectionDispose(this ILogger logger);
+
+        [LoggerMessage(
             EventId = (int)TransportEventIds.SimpleNetworkConnectionRead,
             EventName = nameof(TransportEventIds.SimpleNetworkConnectionRead),
             Level = LogLevel.Trace,
@@ -83,13 +102,6 @@ namespace IceRpc.Transports.Internal
             Level = LogLevel.Trace,
             Message = "wrote {Size} bytes to simple network connection ({Data})")]
         internal static partial void LogSimpleNetworkConnectionWrite(this ILogger logger, int size, string data);
-
-        [LoggerMessage(
-            EventId = (int)TransportEventIds.ConnectionDispose,
-            EventName = nameof(TransportEventIds.ConnectionDispose),
-            Level = LogLevel.Debug,
-            Message = "connection closed")]
-        internal static partial void LogConnectionDispose(this ILogger logger);
 
         internal static IDisposable StartMultiplexedStreamScope(this ILogger logger, IMultiplexedStream stream) =>
             stream.IsStarted ?

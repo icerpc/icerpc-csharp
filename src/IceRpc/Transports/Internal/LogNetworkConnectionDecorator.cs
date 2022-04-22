@@ -36,11 +36,11 @@ namespace IceRpc.Transports.Internal
             }
             catch (Exception ex)
             {
-                Logger.LogConnectFailed(ex);
+                Logger.LogNetworkConnectionConnectFailed(ex);
                 throw;
             }
 
-            Logger.LogConnect(Information.Value.LocalEndPoint, Information.Value.RemoteEndPoint);
+            Logger.LogNetworkConnectionConnect(Information.Value.LocalEndPoint, Information.Value.RemoteEndPoint);
             return Information.Value;
         }
 
@@ -53,7 +53,7 @@ namespace IceRpc.Transports.Internal
                 // TODO: we start the scope here because DisposeAsync is called directly by Connection, and not
                 // through a higher-level interface method such as IProtocolConnection.DisposeAsync.
                 using IDisposable scope = Logger.StartConnectionScope(connectionInformation, IsServer);
-                Logger.LogConnectionDispose();
+                Logger.LogNetworkConnectionDispose();
             }
             // We don't emit a log when closing a connection that was not connected.
         }
