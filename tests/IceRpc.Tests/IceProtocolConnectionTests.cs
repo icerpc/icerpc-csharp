@@ -129,9 +129,9 @@ public sealed class IceProtocolConnectionTests
             .BuildServiceProvider();
 
         var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.Ice)));
-        _ = sut.Server.AcceptRequestsAsync();
         _ = sut.Client.AcceptRequestsAsync();
+        _ = sut.Server.AcceptRequestsAsync();
+        var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.Ice)));
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
