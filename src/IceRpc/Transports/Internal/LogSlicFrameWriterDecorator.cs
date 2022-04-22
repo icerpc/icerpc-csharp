@@ -110,6 +110,13 @@ namespace IceRpc.Transports.Internal
                     }
                     break;
                 }
+                case FrameType.Close:
+                {
+                    var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+                    var closeBody = new CloseBody(ref decoder);
+                    _logger.LogSentSlicCloseFrame(dataSize, closeBody.ApplicationProtocolErrorCode);
+                    break;
+                }
                 case FrameType.Stream:
                 case FrameType.StreamLast:
                 {
