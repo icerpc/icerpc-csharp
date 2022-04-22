@@ -507,7 +507,7 @@ namespace IceRpc.Slice
         {
             if (Encoding != SliceEncoding.Slice1)
             {
-                throw new InvalidOperationException($"{nameof(DecodeTagged)} is not compatible with {Encoding}");
+                throw new InvalidOperationException("tag formats can only be used with the Slice1 encoding");
             }
 
             if (DecodeTagHeader(tag, tagFormat, useTagEndMarker))
