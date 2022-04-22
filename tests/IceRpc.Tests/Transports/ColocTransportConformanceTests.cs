@@ -12,7 +12,13 @@ public static class ColocTransportServiceCollectionExtensions
         var coloc = new ColocTransport();
         serviceCollection.AddScoped(_ => coloc.ServerTransport);
         serviceCollection.AddScoped(_ => coloc.ClientTransport);
-        serviceCollection.AddScoped(typeof(Endpoint), provider => Endpoint.FromString($"icerpc://{Guid.NewGuid()}/"));
+        serviceCollection.AddScoped(
+            typeof(Endpoint),
+            provider =>
+            {
+                string protocol = provider.GetService<Protocol>()?.Name ?? "icerpc";
+                return Endpoint.FromString($"{protocol}://{Guid.NewGuid()}/");
+            });
         return serviceCollection;
     }
 }

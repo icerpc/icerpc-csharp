@@ -2,6 +2,8 @@
 
 using IceRpc.Configure;
 using IceRpc.Transports;
+using IceRpc.Transports.Tests;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
@@ -14,44 +16,38 @@ public class ConnectionTests
     /// <summary>Verifies that closing the connection abort the invocations.</summary>
     [Test]
     public async Task Close_on_idle(
-        [Values("ice", "icerpc")] string protocol,
-        [Values(true, false)] bool idleOnClient)
+        [Values(true, false)] bool idleOnClient,
+        [Values("ice", "icerpc")] string protocol)
     {
         // Arrange
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
-        var tcpServerTransport = new TcpServerTransport(new TcpServerTransportOptions
+        var tcpServerTransportOptions = new TcpServerTransportOptions
         {
             IdleTimeout = idleOnClient ? TimeSpan.FromHours(1) : TimeSpan.FromMilliseconds(500),
-        });
+        };
 
-        var tcpClientTransport = new TcpClientTransport(new TcpClientTransportOptions
+        var tcpClientTransportOptions = new TcpClientTransportOptions
         {
             IdleTimeout = idleOnClient ? TimeSpan.FromMilliseconds(500) : TimeSpan.FromHours(1),
-        });
+        };
 
         Connection? serverConnection = null;
-        await using var server = new Server(new ServerOptions
+        var dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
-            Dispatcher = new InlineDispatcher(
-                async (request, cancel) =>
-                {
-                    serverConnection = request.Connection;
-                    start.Release();
-                    await hold.WaitAsync(cancel);
-                    return new OutgoingResponse(request);
-                }),
-            Endpoint = $"{protocol}://127.0.0.1:0",
-            SimpleServerTransport = tcpServerTransport,
-            MultiplexedServerTransport = new SlicServerTransport(tcpServerTransport),
+            serverConnection = request.Connection;
+            start.Release();
+            await hold.WaitAsync(cancel);
+            return new OutgoingResponse(request);
         });
-        server.Listen();
-        await using var clientConnection = new Connection(new ConnectionOptions
-        {
-            RemoteEndpoint = server.Endpoint,
-            SimpleClientTransport = tcpClientTransport,
-            MultiplexedClientTransport = new SlicClientTransport(tcpClientTransport)
-        });
+
+        await using var provider = new ConnectionServiceCollection(protocol)
+            .UseTcp(tcpServerTransportOptions, tcpClientTransportOptions)
+            .UseDispatcher(dispatcher)
+            .BuildServiceProvider();
+
+        var server = provider.GetRequiredService<Server>();
+        var clientConnection = provider.GetRequiredService<Connection>();
         var proxy = Proxy.FromConnection(clientConnection, "/foo");
 
         var invokeTask = proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
@@ -78,27 +74,18 @@ public class ConnectionTests
         // Arrange
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
-        var coloc = new ColocTransport();
-        await using var server = new Server(new ServerOptions
+        var dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
-            Dispatcher = new InlineDispatcher(
-                async (request, cancel) =>
-                {
-                    start.Release();
-                    await hold.WaitAsync(cancel);
-                    return new OutgoingResponse(request);
-                }),
-            Endpoint = $"{protocol}://{Guid.NewGuid()}?transport=coloc",
-            MultiplexedServerTransport = new SlicServerTransport(coloc.ServerTransport),
-            SimpleServerTransport = coloc.ServerTransport,
+            start.Release();
+            await hold.WaitAsync(cancel);
+            return new OutgoingResponse(request);
         });
-        server.Listen();
-        await using var connection = new Connection(new ConnectionOptions
-        {
-            RemoteEndpoint = server.Endpoint,
-            MultiplexedClientTransport = new SlicClientTransport(coloc.ClientTransport),
-            SimpleClientTransport = coloc.ClientTransport,
-        });
+
+        await using var provider = new ConnectionServiceCollection(protocol)
+            .UseDispatcher(dispatcher)
+            .BuildServiceProvider();
+        var server = provider.GetRequiredService<Server>();
+        var connection = provider.GetRequiredService<Connection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
 
@@ -119,29 +106,20 @@ public class ConnectionTests
         // Arrange
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
-        var coloc = new ColocTransport();
         Connection? serverConnection = null;
-        await using var server = new Server(new ServerOptions
+        var dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
-            Dispatcher = new InlineDispatcher(
-                async (request, cancel) =>
-                {
-                    serverConnection = request.Connection;
-                    start.Release();
-                    await hold.WaitAsync(cancel);
-                    return new OutgoingResponse(request);
-                }),
-            Endpoint = $"{protocol}://{Guid.NewGuid()}?transport=coloc",
-            MultiplexedServerTransport = new SlicServerTransport(coloc.ServerTransport),
-            SimpleServerTransport = coloc.ServerTransport,
+            serverConnection = request.Connection;
+            start.Release();
+            await hold.WaitAsync(cancel);
+            return new OutgoingResponse(request);
         });
-        server.Listen();
-        await using var connection = new Connection(new ConnectionOptions
-        {
-            RemoteEndpoint = server.Endpoint,
-            MultiplexedClientTransport = new SlicClientTransport(coloc.ClientTransport),
-            SimpleClientTransport = coloc.ClientTransport,
-        });
+
+        await using var provider = new ConnectionServiceCollection(protocol)
+            .UseDispatcher(dispatcher)
+            .BuildServiceProvider();
+        var server = provider.GetRequiredService<Server>();
+        var connection = provider.GetRequiredService<Connection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
 
@@ -162,27 +140,17 @@ public class ConnectionTests
         [Values(true, false)] bool closeClientConnection)
     {
         // Arrange
-        var coloc = new ColocTransport();
         Connection? serverConnection = null;
-        await using var server = new Server(new ServerOptions
+        var dispatcher = new InlineDispatcher((request, cancel) =>
         {
-            Dispatcher = new InlineDispatcher(
-                (request, cancel) =>
-                {
-                    serverConnection = request.Connection;
-                    return new(new OutgoingResponse(request));
-                }),
-            Endpoint = $"{protocol}://{Guid.NewGuid()}?transport=coloc",
-            MultiplexedServerTransport = new SlicServerTransport(coloc.ServerTransport),
-            SimpleServerTransport = coloc.ServerTransport,
+            serverConnection = request.Connection;
+            return new(new OutgoingResponse(request));
         });
-        server.Listen();
-        await using var clientConnection = new Connection(new ConnectionOptions
-        {
-            RemoteEndpoint = server.Endpoint,
-            MultiplexedClientTransport = new SlicClientTransport(coloc.ClientTransport),
-            SimpleClientTransport = coloc.ClientTransport,
-        });
+        await using var provider = new ConnectionServiceCollection(protocol)
+            .UseDispatcher(dispatcher)
+            .BuildServiceProvider();
+        var server = provider.GetRequiredService<Server>();
+        var clientConnection = provider.GetRequiredService<Connection>();
 
         var proxy = Proxy.FromConnection(clientConnection, "/foo");
 
@@ -225,22 +193,11 @@ public class ConnectionTests
     public async Task Non_resumable_connection_cannot_reconnect([Values("ice", "icerpc")] string protocol)
     {
         // Arrange
-        var coloc = new ColocTransport();
-        await using var server = new Server(new ServerOptions
-        {
-            Dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
-            Endpoint = $"{protocol}://{Guid.NewGuid()}?transport=coloc",
-            MultiplexedServerTransport = new SlicServerTransport(coloc.ServerTransport),
-            SimpleServerTransport = coloc.ServerTransport,
-        });
-        server.Listen();
-        await using var connection = new Connection(new ConnectionOptions
-        {
-            IsResumable = false,
-            RemoteEndpoint = server.Endpoint,
-            MultiplexedClientTransport = new SlicClientTransport(coloc.ClientTransport),
-            SimpleClientTransport = coloc.ClientTransport,
-        });
+        await using var provider = new ConnectionServiceCollection(protocol)
+            .UseDispatcher(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))))
+            .BuildServiceProvider();
+        var server = provider.GetRequiredService<Server>();
+        var connection = provider.GetRequiredService<Connection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
 
@@ -257,22 +214,12 @@ public class ConnectionTests
     public async Task Resumable_connection_can_reconnect([Values("ice", "icerpc")] string protocol)
     {
         // Arrange
-        var coloc = new ColocTransport();
-        await using var server = new Server(new ServerOptions
-        {
-            Dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
-            Endpoint = $"{protocol}://{Guid.NewGuid()}?transport=coloc",
-            MultiplexedServerTransport = new SlicServerTransport(coloc.ServerTransport),
-            SimpleServerTransport = coloc.ServerTransport,
-        });
-        server.Listen();
-        await using var connection = new Connection(new ConnectionOptions
-        {
-            IsResumable = true,
-            RemoteEndpoint = server.Endpoint,
-            MultiplexedClientTransport = new SlicClientTransport(coloc.ClientTransport),
-            SimpleClientTransport = coloc.ClientTransport,
-        });
+        await using var provider = new ConnectionServiceCollection(protocol)
+            .UseDispatcher(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))))
+            .UseConnectionOptions(new ConnectionOptions { IsResumable = true })
+            .BuildServiceProvider();
+        var server = provider.GetRequiredService<Server>();
+        var connection = provider.GetRequiredService<Connection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
 
@@ -285,4 +232,57 @@ public class ConnectionTests
         // Assert
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
     }
+}
+
+public class ConnectionServiceCollection : ServiceCollection
+{
+    public ConnectionServiceCollection(string protocol = "icerpc")
+    {
+        this.UseColoc();
+        this.UseSlic();
+        this.UseProtocol(protocol == "ice" ? Protocol.Ice : Protocol.IceRpc);
+        this.AddScoped(provider =>
+        {
+            var serverOptions = provider.GetService<ServerOptions>() ?? new ServerOptions();
+            if (provider.GetService<IDispatcher>() is IDispatcher dispatcher)
+            {
+                serverOptions.Dispatcher = dispatcher;
+            }
+            serverOptions.Endpoint = provider.GetRequiredService<Endpoint>();
+            serverOptions.SimpleServerTransport =
+                provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>();
+            serverOptions.MultiplexedServerTransport =
+                provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>();
+            var server = new Server(serverOptions);
+            server.Listen();
+            return server;
+        });
+
+        this.AddScoped(provider =>
+        {
+            var connectionOptions = provider.GetService<ConnectionOptions>() ?? new ConnectionOptions();
+            if (connectionOptions.RemoteEndpoint == null)
+            {
+                connectionOptions.RemoteEndpoint = provider.GetRequiredService<Server>().Endpoint;
+            }
+            connectionOptions.SimpleClientTransport =
+                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>();
+            connectionOptions.MultiplexedClientTransport =
+                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
+            return new Connection(connectionOptions);
+        });
+    }
+}
+
+public static class ConnectionServiceCollectionExtensions
+{
+    public static IServiceCollection UseDispatcher(
+        this IServiceCollection serviceCollection,
+        IDispatcher dispatcher) =>
+        serviceCollection.AddScoped(_ => dispatcher);
+
+    public static IServiceCollection UseConnectionOptions(
+        this IServiceCollection serviceCollection,
+        ConnectionOptions connectionOptions) =>
+        serviceCollection.AddScoped(_ => connectionOptions);
 }
