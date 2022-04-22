@@ -5,14 +5,15 @@ using NUnit.Framework;
 
 namespace IceRpc.Transports.Tests;
 
-public class ColocTransportServiceCollection : SimpleTransportServiceCollection
+public static class ColocTransportServiceCollectionExtensions
 {
-    public ColocTransportServiceCollection()
+    public static ServiceCollection UseColoc(this ServiceCollection serviceCollection)
     {
         var coloc = new ColocTransport();
-        this.AddScoped(_ => coloc.ServerTransport);
-        this.AddScoped(_ => coloc.ClientTransport);
-        this.AddScoped(typeof(Endpoint), provider => Endpoint.FromString($"icerpc://{Guid.NewGuid()}/"));
+        serviceCollection.AddScoped(_ => coloc.ServerTransport);
+        serviceCollection.AddScoped(_ => coloc.ClientTransport);
+        serviceCollection.AddScoped(typeof(Endpoint), provider => Endpoint.FromString($"icerpc://{Guid.NewGuid()}/"));
+        return serviceCollection;
     }
 }
 
@@ -22,5 +23,5 @@ public class ColocTransportServiceCollection : SimpleTransportServiceCollection
 public class ColocTransportConformanceTests : SimpleTransportConformanceTests
 {
     protected override ServiceCollection CreateServiceCollection() =>
-        new ColocTransportServiceCollection();
+        new ServiceCollection().UseSimpleTransport().UseColoc();
 }

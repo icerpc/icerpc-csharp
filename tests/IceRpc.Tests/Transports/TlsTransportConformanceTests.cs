@@ -10,5 +10,6 @@ namespace IceRpc.Transports.Tests;
 [Parallelizable(ParallelScope.All)]
 public class TlsTransportConformanceTests : SimpleTransportConformanceTests
 {
-    protected override ServiceCollection CreateServiceCollection() => new TcpTransportServiceCollection().UseSsl();
+    protected override ServiceCollection CreateServiceCollection() =>
+        new ServiceCollection().UseTcp().UseSslAuthentication();
 }
