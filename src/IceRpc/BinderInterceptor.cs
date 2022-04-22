@@ -5,8 +5,8 @@ using IceRpc.Features;
 namespace IceRpc
 {
     /// <summary>A binder interceptor is responsible for providing connections to requests using an
-    /// <see cref="IConnectionProvider"/>, the binder is no-op when the request carries a connection; otherwise it
-    /// retrieves a connection from its connection provider and sets the request's connection.</summary>
+    /// <see cref="IConnectionProvider"/>, the binder is no-op when request.Connection is not null; otherwise, it
+    /// retrieves a connection from its connection provider.</summary>
     public class BinderInterceptor : IInvoker
     {
         private readonly bool _cacheConnection;
@@ -17,7 +17,8 @@ namespace IceRpc
         /// <param name="next">The next invoker in the pipeline.</param>
         /// <param name="connectionProvider">The connection provider.</param>
         /// <param name="cacheConnection">When <c>true</c> (the default), the binder stores the connection it retrieves
-        /// from its connection provider in the proxy that created the request.</param>
+        /// from its connection provider in the proxy that created the request. When <c>false</c>, the binder stores the
+        /// connection it retrieves in the request's Features.</param>
         public BinderInterceptor(IInvoker next, IConnectionProvider connectionProvider, bool cacheConnection = true)
         {
             _next = next;
@@ -52,14 +53,16 @@ namespace IceRpc
                         throw new NoEndpointException(request.Proxy);
                     }
 
-                    request.Connection = await _connectionProvider.GetConnectionAsync(
+                    Connection connection = await _connectionProvider.GetConnectionAsync(
                         endpoint.Value,
                         altEndpoints,
                         cancel).ConfigureAwait(false);
+
                     if (_cacheConnection)
                     {
-                        request.Proxy.Connection = request.Connection;
+                        request.Proxy.Connection = connection;
                     }
+                    request.Connection = connection;
                 }
                 catch (Exception exception)
                 {

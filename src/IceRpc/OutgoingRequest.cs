@@ -7,8 +7,37 @@ namespace IceRpc
     /// <summary>Represents an ice or icerpc request frame sent by the application.</summary>
     public sealed class OutgoingRequest : OutgoingFrame
     {
-        /// <summary>Gets or sets the connection that will be used (or was used ) to send this request.</summary>
-        public Connection? Connection { get; set; }
+        /// <summary>Gets the connection that will be used (or was used ) to send this request.</summary>
+        /// <remarks>This property is computed from the connections in Features and Proxy. If they are both equal,
+        /// the computed property is null.</remarks>
+        public Connection? Connection
+        {
+            get
+            {
+                Connection? featureConnection = Features.Get<Connection>();
+                Connection? proxyConnection = Proxy.Connection;
+                return featureConnection == proxyConnection ? null : (featureConnection ?? proxyConnection);
+            }
+
+            set
+            {
+                if (Proxy.Connection == value)
+                {
+                    // Set Features<Connection> to null
+                    if (!Features.IsReadOnly)
+                    {
+                        Features.Set<Connection>(null);
+                    }
+                    // else already null
+                }
+                else
+                {
+                    // When value is not null, set it in Features. Otherwise, obtain null by setting the Connection
+                    // feature to the same value as Proxy.Connection.
+                    Features = Features.With(value ?? Proxy.Connection);
+                }
+            }
+        }
 
         /// <summary>Gets or sets the features of this request.</summary>
         public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
@@ -35,10 +64,24 @@ namespace IceRpc
         /// <summary>Constructs an outgoing request.</summary>
         /// <param name="proxy">The <see cref="Proxy"/> used to send the request.</param>
         public OutgoingRequest(Proxy proxy)
-            : base(proxy.Protocol)
-        {
-            Connection = proxy.Connection;
+            : base(proxy.Protocol) =>
             Proxy = proxy;
+
+        /// <summary></summary>
+        public void SetConnection(Connection connection)
+        {
+            if (Proxy.Connection == connection)
+            {
+                if (!Features.IsReadOnly)
+                {
+                    Features.Set<Connection>(null);
+                }
+                // else already null
+            }
+            else
+            {
+                Features = Features.With(connection);
+            }
         }
     }
 }

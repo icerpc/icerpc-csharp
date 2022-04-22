@@ -85,18 +85,11 @@ namespace IceRpc.Tests.Internal
         }
 
         private static OutgoingRequest CreateOutgoingRequest(Connection connection, bool twoway) =>
-            new(new Proxy(connection.Endpoint.Protocol) { Path = "/dummy" })
+            new(new Proxy(connection.Endpoint.Protocol) { Path = "/dummy", Connection = connection })
             {
-                Connection = connection,
                 IsOneway = !twoway,
                 Operation = "foo",
                 Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
-            };
-
-        private static OutgoingResponse CreateOutgoingResponse(IncomingRequest request) =>
-            new(request)
-            {
-                Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[10]))
             };
     }
 }

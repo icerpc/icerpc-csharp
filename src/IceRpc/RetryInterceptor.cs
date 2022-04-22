@@ -131,20 +131,22 @@ namespace IceRpc
                     }
                     else
                     {
+                        Connection? connection = request.Connection;
+
                         // With the retry-policy OtherReplica we add the current endpoint to the list of excluded
                         // endpoints; this prevents the endpoints to be tried again during the current retry sequence.
                         // We use this ExcludedEndpoints list rather than simply removing the endpoint from the
                         // request.Endpoint/AltEndpoints because an interceptor down the line can change Endpoint /
                         // AltEndpoints, for example by re-resolving the original loc endpoint.
-                        if (request.Connection != null && retryPolicy == RetryPolicy.OtherReplica)
+                        if (connection != null && retryPolicy == RetryPolicy.OtherReplica)
                         {
                             // Filter-out the remote endpoint
-                            if (endpointSelection.Endpoint == request.Connection.Endpoint)
+                            if (endpointSelection.Endpoint == connection.Endpoint)
                             {
                                 endpointSelection.Endpoint = null;
                             }
                             endpointSelection.AltEndpoints = endpointSelection.AltEndpoints.Where(
-                                e => e != request.Connection.Endpoint).ToList();
+                                e => e != connection.Endpoint).ToList();
 
                             if (endpointSelection.Endpoint == null && endpointSelection.AltEndpoints.Any())
                             {
@@ -157,7 +159,7 @@ namespace IceRpc
                         attempt++;
 
                         _logger.LogRetryRequest(
-                            request.Connection,
+                            connection,
                             request.Proxy.Path,
                             request.Operation,
                             retryPolicy,
@@ -181,9 +183,8 @@ namespace IceRpc
                             }
                         }
 
-                        if (request.Connection != null &&
-                            (retryPolicy == RetryPolicy.OtherReplica ||
-                             request.Connection.State != ConnectionState.Active))
+                        if (connection != null &&
+                            (retryPolicy == RetryPolicy.OtherReplica || connection.State != ConnectionState.Active))
                         {
                             // Retry with a new connection
                             request.Connection = null;
