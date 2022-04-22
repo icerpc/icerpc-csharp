@@ -586,7 +586,7 @@ namespace IceRpc.Internal
                 await _streamsCompleted.Task.ConfigureAwait(false);
             }
 
-            // Close the control stream and wait for the peer to close it's control stream.
+            // Close the control stream and wait for the peer to close its control stream.
             await _controlStream!.Output.CompleteAsync(null).ConfigureAwait(false);
             await _remoteControlStream!.Input.ReadAsync(CancellationToken.None).ConfigureAwait(false);
 

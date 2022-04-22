@@ -14,7 +14,7 @@ enum FrameType : uint8
     InitializeAck,
     /// The Slic versions supported by the server if the version from the Initialize frame is not supported.
     Version,
-    /// The close frame is sent by the peer when it explicitly closes the connection.
+    /// The close frame is sent by the peer when it closes the connection.
     Close,
     /// The stream frame is sent send data over a Slic stream.
     Stream,

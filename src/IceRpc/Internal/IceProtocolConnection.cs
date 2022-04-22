@@ -372,10 +372,10 @@ namespace IceRpc.Internal
                 // Cancel any pending requests waiting for sending.
                 _sendSemaphore.Complete(exception);
 
-                // Mark the connection as shut down at this point. This is necessary to ensure AcceptRequestsAsync
-                // returns successfully on a successful graceful connection shutdown. This needs to be set before
-                // sending the close connection frame since the peer will close the simple network connection has soon
-                // as it receives the frame.
+                // Mark the connection as shut down at this point. This is necessary to ensure ReceiveFramesAsync
+                // returns successfully on a graceful connection shutdown. This needs to be set before sending the close
+                // connection frame since the peer will close the simple network connection as soon as it receives the
+                // frame.
                 _isShutdown = true;
 
                 // Send the CloseConnection frame once all the dispatches are done.

@@ -99,8 +99,8 @@ namespace IceRpc.Transports
 
         /// <summary>Constructs a new exception.</summary>
         /// <param name="applicationErrorCode">The application error code.</param>
-        public MultiplexedNetworkConnectionClosedException(long applicationErrorCode) :
-            base($"connection aborted with application error code '{applicationErrorCode}'") =>
+        public MultiplexedNetworkConnectionClosedException(long applicationErrorCode)
+            : base($"connection aborted with application error code '{applicationErrorCode}'") =>
             ApplicationErrorCode = applicationErrorCode;
     }
 
