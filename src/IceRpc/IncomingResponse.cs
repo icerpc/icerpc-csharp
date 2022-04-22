@@ -22,6 +22,9 @@ namespace IceRpc
         /// <summary>Constructs an incoming response.</summary>
         /// <param name="request">The corresponding outgoing request.</param>
         /// <param name="connection">The connection that received the response.</param>
+        /// <remarks>While <paramref name="connection"/> is usually the same as the request's
+        /// <see cref="OutgoingRequest.Connection"/>, it may be a different connection since an invoker can ignore the
+        /// request's connection when sending this request.</remarks>
         public IncomingResponse(OutgoingRequest request, Connection connection)
             : base(connection) => Request = request;
     }
