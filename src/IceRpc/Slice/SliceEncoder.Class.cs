@@ -156,7 +156,7 @@ namespace IceRpc.Slice
             {
                 SliceInfo sliceInfo = unknownSlices[i];
 
-                // If TypeId is a compact ID, extract it.
+                // If type ID is a compact ID, extract it.
                 int? compactId = null;
                 if (!sliceInfo.TypeId.StartsWith("::", StringComparison.Ordinal))
                 {

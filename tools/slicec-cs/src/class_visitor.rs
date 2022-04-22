@@ -70,7 +70,7 @@ impl<'a> Visitor for ClassVisitor<'_> {
                 .into(),
         );
 
-        // Class static TypeId string
+        // Class static type ID string
         class_builder.add_block(
             format!(
                 "{} static{} readonly string SliceTypeId = typeof({}).GetSliceTypeId()!;",
@@ -243,7 +243,12 @@ public override global::System.Collections.Immutable.ImmutableList<IceRpc.Slice.
             start_slice_args.join(", ")
         );
 
-        code.writeln(&encode_data_members(&members, namespace, FieldType::Class));
+        code.writeln(&encode_data_members(
+            &members,
+            namespace,
+            FieldType::Class,
+            true, // classes are Slice1 only, and always use tag formats
+        ));
 
         if has_base_class {
             code.writeln("encoder.EndSlice(false);");
@@ -266,7 +271,12 @@ public override global::System.Collections.Immutable.ImmutableList<IceRpc.Slice.
     .set_body({
         let mut code = CodeBlock::new();
         code.writeln("decoder.StartSlice();");
-        code.writeln(&decode_data_members(&members, namespace, FieldType::Class));
+        code.writeln(&decode_data_members(
+            &members,
+            namespace,
+            true, // classes are Slice1 only, and always use tag formats
+            FieldType::Class
+        ));
         code.writeln("decoder.EndSlice();");
         if has_base_class {
             code.writeln("base.DecodeCore(ref decoder);");

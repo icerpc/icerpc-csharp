@@ -57,7 +57,7 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.That(exception!.ApplicationErrorCode, Is.EqualTo(56));
     }
 
-    /// <summary>Verifies that the stream Id is not assigned until the stream is started.</summary>
+    /// <summary>Verifies that the stream ID is not assigned until the stream is started.</summary>
     /// <param name="bidirectional">Whether to use a bidirectional or unidirectional stream for the test.</param>
     [Test]
     public async Task Accessing_stream_id_before_starting_the_stream_fails(

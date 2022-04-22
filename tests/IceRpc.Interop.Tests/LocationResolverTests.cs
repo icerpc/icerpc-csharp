@@ -144,7 +144,6 @@ public class LocationResolverTests
             _adapterIdProxy = adapterIdProxy;
         }
 
-
         public Task<Proxy?> FindAsync(Location location, CancellationToken cancel)
         {
             Calls++;
