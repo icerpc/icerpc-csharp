@@ -150,7 +150,6 @@ public sealed class ExceptionTests
             // Ensure that a tagged value not declared in the Slice definition is correctly skipped
             encoder.EncodeTagged(
                 10,
-                TagFormat.F4,
                 size: 4,
                 taggedValue.Value,
                 (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
@@ -213,7 +212,6 @@ public sealed class ExceptionTests
         {
             encoder.EncodeTagged(
                 1,
-                TagFormat.F4,
                 size: 4,
                 k.Value,
                 (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
@@ -222,7 +220,6 @@ public sealed class ExceptionTests
         {
             encoder.EncodeTagged(
                 255,
-                TagFormat.F4,
                 size: 4,
                 l.Value,
                 (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
@@ -398,13 +395,13 @@ public sealed class ExceptionTests
         if (k != null)
         {
             Assert.That(
-                decoder.DecodeTagged(1, TagFormat.F4, (ref SliceDecoder decoder) => decoder.DecodeInt32()),
+                decoder.DecodeTagged(1, (ref SliceDecoder decoder) => decoder.DecodeInt32()),
                 Is.EqualTo(value.K));
         }
         if (l != null)
         {
             Assert.That(
-                decoder.DecodeTagged(255, TagFormat.F4, (ref SliceDecoder decoder) => decoder.DecodeInt32()),
+                decoder.DecodeTagged(255, (ref SliceDecoder decoder) => decoder.DecodeInt32()),
                 Is.EqualTo(value.L));
         }
         Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));

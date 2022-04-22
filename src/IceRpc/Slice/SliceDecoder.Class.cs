@@ -175,7 +175,7 @@ namespace IceRpc.Slice
         /// <returns>The indirection table.</returns>
         private AnyClass[] DecodeIndirectionTable()
         {
-            int size = DecodeAndCheckSeqSize(1);
+            int size = DecodeAndCheckSequenceSize(1);
             if (size == 0)
             {
                 throw new InvalidDataException("invalid empty indirection table");
@@ -392,7 +392,7 @@ namespace IceRpc.Slice
                     string typeId = DecodeString();
 
                     // The typeIds of slices in indirection tables can be decoded several times: when we skip the
-                    // indirection table and later on when we decode it. We only want to add this typeId to the list and
+                    // indirection table and later on when we decode it. We only want to add this type ID to the list and
                     // assign it an index when it's the first time we decode it, so we save the largest position we
                     // decode to figure out when to add to the list.
                     if (_reader.Consumed > _classContext.PosAfterLatestInsertedTypeId)

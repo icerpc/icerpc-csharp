@@ -30,7 +30,7 @@ namespace IceRpc.Slice
             where TKey : notnull
             where TDictionary : IDictionary<TKey, TValue>
         {
-            int sz = decoder.DecodeAndCheckSeqSize(minKeySize + minValueSize);
+            int sz = decoder.DecodeAndCheckDictionarySize(minKeySize, minValueSize);
             TDictionary dict = dictionaryFactory(sz);
             for (int i = 0; i < sz; ++i)
             {
@@ -60,7 +60,7 @@ namespace IceRpc.Slice
             where TKey : notnull
             where TDictionary : IDictionary<TKey, TValue?>
         {
-            int count = decoder.DecodeAndCheckSeqSize(minKeySize);
+            int count = decoder.DecodeAndCheckDictionarySize(minKeySize, minValueSize: 0);
             TDictionary dictionary = dictionaryFactory(count);
             if (count > 0)
             {
@@ -92,7 +92,7 @@ namespace IceRpc.Slice
             where T : struct
         {
             int elementSize = Unsafe.SizeOf<T>();
-            var value = new T[decoder.DecodeAndCheckSeqSize(elementSize)];
+            var value = new T[decoder.DecodeAndCheckSequenceSize(elementSize)];
 
             Span<byte> destination = MemoryMarshal.Cast<T, byte>(value);
             Debug.Assert(destination.Length == elementSize * value.Length);
@@ -120,7 +120,7 @@ namespace IceRpc.Slice
             int minElementSize,
             DecodeFunc<T> decodeFunc)
         {
-            int count = decoder.DecodeAndCheckSeqSize(minElementSize);
+            int count = decoder.DecodeAndCheckSequenceSize(minElementSize);
             if (count == 0)
             {
                 return Array.Empty<T>();
@@ -150,7 +150,7 @@ namespace IceRpc.Slice
             Func<int, TSequence> sequenceFactory,
             DecodeFunc<TElement> decodeFunc) where TSequence : IList<TElement>
         {
-            int count = decoder.DecodeAndCheckSeqSize(minElementSize);
+            int count = decoder.DecodeAndCheckSequenceSize(minElementSize);
             TSequence sequence = sequenceFactory(count);
             for (int i = 0; i < count; ++i)
             {
@@ -166,7 +166,7 @@ namespace IceRpc.Slice
         /// <returns>An array of T.</returns>
         public static T[] DecodeSequenceWithBitSequence<T>(this ref SliceDecoder decoder, DecodeFunc<T> decodeFunc)
         {
-            int count = decoder.DecodeAndCheckSeqSize(0);
+            int count = decoder.DecodeAndCheckSequenceSize(0);
             if (count == 0)
             {
                 return Array.Empty<T>();
@@ -195,7 +195,7 @@ namespace IceRpc.Slice
             Func<int, TSequence> sequenceFactory,
             DecodeFunc<TElement> decodeFunc) where TSequence : IList<TElement>
         {
-            int count = decoder.DecodeAndCheckSeqSize(0);
+            int count = decoder.DecodeAndCheckSequenceSize(0);
             TSequence sequence = sequenceFactory(count);
             if (count > 0)
             {

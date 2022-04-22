@@ -470,19 +470,22 @@ namespace IceRpc
                     IProtocolConnection protocolConnection = _protocolConnection;
                     _ = Task.Run(async () =>
                         {
+                            Exception? exception = null;
                             try
                             {
                                 await protocolConnection.AcceptRequestsAsync().ConfigureAwait(false);
                             }
-                            catch (Exception exception)
+                            catch (Exception ex)
                             {
-                                // Unexpected exception, if the connection hasn't been resumed already, close it.
-                                lock (_mutex)
+                                exception = ex;
+                            }
+
+                            lock (_mutex)
+                            {
+                                // If the connection hasn't been resumed already, close it.
+                                if (protocolConnection == _protocolConnection)
                                 {
-                                    if (protocolConnection == _protocolConnection)
-                                    {
-                                        _ = CloseAsync(exception);
-                                    }
+                                    _ = CloseAsync(exception);
                                 }
                             }
                         });
@@ -548,7 +551,7 @@ namespace IceRpc
         /// <summary>Closes the connection. This will forcefully close the connection if the connection hasn't been
         /// shutdown gracefully. Resources allocated for the connection are freed. The connection can be re-established
         /// once this method returns by calling <see cref="ConnectAsync"/>.</summary>
-        private async Task CloseAsync(Exception exception)
+        private async Task CloseAsync(Exception? exception)
         {
             Task waitTask;
             lock (_mutex)
@@ -563,9 +566,8 @@ namespace IceRpc
                     // will trigger the failure of the associated invocations whose interceptor might access
                     // the connection state (e.g.: the retry interceptor or the connection pool checks the
                     // connection state).
-                    bool isShuttingDown = _state == ConnectionState.ShuttingDown;
                     _state = ConnectionState.Closing;
-                    _stateTask = PerformCloseAsync(isShuttingDown);
+                    _stateTask = PerformCloseAsync();
                 }
 
                 Debug.Assert(_stateTask != null);
@@ -574,7 +576,7 @@ namespace IceRpc
 
             await waitTask.ConfigureAwait(false);
 
-            async Task PerformCloseAsync(bool isShuttingDown)
+            async Task PerformCloseAsync()
             {
                 // Yield before continuing to ensure the code below isn't executed with the mutex locked and
                 // that _closeTask is assigned before any synchronous continuations are ran.
@@ -628,11 +630,11 @@ namespace IceRpc
                 {
                     try
                     {
+                        // TODO: pass a null exception instead? See issue #1100.
                         _closed?.Invoke(
                             this,
-                            new ClosedEventArgs(isShuttingDown ?
-                                new ConnectionClosedException("connection gracefully shut down", exception) :
-                                exception));
+                            new ClosedEventArgs(
+                                exception ?? new ConnectionClosedException("connection gracefully shut down")));
                     }
                     catch
                     {

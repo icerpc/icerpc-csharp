@@ -35,7 +35,29 @@ public abstract class MultiplexedTransportConformanceTests
         await CompleteStreamAsync(localStream);
     }
 
-    /// <summary>Verifies that the stream Id is not assigned until the stream is started.</summary>
+    /// <summary>Verifies that no new streams can be accepted after the connection is closed.</summary>
+    [Test]
+    public async Task Accepting_a_stream_fails_after_close()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
+        await using IMultiplexedNetworkConnection clientConnection = provider.CreateConnection();
+        await using IMultiplexedNetworkConnection serverConnection =
+            await provider.AcceptConnectionAsync(clientConnection);
+
+        Task acceptStreams = serverConnection.AcceptStreamAsync(CancellationToken.None).AsTask();
+
+        // Act
+        await clientConnection.CloseAsync(56, CancellationToken.None);
+
+        // Assert
+        MultiplexedNetworkConnectionClosedException? exception =
+            Assert.ThrowsAsync<MultiplexedNetworkConnectionClosedException>(async () => await acceptStreams);
+        Assert.That(exception, Is.Not.Null);
+        Assert.That(exception!.ApplicationErrorCode, Is.EqualTo(56));
+    }
+
+    /// <summary>Verifies that the stream ID is not assigned until the stream is started.</summary>
     /// <param name="bidirectional">Whether to use a bidirectional or unidirectional stream for the test.</param>
     [Test]
     public async Task Accessing_stream_id_before_starting_the_stream_fails(
@@ -113,6 +135,31 @@ public abstract class MultiplexedTransportConformanceTests
 
         // Assert
         Assert.That(async () => await acceptTask, Throws.TypeOf<OperationCanceledException>());
+    }
+
+    /// <summary>Verify streams cannot be created after closing the connection.</summary>
+    /// <param name="closeServerConnection">Whether to close the server connection or the client connection.
+    /// </param>
+    [Test]
+    public async Task Cannot_create_streams_with_a_closed_connection(
+        [Values(true, false)] bool closeServerConnection)
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
+        await using IMultiplexedNetworkConnection clientConnection = provider.CreateConnection();
+        await using IMultiplexedNetworkConnection serverConnection =
+            await provider.AcceptConnectionAsync(clientConnection);
+
+        IMultiplexedNetworkConnection closedConnection = closeServerConnection ? serverConnection : clientConnection;
+        IMultiplexedNetworkConnection peerConnection = closeServerConnection ? clientConnection : serverConnection;
+
+        // Act
+        await closedConnection.CloseAsync(4, CancellationToken.None);
+
+        // Assert
+        IMultiplexedStream peerStream = peerConnection.CreateStream(true);
+        Assert.ThrowsAsync<MultiplexedNetworkConnectionClosedException>(async () =>
+            await peerStream.Output.WriteAsync(_oneBytePayload));
     }
 
     /// <summary>Verify streams cannot be created after disposing the connection.</summary>

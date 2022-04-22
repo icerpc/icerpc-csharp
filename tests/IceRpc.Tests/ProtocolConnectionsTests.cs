@@ -57,6 +57,29 @@ public sealed class ProtocolConnectionTests
         }
     }
 
+    /// <summary>Ensures that AcceptRequestsAsync returns successfully when the connection is gracefully
+    /// shutdown.</summary>
+    [Test, TestCaseSource(nameof(_protocols))]
+    public async Task AcceptRequests_returns_successfully_on_graceful_shutdown(Protocol protocol)
+    {
+        // Arrange
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .BuildServiceProvider();
+
+        ClientServerProtocolConnection sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        Task clientAcceptRequestsTask = sut.Client.AcceptRequestsAsync();
+        Task serverAcceptRequestsTask = sut.Server.AcceptRequestsAsync();
+
+        // Act
+        _ = sut.Client.ShutdownAsync("", default);
+        _ = sut.Server.ShutdownAsync("", default);
+
+        // Assert
+        Assert.DoesNotThrowAsync(() => clientAcceptRequestsTask);
+        Assert.DoesNotThrowAsync(() => serverAcceptRequestsTask);
+    }
+
     /// <summary>Verifies that if shutdown is canceled the dispatches are canceled too.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
     public async Task Canceling_shutdown_cancels_pending_dispatches(Protocol protocol)
@@ -133,6 +156,7 @@ public sealed class ProtocolConnectionTests
 
         sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Value.Server.AcceptRequestsAsync();
+        _ = sut.Value.Client.AcceptRequestsAsync();
 
         // Act
         await sut.Value.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
@@ -163,6 +187,7 @@ public sealed class ProtocolConnectionTests
 
         sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Value.Server.AcceptRequestsAsync();
+        _ = sut.Value.Client.AcceptRequestsAsync();
 
         // Act
         await sut.Value.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
@@ -266,6 +291,8 @@ public sealed class ProtocolConnectionTests
 
         IProtocolConnection connection1 = connectionType == ConnectionType.Client ? sut.Server : sut.Client;
         IProtocolConnection connection2 = connectionType == ConnectionType.Client ? sut.Client : sut.Server;
+        _ = connection1.AcceptRequestsAsync();
+        _ = connection2.AcceptRequestsAsync();
 
         var shutdownInitiatedCalled = new TaskCompletionSource<string>();
         connection2.PeerShutdownInitiated = message =>
@@ -275,7 +302,7 @@ public sealed class ProtocolConnectionTests
             };
 
         // Act
-        await connection1.ShutdownAsync("hello world");
+        _ = connection1.ShutdownAsync("hello world");
 
         // Assert
         string message = protocol == Protocol.Ice ? "connection shutdown by peer" : "hello world";

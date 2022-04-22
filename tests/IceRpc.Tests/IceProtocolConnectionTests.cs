@@ -79,6 +79,8 @@ public sealed class IceProtocolConnectionTests
             .BuildServiceProvider();
 
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        _ = sut.Server.AcceptRequestsAsync();
+        _ = sut.Client.AcceptRequestsAsync();
 
         var request = new OutgoingRequest(new Proxy(Protocol.Ice));
         var responseTasks = new List<Task<IncomingResponse>>();
@@ -128,6 +130,7 @@ public sealed class IceProtocolConnectionTests
 
         var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         var response = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.Ice)));
+        _ = sut.Server.AcceptRequestsAsync();
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
@@ -159,6 +162,7 @@ public sealed class IceProtocolConnectionTests
 
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Server.AcceptRequestsAsync();
+        _ = sut.Client.AcceptRequestsAsync();
 
         // Act
         var response = await sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.Ice)));

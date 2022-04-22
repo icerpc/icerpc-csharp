@@ -11,6 +11,7 @@ pub fn encode_data_members(
     members: &[&DataMember],
     namespace: &str,
     field_type: FieldType,
+    use_tag_format: bool,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
 
@@ -48,6 +49,7 @@ pub fn encode_data_members(
             &param,
             "encoder",
             TypeContext::DataMember,
+            use_tag_format,
         ));
     }
 
@@ -212,6 +214,7 @@ fn encode_tagged_type(
     param: &str,
     encoder_param: &str,
     type_context: TypeContext,
+    use_tag_format: bool,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
     let data_type = member.data_type();
@@ -327,12 +330,32 @@ fn encode_tagged_type(
         )
     };
 
+    let mut encode_tagged_args = vec![tag.to_string()];
+    if use_tag_format {
+        encode_tagged_args.push(format!(
+            "IceRpc.Slice.TagFormat.{}",
+            data_type.tag_format().unwrap()
+        ));
+    }
+    if let Some(size) = size_parameter {
+        encode_tagged_args.push(format!(
+            "size: {}",
+            size
+        ));
+    }
+    encode_tagged_args.push(
+        if read_only_memory { value } else { unwrapped_name }
+    );
+    encode_tagged_args.push(
+        encode_action(&clone_as_non_optional(data_type), type_context, namespace).to_string()
+    );
+
     writeln!(
         code,
         "\
 if ({null_check})
 {{{count_variable}
-    {encoder_param}.EncodeTagged({tag}, IceRpc.Slice.TagFormat.{format}{size}, {value}, {action});
+    {encoder_param}.EncodeTagged({args});
 }}",
         null_check = null_check,
         count_variable = count_value.map_or(
@@ -340,18 +363,7 @@ if ({null_check})
             |v| format!("\nint count_ = {}.Count();", v),
         ),
         encoder_param = encoder_param,
-        tag = tag,
-        format = data_type.tag_format(),
-        size = size_parameter.map_or(
-            "".to_owned(),
-            |v| format!(", size: {}", v),
-        ),
-        value = if read_only_memory {
-            &value
-        } else {
-            &unwrapped_name
-        },
-        action = encode_action(&clone_as_non_optional(data_type), type_context, namespace),
+        args = encode_tagged_args.join(", ")
     );
 
     code
@@ -620,6 +632,7 @@ fn encode_operation_parameters(
             name.as_str(),
             encoder_param,
             TypeContext::Encode,
+            operation.encoding == Encoding::Slice1, //tag formats are only used with Slice1
         ));
     }
 

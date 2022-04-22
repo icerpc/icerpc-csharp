@@ -3,7 +3,6 @@
 using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Slice;
-using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
@@ -81,6 +80,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Server.AcceptRequestsAsync();
+        _ = sut.Client.AcceptRequestsAsync();
 
         // Act
         var response = await sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));

@@ -18,6 +18,10 @@ namespace IceRpc.Transports.Internal
                 await _decoratee.AcceptStreamAsync(cancel).ConfigureAwait(false),
                 Logger);
 
+        public ValueTask CloseAsync(int applicationErrorCode, CancellationToken cancel) =>
+            // TODO: add logging
+            _decoratee.CloseAsync(applicationErrorCode, cancel);
+
         public IMultiplexedStream CreateStream(bool bidirectional) =>
             new LogMultiplexedStreamDecorator(_decoratee.CreateStream(bidirectional), Logger);
 

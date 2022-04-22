@@ -45,7 +45,7 @@ pub trait EntityExt: Entity {
     /// The C# namespace
     fn namespace(&self) -> String;
 
-    /// The C# Type Id attribute.
+    /// The C# Type ID attribute.
     fn type_id_attribute(&self) -> String;
 
     /// The C# access modifier to use. Returns "internal" if this entity has the cs:internal attribute otherwise
