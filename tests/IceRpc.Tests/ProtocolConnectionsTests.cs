@@ -57,46 +57,7 @@ public sealed class ProtocolConnectionTests
         }
     }
 
-    /// <summary>Verifies that a connection will not accept further request after shutdown was called, and it will
-    /// allow pending dispatches to finish.</summary>
-    [Test, TestCaseSource(nameof(_protocols))]
-    public async Task Connection_shutdown_prevents_accepting_new_requests_and_let_pending_dispatches_finish(
-        Protocol protocol)
-    {
-        // Arrange
-        using var start = new SemaphoreSlim(0);
-        using var hold = new SemaphoreSlim(0);
-
-        await using var serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(protocol)
-            .UseServerConnectionOptions(new ConnectionOptions()
-            {
-                Dispatcher = new InlineDispatcher(async (request, cancel) =>
-                {
-                    start.Release();
-                    await hold.WaitAsync(cancel);
-                    return new OutgoingResponse(request);
-                })
-            })
-            .BuildServiceProvider();
-
-        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        sut.Client.PeerShutdownInitiated = message => _ = sut.Client.ShutdownAsync(message);
-        var invokeTask1 = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
-        var serverAcceptTask = sut.Server.AcceptRequestsAsync();
-        await start.WaitAsync(); // Wait for the dispatch to start
-
-        // Act
-        var shutdownTask = sut.Server.ShutdownAsync("", default);
-
-        // Assert
-        var invokeTask2 = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
-        hold.Release();
-        Assert.That(async () => await invokeTask1, Throws.Nothing);
-        Assert.That(async () => await invokeTask2, Throws.TypeOf<ConnectionClosedException>());
-        Assert.That(async () => await shutdownTask, Throws.Nothing);
-    }
-
+    /// <summary>Verifies that if shutdown is canceled the dispatches are canceled too.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
     public async Task Canceling_shutdown_cancels_pending_dispatches(Protocol protocol)
     {
@@ -128,12 +89,12 @@ public sealed class ProtocolConnectionTests
 
         // Assert
         Exception ex = Assert.CatchAsync(async () =>
-            {
-                IncomingResponse response = await invokeTask;
-                DecodeAndThrowException(response);
-            });
+        {
+            IncomingResponse response = await invokeTask;
+            DecodeAndThrowException(response);
+        });
         Assert.That(ex, Is.TypeOf<OperationCanceledException>());
-        
+
         // TODO should we raise OperationCanceledException directly from Ice, here with Ice we get a DispatchException
         // with DispatchErrorCode.Canceled and with IceRpc we get OperationCanceledException
         static void DecodeAndThrowException(IncomingResponse response)
@@ -163,10 +124,10 @@ public sealed class ProtocolConnectionTests
             .UseServerConnectionOptions(new ConnectionOptions()
             {
                 Dispatcher = new InlineDispatcher((request, cancel) =>
-                    {
-                        result.SetResult(sut!.Value.Client.HasInvocationsInProgress);
-                        return new(new OutgoingResponse(request));
-                    })
+                {
+                    result.SetResult(sut!.Value.Client.HasInvocationsInProgress);
+                    return new(new OutgoingResponse(request));
+                })
             })
             .BuildServiceProvider();
 
@@ -193,10 +154,10 @@ public sealed class ProtocolConnectionTests
             .UseServerConnectionOptions(new ConnectionOptions()
             {
                 Dispatcher = new InlineDispatcher((request, cancel) =>
-                    {
-                        result.SetResult(sut!.Value.Server.HasDispatchesInProgress);
-                        return new(new OutgoingResponse(request));
-                    })
+                {
+                    result.SetResult(sut!.Value.Server.HasDispatchesInProgress);
+                    return new(new OutgoingResponse(request));
+                })
             })
             .BuildServiceProvider();
 
@@ -221,6 +182,77 @@ public sealed class ProtocolConnectionTests
         // Act
         sut.Client.Dispose();
         sut.Server.Dispose();
+    }
+
+    /// <summary>Verifies that disposing the connection abort pending dispatches.</summary>
+    [Test, TestCaseSource(nameof(_protocols))]
+    public async Task Dispose_abort_pending_dispatches(Protocol protocol)
+    {
+        // Arrange
+        using var start = new SemaphoreSlim(0);
+        using var hold = new SemaphoreSlim(0);
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .UseServerConnectionOptions(new ConnectionOptions()
+            {
+                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                {
+                    start.Release();
+                    await hold.WaitAsync(cancel);
+                    return new OutgoingResponse(request);
+                })
+            })
+            .BuildServiceProvider();
+
+        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        var response = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
+        _ = sut.Server.AcceptRequestsAsync();
+        await start.WaitAsync(); // Wait for the dispatch to start
+
+        // Act
+        sut.Server.Dispose();
+        await sut.ServerNetworkConnection.DisposeAsync(); // TODO BUGFIX remove when #1032 is fixed
+
+        // Assert
+        Assert.That(async () => await response, Throws.TypeOf<ConnectionLostException>());
+        hold.Release();
+    }
+
+    /// <summary>Verifies that disposing the connection cancels the invocations.</summary>
+    [Test, TestCaseSource(nameof(_protocols))]
+    public async Task Dispose_cancels_invocations(Protocol protocol)
+    {
+        // Arrange
+        using var start = new SemaphoreSlim(0);
+        using var hold = new SemaphoreSlim(0);
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .UseServerConnectionOptions(new ConnectionOptions()
+            {
+                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                {
+                    start.Release();
+                    await hold.WaitAsync(cancel);
+                    return new OutgoingResponse(request);
+                })
+            })
+            .BuildServiceProvider();
+
+        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        var response = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
+        _ = sut.Server.AcceptRequestsAsync();
+        await start.WaitAsync(); // Wait for the dispatch to start
+
+        // Act
+        sut.Client.Dispose();
+        await sut.ClientNetworkConnection.DisposeAsync(); // TODO BUGFIX remove when #1032 is fixed
+
+        // Assert
+        Assert.That(async () => await response, Throws.TypeOf<ObjectDisposedException>());
+
+        hold.Release();
     }
 
     /// <summary>Ensures that the PeerShutdownInitiated callback is called when the peer initiates the
@@ -570,5 +602,82 @@ public sealed class ProtocolConnectionTests
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
+    }
+
+    /// <summary>Verifies that a connection will not accept further request after shutdown was called, and it will
+    /// allow pending dispatches to finish.</summary>
+    [Test, TestCaseSource(nameof(_protocols))]
+    public async Task Shutdown_prevents_accepting_new_requests_and_let_pending_dispatches_finish(Protocol protocol)
+    {
+        // Arrange
+        using var start = new SemaphoreSlim(0);
+        using var hold = new SemaphoreSlim(0);
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .UseServerConnectionOptions(new ConnectionOptions()
+            {
+                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                {
+                    start.Release();
+                    await hold.WaitAsync(cancel);
+                    return new OutgoingResponse(request);
+                })
+            })
+            .BuildServiceProvider();
+
+        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        sut.Client.PeerShutdownInitiated = message => _ = sut.Client.ShutdownAsync(message);
+        var invokeTask1 = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
+        var serverAcceptTask = sut.Server.AcceptRequestsAsync();
+        await start.WaitAsync(); // Wait for the dispatch to start
+
+        // Act
+        var shutdownTask = sut.Server.ShutdownAsync("", default);
+
+        // Assert
+        var invokeTask2 = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
+        hold.Release();
+        Assert.That(async () => await invokeTask1, Throws.Nothing);
+        Assert.That(async () => await invokeTask2, Throws.TypeOf<ConnectionClosedException>());
+        Assert.That(async () => await shutdownTask, Throws.Nothing);
+    }
+
+    /// <summary>Verifies that shutdown waits for pending dispatches to finish.</summary>
+    [Test, TestCaseSource(nameof(_protocols))]
+    public async Task Shutdown_wait_for_pending_dispatches_to_finish(Protocol protocol)
+    {
+        // Arrange
+        using var start = new SemaphoreSlim(0);
+        using var hold = new SemaphoreSlim(0);
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .UseServerConnectionOptions(new ConnectionOptions()
+            {
+                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                {
+                    start.Release();
+                    await hold.WaitAsync(CancellationToken.None);
+                    return new OutgoingResponse(request);
+                })
+            })
+            .BuildServiceProvider();
+
+        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
+        sut.Client.PeerShutdownInitiated += message => sut.Client.ShutdownAsync("");
+        _ = sut.Server.AcceptRequestsAsync();
+        await start.WaitAsync(); // Wait for the dispatch to start
+
+        // Act
+        var shutdownTask = sut.Server.ShutdownAsync("", default);
+
+        // Assert
+        Assert.That(invokeTask.IsCompleted, Is.False);
+        Assert.That(shutdownTask.IsCompleted, Is.False);
+        hold.Release();
+        Assert.That(async () => await invokeTask, Throws.Nothing);
+        Assert.That(async () => await shutdownTask, Throws.Nothing);
     }
 }

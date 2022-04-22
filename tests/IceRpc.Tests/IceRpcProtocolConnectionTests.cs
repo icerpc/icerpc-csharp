@@ -26,125 +26,9 @@ public sealed class IceRpcProtocolConnectionTests
         }
     }
 
-    /// <summary>Verifies that a connection will not accept further request after shutdown was called, and it will
-    /// allow pending dispatches to finish.</summary>
-    [Test]
-    public async Task Connection_shutdown_prevents_accepting_new_requests_and_let_pending_dispatches_finish()
-    {
-        // Arrange
-        using var start = new SemaphoreSlim(0);
-        using var hold = new SemaphoreSlim(0);
-
-        await using var serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(Protocol.IceRpc)
-            .UseServerConnectionOptions(new ConnectionOptions()
-            {
-                Dispatcher = new InlineDispatcher(async (request, cancel) =>
-                {
-                    start.Release();
-                    await hold.WaitAsync(cancel);
-                    return new OutgoingResponse(request);
-                })
-            })
-            .BuildServiceProvider();
-
-        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        sut.Client.PeerShutdownInitiated = message => _ = sut.Client.ShutdownAsync(message);
-        var response = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
-        var serverAcceptTask = sut.Server.AcceptRequestsAsync();
-        await start.WaitAsync(); // Wait for the dispatch to start
-
-        // Act
-        var shutdownTask =  sut.Server.ShutdownAsync("", default);
-
-        // Assert
-        Assert.That(
-            async () => await sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc))),
-            Throws.TypeOf<ConnectionClosedException>());
-        hold.Release();
-        Assert.That(async () => await response, Throws.Nothing);
-        Assert.That(async () => await shutdownTask, Throws.Nothing);
-    }
-
-    /// <summary>Verifies that canceling connection shutdown cancels pending dispatches.</summary>
-    [Test]
-    public async Task Canceling_connection_shutdown_cancels_pending_dispatches()
-    {
-        // Arrange
-        using var start = new SemaphoreSlim(0);
-        using var hold = new SemaphoreSlim(0);
-
-        await using var serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(Protocol.IceRpc)
-            .UseServerConnectionOptions(new ConnectionOptions()
-            {
-                Dispatcher = new InlineDispatcher(async (request, cancel) =>
-                {
-                    start.Release();
-                    await hold.WaitAsync(cancel);
-                    return new OutgoingResponse(request);
-                })
-            })
-            .BuildServiceProvider();
-
-        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        sut.Client.PeerShutdownInitiated = message => _ = sut.Client.ShutdownAsync(message);
-        var response = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
-        var serverAcceptTask = sut.Server.AcceptRequestsAsync();
-        await start.WaitAsync(); // Wait for the dispatch to start
-
-        // Act
-        var shutdownTask = sut.Server.ShutdownAsync("", new CancellationToken(canceled: true));
-
-        // Assert
-        Assert.That(async () => await response, Throws.TypeOf<OperationCanceledException>());
-        Assert.That(async () => await shutdownTask, Throws.Nothing);
-        hold.Release();
-    }
-
-    /// <summary>Verifies that a connection will not accept further request after shutdown was called, and it will
-    /// allow pending dispatches to finish.</summary>
-    [Test]
-    public async Task Connection_shutdown_prevents_sending_new_requests_and_let_pending_invocations_finish()
-    {
-        // Arrange
-        using var start = new SemaphoreSlim(0);
-        using var hold = new SemaphoreSlim(0);
-
-        await using var serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(Protocol.IceRpc)
-            .UseServerConnectionOptions(new ConnectionOptions()
-            {
-                Dispatcher = new InlineDispatcher(async (request, cancel) =>
-                {
-                    start.Release();
-                    await hold.WaitAsync(cancel);
-                    return new OutgoingResponse(request);
-                })
-            })
-            .BuildServiceProvider();
-
-        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        sut.Server.PeerShutdownInitiated = message => _ = sut.Server.ShutdownAsync(message);
-        var response = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
-        var serverAcceptTask = sut.Server.AcceptRequestsAsync();
-        await start.WaitAsync(); // Wait for the dispatch to start
-
-        // Act
-        var shutdownTask = sut.Client.ShutdownAsync("", default);
-
-        // Assert
-        Assert.That(
-            async () => await sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc))),
-            Throws.TypeOf<ConnectionClosedException>());
-        hold.Release();
-        Assert.That(async () => await response, Throws.Nothing);
-        Assert.That(async () => await shutdownTask, Throws.Nothing);
-    }
-
     /// <summary>Verifies that canceling connection shutdown cancels pending invocations.</summary>
     [Test]
-    public async Task Canceling_connection_shutdown_cancels_pending_invocations()
+    public async Task Canceling_shutdown_cancels_pending_invocations()
     {
         // Arrange
         using var start = new SemaphoreSlim(0);
@@ -176,6 +60,36 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(async () => await response, Throws.TypeOf<OperationCanceledException>());
         Assert.That(async () => await shutdownTask, Throws.Nothing);
         hold.Release();
+    }
+
+    /// <summary>Verifies that exception thrown by the dispatcher are correctly mapped to a DispatchException with the
+    /// expected error code.</summary>
+    /// <param name="thrownException">The exception to throw by the dispatcher.</param>
+    /// <param name="errorCode">The expected <see cref="DispatchErrorCode"/>.</param>
+    [Test, TestCaseSource(nameof(ExceptionIsEncodedAsDispatchExceptionSource))]
+    public async Task Exception_is_encoded_as_a_dispatch_exception(
+        Exception thrownException,
+        DispatchErrorCode errorCode)
+    {
+        // Arrange
+        var dispatcher = new InlineDispatcher((request, cancel) => throw thrownException);
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(Protocol.IceRpc)
+            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .BuildServiceProvider();
+
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        _ = sut.Server.AcceptRequestsAsync();
+
+        // Act
+        var response = await sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
+
+        // Assert
+        Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
+        var exception = await response.DecodeFailureAsync() as DispatchException;
+        Assert.That(exception, Is.Not.Null);
+        Assert.That(exception.ErrorCode, Is.EqualTo(errorCode));
     }
 
     /// <summary>Ensures that the connection fields are correctly exchanged on the protocol connection
@@ -474,31 +388,41 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
     }
 
-    [Test, TestCaseSource(nameof(ExceptionIsEncodedAsDispatchExceptionSource))]
-    public async Task Exception_is_encoded_as_a_dispatch_exception(
-        Exception thrownException,
-        DispatchErrorCode errorCode)
+    /// <summary>Verifies that canceling connection shutdown cancels pending invocations.</summary>
+    [Test]
+    public async Task Shutdown_waits_for_pending_invocations_to_finish()
     {
-        var dispatcher = new InlineDispatcher((request, cancel) =>
-        {
-            throw thrownException;
-        });
+        // Arrange
+        using var start = new SemaphoreSlim(0);
+        using var hold = new SemaphoreSlim(0);
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
-            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .UseServerConnectionOptions(new ConnectionOptions()
+            {
+                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                {
+                    start.Release();
+                    await hold.WaitAsync(cancel);
+                    return new OutgoingResponse(request);
+                })
+            })
             .BuildServiceProvider();
 
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Server.AcceptRequestsAsync();
+        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        sut.Server.PeerShutdownInitiated = message => _ = sut.Server.ShutdownAsync(message);
+        var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
+        var serverAcceptTask = sut.Server.AcceptRequestsAsync();
+        await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
-        var response = await sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
+        var shutdownTask = sut.Client.ShutdownAsync("", default);
 
         // Assert
-        Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
-        var exception = await response.DecodeFailureAsync() as DispatchException;
-        Assert.That(exception, Is.Not.Null);
-        Assert.That(exception.ErrorCode, Is.EqualTo(errorCode));
+        Assert.That(invokeTask.IsCompleted, Is.False);
+        Assert.That(shutdownTask.IsCompleted, Is.False);
+        hold.Release();
+        Assert.That(async () => await invokeTask, Throws.Nothing);
+        Assert.That(async () => await shutdownTask, Throws.Nothing);
     }
 }
