@@ -257,21 +257,27 @@ public sealed class StructTests
         if (k != null)
         {
             Assert.That(
-                decoder.DecodeTagged(1, (ref SliceDecoder decoder) => decoder.DecodeInt32()),
+                decoder.DecodeTagged(1, (ref SliceDecoder decoder) => decoder.DecodeInt32(), useTagEndMarker: true),
                 Is.EqualTo(k));
         }
 
         if (l != null)
         {
             Assert.That(
-                decoder.DecodeTagged(255, (ref SliceDecoder decoder) => decoder.DecodeVarInt32()),
+                decoder.DecodeTagged(
+                    255,
+                    (ref SliceDecoder decoder) => decoder.DecodeVarInt32(),
+                    useTagEndMarker: true),
                 Is.EqualTo(l));
         }
 
         if (m != null)
         {
             Assert.That(
-                decoder.DecodeTagged(256, (ref SliceDecoder decoder) => decoder.DecodeVarUInt62()),
+                decoder.DecodeTagged(
+                    256,
+                    (ref SliceDecoder decoder) => decoder.DecodeVarUInt62(),
+                    useTagEndMarker: true),
                 Is.EqualTo(m));
         }
         Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));

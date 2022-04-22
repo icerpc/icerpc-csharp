@@ -92,7 +92,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
             false, // this block is for Slice2, which never uses tag formats
             FieldType::Exception
         );
-        writeln!(decode_body_slice2, "decoder.SkipTaggedParams();");
+        writeln!(decode_body_slice2, "decoder.SkipTagged(useTagEndMarker: true);");
 
         exception_class_builder.add_block(
             FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody)

@@ -99,13 +99,12 @@ namespace IceRpc.Transports.Internal
                 _reader.AdvanceTo(readResult.Buffer.GetPosition(read));
                 return read;
             }
-            catch (ObjectDisposedException)
-            {
-                await _reader.CompleteAsync(new ConnectionLostException()).ConfigureAwait(false);
-                throw;
-            }
             finally
             {
+                if (_state.HasFlag(State.Disposed))
+                {
+                    await _reader.CompleteAsync(new ConnectionLostException()).ConfigureAwait(false);
+                }
                 _state.ClearFlag(State.Reading);
             }
 
@@ -133,30 +132,21 @@ namespace IceRpc.Transports.Internal
 
             try
             {
-                if (_state.HasFlag(State.Disposed))
-                {
-                    throw new ObjectDisposedException($"{typeof(ColocNetworkConnection)}");
-                }
-
                 foreach (ReadOnlyMemory<byte> buffer in buffers)
                 {
-                    FlushResult flushResult = await _writer.WriteAsync(buffer, cancel).ConfigureAwait(false);
-
                     if (_state.HasFlag(State.Disposed))
                     {
                         throw new ObjectDisposedException($"{typeof(ColocNetworkConnection)}");
                     }
-
-                    Debug.Assert(!flushResult.IsCompleted && !flushResult.IsCanceled);
+                    _ = await _writer.WriteAsync(buffer, cancel).ConfigureAwait(false);
                 }
-            }
-            catch (ObjectDisposedException)
-            {
-                await _writer.CompleteAsync(new ConnectionLostException()).ConfigureAwait(false);
-                throw;
             }
             finally
             {
+                if (_state.HasFlag(State.Disposed))
+                {
+                    await _writer.CompleteAsync(new ConnectionLostException()).ConfigureAwait(false);
+                }
                 _state.ClearFlag(State.Writing);
             }
         }
