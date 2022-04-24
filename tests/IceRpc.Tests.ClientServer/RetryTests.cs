@@ -393,8 +393,11 @@ namespace IceRpc.Tests.ClientServer
 
             await using ServiceProvider serviceProvider1 = new IntegrationTestServiceCollection()
                 .UseColoc(colocTransport, 1)
-                .AddTransient(_ => CreateDispatcher(new InlineDispatcher((request, cancel) =>
-                    throw new DispatchException(DispatchErrorCode.ServiceNotFound, RetryPolicy.OtherReplica))))
+                .AddTransient(_ => CreateDispatcher(new InlineDispatcher(async (request, cancel) =>
+                {
+                    await request.Payload.CompleteAsync();
+                    throw new DispatchException(DispatchErrorCode.ServiceNotFound, RetryPolicy.OtherReplica);
+                })))
                 .BuildServiceProvider();
 
             await using ServiceProvider serviceProvider2 = new IntegrationTestServiceCollection()
@@ -406,6 +409,7 @@ namespace IceRpc.Tests.ClientServer
                 .UseColoc(colocTransport, 3)
                 .AddTransient(_ => CreateDispatcher(new InlineDispatcher(async (request, cancel) =>
                 {
+                    await request.Payload.CompleteAsync();
                     await request.Connection.CloseAsync("forcefully close connection!");
                     await Task.Delay(1000, cancel);
                     throw new DispatchException(DispatchErrorCode.ServiceNotFound, RetryPolicy.OtherReplica);

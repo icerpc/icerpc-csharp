@@ -83,7 +83,9 @@ namespace IceRpc.Internal
 
                 IceRpcRequestHeader header;
                 IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields;
+                PipeReader? fieldsPipeReader;
                 FeatureCollection features = FeatureCollection.Empty;
+
                 try
                 {
                     ReadResult readResult = await stream.Input.ReadSegmentAsync(
@@ -95,7 +97,7 @@ namespace IceRpc.Internal
                         throw new InvalidDataException("received icerpc request with empty header");
                     }
 
-                    (header, fields) = DecodeHeader(readResult.Buffer);
+                    (header, fields, fieldsPipeReader) = DecodeHeader(readResult.Buffer);
                     stream.Input.AdvanceTo(readResult.Buffer.End);
 
                     // Decode Context from Fields and set corresponding feature.
@@ -122,14 +124,13 @@ namespace IceRpc.Internal
                     throw;
                 }
 
-                var request = new IncomingRequest(_connection)
+                var request = new IncomingRequest(_connection, fields, fieldsPipeReader)
                 {
                     Features = features,
-                    Fields = fields,
                     IsOneway = !stream.IsBidirectional,
                     Operation = header.Operation,
                     Path = header.Path,
-                    Payload = stream.Input,
+                    Payload = stream.Input
                 };
 
                 CancellationTokenSource? cancelDispatchSource = null;
@@ -319,16 +320,15 @@ namespace IceRpc.Internal
                 }
             }
 
-            static (IceRpcRequestHeader, IDictionary<RequestFieldKey, ReadOnlySequence<byte>>) DecodeHeader(
+            static (IceRpcRequestHeader, IDictionary<RequestFieldKey, ReadOnlySequence<byte>>, PipeReader?) DecodeHeader(
                 ReadOnlySequence<byte> buffer)
             {
                 var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
                 var header = new IceRpcRequestHeader(ref decoder);
-                IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields = decoder.DecodeFieldDictionary(
-                    (ref SliceDecoder decoder) => decoder.DecodeRequestFieldKey());
+                (IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields, PipeReader? pipeReader) =
+                    DecodeFieldDictionary(ref decoder, (ref SliceDecoder decoder) => decoder.DecodeRequestFieldKey());
 
-                decoder.CheckEndOfBuffer(skipTaggedParams: false);
-                return (header, fields);
+                return (header, fields, pipeReader);
             }
         }
 
@@ -412,7 +412,7 @@ namespace IceRpc.Internal
                     throw new InvalidDataException($"received icerpc response with empty header");
                 }
 
-                (IceRpcResponseHeader header, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields) =
+                (IceRpcResponseHeader header, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields, PipeReader? fieldsPipeReader) =
                     DecodeHeader(readResult.Buffer);
                 stream.Input.AdvanceTo(readResult.Buffer.End);
 
@@ -424,9 +424,8 @@ namespace IceRpc.Internal
                     request.Features = request.Features.With(retryPolicy);
                 }
 
-                return new IncomingResponse(request, _connection)
+                return new IncomingResponse(request, _connection, fields, fieldsPipeReader)
                 {
-                    Fields = fields,
                     Payload = stream.Input,
                     ResultType = header.ResultType
                 };
@@ -498,16 +497,16 @@ namespace IceRpc.Internal
                 SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - headerStartPos), sizePlaceholder);
             }
 
-            static (IceRpcResponseHeader, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>>) DecodeHeader(
+            static (IceRpcResponseHeader, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>>, PipeReader?) DecodeHeader(
                 ReadOnlySequence<byte> buffer)
             {
                 var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
                 var header = new IceRpcResponseHeader(ref decoder);
-                IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields =
-                    decoder.DecodeFieldDictionary((ref SliceDecoder decoder) => decoder.DecodeResponseFieldKey());
 
-                decoder.CheckEndOfBuffer(skipTaggedParams: false);
-                return (header, fields);
+                (IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields, PipeReader? pipeReader) =
+                    DecodeFieldDictionary(ref decoder, (ref SliceDecoder decoder) => decoder.DecodeResponseFieldKey());
+
+                return (header, fields, pipeReader);
             }
         }
 
@@ -646,6 +645,53 @@ namespace IceRpc.Internal
 
             // Start a task to wait to receive the go away frame to initiate shutdown.
             _ = Task.Run(() => WaitForGoAwayAsync(), CancellationToken.None);
+        }
+
+        private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeFieldDictionary<TKey>(
+            ref SliceDecoder decoder,
+            DecodeFunc<TKey> decodeKeyFunc) where TKey : struct
+        {
+            // The value includes at least a size, encoded on at least 1 byte.
+            int size = decoder.DecodeAndCheckDictionarySize(minKeySize: 1, minValueSize: 1);
+
+            IDictionary<TKey, ReadOnlySequence<byte>> fields;
+            PipeReader? pipeReader;
+            if (size == 0)
+            {
+                fields = ImmutableDictionary<TKey, ReadOnlySequence<byte>>.Empty;
+                pipeReader = null;
+                decoder.CheckEndOfBuffer(skipTaggedParams: false);
+            }
+            else
+            {
+                // TODO: since this pipe is purely internal to the icerpc protocol implementation, it should be easy
+                // to pool.
+                var pipe = new Pipe();
+
+                decoder.CopyTo(pipe.Writer);
+                pipe.Writer.Complete();
+
+                try
+                {
+                    _ = pipe.Reader.TryRead(out ReadResult readResult);
+                    var fieldsDecoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+
+                    fields = fieldsDecoder.DecodeShallowFieldDictionary(size, decodeKeyFunc);
+                    fieldsDecoder.CheckEndOfBuffer(skipTaggedParams: false);
+
+                    pipe.Reader.AdvanceTo(readResult.Buffer.Start); // complete read without consuming anything
+
+                    pipeReader = pipe.Reader;
+                }
+                catch
+                {
+                    pipe.Reader.Complete();
+                    throw;
+                }
+            }
+
+            // The caller is responsible to complete the pipe reader.
+            return (fields, pipeReader);
         }
 
         private void AddStream(IMultiplexedStream stream)

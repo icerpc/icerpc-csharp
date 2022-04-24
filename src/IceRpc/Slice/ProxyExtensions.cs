@@ -76,10 +76,9 @@ namespace IceRpc.Slice
             async Task<T> ReadResponseAsync(Task<IncomingResponse> responseTask)
             {
                 IncomingResponse response = await responseTask.ConfigureAwait(false);
-
                 if (invocation != null)
                 {
-                    invocation.Response = response;
+                    invocation.Features = response.Request.Features;
                 }
 
                 return await responseDecodeFunc(response, cancel).ConfigureAwait(false);
@@ -138,10 +137,9 @@ namespace IceRpc.Slice
             async Task ReadResponseAsync(Task<IncomingResponse> responseTask)
             {
                 IncomingResponse response = await responseTask.ConfigureAwait(false);
-
                 if (invocation != null)
                 {
-                    invocation.Response = response;
+                    invocation.Features = response.Request.Features;
                 }
 
                 await response.DecodeVoidReturnValueAsync(

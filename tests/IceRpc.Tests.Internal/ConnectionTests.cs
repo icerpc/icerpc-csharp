@@ -31,6 +31,7 @@ namespace IceRpc.Tests.Internal
                 transport,
                 dispatcher: new InlineDispatcher(async (request, cancel) =>
                 {
+                    await request.Payload.CompleteAsync();
                     await semaphore.WaitAsync(cancel);
                     return new OutgoingResponse(request);
                 }),
@@ -266,6 +267,7 @@ namespace IceRpc.Tests.Internal
                     protocol,
                     dispatcher: new InlineDispatcher(async (request, cancel) =>
                     {
+                        await request.Payload.CompleteAsync();
                         await dispatchSemaphore.WaitAsync(cancel);
                         return new OutgoingResponse(request);
                     }))
@@ -292,10 +294,11 @@ namespace IceRpc.Tests.Internal
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .UseResumableConnection()
                 .UseProtocol(protocol)
-                .AddTransient<IDispatcher>(_ => new InlineDispatcher((request, cancel) =>
+                .AddTransient<IDispatcher>(_ => new InlineDispatcher(async (request, cancel) =>
                     {
+                        await request.Payload.CompleteAsync();
                         serverConnection = request.Connection;
-                        return new(new OutgoingResponse(request));
+                        return new OutgoingResponse(request);
                     }))
                 .BuildServiceProvider();
 
@@ -337,7 +340,11 @@ namespace IceRpc.Tests.Internal
             await using var factory = new ConnectionFactory(
                 new ConnectionTestServiceCollection(
                     protocol: protocol,
-                    dispatcher: new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)))));
+                    dispatcher: new InlineDispatcher(async (request, cancel) =>
+                    {
+                        await request.Payload.CompleteAsync();
+                        return new OutgoingResponse(request);
+                    })));
 
             await factory.ServicePrx.IcePingAsync(default);
             if (closeClientSide)
@@ -370,6 +377,7 @@ namespace IceRpc.Tests.Internal
                     protocol,
                     dispatcher: new InlineDispatcher(async (request, cancel) =>
                     {
+                        await request.Payload.CompleteAsync();
                         waitForDispatchSemaphore.Release();
                         await dispatchSemaphore.WaitAsync(cancel);
                         return new OutgoingResponse(request);
@@ -416,6 +424,7 @@ namespace IceRpc.Tests.Internal
                     protocol,
                     dispatcher: new InlineDispatcher(async (request, cancel) =>
                     {
+                        await request.Payload.CompleteAsync();
                         waitForDispatchSemaphore.Release();
                         try
                         {
@@ -491,6 +500,7 @@ namespace IceRpc.Tests.Internal
                     protocol: protocol,
                     dispatcher: new InlineDispatcher(async (request, cancel) =>
                     {
+                        await request.Payload.CompleteAsync();
                         waitForDispatchSemaphore.Release();
                         await semaphore.WaitAsync(cancel);
                         return new OutgoingResponse(request);

@@ -640,6 +640,14 @@ namespace IceRpc.Slice
             }
         }
 
+        /// <summary>Copy all bytes from the underlying reader into the destination buffer writer.</summary>
+        /// <remarks>This method also moves the reader's Consumed property.</remarks>
+        internal void CopyTo(IBufferWriter<byte> destination)
+        {
+            destination.Write(_reader.UnreadSequence);
+            _reader.AdvanceToEnd();
+        }
+
         /// <summary>Decodes a dictionary size and makes sure there is enough space in the underlying buffer to decode
         /// the dictionary. This validation is performed to make sure we do not allocate a large dictionary based on an
         /// invalid encoded size.</summary>
@@ -724,23 +732,26 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Decodes a size encoded on a fixed number of bytes.</summary>
-        /// <returns>The size decoded by this decoder.</returns>
-        internal int DecodeFixedLengthSize()
+        /// <summary>Decodes non-empty field dictionary without making a copy of the field values.</summary>
+        /// <returns>The fields dictionary. The field values reference memory in the underlying buffer. They are not
+        /// copied.</returns>
+        internal Dictionary<TKey, ReadOnlySequence<byte>> DecodeShallowFieldDictionary<TKey>(
+            int size,
+            DecodeFunc<TKey> decodeKeyFunc) where TKey : struct
         {
-            if (Encoding == SliceEncoding.Slice1)
+            Debug.Assert(size > 0);
+
+            var fields = new Dictionary<TKey, ReadOnlySequence<byte>>(size);
+
+            for (int i = 0; i < size; ++i)
             {
-                int size = DecodeInt32();
-                if (size < 0)
-                {
-                    throw new InvalidDataException($"decoded invalid size: {size}");
-                }
-                return size;
+                TKey key = decodeKeyFunc(ref this);
+                int valueSize = DecodeSize();
+                ReadOnlySequence<byte> value = _reader.UnreadSequence.Slice(0, valueSize);
+                _reader.Advance(valueSize);
+                fields.Add(key, value);
             }
-            else
-            {
-                return DecodeSize();
-            }
+            return fields;
         }
 
         internal void Skip(int count)
