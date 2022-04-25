@@ -46,7 +46,7 @@ namespace IceRpc
 
             if (request.Protocol.HasFields && response.ResultType == ResultType.Success)
             {
-                CompressionFormat compressionFormat = response.Fields.DecodeValue(
+                CompressionFormat compressionFormat = response.Fields!.DecodeValue(
                    ResponseFieldKey.CompressionFormat,
                    (ref SliceDecoder decoder) => decoder.DecodeCompressionFormat());
 

@@ -48,7 +48,7 @@ namespace IceRpc
                     activity.AddTag("rpc.method", request.Operation);
                     // TODO add additional attributes
                     // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md#common-remote-procedure-call-conventions
-                    if (request.Fields.TryGetValue(RequestFieldKey.TraceContext, out ReadOnlySequence<byte> buffer))
+                    if (request.Fields!.TryGetValue(RequestFieldKey.TraceContext, out ReadOnlySequence<byte> buffer))
                     {
                         RestoreActivityContext(buffer, activity);
                     }

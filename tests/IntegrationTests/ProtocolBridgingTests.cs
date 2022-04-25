@@ -164,7 +164,7 @@ namespace IceRpc.Tests.ClientServer
                     Features = features,
                     // mostly ignored by ice, with the exception of Idempotent
                     Fields = new Dictionary<RequestFieldKey, OutgoingFieldValue>(
-                        incomingRequest.Fields.Select(
+                        incomingRequest.Fields!.Select(
                             pair => new KeyValuePair<RequestFieldKey, OutgoingFieldValue>(
                                 pair.Key,
                                 new OutgoingFieldValue(pair.Value)))),
@@ -191,7 +191,7 @@ namespace IceRpc.Tests.ClientServer
 
                 // Don't forward RetryPolicy
                 var fields = new Dictionary<ResponseFieldKey, OutgoingFieldValue>(
-                        incomingResponse.Fields.Select(
+                        incomingResponse.Fields!.Select(
                             pair => new KeyValuePair<ResponseFieldKey, OutgoingFieldValue>(
                                 pair.Key,
                                 new OutgoingFieldValue(pair.Value))));
