@@ -133,13 +133,10 @@ public class DeflateInterceptorTests
     private static IncomingResponse CreateResponseWithCompressionFormatField(
         OutgoingRequest request,
         ReadOnlySequence<byte> compressionFormatField) =>
-        new(request, request.Connection!)
+        new(request, request.Connection!, new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
         {
-            Fields = new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
-            {
-                [ResponseFieldKey.CompressionFormat] = compressionFormatField
-            }.ToImmutableDictionary()
-        };
+            [ResponseFieldKey.CompressionFormat] = compressionFormatField
+        }.ToImmutableDictionary());
 
     private static Stream CreateCompressedPayload(byte[] data)
     {

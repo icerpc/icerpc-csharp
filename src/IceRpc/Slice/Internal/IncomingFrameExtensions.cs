@@ -31,6 +31,9 @@ namespace IceRpc.Slice.Internal
             bool hasStream,
             CancellationToken cancel)
         {
+            // We complete the fields before decoding the main segment.
+            frame.CompleteFields();
+
             try
             {
                 if (frame.Payload.TryReadSegment(encoding, out ReadResult readResult))
@@ -105,6 +108,9 @@ namespace IceRpc.Slice.Internal
             bool hasStream,
             CancellationToken cancel)
         {
+            // We complete the fields before decoding the main segment.
+            frame.CompleteFields();
+
             try
             {
                 if (frame.Payload.TryReadSegment(encoding, out ReadResult readResult))

@@ -1,8 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice.Internal;
-using NUnit.Framework;
-
 namespace IceRpc.Slice.Tests;
 
 public record struct MyCustomType

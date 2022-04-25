@@ -431,11 +431,11 @@ public abstract class SimpleTransportConformanceTests
     protected abstract ServiceCollection CreateServiceCollection();
 }
 
-public class SimpleTransportServiceCollection : ServiceCollection
+public static class SimpleTransportServiceCollectionExtensions
 {
-    public SimpleTransportServiceCollection()
+    public static ServiceCollection UseSimpleTransport(this ServiceCollection serviceCollection)
     {
-        this.AddScoped(provider =>
+        serviceCollection.AddScoped(provider =>
         {
             SslServerAuthenticationOptions? serverAuthenticationOptions =
                 provider.GetService<SslServerAuthenticationOptions>();
@@ -447,7 +447,7 @@ public class SimpleTransportServiceCollection : ServiceCollection
                 NullLogger.Instance);
         });
 
-        this.AddScoped(provider =>
+        serviceCollection.AddScoped(provider =>
         {
             SslClientAuthenticationOptions? clientAuthenticationOptions =
                 provider.GetService<SslClientAuthenticationOptions>();
@@ -459,16 +459,14 @@ public class SimpleTransportServiceCollection : ServiceCollection
                 clientAuthenticationOptions,
                 NullLogger.Instance);
         });
+        return serviceCollection;
     }
-}
 
-public static class SimpleTransportServiceCollectionExtensions
-{
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Security",
         "CA5359:Do Not Disable Certificate Validation",
         Justification = "The transport tests do not rely on certificate validation")]
-    public static ServiceCollection UseSsl(this ServiceCollection serviceCollection)
+    public static ServiceCollection UseSslAuthentication(this ServiceCollection serviceCollection)
     {
         serviceCollection.AddScoped(_ => new SslClientAuthenticationOptions
         {
