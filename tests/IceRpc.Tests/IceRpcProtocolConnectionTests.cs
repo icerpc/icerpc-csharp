@@ -391,6 +391,40 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
     }
 
+    [Test]
+    public async Task Response_with_large_header()
+    {
+        // Arrange
+        // This large value should be large enough to create multiple buffer for the response headers.
+        string expectedValue = new('A', 4096);
+        var dispatcher = new InlineDispatcher((request, cancel) =>
+        {
+            var response = new OutgoingResponse(request);
+            response.Fields = response.Fields.With(
+                (ResponseFieldKey)1000,
+                (ref SliceEncoder encoder) => encoder.EncodeString(expectedValue));
+            return new(response);
+        });
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(Protocol.IceRpc)
+            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .BuildServiceProvider();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+
+        var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        _ = sut.Server.AcceptRequestsAsync();
+        _ = sut.Client.AcceptRequestsAsync();
+
+        // Act
+        var response = await sut.Client.InvokeAsync(request);
+
+        // Assert
+        Assert.That(
+            response.Fields.DecodeValue((ResponseFieldKey)1000, (ref SliceDecoder decoder) => decoder.DecodeString()),
+            Is.EqualTo(expectedValue));
+    }
+
     /// <summary>With icerpc protocol the connection shutdown waits for invocations to finish. This is different
     /// with ice protocol see <see cref="IceProtocolConnectionTests.Shutdown_cancels_invocations"/>.</summary>
     [Test]
