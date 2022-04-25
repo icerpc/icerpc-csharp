@@ -23,6 +23,7 @@ public sealed class RetryInterceptorTests
     [Test, TestCaseSource(nameof(NoRetryableExceptionSource))]
     public async Task No_retryable_exception(Exception exception)
     {
+        // Arrange
         int attemps = 0;
         var invoker = new InlineInvoker((request, cancel) =>
         {
@@ -35,7 +36,6 @@ public sealed class RetryInterceptorTests
         var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = 3 });
 
         var request = new OutgoingRequest(proxy) { Operation = "Op" };
-        var start = Time.Elapsed;
 
         // Act/Assert
         Assert.That(async () => await sut.InvokeAsync(request, default), Throws.TypeOf(exception.GetType()));
@@ -45,6 +45,7 @@ public sealed class RetryInterceptorTests
     [Test]
     public async Task No_retryable_retry_policy()
     {
+        // Arrange
         int attemps = 0;
         var invoker = new InlineInvoker((request, cancel) =>
         {
@@ -74,6 +75,7 @@ public sealed class RetryInterceptorTests
     [Test]
     public async Task Retry_after_delay_retry_policy()
     {
+        // Arrange
         int attemps = 0;
         var delay = TimeSpan.FromMilliseconds(200);
         var invoker = new InlineInvoker((request, cancel) =>
@@ -110,6 +112,7 @@ public sealed class RetryInterceptorTests
     [Test]
     public void Retry_fails_after_max_attemps()
     {
+        // Arrange
         int maxAttemps = 3;
         int attemps = 0;
         var invoker = new InlineInvoker((request, cancel) =>
@@ -150,11 +153,8 @@ public sealed class RetryInterceptorTests
         });
 
         var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = maxAttemps });
-
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc) { Path = "/path" })
-        {
-            Operation = "Op"
-        };
+        var proxy = new Proxy(Protocol.IceRpc) { Path = "/path" };
+        var request = new OutgoingRequest(proxy) { Operation = "Op" };
 
         // Act
         await sut.InvokeAsync(request, default);
@@ -174,7 +174,6 @@ public sealed class RetryInterceptorTests
             if (++attemps == 1)
             {
                 request.IsSent = true;
-                attemps++;
                 throw new InvalidOperationException();
             }
             else
@@ -184,8 +183,8 @@ public sealed class RetryInterceptorTests
         });
 
         var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = maxAttemps });
-
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc) { Path = "/path" })
+        var proxy = new Proxy(Protocol.IceRpc) { Path = "/path" };
+        var request = new OutgoingRequest(proxy)
         {
             Fields = new Dictionary<RequestFieldKey, OutgoingFieldValue>
             {
