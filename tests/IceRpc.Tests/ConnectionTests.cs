@@ -13,7 +13,7 @@ namespace IceRpc.Tests;
 [Timeout(5000)]
 public class ConnectionTests
 {
-    /// <summary>Verifies that closing the connection abort the invocations.</summary>
+    /// <summary>Verifies that a connection is closed after being idle.</summary>
     [Test]
     public async Task Close_on_idle(
         [Values(true, false)] bool idleOnClient,
@@ -53,23 +53,23 @@ public class ConnectionTests
         var invokeTask = proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
         await start.WaitAsync();
 
-        var serverConnectionClosed = new TaskCompletionSource<object?>();
-        serverConnection!.Closed += (sender, args) => serverConnectionClosed.SetResult(null);
+        var serverConnectionClosed = new TaskCompletionSource();
+        serverConnection!.Closed += (sender, args) => serverConnectionClosed.SetResult();
 
-        var clientConnectionClosed = new TaskCompletionSource<object?>();
-        clientConnection!.Closed += (sender, args) => clientConnectionClosed.SetResult(null);
+        var clientConnectionClosed = new TaskCompletionSource();
+        clientConnection!.Closed += (sender, args) => clientConnectionClosed.SetResult();
 
         // Act
-        hold.Release(); // let the connection iddle
+        hold.Release(); // let the connection idle
 
         // Assert
         Assert.That(async () => await serverConnectionClosed.Task, Throws.Nothing);
         Assert.That(async () => await clientConnectionClosed.Task, Throws.Nothing);
     }
 
-    /// <summary>Verifies that closing the connection abort the invocations.</summary>
+    /// <summary>Verifies that closing the connection aborts the invocations.</summary>
     [Test]
-    public async Task Closing_the_connection_cancels_the_invocation([Values("ice", "icerpc")] string protocol)
+    public async Task Closing_the_client_connection_aborts_the_invocations([Values("ice", "icerpc")] string protocol)
     {
         // Arrange
         using var start = new SemaphoreSlim(0);
@@ -99,9 +99,9 @@ public class ConnectionTests
         Assert.That(async () => await invokeTask, Throws.TypeOf<ObjectDisposedException>());
     }
 
-    /// <summary>Verifies that closing the connection abort the invocations.</summary>
+    /// <summary>Verifies that closing the server connection aborts the invocations.</summary>
     [Test]
-    public async Task Closing_the_connection_cancels_the_dispatches([Values("ice", "icerpc")] string protocol)
+    public async Task Closing_the_server_connection_aborts_the_invocations([Values("ice", "icerpc")] string protocol)
     {
         // Arrange
         using var start = new SemaphoreSlim(0);
@@ -169,7 +169,8 @@ public class ConnectionTests
         Assert.That(async () => await clientConnectionClosed.Task, Throws.Nothing);
     }
 
-    /// <summary>Verifies that closing the connection abort the invocations.</summary>
+    /// <summary>Verifies that connect establishment timeouts after the <see cref="ConnectionOptions.ConnectTimeout"/>
+    /// time period.</summary>
     [Test]
     public async Task Connect_timeout([Values("ice", "icerpc")] string protocol)
     {
@@ -227,7 +228,7 @@ public class ConnectionTests
         await connection.ShutdownAsync(default);
 
         // Act
-        var response = await connection.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)), default);
+        var response = await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
         // Assert
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
