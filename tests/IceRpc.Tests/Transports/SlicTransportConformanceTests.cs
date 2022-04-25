@@ -12,18 +12,18 @@ namespace IceRpc.Transports.Tests;
 public class SlicConformanceTests : MultiplexedTransportConformanceTests
 {
     /// <summary>Creates the service collection used for Slic multiplexed transports for conformance testing.</summary>
-    protected override ServiceCollection CreateServiceCollection() => new SlicServiceCollection();
+    protected override ServiceCollection CreateServiceCollection() => new ServiceCollection().UseSlic();
 }
 
-public class SlicServiceCollection : ServiceCollection
+public static class SlicServiceCollectionExtensions
 {
-    public SlicServiceCollection()
+    public static ServiceCollection UseSlic(this ServiceCollection serviceCollection)
     {
-        this.AddScoped(_ => new ColocTransport());
+        serviceCollection.UseColoc();
 
-        this.AddScoped<IServerTransport<IMultiplexedNetworkConnection>>(provider =>
+        serviceCollection.AddScoped<IServerTransport<IMultiplexedNetworkConnection>>(provider =>
         {
-            var colocTransport = provider.GetRequiredService<ColocTransport>();
+            var simpleServerTransport = provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>();
             var serverOptions = provider.GetService<SlicServerTransportOptions>() ?? new SlicServerTransportOptions();
             var multiplexedTransportOptions = provider.GetRequiredService<MultiplexedTransportOptions>();
             if (multiplexedTransportOptions.BidirectionalStreamMaxCount is int bidirectionalStreamMaxCount)
@@ -34,13 +34,13 @@ public class SlicServiceCollection : ServiceCollection
             {
                 serverOptions.UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount;
             }
-            serverOptions.SimpleServerTransport = colocTransport.ServerTransport;
+            serverOptions.SimpleServerTransport = simpleServerTransport;
             return new SlicServerTransport(serverOptions);
         });
 
-        this.AddScoped<IClientTransport<IMultiplexedNetworkConnection>>(provider =>
+        serviceCollection.AddScoped<IClientTransport<IMultiplexedNetworkConnection>>(provider =>
         {
-            var colocTransport = provider.GetRequiredService<ColocTransport>();
+            var simpleClientTransport = provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>();
             var clientOptions = provider.GetService<SlicClientTransportOptions>() ?? new SlicClientTransportOptions();
             var multiplexedTransportOptions = provider.GetRequiredService<MultiplexedTransportOptions>();
             if (multiplexedTransportOptions.BidirectionalStreamMaxCount is int bidirectionalStreamMaxCount)
@@ -51,19 +51,21 @@ public class SlicServiceCollection : ServiceCollection
             {
                 clientOptions.UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount;
             }
-            clientOptions.SimpleClientTransport = colocTransport.ClientTransport;
+            clientOptions.SimpleClientTransport = simpleClientTransport;
             return new SlicClientTransport(clientOptions);
         });
 
-        this.AddScoped(provider =>
+        serviceCollection.AddScoped(provider =>
         {
             var serverTransport = provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>();
             return serverTransport.Listen(
-                Endpoint.FromString($"icerpc://{Guid.NewGuid()}/"),
+                (Endpoint)provider.GetRequiredService(typeof(Endpoint)),
                 null,
                 NullLogger.Instance);
         });
 
-        this.UseTransportOptions();
+        serviceCollection.UseTransportOptions();
+
+        return serviceCollection;
     }
 }
