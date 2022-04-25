@@ -105,7 +105,7 @@ public sealed class RetryInterceptorTests
         await sut.InvokeAsync(request, default);
 
         // Assert
-        Assert.That(Time.Elapsed - start, Is.GreaterThanOrEqualTo(delay));
+        Assert.That(Time.Elapsed - start, Is.GreaterThanOrEqualTo(delay - TimeSpan.FromMilliseconds(1)));
         Assert.That(attemps, Is.EqualTo(2));
     }
 
