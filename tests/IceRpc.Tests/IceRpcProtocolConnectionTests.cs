@@ -395,7 +395,7 @@ public sealed class IceRpcProtocolConnectionTests
     public async Task Response_with_large_header()
     {
         // Arrange
-        // This large value should be large enough to create multiple buffer for the response headers.
+        // This large value should be large enough to create multiple buffers for the response header.
         string expectedValue = new('A', 4096);
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {

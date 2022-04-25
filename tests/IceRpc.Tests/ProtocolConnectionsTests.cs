@@ -640,7 +640,7 @@ public sealed class ProtocolConnectionTests
     public async Task Request_with_large_header(Protocol protocol)
     {
         // Arrange
-        // This large value should be large enough to create multiple buffer for the request headers.
+        // This large value should be large enough to create multiple buffers for the request header.
         string expectedValue = new('A', 4096);
         IDictionary<string, string>? context = null;
         var dispatcher = new InlineDispatcher((request, cancel) =>
