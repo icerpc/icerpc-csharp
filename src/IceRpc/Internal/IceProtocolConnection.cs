@@ -859,7 +859,8 @@ namespace IceRpc.Internal
                 OutgoingResponse response;
                 try
                 {
-                    // The dispatcher is responsible for completing the incoming request payload.
+                    // The dispatcher can complete the incoming request payload to release its memory as soon as
+                    // possible.
                     response = await _dispatcher.DispatchAsync(
                         request,
                         cancelDispatchSource.Token).ConfigureAwait(false);
@@ -900,6 +901,12 @@ namespace IceRpc.Internal
                         pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
                         return pipe.Reader;
                     }
+                }
+                finally
+                {
+                    // We complete the incoming payload upon completion of a dispatch. It's no-op if it was already
+                    // called.
+                    await request.Payload.CompleteAsync().ConfigureAwait(false);
                 }
 
                 // The sending of the response can't be canceled. This would lead to invalid protocol behavior.
