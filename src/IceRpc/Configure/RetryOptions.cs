@@ -30,7 +30,7 @@ namespace IceRpc.Configure
         public ILoggerFactory LoggerFactory { get; set; } = NullLoggerFactory.Instance;
 
         /// <summary>Gets or sets the maximum number of attempts for retrying a request.</summary>
-        /// <value>The maximum number of attempts for retrying a request. The default value is 1 attempt.</value>
+        /// <value>The maximum number of attempts for retrying a request. The default value is 2 attempts.</value>
         public int MaxAttempts
         {
             get => _maxAttempts;
@@ -63,7 +63,7 @@ namespace IceRpc.Configure
         }
 
         private int _bufferMaxSize = 1024 * 1024 * 100;
-        private int _maxAttempts = 1;
+        private int _maxAttempts = 2;
         private int _requestMaxSize = 1024 * 1024;
     }
 }
