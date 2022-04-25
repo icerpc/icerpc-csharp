@@ -210,9 +210,9 @@ public sealed class ProtocolConnectionTests
         sut.Server.Dispose();
     }
 
-    /// <summary>Verifies that disposing the connection abort pending dispatches.</summary>
+    /// <summary>Verifies that disposing the connection cancels pending dispatches.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    public async Task Dispose_abort_pending_dispatches(Protocol protocol)
+    public async Task Dispose_cancels_pending_dispatches(Protocol protocol)
     {
         // Arrange
         using var start = new SemaphoreSlim(0);

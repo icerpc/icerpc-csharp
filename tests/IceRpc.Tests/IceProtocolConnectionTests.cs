@@ -12,7 +12,7 @@ namespace IceRpc.Tests;
 [Parallelizable(ParallelScope.All)]
 public sealed class IceProtocolConnectionTests
 {
-    public static IEnumerable<TestCaseData> MiddlewareExceptionIsEncodedAsADispatchExceptionSource
+    public static IEnumerable<TestCaseData> ExceptionIsEncodedAsADispatchExceptionSource
     {
         get
         {
@@ -108,10 +108,10 @@ public sealed class IceProtocolConnectionTests
         Assert.That(maxCount, Is.EqualTo(maxConcurrentDispatches));
     }
 
-    /// <summary>Verifies that with the ice protocol, when a middleware throws a Slice exception other than a
-    /// DispatchException, we encode a DispatchException with the expected error code.</summary>
-    [Test, TestCaseSource(nameof(MiddlewareExceptionIsEncodedAsADispatchExceptionSource))]
-    public async Task Middleware_exception_is_encoded_as_a_dispatch_exception(
+    /// <summary>Verifies that with the ice protocol, when a exception other than a DispatchException is thrown
+    /// during the dispatch, we encode a DispatchException with the expected error code.</summary>
+    [Test, TestCaseSource(nameof(ExceptionIsEncodedAsADispatchExceptionSource))]
+    public async Task Exception_is_encoded_as_a_dispatch_exception(
         Exception thrownException,
         DispatchErrorCode errorCode)
     {
