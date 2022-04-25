@@ -26,7 +26,8 @@ namespace IceRpc
             _logger = options.LoggerFactory.CreateLogger("IceRpc");
         }
 
-        async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+        /// <inheritdoc/>
+        public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
             EndpointSelection? endpointSelection = request.Features.Get<EndpointSelection>();
             if (endpointSelection == null)
