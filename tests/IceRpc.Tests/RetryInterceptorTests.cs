@@ -42,7 +42,7 @@ public sealed class RetryInterceptorTests
     }
 
     [Test]
-    public async Task No_retries_with_NoRetry_policy()
+    public async Task No_retry_with_NoRetry_policy()
     {
         // Arrange
         int attempts = 0;
@@ -110,7 +110,7 @@ public sealed class RetryInterceptorTests
     }
 
     [Test]
-    public async Task Retry_delay_with_AfterDelay_policy()
+    public async Task Retry_after_delay_with_AfterDelay_policy()
     {
         // Arrange
         int attempts = 0;
