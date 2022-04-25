@@ -50,8 +50,10 @@ namespace IceRpc.Internal
                 [RequestFieldKey.Idempotent] = default
             }.ToImmutableDictionary();
 
-        private readonly Connection _connection;
         private readonly IDispatcher _dispatcher;
+        private readonly IncomingRequestFactory _incomingRequestFactory;
+        private readonly IncomingResponseFactory _incomingResponseFactory;
+
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly HashSet<CancellationTokenSource> _dispatches = new();
@@ -200,7 +202,12 @@ namespace IceRpc.Internal
             if (request.IsOneway)
             {
                 // We're done, there's no response for oneway requests.
-                return new IncomingResponse(request, _connection);
+                return _incomingResponseFactory(
+                    request,
+                    fields: ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty,
+                    fieldsPipeReader: null,
+                    payload: EmptyPipeReader.Instance,
+                    ResultType.Success);
             }
 
             Debug.Assert(responseCompletionSource != null);
@@ -263,16 +270,17 @@ namespace IceRpc.Internal
                         request.Features = request.Features.With(RetryPolicy.OtherReplica);
                     }
 
-                    return new IncomingResponse(request, _connection)
-                    {
-                        Payload = frameReader,
-                        ResultType = replyStatus switch
+                    return _incomingResponseFactory(
+                        request,
+                        fields: ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty,
+                        fieldsPipeReader: null,
+                        payload: frameReader,
+                        resultType: replyStatus switch
                         {
                             ReplyStatus.OK => ResultType.Success,
                             ReplyStatus.UserException => (ResultType)SliceResultType.ServiceFailure,
                             _ => ResultType.Failure
-                        }
-                    };
+                        });
                 }
                 catch (Exception exception)
                 {
@@ -398,13 +406,16 @@ namespace IceRpc.Internal
         }
 
         internal IceProtocolConnection(
-            Connection connection,
             IDispatcher dispatcher,
-            ISimpleNetworkConnection simpleNetworkConnection,
+            ISimpleNetworkConnection networkConnection,
+            IncomingRequestFactory incomingRequestFactory,
+            IncomingResponseFactory incomingResponseFactory,
             Configure.IceProtocolOptions options)
         {
-            _connection = connection;
             _dispatcher = dispatcher;
+            _incomingRequestFactory = incomingRequestFactory;
+            _incomingResponseFactory = incomingResponseFactory;
+
             _options = options;
 
             if (options.MaxConcurrentDispatches > 0)
@@ -422,13 +433,13 @@ namespace IceRpc.Internal
             _memoryPool = MemoryPool<byte>.Shared;
             _minimumSegmentSize = 4096;
 
-            _networkConnection = simpleNetworkConnection;
+            _networkConnection = networkConnection;
             _networkConnectionWriter = new SimpleNetworkConnectionWriter(
-                simpleNetworkConnection,
+                networkConnection,
                 _memoryPool,
                 _minimumSegmentSize);
             _networkConnectionReader = new SimpleNetworkConnectionReader(
-                simpleNetworkConnection,
+                networkConnection,
                 _memoryPool,
                 _minimumSegmentSize);
 
@@ -799,17 +810,16 @@ namespace IceRpc.Internal
                 throw;
             }
 
-            var request = new IncomingRequest(
-                _connection,
+            IncomingRequest request = _incomingRequestFactory(
+                FeatureCollection.Empty,
                 fields: requestHeader.OperationMode == OperationMode.Normal ?
-                    ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields)
-            {
-                Fragment = requestHeader.Fragment,
-                IsOneway = requestId == 0,
-                Operation = requestHeader.Operation,
-                Path = requestHeader.Path,
-                Payload = requestFrameReader,
-            };
+                    ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields,
+                fieldsPipeReader: null,
+                fragment: requestHeader.Fragment,
+                oneway: requestId == 0,
+                requestHeader.Operation,
+                requestHeader.Path,
+                requestFrameReader);
 
             if (requestHeader.Context.Count > 0)
             {

@@ -10,15 +10,17 @@ namespace IceRpc.Internal
         public async Task<IProtocolConnection> CreateProtocolConnectionAsync(
             ISimpleNetworkConnection networkConnection,
             NetworkConnectionInformation connectionInfo,
-            Connection connection,
+            IncomingRequestFactory incomingRequestFactory,
+            IncomingResponseFactory incomingResponseFactory,
             Configure.ConnectionOptions connectionOptions,
             bool isServer,
             CancellationToken cancel)
         {
             var protocolConnection = new IceProtocolConnection(
-                connection,
                 connectionOptions.Dispatcher,
                 networkConnection,
+                incomingRequestFactory,
+                incomingResponseFactory,
                 connectionOptions.IceProtocolOptions ?? Configure.IceProtocolOptions.Default);
 
             try

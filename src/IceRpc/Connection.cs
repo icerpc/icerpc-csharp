@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.IO.Pipelines;
 using System.Net.Security;
 
 namespace IceRpc
@@ -429,7 +430,8 @@ namespace IceRpc
                 _protocolConnection = await protocolConnectionFactory.CreateProtocolConnectionAsync(
                     networkConnection,
                     NetworkConnectionInformation.Value,
-                    this,
+                    CreateIncomingRequest,
+                    CreateIncomingResponse,
                     _options,
                     _serverEndpoint != null,
                     connectCancellationSource.Token).ConfigureAwait(false);
@@ -502,6 +504,37 @@ namespace IceRpc
                 await CloseAsync(exception).ConfigureAwait(false);
                 throw;
             }
+
+            IncomingRequest CreateIncomingRequest(
+                FeatureCollection features,
+                IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields,
+                PipeReader? fieldsPipeReader,
+                string fragment,
+                bool oneway,
+                string operation,
+                string path,
+                PipeReader payload) =>
+                new(this, fields, fieldsPipeReader)
+                {
+                    Features = features,
+                    Fragment = fragment,
+                    IsOneway = oneway,
+                    Operation = operation,
+                    Path = path,
+                    Payload = payload
+                };
+
+            IncomingResponse CreateIncomingResponse(
+                OutgoingRequest request,
+                IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields,
+                PipeReader? fieldsPipeReader,
+                PipeReader payload,
+                ResultType resultType) =>
+                new(request, this, fields, fieldsPipeReader)
+                {
+                    Payload = payload,
+                    ResultType = resultType
+                };
         }
 
         internal void Monitor(bool keepAlive)

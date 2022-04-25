@@ -44,10 +44,13 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public Action<string>? PeerShutdownInitiated { get; set; }
 
-        private readonly Connection _connection;
         private IMultiplexedStream? _controlStream;
         private readonly HashSet<CancellationTokenSource> _cancelDispatchSources = new();
         private readonly IDispatcher _dispatcher;
+
+        private readonly IncomingRequestFactory _incomingRequestFactory;
+        private readonly IncomingResponseFactory _incomingResponseFactory;
+
         private readonly TaskCompletionSource _streamsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly HashSet<IMultiplexedStream> _streams = new();
@@ -124,14 +127,15 @@ namespace IceRpc.Internal
                     throw;
                 }
 
-                var request = new IncomingRequest(_connection, fields, fieldsPipeReader)
-                {
-                    Features = features,
-                    IsOneway = !stream.IsBidirectional,
-                    Operation = header.Operation,
-                    Path = header.Path,
-                    Payload = stream.Input
-                };
+                IncomingRequest request = _incomingRequestFactory(
+                    features,
+                    fields,
+                    fieldsPipeReader,
+                    fragment: "",
+                    oneway: !stream.IsBidirectional,
+                    header.Operation,
+                    header.Path,
+                    payload: stream.Input);
 
                 CancellationTokenSource? cancelDispatchSource = null;
                 bool isShuttingDown = false;
@@ -394,7 +398,12 @@ namespace IceRpc.Internal
 
             if (request.IsOneway)
             {
-                return new IncomingResponse(request, _connection);
+                return _incomingResponseFactory(
+                    request,
+                    fields: ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty,
+                    fieldsPipeReader: null,
+                    payload: EmptyPipeReader.Instance,
+                    ResultType.Success);
             }
 
             Debug.Assert(stream != null);
@@ -424,11 +433,12 @@ namespace IceRpc.Internal
                     request.Features = request.Features.With(retryPolicy);
                 }
 
-                return new IncomingResponse(request, _connection, fields, fieldsPipeReader)
-                {
-                    Payload = stream.Input,
-                    ResultType = header.ResultType
-                };
+                return _incomingResponseFactory(
+                    request,
+                    fields,
+                    fieldsPipeReader,
+                    payload: stream.Input,
+                    header.ResultType);
             }
             catch (MultiplexedStreamAbortedException exception)
             {
@@ -608,13 +618,15 @@ namespace IceRpc.Internal
 
         /// <inheritdoc/>
         internal IceRpcProtocolConnection(
-            Connection connection,
             IDispatcher dispatcher,
             IMultiplexedNetworkConnection networkConnection,
+            IncomingRequestFactory incomingRequestFactory,
+            IncomingResponseFactory incomingResponseFactory,
             IDictionary<ConnectionFieldKey, OutgoingFieldValue> localFields)
         {
-            _connection = connection;
             _dispatcher = dispatcher;
+            _incomingRequestFactory = incomingRequestFactory;
+            _incomingResponseFactory = incomingResponseFactory;
             _networkConnection = networkConnection;
             _localFields = localFields;
         }

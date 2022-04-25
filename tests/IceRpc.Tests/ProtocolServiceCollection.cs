@@ -4,6 +4,8 @@ using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
+using System.Buffers;
+using System.IO.Pipelines;
 
 namespace IceRpc.Tests
 {
@@ -96,17 +98,50 @@ namespace IceRpc.Tests
             Func<Task<T>> networkConnectionFactory) where T : INetworkConnection
         {
             T networkConnection = await networkConnectionFactory();
+            Connection connection = protocol == Protocol.Ice ? InvalidConnection.Ice : InvalidConnection.IceRpc;
             IProtocolConnection protocolConnection =
                 await serviceProvider.GetRequiredService<IProtocolConnectionFactory<T>>().CreateProtocolConnectionAsync(
                     networkConnection,
                     connectionInformation: new(),
-                    connection: protocol == Protocol.Ice ? InvalidConnection.Ice : InvalidConnection.IceRpc,
+                    CreateIncomingRequest,
+                    CreateIncomingResponse,
                     connectionOptions: isServer ?
                         serviceProvider.GetService<ServerConnectionOptions>()?.Value ?? new() :
                         serviceProvider.GetService<ClientConnectionOptions>()?.Value ?? new(),
                     isServer,
                     CancellationToken.None);
             return (networkConnection, protocolConnection);
+
+            IncomingRequest CreateIncomingRequest(
+                FeatureCollection features,
+                IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields,
+                PipeReader? fieldsPipeReader,
+                string fragment,
+                bool oneway,
+                string operation,
+                string path,
+                PipeReader payload) =>
+                new(connection, fields, fieldsPipeReader)
+                {
+                    Features = features,
+                    Fragment = fragment,
+                    IsOneway = oneway,
+                    Operation = operation,
+                    Path = path,
+                    Payload = payload
+                };
+
+            IncomingResponse CreateIncomingResponse(
+                OutgoingRequest request,
+                IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields,
+                PipeReader? fieldsPipeReader,
+                PipeReader payload,
+                ResultType resultType) =>
+                new(request, connection, fields, fieldsPipeReader)
+                {
+                    Payload = payload,
+                    ResultType = resultType
+                };
         }
 
         private static Task<(INetworkConnection, IProtocolConnection)> GetServerProtocolConnectionAsync(
