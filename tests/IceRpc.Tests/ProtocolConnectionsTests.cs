@@ -672,7 +672,9 @@ public sealed class ProtocolConnectionTests
         var invokeTask2 = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)));
         hold.Release();
         Assert.That(async () => await invokeTask1, Throws.Nothing);
-        Assert.That(async () => await invokeTask2, Throws.TypeOf<ConnectionClosedException>());
+        Assert.That(
+            async () => await invokeTask2,
+            Throws.TypeOf<ConnectionClosedException>().Or.TypeOf<ObjectDisposedException>());
         Assert.That(async () => await shutdownTask, Throws.Nothing);
     }
 }
