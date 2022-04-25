@@ -31,6 +31,9 @@ namespace IceRpc.Slice.Internal
             bool hasStream,
             CancellationToken cancel)
         {
+            // We complete the fields before decoding the main segment.
+            frame.CompleteFields();
+
             try
             {
                 if (frame.Payload.TryReadSegment(encoding, out ReadResult readResult))
@@ -40,7 +43,6 @@ namespace IceRpc.Slice.Internal
             }
             catch (Exception exception)
             {
-                frame.CompleteFields();
 #pragma warning disable CA1849
                 frame.Payload.Complete(exception);
 #pragma warning restore CA1849
@@ -69,9 +71,6 @@ namespace IceRpc.Slice.Internal
 
                 frame.Payload.AdvanceTo(readResult.Buffer.End);
 
-                // We always complete the fields after decoding the main segment.
-                frame.CompleteFields();
-
                 if (!hasStream)
                 {
                     frame.Payload.Complete();
@@ -91,7 +90,6 @@ namespace IceRpc.Slice.Internal
                 }
                 catch (Exception exception)
                 {
-                    frame.CompleteFields();
                     await frame.Payload.CompleteAsync(exception).ConfigureAwait(false);
                     throw;
                 }
@@ -110,6 +108,9 @@ namespace IceRpc.Slice.Internal
             bool hasStream,
             CancellationToken cancel)
         {
+            // We complete the fields before decoding the main segment.
+            frame.CompleteFields();
+
             try
             {
                 if (frame.Payload.TryReadSegment(encoding, out ReadResult readResult))
@@ -120,7 +121,6 @@ namespace IceRpc.Slice.Internal
             }
             catch (Exception exception)
             {
-                frame.CompleteFields();
 #pragma warning disable CA1849
                 frame.Payload.Complete(exception);
 #pragma warning restore CA1849
@@ -144,9 +144,6 @@ namespace IceRpc.Slice.Internal
                 }
                 frame.Payload.AdvanceTo(readResult.Buffer.End);
 
-                // We always complete the fields after decoding the main segment.
-                frame.CompleteFields();
-
                 if (!hasStream)
                 {
                     frame.Payload.Complete();
@@ -165,7 +162,6 @@ namespace IceRpc.Slice.Internal
                 }
                 catch (Exception exception)
                 {
-                    frame.CompleteFields();
                     await frame.Payload.CompleteAsync(exception).ConfigureAwait(false);
                     throw;
                 }
