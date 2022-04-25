@@ -43,7 +43,7 @@ namespace IceRpc.Slice
         {
             _request = request;
 
-            long value = _request.Fields!.DecodeValue(
+            long value = _request.Fields.DecodeValue(
                 RequestFieldKey.Deadline,
                 (ref SliceDecoder decoder) => decoder.DecodeVarInt62());
 

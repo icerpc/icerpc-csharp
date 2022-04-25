@@ -48,7 +48,7 @@ namespace IceRpc.Tests.ClientServer
                         new InlineInvoker(async (request, cancel) =>
                         {
                             IncomingResponse response = await next.InvokeAsync(request, cancel);
-                            if (response.Fields!.DecodeValue((ResponseFieldKey)1000,
+                            if (response.Fields.DecodeValue((ResponseFieldKey)1000,
                                 (ref SliceDecoder decoder) => decoder.DecodeString())
                                 is string stringValue)
                             {

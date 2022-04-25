@@ -33,7 +33,7 @@ namespace IceRpc
             IncomingRequest request,
             CancellationToken cancel = default)
         {
-            if (request.Protocol.HasFields && request.Fields!.ContainsKey(RequestFieldKey.CompressionFormat))
+            if (request.Protocol.HasFields && request.Fields.ContainsKey(RequestFieldKey.CompressionFormat))
             {
                 CompressionFormat compressionFormat = request.Fields.DecodeValue(
                     RequestFieldKey.CompressionFormat,

@@ -32,18 +32,18 @@ namespace IceRpc
     public abstract class IncomingFrame<T> : IncomingFrame where T : struct
     {
         /// <summary>Gets the fields of this incoming frame.</summary>
-        /// <value>The fields of this incoming frame.</value>
-        /// <remarks>This property is not-null until <see cref="CompleteFields"/> is called.</remarks>
-        public IDictionary<T, ReadOnlySequence<byte>>? Fields { get; private set; }
+        public IDictionary<T, ReadOnlySequence<byte>> Fields => _fields ??
+            throw new InvalidOperationException($"cannot access fields after calling {nameof(CompleteFields)}");
 
+        private IDictionary<T, ReadOnlySequence<byte>>? _fields;
         private readonly PipeReader? _fieldsPipeReader;
 
         /// <inheritdoc/>
         public override void CompleteFields()
         {
-            if (Fields != null)
+            if (_fields != null)
             {
-                Fields = null;
+                _fields = null;
                 _fieldsPipeReader?.Complete();
             }
         }
@@ -59,7 +59,7 @@ namespace IceRpc
             PipeReader? fieldsPipeReader = null)
             : base(connection)
         {
-            Fields = fields;
+            _fields = fields;
             _fieldsPipeReader = fieldsPipeReader;
         }
     }
