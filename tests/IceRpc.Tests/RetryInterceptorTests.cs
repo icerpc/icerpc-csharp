@@ -4,6 +4,7 @@ using IceRpc.Configure;
 using IceRpc.Features;
 using IceRpc.Internal;
 using NUnit.Framework;
+using System.Buffers;
 using System.Collections.Immutable;
 
 namespace IceRpc.Tests;
@@ -71,7 +72,7 @@ public sealed class RetryInterceptorTests
     }
 
     [Test]
-    public async Task Retry_after_delay()
+    public async Task Retry_after_delay_retry_policy()
     {
         int attemps = 0;
         var delay = TimeSpan.FromMilliseconds(200);
@@ -109,7 +110,7 @@ public sealed class RetryInterceptorTests
     [Test]
     public void Retry_fails_after_max_attemps()
     {
-        int maxAttemps = 5;
+        int maxAttemps = 3;
         int attemps = 0;
         var invoker = new InlineInvoker((request, cancel) =>
         {
@@ -117,7 +118,7 @@ public sealed class RetryInterceptorTests
             throw new InvalidOperationException();
         });
 
-        var sut = new RetryInterceptor(invoker, new Configure.RetryOptions { MaxAttempts = maxAttemps });
+        var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = maxAttemps });
 
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc) { Path = "/path" })
         {
@@ -130,8 +131,80 @@ public sealed class RetryInterceptorTests
     }
 
     [Test]
+    public async Task Retry_request_after_close_connection()
+    {
+        // Arrange
+        int maxAttemps = 3;
+        int attemps = 0;
+        var invoker = new InlineInvoker((request, cancel) =>
+        {
+            if (++attemps == 1)
+            {
+                request.IsSent = true;
+                throw new ConnectionClosedException();
+            }
+            else
+            {
+                return Task.FromResult(new IncomingResponse(request, request.Connection!));
+            }
+        });
+
+        var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = maxAttemps });
+
+        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc) { Path = "/path" })
+        {
+            Operation = "Op"
+        };
+
+        // Act
+        await sut.InvokeAsync(request, default);
+
+        // Assert
+        Assert.That(attemps, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task Retry_idempotent_request_after_is_sent()
+    {
+        // Arrange
+        int maxAttemps = 3;
+        int attemps = 0;
+        var invoker = new InlineInvoker((request, cancel) =>
+        {
+            if (++attemps == 1)
+            {
+                request.IsSent = true;
+                attemps++;
+                throw new InvalidOperationException();
+            }
+            else
+            {
+                return Task.FromResult(new IncomingResponse(request, request.Connection!));
+            }
+        });
+
+        var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = maxAttemps });
+
+        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc) { Path = "/path" })
+        {
+            Fields = new Dictionary<RequestFieldKey, OutgoingFieldValue>
+            {
+                [RequestFieldKey.Idempotent] = new OutgoingFieldValue(new ReadOnlySequence<byte>())
+            },
+            Operation = "Op"
+        };
+
+        // Act
+        await sut.InvokeAsync(request, default);
+
+        // Assert
+        Assert.That(attemps, Is.EqualTo(2));
+    }
+
+    [Test]
     public async Task Retry_other_replica()
     {
+        // Arrange
         await using var connection1 = new Connection("icerpc://host1");
         await using var connection2 = new Connection("icerpc://host2");
         await using var connection3 = new Connection("icerpc://host3");
@@ -165,9 +238,10 @@ public sealed class RetryInterceptorTests
         var request = new OutgoingRequest(proxy) { Operation = "Op" };
         var start = Time.Elapsed;
 
+        // Act
         var response = await sut.InvokeAsync(request, default);
 
-        // Act/Assert
+        // Assert
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
         Assert.That(endpoints.Count, Is.EqualTo(3));
         Assert.That(endpoints[0], Is.EqualTo(proxy.Endpoint));
