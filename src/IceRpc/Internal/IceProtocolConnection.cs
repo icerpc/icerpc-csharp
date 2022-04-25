@@ -799,10 +799,11 @@ namespace IceRpc.Internal
                 throw;
             }
 
-            var request = new IncomingRequest(_connection)
+            var request = new IncomingRequest(
+                _connection,
+                fields: requestHeader.OperationMode == OperationMode.Normal ?
+                    ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields)
             {
-                Fields = requestHeader.OperationMode == OperationMode.Normal ?
-                    ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields,
                 Fragment = requestHeader.Fragment,
                 IsOneway = requestId == 0,
                 Operation = requestHeader.Operation,

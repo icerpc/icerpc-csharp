@@ -189,7 +189,6 @@ public class ConnectionTests
         Assert.That(async () => await connection.ConnectAsync(default), Throws.TypeOf<ConnectTimeoutException>());
     }
 
-
     [Test]
     public async Task Non_resumable_connection_cannot_reconnect([Values("ice", "icerpc")] string protocol)
     {
