@@ -52,7 +52,7 @@ namespace IceRpc
         /// <param name="connection">The <see cref="Connection"/> that received the frame.</param>
         /// <param name="fields">The fields of this frame.</param>
         /// <param name="fieldsPipeReader">The pipe reader that holds the memory of the fields. Use <c>null</c> when the
-        /// fields' memory is not held by a pipe reader.</param>
+        /// fields memory is not held by a pipe reader.</param>
         protected IncomingFrame(
             Connection connection,
             IDictionary<T, ReadOnlySequence<byte>> fields,

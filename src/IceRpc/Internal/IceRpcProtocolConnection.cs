@@ -690,7 +690,7 @@ namespace IceRpc.Internal
                 }
             }
 
-            // The caller is responsible to complete the pipe reader.
+            // The caller is responsible for completing the pipe reader.
             return (fields, pipeReader);
         }
 
