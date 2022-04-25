@@ -25,7 +25,7 @@ public sealed class IceRpcProtocolConnectionTests
         }
     }
 
-    /// <summary>Verifies that with IceRpc protocol canceling connection shutdown cancels pending invocations. With Ice
+    /// <summary>Verifies that with icerpc protocol canceling connection shutdown cancels pending invocations. With ice
     /// protocol they are always canceled see <see cref="IceProtocolConnectionTests.Shutdown_cancels_invocations"/>.
     /// </summary>
     [Test]
@@ -64,7 +64,7 @@ public sealed class IceRpcProtocolConnectionTests
         hold.Release();
     }
 
-    /// <summary>Verifies that exception thrown by the dispatcher are correctly mapped to a DispatchException with the
+    /// <summary>Verifies that exceptions thrown by the dispatcher are correctly mapped to a DispatchException with the
     /// expected error code.</summary>
     /// <param name="thrownException">The exception to throw by the dispatcher.</param>
     /// <param name="errorCode">The expected <see cref="DispatchErrorCode"/>.</param>
@@ -391,8 +391,8 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
     }
 
-    /// <summary>With IceRpc protocol the connection shutdown waits for invocations to finish. This is different
-    /// with Ice see <see cref="IceProtocolConnectionTests.Shutdown_cancels_invocations"/>.</summary>
+    /// <summary>With icerpc protocol the connection shutdown waits for invocations to finish. This is different
+    /// with ice protocol see <see cref="IceProtocolConnectionTests.Shutdown_cancels_invocations"/>.</summary>
     [Test]
     public async Task Shutdown_waits_for_pending_invocations_to_finish()
     {
