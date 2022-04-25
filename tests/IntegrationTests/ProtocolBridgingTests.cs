@@ -6,7 +6,6 @@ using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Collections.Immutable;
-using System.Net;
 
 namespace IceRpc.Tests.ClientServer
 {

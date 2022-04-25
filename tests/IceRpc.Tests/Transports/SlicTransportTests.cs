@@ -19,7 +19,7 @@ public class SlicTransportTests
         // Arrange
         await using ServiceProvider serviceProvider = new SlicServiceCollection()
             .AddScoped(
-                _ =>  new SlicServerTransportOptions
+                _ => new SlicServerTransportOptions
                 {
                     PauseWriterThreshold = 6893,
                     ResumeWriterThreshold = 2000,
@@ -33,7 +33,7 @@ public class SlicTransportTests
                     PacketMaxSize = 4567
                 }).BuildServiceProvider();
 
-        await using var clientConnection = (SlicNetworkConnection) serviceProvider.CreateConnection();
+        await using var clientConnection = (SlicNetworkConnection)serviceProvider.CreateConnection();
         Task<IMultiplexedNetworkConnection> acceptTask = serviceProvider.AcceptConnectionAsync(clientConnection);
 
         // Act

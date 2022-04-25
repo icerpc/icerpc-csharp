@@ -44,7 +44,7 @@ public class DictionaryDecodingTests
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         var expected = Enumerable.Range(0, 1024).ToDictionary(
             key => key,
-            value => value % 2 == 0 ? null :  $"value-{value}");
+            value => value % 2 == 0 ? null : $"value-{value}");
         encoder.EncodeSize(expected.Count);
         var bitSequenceWritter = encoder.GetBitSequenceWriter(expected.Count);
         foreach ((int key, string? value) in expected)

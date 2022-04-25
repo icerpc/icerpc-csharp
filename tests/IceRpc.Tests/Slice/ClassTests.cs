@@ -206,7 +206,7 @@ public sealed class ClassTests
         // theB index 3
         // theC index 4
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory,SliceEncoding.Slice1);
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
 
@@ -225,7 +225,7 @@ public sealed class ClassTests
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null reference
 
         // theB - Second Slice
-        Assert.That(decoder.DecodeUInt8(),Is.EqualTo((byte)Slice1Definitions.SliceFlags.IsLastSlice));
+        Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Slice1Definitions.SliceFlags.IsLastSlice));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null reference
 
         // theB.theC instance encoded inline

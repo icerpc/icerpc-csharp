@@ -14,7 +14,7 @@ public class DictionaryEncodingTests
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 256]);
         var encoder = new SliceEncoder(buffer, encoding);
-        var expected =  Enumerable.Range(0, 1024).ToDictionary(key => key, value => $"value-{value}");
+        var expected = Enumerable.Range(0, 1024).ToDictionary(key => key, value => $"value-{value}");
 
         // Act
         encoder.EncodeDictionary(
