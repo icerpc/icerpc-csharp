@@ -14,7 +14,6 @@ namespace IceRpc.Internal
         async Task<IProtocolConnection> IProtocolConnectionFactory<T>.CreateProtocolConnectionAsync(
             T networkConnection,
             NetworkConnectionInformation connectionInformation,
-            Connection connection,
             Configure.ConnectionOptions connectionOptions,
             bool isServer,
             CancellationToken cancel)
@@ -24,18 +23,21 @@ namespace IceRpc.Internal
             IProtocolConnection protocolConnection = await _decoratee.CreateProtocolConnectionAsync(
                 networkConnection,
                 connectionInformation,
-                connection,
                 connectionOptions,
                 isServer,
                 cancel).ConfigureAwait(false);
 
-            _logger.LogCreateProtocolConnection(connection.Endpoint.Protocol,
-                                                connectionInformation.LocalEndPoint,
-                                                connectionInformation.RemoteEndPoint);
+            // TODO: do we need this parameter?
+            Protocol protocol = protocolConnection is IceRpcProtocolConnection ? Protocol.IceRpc : Protocol.Ice;
+
+            _logger.LogCreateProtocolConnection(
+                protocol,
+                connectionInformation.LocalEndPoint,
+                connectionInformation.RemoteEndPoint);
 
             return new LogProtocolConnectionDecorator(
                 protocolConnection,
-                connection.Endpoint.Protocol,
+                protocol,
                 connectionInformation,
                 isServer,
                 _logger);
