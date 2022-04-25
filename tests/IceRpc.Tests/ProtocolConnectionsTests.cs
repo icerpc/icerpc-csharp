@@ -210,7 +210,8 @@ public sealed class ProtocolConnectionTests
         sut.Server.Dispose();
     }
 
-    /// <summary>Verifies that disposing the connection cancels pending dispatches.</summary>
+    /// <summary>Verifies that disposing the server connection kills pending invocations, peer invocations will fail
+    /// with <see cref="ConnectionLostException"/>.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
     public async Task Dispose_server_connection_kills_pending_invocations(Protocol protocol)
     {
@@ -247,7 +248,8 @@ public sealed class ProtocolConnectionTests
         hold.Release();
     }
 
-    /// <summary>Verifies that disposing the connection cancels the invocations.</summary>
+    /// <summary>Verifies that disposing the client connection kills pending invocations, the invocations will fail
+    /// with <see cref="ObjectDisposedException"/>.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
     public async Task Dispose_client_connection_kills_pending_invocations(Protocol protocol)
     {
