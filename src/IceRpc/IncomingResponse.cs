@@ -34,7 +34,7 @@ namespace IceRpc
         /// <param name="connection">The connection that received the response.</param>
         /// <remarks>While <paramref name="connection"/> is usually the same as the request's
         /// <see cref="OutgoingRequest.Connection"/>, it may be a different connection since an invoker can ignore the
-        /// request's connection when sending this request.</remarks>
+        /// request's connection when sending the request.</remarks>
         public IncomingResponse(OutgoingRequest request, Connection connection)
             : this(request, connection, ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty)
         {
