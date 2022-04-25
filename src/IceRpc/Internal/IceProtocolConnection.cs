@@ -502,7 +502,7 @@ namespace IceRpc.Internal
             _dispatchSemaphore?.Dispose();
 
             // Unblock ShutdownAsync which might be waiting for the connection to be disposed.
-            _pendingClose.SetResult();
+            _pendingClose.TrySetResult();
 
             // Unblock invocations which are waiting to be sent.
             _sendSemaphore.Complete(exception);
@@ -618,7 +618,8 @@ namespace IceRpc.Internal
                 catch (ConnectionLostException) when (_isShutdown)
                 {
                     // The peer closed the simple network connection after the sending of the close connection frame.
-                    // Just return since this indicates a successful graceful shutdown.
+                    // unblock ShutdownAsync and return since this indicates a successful graceful shutdown.
+                    _pendingClose.TrySetResult();
                     return;
                 }
 

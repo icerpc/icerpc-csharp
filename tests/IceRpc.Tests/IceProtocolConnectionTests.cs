@@ -12,7 +12,7 @@ namespace IceRpc.Tests;
 [Parallelizable(ParallelScope.All)]
 public sealed class IceProtocolConnectionTests
 {
-    public static IEnumerable<TestCaseData> ExceptionIsEncodedAsDispatchExceptionSource
+    public static IEnumerable<TestCaseData> ExceptionIsEncodedAsADispatchExceptionSource
     {
         get
         {
@@ -108,6 +108,37 @@ public sealed class IceProtocolConnectionTests
         Assert.That(maxCount, Is.EqualTo(maxConcurrentDispatches));
     }
 
+    /// <summary>Verifies that with the ice protocol, when a exception other than a DispatchException is thrown
+    /// during the dispatch, we encode a DispatchException with the expected error code.</summary>
+    [Test, TestCaseSource(nameof(ExceptionIsEncodedAsADispatchExceptionSource))]
+    public async Task Exception_is_encoded_as_a_dispatch_exception(
+        Exception thrownException,
+        DispatchErrorCode errorCode)
+    {
+        var dispatcher = new InlineDispatcher((request, cancel) =>
+        {
+            throw thrownException;
+        });
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(Protocol.Ice)
+            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .BuildServiceProvider();
+
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        _ = sut.Server.AcceptRequestsAsync();
+        _ = sut.Client.AcceptRequestsAsync();
+
+        // Act
+        var response = await sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.Ice)));
+
+        // Assert
+        Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
+        var exception = await response.DecodeFailureAsync() as DispatchException;
+        Assert.That(exception, Is.Not.Null);
+        Assert.That(exception.ErrorCode, Is.EqualTo(errorCode));
+    }
+
     /// <summary>Ensures that the request payload stream is completed even if the Ice protocol doesn't support
     /// it.</summary>
     [Test]
@@ -159,34 +190,42 @@ public sealed class IceProtocolConnectionTests
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
     }
 
-    /// <summary>Verifies that with the ice protocol, when a middleware throws a Slice exception other than a
-    /// DispatchException, we encode a DispatchException with the expected error code.</summary>
-    [Test, TestCaseSource(nameof(ExceptionIsEncodedAsDispatchExceptionSource))]
-    public async Task Exception_is_encoded_as_a_dispatch_exception(
-        Exception thrownException,
-        DispatchErrorCode errorCode)
+    /// <summary>With ice protocol the connection shutdown triggers the cancellation of invocations. This is different
+    /// with IceRpc see <see cref="IceRpcProtocolConnectionTests.Shutdown_waits_for_pending_invocations_to_finish"/>.
+    /// </summary>
+    [Test]
+    public async Task Shutdown_cancels_invocations()
     {
-        var dispatcher = new InlineDispatcher((request, cancel) =>
-        {
-            throw thrownException;
-        });
+        // Arrange
+        using var start = new SemaphoreSlim(0);
+        using var hold = new SemaphoreSlim(0);
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
-            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .UseServerConnectionOptions(new ConnectionOptions()
+            {
+                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                {
+                    start.Release();
+                    await hold.WaitAsync(cancel);
+                    return new OutgoingResponse(request);
+                })
+            })
             .BuildServiceProvider();
 
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        var clientAcceptTask = sut.Client.AcceptRequestsAsync();
         _ = sut.Server.AcceptRequestsAsync();
-        _ = sut.Client.AcceptRequestsAsync();
+        sut.Server.PeerShutdownInitiated = message => sut.Server.ShutdownAsync("");
+        var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.Ice)));
+        await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
-        var response = await sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.Ice)));
+        _ = sut.Client.ShutdownAsync("", default);
 
         // Assert
-        Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
-        var exception = await response.DecodeFailureAsync() as DispatchException;
-        Assert.That(exception, Is.Not.Null);
-        Assert.That(exception.ErrorCode, Is.EqualTo(errorCode));
+        Assert.That(async () => await invokeTask, Throws.TypeOf<OperationCanceledException>());
+
+        hold.Release();
     }
 }
