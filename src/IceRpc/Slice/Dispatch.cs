@@ -7,7 +7,7 @@ namespace IceRpc.Slice
     public sealed class Dispatch
     {
         /// <summary>The <see cref="Connection"/> over which the request was dispatched.</summary>
-        public Connection Connection => Request.Connection;
+        public Connection Connection => _request.Connection;
 
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
         /// caller is no longer interested in the response and discards the request. The server-side runtime does not
@@ -15,48 +15,40 @@ namespace IceRpc.Slice
         /// this deadline automatically using the proxy's invocation timeout and sends it with icerpc requests but not
         /// with ice requests. As a result, the deadline for an ice request is always <see cref="DateTime.MaxValue"/>
         /// on the server-side even though the invocation timeout is usually not infinite.</summary>
-        public DateTime Deadline
-        {
-            get
-            {
-                if (_deadline == null)
-                {
-                    long value = Request.Fields.DecodeValue(
-                        RequestFieldKey.Deadline,
-                        (ref SliceDecoder decoder) => decoder.DecodeVarInt62());
-
-                    // unset or <= 0 results in DateTime.MaxValue
-                    _deadline = value > 0 ? DateTime.UnixEpoch + TimeSpan.FromMilliseconds(value) : DateTime.MaxValue;
-                }
-                return _deadline.Value;
-            }
-        }
+        public DateTime Deadline { get; }
 
         /// <summary>The features associated with the request.</summary>
         public FeatureCollection Features
         {
-            get => Request.Features;
-            set => Request.Features = value;
+            get => _request.Features;
+            set => _request.Features = value;
         }
 
         /// <summary><c>True</c> for oneway requests, <c>False</c> otherwise.</summary>
-        public bool IsOneway => Request.IsOneway;
+        public bool IsOneway => _request.IsOneway;
 
         /// <summary>The operation name.</summary>
-        public string Operation => Request.Operation;
+        public string Operation => _request.Operation;
 
         /// <summary>The path (percent-escaped).</summary>
-        public string Path => Request.Path;
+        public string Path => _request.Path;
 
         /// <summary>The protocol used by the request.</summary>
-        public Protocol Protocol => Request.Protocol;
+        public Protocol Protocol => _request.Protocol;
 
-        /// <summary>The incoming request.</summary>
-        public IncomingRequest Request { get; }
-
-        private DateTime? _deadline;
+        private readonly IncomingRequest _request;
 
         /// <summary>Constructs a dispatch from an incoming request.</summary>
-        public Dispatch(IncomingRequest request) => Request = request;
+        public Dispatch(IncomingRequest request)
+        {
+            _request = request;
+
+            long value = _request.Fields.DecodeValue(
+                RequestFieldKey.Deadline,
+                (ref SliceDecoder decoder) => decoder.DecodeVarInt62());
+
+            // unset or <= 0 results in DateTime.MaxValue
+            Deadline = value > 0 ? DateTime.UnixEpoch + TimeSpan.FromMilliseconds(value) : DateTime.MaxValue;
+        }
     }
 }

@@ -17,7 +17,8 @@ public class SlicTransportTests
     public async Task Stream_peer_options_are_set_after_connect()
     {
         // Arrange
-        await using ServiceProvider serviceProvider = new SlicServiceCollection()
+        await using ServiceProvider serviceProvider = new ServiceCollection()
+            .UseSlic()
             .AddScoped(
                 _ => new SlicServerTransportOptions
                 {
@@ -53,7 +54,8 @@ public class SlicTransportTests
         int pauseThreshold)
     {
         // Arrange
-        await using ServiceProvider serviceProvider = new SlicServiceCollection()
+        await using ServiceProvider serviceProvider = new ServiceCollection()
+            .UseSlic()
             .AddScoped(
                 _ => new SlicServerTransportOptions
                 {
@@ -88,7 +90,8 @@ public class SlicTransportTests
     {
         // Arrange
         byte[] payload = new byte[pauseThreshold - 1];
-        await using ServiceProvider serviceProvider = new SlicServiceCollection()
+        await using ServiceProvider serviceProvider = new ServiceCollection()
+            .UseSlic()
             .AddScoped(
                 _ => new SlicServerTransportOptions
                 {
@@ -129,7 +132,8 @@ public class SlicTransportTests
         int resumeThreshold)
     {
         // Arrange
-        await using ServiceProvider serviceProvider = new SlicServiceCollection()
+        await using ServiceProvider serviceProvider = new ServiceCollection()
+            .UseSlic()
             .AddScoped(
                 _ => new SlicServerTransportOptions
                 {

@@ -366,6 +366,9 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
         );
     }
 
+    // We create the dispatch before decoding because the Dispatch constructor uses the request fields.
+    check_and_decode.writeln("var dispatch = new IceRpc.Slice.Dispatch(request);");
+
     let encoding = operation.encoding.to_cs_encoding();
 
     match parameters.as_slice() {
@@ -410,7 +413,7 @@ await request.DecodeEmptyArgsAsync({}, hasStream: false, cancel).ConfigureAwait(
             }
         }
 
-        args.push("new IceRpc.Slice.Dispatch(request)".to_owned());
+        args.push("dispatch".to_owned());
         args.push("cancel".to_owned());
 
         writeln!(
@@ -432,7 +435,7 @@ await request.DecodeEmptyArgsAsync({}, hasStream: false, cancel).ConfigureAwait(
                 .map(|parameter| format!("args.{}", &parameter.field_name(FieldType::NonMangled)))
                 .collect(),
         };
-        args.push("new IceRpc.Slice.Dispatch(request)".to_owned());
+        args.push("dispatch".to_owned());
         args.push("cancel".to_owned());
 
         writeln!(

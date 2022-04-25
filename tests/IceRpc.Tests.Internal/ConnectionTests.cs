@@ -31,6 +31,7 @@ namespace IceRpc.Tests.Internal
                 transport,
                 dispatcher: new InlineDispatcher(async (request, cancel) =>
                 {
+                    await request.Payload.CompleteAsync();
                     await semaphore.WaitAsync(cancel);
                     return new OutgoingResponse(request);
                 }),
@@ -51,116 +52,6 @@ namespace IceRpc.Tests.Internal
             }
 
             semaphore.Release();
-        }
-
-        [Test]
-        public async Task Connection_ClosedEventAsync(
-            [Values("ice", "icerpc")] string protocol,
-            [Values(false, true)] bool closeClientSide,
-            [Values(false, true)] bool shutdown)
-        {
-            await using var factory = new ConnectionFactory(new ConnectionTestServiceCollection("tcp", protocol));
-
-            using var semaphore = new SemaphoreSlim(0);
-
-            Exception? clientException = null;
-            object? clientSender = null;
-            factory.ClientConnection.Closed += (sender, args) =>
-            {
-                clientSender = sender;
-                clientException = args.Exception;
-                semaphore.Release();
-            };
-
-            Exception? serverException = null;
-            object? serverSender = null;
-            factory.ServerConnection.Closed += (sender, args) =>
-            {
-                serverSender = sender;
-                serverException = args.Exception;
-                semaphore.Release();
-            };
-
-            if (shutdown)
-            {
-                await (closeClientSide ? factory.ClientConnection : factory.ServerConnection).ShutdownAsync();
-            }
-            else
-            {
-                await (closeClientSide ? factory.ClientConnection : factory.ServerConnection).CloseAsync();
-            }
-
-            await semaphore.WaitAsync();
-            await semaphore.WaitAsync();
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(serverSender, Is.EqualTo(factory.ServerConnection));
-                Assert.That(clientSender, Is.EqualTo(factory.ClientConnection));
-                Assert.That(clientException, Is.Not.Null);
-                Assert.That(serverException, Is.Not.Null);
-                if (shutdown)
-                {
-                    Assert.That(clientException, Is.InstanceOf<ConnectionClosedException>());
-                    Assert.That(serverException, Is.InstanceOf<ConnectionClosedException>());
-                }
-                else if (closeClientSide)
-                {
-                    Assert.That(clientException, Is.InstanceOf<ConnectionClosedException>());
-                    Assert.That(serverException, Is.InstanceOf<ConnectionLostException>());
-                }
-                else
-                {
-                    Assert.That(clientException, Is.InstanceOf<ConnectionLostException>());
-                    Assert.That(serverException, Is.InstanceOf<ConnectionClosedException>());
-                }
-            });
-        }
-
-        [TestCase("ice", false)]
-        [TestCase("ice", true)]
-        [TestCase("icerpc", false)]
-        [TestCase("icerpc", true)]
-        public async Task Connection_CloseOnIdleAsync(string protocol, bool idleOnClient)
-        {
-            await using var factory = new ConnectionFactory(
-                new ConnectionTestServiceCollection("tcp", protocol)
-                .AddScoped(_ => new TcpClientTransportOptions()
-                {
-                    IdleTimeout = idleOnClient ? TimeSpan.FromMilliseconds(500) : TimeSpan.FromHours(1)
-                })
-                .AddScoped(_ => new TcpServerTransportOptions()
-                {
-                    IdleTimeout = idleOnClient ? TimeSpan.FromHours(1) : TimeSpan.FromMilliseconds(500)
-                }));
-
-            using var semaphore = new SemaphoreSlim(0);
-            factory.ClientConnection.Closed += (sender, args) => semaphore.Release();
-            factory.ServerConnection.Closed += (sender, args) => semaphore.Release();
-            await semaphore.WaitAsync();
-            await semaphore.WaitAsync();
-        }
-
-        [TestCase("ice")]
-        [TestCase("icerpc")]
-        public async Task Connection_ConnectTimeoutAsync(string protocol)
-        {
-            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-                .UseTransport("tcp")
-                .UseProtocol(protocol)
-                .BuildServiceProvider();
-
-            IListener listener = protocol == Protocol.Ice.Name ?
-                serviceProvider.GetRequiredService<IListener<ISimpleNetworkConnection>>() :
-                serviceProvider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
-
-            await using var connection = new Connection(new ConnectionOptions
-            {
-                ConnectTimeout = TimeSpan.FromMilliseconds(100),
-                RemoteEndpoint = listener.Endpoint,
-            });
-
-            Assert.ThrowsAsync<ConnectTimeoutException>(() => connection.ConnectAsync(default));
         }
 
         [TestCase("tcp", false)]
@@ -266,6 +157,7 @@ namespace IceRpc.Tests.Internal
                     protocol,
                     dispatcher: new InlineDispatcher(async (request, cancel) =>
                     {
+                        await request.Payload.CompleteAsync();
                         await dispatchSemaphore.WaitAsync(cancel);
                         return new OutgoingResponse(request);
                     }))
@@ -279,79 +171,6 @@ namespace IceRpc.Tests.Internal
             Assert.That(factory.ServerConnection.State, Is.EqualTo(ConnectionState.Active));
             dispatchSemaphore.Release();
             await pingTask;
-        }
-
-        [TestCase("icerpc", false)]
-        [TestCase("ice", false)]
-        [TestCase("icerpc", true)]
-        [TestCase("ice", true)]
-        public async Task Connection_Resumable(string protocol, bool closeClientSide)
-        {
-            // Don't use the connection factory since it doesn't create resumable connections.
-            Connection? serverConnection = null;
-            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-                .UseResumableConnection()
-                .UseProtocol(protocol)
-                .AddTransient<IDispatcher>(_ => new InlineDispatcher((request, cancel) =>
-                    {
-                        serverConnection = request.Connection;
-                        return new(new OutgoingResponse(request));
-                    }))
-                .BuildServiceProvider();
-
-            ServicePrx prx = serviceProvider.GetProxy<ServicePrx>();
-
-            await prx.IcePingAsync(default);
-
-            Connection clientConnection = prx.Proxy.Connection!;
-            Assert.That(serverConnection, Is.Not.Null);
-
-            if (closeClientSide)
-            {
-                await clientConnection.ShutdownAsync(default);
-                Assert.That(clientConnection.State, Is.EqualTo(ConnectionState.NotConnected));
-                Assert.That(serverConnection!.State, Is.GreaterThan(ConnectionState.Active));
-            }
-            else
-            {
-                await serverConnection!.ShutdownAsync(default);
-                Assert.That(serverConnection.State, Is.EqualTo(ConnectionState.Closed));
-            }
-
-            Assert.That(
-                clientConnection.State,
-                Is.GreaterThan(ConnectionState.Active).Or.EqualTo(ConnectionState.NotConnected));
-
-            Assert.DoesNotThrowAsync(() => prx.IcePingAsync());
-
-            Assert.That(prx.Proxy.Connection, Is.EqualTo(clientConnection));
-            Assert.That(clientConnection.State, Is.EqualTo(ConnectionState.Active));
-        }
-
-        [TestCase("icerpc", false)]
-        [TestCase("ice", false)]
-        [TestCase("icerpc", true)]
-        [TestCase("ice", true)]
-        public async Task Connection_NotResumable(string protocol, bool closeClientSide)
-        {
-            await using var factory = new ConnectionFactory(
-                new ConnectionTestServiceCollection(
-                    protocol: protocol,
-                    dispatcher: new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)))));
-
-            await factory.ServicePrx.IcePingAsync(default);
-            if (closeClientSide)
-            {
-                await factory.ClientConnection.ShutdownAsync(default);
-                Assert.That(factory.ClientConnection.State, Is.EqualTo(ConnectionState.Closed));
-            }
-            else
-            {
-                await factory.ServerConnection.ShutdownAsync(default);
-                Assert.That(factory.ServerConnection.State, Is.EqualTo(ConnectionState.Closed));
-            }
-
-            Assert.ThrowsAsync<ConnectionClosedException>(() => factory.ServicePrx.IcePingAsync());
         }
 
         [TestCase("icerpc", "tcp", false)]
@@ -370,6 +189,7 @@ namespace IceRpc.Tests.Internal
                     protocol,
                     dispatcher: new InlineDispatcher(async (request, cancel) =>
                     {
+                        await request.Payload.CompleteAsync();
                         waitForDispatchSemaphore.Release();
                         await dispatchSemaphore.WaitAsync(cancel);
                         return new OutgoingResponse(request);
@@ -416,6 +236,7 @@ namespace IceRpc.Tests.Internal
                     protocol,
                     dispatcher: new InlineDispatcher(async (request, cancel) =>
                     {
+                        await request.Payload.CompleteAsync();
                         waitForDispatchSemaphore.Release();
                         try
                         {
@@ -491,6 +312,7 @@ namespace IceRpc.Tests.Internal
                     protocol: protocol,
                     dispatcher: new InlineDispatcher(async (request, cancel) =>
                     {
+                        await request.Payload.CompleteAsync();
                         waitForDispatchSemaphore.Release();
                         await semaphore.WaitAsync(cancel);
                         return new OutgoingResponse(request);
