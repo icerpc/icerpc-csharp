@@ -2,7 +2,7 @@
 
 encoding = 1;
 
-[cs:internal]
+[cs::internal]
 module IceRpc::Slice::Internal;
 
 // These definitions help with the encoding of proxies with Slice1.
@@ -10,7 +10,7 @@ module IceRpc::Slice::Internal;
 /// The fragment of a service, encoded as a sequence of 0 or 1 elements. The empty string is encoded as an empty
 /// sequence. A non-empty string is encoded as a sequence with 1 element. While the fragment string is
 /// percent-escaped, the sequence element is not.
-[cs:type("string")]
+[cs::type("string")]
 compact struct Fragment
 {
     value: sequence<string>, // has 0 or 1 element
@@ -43,7 +43,7 @@ enum InvocationMode
 ///     - ProxyData
 ///     - a sequence of endpoints that can be empty
 ///     - an adapter ID string present only when the sequence of endpoints is empty
-[cs:readonly]
+[cs::readonly]
 compact struct ProxyData
 {
     fragment: Fragment,

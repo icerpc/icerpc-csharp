@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 // These definitions help with the encoding of Slic frames.
-[cs:internal]
+[cs::internal]
 module IceRpc::Transports::Internal;
 
 /// The Slic frame types
@@ -52,7 +52,7 @@ unchecked enum ParameterKey : int32
 typealias ParameterFields = dictionary<varint32, sequence<uint8>>;
 
 /// The Slic initialize frame body.
-[cs:readonly]
+[cs::readonly]
 compact struct InitializeBody
 {
     /// The application protocol name.
@@ -63,7 +63,7 @@ compact struct InitializeBody
 }
 
 /// The Slic initialize acknowledgment frame body.
-[cs:readonly]
+[cs::readonly]
 compact struct InitializeAckBody
 {
     /// The parameters.
@@ -74,7 +74,7 @@ compact struct InitializeAckBody
 /// from the initialize frame is not supported by the receiver. Upon receiving the Version frame the receiver
 /// should send back a new Initialize frame with a version matching one of the versions provided by the Version
 /// frame body.
-[cs:readonly]
+[cs::readonly]
 compact struct VersionBody
 {
     /// The supported Slic versions.
@@ -82,7 +82,7 @@ compact struct VersionBody
 }
 
 /// The body of a Slic close frame. This frame is sent when the connection is explicitly closed.
-[cs:readonly]
+[cs::readonly]
 compact struct CloseBody
 {
     /// The application protocol error code indicating the reason of the closure.
@@ -91,7 +91,7 @@ compact struct CloseBody
 
 /// The body of the Stream reset frame. This frame is sent to notify the peer that sender is no longer interested in
 /// the stream. The error code is application protocol specific.
-[cs:readonly]
+[cs::readonly]
 compact struct StreamResetBody
 {
     /// The application protocol error code indicating the reason of the reset.
@@ -99,7 +99,7 @@ compact struct StreamResetBody
 }
 
 /// The body of the Stream consumed frame. This frame is sent to increase the peer's send credit.
-[cs:readonly]
+[cs::readonly]
 compact struct StreamConsumedBody
 {
     /// The size of the consumed data.
@@ -108,7 +108,7 @@ compact struct StreamConsumedBody
 
 /// The body of the Stream stop sending frame. This frame is sent to notify the peer that the receiver is no longer
 /// interested in receiving data.
-[cs:readonly]
+[cs::readonly]
 compact struct StreamStopSendingBody
 {
     /// The application protocol error code indicating the reason why the peer no longer needs to receive data.

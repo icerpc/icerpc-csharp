@@ -28,13 +28,13 @@ class MyDerivedCompactClass(789) : MyCompactClass
 {
 }
 
-[format(compact)]
+[format(Compact)]
 interface CompactFormatOperations
 {
     OpMyClass(p1: MyClassA) -> MyClassA;
 }
 
-[format(sliced)]
+[format(Sliced)]
 interface SlicedFormatOperations
 {
     OpMyClass(p1: MyClassA) -> MyClassA;
