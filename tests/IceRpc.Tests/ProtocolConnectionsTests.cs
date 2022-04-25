@@ -285,35 +285,6 @@ public sealed class ProtocolConnectionTests
         hold.Release();
     }
 
-    /// <summary>Ensures that the PeerShutdownInitiated callback is called when the peer initiates the
-    /// shutdown.</summary>
-    [Test, TestCaseSource(nameof(Protocol_on_server_and_client_connection))]
-    public async Task PeerShutdownInitiated_callback_is_called(Protocol protocol, ConnectionType connectionType)
-    {
-        // Arrange
-        await using var serviceProvider = new ProtocolServiceCollection().UseProtocol(protocol).BuildServiceProvider();
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-
-        IProtocolConnection connection1 = connectionType == ConnectionType.Client ? sut.Server : sut.Client;
-        IProtocolConnection connection2 = connectionType == ConnectionType.Client ? sut.Client : sut.Server;
-        _ = connection1.AcceptRequestsAsync();
-        _ = connection2.AcceptRequestsAsync();
-
-        var shutdownInitiatedCalled = new TaskCompletionSource<string>();
-        connection2.PeerShutdownInitiated = message =>
-            {
-                shutdownInitiatedCalled.SetResult(message);
-                _ = connection2.ShutdownAsync("");
-            };
-
-        // Act
-        _ = connection1.ShutdownAsync("hello world");
-
-        // Assert
-        string message = protocol == Protocol.Ice ? "connection shutdown by peer" : "hello world";
-        Assert.That(await shutdownInitiatedCalled.Task, Is.EqualTo(message));
-    }
-
     /// <summary>Ensures that the sending a request after shutdown fails.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
     public async Task Invoke_on_shutdown_connection_fails(Protocol protocol)
@@ -608,19 +579,19 @@ public sealed class ProtocolConnectionTests
         // Arrange
         var payloadWriterSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
         var dispatcher = new InlineDispatcher((request, cancel) =>
+        {
+            var response = new OutgoingResponse(request)
             {
-                var response = new OutgoingResponse(request)
+                Payload = InvalidPipeReader.Instance
+            };
+            response.Use(writer =>
                 {
-                    Payload = InvalidPipeReader.Instance
-                };
-                response.Use(writer =>
-                    {
-                        var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);
-                        payloadWriterSource.SetResult(payloadWriterDecorator);
-                        return payloadWriterDecorator;
-                    });
-                return new(response);
-            });
+                    var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);
+                    payloadWriterSource.SetResult(payloadWriterDecorator);
+                    return payloadWriterDecorator;
+                });
+            return new(response);
+        });
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
@@ -634,6 +605,69 @@ public sealed class ProtocolConnectionTests
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
+    }
+
+    /// <summary>Ensures that the PeerShutdownInitiated callback is called when the peer initiates the
+    /// shutdown.</summary>
+    [Test, TestCaseSource(nameof(Protocol_on_server_and_client_connection))]
+    public async Task PeerShutdownInitiated_callback_is_called(Protocol protocol, ConnectionType connectionType)
+    {
+        // Arrange
+        await using var serviceProvider = new ProtocolServiceCollection().UseProtocol(protocol).BuildServiceProvider();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+
+        IProtocolConnection connection1 = connectionType == ConnectionType.Client ? sut.Server : sut.Client;
+        IProtocolConnection connection2 = connectionType == ConnectionType.Client ? sut.Client : sut.Server;
+        _ = connection1.AcceptRequestsAsync();
+        _ = connection2.AcceptRequestsAsync();
+
+        var shutdownInitiatedCalled = new TaskCompletionSource<string>();
+        connection2.PeerShutdownInitiated = message =>
+        {
+            shutdownInitiatedCalled.SetResult(message);
+            _ = connection2.ShutdownAsync("");
+        };
+
+        // Act
+        _ = connection1.ShutdownAsync("hello world");
+
+        // Assert
+        string message = protocol == Protocol.Ice ? "connection shutdown by peer" : "hello world";
+        Assert.That(await shutdownInitiatedCalled.Task, Is.EqualTo(message));
+    }
+
+    [Test, TestCaseSource(nameof(_protocols))]
+    public async Task Request_with_large_header(Protocol protocol)
+    {
+        // Arrange
+        // This large value should be large enough to create multiple buffers for the request header.
+        string expectedValue = new('A', 4096);
+        IDictionary<string, string>? context = null;
+        var dispatcher = new InlineDispatcher((request, cancel) =>
+        {
+            context = request.Features.GetContext();
+            return new(new OutgoingResponse(request));
+        });
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .BuildServiceProvider();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+
+        var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        var request = new OutgoingRequest(new Proxy(protocol))
+        {
+            Features = new FeatureCollection().WithContext(new Dictionary<string, string> { ["foo"] = expectedValue })
+        };
+        _ = sut.Server.AcceptRequestsAsync();
+        _ = sut.Client.AcceptRequestsAsync();
+
+        // Act
+        _ = await sut.Client.InvokeAsync(request);
+
+        // Assert
+        Assert.That(context, Is.Not.Null);
+        Assert.That(context["foo"], Is.EqualTo(expectedValue));
     }
 
     /// <summary>Verifies that a connection will not accept further request after shutdown was called, and it will
