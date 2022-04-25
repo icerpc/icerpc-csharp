@@ -73,6 +73,7 @@ namespace IceRpc
 
                         if (previousResponse != null)
                         {
+                            previousResponse.CompleteFields();
                             await previousResponse.Payload.CompleteAsync().ConfigureAwait(false);
                         }
 
@@ -94,6 +95,7 @@ namespace IceRpc
                         // Previous response is discarded so we make sure to complete its payload.
                         if (previousResponse != null)
                         {
+                            previousResponse.CompleteFields();
                             await previousResponse.Payload.CompleteAsync(ex).ConfigureAwait(false);
                         }
                         // TODO: try other replica in some cases?
@@ -104,6 +106,7 @@ namespace IceRpc
                         // Previous response is discarded so we make sure to complete its payload.
                         if (previousResponse != null)
                         {
+                            previousResponse.CompleteFields();
                             await previousResponse.Payload.CompleteAsync(ex).ConfigureAwait(false);
                             response = null;
                         }
@@ -176,6 +179,7 @@ namespace IceRpc
                             {
                                 if (response != null)
                                 {
+                                    response.CompleteFields();
                                     await response.Payload.CompleteAsync().ConfigureAwait(false);
                                 }
                                 throw;

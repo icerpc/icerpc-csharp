@@ -811,6 +811,9 @@ namespace IceRpc.Internal
                 Payload = requestFrameReader,
             };
 
+            // Note: since we don't set fieldsPipeReader, there is no need to call request.CompleteFields - there is
+            // nothing to cleanup.
+
             if (requestHeader.Context.Count > 0)
             {
                 request.Features = request.Features.WithContext(requestHeader.Context);

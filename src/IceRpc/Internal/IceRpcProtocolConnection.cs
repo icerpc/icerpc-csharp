@@ -163,9 +163,11 @@ namespace IceRpc.Internal
                 if (isShuttingDown)
                 {
                     // If shutting down, ignore the incoming request.
+                    request.CompleteFields();
+
                     // TODO: replace with payload exception and error code
                     Exception exception = IceRpcStreamError.ConnectionShutdownByPeer.ToException();
-                    await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
+                    await request.Payload.CompleteAsync(exception).ConfigureAwait(false);
                     await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
                 }
                 else
@@ -204,6 +206,10 @@ namespace IceRpc.Internal
                 }
                 catch (Exception exception)
                 {
+                    // It's ok if they are already completed - a second complete is no-op.
+                    request.CompleteFields();
+                    await request.Payload.CompleteAsync(exception).ConfigureAwait(false);
+
                     // If we catch an exception, we return a failure response with a Slice-encoded payload.
 
                     if (exception is OperationCanceledException)
@@ -296,9 +302,16 @@ namespace IceRpc.Internal
                 }
                 catch (Exception exception)
                 {
+                    // It's ok if they are already completed - a second complete is no-op.
+                    request.CompleteFields();
+                    await request.Payload.CompleteAsync(exception).ConfigureAwait(false);
+
                     await response.CompleteAsync(exception).ConfigureAwait(false);
                     await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
                 }
+
+                // if everything succeeds, the application (e.g. Slice engine) must complete the request fields and
+                // payload.
 
                 void EncodeHeader()
                 {

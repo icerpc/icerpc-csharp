@@ -25,6 +25,7 @@ public class ServerTests
         await using var serviceProvider = new IntegrationTestServiceCollection().AddScoped<IDispatcher>(_ =>
             new InlineDispatcher(async (request, cancel) =>
             {
+                request.CompleteFields();
                 await request.Payload.CompleteAsync();
                 if (waitForCancellation)
                 {
@@ -72,6 +73,7 @@ public class ServerTests
         await using var serviceProvider = new IntegrationTestServiceCollection().AddScoped<IDispatcher>(_ =>
             new InlineDispatcher(async (request, cancel) =>
             {
+                request.CompleteFields();
                 await request.Payload.CompleteAsync();
                 dispatchStartSemaphore.Release();
                 await dispatchContinueSemaphore.WaitAsync(cancel);
@@ -116,6 +118,7 @@ public class ServerTests
             Dispatcher = new InlineDispatcher(async (request, cancel) =>
             {
                 Assert.That(cancel.CanBeCanceled, Is.True);
+                request.CompleteFields();
                 await request.Payload.CompleteAsync();
                 semaphore.Release();
                 await Task.Delay(-1, cancel);

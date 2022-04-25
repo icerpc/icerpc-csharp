@@ -29,6 +29,7 @@ public sealed class InvokeAsyncTests
         {
             ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
             payload = readResult.Buffer.ToArray();
+            request.CompleteFields();
             await request.Payload.CompleteAsync(); // done with payload
             return new OutgoingResponse(request);
         });
@@ -66,6 +67,7 @@ public sealed class InvokeAsyncTests
         var serverOptions = CreateServerOptions(endpoint, colocTransport);
         serverOptions.Dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
+            request.CompleteFields();
             await request.Payload.CompleteAsync();
             return new OutgoingResponse(request)
             {
@@ -82,6 +84,7 @@ public sealed class InvokeAsyncTests
         // Act
         IncomingResponse response = await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy), default);
         byte[] responsePayload = (await response.Payload.ReadAllAsync(default)).Buffer.ToArray();
+        response.CompleteFields();
         await response.Payload.CompleteAsync(); // done with payload
 
         // Assert

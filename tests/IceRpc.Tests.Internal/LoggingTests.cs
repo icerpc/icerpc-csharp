@@ -45,6 +45,7 @@ namespace IceRpc.Tests.Internal
             }));
 
             IncomingResponse response = await pipeline.InvokeAsync(request);
+            response.CompleteFields();
             await response.Payload.CompleteAsync().ConfigureAwait(false);
 
             Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc"));
