@@ -2,7 +2,7 @@
 
 use super::{EntityExt, ParameterExt, ParameterSliceExt};
 use slice::code_gen_util::TypeContext;
-use slice::grammar::{Attributable, Contained, EncodingFormat, Operation};
+use slice::grammar::{Attributable, Contained, ClassFormat, Operation};
 
 pub trait OperationExt {
     /// Returns true if the operation has the `cs::encodedResult` attribute. False otherwise.
@@ -32,9 +32,9 @@ impl OperationExt for Operation {
     }
 
     fn format_type(&self) -> &str {
-        match self.encoding_format() {
-            EncodingFormat::Sliced => "IceRpc.Slice.FormatType.Sliced",
-            EncodingFormat::Compact => "default", // compact is the default value
+        match self.class_format() {
+            ClassFormat::Sliced => "IceRpc.Slice.FormatType.Sliced",
+            ClassFormat::Compact => "default", // compact is the default value
         }
     }
 
