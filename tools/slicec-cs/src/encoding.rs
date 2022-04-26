@@ -110,7 +110,7 @@ fn encode_type(
                     )
                 }
                 TypeRefs::Struct(struct_ref) => {
-                    if struct_ref.definition().has_attribute("cs:type", false) {
+                    if struct_ref.definition().has_attribute("cs::type", false) {
                         format!(
                             "{encoder_extensions_class}.Encode{identifier}(ref {encoder_param}, {value});",
                             encoder_extensions_class = struct_ref.escape_scoped_identifier_with_prefix_and_suffix(
@@ -193,7 +193,7 @@ if ({param} != null)
                     param = match concrete_typeref {
                         TypeRefs::Sequence(sequence_ref)
                             if sequence_ref.has_fixed_size_numeric_elements()
-                                && !sequence_ref.has_attribute("cs:generic", false)
+                                && !sequence_ref.has_attribute("cs::generic", false)
                                 && type_context == TypeContext::Encode =>
                             format!("{}.Span", param),
                         _ => param.to_owned(),
@@ -227,7 +227,7 @@ fn encode_tagged_type(
         Types::Sequence(sequence_def)
             if sequence_def.has_fixed_size_numeric_elements()
                 && type_context == TypeContext::Encode
-                && !data_type.has_attribute("cs:generic", false) =>
+                && !data_type.has_attribute("cs::generic", false) =>
         {
             true
         }
@@ -376,7 +376,7 @@ fn encode_sequence(
     type_context: TypeContext,
     encoder_param: &str,
 ) -> CodeBlock {
-    let has_custom_type = sequence_ref.has_attribute("cs:generic", false);
+    let has_custom_type = sequence_ref.has_attribute("cs::generic", false);
     if sequence_ref.has_fixed_size_numeric_elements() {
         if type_context == TypeContext::Encode && !has_custom_type {
             format!(
@@ -523,7 +523,7 @@ pub fn encode_action(type_ref: &TypeRef, type_context: TypeContext, namespace: &
             )
         }
         TypeRefs::Struct(struct_ref) => {
-            if struct_ref.definition().has_attribute("cs:type", false) {
+            if struct_ref.definition().has_attribute("cs::type", false) {
                 write!(
                     code,
                     "(ref SliceEncoder encoder, {value_type} value) => {encoder_extensions_class}.Encode{identifier}(ref encoder, value)",

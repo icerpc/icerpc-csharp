@@ -21,8 +21,8 @@ pub struct StructVisitor<'a> {
 
 impl<'a> Visitor for StructVisitor<'a> {
     fn visit_struct_start(&mut self, struct_def: &Struct) {
-        // If the compact struct is using cs:type attribute we don't generate any code
-        if !struct_def.has_attribute("cs:type", false) {
+        // If the compact struct is using cs::type attribute we don't generate any code
+        if !struct_def.has_attribute("cs::type", false) {
             let escaped_identifier = struct_def.escape_identifier();
             let members = struct_def.members();
             let namespace = struct_def.namespace();

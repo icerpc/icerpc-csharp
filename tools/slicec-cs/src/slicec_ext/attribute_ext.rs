@@ -9,7 +9,7 @@ pub trait AttributeExt {
 
 impl<T: Attributable + ?Sized> AttributeExt for T {
     fn custom_attributes(&self) -> Vec<String> {
-        if let Some(attributes) = self.get_attribute("cs:attribute", false) {
+        if let Some(attributes) = self.get_attribute("cs::attribute", false) {
             attributes.to_vec()
         } else {
             vec![]

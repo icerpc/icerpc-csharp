@@ -266,7 +266,7 @@ impl FunctionBuilder {
         for parameter in &parameters {
             // The attributes are a space separated list of attributes.
             // eg. [attribute1] [attribute2]
-            let parameter_attributes = parameter.get_attribute("cs:attribute", false).map_or_else(
+            let parameter_attributes = parameter.get_attribute("cs::attribute", false).map_or_else(
                 || "".to_owned(),
                 |vec| {
                     vec.iter()

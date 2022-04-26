@@ -5,7 +5,7 @@ use slice::code_gen_util::TypeContext;
 use slice::grammar::{Attributable, Contained, EncodingFormat, Operation};
 
 pub trait OperationExt {
-    /// Returns true if the operation has the `cs:encodedResult` attribute. False otherwise.
+    /// Returns true if the operation has the `cs::encodedResult` attribute. False otherwise.
     fn has_encoded_result(&self) -> bool;
 
     /// The name of the generated encoded result type.
@@ -20,7 +20,7 @@ pub trait OperationExt {
 
 impl OperationExt for Operation {
     fn has_encoded_result(&self) -> bool {
-        self.has_attribute("cs:encodedResult", true)
+        self.has_attribute("cs::encodedResult", true)
     }
 
     fn encoded_result_struct(&self) -> String {
