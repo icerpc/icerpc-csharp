@@ -96,9 +96,9 @@ interface OperationTagDouble
 
 interface OperationTagEncodedResult
 {
-    [cs:encoded-result] opMyCompactStruct(p1: tag(1) MyCompactStruct?) -> tag(1) MyCompactStruct?;
-    [cs:encoded-result] opStringSeq(p1: tag(1) StringSeq?) -> tag(1) StringSeq?;
-    [cs:encoded-result] opInt32Dict(p1: tag(1) Int32Dict?) -> tag(1) Int32Dict?;
+    [cs::encoded-result] opMyCompactStruct(p1: tag(1) MyCompactStruct?) -> tag(1) MyCompactStruct?;
+    [cs::encoded-result] opStringSeq(p1: tag(1) StringSeq?) -> tag(1) StringSeq?;
+    [cs::encoded-result] opInt32Dict(p1: tag(1) Int32Dict?) -> tag(1) Int32Dict?;
 }
 
 interface OperationTag

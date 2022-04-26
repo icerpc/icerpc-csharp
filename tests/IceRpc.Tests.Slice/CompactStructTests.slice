@@ -16,13 +16,13 @@ compact struct AnotherCompactStruct
     st: MyCompactStruct,
 }
 
-[cs:type("global::System.TimeSpan")]
+[cs::type("global::System.TimeSpan")]
 compact struct MyTimeSpan
 {
     milliSeconds: int64,
 }
 
-[cs:type("global::System.Collections.Generic.LinkedList<int>")]
+[cs::type("global::System.Collections.Generic.LinkedList<int>")]
 compact struct MyList
 {
     value: sequence<int32>

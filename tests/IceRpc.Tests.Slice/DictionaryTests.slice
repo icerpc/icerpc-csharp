@@ -23,23 +23,23 @@ typealias MyCompactStructDict = dictionary<MyCompactStruct, MyCompactStruct>;
 typealias OperationsDict = dictionary<string, Operations>;
 typealias AnotherCompactStructDict = dictionary<string, AnotherCompactStruct>;
 
-typealias UInt8CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint8, uint8>;
-typealias BoolCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<bool, bool>;
-typealias Int16CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<int16, int16>;
-typealias UInt16CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint16, uint16>;
-typealias Int32CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<int32, int32>;
-typealias VarInt32CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varint32, varint32>;
-typealias UInt32CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint32, uint32>;
-typealias VarUInt32CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varuint32, varuint32>;
-typealias Int64CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<int64, int64>;
-typealias VarInt62CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varint62, varint62>;
-typealias UInt64CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint64,uint64>;
-typealias VarUInt62CustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varuint62, varuint62>;
-typealias StringCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<string, string>;
+typealias UInt8CustomDict = [cs::generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint8, uint8>;
+typealias BoolCustomDict = [cs::generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<bool, bool>;
+typealias Int16CustomDict = [cs::generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<int16, int16>;
+typealias UInt16CustomDict = [cs::generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint16, uint16>;
+typealias Int32CustomDict = [cs::generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<int32, int32>;
+typealias VarInt32CustomDict = [cs::generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varint32, varint32>;
+typealias UInt32CustomDict = [cs::generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint32, uint32>;
+typealias VarUInt32CustomDict = [cs::generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varuint32, varuint32>;
+typealias Int64CustomDict = [cs::generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<int64, int64>;
+typealias VarInt62CustomDict = [cs::generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varint62, varint62>;
+typealias UInt64CustomDict = [cs::generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint64,uint64>;
+typealias VarUInt62CustomDict = [cs::generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varuint62, varuint62>;
+typealias StringCustomDict = [cs::generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<string, string>;
 
-typealias MyEnumCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<MyEnum, MyEnum>;
-typealias MyFixedLengthEnumCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<MyFixedLengthEnum, MyFixedLengthEnum>;
-typealias MyUncheckedEnumCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<MyUncheckedEnum, MyUncheckedEnum>;
+typealias MyEnumCustomDict = [cs::generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<MyEnum, MyEnum>;
+typealias MyFixedLengthEnumCustomDict = [cs::generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<MyFixedLengthEnum, MyFixedLengthEnum>;
+typealias MyUncheckedEnumCustomDict = [cs::generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<MyUncheckedEnum, MyUncheckedEnum>;
 
 interface DictionaryOperations
 {

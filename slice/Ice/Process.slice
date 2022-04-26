@@ -2,7 +2,7 @@
 
 encoding = 1;
 
-[cs:namespace(IceRpc)]
+[cs::namespace("IceRpc")]
 module Ice;
 
 /// An administrative interface for process management. Managed servers must

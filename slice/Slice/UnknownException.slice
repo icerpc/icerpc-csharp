@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-[cs:namespace("IceRpc.Slice")]
+[cs::namespace("IceRpc.Slice")]
 module Slice;
 
 /// When a client decodes the payload of a "failure" response and does not know the type ID for the encoded exception,

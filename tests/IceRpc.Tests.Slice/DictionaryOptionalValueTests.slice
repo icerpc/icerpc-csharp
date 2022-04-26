@@ -23,7 +23,7 @@ typealias OptionalMyCompactStructDict = dictionary<MyCompactStruct, MyCompactStr
 typealias OptionalOperationsDict = dictionary<string, Operations?>;
 typealias OptionalAnotherCompactStructDict = dictionary<string, AnotherCompactStruct?>;
 
-typealias OptionalStringCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<string, string?>;
+typealias OptionalStringCustomDict = [cs::generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<string, string?>;
 
 interface DictionaryOptionalValueOperations
 {
