@@ -867,6 +867,8 @@ namespace IceRpc.Internal
                 }
                 catch (Exception exception)
                 {
+                    await request.Payload.CompleteAsync(exception).ConfigureAwait(false);
+
                     // If we catch an exception, we return a failure response with a Slice-encoded payload.
 
                     if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
@@ -901,12 +903,6 @@ namespace IceRpc.Internal
                         pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
                         return pipe.Reader;
                     }
-                }
-                finally
-                {
-                    // We complete the incoming payload upon completion of a dispatch. It's no-op if it was already
-                    // called.
-                    await request.Payload.CompleteAsync().ConfigureAwait(false);
                 }
 
                 // The sending of the response can't be canceled. This would lead to invalid protocol behavior.
@@ -984,6 +980,7 @@ namespace IceRpc.Internal
                 }
                 catch (Exception exception)
                 {
+                    await request.Payload.CompleteAsync(exception).ConfigureAwait(false);
                     await response.CompleteAsync(exception).ConfigureAwait(false);
                     await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
 
