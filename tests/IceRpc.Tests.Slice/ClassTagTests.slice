@@ -48,7 +48,7 @@ class A
     mInt4: tag(500) int32?,
 }
 
-[preserve-slice]
+[preserveSlice]
 class B : A
 {
     mInt5: int32,

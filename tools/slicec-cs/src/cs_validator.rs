@@ -55,7 +55,7 @@ fn validate_cs_internal(attribute: &Attribute, error_reporter: &mut ErrorReporte
 fn validate_cs_encoded_result(attribute: &Attribute,  error_reporter: &mut ErrorReporter) {
     if !attribute.arguments.is_empty() {
         error_reporter.report_error(
-            "too many arguments expected 'cs:encoded-result'".to_owned(),
+            "too many arguments expected 'cs:encodedResult'".to_owned(),
             Some(&attribute.location),
         );
     }
@@ -192,7 +192,7 @@ impl Visitor for CsValidator<'_> {
     fn visit_interface_start(&mut self, interface_def: &Interface) {
         for attribute in &cs_attributes(interface_def.attributes()) {
             match attribute.directive.as_ref() {
-                "encoded-result" => validate_cs_encoded_result(attribute, self.error_reporter),
+                "encodedResult" => validate_cs_encoded_result(attribute, self.error_reporter),
                 _ => validate_common_attributes(attribute, self.error_reporter),
             }
         }
@@ -207,7 +207,7 @@ impl Visitor for CsValidator<'_> {
     fn visit_operation_start(&mut self, operation: &Operation) {
         for attribute in &cs_attributes(operation.attributes()) {
             match attribute.directive.as_ref() {
-                "encoded-result" => validate_cs_encoded_result(attribute, self.error_reporter),
+                "encodedResult" => validate_cs_encoded_result(attribute, self.error_reporter),
                 _ => validate_common_attributes(attribute, self.error_reporter),
             }
         }
