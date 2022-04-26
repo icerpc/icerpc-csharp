@@ -76,6 +76,10 @@ namespace IceRpc.Slice
             async Task<T> ReadResponseAsync(Task<IncomingResponse> responseTask)
             {
                 IncomingResponse response = await responseTask.ConfigureAwait(false);
+
+                // We complete the response fields once the interceptors have completed.
+                response.CompleteFields();
+
                 if (invocation != null)
                 {
                     invocation.Features = response.Request.Features;
@@ -137,6 +141,10 @@ namespace IceRpc.Slice
             async Task ReadResponseAsync(Task<IncomingResponse> responseTask)
             {
                 IncomingResponse response = await responseTask.ConfigureAwait(false);
+
+                // We complete the response fields once the interceptors have completed.
+                response.CompleteFields();
+
                 if (invocation != null)
                 {
                     invocation.Features = response.Request.Features;
