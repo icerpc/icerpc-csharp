@@ -303,7 +303,7 @@ namespace IceRpc
 
             try
             {
-                return await protocolConnection.InvokeAsync(request, cancel).ConfigureAwait(false);
+                return await protocolConnection.InvokeAsync(request, this, cancel).ConfigureAwait(false);
             }
             catch (ConnectionLostException exception)
             {
@@ -429,7 +429,6 @@ namespace IceRpc
                 _protocolConnection = await protocolConnectionFactory.CreateProtocolConnectionAsync(
                     networkConnection,
                     NetworkConnectionInformation.Value,
-                    this,
                     _options,
                     _serverEndpoint != null,
                     connectCancellationSource.Token).ConfigureAwait(false);
@@ -473,7 +472,7 @@ namespace IceRpc
                             Exception? exception = null;
                             try
                             {
-                                await protocolConnection.AcceptRequestsAsync().ConfigureAwait(false);
+                                await protocolConnection.AcceptRequestsAsync(this).ConfigureAwait(false);
                             }
                             catch (Exception ex)
                             {

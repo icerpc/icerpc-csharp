@@ -44,7 +44,6 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public Action<string>? PeerShutdownInitiated { get; set; }
 
-        private readonly Connection _connection;
         private IMultiplexedStream? _controlStream;
         private readonly HashSet<CancellationTokenSource> _cancelDispatchSources = new();
         private readonly IDispatcher _dispatcher;
@@ -64,7 +63,7 @@ namespace IceRpc.Internal
         private readonly TaskCompletionSource _waitForGoAwayCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public async Task AcceptRequestsAsync()
+        public async Task AcceptRequestsAsync(Connection connection)
         {
             while (true)
             {
@@ -124,7 +123,7 @@ namespace IceRpc.Internal
                     throw;
                 }
 
-                var request = new IncomingRequest(_connection, fields, fieldsPipeReader)
+                var request = new IncomingRequest(connection, fields, fieldsPipeReader)
                 {
                     Features = features,
                     IsOneway = !stream.IsBidirectional,
@@ -355,7 +354,10 @@ namespace IceRpc.Internal
         public Task PingAsync(CancellationToken cancel) =>
             SendControlFrameAsync(IceRpcControlFrameType.Ping, encodeAction: null, cancel).AsTask();
 
-        public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+        public async Task<IncomingResponse> InvokeAsync(
+            OutgoingRequest request,
+            Connection connection,
+            CancellationToken cancel)
         {
             IMultiplexedStream? stream = null;
             try
@@ -407,7 +409,7 @@ namespace IceRpc.Internal
 
             if (request.IsOneway)
             {
-                return new IncomingResponse(request, _connection);
+                return new IncomingResponse(request, connection);
             }
 
             Debug.Assert(stream != null);
@@ -437,7 +439,7 @@ namespace IceRpc.Internal
                     request.Features = request.Features.With(retryPolicy);
                 }
 
-                return new IncomingResponse(request, _connection, fields, fieldsPipeReader)
+                return new IncomingResponse(request, connection, fields, fieldsPipeReader)
                 {
                     Payload = stream.Input,
                     ResultType = header.ResultType
@@ -621,12 +623,10 @@ namespace IceRpc.Internal
 
         /// <inheritdoc/>
         internal IceRpcProtocolConnection(
-            Connection connection,
             IDispatcher dispatcher,
             IMultiplexedNetworkConnection networkConnection,
             IDictionary<ConnectionFieldKey, OutgoingFieldValue> localFields)
         {
-            _connection = connection;
             _dispatcher = dispatcher;
             _networkConnection = networkConnection;
             _localFields = localFields;

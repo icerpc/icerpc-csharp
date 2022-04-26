@@ -50,9 +50,11 @@ public sealed class IceRpcProtocolConnectionTests
 
         var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         sut.Server.PeerShutdownInitiated = message => _ = sut.Server.ShutdownAsync(message);
-        _ = sut.Client.AcceptRequestsAsync();
-        var serverAcceptTask = sut.Server.AcceptRequestsAsync();
-        var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
+        _ = sut.Client.AcceptRequestsAsync(InvalidConnection.IceRpc);
+        var serverAcceptTask = sut.Server.AcceptRequestsAsync(InvalidConnection.IceRpc);
+        var invokeTask = sut.Client.InvokeAsync(
+            new OutgoingRequest(new Proxy(Protocol.IceRpc)),
+            InvalidConnection.IceRpc);
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
@@ -82,11 +84,13 @@ public sealed class IceRpcProtocolConnectionTests
             .BuildServiceProvider();
 
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Server.AcceptRequestsAsync();
-        _ = sut.Client.AcceptRequestsAsync();
+        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.IceRpc);
+        _ = sut.Client.AcceptRequestsAsync(InvalidConnection.IceRpc);
 
         // Act
-        var response = await sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
+        var response = await sut.Client.InvokeAsync(
+            new OutgoingRequest(new Proxy(Protocol.IceRpc)),
+            InvalidConnection.IceRpc);
 
         // Assert
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
@@ -156,7 +160,7 @@ public sealed class IceRpcProtocolConnectionTests
             (ref SliceEncoder encoder) => throw new NotSupportedException("invalid request fields"));
 
         // Act
-        _ = sut.Client.InvokeAsync(request);
+        _ = sut.Client.InvokeAsync(request, InvalidConnection.IceRpc);
 
         // Assert
         Assert.That(await payloadDecorator.Completed, Is.InstanceOf<NotSupportedException>());
@@ -185,10 +189,12 @@ public sealed class IceRpcProtocolConnectionTests
             .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
             .BuildServiceProvider();
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Server.AcceptRequestsAsync();
+        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.IceRpc);
 
         // Act
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
+        _ = sut.Client.InvokeAsync(
+            new OutgoingRequest(new Proxy(Protocol.IceRpc)),
+            InvalidConnection.IceRpc);
 
         // Assert
         Assert.That(await payloadDecorator.Completed, Is.InstanceOf<NotSupportedException>());
@@ -212,7 +218,7 @@ public sealed class IceRpcProtocolConnectionTests
         };
 
         // Act
-        _ = sut.Client.InvokeAsync(request);
+        _ = sut.Client.InvokeAsync(request, InvalidConnection.IceRpc);
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.Null);
@@ -236,7 +242,7 @@ public sealed class IceRpcProtocolConnectionTests
         };
 
         // Act
-        _ = sut.Client.InvokeAsync(request);
+        _ = sut.Client.InvokeAsync(request, InvalidConnection.IceRpc);
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
@@ -260,7 +266,7 @@ public sealed class IceRpcProtocolConnectionTests
         };
 
         // Act
-        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
+        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request, InvalidConnection.IceRpc);
 
         // Assert
         Assert.Multiple(async () =>
@@ -287,10 +293,10 @@ public sealed class IceRpcProtocolConnectionTests
             .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
             .BuildServiceProvider();
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Server.AcceptRequestsAsync();
+        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.IceRpc);
 
         // Act
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)), InvalidConnection.IceRpc);
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.Null);
@@ -313,10 +319,10 @@ public sealed class IceRpcProtocolConnectionTests
             .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
             .BuildServiceProvider();
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Server.AcceptRequestsAsync();
+        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.IceRpc);
 
         // Act
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)), InvalidConnection.IceRpc);
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
@@ -333,7 +339,7 @@ public sealed class IceRpcProtocolConnectionTests
             .UseProtocol(Protocol.IceRpc)
             .BuildServiceProvider();
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Server.AcceptRequestsAsync();
+        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.IceRpc);
 
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
         {
@@ -348,7 +354,7 @@ public sealed class IceRpcProtocolConnectionTests
             });
 
         // Act
-        _ = sut.Client.InvokeAsync(request);
+        _ = sut.Client.InvokeAsync(request, InvalidConnection.IceRpc);
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
@@ -382,10 +388,10 @@ public sealed class IceRpcProtocolConnectionTests
             .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
             .BuildServiceProvider();
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Server.AcceptRequestsAsync();
+        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.IceRpc);
 
         // Act
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)), InvalidConnection.IceRpc);
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
@@ -413,11 +419,11 @@ public sealed class IceRpcProtocolConnectionTests
 
         var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
-        _ = sut.Server.AcceptRequestsAsync();
-        _ = sut.Client.AcceptRequestsAsync();
+        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.IceRpc);
+        _ = sut.Client.AcceptRequestsAsync(InvalidConnection.IceRpc);
 
         // Act
-        var response = await sut.Client.InvokeAsync(request);
+        var response = await sut.Client.InvokeAsync(request, InvalidConnection.IceRpc);
 
         // Assert
         Assert.That(
@@ -449,8 +455,10 @@ public sealed class IceRpcProtocolConnectionTests
 
         var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         sut.Server.PeerShutdownInitiated = message => _ = sut.Server.ShutdownAsync(message);
-        var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
-        var serverAcceptTask = sut.Server.AcceptRequestsAsync();
+        var invokeTask = sut.Client.InvokeAsync(
+            new OutgoingRequest(new Proxy(Protocol.IceRpc)),
+            InvalidConnection.IceRpc);
+        var serverAcceptTask = sut.Server.AcceptRequestsAsync(InvalidConnection.IceRpc);
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
