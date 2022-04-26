@@ -289,7 +289,7 @@ public class ConnectionTests
     }
 
     [Test]
-    public async Task Keep_alive_on_invokation([Values("ice", "icerpc")] string protocol)
+    public async Task Keep_alive_on_invocation([Values("ice", "icerpc")] string protocol)
     {
         // Arrange
         using var start = new SemaphoreSlim(0);
