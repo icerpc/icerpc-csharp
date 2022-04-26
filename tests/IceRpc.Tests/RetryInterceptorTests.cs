@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using IceRpc.Features;
 using IceRpc.Internal;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System.Buffers;
 using System.Collections.Immutable;
@@ -18,6 +19,49 @@ public sealed class RetryInterceptorTests
             yield return new OperationCanceledException();
             yield return new NoEndpointException();
         }
+    }
+
+    [Test]
+    public async Task Log_retry()
+    {
+        // Arrange
+        int attempts = 0;
+        var invoker = new InlineInvoker((request, cancel) =>
+        {
+            if (++attempts == 1)
+            {
+                throw new ConnectionClosedException();
+            }
+            else
+            {
+                return Task.FromResult(new IncomingResponse(request, request.Connection!));
+            }
+        });
+
+        var proxy = new Proxy(Protocol.IceRpc);
+        var loggerFactory = new TestLoggerFactory();
+        var sut = new RetryInterceptor(invoker, new RetryOptions { LoggerFactory = loggerFactory });
+
+        var request = new OutgoingRequest(proxy) { Operation = "Op" };
+
+        // Act
+        await sut.InvokeAsync(request, default);
+
+        // Assert
+        Assert.That(attempts, Is.EqualTo(2));
+
+        Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc"));
+        Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(1));
+        TestLoggerEntry entry = loggerFactory.Logger!.Entries[0];
+        Assert.That(entry.State["RetryPolicy"], Is.EqualTo(RetryPolicy.Immediately));
+        Assert.That(entry.State["Attempt"], Is.EqualTo(2));
+        Assert.That(entry.State["MaxAttempts"], Is.EqualTo(2));
+        Assert.That(entry.EventId.Id, Is.EqualTo((int)RetryInterceptorEventIds.RetryRequest));
+        Assert.That(entry.LogLevel, Is.EqualTo(LogLevel.Information));
+        Assert.That(entry.State["Path"], Is.EqualTo("/"));
+        Assert.That(entry.State["Operation"], Is.EqualTo("Op"));
+        Assert.That(entry.Message, Does.StartWith("retrying request because of retryable exception"));
+        Assert.That(entry.Exception, Is.TypeOf<ConnectionClosedException>());
     }
 
     [Test, TestCaseSource(nameof(NotRetryableExceptionSource))]
