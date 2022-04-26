@@ -90,9 +90,12 @@ public sealed class TraitEncodingTests
             Throws.TypeOf<InvalidDataException>());
     }
 
+    /// <summary>Verifies that nested trait decoding fails with <see cref="InvalidDataException"/> after reaching
+    /// the decoder max depth.</summary>
+    /// <param name="depth">The decoder max depth.</param>
     [TestCase(900)]
     [TestCase(3000)]
-    public void Decode_stack_overflow(int depth)
+    public void Nested_trait_decoding_fails_after_reaching_decoder_max_depth(int depth)
     {
         Assert.That(
             () =>
