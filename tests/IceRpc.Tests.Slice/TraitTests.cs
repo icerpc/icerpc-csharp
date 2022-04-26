@@ -61,44 +61,6 @@ namespace IceRpc.Tests.Slice
             Assert.That(await _prx.OpConvertToAAsync(tsb), Is.Null);
             Assert.That(await _prx.OpConvertToAAsync(tsab), Is.AssignableTo(typeof(IMyTraitA)));
         }
-
-        [TestCase(99)]
-        [TestCase(3000)]
-        public async Task Trait_DecodeStackOverflow(int depth)
-        {
-            var request = new OutgoingRequest(_prx.Proxy)
-            {
-                Operation = "opNestedTraitStruct",
-                Payload = CreatePayload(),
-            };
-
-            IncomingResponse response = await Proxy.DefaultInvoker.InvokeAsync(request);
-
-            Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
-
-            // Let's decode the exception
-
-            RemoteException exception = await response.DecodeFailureAsync();
-            Assert.That(exception, Is.TypeOf<DispatchException>());
-            var dispatchException = (DispatchException)exception;
-            Assert.That(dispatchException.ErrorCode, Is.EqualTo(DispatchErrorCode.InvalidData));
-
-            // Constructs a payload that creates a stack overflow during decoding. We're targeting opNestedTraitStruct.
-            PipeReader CreatePayload()
-            {
-                string typeId = typeof(NestedTraitStruct).GetSliceTypeId()!;
-
-                var pipe = new Pipe();
-                var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
-                encoder.EncodeSize((typeId.Length + 1) * depth); // the payload size, in bytes
-                for (int i = 0; i < depth; ++i)
-                {
-                    encoder.EncodeString(typeId);
-                }
-                pipe.Writer.Complete();
-                return pipe.Reader;
-            }
-        }
     }
 
     public class TraitOperations : Service, ITraitOperations
