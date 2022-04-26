@@ -56,7 +56,6 @@ namespace IceRpc.Tests
                     SimpleClientTransport = simpleClientTransport,
                     MultiplexedClientTransport = multiplexedClientTransport,
                     LoggerFactory = serviceProvider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance,
-                    IsResumable = serviceProvider.GetService<ResumableConnection>() != null,
                     // Use 60s timeout otherwise tests causing connection shutdown issues might silently succeed.
                     CloseTimeout = TimeSpan.FromSeconds(60),
                     IceProtocolOptions = serviceProvider.GetService<IceProtocolOptions>()
@@ -76,23 +75,12 @@ namespace IceRpc.Tests
                 path: "/test",
                 invoker: serviceProvider.GetService<IInvoker>()));
         }
-
-        internal class ResumableConnection
-        {
-        }
     }
 
     public static class IntegrationTestServiceCollectionExtensions
     {
         public static IServiceCollection UseProtocol(this IServiceCollection collection, string protocol) =>
             collection.AddScoped(_ => Protocol.FromString(protocol));
-
-        public static IServiceCollection UseVoidDispatcher(this IServiceCollection collection) =>
-            collection.AddTransient<IDispatcher>(_ => new InlineDispatcher((request, cancel) =>
-                new(new OutgoingResponse(request))));
-
-        public static IServiceCollection UseResumableConnection(this IServiceCollection collection) =>
-            collection.AddTransient(_ => new IntegrationTestServiceCollection.ResumableConnection());
     }
 
     public static class IntegrationTestServiceProviderExtensions

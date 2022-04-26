@@ -350,14 +350,11 @@ public class ProxyTests
     {
         var service = new SendProxyTest();
         var pipeline = new Pipeline();
-        await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-            .AddTransient<IDispatcher>(_ =>
-            {
-                var router = new Router();
-                router.Map<ISendProxyTest>(service);
-                router.UseFeature(new SliceDecodePayloadOptions { ProxyInvoker = pipeline });
-                return router;
-            })
+        var router = new Router();
+        router.Map<ISendProxyTest>(service);
+        router.UseFeature(new SliceDecodePayloadOptions { ProxyInvoker = pipeline });
+        await using ServiceProvider serviceProvider = new ConnectionServiceCollection()
+            .UseDispatcher(router)
             .BuildServiceProvider();
         var prx = SendProxyTestPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
 
@@ -372,8 +369,8 @@ public class ProxyTests
     public async Task Proxy_received_over_an_incoming_connection_uses_the_default_invoker()
     {
         var service = new SendProxyTest();
-        await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-            .AddTransient<IDispatcher>(_ => service)
+        await using ServiceProvider serviceProvider = new ConnectionServiceCollection()
+            .UseDispatcher(service)
             .BuildServiceProvider();
         var prx = SendProxyTestPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
 
@@ -387,8 +384,8 @@ public class ProxyTests
     [Test]
     public async Task Proxy_received_over_an_outgoing_connection_inherits_the_callers_invoker()
     {
-        await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-            .AddTransient<IDispatcher>(_ => new ReceiveProxyTest())
+        await using ServiceProvider serviceProvider = new ConnectionServiceCollection()
+            .UseDispatcher(new ReceiveProxyTest())
             .BuildServiceProvider();
         var invoker = new Pipeline();
         var prx = ReceiveProxyTestPrx.FromConnection(

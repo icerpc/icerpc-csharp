@@ -400,6 +400,65 @@ public sealed class ClassTests
     }
 
     [Test]
+    public void Encode_class_with_tagged_members_and_compact_format(
+        [Values(10, null)] int? a,
+        [Values("hello world!", null)] string? b)
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
+
+        // Act
+        encoder.EncodeClass(new MyDerivedClassWithTaggedMembers(a, b));
+
+        // Assert
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
+
+        Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
+        Assert.That(decoder.DecodeUInt8(),
+            b == null ?
+                Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String) :
+                Is.EqualTo(
+                    (byte)Slice1Definitions.TypeIdKind.String |
+                    (byte)Slice1Definitions.SliceFlags.HasTaggedMembers));
+
+        Assert.That(decoder.DecodeString(), Is.EqualTo(MyDerivedClassWithTaggedMembers.SliceTypeId));
+
+        // MyDerivedClassWithTaggedMembers.B
+        if (b != null)
+        {
+            Assert.That(
+                decoder.DecodeTagged(
+                    20,
+                    TagFormat.OVSize,
+                    (ref SliceDecoder decoder) => decoder.DecodeString(),
+                    useTagEndMarker: false),
+                Is.EqualTo(b));
+            Assert.That(decoder.DecodeUInt8(), Is.EqualTo(Slice1Definitions.TagEndMarker));
+        }
+
+        Assert.That(decoder.DecodeUInt8(),
+            a == null ?
+                Is.EqualTo((byte)Slice1Definitions.SliceFlags.IsLastSlice) :
+                Is.EqualTo(
+                    (byte)Slice1Definitions.SliceFlags.HasTaggedMembers |
+                    (byte)Slice1Definitions.SliceFlags.IsLastSlice));
+        // MyClassWithTaggedMembers.A
+        if (a != null)
+        {
+            Assert.That(
+                decoder.DecodeTagged(
+                    10,
+                    TagFormat.F4,
+                    (ref SliceDecoder decoder) => decoder.DecodeInt32(),
+                    useTagEndMarker: false),
+                Is.EqualTo(a));
+            Assert.That(decoder.DecodeUInt8(), Is.EqualTo(Slice1Definitions.TagEndMarker));
+            Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+        }
+    }
+
+    [Test]
     public void Decode_class_with_compact_format()
     {
         // Arrange
@@ -751,6 +810,85 @@ public sealed class ClassTests
         _ = decoder.DecodeClass<MyDerivedCompactClass>();
 
         // Assert
+        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+    }
+
+    [Test]
+    public void Decode_class_with_tagged_members_and_compact_format(
+        [Values(10, null)] int? a,
+        [Values("hello world!", null)] string? b,
+        [Values(20, null)] long? c)
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
+
+        encoder.EncodeSize(1); // Instance marker
+        byte sliceFlags = (byte)Slice1Definitions.TypeIdKind.String;
+        if (b != null || c != null)
+        {
+            sliceFlags |= (byte)Slice1Definitions.SliceFlags.HasTaggedMembers;
+        }
+        encoder.EncodeUInt8(sliceFlags);
+
+        encoder.EncodeString(MyDerivedClassWithTaggedMembers.SliceTypeId);
+
+        // MyDerivedClassWithTaggedMembers.B
+        if (b != null)
+        {
+            encoder.EncodeTagged(
+                20,
+                TagFormat.OVSize,
+                b,
+                (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
+        }
+
+        if (c != null)
+        {
+            // Additional tagged member not defined in Slice
+            encoder.EncodeTagged(
+                30,
+                TagFormat.F8,
+                size: 8,
+                c.Value,
+                (ref SliceEncoder encoder, long value) => encoder.EncodeInt64(value));
+        }
+
+        if (b != null || c != null)
+        {
+            encoder.EncodeUInt8(Slice1Definitions.TagEndMarker);
+        }
+
+
+        sliceFlags = (byte)Slice1Definitions.SliceFlags.IsLastSlice;
+        if (a != null)
+        {
+            sliceFlags |= (byte)Slice1Definitions.SliceFlags.HasTaggedMembers;
+        }
+        encoder.EncodeUInt8(sliceFlags);
+
+        // MyClassWithTaggedMembers.A
+        if (a != null)
+        {
+            encoder.EncodeTagged(
+                10,
+                TagFormat.F4,
+                size: 4,
+                a.Value,
+                (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
+            encoder.EncodeUInt8(Slice1Definitions.TagEndMarker);
+        }
+        var decoder = new SliceDecoder(
+            buffer.WrittenMemory,
+            SliceEncoding.Slice1,
+            activator: SliceDecoder.GetActivator(typeof(MyDerivedClassWithTaggedMembers).Assembly));
+
+        // Act
+        var classWithTaggedMembers = decoder.DecodeClass<MyDerivedClassWithTaggedMembers>();
+
+        // Assert
+        Assert.That(classWithTaggedMembers.A, Is.EqualTo(a));
+        Assert.That(classWithTaggedMembers.B, Is.EqualTo(b));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
