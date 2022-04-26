@@ -1,7 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Slice;
 using IceRpc.Transports;
+using IceRpc.Transports.Internal;
 using IceRpc.Transports.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -232,6 +234,281 @@ public class ConnectionTests
         // Assert
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
     }
+
+    [Test]
+    public async Task Connect_sets_network_connection_information([Values("ice", "icerpc")] string protocol)
+    {
+        // Arrange
+        await using var provider = new ConnectionServiceCollection(protocol)
+            .UseDispatcher(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))))
+            .UseConnectionOptions(new ConnectionOptions { IsResumable = true })
+            .BuildServiceProvider();
+        var server = provider.GetRequiredService<Server>();
+        var connection = provider.GetRequiredService<Connection>();
+        var networkConnectionInformation = connection.NetworkConnectionInformation;
+
+        // Act
+        await connection.ConnectAsync(default);
+
+        // Assert
+        Assert.That(networkConnectionInformation, Is.Null);
+        Assert.That(connection.NetworkConnectionInformation, Is.Not.Null);
+    }
+
+    [Test]
+    public async Task Keep_alive_on_idle(
+        [Values("ice", "icerpc")] string protocol,
+        [Values(true, false)] bool keepAliveOnClient)
+    {
+        // Arrange
+        var tcpServerTransportOptions = new TcpServerTransportOptions
+        {
+            IdleTimeout = TimeSpan.FromMilliseconds(500),
+        };
+
+        var tcpClientTransportOptions = new TcpClientTransportOptions
+        {
+            IdleTimeout = TimeSpan.FromMilliseconds(500),
+        };
+
+        await using var provider = new ConnectionServiceCollection(protocol)
+            .UseTcp(tcpServerTransportOptions, tcpClientTransportOptions)
+            .UseConnectionOptions(new ConnectionOptions { KeepAlive = keepAliveOnClient })
+            .UseServerOptions(new ServerOptions { KeepAlive = !keepAliveOnClient })
+            .BuildServiceProvider();
+
+        var server = provider.GetRequiredService<Server>();
+        var clientConnection = provider.GetRequiredService<Connection>();
+
+        // Act
+        await clientConnection.ConnectAsync();
+
+        // Assert
+        await Task.Delay(TimeSpan.FromSeconds(2));
+        Assert.That(clientConnection.State, Is.EqualTo(ConnectionState.Active));
+    }
+
+    [Test]
+    public async Task Keep_alive_on_invocation([Values("ice", "icerpc")] string protocol)
+    {
+        // Arrange
+        using var start = new SemaphoreSlim(0);
+        using var hold = new SemaphoreSlim(0);
+        var tcpServerTransportOptions = new TcpServerTransportOptions
+        {
+            IdleTimeout = TimeSpan.FromMilliseconds(500),
+        };
+
+        var tcpClientTransportOptions = new TcpClientTransportOptions
+        {
+            IdleTimeout = TimeSpan.FromMilliseconds(500),
+        };
+
+        var dispatcher = new InlineDispatcher(async (request, cancel) =>
+        {
+            start.Release();
+            await hold.WaitAsync(CancellationToken.None);
+            return new OutgoingResponse(request);
+        });
+
+        await using var provider = new ConnectionServiceCollection(protocol)
+            .UseTcp(tcpServerTransportOptions, tcpClientTransportOptions)
+            .UseDispatcher(dispatcher)
+            .BuildServiceProvider();
+
+        var server = provider.GetRequiredService<Server>();
+        var clientConnection = provider.GetRequiredService<Connection>();
+        var proxy = ServicePrx.FromConnection(clientConnection, "/path");
+        var pingTask = proxy.IcePingAsync();
+        await start.WaitAsync();
+
+        // Act
+        await Task.Delay(TimeSpan.FromSeconds(2));
+
+        // Assert
+        Assert.That(clientConnection.State, Is.EqualTo(ConnectionState.Active));
+        hold.Release();
+        Assert.That(async () => await pingTask, Throws.Nothing);
+    }
+
+    [Test]
+    public async Task Shutdown_connection(
+        [Values("ice", "icerpc")] string protocol,
+        [Values(true, false)] bool closeClientSide)
+    {
+        // Arrange
+        using var start = new SemaphoreSlim(0);
+        using var hold = new SemaphoreSlim(0);
+        Connection? serverConnection = null;
+        var dispatcher = new InlineDispatcher(async (request, cancel) =>
+        {
+            serverConnection = request.Connection;
+            start.Release();
+            await hold.WaitAsync(CancellationToken.None);
+            return new OutgoingResponse(request);
+        });
+
+        await using var provider = new ConnectionServiceCollection(protocol)
+            .UseDispatcher(dispatcher)
+            .BuildServiceProvider();
+
+        var server = provider.GetRequiredService<Server>();
+        var clientConnection = provider.GetRequiredService<Connection>();
+        var proxy = ServicePrx.FromConnection(clientConnection, "/path");
+        var pingTask = proxy.IcePingAsync();
+        await start.WaitAsync();
+
+        // Act
+        var shutdownTask = (closeClientSide ? clientConnection : serverConnection!).ShutdownAsync(CancellationToken.None);
+
+        // Assert
+        if (closeClientSide && protocol == "ice")
+        {
+            await shutdownTask;
+
+            // With the Ice protocol, when closing the connection with a pending invocation, invocations are
+            // canceled immediately. The Ice protocol doesn't support reliably waiting for the response.
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
+            Assert.That(hold.Release(), Is.EqualTo(0));
+        }
+        else
+        {
+            Assert.That(hold.Release(), Is.EqualTo(0));
+            await shutdownTask;
+
+            // Ensure the invocation is successful.
+            Assert.DoesNotThrowAsync(async () => await pingTask);
+        }
+    }
+
+    [Test]
+    public async Task Shutdown_cancellation(
+        [Values("ice", "icerpc")] string protocol,
+        [Values(true, false)] bool closeClientSide)
+    {
+        // Arrange
+        using var start = new SemaphoreSlim(0);
+        using var hold = new SemaphoreSlim(0);
+
+        Connection? serverConnection = null;
+        using var shutdownCancelationSource = new CancellationTokenSource();
+        var dispatchCompletionSource = new TaskCompletionSource();
+        var dispatcher = new InlineDispatcher(async (request, cancel) =>
+        {
+            try
+            {
+                serverConnection = request.Connection;
+                start.Release();
+                await hold.WaitAsync(cancel);
+                return new OutgoingResponse(request);
+            }
+            catch (OperationCanceledException)
+            {
+                dispatchCompletionSource.SetResult();
+                throw;
+            }
+        });
+
+        await using var provider = new ConnectionServiceCollection(protocol)
+            .UseDispatcher(dispatcher)
+            .BuildServiceProvider();
+
+        var server = provider.GetRequiredService<Server>();
+        var clientConnection = provider.GetRequiredService<Connection>();
+        var proxy = ServicePrx.FromConnection(clientConnection, "/path");
+        var pingTask = proxy.IcePingAsync();
+        await start.WaitAsync();
+        var shutdownTask = (closeClientSide ? clientConnection : serverConnection!).ShutdownAsync(shutdownCancelationSource.Token);
+
+        // Act
+        shutdownCancelationSource.Cancel();
+
+        // Assert
+        if (closeClientSide)
+        {
+            await shutdownTask;
+
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
+            Assert.That(async () => await dispatchCompletionSource.Task, Throws.Nothing);
+        }
+        else
+        {
+            Assert.That(shutdownTask.IsCompleted, Is.False);
+            Assert.That(async () => await dispatchCompletionSource.Task, Throws.Nothing);
+
+            if (protocol == "ice")
+            {
+                Assert.That(async () => await pingTask, Throws.TypeOf<DispatchException>());
+            }
+            else
+            {
+                Assert.That(async () => await pingTask, Throws.TypeOf<OperationCanceledException>());
+            }
+        }
+    }
+
+    [Test]
+    public async Task Close_timeout(
+        [Values("ice", "icerpc")] string protocol,
+        [Values(true, false)] bool closeClientSide)
+    {
+        // Arrange
+        using var start = new SemaphoreSlim(0);
+        using var hold = new SemaphoreSlim(0);
+
+        Connection? serverConnection = null;
+        var dispatcher = new InlineDispatcher(async (request, cancel) =>
+        {
+            serverConnection = request.Connection;
+            start.Release();
+            await hold.WaitAsync(cancel);
+            return new OutgoingResponse(request);
+        });
+
+        await using var provider = new ConnectionServiceCollection(protocol)
+            .UseDispatcher(dispatcher)
+            .UseConnectionOptions(
+                new ConnectionOptions
+                {
+                    CloseTimeout = closeClientSide ? TimeSpan.FromSeconds(1) : TimeSpan.FromSeconds(60)
+                })
+            .UseServerOptions(
+                new ServerOptions
+                {
+                    CloseTimeout = closeClientSide ? TimeSpan.FromSeconds(60) : TimeSpan.FromSeconds(1)
+                })
+            .BuildServiceProvider();
+
+        var server = provider.GetRequiredService<Server>();
+        var clientConnection = provider.GetRequiredService<Connection>();
+        var proxy = ServicePrx.FromConnection(clientConnection, "/path");
+        var pingTask = proxy.IcePingAsync();
+        await start.WaitAsync();
+
+        // Act
+        _ = (closeClientSide ? clientConnection : serverConnection!).ShutdownAsync(default);
+
+        // Assert
+        if (closeClientSide)
+        {
+            // Shutdown should trigger the abort of the connection after the close timeout
+            if (protocol == "ice")
+            {
+                // Invocations are canceled immediately on shutdown with Ice
+                Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
+            }
+            else
+            {
+                Assert.ThrowsAsync<ObjectDisposedException>(async () => await pingTask);
+            }
+        }
+        else
+        {
+            // Shutdown should trigger the abort of the connection on the client side after the close timeout
+            Assert.ThrowsAsync<ConnectionLostException>(async () => await pingTask);
+        }
+        hold.Release();
+    }
 }
 
 public class ConnectionServiceCollection : ServiceCollection
@@ -285,4 +562,9 @@ public static class ConnectionServiceCollectionExtensions
         this IServiceCollection serviceCollection,
         ConnectionOptions connectionOptions) =>
         serviceCollection.AddScoped(_ => connectionOptions);
+
+    public static IServiceCollection UseServerOptions(
+        this IServiceCollection serviceCollection,
+        ServerOptions serverOptions) =>
+        serviceCollection.AddScoped(_ => serverOptions);
 }

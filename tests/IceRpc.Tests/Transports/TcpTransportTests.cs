@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.Net;
 using System.Net.Security;
+using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Transports.Tests;
@@ -288,6 +289,39 @@ public class TcpTransportTests
 
         // Act/Assert
         Assert.That(async () => await connectTask, Throws.InstanceOf<OperationCanceledException>());
+    }
+
+    [Test]
+    public async Task Tcp_network_connection_information([Values(true, false)] bool tls)
+    {
+        // Arrange
+        using var cancellationSource = new CancellationTokenSource();
+        await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
+            authenticationOptions: tls ? DefaultSslServerAuthenticationOptions : null);
+
+        await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(
+            listener.Endpoint,
+            authenticationOptions: tls ? DefaultSslClientAuthenticationOptions : null);
+
+        Task<NetworkConnectionInformation> connectTask = clientConnection.ConnectAsync(default);
+        ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
+        Task<NetworkConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(cancellationSource.Token);
+
+        // Act
+        var networkConnectionInformation = await connectTask;
+
+        // Assert
+        Assert.That(networkConnectionInformation.IdleTimeout, Is.EqualTo(TimeSpan.FromSeconds(60)));
+        Assert.That(networkConnectionInformation.LocalEndPoint, Is.TypeOf<IPEndPoint>());
+        Assert.That(networkConnectionInformation.LocalEndPoint.AddressFamily, Is.EqualTo(AddressFamily.InterNetworkV6));
+        var endPoint = (IPEndPoint)networkConnectionInformation.LocalEndPoint;
+        Assert.That(endPoint.Address, Is.EqualTo(IPAddress.IPv6Loopback));
+        Assert.That(networkConnectionInformation.RemoteEndPoint, Is.TypeOf<IPEndPoint>());
+        endPoint = (IPEndPoint)networkConnectionInformation.RemoteEndPoint;
+        Assert.That(endPoint.Address, Is.EqualTo(IPAddress.IPv6Loopback));
+        Assert.That(
+            networkConnectionInformation.RemoteCertificate,
+            Is.EqualTo(tls ? DefaultSslServerAuthenticationOptions.ServerCertificate : null));
     }
 
     /// <summary>Verifies that the server connect call on a tls connection fails if the client previously disposed its

@@ -1,5 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Features;
 using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
@@ -13,13 +14,13 @@ namespace IceRpc
     {
         private readonly ILogger _logger;
         private readonly IInvoker _next;
-        private readonly Configure.RetryOptions _options;
+        private readonly RetryOptions _options;
 
         /// <summary>Constructs a retry interceptor.</summary>
         /// <param name="next">The next invoker in the invocation pipeline.</param>
         /// <param name="options">The options to configure the retry interceptor.</param>
         /// <see cref="RetryPolicy"/>
-        public RetryInterceptor(IInvoker next, Configure.RetryOptions options)
+        public RetryInterceptor(IInvoker next, RetryOptions options)
         {
             _next = next;
             _options = options;
