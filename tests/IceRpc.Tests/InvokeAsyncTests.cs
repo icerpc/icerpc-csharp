@@ -29,7 +29,6 @@ public sealed class InvokeAsyncTests
         {
             ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
             payload = readResult.Buffer.ToArray();
-            request.CompleteFields();
             await request.Payload.CompleteAsync(); // done with payload
             return new OutgoingResponse(request);
         });
@@ -67,7 +66,6 @@ public sealed class InvokeAsyncTests
         var serverOptions = CreateServerOptions(endpoint, colocTransport);
         serverOptions.Dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
-            request.CompleteFields();
             await request.Payload.CompleteAsync();
             return new OutgoingResponse(request)
             {

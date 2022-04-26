@@ -80,6 +80,8 @@ namespace IceRpc.Internal
                     return;
                 }
 
+                PipeReader? fieldsPipeReader = null;
+
                 try
                 {
                     ReadResult readResult = await stream.Input.ReadSegmentAsync(
@@ -128,7 +130,7 @@ namespace IceRpc.Internal
                     }
                     else
                     {
-                        (IceRpcRequestHeader header, IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields, PipeReader? fieldsPipeReader) =
+                        (IceRpcRequestHeader header, IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields, fieldsPipeReader) =
                             DecodeHeader(readResult.Buffer);
                         stream.Input.AdvanceTo(readResult.Buffer.End);
 
@@ -148,9 +150,10 @@ namespace IceRpc.Internal
                             features = features.WithContext(context);
                         }
 
-                        var request = new IncomingRequest(connection, fields, fieldsPipeReader)
+                        var request = new IncomingRequest(connection)
                         {
                             Features = features,
+                            Fields = fields,
                             IsOneway = !stream.IsBidirectional,
                             Operation = header.Operation,
                             Path = header.Path,
@@ -158,11 +161,19 @@ namespace IceRpc.Internal
                         };
 
                         Debug.Assert(cancelDispatchSource != null);
-                        _ = Task.Run(() => DispatchRequestAsync(request, stream, cancelDispatchSource));
+                        _ = Task.Run(() => DispatchRequestAsync(
+                            request,
+                            stream,
+                            fieldsPipeReader,
+                            cancelDispatchSource));
                     }
                 }
                 catch (Exception exception)
                 {
+                    if (fieldsPipeReader != null)
+                    {
+                        await fieldsPipeReader.CompleteAsync(exception).ConfigureAwait(false);
+                    }
                     await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
                     if (stream.IsBidirectional)
                     {
@@ -175,6 +186,7 @@ namespace IceRpc.Internal
             async Task DispatchRequestAsync(
                 IncomingRequest request,
                 IMultiplexedStream stream,
+                PipeReader? fieldsPipeReader,
                 CancellationTokenSource cancelDispatchSource)
             {
                 // If the peer input pipe reader is completed while the request is being dispatched, we cancel the
@@ -273,6 +285,12 @@ namespace IceRpc.Internal
                 }
                 finally
                 {
+                    if (fieldsPipeReader != null)
+                    {
+                        await fieldsPipeReader.CompleteAsync().ConfigureAwait(false);
+                    }
+                    request.Fields = ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
+
                     lock (_mutex)
                     {
                         _cancelDispatchSources.Remove(cancelDispatchSource);

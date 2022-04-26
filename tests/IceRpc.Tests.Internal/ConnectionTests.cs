@@ -31,7 +31,6 @@ namespace IceRpc.Tests.Internal
                 transport,
                 dispatcher: new InlineDispatcher(async (request, cancel) =>
                 {
-                    request.CompleteFields();
                     await request.Payload.CompleteAsync();
                     await semaphore.WaitAsync(cancel);
                     return new OutgoingResponse(request);
@@ -158,7 +157,6 @@ namespace IceRpc.Tests.Internal
                     protocol,
                     dispatcher: new InlineDispatcher(async (request, cancel) =>
                     {
-                        request.CompleteFields();
                         await request.Payload.CompleteAsync();
                         await dispatchSemaphore.WaitAsync(cancel);
                         return new OutgoingResponse(request);
@@ -191,7 +189,6 @@ namespace IceRpc.Tests.Internal
                     protocol,
                     dispatcher: new InlineDispatcher(async (request, cancel) =>
                     {
-                        request.CompleteFields();
                         await request.Payload.CompleteAsync();
                         waitForDispatchSemaphore.Release();
                         await dispatchSemaphore.WaitAsync(cancel);
@@ -239,7 +236,6 @@ namespace IceRpc.Tests.Internal
                     protocol,
                     dispatcher: new InlineDispatcher(async (request, cancel) =>
                     {
-                        request.CompleteFields();
                         await request.Payload.CompleteAsync();
                         waitForDispatchSemaphore.Release();
                         try
@@ -316,7 +312,6 @@ namespace IceRpc.Tests.Internal
                     protocol: protocol,
                     dispatcher: new InlineDispatcher(async (request, cancel) =>
                     {
-                        request.CompleteFields();
                         await request.Payload.CompleteAsync();
                         waitForDispatchSemaphore.Release();
                         await semaphore.WaitAsync(cancel);
