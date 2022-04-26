@@ -2,7 +2,7 @@
 
 encoding = 1;
 
-[cs:namespace("IceRpc.Slice")]
+[cs::namespace("IceRpc.Slice")]
 module Slice;
 
 /// All services defined in Slice implement this interface.

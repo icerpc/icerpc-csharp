@@ -2,7 +2,7 @@
 
 encoding = 1;
 
-[cs:internal]
+[cs::internal]
 module IceRpc::Internal;
 
 // These definitions help with the encoding of ice frames.
@@ -18,7 +18,7 @@ enum IceFrameType
 }
 
 /// The ice frame prologue
-[cs:readonly]
+[cs::readonly]
 compact struct IcePrologue
 {
     magic1: uint8,
@@ -55,7 +55,7 @@ enum OperationMode
 
 /// The payload of most request and response frames starts with an encapsulation header that specifies the size of
 /// the encapsulation and its encoding.
-[cs:readonly]
+[cs::readonly]
 compact struct EncapsulationHeader
 {
     encapsulationSize: int32,
@@ -68,7 +68,7 @@ compact struct EncapsulationHeader
 /// - a request ID
 /// - a request header (below)
 /// - a request payload, with encapsulationSize - 6 bytes
-[cs:readonly]
+[cs::readonly]
 compact struct IceRequestHeader
 {
     path: Slice::IdentityPath,

@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-[cs:internal]
+[cs::internal]
 module IceRpc::Internal;
 
 // These definitions help with the encoding of icerpc frames.
@@ -23,7 +23,7 @@ enum IceRpcControlFrameType : uint8
 /// - a request header size (varuint62)
 /// - a request header (below)
 /// - a request payload
-[cs:readonly]
+[cs::readonly]
 compact struct IceRpcRequestHeader
 {
     path: string,
@@ -35,7 +35,7 @@ compact struct IceRpcRequestHeader
 /// - a response header size (varuint62)
 /// - a response header (below)
 /// - a response payload
-[cs:readonly]
+[cs::readonly]
 compact struct IceRpcResponseHeader
 {
     resultType: ResultType,
@@ -43,7 +43,7 @@ compact struct IceRpcResponseHeader
 }
 
 /// The initialize frame is sent by each side on connection establishment to exchange connection fields.
-[cs:readonly]
+[cs::readonly]
 compact struct IceRpcInitialize
 {
     fields: dictionary<ConnectionFieldKey, sequence<uint8>>,
@@ -52,7 +52,7 @@ compact struct IceRpcInitialize
 /// The GoAway frame is sent on connection shutdown to notify the peer that it shouldn't perform new invocations and to
 /// provide the stream IDs of the invocations being dispatched. Invocations with stream IDs superior to these stream IDs
 /// can safely be retried.
-[cs:readonly]
+[cs::readonly]
 compact struct IceRpcGoAway
 {
     lastBidirectionalStreamId: varint62,

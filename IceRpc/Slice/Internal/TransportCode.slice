@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-[cs:internal]
+[cs::internal]
 module IceRpc::Slice::Internal;
 
 /// TransportCode is used by Slice1 to encode a transport name (such as "tcp") as an int16 value.
