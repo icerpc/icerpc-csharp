@@ -76,6 +76,10 @@ namespace IceRpc.Tests
                 serverProtocolConnection);
         }
 
+        internal static Connection GetInvalidConnection(this IServiceProvider serviceProvider) =>
+            serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ? InvalidConnection.Ice :
+                InvalidConnection.IceRpc;
+
         private static Task<(INetworkConnection, IProtocolConnection)> GetClientProtocolConnectionAsync(
             this IServiceProvider serviceProvider) => serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ?
                 GetProtocolConnectionAsync(
@@ -100,7 +104,6 @@ namespace IceRpc.Tests
                 await serviceProvider.GetRequiredService<IProtocolConnectionFactory<T>>().CreateProtocolConnectionAsync(
                     networkConnection,
                     connectionInformation: new(),
-                    connection: protocol == Protocol.Ice ? InvalidConnection.Ice : InvalidConnection.IceRpc,
                     connectionOptions: isServer ?
                         serviceProvider.GetService<ServerConnectionOptions>()?.Value ?? new() :
                         serviceProvider.GetService<ClientConnectionOptions>()?.Value ?? new(),

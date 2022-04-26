@@ -50,7 +50,6 @@ namespace IceRpc.Internal
                 [RequestFieldKey.Idempotent] = default
             }.ToImmutableDictionary();
 
-        private readonly Connection _connection;
         private readonly IDispatcher _dispatcher;
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -77,11 +76,11 @@ namespace IceRpc.Internal
         private readonly AsyncSemaphore _sendSemaphore = new(1, 1);
 
         /// <inheritdoc/>
-        public async Task AcceptRequestsAsync()
+        public async Task AcceptRequestsAsync(Connection connection)
         {
             try
             {
-                await ReceiveFramesAsync().ConfigureAwait(false);
+                await ReceiveFramesAsync(connection).ConfigureAwait(false);
             }
             catch (Exception exception)
             {
@@ -116,7 +115,10 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
-        public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+        public async Task<IncomingResponse> InvokeAsync(
+            OutgoingRequest request,
+            Connection connection,
+            CancellationToken cancel)
         {
             bool acquiredSemaphore = false;
             int requestId = 0;
@@ -200,7 +202,7 @@ namespace IceRpc.Internal
             if (request.IsOneway)
             {
                 // We're done, there's no response for oneway requests.
-                return new IncomingResponse(request, _connection);
+                return new IncomingResponse(request, connection);
             }
 
             Debug.Assert(responseCompletionSource != null);
@@ -263,7 +265,7 @@ namespace IceRpc.Internal
                         request.Features = request.Features.With(RetryPolicy.OtherReplica);
                     }
 
-                    return new IncomingResponse(request, _connection)
+                    return new IncomingResponse(request, connection)
                     {
                         Payload = frameReader,
                         ResultType = replyStatus switch
@@ -398,12 +400,10 @@ namespace IceRpc.Internal
         }
 
         internal IceProtocolConnection(
-            Connection connection,
             IDispatcher dispatcher,
             ISimpleNetworkConnection simpleNetworkConnection,
             Configure.IceProtocolOptions options)
         {
-            _connection = connection;
             _dispatcher = dispatcher;
             _options = options;
 
@@ -600,7 +600,7 @@ namespace IceRpc.Internal
         }
 
         /// <summary>Receives incoming frames and returns on graceful connection shutdown.</summary>
-        private async ValueTask ReceiveFramesAsync()
+        private async ValueTask ReceiveFramesAsync(Connection connection)
         {
             // Reads are not cancelable. This method returns once a request frame is read or when the connection is
             // disposed.
@@ -684,7 +684,7 @@ namespace IceRpc.Internal
                     }
 
                     case IceFrameType.Request:
-                        await ReceiveRequestAsync(prologue.FrameSize).ConfigureAwait(false);
+                        await ReceiveRequestAsync(prologue.FrameSize, connection).ConfigureAwait(false);
                         break;
 
                     case IceFrameType.RequestBatch:
@@ -768,7 +768,7 @@ namespace IceRpc.Internal
             } // while
         }
 
-        private async Task ReceiveRequestAsync(int requestFrameSize)
+        private async Task ReceiveRequestAsync(int requestFrameSize, Connection connection)
         {
             // Read the request frame.
             PipeReader requestFrameReader = await CreateFrameReaderAsync(
@@ -800,7 +800,7 @@ namespace IceRpc.Internal
             }
 
             var request = new IncomingRequest(
-                _connection,
+                connection,
                 fields: requestHeader.OperationMode == OperationMode.Normal ?
                     ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields)
             {

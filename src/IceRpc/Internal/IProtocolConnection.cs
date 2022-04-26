@@ -24,7 +24,8 @@ namespace IceRpc.Internal
         Action<string>? PeerShutdownInitiated { get; set; }
 
         /// <summary>Accepts requests and returns once the connection is closed or the shutdown completes.</summary>
-        Task AcceptRequestsAsync();
+        /// <param name="connection">The connection of incoming requests created by this method.</param>
+        Task AcceptRequestsAsync(Connection connection);
 
         /// <summary>Sends a ping frame to defer the idle timeout.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -33,9 +34,13 @@ namespace IceRpc.Internal
         /// <summary>Sends a request and returns the response. The implementation must complete the request payload
         /// and payload stream.</summary>
         /// <param name="request">The outgoing request to send.</param>
+        /// <param name="connection">The connection of incoming responses created by this method.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The received response.</returns>
-        Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default);
+        Task<IncomingResponse> InvokeAsync(
+            OutgoingRequest request,
+            Connection connection,
+            CancellationToken cancel = default);
 
         /// <summary>Shutdowns gracefully the connection.</summary>
         /// <param name="message">The reason of the connection shutdown.</param>

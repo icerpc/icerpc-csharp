@@ -79,8 +79,8 @@ public sealed class IceProtocolConnectionTests
             .BuildServiceProvider();
 
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Server.AcceptRequestsAsync();
-        _ = sut.Client.AcceptRequestsAsync();
+        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.Ice);
+        _ = sut.Client.AcceptRequestsAsync(InvalidConnection.Ice);
 
         var request = new OutgoingRequest(new Proxy(Protocol.Ice));
         var responseTasks = new List<Task<IncomingResponse>>();
@@ -88,7 +88,7 @@ public sealed class IceProtocolConnectionTests
         // Act
         for (int i = 0; i < maxConcurrentDispatches + 1; ++i)
         {
-            responseTasks.Add(sut.Client.InvokeAsync(request, default));
+            responseTasks.Add(sut.Client.InvokeAsync(request, InvalidConnection.Ice, default));
         }
         // wait for maxDispatchesPerConnection dispatches to start
         for (int i = 0; i < maxConcurrentDispatches; ++i)
@@ -126,11 +126,13 @@ public sealed class IceProtocolConnectionTests
             .BuildServiceProvider();
 
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Server.AcceptRequestsAsync();
-        _ = sut.Client.AcceptRequestsAsync();
+        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.Ice);
+        _ = sut.Client.AcceptRequestsAsync(InvalidConnection.Ice);
 
         // Act
-        var response = await sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.Ice)));
+        var response = await sut.Client.InvokeAsync(
+            new OutgoingRequest(new Proxy(Protocol.Ice)),
+            InvalidConnection.Ice);
 
         // Assert
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
@@ -157,7 +159,7 @@ public sealed class IceProtocolConnectionTests
         };
 
         // Act
-        _ = sut.Client.InvokeAsync(request);
+        _ = sut.Client.InvokeAsync(request, InvalidConnection.Ice);
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
@@ -181,10 +183,12 @@ public sealed class IceProtocolConnectionTests
             .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
             .BuildServiceProvider();
         await using var clientServerProtocolConnection = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = clientServerProtocolConnection.Server.AcceptRequestsAsync();
+        _ = clientServerProtocolConnection.Server.AcceptRequestsAsync(InvalidConnection.Ice);
 
         // Act
-        _ = clientServerProtocolConnection.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.Ice)));
+        _ = clientServerProtocolConnection.Client.InvokeAsync(
+            new OutgoingRequest(new Proxy(Protocol.Ice)),
+            InvalidConnection.Ice);
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
@@ -214,10 +218,12 @@ public sealed class IceProtocolConnectionTests
             .BuildServiceProvider();
 
         var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        var clientAcceptTask = sut.Client.AcceptRequestsAsync();
-        _ = sut.Server.AcceptRequestsAsync();
+        var clientAcceptTask = sut.Client.AcceptRequestsAsync(InvalidConnection.Ice);
+        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.Ice);
         sut.Server.PeerShutdownInitiated = message => sut.Server.ShutdownAsync("");
-        var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.Ice)));
+        var invokeTask = sut.Client.InvokeAsync(
+            new OutgoingRequest(new Proxy(Protocol.Ice)),
+            InvalidConnection.Ice);
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act

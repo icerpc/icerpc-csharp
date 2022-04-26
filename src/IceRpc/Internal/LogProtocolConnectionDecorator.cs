@@ -28,11 +28,11 @@ namespace IceRpc.Internal
         private readonly bool _isServer;
         private readonly ILogger _logger;
 
-        async Task IProtocolConnection.AcceptRequestsAsync()
+        async Task IProtocolConnection.AcceptRequestsAsync(Connection connection)
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             _logger.LogAcceptRequests();
-            await _decoratee.AcceptRequestsAsync().ConfigureAwait(false);
+            await _decoratee.AcceptRequestsAsync(connection).ConfigureAwait(false);
         }
 
         void IDisposable.Dispose()
@@ -51,12 +51,14 @@ namespace IceRpc.Internal
 
         async Task<IncomingResponse> IProtocolConnection.InvokeAsync(
             OutgoingRequest request,
+            Connection connection,
             CancellationToken cancel)
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             using IDisposable _ = _logger.StartSendRequestScope(request);
             IncomingResponse response = await _decoratee.InvokeAsync(
                 request,
+                connection,
                 cancel).ConfigureAwait(false);
             _logger.LogSendRequest();
             return response;
