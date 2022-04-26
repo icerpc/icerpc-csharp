@@ -55,13 +55,13 @@ public sealed class TraitEncodingTests
     {
         var buffer = new MemoryBufferWriter(new byte[1024]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        var decoder = new SliceDecoder(
-            buffer.WrittenMemory,
-            SliceEncoding.Slice2,
-            activator: SliceDecoder.GetActivator(typeof(TraitStructA).Assembly));
-        var tsa = new TraitStructA("Bar");
         encoder.EncodeString("::IceRpc::Slice::Tests::TraitStructA");
+        var tsa = new TraitStructA("Bar");
         tsa.Encode(ref encoder);
+        var decoder = new SliceDecoder(
+                    buffer.WrittenMemory,
+                    SliceEncoding.Slice2,
+                    activator: SliceDecoder.GetActivator(typeof(TraitStructA).Assembly));
 
         IMyTraitA decodedTrait = decoder.DecodeTrait<IMyTraitA>();
 
@@ -93,8 +93,8 @@ public sealed class TraitEncodingTests
     /// <summary>Verifies that nested trait decoding fails with <see cref="InvalidDataException"/> after reaching
     /// the decoder max depth.</summary>
     /// <param name="depth">The decoder max depth.</param>
-    [TestCase(900)]
-    [TestCase(3000)]
+    [TestCase(100)]
+    [TestCase(500)]
     public void Nested_trait_decoding_fails_after_reaching_decoder_max_depth(int depth)
     {
         Assert.That(
@@ -123,14 +123,14 @@ public sealed class TraitEncodingTests
     {
         var buffer = new MemoryBufferWriter(new byte[1024]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        var decoder = new SliceDecoder(
-            buffer.WrittenMemory,
-            SliceEncoding.Slice2,
-            activator: SliceDecoder.GetActivator(typeof(TraitStructA).Assembly));
         var traitStructA = new TraitStructA("Foo");
 
         traitStructA.EncodeTrait(ref encoder);
 
+        var decoder = new SliceDecoder(
+            buffer.WrittenMemory,
+            SliceEncoding.Slice2,
+            activator: SliceDecoder.GetActivator(typeof(TraitStructA).Assembly));
         Assert.That(decoder.DecodeString(), Is.EqualTo("::IceRpc::Slice::Tests::TraitStructA"));
         Assert.That(new TraitStructA(ref decoder), Is.EqualTo(traitStructA));
     }
