@@ -2,7 +2,6 @@
 
 using System.Buffers;
 using System.Collections.Immutable;
-using System.IO.Pipelines;
 
 namespace IceRpc
 {

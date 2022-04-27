@@ -284,8 +284,11 @@ namespace IceRpc.Internal
                     if (fieldsPipeReader != null)
                     {
                         await fieldsPipeReader.CompleteAsync().ConfigureAwait(false);
+
+                        // The field values are now invalid - they point to potentially recycled and reused memory. We
+                        // replace Fields by an empty dictionary to prevent accidental access to this reused memory.
+                        request.Fields = ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
                     }
-                    request.Fields = ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
 
                     // Even when the code above throws an exception, we catch it and send a response. So we never want
                     // to give an exception to CompleteAsync when completing the incoming payload.

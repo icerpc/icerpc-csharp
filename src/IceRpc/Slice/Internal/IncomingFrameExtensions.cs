@@ -35,7 +35,7 @@ namespace IceRpc.Slice.Internal
             return frame.Payload.TryReadSegment(encoding, out ReadResult readResult) ? new(DecodeSegment(readResult)) :
                 PerformDecodeAsync();
 
-            // All the logic is in this local function
+            // All the logic is in this local function.
             T DecodeSegment(ReadResult readResult)
             {
                 if (readResult.IsCanceled)
@@ -87,7 +87,7 @@ namespace IceRpc.Slice.Internal
 
             return PerformDecodeAsync();
 
-            // All the logic is in this local function .
+            // All the logic is in this local function.
             void DecodeSegment(ReadResult readResult)
             {
                 if (readResult.IsCanceled)
@@ -135,7 +135,9 @@ namespace IceRpc.Slice.Internal
             PipeReader payload = frame.Payload;
             frame.Payload = InvalidPipeReader.Instance; // payload is now our responsability
 
-            _ = Task.Run(() => FillWriterAsync(payload), CancellationToken.None);
+            // We read the payload and fill the writer (streamDecoder) in a separate thread. We don't give the frame to
+            // this thread since frames are not thread-safe.
+            _ = Task.Run(() => FillWriterAsync(payload, encoding, streamDecoder), CancellationToken.None);
 
             // when CancelPendingRead is called on reader, ReadSegmentAsync returns a ReadResult with IsCanceled
             // set to true.
@@ -161,7 +163,10 @@ namespace IceRpc.Slice.Internal
                 return items;
             }
 
-            async Task FillWriterAsync(PipeReader payload)
+            async static Task FillWriterAsync(
+                PipeReader payload,
+                SliceEncoding encoding,
+                StreamDecoder<T> streamDecoder)
             {
                 while (true)
                 {
