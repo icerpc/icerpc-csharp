@@ -12,25 +12,6 @@ namespace IceRpc.Slice
     /// Slice encoding.</summary>
     public static class IncomingResponseExtensions
     {
-        /// <summary>Creates an async enumerable over the payload reader of an incoming response to decode streamed
-        /// members.</summary>
-        /// <param name="response">The incoming response.</param>
-        /// <param name="encoding">The encoding of the response payload.</param>
-        /// <param name="defaultActivator">The optional default activator.</param>
-        /// <param name="decodeFunc">The function used to decode the streamed member.</param>
-        /// <returns>The async enumerable to decode and return the streamed members.</returns>
-        public static IAsyncEnumerable<T> DecodeAsyncEnumerable<T>(
-            this IncomingResponse response,
-            SliceEncoding encoding,
-            IActivator? defaultActivator,
-            DecodeFunc<T> decodeFunc) =>
-            response.ToAsyncEnumerable(
-                encoding,
-                response.Request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
-                defaultActivator,
-                defaultInvoker: response.Request.Proxy.Invoker,
-                decodeFunc);
-
         /// <summary>Decodes a response with a <see cref="ResultType.Failure"/> result type.</summary>
         /// <param name="response">The incoming response.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
@@ -91,6 +72,25 @@ namespace IceRpc.Slice
                     cancel).ConfigureAwait(false);
             }
         }
+
+        /// <summary>Creates an async enumerable over the payload reader of an incoming response to decode streamed
+        /// members.</summary>
+        /// <param name="response">The incoming response.</param>
+        /// <param name="encoding">The encoding of the response payload.</param>
+        /// <param name="defaultActivator">The optional default activator.</param>
+        /// <param name="decodeFunc">The function used to decode the streamed member.</param>
+        /// <returns>The async enumerable to decode and return the streamed members.</returns>
+        public static IAsyncEnumerable<T> DecodeStream<T>(
+            this IncomingResponse response,
+            SliceEncoding encoding,
+            IActivator? defaultActivator,
+            DecodeFunc<T> decodeFunc) =>
+            response.ToAsyncEnumerable(
+                encoding,
+                response.Request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
+                defaultActivator,
+                defaultInvoker: response.Request.Proxy.Invoker,
+                decodeFunc);
 
         /// <summary>Verifies that a response payload carries no return value or only tagged return values.</summary>
         /// <param name="response">The incoming response.</param>

@@ -585,7 +585,7 @@ pub fn decode_operation_stream(
             if dispatch {
                 format!(
                     "\
-request.DecodeAsyncEnumerable<{param_type}>(
+request.DecodeStream<{param_type}>(
     {encoding},
     _defaultActivator,
     {decode_func});",
@@ -597,7 +597,7 @@ request.DecodeAsyncEnumerable<{param_type}>(
             } else {
                 format!(
                     "\
-response.DecodeAsyncEnumerable<{param_type}>(
+response.DecodeStream<{param_type}>(
     {encoding},
     _defaultActivator,
     {decode_func});",
