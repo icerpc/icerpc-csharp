@@ -48,7 +48,8 @@ exception RequiredException : TaggedException
 
 interface ExceptionTag
 {
-    opTaggedException(p1: TaggedException) -> TaggedException;
+    // TODO: exceptions as data types is only supported with Slice 2.
+    //opTaggedException(p1: TaggedException) -> TaggedException;
 
     ThrowTaggedException(p1: tag(1) int32?, p2: tag(2) string?, p3: tag(3) TaggedExceptionStruct?);
 
