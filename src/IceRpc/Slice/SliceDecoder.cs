@@ -699,39 +699,6 @@ namespace IceRpc.Slice
             return _reader.Remaining >= minSize ? size : throw new InvalidDataException("invalid sequence size");
         }
 
-        /// <summary>Decodes fields.</summary>
-        /// <returns>The fields.</returns>
-        /// <remarks>The fields use and must use the remainder of the underlying buffer.</remarks>
-        internal IDictionary<TKey, ReadOnlySequence<byte>> DecodeFieldDictionary<TKey>(
-            DecodeFunc<TKey> decodeKeyFunc) where TKey : struct
-        {
-            int size = DecodeSize();
-            if (size == 0)
-            {
-                return ImmutableDictionary<TKey, ReadOnlySequence<byte>>.Empty;
-            }
-            else
-            {
-                // TODO: for now we make a copy of the remaining bytes in _reader into a new buffer. Ideally, we would
-                // use _reader directly but this requires a separate "backing" Pipe.
-                byte[] buffer = new byte[_reader.Remaining];
-                _ = _reader.TryCopyTo(buffer);
-                _reader.AdvanceToEnd();
-
-                var decoder = new SliceDecoder(new ReadOnlyMemory<byte>(buffer), Encoding);
-                var dict = new Dictionary<TKey, ReadOnlySequence<byte>>(size);
-                for (int i = 0; i < size; ++i)
-                {
-                    TKey key = decodeKeyFunc(ref decoder);
-                    int valueSize = decoder.DecodeSize();
-                    ReadOnlySequence<byte> value = decoder._reader.UnreadSequence.Slice(0, valueSize);
-                    decoder._reader.Advance(valueSize);
-                    dict.Add(key, value);
-                }
-                return dict;
-            }
-        }
-
         /// <summary>Decodes non-empty field dictionary without making a copy of the field values.</summary>
         /// <returns>The fields dictionary. The field values reference memory in the underlying buffer. They are not
         /// copied.</returns>

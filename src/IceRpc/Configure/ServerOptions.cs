@@ -4,6 +4,7 @@ using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Collections.Immutable;
+using System.Buffers;
 using System.Net.Security;
 
 namespace IceRpc.Configure
@@ -58,6 +59,9 @@ namespace IceRpc.Configure
                 throw new NotSupportedException($"cannot set endpoint with protocol '{value.Protocol}'");
         }
 
+        /// <summary>Gets of sets the default features of the new connections.</summary>
+        public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
+
         /// <summary>Gets or sets the connection fields to send to the clients.</summary>
         public IDictionary<ConnectionFieldKey, OutgoingFieldValue> Fields { get; set; } =
             ImmutableDictionary<ConnectionFieldKey, OutgoingFieldValue>.Empty;
@@ -82,6 +86,10 @@ namespace IceRpc.Configure
         /// server to accept multiplexed connections.</summary>
         public IServerTransport<IMultiplexedNetworkConnection> MultiplexedServerTransport { get; set; } =
             DefaultMultiplexedServerTransport;
+
+        /// <summary>Gets or sets the action to execute during connection establishment. This action (or linked actions)
+        /// can convert the fields received from the remote peer into features.</summary>
+        public Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>, FeatureCollection>? OnConnect { get; set; }
 
         /// <summary>Gets or sets the <see cref="IServerTransport{ISimpleNetworkConnection}"/> used by the server
         /// to accept simple connections.</summary>

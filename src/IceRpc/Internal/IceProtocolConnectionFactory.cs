@@ -11,6 +11,7 @@ namespace IceRpc.Internal
             ISimpleNetworkConnection networkConnection,
             NetworkConnectionInformation connectionInfo,
             Configure.ConnectionOptions connectionOptions,
+            FeatureCollection _,
             bool isServer,
             CancellationToken cancel)
         {

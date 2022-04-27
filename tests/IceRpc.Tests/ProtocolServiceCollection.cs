@@ -107,6 +107,7 @@ namespace IceRpc.Tests
                     connectionOptions: isServer ?
                         serviceProvider.GetService<ServerConnectionOptions>()?.Value ?? new() :
                         serviceProvider.GetService<ClientConnectionOptions>()?.Value ?? new(),
+                    features: new FeatureCollection(),
                     isServer,
                     CancellationToken.None);
             return (networkConnection, protocolConnection);

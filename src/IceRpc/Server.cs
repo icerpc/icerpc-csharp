@@ -170,9 +170,11 @@ namespace IceRpc
                     CloseTimeout = _options.CloseTimeout,
                     ConnectTimeout = _options.ConnectTimeout,
                     Dispatcher = _options.Dispatcher,
+                    Features = _options.Features,
                     Fields = _options.Fields,
                     IceProtocolOptions = _options.IceProtocolOptions,
-                    KeepAlive = _options.KeepAlive
+                    KeepAlive = _options.KeepAlive,
+                    OnConnect = _options.OnConnect,
                 };
 
                 while (true)
