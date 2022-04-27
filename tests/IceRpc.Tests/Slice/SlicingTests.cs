@@ -53,7 +53,7 @@ public class SlicingTests
         Assert.That(p1.M2, Is.EqualTo(r.M2));
         Assert.That(p1.M3, Is.EqualTo(r.M3));
 
-        // Create an activator that exclude 'MyMostDerivedClass' type ID and ensure that the class is decodes as
+        // Create an activator that exclude 'MyMostDerivedClass' type ID and ensure that the class is decoded as
         // 'MyDerivedClass' which is the base type.
         var slicingActivator = new SlicingActivator(
             activator,
