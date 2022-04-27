@@ -8,10 +8,14 @@ namespace IceRpc.Slice.Tests;
 
 public class StreamTests
 {
+    /// <summary>Verifies that we can create a payload stream over an async enumerable.</summary>
+    /// <param name="size">The size of the async enumerable.</param>
+    /// <param name="yieldThreshold">The yield threshold ensures that we test both synchronous and asynchronous
+    /// iteration code paths in the payload stream pipe reader.</param>
     [TestCase(0, 0)]
     [TestCase(100, 7)]
     [TestCase(64 * 1024, 0)]
-    public void Create_stream_payload(int size, int yieldThreshold)
+    public void Create_payload_stream(int size, int yieldThreshold)
     {
         // Arrange
         var expected = Enumerable.Range(0, size).Select(i => i).ToArray();
@@ -26,7 +30,6 @@ public class StreamTests
 
         async IAsyncEnumerable<int> GetDataAsync(int size)
         {
-            await Task.Yield();
             for (int i = 0; i < size; i++)
             {
                 if (yieldThreshold > 0 && i % yieldThreshold == 0)
@@ -50,20 +53,20 @@ public class StreamTests
             while (!readResult.IsCompleted);
             return data.ToArray();
         }
-    }
 
-    static List<int> DecodeIntStream(ReadOnlySequence<byte> buffer)
-    {
-        var data = new List<int>();
-        var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
-        while (decoder.Consumed < buffer.Length)
+        static List<int> DecodeIntStream(ReadOnlySequence<byte> buffer)
         {
-            int size = decoder.DecodeSize() / sizeof(int);
-            for (int i = 0; i < size; i++)
+            var data = new List<int>();
+            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+            while (decoder.Consumed < buffer.Length)
             {
-                data.Add(decoder.DecodeInt32());
+                int size = decoder.DecodeSize() / sizeof(int);
+                for (int i = 0; i < size; i++)
+                {
+                    data.Add(decoder.DecodeInt32());
+                }
             }
+            return data;
         }
-        return data;
     }
 }
