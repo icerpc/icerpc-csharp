@@ -46,7 +46,6 @@ public class StreamTests
                 readResult = await payload.ReadAsync();
                 data.AddRange(DecodeIntStream(readResult.Buffer));
                 payload.AdvanceTo(readResult.Buffer.End);
-                
             }
             while (!readResult.IsCompleted);
             return data.ToArray();
