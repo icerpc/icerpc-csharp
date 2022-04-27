@@ -195,8 +195,14 @@ namespace IceRpc
 
                 if (connection == null)
                 {
+                    Action<Connection, Exception> removeOnClose = (connection, _) => Remove(endpoint, connection);
+
                     // Connections from the connection pool are not resumable.
-                    connection = new Connection(_connectionOptions with { RemoteEndpoint = endpoint });
+                    connection = new Connection(_connectionOptions with
+                    {
+                        OnClose = removeOnClose + _connectionOptions.OnClose,
+                        RemoteEndpoint = endpoint
+                    });
 
                     if (!_connections.TryGetValue(endpoint, out connections))
                     {
@@ -204,10 +210,6 @@ namespace IceRpc
                         _connections[endpoint] = connections;
                     }
                     connections.Add(connection);
-
-                    // Set the callback used to remove the connection from the pool. This can throw if the connection is
-                    // closed but it's not possible here since we've just constructed the connection.
-                    connection.Closed += (sender, state) => Remove(endpoint, connection);
                 }
             }
             await connection.ConnectAsync(cancel).ConfigureAwait(false);

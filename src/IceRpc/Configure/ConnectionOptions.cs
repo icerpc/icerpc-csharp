@@ -86,6 +86,9 @@ namespace IceRpc.Configure
         public IClientTransport<IMultiplexedNetworkConnection> MultiplexedClientTransport { get; set; } =
             DefaultMultiplexedClientTransport;
 
+        /// <summary>Gets or set an action that executes when the connection is closed.</summary>
+        public Action<Connection, Exception>? OnClose { get; set; }
+
         /// <summary>Gets or sets the connection's remote endpoint.</summary>
         public Endpoint? RemoteEndpoint
         {
