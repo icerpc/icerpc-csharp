@@ -14,6 +14,9 @@ namespace IceRpc
         private readonly Dictionary<Endpoint, List<Connection>> _connections = new(EndpointComparer.ParameterLess);
         private readonly object _mutex = new();
         private readonly bool _preferExistingConnection;
+
+        private readonly Action<Connection, Exception> _removeOnClose;
+
         private CancellationTokenSource? _shutdownCancelSource;
         private Task? _shutdownTask;
 
@@ -30,6 +33,7 @@ namespace IceRpc
         {
             _connectionOptions = connectionOptions ?? new ConnectionOptions();
             _preferExistingConnection = preferExistingConnection;
+            _removeOnClose = (connection, _) => Remove(connection);
         }
 
         /// <summary>An alias for <see cref="ShutdownAsync"/>, except this method returns a <see cref="ValueTask"/>.
@@ -195,12 +199,10 @@ namespace IceRpc
 
                 if (connection == null)
                 {
-                    Action<Connection, Exception> removeOnClose = (connection, _) => Remove(endpoint, connection);
-
                     // Connections from the connection pool are not resumable.
                     connection = new Connection(_connectionOptions with
                     {
-                        OnClose = removeOnClose + _connectionOptions.OnClose,
+                        OnClose = _removeOnClose + _connectionOptions.OnClose,
                         RemoteEndpoint = endpoint
                     });
 
@@ -216,18 +218,18 @@ namespace IceRpc
             return connection;
         }
 
-        private void Remove(Endpoint endpoint, Connection connection)
+        private void Remove(Connection connection)
         {
             lock (_mutex)
             {
                 // _connections is immutable after shutdown
                 if (_shutdownTask == null)
                 {
-                    List<Connection> list = _connections[endpoint];
+                    List<Connection> list = _connections[connection.Endpoint];
                     list.Remove(connection);
                     if (list.Count == 0)
                     {
-                        _connections.Remove(endpoint);
+                        _connections.Remove(connection.Endpoint);
                     }
                 }
             }
