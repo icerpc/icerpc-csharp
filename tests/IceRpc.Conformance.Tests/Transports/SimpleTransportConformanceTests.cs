@@ -263,8 +263,8 @@ public abstract class SimpleTransportConformanceTests
         await using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
         await sut.ServerConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
         var delay = TimeSpan.FromMilliseconds(2);
-        // Task.Delay sometime returns a little too early so we add a 1ms tolerance.
-        TimeSpan lastActivity = sut.ClientConnection.LastActivity - TimeSpan.FromMilliseconds(1);
+        // Task.Delay sometime returns a little too early so we add a 2ms tolerance.
+        TimeSpan lastActivity = sut.ClientConnection.LastActivity - TimeSpan.FromMilliseconds(2);
         await Task.Delay(delay);
         var buffer = new Memory<byte>(new byte[1]);
 
@@ -371,8 +371,8 @@ public abstract class SimpleTransportConformanceTests
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
         await using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
         var delay = TimeSpan.FromMilliseconds(10);
-        // Task.Delay sometime returns a little too early so we add a 1ms tolerance.
-        TimeSpan lastActivity = sut.ClientConnection.LastActivity - TimeSpan.FromMilliseconds(1);
+        // Task.Delay sometime returns a little too early so we add a 2ms tolerance.
+        TimeSpan lastActivity = sut.ClientConnection.LastActivity - TimeSpan.FromMilliseconds(2);
         await Task.Delay(delay);
 
         // Act
