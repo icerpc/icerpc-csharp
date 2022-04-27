@@ -161,6 +161,7 @@ namespace IceRpc.Tests.Slice
 
     public class ExceptionTag : Service, IExceptionTag
     {
+        // TODO: exceptions as data types is only supported with Slice 2.
         // public ValueTask<TaggedException> OpTaggedExceptionAsync(
         //     TaggedException p1,
         //     Dispatch dispatch,
