@@ -502,7 +502,6 @@ fn response_operation_body(operation: &Operation) -> CodeBlock {
 await response.DecodeVoidReturnValueAsync(
     {encoding},
     _defaultActivator,
-    hasStream: true,
     cancel).ConfigureAwait(false);
 
 return {decode_operation_stream}
@@ -519,7 +518,6 @@ var {return_value} = await response.DecodeReturnValueAsync(
     {encoding},
     _defaultActivator,
     {response_decode_func},
-    hasStream: true,
     cancel).ConfigureAwait(false);
 
 {decode_response_stream}
@@ -542,7 +540,6 @@ await response.DecodeReturnValueAsync(
     {encoding},
     _defaultActivator,
     {response_decode_func},
-    hasStream: false,
     cancel).ConfigureAwait(false)",
             encoding = encoding,
             response_decode_func = response_decode_func(operation).indent()

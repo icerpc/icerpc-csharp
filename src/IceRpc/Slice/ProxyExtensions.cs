@@ -163,7 +163,6 @@ namespace IceRpc.Slice
                     await response.DecodeVoidReturnValueAsync(
                         encoding,
                         defaultActivator,
-                        hasStream: false,
                         cancel).ConfigureAwait(false);
                 }
                 catch (Exception ex)
