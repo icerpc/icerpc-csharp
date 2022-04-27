@@ -40,9 +40,7 @@ namespace IceRpc.Slice
             return new PayloadStreamPipeReader<T>(encoding, asyncEnumerable, encodeAction);
         }
 
-#pragma warning disable CA1001 // CompleteAsync disposes the cancellation source token.
         private class PayloadStreamPipeReader<T> : PipeReader
-#pragma warning restore CA1001
         {
             private readonly IAsyncEnumerator<T> _asyncEnumerator;
             private readonly CancellationTokenSource _cancellationSource = new();
