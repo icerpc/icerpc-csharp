@@ -80,10 +80,7 @@ namespace IceRpc.Internal
                     return;
                 }
 
-                IceRpcRequestHeader header;
-                IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields;
-                PipeReader? fieldsPipeReader;
-                FeatureCollection features = FeatureCollection.Empty;
+                PipeReader? fieldsPipeReader = null;
 
                 try
                 {
@@ -96,25 +93,87 @@ namespace IceRpc.Internal
                         throw new InvalidDataException("received icerpc request with empty header");
                     }
 
-                    (header, fields, fieldsPipeReader) = DecodeHeader(readResult.Buffer);
-                    stream.Input.AdvanceTo(readResult.Buffer.End);
+                    bool isShuttingDown = false;
+                    CancellationTokenSource? cancelDispatchSource = null;
 
-                    // Decode Context from Fields and set corresponding feature.
-                    if (fields.DecodeValue(
-                        RequestFieldKey.Context,
-                        (ref SliceDecoder decoder) => decoder.DecodeDictionary(
-                            minKeySize: 1,
-                            minValueSize: 1,
-                            size => new Dictionary<string, string>(size),
-                            keyDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString(),
-                            valueDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString()))
-                                is Dictionary<string, string> context && context.Count > 0)
+                    lock (_mutex)
                     {
-                        features = features.WithContext(context);
+                        // If shutting down, ignore the incoming request.
+                        if (_isShuttingDown)
+                        {
+                            isShuttingDown = true;
+                        }
+                        else
+                        {
+                            cancelDispatchSource = new();
+                            _cancelDispatchSources.Add(cancelDispatchSource);
+
+                            if (stream.IsBidirectional)
+                            {
+                                _lastRemoteBidirectionalStreamId = stream.Id;
+                            }
+                            else
+                            {
+                                _lastRemoteUnidirectionalStreamId = stream.Id;
+                            }
+
+                            AddStream(stream);
+                        }
+                    }
+
+                    if (isShuttingDown)
+                    {
+                        // TODO: replace with payload exception and error code
+                        Exception exception = IceRpcStreamError.ConnectionShutdownByPeer.ToException();
+                        await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
+                        await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        (IceRpcRequestHeader header, IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields, fieldsPipeReader) =
+                            DecodeHeader(readResult.Buffer);
+                        stream.Input.AdvanceTo(readResult.Buffer.End);
+
+                        FeatureCollection features = FeatureCollection.Empty;
+
+                        // Decode Context from Fields and set corresponding feature.
+                        if (fields.DecodeValue(
+                            RequestFieldKey.Context,
+                            (ref SliceDecoder decoder) => decoder.DecodeDictionary(
+                                minKeySize: 1,
+                                minValueSize: 1,
+                                size => new Dictionary<string, string>(size),
+                                keyDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString(),
+                                valueDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString()))
+                                    is Dictionary<string, string> context && context.Count > 0)
+                        {
+                            features = features.WithContext(context);
+                        }
+
+                        var request = new IncomingRequest(connection)
+                        {
+                            Features = features,
+                            Fields = fields,
+                            IsOneway = !stream.IsBidirectional,
+                            Operation = header.Operation,
+                            Path = header.Path,
+                            Payload = stream.Input
+                        };
+
+                        Debug.Assert(cancelDispatchSource != null);
+                        _ = Task.Run(() => DispatchRequestAsync(
+                            request,
+                            stream,
+                            fieldsPipeReader,
+                            cancelDispatchSource));
                     }
                 }
                 catch (Exception exception)
                 {
+                    if (fieldsPipeReader != null)
+                    {
+                        await fieldsPipeReader.CompleteAsync().ConfigureAwait(false);
+                    }
                     await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
                     if (stream.IsBidirectional)
                     {
@@ -122,61 +181,12 @@ namespace IceRpc.Internal
                     }
                     throw;
                 }
-
-                var request = new IncomingRequest(connection, fields, fieldsPipeReader)
-                {
-                    Features = features,
-                    IsOneway = !stream.IsBidirectional,
-                    Operation = header.Operation,
-                    Path = header.Path,
-                    Payload = stream.Input
-                };
-
-                CancellationTokenSource? cancelDispatchSource = null;
-                bool isShuttingDown = false;
-                lock (_mutex)
-                {
-                    // If shutting down, ignore the incoming request.
-                    if (_isShuttingDown)
-                    {
-                        isShuttingDown = true;
-                    }
-                    else
-                    {
-                        cancelDispatchSource = new();
-                        _cancelDispatchSources.Add(cancelDispatchSource);
-
-                        if (stream.IsBidirectional)
-                        {
-                            _lastRemoteBidirectionalStreamId = stream.Id;
-                        }
-                        else
-                        {
-                            _lastRemoteUnidirectionalStreamId = stream.Id;
-                        }
-
-                        AddStream(stream);
-                    }
-                }
-
-                if (isShuttingDown)
-                {
-                    // If shutting down, ignore the incoming request.
-                    // TODO: replace with payload exception and error code
-                    Exception exception = IceRpcStreamError.ConnectionShutdownByPeer.ToException();
-                    await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
-                    await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
-                }
-                else
-                {
-                    Debug.Assert(cancelDispatchSource != null);
-                    _ = Task.Run(() => DispatchRequestAsync(request, stream, cancelDispatchSource));
-                }
             }
 
             async Task DispatchRequestAsync(
                 IncomingRequest request,
                 IMultiplexedStream stream,
+                PipeReader? fieldsPipeReader,
                 CancellationTokenSource cancelDispatchSource)
             {
                 // If the peer input pipe reader is completed while the request is being dispatched, we cancel the
@@ -207,8 +217,6 @@ namespace IceRpc.Internal
 
                     if (exception is OperationCanceledException)
                     {
-                        // The dispatcher completes the incoming request payload even on failures. We just complete the
-                        // stream output here.
                         await stream.Output.CompleteAsync(
                             IceRpcStreamError.DispatchCanceled.ToException()).ConfigureAwait(false);
 
@@ -273,6 +281,19 @@ namespace IceRpc.Internal
                 }
                 finally
                 {
+                    if (fieldsPipeReader != null)
+                    {
+                        await fieldsPipeReader.CompleteAsync().ConfigureAwait(false);
+
+                        // The field values are now invalid - they point to potentially recycled and reused memory. We
+                        // replace Fields by an empty dictionary to prevent accidental access to this reused memory.
+                        request.Fields = ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
+                    }
+
+                    // Even when the code above throws an exception, we catch it and send a response. So we never want
+                    // to give an exception to CompleteAsync when completing the incoming payload.
+                    await request.Payload.CompleteAsync().ConfigureAwait(false);
+
                     lock (_mutex)
                     {
                         _cancelDispatchSources.Remove(cancelDispatchSource);
@@ -290,7 +311,8 @@ namespace IceRpc.Internal
                 {
                     EncodeHeader();
 
-                    // SendPayloadAsync takes care of the completion of the payload, payload stream and stream output.
+                    // SendPayloadAsync takes care of the completion of the response payload, payload stream and stream
+                    // output.
                     await SendPayloadAsync(response, stream, CancellationToken.None).ConfigureAwait(false);
                 }
                 catch (Exception exception)
@@ -375,7 +397,7 @@ namespace IceRpc.Internal
 
                 EncodeHeader(stream.Output);
 
-                // SendPayloadAsync takes care of the completion of the payloads and stream output.
+                // SendPayloadAsync takes care of the completion of the request payloads and stream output.
                 await SendPayloadAsync(request, stream, cancel).ConfigureAwait(false);
             }
             catch (Exception exception)
@@ -716,8 +738,8 @@ namespace IceRpc.Internal
 
                             _streams.Remove(stream);
 
-                            // If no more streams and shutting down, we can set the _streamsCompleted task completion source
-                            // as completed to allow shutdown to progress.
+                            // If no more streams and shutting down, we can set the _streamsCompleted task completion
+                            // source as completed to allow shutdown to progress.
                             if (_isShuttingDown && _streams.Count == 0)
                             {
                                 _streamsCompleted.SetResult();

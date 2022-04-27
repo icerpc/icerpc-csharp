@@ -40,8 +40,6 @@ public sealed class IceProtocolConnectionTests
         {
             Dispatcher = new InlineDispatcher(async (request, cancel) =>
             {
-                await request.Payload.CompleteAsync(); // done with payload
-
                 // We want to make sure that no more than maxConcurrentDispatches are executing this dispatcher. So
                 // we are tracking the maximum count here (before work) and decrement this count immediately in the
                 // "work". Without the decrement, the count (and max count) could be greater than

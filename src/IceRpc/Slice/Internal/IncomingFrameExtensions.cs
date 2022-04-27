@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Internal;
 using System.Buffers;
 using System.IO.Pipelines;
 
@@ -31,27 +32,10 @@ namespace IceRpc.Slice.Internal
             bool hasStream,
             CancellationToken cancel)
         {
-            // We complete the fields before decoding the main segment.
-            frame.CompleteFields();
+            return frame.Payload.TryReadSegment(encoding, out ReadResult readResult) ? new(DecodeSegment(readResult)) :
+                PerformDecodeAsync();
 
-            try
-            {
-                if (frame.Payload.TryReadSegment(encoding, out ReadResult readResult))
-                {
-                    return new(DecodeSegment(readResult));
-                }
-            }
-            catch (Exception exception)
-            {
-#pragma warning disable CA1849
-                frame.Payload.Complete(exception);
-#pragma warning restore CA1849
-                throw;
-            }
-
-            return PerformDecodeAsync();
-
-            // All the logic is in this local function except the completion of Payload when an exception is thrown.
+            // All the logic is in this local function.
             T DecodeSegment(ReadResult readResult)
             {
                 if (readResult.IsCanceled)
@@ -73,27 +57,14 @@ namespace IceRpc.Slice.Internal
 
                 if (!hasStream)
                 {
+                    // We complete the payload as soon as the decoding of the main segment is successfully completed.
                     frame.Payload.Complete();
                 }
                 return value;
             }
 
-            async ValueTask<T> PerformDecodeAsync()
-            {
-                try
-                {
-                    ReadResult readResult = await frame.Payload.ReadSegmentAsync(
-                        encoding,
-                        cancel).ConfigureAwait(false);
-
-                    return DecodeSegment(readResult);
-                }
-                catch (Exception exception)
-                {
-                    await frame.Payload.CompleteAsync(exception).ConfigureAwait(false);
-                    throw;
-                }
-            }
+            async ValueTask<T> PerformDecodeAsync() =>
+                DecodeSegment(await frame.Payload.ReadSegmentAsync(encoding, cancel).ConfigureAwait(false));
         }
 
         /// <summary>Reads/decodes empty args or a void return value.</summary>
@@ -108,28 +79,15 @@ namespace IceRpc.Slice.Internal
             bool hasStream,
             CancellationToken cancel)
         {
-            // We complete the fields before decoding the main segment.
-            frame.CompleteFields();
-
-            try
+            if (frame.Payload.TryReadSegment(encoding, out ReadResult readResult))
             {
-                if (frame.Payload.TryReadSegment(encoding, out ReadResult readResult))
-                {
-                    DecodeSegment(readResult);
-                    return default;
-                }
-            }
-            catch (Exception exception)
-            {
-#pragma warning disable CA1849
-                frame.Payload.Complete(exception);
-#pragma warning restore CA1849
-                throw;
+                DecodeSegment(readResult);
+                return default;
             }
 
             return PerformDecodeAsync();
 
-            // All the logic is in this local function except the completion of Payload when an exception is thrown.
+            // All the logic is in this local function.
             void DecodeSegment(ReadResult readResult)
             {
                 if (readResult.IsCanceled)
@@ -146,26 +104,13 @@ namespace IceRpc.Slice.Internal
 
                 if (!hasStream)
                 {
+                    // We complete the payload as soon as the decoding of the main segment is successfully completed.
                     frame.Payload.Complete();
                 }
             }
 
-            async ValueTask PerformDecodeAsync()
-            {
-                try
-                {
-                    ReadResult readResult = await frame.Payload.ReadSegmentAsync(
-                        encoding,
-                        cancel).ConfigureAwait(false);
-
-                    DecodeSegment(readResult);
-                }
-                catch (Exception exception)
-                {
-                    await frame.Payload.CompleteAsync(exception).ConfigureAwait(false);
-                    throw;
-                }
-            }
+            async ValueTask PerformDecodeAsync() =>
+                DecodeSegment(await frame.Payload.ReadSegmentAsync(encoding, cancel).ConfigureAwait(false));
         }
 
         /// <summary>Creates an async enumerable over a pipe reader to decode streamed members.</summary>
@@ -184,20 +129,26 @@ namespace IceRpc.Slice.Internal
             IInvoker defaultInvoker,
             DecodeFunc<T> decodeFunc)
         {
+            Connection connection = frame.Connection;
             var streamDecoder = new StreamDecoder<T>(DecodeBufferFunc, decodePayloadOptions.StreamDecoderOptions);
 
-            _ = Task.Run(() => FillWriterAsync(), CancellationToken.None);
+            PipeReader payload = frame.Payload;
+            frame.Payload = InvalidPipeReader.Instance; // payload is now our responsability
+
+            // We read the payload and fill the writer (streamDecoder) in a separate thread. We don't give the frame to
+            // this thread since frames are not thread-safe.
+            _ = Task.Run(() => FillWriterAsync(payload, encoding, streamDecoder), CancellationToken.None);
 
             // when CancelPendingRead is called on reader, ReadSegmentAsync returns a ReadResult with IsCanceled
             // set to true.
-            return streamDecoder.ReadAsync(() => frame.Payload.CancelPendingRead());
+            return streamDecoder.ReadAsync(() => payload.CancelPendingRead());
 
             IEnumerable<T> DecodeBufferFunc(ReadOnlySequence<byte> buffer)
             {
                 var decoder = new SliceDecoder(
                     buffer,
                     encoding,
-                    frame.Connection,
+                    connection,
                     decodePayloadOptions.ProxyInvoker ?? defaultInvoker,
                     decodePayloadOptions.Activator ?? defaultActivator,
                     decodePayloadOptions.MaxDepth);
@@ -212,7 +163,10 @@ namespace IceRpc.Slice.Internal
                 return items;
             }
 
-            async Task FillWriterAsync()
+            async static Task FillWriterAsync(
+                PipeReader payload,
+                SliceEncoding encoding,
+                StreamDecoder<T> streamDecoder)
             {
                 while (true)
                 {
@@ -228,12 +182,12 @@ namespace IceRpc.Slice.Internal
 
                     try
                     {
-                        readResult = await frame.Payload.ReadSegmentAsync(encoding, cancel).ConfigureAwait(false);
+                        readResult = await payload.ReadSegmentAsync(encoding, cancel).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
                         streamDecoder.CompleteWriter();
-                        await frame.Payload.CompleteAsync(ex).ConfigureAwait(false);
+                        await payload.CompleteAsync(ex).ConfigureAwait(false);
                         break; // done
                     }
 
@@ -242,7 +196,7 @@ namespace IceRpc.Slice.Internal
                         streamDecoder.CompleteWriter();
 
                         var ex = new OperationCanceledException();
-                        await frame.Payload.CompleteAsync(ex).ConfigureAwait(false);
+                        await payload.CompleteAsync(ex).ConfigureAwait(false);
                         break; // done
                     }
 
@@ -256,12 +210,12 @@ namespace IceRpc.Slice.Internal
                                 readResult.Buffer,
                                 cancel).ConfigureAwait(false);
 
-                            frame.Payload.AdvanceTo(readResult.Buffer.End);
+                            payload.AdvanceTo(readResult.Buffer.End);
                         }
                         catch (Exception ex)
                         {
                             streamDecoder.CompleteWriter();
-                            await frame.Payload.CompleteAsync(ex).ConfigureAwait(false);
+                            await payload.CompleteAsync(ex).ConfigureAwait(false);
                             break;
                         }
                     }
@@ -269,7 +223,7 @@ namespace IceRpc.Slice.Internal
                     if (streamReaderCompleted || readResult.IsCompleted)
                     {
                         streamDecoder.CompleteWriter();
-                        await frame.Payload.CompleteAsync().ConfigureAwait(false);
+                        await payload.CompleteAsync().ConfigureAwait(false);
                         break;
                     }
                 }
