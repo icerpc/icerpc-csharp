@@ -161,10 +161,10 @@ namespace IceRpc.Tests.Slice
 
     public class ExceptionTag : Service, IExceptionTag
     {
-        public ValueTask<TaggedException> OpTaggedExceptionAsync(
-            TaggedException p1,
-            Dispatch dispatch,
-            CancellationToken cancel) => new(p1);
+        // public ValueTask<TaggedException> OpTaggedExceptionAsync(
+        //     TaggedException p1,
+        //     Dispatch dispatch,
+        //     CancellationToken cancel) => new(p1);
 
         public ValueTask ThrowDerivedExceptionAsync(
             int? p1,
