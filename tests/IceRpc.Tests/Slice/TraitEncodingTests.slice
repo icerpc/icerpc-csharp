@@ -14,3 +14,9 @@ struct TraitStructB
 {
     l: int64,
 }
+
+trait TryNested;
+struct NestedTraitStruct
+{
+    t: TryNested,
+}
