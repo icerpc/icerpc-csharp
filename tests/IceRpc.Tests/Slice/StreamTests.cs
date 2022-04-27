@@ -58,7 +58,7 @@ public class StreamTests
         {
             var data = new List<int>();
             var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
-            while (decoder.Consumed < buffer.Length)
+            if (buffer.Length > 0)
             {
                 int size = decoder.DecodeSize() / sizeof(int);
                 for (int i = 0; i < size; i++)
