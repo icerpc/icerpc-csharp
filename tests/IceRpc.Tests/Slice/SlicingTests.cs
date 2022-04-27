@@ -32,7 +32,7 @@ public class SlicingTests
     {
         Memory<byte> buffer = new byte[1024 * 1024];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1, classFormat: FormatType.Sliced);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
 
         var p1 = new MyMostDerivedClass("most-derived", "derived", "base");
         encoder.EncodeClass(p1);
@@ -113,7 +113,7 @@ public class SlicingTests
     {
         Memory<byte> buffer = new byte[1024 * 1024];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1, classFormat: FormatType.Sliced);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
 
         var p1 = new MyCompactMostDerivedClass("most-derived", "derived", "base");
         encoder.EncodeClass(p1);
@@ -191,7 +191,7 @@ public class SlicingTests
     {
         Memory<byte> buffer = new byte[1024 * 1024];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1, classFormat: FormatType.Sliced);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
 
         var p1 = new MyMostDerivedException("most-derived", "derived", "base");
         p1.Encode(ref encoder);
@@ -263,7 +263,7 @@ public class SlicingTests
     {
         Memory<byte> buffer = new byte[1024 * 1024];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1, classFormat: FormatType.Sliced);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
 
         var p2 = new MyPreservedDerivedClass1("p2-m1", "p2-m2", new MyBaseClass("base"));
         var p1 = new MyPreservedDerivedClass1("p1-m1", "p1-m2", p2);
@@ -292,7 +292,7 @@ public class SlicingTests
         // Marshal the sliced class
         buffer = new byte[1024 * 1024];
         bufferWriter = new MemoryBufferWriter(buffer);
-        encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1, classFormat: FormatType.Sliced);
+        encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
         encoder.EncodeClass(r1);
         buffer = bufferWriter.WrittenMemory;
 
@@ -314,7 +314,7 @@ public class SlicingTests
     {
         Memory<byte> buffer = new byte[1024 * 1024];
         var bufferWriter = new MemoryBufferWriter(buffer);
-        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1, classFormat: FormatType.Sliced);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
 
         var p2 = new MyPreservedDerivedClass2("p2-m1", "p2-m2", new MyBaseClass("base"));
         var p1 = new MyPreservedDerivedClass2("p1-m1", "p1-m2", p2);
@@ -342,7 +342,7 @@ public class SlicingTests
         // Marshal the sliced class
         buffer = new byte[1024 * 1024];
         bufferWriter = new MemoryBufferWriter(buffer);
-        encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1, classFormat: FormatType.Sliced);
+        encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
         encoder.EncodeClass(r1);
         buffer = bufferWriter.WrittenMemory;
 

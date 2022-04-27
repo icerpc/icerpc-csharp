@@ -42,7 +42,7 @@ namespace IceRpc.Slice
         /// <param name="pipeWriter">The pipe writer that provides the buffers to write into.</param>
         /// <param name="encoding">The Slice encoding.</param>
         /// <param name="classFormat">The class format (Slice1 only).</param>
-        public SliceEncoder(PipeWriter pipeWriter, SliceEncoding encoding, FormatType classFormat = default)
+        public SliceEncoder(PipeWriter pipeWriter, SliceEncoding encoding, ClassFormat classFormat = default)
             : this((IBufferWriter<byte>)pipeWriter, encoding, classFormat)
         {
         }
@@ -614,7 +614,7 @@ namespace IceRpc.Slice
         internal SliceEncoder(
             IBufferWriter<byte> bufferWriter,
             SliceEncoding encoding,
-            FormatType classFormat = default)
+            ClassFormat classFormat = default)
             : this()
         {
             Encoding = encoding;

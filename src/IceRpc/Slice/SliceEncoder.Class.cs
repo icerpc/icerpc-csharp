@@ -26,7 +26,7 @@ namespace IceRpc.Slice
             }
             else
             {
-                if (_classContext.Current.InstanceType != InstanceType.None && _classContext.ClassFormat == FormatType.Sliced)
+                if (_classContext.Current.InstanceType != InstanceType.None && _classContext.ClassFormat == ClassFormat.Sliced)
                 {
                     // If encoding an instance within a slice and using the sliced format, encode an index of that
                     // slice's indirection table.
@@ -79,7 +79,7 @@ namespace IceRpc.Slice
 
             if (_classContext.Current.IndirectionTable?.Count > 0)
             {
-                Debug.Assert(_classContext.ClassFormat == FormatType.Sliced);
+                Debug.Assert(_classContext.ClassFormat == ClassFormat.Sliced);
                 _classContext.Current.SliceFlags |= SliceFlags.HasIndirectionTable;
 
                 EncodeSize(_classContext.Current.IndirectionTable.Count);
@@ -111,7 +111,7 @@ namespace IceRpc.Slice
             // of a remote exception.
             if (_classContext.Current.InstanceType == InstanceType.None)
             {
-                _classContext.ClassFormat = FormatType.Sliced; // always encode exceptions in sliced format
+                _classContext.ClassFormat = ClassFormat.Sliced; // always encode exceptions in sliced format
                 _classContext.Current.InstanceType = InstanceType.Exception;
                 _classContext.Current.FirstSlice = true;
             }
@@ -119,7 +119,7 @@ namespace IceRpc.Slice
             _classContext.Current.SliceFlags = default;
             _classContext.Current.SliceFlagsPlaceholder = GetPlaceholderMemory(1);
 
-            if (_classContext.ClassFormat == FormatType.Sliced)
+            if (_classContext.ClassFormat == ClassFormat.Sliced)
             {
                 EncodeTypeId(typeId, compactId);
                 // Encode the slice size if using the sliced format.
@@ -147,7 +147,7 @@ namespace IceRpc.Slice
 
             // We only re-encode preserved slices if we are using the sliced format. Otherwise, we ignore the preserved
             // slices, which essentially "slices" the instance into the most-derived type known by the sender.
-            if (_classContext.ClassFormat != FormatType.Sliced)
+            if (_classContext.ClassFormat != ClassFormat.Sliced)
             {
                 throw new NotSupportedException($"cannot encode sliced data into payload using {_classContext.ClassFormat} format");
             }
@@ -220,7 +220,7 @@ namespace IceRpc.Slice
                 _classContext.Current.InstanceType = InstanceType.Class;
                 _classContext.Current.FirstSlice = true;
 
-                if (v.UnknownSlices.Count > 0 && _classContext.ClassFormat == FormatType.Sliced)
+                if (v.UnknownSlices.Count > 0 && _classContext.ClassFormat == ClassFormat.Sliced)
                 {
                     EncodeUnknownSlices(v.UnknownSlices, fullySliced: false);
                     _classContext.Current.FirstSlice = false;
@@ -296,7 +296,7 @@ namespace IceRpc.Slice
         private struct ClassContext
         {
             // The current class/exception format, can be either Compact or Sliced.
-            internal FormatType ClassFormat;
+            internal ClassFormat ClassFormat;
 
             // Data for the class or exception instance that is currently getting encoded.
             internal InstanceData Current;
@@ -311,7 +311,7 @@ namespace IceRpc.Slice
             // We assign a type ID index (starting with 1) to each type ID we write, in order.
             internal Dictionary<string, int>? TypeIdMap;
 
-            internal ClassContext(FormatType classFormat)
+            internal ClassContext(ClassFormat classFormat)
                 : this() => ClassFormat = classFormat;
         }
 
