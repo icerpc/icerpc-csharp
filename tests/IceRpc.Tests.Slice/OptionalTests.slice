@@ -113,7 +113,7 @@ interface OptionalOperations
     opInt32Dict(p1: Int32Dict?) -> (r1: Int32Dict?, r2: Int32Dict?);
     opStringDict(p1: StringDict?) -> (r1: StringDict?, r2: StringDict?);
 
-    [cs::encoded-result] opMyCompactStructMarshaledResult(p1: MyCompactStruct?) -> MyCompactStruct?;
-    [cs::encoded-result] opStringSeqMarshaledResult(p1: StringSeq?) -> StringSeq?;
-    [cs::encoded-result] opInt32DictMarshaledResult(p1: Int32Dict?) -> Int32Dict?;
+    [cs::encodedResult] opMyCompactStructMarshaledResult(p1: MyCompactStruct?) -> MyCompactStruct?;
+    [cs::encodedResult] opStringSeqMarshaledResult(p1: StringSeq?) -> StringSeq?;
+    [cs::encodedResult] opInt32DictMarshaledResult(p1: Int32Dict?) -> Int32Dict?;
 }

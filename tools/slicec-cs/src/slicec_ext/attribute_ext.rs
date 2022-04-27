@@ -9,7 +9,7 @@ pub trait AttributeExt {
 
 impl<T: Attributable + ?Sized> AttributeExt for T {
     fn custom_attributes(&self) -> Vec<String> {
-        if let Some(attributes) = self.get_attribute("cs:attribute", false) {
+        if let Some(attributes) = self.get_attribute("cs::attribute", false) {
             attributes.to_vec()
         } else {
             vec![]
@@ -17,7 +17,7 @@ impl<T: Attributable + ?Sized> AttributeExt for T {
     }
 
     fn obsolete_attribute(&self, check_parent: bool) -> Option<String> {
-        self.get_attribute("deprecate", check_parent)
+        self.get_deprecated_attribute(check_parent)
             .map(|arguments| {
                 let reason = match arguments.as_slice() {
                     [] => format!("This {} has been deprecated", self.kind()),

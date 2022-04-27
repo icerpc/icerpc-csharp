@@ -48,11 +48,11 @@ pub trait EntityExt: Entity {
     /// The C# Type ID attribute.
     fn type_id_attribute(&self) -> String;
 
-    /// The C# access modifier to use. Returns "internal" if this entity has the cs:internal attribute otherwise
+    /// The C# access modifier to use. Returns "internal" if this entity has the cs::internal attribute otherwise
     /// returns "public".
     fn access_modifier(&self) -> String;
 
-    /// Returns the C# readonly modifier if this entity has the cs:readonly attribute otherwise returns None.
+    /// Returns the C# readonly modifier if this entity has the cs::readonly attribute otherwise returns None.
     fn readonly_modifier(&self) -> Option<String>;
 
     /// Returns the C# modifiers for this entity.
@@ -170,7 +170,7 @@ where
             .map(|(i, segment)| {
                 let mut escaped_module = escape_keyword(&fix_case(segment, CaseStyle::Pascal));
                 if i == 0 {
-                    if let Some(attribute) = self.get_attribute("cs:namespace", true) {
+                    if let Some(attribute) = self.get_attribute("cs::namespace", true) {
                         escaped_module = attribute.first().unwrap().to_owned();
                     }
                 }
@@ -188,7 +188,7 @@ where
     }
 
     fn access_modifier(&self) -> String {
-        if self.has_attribute("cs:internal", true) {
+        if self.has_attribute("cs::internal", true) {
             "internal".to_owned()
         } else {
             "public".to_owned()
@@ -196,7 +196,7 @@ where
     }
 
     fn readonly_modifier(&self) -> Option<String> {
-        if self.has_attribute("cs:readonly", self.kind() == "data member") {
+        if self.has_attribute("cs::readonly", self.kind() == "data member") {
             Some("readonly".to_owned())
         } else {
             None

@@ -184,7 +184,6 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
     let operation_name = operation.escape_identifier();
     let async_operation_name = operation.escape_identifier_with_suffix("Async");
     let return_task = operation.return_task(false);
-    let is_oneway = operation.has_attribute("oneway", false);
 
     let parameters = operation.nonstreamed_parameters();
     let stream_return = operation.streamed_return_member();
@@ -287,7 +286,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
         invoke_args.push("idempotent: true".to_owned());
     }
 
-    if void_return && is_oneway {
+    if void_return && operation.is_oneway() {
         invoke_args.push("oneway: true".to_owned());
     }
 

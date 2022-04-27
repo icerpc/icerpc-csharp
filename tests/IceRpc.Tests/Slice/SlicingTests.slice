@@ -49,7 +49,7 @@ exception MyMostDerivedException : MyDerivedException
     m3: string,
 }
 
-[preserve-slice]
+[preserveSlice]
 class MyPreservedClass : MyBaseClass
 {
     m2: string,

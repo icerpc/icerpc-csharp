@@ -82,7 +82,7 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str) -> CodeBloc
             write!(code, "decoder.Decode{}()", primitive_ref.type_suffix());
         }
         TypeRefs::Struct(struct_ref) => {
-            if struct_ref.definition().has_attribute("cs:type", false) {
+            if struct_ref.definition().has_attribute("cs::type", false) {
                 write!(
                     code,
                     "{decoder_extensions_class}.Decode{name}(ref decoder)",
@@ -229,7 +229,7 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str) -> Cod
     let mut code = CodeBlock::new();
     let element_type = &sequence_ref.element_type;
 
-    if sequence_ref.get_attribute("cs:generic", false).is_some() {
+    if sequence_ref.get_attribute("cs::generic", false).is_some() {
         let arg: Option<String> = match element_type.concrete_type() {
             Types::Primitive(primitive)
                 if primitive.is_numeric_or_bool() && primitive.is_fixed_size() =>
@@ -431,7 +431,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
             )
         }
         TypeRefs::Struct(struct_ref) => {
-            if struct_ref.definition().has_attribute("cs:type", false) {
+            if struct_ref.definition().has_attribute("cs::type", false) {
                 format!(
                     "(ref SliceDecoder decoder) => {decoder_extensions_class}.Decode{name}(ref decoder)",
                     decoder_extensions_class = struct_ref
