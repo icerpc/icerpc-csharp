@@ -45,8 +45,7 @@ namespace IceRpc.Tests.Internal
             }));
 
             IncomingResponse response = await pipeline.InvokeAsync(request);
-            response.CompleteFields();
-            await response.Payload.CompleteAsync().ConfigureAwait(false);
+            response.Complete();
 
             Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc"));
             Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(2));
@@ -92,12 +91,6 @@ namespace IceRpc.Tests.Internal
                 IsOneway = !twoway,
                 Operation = "foo",
                 Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
-            };
-
-        private static OutgoingResponse CreateOutgoingResponse(IncomingRequest request) =>
-            new(request)
-            {
-                Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[10]))
             };
     }
 }
