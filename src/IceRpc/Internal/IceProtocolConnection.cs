@@ -900,8 +900,8 @@ namespace IceRpc.Internal
                 }
                 finally
                 {
-                    // Even when the code above throws an exception, we catch it and send a response. So no need to
-                    // give an exception to the incoming payload.
+                    // Even when the code above throws an exception, we catch it and send a response. So we never want
+                    // to give an exception to CompleteAsync when completing the incoming payload.
                     await request.Payload.CompleteAsync().ConfigureAwait(false);
                 }
 

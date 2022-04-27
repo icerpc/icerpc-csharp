@@ -172,7 +172,7 @@ namespace IceRpc.Internal
                 {
                     if (fieldsPipeReader != null)
                     {
-                        await fieldsPipeReader.CompleteAsync(exception).ConfigureAwait(false);
+                        await fieldsPipeReader.CompleteAsync().ConfigureAwait(false);
                     }
                     await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
                     if (stream.IsBidirectional)
@@ -217,7 +217,6 @@ namespace IceRpc.Internal
 
                     if (exception is OperationCanceledException)
                     {
-                        // We just complete the stream output here.
                         await stream.Output.CompleteAsync(
                             IceRpcStreamError.DispatchCanceled.ToException()).ConfigureAwait(false);
 
@@ -288,8 +287,8 @@ namespace IceRpc.Internal
                     }
                     request.Fields = ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
 
-                    // Even when the code above throws an exception, we catch it and send a response. So no need to
-                    // give an exception to the incoming payload.
+                    // Even when the code above throws an exception, we catch it and send a response. So we never want
+                    // to give an exception to CompleteAsync when completing the incoming payload.
                     await request.Payload.CompleteAsync().ConfigureAwait(false);
 
                     lock (_mutex)
@@ -309,7 +308,8 @@ namespace IceRpc.Internal
                 {
                     EncodeHeader();
 
-                    // SendPayloadAsync takes care of the completion of the payload, payload stream and stream output.
+                    // SendPayloadAsync takes care of the completion of the response payload, payload stream and stream
+                    // output.
                     await SendPayloadAsync(response, stream, CancellationToken.None).ConfigureAwait(false);
                 }
                 catch (Exception exception)
@@ -317,9 +317,6 @@ namespace IceRpc.Internal
                     await response.CompleteAsync(exception).ConfigureAwait(false);
                     await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
                 }
-
-                // if everything succeeds, the application (e.g. Slice engine) must complete the request fields and
-                // payload.
 
                 void EncodeHeader()
                 {
@@ -397,7 +394,7 @@ namespace IceRpc.Internal
 
                 EncodeHeader(stream.Output);
 
-                // SendPayloadAsync takes care of the completion of the payloads and stream output.
+                // SendPayloadAsync takes care of the completion of the request payloads and stream output.
                 await SendPayloadAsync(request, stream, cancel).ConfigureAwait(false);
             }
             catch (Exception exception)
@@ -738,8 +735,8 @@ namespace IceRpc.Internal
 
                             _streams.Remove(stream);
 
-                            // If no more streams and shutting down, we can set the _streamsCompleted task completion source
-                            // as completed to allow shutdown to progress.
+                            // If no more streams and shutting down, we can set the _streamsCompleted task completion
+                            // source as completed to allow shutdown to progress.
                             if (_isShuttingDown && _streams.Count == 0)
                             {
                                 _streamsCompleted.SetResult();
