@@ -82,8 +82,7 @@ public sealed class InvokeAsyncTests
         // Act
         IncomingResponse response = await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy), default);
         byte[] responsePayload = (await response.Payload.ReadAllAsync(default)).Buffer.ToArray();
-        response.CompleteFields();
-        await response.Payload.CompleteAsync(); // done with payload
+        response.Complete();
 
         // Assert
         Assert.Multiple(() =>

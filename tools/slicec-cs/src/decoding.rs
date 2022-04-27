@@ -576,9 +576,9 @@ pub fn decode_operation_stream(
     let create_stream_param: CodeBlock = match param_type.concrete_type() {
         Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) => {
             if dispatch {
-                "request.Payload;".into()
+                "request.DecodeByteStream();".into()
             } else {
-                "response.Payload;".into()
+                "response.DecodeByteStream();".into()
             }
         }
         _ => {

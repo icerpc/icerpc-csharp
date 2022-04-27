@@ -77,15 +77,25 @@ namespace IceRpc.Slice
             {
                 IncomingResponse response = await responseTask.ConfigureAwait(false);
 
-                // We complete the response fields once the interceptors have completed.
-                response.CompleteFields();
-
-                if (invocation != null)
+                Exception? exception = null;
+                try
                 {
-                    invocation.Features = response.Request.Features;
+                    if (invocation != null)
+                    {
+                        invocation.Features = response.Request.Features;
+                    }
+                    return await responseDecodeFunc(response, cancel).ConfigureAwait(false);
                 }
-
-                return await responseDecodeFunc(response, cancel).ConfigureAwait(false);
+                catch (Exception ex)
+                {
+                    exception = ex;
+                    throw;
+                }
+                finally
+                {
+                    // We always complete the response after decoding its payload.
+                    response.Complete(exception);
+                }
             }
         }
 
@@ -142,19 +152,30 @@ namespace IceRpc.Slice
             {
                 IncomingResponse response = await responseTask.ConfigureAwait(false);
 
-                // We complete the response fields once the interceptors have completed.
-                response.CompleteFields();
-
-                if (invocation != null)
+                Exception? exception = null;
+                try
                 {
-                    invocation.Features = response.Request.Features;
-                }
+                    if (invocation != null)
+                    {
+                        invocation.Features = response.Request.Features;
+                    }
 
-                await response.DecodeVoidReturnValueAsync(
-                    encoding,
-                    defaultActivator,
-                    hasStream: false,
-                    cancel).ConfigureAwait(false);
+                    await response.DecodeVoidReturnValueAsync(
+                        encoding,
+                        defaultActivator,
+                        hasStream: false,
+                        cancel).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    exception = ex;
+                    throw;
+                }
+                finally
+                {
+                    // We always complete the response after decoding its payload.
+                    response.Complete(exception);
+                }
             }
         }
 

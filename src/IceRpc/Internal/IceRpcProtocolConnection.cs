@@ -213,14 +213,11 @@ namespace IceRpc.Internal
                 }
                 catch (Exception exception)
                 {
-                    await request.Payload.CompleteAsync(exception).ConfigureAwait(false);
-
                     // If we catch an exception, we return a failure response with a Slice-encoded payload.
 
                     if (exception is OperationCanceledException)
                     {
-                        // The dispatcher completes the incoming request payload even on failures. We just complete the
-                        // stream output here.
+                        // We just complete the stream output here.
                         await stream.Output.CompleteAsync(
                             IceRpcStreamError.DispatchCanceled.ToException()).ConfigureAwait(false);
 
@@ -291,6 +288,10 @@ namespace IceRpc.Internal
                     }
                     request.Fields = ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
 
+                    // Even when the code above throws an exception, we catch it and send a response. So no need to
+                    // give an exception to the incoming payload.
+                    await request.Payload.CompleteAsync().ConfigureAwait(false);
+
                     lock (_mutex)
                     {
                         _cancelDispatchSources.Remove(cancelDispatchSource);
@@ -313,7 +314,6 @@ namespace IceRpc.Internal
                 }
                 catch (Exception exception)
                 {
-                    await request.Payload.CompleteAsync(exception).ConfigureAwait(false);
                     await response.CompleteAsync(exception).ConfigureAwait(false);
                     await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
                 }

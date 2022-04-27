@@ -179,7 +179,7 @@ namespace IceRpc.Internal
                         "payload writer cancellation or completion is not supported with the ice protocol");
                 }
 
-                await request.Payload.CompleteAsync().ConfigureAwait(false);
+                await request.CompleteAsync().ConfigureAwait(false);
                 await payloadWriter.CompleteAsync().ConfigureAwait(false);
             }
             catch (Exception exception)
@@ -866,8 +866,6 @@ namespace IceRpc.Internal
                 }
                 catch (Exception exception)
                 {
-                    await request.Payload.CompleteAsync(exception).ConfigureAwait(false);
-
                     // If we catch an exception, we return a failure response with a Slice-encoded payload.
 
                     if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
@@ -902,6 +900,12 @@ namespace IceRpc.Internal
                         pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
                         return pipe.Reader;
                     }
+                }
+                finally
+                {
+                    // Even when the code above throws an exception, we catch it and send a response. So no need to
+                    // give an exception to the incoming payload.
+                    await request.Payload.CompleteAsync().ConfigureAwait(false);
                 }
 
                 // The sending of the response can't be canceled. This would lead to invalid protocol behavior.
@@ -974,12 +978,11 @@ namespace IceRpc.Internal
                             "payload writer cancellation or completion is not supported with the ice protocol");
                     }
 
-                    await response.Payload.CompleteAsync().ConfigureAwait(false);
+                    await response.CompleteAsync().ConfigureAwait(false);
                     await payloadWriter.CompleteAsync().ConfigureAwait(false);
                 }
                 catch (Exception exception)
                 {
-                    await request.Payload.CompleteAsync(exception).ConfigureAwait(false);
                     await response.CompleteAsync(exception).ConfigureAwait(false);
                     await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
 
