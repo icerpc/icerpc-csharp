@@ -13,12 +13,8 @@ namespace IceRpc.Configure
     public sealed record class ConnectionOptions
     {
         /// <summary>Returns the default value for <see cref="Dispatcher"/>.</summary>
-        public static IDispatcher DefaultDispatcher { get; } = new InlineDispatcher(
-            async (request, cancel) =>
-            {
-                await request.Payload.CompleteAsync().ConfigureAwait(false);
-                throw new DispatchException(DispatchErrorCode.ServiceNotFound, RetryPolicy.OtherReplica);
-            });
+        public static IDispatcher DefaultDispatcher { get; } = new InlineDispatcher((request, cancel) =>
+            throw new DispatchException(DispatchErrorCode.ServiceNotFound, RetryPolicy.OtherReplica));
 
         /// <summary>Returns the default value for <see cref="MultiplexedClientTransport"/>.</summary>
         public static IClientTransport<IMultiplexedNetworkConnection> DefaultMultiplexedClientTransport { get; } =

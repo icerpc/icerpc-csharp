@@ -140,8 +140,11 @@ public class CompressorMiddlewareTests
 
     private static IncomingRequest CreateRequestWitCompressionFormatField(
         ReadOnlySequence<byte> compressionFormatField) =>
-        new(InvalidConnection.IceRpc, new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
+        new(InvalidConnection.IceRpc)
         {
-            [RequestFieldKey.CompressionFormat] = compressionFormatField
-        });
+            Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
+            {
+                [RequestFieldKey.CompressionFormat] = compressionFormatField
+            }
+        };
 }

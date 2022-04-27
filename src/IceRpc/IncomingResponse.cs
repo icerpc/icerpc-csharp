@@ -7,8 +7,11 @@ using System.IO.Pipelines;
 namespace IceRpc
 {
     /// <summary>Represents a response protocol frame received by the application.</summary>
-    public sealed class IncomingResponse : IncomingFrame<ResponseFieldKey>
+    public sealed class IncomingResponse : IncomingFrame
     {
+        /// <summary>Gets the fields of this incoming response.</summary>
+        public IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> Fields { get; private set; }
+
         /// <summary>The request that received this response.</summary>
         public OutgoingRequest Request { get; }
 
@@ -16,18 +19,25 @@ namespace IceRpc
         /// <value>The result type of the response. The default value is <see cref="ResultType.Success"/>.</value>
         public ResultType ResultType { get; init; } = ResultType.Success;
 
+        private readonly PipeReader? _fieldsPipeReader;
+
         /// <summary>Constructs an incoming response.</summary>
         /// <param name="request">The corresponding outgoing request.</param>
         /// <param name="connection">The <see cref="Connection"/> that received the response.</param>
         /// <param name="fields">The fields of this response.</param>
         /// <param name="fieldsPipeReader">The pipe reader that holds the memory of the fields. Use <c>null</c> when the
-        /// fields' memory is not held by a pipe reader.</param>
+        /// fields memory is not held by a pipe reader.</param>
         public IncomingResponse(
             OutgoingRequest request,
             Connection connection,
             IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields,
             PipeReader? fieldsPipeReader = null)
-            : base(connection, fields, fieldsPipeReader) => Request = request;
+            : base(connection)
+        {
+            Request = request;
+            Fields = fields;
+            _fieldsPipeReader = fieldsPipeReader;
+        }
 
         /// <summary>Constructs an incoming response with empty fields.</summary>
         /// <param name="request">The corresponding outgoing request.</param>
@@ -38,6 +48,13 @@ namespace IceRpc
         public IncomingResponse(OutgoingRequest request, Connection connection)
             : this(request, connection, ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty)
         {
+        }
+
+        /// <summary>Releases the memory used by the fields.</summary>
+        public void CompleteFields()
+        {
+            _fieldsPipeReader?.Complete();
+            Fields = ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
         }
     }
 }

@@ -799,17 +799,19 @@ namespace IceRpc.Internal
                 throw;
             }
 
-            var request = new IncomingRequest(
-                connection,
-                fields: requestHeader.OperationMode == OperationMode.Normal ?
-                    ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields)
+            var request = new IncomingRequest(connection)
             {
+                Fields = requestHeader.OperationMode == OperationMode.Normal ?
+                    ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields,
                 Fragment = requestHeader.Fragment,
                 IsOneway = requestId == 0,
                 Operation = requestHeader.Operation,
                 Path = requestHeader.Path,
                 Payload = requestFrameReader,
             };
+
+            // Note: since we don't set fieldsPipeReader, there is no need to call request.CompleteFields - there is
+            // nothing to cleanup.
 
             if (requestHeader.Context.Count > 0)
             {
@@ -856,13 +858,16 @@ namespace IceRpc.Internal
                 OutgoingResponse response;
                 try
                 {
-                    // The dispatcher is responsible for completing the incoming request payload.
+                    // The dispatcher can complete the incoming request payload to release its memory as soon as
+                    // possible.
                     response = await _dispatcher.DispatchAsync(
                         request,
                         cancelDispatchSource.Token).ConfigureAwait(false);
                 }
                 catch (Exception exception)
                 {
+                    await request.Payload.CompleteAsync(exception).ConfigureAwait(false);
+
                     // If we catch an exception, we return a failure response with a Slice-encoded payload.
 
                     if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
@@ -974,6 +979,7 @@ namespace IceRpc.Internal
                 }
                 catch (Exception exception)
                 {
+                    await request.Payload.CompleteAsync(exception).ConfigureAwait(false);
                     await response.CompleteAsync(exception).ConfigureAwait(false);
                     await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
 

@@ -95,12 +95,6 @@ namespace IceRpc.Slice
             }
             else
             {
-                return ThrowOperationNotFound();
-            }
-
-            async ValueTask<OutgoingResponse> ThrowOperationNotFound()
-            {
-                await request.Payload.CompleteAsync().ConfigureAwait(false);
                 throw new DispatchException(DispatchErrorCode.OperationNotFound);
             }
         }
