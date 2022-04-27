@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
-using System.Buffers;
 
 namespace IceRpc.Internal
 {
@@ -16,17 +15,11 @@ namespace IceRpc.Internal
             bool _,
             CancellationToken cancel)
         {
-            Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect = null;
-            if (connectionOptions.OnConnect != null)
-            {
-                onConnect = fields => connectionOptions.OnConnect(fields, features);
-            }
-
             var protocolConnection = new IceRpcProtocolConnection(
                 connectionOptions.Dispatcher,
                 networkConnection,
                 connectionOptions.Fields,
-                onConnect);
+                connectionOptions.OnConnect == null ? null : fields => connectionOptions.OnConnect(fields, features));
 
             try
             {
