@@ -279,14 +279,6 @@ await request.DecodeArgsAsync(
             encoding = encoding,
             decode_func = request_decode_func(operation).indent()
         );
-
-        /*
-        TODO
-
-        // We complete the incoming payload now as an optimization for the situation where the client sends a stream
-        // but we are not expecting one.
-        writeln!(code, "await request.Payload.CompleteAsync().ConfigureAwait(false);");
-        */
     }
 
     code
@@ -380,10 +372,6 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
             writeln!(check_and_decode, "\
 await request.DecodeEmptyArgsAsync({}, cancel).ConfigureAwait(false);", encoding
             );
-
-            // We complete the incoming payload now as an optimization for the situation where the client sends a stream
-            // but we are not expecting one.
-            writeln!(check_and_decode, "await request.Payload.CompleteAsync().ConfigureAwait(false);");
         }
         [parameter] => {
             writeln!(
