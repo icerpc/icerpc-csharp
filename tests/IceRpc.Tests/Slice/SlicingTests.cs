@@ -53,7 +53,7 @@ public class SlicingTests
         Assert.That(p1.M2, Is.EqualTo(r.M2));
         Assert.That(p1.M3, Is.EqualTo(r.M3));
 
-        // Create an activator that exclude 'MyMostDerivedClass' type ID and ensure that the class is unmarshaled as
+        // Create an activator that exclude 'MyMostDerivedClass' type ID and ensure that the class is decodes as
         // 'MyDerivedClass' which is the base type.
         var slicingActivator = new SlicingActivator(
             activator,
@@ -67,7 +67,7 @@ public class SlicingTests
 
         decoder = new SliceDecoder(buffer, SliceEncoding.Slice1, activator: slicingActivator);
         MyDerivedClass r1 = decoder.DecodeClass<MyDerivedClass>();
-        Assert.That(r1.UnknownSlices, Is.Empty);
+        Assert.That(r1.UnknownSlices, Is.Not.Empty);
         Assert.That(p1.M1, Is.EqualTo(r1.M1));
         Assert.That(p1.M2, Is.EqualTo(r1.M2));
 
@@ -84,7 +84,7 @@ public class SlicingTests
 
         decoder = new SliceDecoder(buffer, SliceEncoding.Slice1, activator: slicingActivator);
         MyBaseClass r2 = decoder.DecodeClass<MyBaseClass>();
-        Assert.That(r2.UnknownSlices, Is.Empty);
+        Assert.That(r2.UnknownSlices, Is.Not.Empty);
         Assert.That(p1.M1, Is.EqualTo(r2.M1));
 
         // Repeat with an activator that also excludes 'MyBaseClass' type ID
@@ -109,7 +109,7 @@ public class SlicingTests
     }
 
     [Test]
-    public void Slicing_Classes_WithCompactTypeId()
+    public void Slicing_classes_with_compact_type_id()
     {
         Memory<byte> buffer = new byte[1024 * 1024];
         var bufferWriter = new MemoryBufferWriter(buffer);
@@ -135,7 +135,7 @@ public class SlicingTests
         Assert.That(p1.M3, Is.EqualTo(r.M3));
 
         // Create an activator that exclude 'MyCompactMostDerivedClass' compact type ID (3) and ensure that
-        // the class is unmarshaled as 'MyCompactDerivedClass' which is the base type.
+        // the class is decoded as 'MyCompactDerivedClass' which is the base type.
         var slicingActivator = new SlicingActivator(
             activator,
             slicedTypeIds: ImmutableList.Create("3"));
@@ -148,7 +148,7 @@ public class SlicingTests
 
         decoder = new SliceDecoder(buffer, SliceEncoding.Slice1, activator: slicingActivator);
         MyCompactDerivedClass r1 = decoder.DecodeClass<MyCompactDerivedClass>();
-        Assert.That(r1.UnknownSlices, Is.Empty);
+        Assert.That(r1.UnknownSlices, Is.Not.Empty);
         Assert.That(p1.M1, Is.EqualTo(r1.M1));
         Assert.That(p1.M2, Is.EqualTo(r1.M2));
 
@@ -165,7 +165,7 @@ public class SlicingTests
 
         decoder = new SliceDecoder(buffer, SliceEncoding.Slice1, activator: slicingActivator);
         MyCompactBaseClass r2 = decoder.DecodeClass<MyCompactBaseClass>();
-        Assert.That(r2.UnknownSlices, Is.Empty);
+        Assert.That(r2.UnknownSlices, Is.Not.Empty);
         Assert.That(p1.M1, Is.EqualTo(r2.M1));
 
         // Repeat with an activator that also excludes 'MyCompactBaseClass' compact type ID (1)

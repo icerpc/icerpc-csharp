@@ -208,19 +208,6 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
     let members = class_def.members();
     let has_base_class = class_def.base_class().is_some();
 
-    let is_preserved = class_def.preserve_slices(false);
-    let is_base_preserved = has_base_class
-        && class_def
-            .base_class()
-            .unwrap()
-            .preserve_slices(true);
-
-    if is_preserved && !is_base_preserved {
-        code.add_block("\
-public override global::System.Collections.Immutable.ImmutableList<IceRpc.Slice.SliceInfo> UnknownSlices { get; set; } =
-    global::System.Collections.Immutable.ImmutableList<IceRpc.Slice.SliceInfo>.Empty;");
-    }
-
     let encode_class = FunctionBuilder::new(
         "protected override",
         "void",
