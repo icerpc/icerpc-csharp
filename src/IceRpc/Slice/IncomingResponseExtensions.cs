@@ -37,19 +37,13 @@ namespace IceRpc.Slice
         /// <param name="encoding">The encoding of the response payload.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
         /// <param name="decodeFunc">The decode function for the return value.</param>
-        /// <param name="hasStream"><c>true</c> if the value is followed by a stream parameter; otherwise,
-        /// <c>false</c>.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The return value.</returns>
-        /// <remarks>This method marks the response as completed when this method throws an exception or when it
-        /// succeeds and hasStream is false. If hasStream is true, the caller is responsible to complete the
-        /// response.</remarks>
         public static ValueTask<T> DecodeReturnValueAsync<T>(
             this IncomingResponse response,
             SliceEncoding encoding,
             IActivator? defaultActivator,
             DecodeFunc<T> decodeFunc,
-            bool hasStream,
             CancellationToken cancel = default)
         {
             return response.ResultType == ResultType.Success ?
@@ -59,7 +53,6 @@ namespace IceRpc.Slice
                     defaultActivator,
                     defaultInvoker: response.Request.Proxy.Invoker,
                     decodeFunc,
-                    hasStream,
                     cancel) :
                 ThrowRemoteExceptionAsync();
 
@@ -96,21 +89,14 @@ namespace IceRpc.Slice
         /// <param name="response">The incoming response.</param>
         /// <param name="encoding">The encoding of the response payload.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
-        /// <param name="hasStream"><c>true</c> if this void value is followed by a stream parameter; otherwise,
-        /// <c>false</c>.</param>
         /// <param name="cancel">The cancellation token.</param>
-        /// <remarks>This method marks the response as completed when this method throws an exception or when it
-        /// succeeds and hasStream is false. If hasStream is true, the caller is responsible to complete the
-        /// response.</remarks>
         public static ValueTask DecodeVoidReturnValueAsync(
             this IncomingResponse response,
             SliceEncoding encoding,
             IActivator? defaultActivator,
-            bool hasStream,
             CancellationToken cancel = default)
         {
-            return response.ResultType == ResultType.Success ?
-                response.DecodeVoidAsync(encoding, hasStream, cancel) :
+            return response.ResultType == ResultType.Success ? response.DecodeVoidAsync(encoding, cancel) :
                 ThrowRemoteExceptionAsync();
 
             async ValueTask ThrowRemoteExceptionAsync()

@@ -239,7 +239,7 @@ fn request_decode_body(operation: &Operation) -> CodeBlock {
             writeln!(
                 code,
                 "\
-await request.DecodeEmptyArgsAsync({encoding}, hasStream: true, cancel).ConfigureAwait(false);
+await request.DecodeEmptyArgsAsync({encoding}, cancel).ConfigureAwait(false);
 
 return {decode_operation_stream}",
                 encoding = encoding,
@@ -253,7 +253,6 @@ var {args} = await request.DecodeArgsAsync(
     {encoding},
     _defaultActivator,
     {decode_func},
-    hasStream: true,
     cancel).ConfigureAwait(false);
 
 {decode_request_stream}
@@ -275,12 +274,19 @@ await request.DecodeArgsAsync(
     {encoding},
     _defaultActivator,
     {decode_func},
-    hasStream: false,
     cancel).ConfigureAwait(false)
 ",
             encoding = encoding,
             decode_func = request_decode_func(operation).indent()
         );
+
+        /*
+        TODO
+
+        // We complete the incoming payload now as an optimization for the situation where the client sends a stream
+        // but we are not expecting one.
+        writeln!(code, "await request.Payload.CompleteAsync().ConfigureAwait(false);");
+        */
     }
 
     code
@@ -366,17 +372,18 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
         );
     }
 
-    // We create the dispatch before decoding because the Dispatch constructor uses the request fields.
-    check_and_decode.writeln("var dispatch = new IceRpc.Slice.Dispatch(request);");
-
     let encoding = operation.encoding.to_cs_encoding();
 
     match parameters.as_slice() {
         [] => {
             // Verify the payload is indeed empty (it can contain tagged params that we have to skip).
             writeln!(check_and_decode, "\
-await request.DecodeEmptyArgsAsync({}, hasStream: false, cancel).ConfigureAwait(false);", encoding
+await request.DecodeEmptyArgsAsync({}, cancel).ConfigureAwait(false);", encoding
             );
+
+            // We complete the incoming payload now as an optimization for the situation where the client sends a stream
+            // but we are not expecting one.
+            writeln!(check_and_decode, "await request.Payload.CompleteAsync().ConfigureAwait(false);");
         }
         [parameter] => {
             writeln!(
@@ -413,7 +420,7 @@ await request.DecodeEmptyArgsAsync({}, hasStream: false, cancel).ConfigureAwait(
             }
         }
 
-        args.push("dispatch".to_owned());
+        args.push("new IceRpc.Slice.Dispatch(request)".to_owned());
         args.push("cancel".to_owned());
 
         writeln!(
@@ -435,7 +442,7 @@ await request.DecodeEmptyArgsAsync({}, hasStream: false, cancel).ConfigureAwait(
                 .map(|parameter| format!("args.{}", &parameter.field_name(FieldType::NonMangled)))
                 .collect(),
         };
-        args.push("dispatch".to_owned());
+        args.push("new IceRpc.Slice.Dispatch(request)".to_owned());
         args.push("cancel".to_owned());
 
         writeln!(

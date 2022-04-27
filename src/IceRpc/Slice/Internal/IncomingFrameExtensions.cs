@@ -18,8 +18,6 @@ namespace IceRpc.Slice.Internal
         /// <param name="defaultActivator">The default activator.</param>
         /// <param name="defaultInvoker">The default invoker.</param>
         /// <param name="decodeFunc">The decode function for the payload arguments or return value.</param>
-        /// <param name="hasStream"><c>true</c> if this void value is followed by a stream parameter; otherwise,
-        /// <c>false</c>.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The decode value.</returns>
         internal static ValueTask<T> DecodeValueAsync<T>(
@@ -29,7 +27,6 @@ namespace IceRpc.Slice.Internal
             IActivator? defaultActivator,
             IInvoker defaultInvoker,
             DecodeFunc<T> decodeFunc,
-            bool hasStream,
             CancellationToken cancel)
         {
             return frame.Payload.TryReadSegment(encoding, out ReadResult readResult) ? new(DecodeSegment(readResult)) :
@@ -54,12 +51,6 @@ namespace IceRpc.Slice.Internal
                 decoder.CheckEndOfBuffer(skipTaggedParams: true);
 
                 frame.Payload.AdvanceTo(readResult.Buffer.End);
-
-                if (!hasStream)
-                {
-                    // We complete the payload as soon as the decoding of the main segment is successfully completed.
-                    frame.Payload.Complete();
-                }
                 return value;
             }
 
@@ -70,13 +61,10 @@ namespace IceRpc.Slice.Internal
         /// <summary>Reads/decodes empty args or a void return value.</summary>
         /// <param name="frame">The incoming frame.</param>
         /// <param name="encoding">The Slice encoding version.</param>
-        /// <param name="hasStream"><c>true</c> if this void value is followed by a stream parameter; otherwise,
-        /// <c>false</c>.</param>
         /// <param name="cancel">The cancellation token.</param>
         internal static ValueTask DecodeVoidAsync(
             this IncomingFrame frame,
             SliceEncoding encoding,
-            bool hasStream,
             CancellationToken cancel)
         {
             if (frame.Payload.TryReadSegment(encoding, out ReadResult readResult))
@@ -101,12 +89,6 @@ namespace IceRpc.Slice.Internal
                     decoder.CheckEndOfBuffer(skipTaggedParams: true);
                 }
                 frame.Payload.AdvanceTo(readResult.Buffer.End);
-
-                if (!hasStream)
-                {
-                    // We complete the payload as soon as the decoding of the main segment is successfully completed.
-                    frame.Payload.Complete();
-                }
             }
 
             async ValueTask PerformDecodeAsync() =>
