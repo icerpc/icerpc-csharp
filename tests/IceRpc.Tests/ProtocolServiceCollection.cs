@@ -46,14 +46,16 @@ internal class ProtocolServiceCollection : ServiceCollection
     {
         this.UseColoc();
         this.AddScoped<IServerTransport<IMultiplexedNetworkConnection>>(
-            provider => new SlicServerTransport(provider.GetRequiredService<ColocTransport>().ServerTransport));
+            provider => new SlicServerTransport(
+                provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()));
         this.AddScoped<IClientTransport<IMultiplexedNetworkConnection>>(
-            provider => new SlicClientTransport(provider.GetRequiredService<ColocTransport>().ClientTransport));
+            provider => new SlicClientTransport(
+                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()));
 
         this.AddSingleton(IceProtocol.Instance.ProtocolConnectionFactory);
         this.AddSingleton(IceRpcProtocol.Instance.ProtocolConnectionFactory);
-        this.AddScoped(serviceProvider => CreateListener<ISimpleNetworkConnection>(serviceProvider));
-        this.AddScoped(serviceProvider => CreateListener<IMultiplexedNetworkConnection>(serviceProvider));
+        this.AddScoped(provider => CreateListener<ISimpleNetworkConnection>(provider));
+        this.AddScoped(provider => CreateListener<IMultiplexedNetworkConnection>(provider));
 
         static IListener<T> CreateListener<T>(IServiceProvider serviceProvider) where T : INetworkConnection
         {
