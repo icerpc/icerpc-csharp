@@ -46,15 +46,13 @@ public class IntegrationTestServiceCollection : ServiceCollection
         {
             var connectionOptions = provider.GetService<ConnectionOptions>() ?? new ConnectionOptions();
             connectionOptions.SimpleClientTransport = provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>();
-            connectionOptions.MultiplexedClientTransport = 
+            connectionOptions.MultiplexedClientTransport =
                 provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
             connectionOptions.Dispatcher ??= provider.GetRequiredService<IDispatcher>();
             connectionOptions.RemoteEndpoint = provider.GetRequiredService<Server>().Endpoint;
             connectionOptions.LoggerFactory = provider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;
             return new Connection(connectionOptions);
         });
-
-        this.AddScoped(provider => Proxy.FromConnection(provider.GetRequiredService<Connection>(), "/service"));
     }
 }
 

@@ -2,7 +2,6 @@
 
 using IceRpc.Configure;
 using IceRpc.Slice;
-using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Collections.Immutable;
@@ -17,7 +16,7 @@ public sealed class ProtocolBridgingTests
     [Test]
     public async Task ProtocolBridging_Forward(
         [Values("ice", "icerpc")] string forwarderProtocol,
-        [Values("ice", "icerpc")]  string targetProtocol)
+        [Values("ice", "icerpc")] string targetProtocol)
     {
         var router = new Router();
         var targetServiceCollection = new IntegrationTestServiceCollection();

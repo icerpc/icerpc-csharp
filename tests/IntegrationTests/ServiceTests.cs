@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice;
-using IceRpc.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
@@ -20,7 +19,7 @@ public class ServiceTests
             .UseProtocol(protocol)
             .BuildServiceProvider();
 
-        var service = new ServicePrx(provider.GetRequiredService<Proxy>());
+        var service = ServicePrx.FromConnection(provider.GetRequiredService<Connection>(), "/service");
 
         string[] ids = new string[]
         {
