@@ -90,9 +90,8 @@ namespace IceRpc.Configure
         /// <summary>Gets or set an action that executes when the connection is closed.</summary>
         public Action<Connection, Exception>? OnClose { get; set; }
 
-        /// <summary>Gets or sets the action to execute during connection establishment. This action (or linked actions)
-        /// can convert the fields received from the remote peer into features.</summary>
-        public Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>, FeatureCollection>? OnConnect { get; set; }
+        /// <summary>Gets or sets the action to execute during connection establishment.</summary>
+        public OnConnectAction? OnConnect { get; set; }
 
         /// <summary>Gets or sets the <see cref="IServerTransport{ISimpleNetworkConnection}"/> used by the server
         /// to accept simple connections.</summary>
