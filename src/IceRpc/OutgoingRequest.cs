@@ -38,10 +38,6 @@ namespace IceRpc
         /// <summary>Returns the proxy that is sending this request.</summary>
         public Proxy Proxy { get; }
 
-        /// <summary>Gets or sets the response to this request.</summary>
-        /// <value>The response to this request. A successful two-way request always carry a non-null response.</value>
-        public IncomingResponse? Response { get; set; }
-
         /// <summary>Constructs an outgoing request.</summary>
         /// <param name="proxy">The <see cref="Proxy"/> used to send the request.</param>
         public OutgoingRequest(Proxy proxy)
