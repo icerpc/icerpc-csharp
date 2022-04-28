@@ -38,7 +38,7 @@ namespace IceRpc
         public string Path { get; init; } = "/";
 
         /// <summary>Gets or sets the response to this request.</summary>
-        /// <value>The response to this request. A successful two-way request always carry a non-null response.</value>
+        /// <value>The response to this request. A null response is equivalent to a successful empty response.</value>
         public OutgoingResponse? Response { get; set; }
 
         private readonly string _fragment = "";
