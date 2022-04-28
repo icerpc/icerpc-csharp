@@ -39,8 +39,7 @@ public sealed class TypeIdAttributeTests
         [typeof(IMyInterfacePrx)] = "::IceRpc::Slice::TypeIdAttributeTestNamespace::MyInterface",
         [typeof(MyInterfacePrx)] = "::IceRpc::Slice::TypeIdAttributeTestNamespace::MyInterface",
         [typeof(IMyInterface)] = "::IceRpc::Slice::TypeIdAttributeTestNamespace::MyInterface",
-        [typeof(TypeIdAttributeTestNamespace.MyException)] =
-            "::IceRpc::Slice::TypeIdAttributeTestNamespace::MyException",
+        [typeof(MyException)] = "::IceRpc::Slice::TypeIdAttributeTestNamespace::MyException",
         [typeof(TypeIdAttributeTestNamespace.MyStruct)] = "::IceRpc::Slice::TypeIdAttributeTestNamespace::MyStruct",
         [typeof(TypeIdAttributeTestNamespace.Inner.MyClass)] =
             "::IceRpc::Slice::TypeIdAttributeTestNamespace::Inner::myClass",
@@ -62,7 +61,7 @@ public sealed class TypeIdAttributeTests
         [typeof(IMyInterfacePrx)] = "/IceRpc.Slice.TypeIdAttributeTestNamespace.MyInterface",
         [typeof(MyInterfacePrx)] = "/IceRpc.Slice.TypeIdAttributeTestNamespace.MyInterface",
         [typeof(IMyInterface)] = "/IceRpc.Slice.TypeIdAttributeTestNamespace.MyInterface",
-        [typeof(TypeIdAttributeTestNamespace.MyException)] = "/IceRpc.Slice.TypeIdAttributeTestNamespace.MyException",
+        [typeof(MyException)] = "/IceRpc.Slice.TypeIdAttributeTestNamespace.MyException",
         [typeof(TypeIdAttributeTestNamespace.MyStruct)] = "/IceRpc.Slice.TypeIdAttributeTestNamespace.MyStruct",
         [typeof(TypeIdAttributeTestNamespace.Inner.MyClass)] =
             "/IceRpc.Slice.TypeIdAttributeTestNamespace.Inner.myClass",

@@ -33,7 +33,7 @@ impl OperationExt for Operation {
 
     fn format_type(&self) -> &str {
         match self.class_format() {
-            ClassFormat::Sliced => "IceRpc.Slice.FormatType.Sliced",
+            ClassFormat::Sliced => "IceRpc.Slice.ClassFormat.Sliced",
             ClassFormat::Compact => "default", // compact is the default value
         }
     }

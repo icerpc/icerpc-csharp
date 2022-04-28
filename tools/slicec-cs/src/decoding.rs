@@ -34,7 +34,13 @@ pub fn decode_data_members(
     // Decode tagged data members
     for member in tagged_members {
         let param = format!("this.{}", member.field_name(field_type));
-        code.writeln(&decode_tagged(member, namespace, &param, use_tag_format, true));
+        code.writeln(&decode_tagged(
+            member,
+            namespace,
+            &param,
+            use_tag_format,
+            true,
+        ));
     }
 
     code
@@ -79,7 +85,11 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str) -> CodeBloc
             write!(code, "decoder.DecodeClass<{}>()", type_string);
         }
         TypeRefs::Primitive(primitive_ref) => {
-            write!(code, "decoder.Decode{}()", primitive_ref.type_suffix());
+            if primitive_ref.is_class_type() {
+                write!(code, "decoder.DecodeClass<IceRpc.Slice.AnyClass>()");
+            } else {
+                write!(code, "decoder.Decode{}()", primitive_ref.type_suffix());
+            }
         }
         TypeRefs::Struct(struct_ref) => {
             if struct_ref.definition().has_attribute("cs::type", false) {
@@ -547,7 +557,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
                 namespace,
                 &member.parameter_name_with_prefix("sliceP_"),
                 operation.encoding == Encoding::Slice1, // we only use tag_formats with Slice1
-                false, // no tag end marker for operations
+                false,                                  // no tag end marker for operations
             )
         )
     }

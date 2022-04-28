@@ -1,0 +1,11 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+encoding = 1;
+
+module IceRpc::IntegrationTests::Slice1;
+
+interface SequenceOperations
+{
+    op1(a: sequence<AnyClass>) -> sequence<AnyClass>;
+    op2(a: sequence<AnyClass?>) -> sequence<AnyClass?>;
+}

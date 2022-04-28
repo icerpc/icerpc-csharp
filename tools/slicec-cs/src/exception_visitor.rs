@@ -120,7 +120,6 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
             exception_class_builder.add_block(encode_trait_method());
         }
 
-        // Remote exceptions are always "preserved".
         exception_class_builder.add_block(
             FunctionBuilder::new(
                 "protected override",

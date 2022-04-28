@@ -102,7 +102,7 @@ function Test($config, $coverage) {
     }
     RunCommand "dotnet" $arguments
     if ($coverage) {
-        $arguments = @('-reports:tests/*/TestResults/*/coverage.cobertura.xml', '-targetdir:tests/CodeCoverageRerport')
+        $arguments = @('-reports:tests/*/TestResults/*/coverage.cobertura.xml', '-targetdir:tests/CodeCoverageReport')
         RunCommand "reportgenerator" $arguments
     }
 }

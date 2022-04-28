@@ -133,7 +133,7 @@ namespace IceRpc
                 _listener = listener;
                 Endpoint = listener.Endpoint;
 
-                EventHandler<ClosedEventArgs>? closedEventHandler = null;
+                Action<Connection, Exception>? onClose = null;
 
                 if (logger.IsEnabled(LogLevel.Error)) // TODO: log level
                 {
@@ -143,26 +143,24 @@ namespace IceRpc
                     protocolConnectionFactory =
                         new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, logger);
 
-                    closedEventHandler = (sender, args) =>
+                    onClose = (connection, exception) =>
                     {
-                        if (sender is Connection connection && args.Exception is Exception exception)
+                        if (connection.NetworkConnectionInformation is NetworkConnectionInformation connectionInformation)
                         {
-                            // This event handler is added/executed after NetworkConnectionInformation is set.
-                            using IDisposable scope =
-                               logger.StartServerConnectionScope(connection.NetworkConnectionInformation!.Value);
+                            using IDisposable scope = logger.StartServerConnectionScope(connectionInformation);
                             logger.LogConnectionClosedReason(exception);
                         }
                     };
                 }
 
                 // Run task to start accepting new connections.
-                _ = Task.Run(() => AcceptAsync(listener, protocolConnectionFactory, closedEventHandler));
+                _ = Task.Run(() => AcceptAsync(listener, protocolConnectionFactory, onClose));
             }
 
             async Task AcceptAsync<T>(
                 IListener<T> listener,
                 IProtocolConnectionFactory<T> protocolConnectionFactory,
-                EventHandler<ClosedEventArgs>? closedEventHandler) where T : INetworkConnection
+                Action<Connection, Exception>? onClose) where T : INetworkConnection
             {
                 // The common connection options, set through ServerOptions.
                 var connectionOptions = new ConnectionOptions
@@ -174,6 +172,7 @@ namespace IceRpc
                     Fields = _options.Fields,
                     IceProtocolOptions = _options.IceProtocolOptions,
                     KeepAlive = _options.KeepAlive,
+                    OnClose = onClose + _options.OnClose,
                     OnConnect = _options.OnConnect,
                 };
 
@@ -218,7 +217,7 @@ namespace IceRpc
                         // Set the callback used to remove the connection from _connections. This can throw if the
                         // connection is closed but it's not possible here since we've just constructed the
                         // connection.
-                        connection.Closed += (sender, args) =>
+                        onClose = (connection, _) =>
                         {
                             lock (_mutex)
                             {
@@ -234,7 +233,7 @@ namespace IceRpc
                     // such as TLS based transports where the handshake requires few round trips between the client
                     // and server. Waiting could also cause a security issue if the client doesn't respond to the
                     // connection initialization as we wouldn't be able to accept new connections in the meantime.
-                    _ = connection.ConnectAsync(networkConnection, protocolConnectionFactory, closedEventHandler);
+                    _ = connection.ConnectAsync(networkConnection, protocolConnectionFactory, onClose);
                 }
             }
         }
