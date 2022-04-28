@@ -150,14 +150,11 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.Multiple(() =>
         {
             Assert.That(clientCount, Is.EqualTo(1));
-            Assert.That(clientA, Is.Not.Null);
             Assert.That(clientA, Is.EqualTo(56));
             Assert.That(clientB, Is.Null);
 
             Assert.That(serverCount, Is.EqualTo(2));
-            Assert.That(serverA, Is.Not.Null);
             Assert.That(serverA, Is.EqualTo(34));
-            Assert.That(serverB, Is.Not.Null);
             Assert.That(serverB, Is.EqualTo(38));
         });
     }
