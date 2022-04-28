@@ -185,10 +185,11 @@ public sealed class RetryInterceptorTests
         await sut.InvokeAsync(request, default);
 
         // Assert
-
-        // Task.Delay sometime returns a little too early so we add a 2ms tolerance.
-        Assert.That(Time.Elapsed - start, Is.GreaterThanOrEqualTo(delay - TimeSpan.FromMilliseconds(2)));
-        Assert.That(attempts, Is.EqualTo(2));
+        Assert.Multiple(() =>
+        {
+            Assert.That(Time.Elapsed - start, Is.GreaterThanOrEqualTo(delay));
+            Assert.That(attempts, Is.EqualTo(2));
+        });
     }
 
     [Test]

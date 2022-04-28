@@ -6,10 +6,7 @@ namespace IceRpc.Internal
 {
     internal static class Time
     {
-        /// <summary>Gets the total elapsed time since the Ice run-time started as a TimeSpan object.</summary>
-        internal static TimeSpan Elapsed => _stopwatch.Elapsed;
-        static Time() => _stopwatch.Start();
-
-        private static readonly Stopwatch _stopwatch = new();
+        /// <summary>Gets the total elapsed time as a TimeSpan since the system started.</summary>
+        internal static TimeSpan Elapsed => TimeSpan.FromTicks(Environment.TickCount64 * TimeSpan.TicksPerMillisecond);
     }
 }
