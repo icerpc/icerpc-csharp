@@ -54,7 +54,7 @@ namespace IceRpc.Slice
                     ResponseFieldKey.RetryPolicy,
                     (ref SliceEncoder encoder) => retryPolicy.Encode(ref encoder));
             }
-            return response;
+            return request.Response = response;
 
             PipeReader CreateExceptionPayload()
             {

@@ -63,7 +63,7 @@ namespace IceRpc
                     _encodedCompressionFormatValue);
             }
 
-            return response;
+            return request.Response = response;
         }
     }
 }

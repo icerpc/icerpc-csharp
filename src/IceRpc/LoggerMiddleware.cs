@@ -34,7 +34,7 @@ namespace IceRpc
                                                request.Operation,
                                                response.ResultType);
                 }
-                return response;
+                return request.Response = response;
             }
             catch (Exception ex)
             {

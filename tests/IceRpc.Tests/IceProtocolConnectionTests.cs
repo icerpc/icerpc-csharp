@@ -48,7 +48,7 @@ public sealed class IceProtocolConnectionTests
                 startSemaphore.Release();
                 await workSemaphore.WaitAsync(cancel);
                 DecrementCount();
-                return new OutgoingResponse(request);
+                return request.Response = new OutgoingResponse(request);
 
                 void DecrementCount()
                 {
@@ -210,7 +210,7 @@ public sealed class IceProtocolConnectionTests
                 {
                     start.Release();
                     await hold.WaitAsync(cancel);
-                    return new OutgoingResponse(request);
+                    return request.Response = new OutgoingResponse(request);
                 })
             })
             .BuildServiceProvider();

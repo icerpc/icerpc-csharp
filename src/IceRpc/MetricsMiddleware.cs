@@ -28,7 +28,7 @@ namespace IceRpc
                 {
                     _eventSource.RequestFailed(request, "IceRpc.RemoteException"); // TODO: fix exception name
                 }
-                return response;
+                return request.Response = response;
             }
             catch (OperationCanceledException)
             {

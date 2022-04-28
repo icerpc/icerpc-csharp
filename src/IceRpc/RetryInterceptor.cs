@@ -76,7 +76,7 @@ namespace IceRpc
 
                         if (response.ResultType == ResultType.Success)
                         {
-                            return response;
+                            return request.Response = response;
                         }
 
                         retryPolicy = request.Features.Get<RetryPolicy>() ?? RetryPolicy.NoRetry;
@@ -196,7 +196,7 @@ namespace IceRpc
 
                 Debug.Assert(response != null || exception != null);
                 Debug.Assert(response == null || response.ResultType != ResultType.Success);
-                return response ?? throw ExceptionUtil.Throw(exception!);
+                return (request.Response = response) ?? throw ExceptionUtil.Throw(exception!);
             }
             finally
             {

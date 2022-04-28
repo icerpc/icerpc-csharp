@@ -196,7 +196,7 @@ namespace IceRpc.Tests.ClientServer
                                 new OutgoingFieldValue(pair.Value))));
                 _ = fields.Remove(ResponseFieldKey.RetryPolicy);
 
-                return new OutgoingResponse(incomingRequest)
+                return incomingRequest.Response = new OutgoingResponse(incomingRequest)
                 {
                     Fields = fields,
                     Payload = incomingResponse.Payload,

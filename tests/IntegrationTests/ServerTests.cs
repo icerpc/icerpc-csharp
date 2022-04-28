@@ -40,7 +40,7 @@ public class ServerTests
                     }
                     Assert.Fail();
                 }
-                return new OutgoingResponse(request);
+                return request.Response = new OutgoingResponse(request);
             })).BuildServiceProvider();
 
         var server = serviceProvider.GetRequiredService<Server>();
@@ -73,7 +73,7 @@ public class ServerTests
             {
                 dispatchStartSemaphore.Release();
                 await dispatchContinueSemaphore.WaitAsync(cancel);
-                return new OutgoingResponse(request);
+                return request.Response = new OutgoingResponse(request);
             })).BuildServiceProvider();
 
         var server = serviceProvider.GetRequiredService<Server>();
@@ -116,7 +116,7 @@ public class ServerTests
                 Assert.That(cancel.CanBeCanceled, Is.True);
                 semaphore.Release();
                 await Task.Delay(-1, cancel);
-                return new OutgoingResponse(request);
+                return request.Response = new OutgoingResponse(request);
             }),
             Endpoint = serverEndpoint,
             SimpleServerTransport = colocTransport.ServerTransport,

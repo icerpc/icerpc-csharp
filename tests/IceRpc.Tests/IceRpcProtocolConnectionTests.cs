@@ -42,7 +42,7 @@ public sealed class IceRpcProtocolConnectionTests
                 {
                     start.Release();
                     await hold.WaitAsync(cancel);
-                    return new OutgoingResponse(request);
+                    return request.Response = new OutgoingResponse(request);
                 })
             })
             .BuildServiceProvider();
@@ -206,6 +206,7 @@ public sealed class IceRpcProtocolConnectionTests
                 response.Fields = response.Fields.With(
                     ResponseFieldKey.CompressionFormat,
                     (ref SliceEncoder encoder) => throw new NotSupportedException("invalid request fields"));
+                request.Response = response;
                 return new(response);
             });
 
@@ -308,7 +309,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Arrange
         var payloadStreamDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var dispatcher = new InlineDispatcher((request, cancel) =>
-                new(new OutgoingResponse(request)
+                new(request.Response = new OutgoingResponse(request)
                 {
                     PayloadStream = payloadStreamDecorator
                 }));
@@ -334,7 +335,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Arrange
         var payloadStreamDecorator = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
         var dispatcher = new InlineDispatcher((request, cancel) =>
-                new(new OutgoingResponse(request)
+                new(request.Response = new OutgoingResponse(request)
                 {
                     PayloadStream = payloadStreamDecorator
                 }));
@@ -405,6 +406,7 @@ public sealed class IceRpcProtocolConnectionTests
                         payloadWriterSource.SetResult(payloadWriterDecorator);
                         return payloadWriterDecorator;
                     });
+                request.Response = response;
                 return new(response);
             });
 
@@ -434,6 +436,7 @@ public sealed class IceRpcProtocolConnectionTests
             response.Fields = response.Fields.With(
                 (ResponseFieldKey)1000,
                 (ref SliceEncoder encoder) => encoder.EncodeString(expectedValue));
+            request.Response = response;
             return new(response);
         });
         await using var serviceProvider = new ProtocolServiceCollection()
@@ -473,7 +476,7 @@ public sealed class IceRpcProtocolConnectionTests
                 {
                     start.Release();
                     await hold.WaitAsync(cancel);
-                    return new OutgoingResponse(request);
+                    return request.Response = new OutgoingResponse(request);
                 })
             })
             .BuildServiceProvider();

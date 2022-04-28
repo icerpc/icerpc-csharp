@@ -204,9 +204,12 @@ namespace IceRpc.Internal
                 try
                 {
                     // The dispatcher is responsible for completing the incoming request payload and payload stream.
-                    response = await _dispatcher.DispatchAsync(
+                    await _dispatcher.DispatchAsync(
                         request,
                         cancelDispatchSource.Token).ConfigureAwait(false);
+
+                    Debug.Assert(request.Response != null);
+                    response = request.Response;
                 }
                 catch (Exception exception)
                 {
