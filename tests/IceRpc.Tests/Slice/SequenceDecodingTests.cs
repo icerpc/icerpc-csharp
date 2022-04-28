@@ -53,4 +53,31 @@ public class SequenceDecodingTests
         Assert.That(decoded, Is.EqualTo(expected));
         Assert.That(sut.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
+
+    [Test]
+    public void Decode_sequence_of_optionals()
+    {
+        // Arrange
+        int?[] expected = Enumerable.Range(0, 1024).Select(i => i % 2 == 0 ? (int?)i : null).ToArray();
+        var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        encoder.EncodeSize(expected.Length);
+        BitSequenceWriter bitSequenceWriter = encoder.GetBitSequenceWriter(expected.Length);
+        for (int i = 0; i < expected.Length; ++i)
+        {
+            int? value = expected[i];
+            bitSequenceWriter.Write(value != null);
+            if (value != null)
+            {
+                encoder.EncodeInt32(value.Value);
+            }
+        }
+        var sut = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+
+        // Act
+        int?[] decoded = sut.DecodeSequenceWithBitSequence<int?>((ref SliceDecoder decoder) => decoder.DecodeInt32());
+
+        // Assert
+        Assert.That(decoded, Is.EqualTo(expected));
+    }
 }
