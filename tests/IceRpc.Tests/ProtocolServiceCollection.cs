@@ -4,6 +4,7 @@ using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
+using System.Buffers;
 
 namespace IceRpc.Tests;
 
@@ -84,30 +85,36 @@ internal static class ProtocolServiceCollectionExtensions
         this IServiceProvider serviceProvider) => serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ?
             GetProtocolConnectionAsync(
                 serviceProvider,
-                Protocol.Ice,
                 isServer: false,
                 serviceProvider.GetSimpleClientConnectionAsync) :
             GetProtocolConnectionAsync(
                 serviceProvider,
-                Protocol.IceRpc,
                 isServer: false,
                 serviceProvider.GetMultiplexedClientConnectionAsync);
 
     private static async Task<(INetworkConnection, IProtocolConnection)> GetProtocolConnectionAsync<T>(
         IServiceProvider serviceProvider,
-        Protocol protocol,
         bool isServer,
         Func<Task<T>> networkConnectionFactory) where T : INetworkConnection
     {
         T networkConnection = await networkConnectionFactory();
+        ConnectionOptions connectionOptions = isServer ?
+            serviceProvider.GetService<ServerConnectionOptions>()?.Value ?? new() :
+            serviceProvider.GetService<ClientConnectionOptions>()?.Value ?? new();
+
+        Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect =
+            connectionOptions.OnConnect == null ? null :
+            fields => connectionOptions.OnConnect(
+                serviceProvider.GetInvalidConnection(),
+                fields,
+                new FeatureCollection());
+
         IProtocolConnection protocolConnection =
             await serviceProvider.GetRequiredService<IProtocolConnectionFactory<T>>().CreateProtocolConnectionAsync(
                 networkConnection,
                 connectionInformation: new(),
-                connectionOptions: isServer ?
-                    serviceProvider.GetService<ServerConnectionOptions>()?.Value ?? new() :
-                    serviceProvider.GetService<ClientConnectionOptions>()?.Value ?? new(),
-                new FeatureCollection(),
+                connectionOptions,
+                onConnect,
                 isServer,
                 CancellationToken.None);
         return (networkConnection, protocolConnection);
@@ -117,12 +124,10 @@ internal static class ProtocolServiceCollectionExtensions
         this IServiceProvider serviceProvider) => serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ?
             GetProtocolConnectionAsync(
                 serviceProvider,
-                Protocol.Ice,
                 isServer: true,
                 serviceProvider.GetSimpleServerConnectionAsync) :
             GetProtocolConnectionAsync(
                 serviceProvider,
-                Protocol.IceRpc,
                 isServer: true,
                 serviceProvider.GetMultiplexedServerConnectionAsync);
 

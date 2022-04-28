@@ -54,13 +54,12 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Gets the features of this connection.</summary>
-        public FeatureCollection Features => _features ?? _options.Features;
+        /// <summary>Gets the features of this connection. These features are empty until the connection is connected.
+        /// </summary>
+        public FeatureCollection Features { get; private set; } = FeatureCollection.Empty;
 
         // True once DisposeAsync is called. Once disposed the connection can't be resumed.
         private bool _disposed;
-
-        private FeatureCollection? _features;
 
         // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
         private readonly object _mutex = new();
@@ -398,7 +397,7 @@ namespace IceRpc
                     networkConnection,
                     NetworkConnectionInformation.Value,
                     _options,
-                    features,
+                    _options.OnConnect == null ? null : fields => _options.OnConnect(this, fields, features),
                     _serverEndpoint != null,
                     connectCancellationSource.Token).ConfigureAwait(false);
 
@@ -412,7 +411,7 @@ namespace IceRpc
 
                     _state = ConnectionState.Active;
                     _stateTask = null;
-                    _features = features;
+                    Features = features;
 
                     _onClose = onClose;
 
