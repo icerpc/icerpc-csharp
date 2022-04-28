@@ -61,8 +61,6 @@ namespace IceRpc
         // True once DisposeAsync is called. Once disposed the connection can't be resumed.
         private bool _disposed;
 
-        private FeatureCollection? _features;
-
         // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
         private readonly object _mutex = new();
 
