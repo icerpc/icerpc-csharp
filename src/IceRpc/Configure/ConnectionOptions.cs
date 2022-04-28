@@ -15,7 +15,10 @@ namespace IceRpc.Configure
     /// <param name="connection">The connection that was just connected.</param>
     /// <param name="fields">The fields received from the remote peer.</param>
     /// <param name="features">The features of the connection. This feature collection is read-write and its default
-    /// feature collection is the connection options features or the server options features.</param>
+    ///  is <see cref="ConnectionOptions.Features"/> or <see cref="ServerOptions.Features"/>.</param>
+    /// <remarks>The <paramref name="fields"/> correspond to the <see cref="ConnectionOptions.Fields"/> or
+    /// <see cref="ServerOptions.Fields"/> property of the remote peer with the icerpc protocol. This dictionary is
+    /// always empty with the ice protocol.</remarks>
     public delegate void OnConnectAction(
         Connection connection,
         Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>> fields,
