@@ -19,6 +19,7 @@ public class SlicTransportTests
     {
         // Arrange
         await using ServiceProvider serviceProvider = new ServiceCollection()
+            .UseColoc()
             .UseSlic()
             .AddScoped(
                 _ => new SlicServerTransportOptions
@@ -56,6 +57,7 @@ public class SlicTransportTests
     {
         // Arrange
         await using ServiceProvider serviceProvider = new ServiceCollection()
+            .UseColoc()
             .UseSlic()
             .AddScoped(
                 _ => new SlicServerTransportOptions
@@ -92,6 +94,7 @@ public class SlicTransportTests
         // Arrange
         byte[] payload = new byte[pauseThreshold - 1];
         await using ServiceProvider serviceProvider = new ServiceCollection()
+            .UseColoc()
             .UseSlic()
             .AddScoped(
                 _ => new SlicServerTransportOptions
@@ -134,6 +137,7 @@ public class SlicTransportTests
     {
         // Arrange
         await using ServiceProvider serviceProvider = new ServiceCollection()
+            .UseColoc()
             .UseSlic()
             .AddScoped(
                 _ => new SlicServerTransportOptions

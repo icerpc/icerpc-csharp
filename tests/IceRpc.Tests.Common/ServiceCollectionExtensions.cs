@@ -68,7 +68,7 @@ public static class ServiceCollectionExtensions
             return new SlicClientTransport(clientOptions);
         });
 
-        collection.AddScoped(provider =>
+        collection.AddScoped<IListener<IMultiplexedNetworkConnection>>(provider =>
         {
             var serverTransport = provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>();
             return serverTransport.Listen(
