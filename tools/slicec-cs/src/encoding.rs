@@ -244,7 +244,11 @@ fn encode_tagged_type(
     // param/member:
     let (size_parameter, count_value) = match data_type.concrete_type() {
         Types::Primitive(primitive_def) if primitive_def.is_fixed_size() => {
-            (Some(primitive_def.min_wire_size().to_string()), None)
+            if use_tag_format {
+                (None, None)
+            } else {
+                (Some(primitive_def.min_wire_size().to_string()), None)
+            }
         }
         Types::Primitive(primitive_def) if !matches!(primitive_def, Primitive::String) => {
             if primitive_def.is_unsigned_numeric() {

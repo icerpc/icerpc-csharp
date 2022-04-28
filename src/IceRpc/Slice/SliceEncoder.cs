@@ -407,7 +407,10 @@ namespace IceRpc.Slice
             {
                 throw new InvalidOperationException("Slice1 encoded tags must be encoded with tag formats");
             }
-            Debug.Assert(size > 0);
+            if (size <= 0)
+            {
+                throw new ArgumentException("invalid size value, size must be greater than zero", nameof(size));
+            }
 
             EncodeVarInt32(tag); // the key
             EncodeSize(size);
@@ -443,10 +446,32 @@ namespace IceRpc.Slice
 
             switch (tagFormat)
             {
+                case TagFormat.F1:
+                case TagFormat.F2:
+                case TagFormat.F4:
+                case TagFormat.F8:
+                    EncodeTaggedParamHeader(tag, tagFormat);
+                    int startPos = EncodedByteCount;
+                    encodeAction(ref this, v);
+                    int actualSize = EncodedByteCount - startPos;
+                    int expectedSize = tagFormat switch
+                    {
+                        TagFormat.F1 => 1,
+                        TagFormat.F2 => 2,
+                        TagFormat.F4 => 4,
+                        _ => 8,
+                    };
+                    if (actualSize != expectedSize)
+                    {
+                        throw new ArgumentException(
+                            $"value of encoded size ({actualSize}) does not match the tag format ({tagFormat}) expected size",
+                            nameof(tagFormat));
+                    }
+                    break;
                 case TagFormat.FSize:
                     EncodeTaggedParamHeader(tag, tagFormat);
                     Span<byte> placeholder = GetPlaceholderSpan(4);
-                    int startPos = EncodedByteCount;
+                    startPos = EncodedByteCount;
                     encodeAction(ref this, v);
                     // We don't include the size-length in the size we encode.
                     EncodeInt32(EncodedByteCount - startPos, placeholder);
@@ -483,11 +508,14 @@ namespace IceRpc.Slice
             {
                 throw new InvalidOperationException("tag formats can only be used with the Slice1 encoding");
             }
-            if (tagFormat == TagFormat.FSize)
+            if (size <= 0)
+            {
+                throw new ArgumentException("invalid size value, size must be greater than zero", nameof(size));
+            }
+            if (tagFormat != TagFormat.VSize && tagFormat != TagFormat.Class && tagFormat != TagFormat.Size)
             {
                 throw new ArgumentException($"invalid value {tagFormat}", nameof(tagFormat));
             }
-            Debug.Assert(size > 0);
 
             EncodeTaggedParamHeader(tag, tagFormat == TagFormat.OVSize ? TagFormat.VSize : tagFormat);
 
