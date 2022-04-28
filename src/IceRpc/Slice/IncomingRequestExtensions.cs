@@ -85,7 +85,6 @@ namespace IceRpc.Slice
         /// <param name="encoding">The encoding of the request payload.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
         /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
-        /// <param name="hasStream">When true, T is or includes a stream.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The request arguments.</returns>
         public static ValueTask<T> DecodeArgsAsync<T>(
@@ -93,7 +92,6 @@ namespace IceRpc.Slice
             SliceEncoding encoding,
             IActivator? defaultActivator,
             DecodeFunc<T> decodeFunc,
-            bool hasStream,
             CancellationToken cancel = default) =>
             request.DecodeValueAsync(
                 encoding,
@@ -101,8 +99,18 @@ namespace IceRpc.Slice
                 defaultActivator,
                 defaultInvoker: Proxy.DefaultInvoker,
                 decodeFunc,
-                hasStream,
                 cancel);
+
+        /// <summary>Verifies that a request payload carries no argument or only unknown tagged arguments.</summary>
+        /// <param name="request">The incoming request.</param>
+        /// <param name="encoding">The encoding of the request payload.</param>
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>A value task that completes when the checking is complete.</returns>
+        public static ValueTask DecodeEmptyArgsAsync(
+            this IncomingRequest request,
+            SliceEncoding encoding,
+            CancellationToken cancel = default) =>
+            request.DecodeVoidAsync(encoding, cancel);
 
         /// <summary>Creates an async enumerable over the payload reader of an incoming request to decode streamed
         /// members.</summary>
@@ -111,7 +119,7 @@ namespace IceRpc.Slice
         /// <param name="defaultActivator">The optional default activator.</param>
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
         /// <returns>The async enumerable to decode and return the streamed members.</returns>
-        public static IAsyncEnumerable<T> DecodeAsyncEnumerable<T>(
+        public static IAsyncEnumerable<T> DecodeStream<T>(
             this IncomingRequest request,
             SliceEncoding encoding,
             IActivator? defaultActivator,
@@ -122,19 +130,5 @@ namespace IceRpc.Slice
                 defaultActivator,
                 defaultInvoker: Proxy.DefaultInvoker,
                 decodeFunc);
-
-        /// <summary>Verifies that a request payload carries no argument or only unknown tagged arguments.</summary>
-        /// <param name="request">The incoming request.</param>
-        /// <param name="encoding">The encoding of the request payload.</param>
-        /// <param name="hasStream"><c>true</c> if this void value is followed by a stream parameter;
-        /// otherwise, <c>false</c>.</param>
-        /// <param name="cancel">The cancellation token.</param>
-        /// <returns>A value task that completes when the checking is complete.</returns>
-        public static ValueTask DecodeEmptyArgsAsync(
-            this IncomingRequest request,
-            SliceEncoding encoding,
-            bool hasStream,
-            CancellationToken cancel = default) =>
-            request.DecodeVoidAsync(encoding, hasStream, cancel);
     }
 }

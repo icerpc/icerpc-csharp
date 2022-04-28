@@ -34,7 +34,13 @@ pub fn decode_data_members(
     // Decode tagged data members
     for member in tagged_members {
         let param = format!("this.{}", member.field_name(field_type));
-        code.writeln(&decode_tagged(member, namespace, &param, use_tag_format, true));
+        code.writeln(&decode_tagged(
+            member,
+            namespace,
+            &param,
+            use_tag_format,
+            true,
+        ));
     }
 
     code
@@ -79,10 +85,14 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str) -> CodeBloc
             write!(code, "decoder.DecodeClass<{}>()", type_string);
         }
         TypeRefs::Primitive(primitive_ref) => {
-            write!(code, "decoder.Decode{}()", primitive_ref.type_suffix());
+            if primitive_ref.is_class_type() {
+                write!(code, "decoder.DecodeClass<IceRpc.Slice.AnyClass>()");
+            } else {
+                write!(code, "decoder.Decode{}()", primitive_ref.type_suffix());
+            }
         }
         TypeRefs::Struct(struct_ref) => {
-            if struct_ref.definition().has_attribute("cs:type", false) {
+            if struct_ref.definition().has_attribute("cs::type", false) {
                 write!(
                     code,
                     "{decoder_extensions_class}.Decode{name}(ref decoder)",
@@ -229,7 +239,7 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str) -> Cod
     let mut code = CodeBlock::new();
     let element_type = &sequence_ref.element_type;
 
-    if sequence_ref.get_attribute("cs:generic", false).is_some() {
+    if sequence_ref.get_attribute("cs::generic", false).is_some() {
         let arg: Option<String> = match element_type.concrete_type() {
             Types::Primitive(primitive)
                 if primitive.is_numeric_or_bool() && primitive.is_fixed_size() =>
@@ -431,7 +441,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
             )
         }
         TypeRefs::Struct(struct_ref) => {
-            if struct_ref.definition().has_attribute("cs:type", false) {
+            if struct_ref.definition().has_attribute("cs::type", false) {
                 format!(
                     "(ref SliceDecoder decoder) => {decoder_extensions_class}.Decode{name}(ref decoder)",
                     decoder_extensions_class = struct_ref
@@ -547,7 +557,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
                 namespace,
                 &member.parameter_name_with_prefix("sliceP_"),
                 operation.encoding == Encoding::Slice1, // we only use tag_formats with Slice1
-                false, // no tag end marker for operations
+                false,                                  // no tag end marker for operations
             )
         )
     }
@@ -576,16 +586,16 @@ pub fn decode_operation_stream(
     let create_stream_param: CodeBlock = match param_type.concrete_type() {
         Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) => {
             if dispatch {
-                "request.Payload;".into()
+                "request.DecodeByteStream();".into()
             } else {
-                "response.Payload;".into()
+                "response.DecodeByteStream();".into()
             }
         }
         _ => {
             if dispatch {
                 format!(
                     "\
-request.DecodeAsyncEnumerable<{param_type}>(
+request.DecodeStream<{param_type}>(
     {encoding},
     _defaultActivator,
     {decode_func});",
@@ -597,7 +607,7 @@ request.DecodeAsyncEnumerable<{param_type}>(
             } else {
                 format!(
                     "\
-response.DecodeAsyncEnumerable<{param_type}>(
+response.DecodeStream<{param_type}>(
     {encoding},
     _defaultActivator,
     {decode_func});",

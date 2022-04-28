@@ -179,7 +179,7 @@ namespace IceRpc.Internal
                         "payload writer cancellation or completion is not supported with the ice protocol");
                 }
 
-                await request.Payload.CompleteAsync().ConfigureAwait(false);
+                await request.CompleteAsync().ConfigureAwait(false);
                 await payloadWriter.CompleteAsync().ConfigureAwait(false);
             }
             catch (Exception exception)
@@ -801,11 +801,10 @@ namespace IceRpc.Internal
                 throw;
             }
 
-            var request = new IncomingRequest(
-                connection,
-                fields: requestHeader.OperationMode == OperationMode.Normal ?
-                    ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields)
+            var request = new IncomingRequest(connection)
             {
+                Fields = requestHeader.OperationMode == OperationMode.Normal ?
+                    ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields,
                 Fragment = requestHeader.Fragment,
                 IsOneway = requestId == 0,
                 Operation = requestHeader.Operation,
@@ -858,7 +857,8 @@ namespace IceRpc.Internal
                 OutgoingResponse response;
                 try
                 {
-                    // The dispatcher is responsible for completing the incoming request payload.
+                    // The dispatcher can complete the incoming request payload to release its memory as soon as
+                    // possible.
                     response = await _dispatcher.DispatchAsync(
                         request,
                         cancelDispatchSource.Token).ConfigureAwait(false);
@@ -899,6 +899,12 @@ namespace IceRpc.Internal
                         pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
                         return pipe.Reader;
                     }
+                }
+                finally
+                {
+                    // Even when the code above throws an exception, we catch it and send a response. So we never want
+                    // to give an exception to CompleteAsync when completing the incoming payload.
+                    await request.Payload.CompleteAsync().ConfigureAwait(false);
                 }
 
                 // The sending of the response can't be canceled. This would lead to invalid protocol behavior.
@@ -971,7 +977,7 @@ namespace IceRpc.Internal
                             "payload writer cancellation or completion is not supported with the ice protocol");
                     }
 
-                    await response.Payload.CompleteAsync().ConfigureAwait(false);
+                    await response.CompleteAsync().ConfigureAwait(false);
                     await payloadWriter.CompleteAsync().ConfigureAwait(false);
                 }
                 catch (Exception exception)

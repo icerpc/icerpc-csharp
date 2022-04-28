@@ -72,10 +72,7 @@ namespace IceRpc
 
                         // TODO: release payload if releaseRequestAfterSent is true
 
-                        if (previousResponse != null)
-                        {
-                            await previousResponse.Payload.CompleteAsync().ConfigureAwait(false);
-                        }
+                        previousResponse?.Complete();
 
                         if (response.ResultType == ResultType.Success)
                         {
@@ -90,13 +87,10 @@ namespace IceRpc
                         // removed all remaining usable endpoints through request.ExcludedEndpoints.
                         return previousResponse ?? throw ExceptionUtil.Throw(exception ?? ex);
                     }
-                    catch (OperationCanceledException ex)
+                    catch (OperationCanceledException)
                     {
                         // Previous response is discarded so we make sure to complete its payload.
-                        if (previousResponse != null)
-                        {
-                            await previousResponse.Payload.CompleteAsync(ex).ConfigureAwait(false);
-                        }
+                        previousResponse?.Complete();
                         // TODO: try other replica in some cases?
                         throw;
                     }
@@ -105,7 +99,7 @@ namespace IceRpc
                         // Previous response is discarded so we make sure to complete its payload.
                         if (previousResponse != null)
                         {
-                            await previousResponse.Payload.CompleteAsync(ex).ConfigureAwait(false);
+                            previousResponse.Complete();
                             response = null;
                         }
                         exception = ex;
@@ -175,10 +169,7 @@ namespace IceRpc
                             }
                             catch
                             {
-                                if (response != null)
-                                {
-                                    await response.Payload.CompleteAsync().ConfigureAwait(false);
-                                }
+                                response?.Complete();
                                 throw;
                             }
                         }

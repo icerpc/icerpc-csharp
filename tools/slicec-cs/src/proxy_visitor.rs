@@ -184,7 +184,6 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
     let operation_name = operation.escape_identifier();
     let async_operation_name = operation.escape_identifier_with_suffix("Async");
     let return_task = operation.return_task(false);
-    let is_oneway = operation.has_attribute("oneway", false);
 
     let parameters = operation.nonstreamed_parameters();
     let stream_return = operation.streamed_return_member();
@@ -287,7 +286,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
         invoke_args.push("idempotent: true".to_owned());
     }
 
-    if void_return && is_oneway {
+    if void_return && operation.is_oneway() {
         invoke_args.push("oneway: true".to_owned());
     }
 
@@ -503,7 +502,6 @@ fn response_operation_body(operation: &Operation) -> CodeBlock {
 await response.DecodeVoidReturnValueAsync(
     {encoding},
     _defaultActivator,
-    hasStream: true,
     cancel).ConfigureAwait(false);
 
 return {decode_operation_stream}
@@ -520,7 +518,6 @@ var {return_value} = await response.DecodeReturnValueAsync(
     {encoding},
     _defaultActivator,
     {response_decode_func},
-    hasStream: true,
     cancel).ConfigureAwait(false);
 
 {decode_response_stream}
@@ -543,7 +540,6 @@ await response.DecodeReturnValueAsync(
     {encoding},
     _defaultActivator,
     {response_decode_func},
-    hasStream: false,
     cancel).ConfigureAwait(false)",
             encoding = encoding,
             response_decode_func = response_decode_func(operation).indent()

@@ -183,13 +183,12 @@ public sealed class TelemetryMiddlewareTests
         });
 
         // Create an incoming request that carries the encoded trace context
-        var request = new IncomingRequest(
-            InvalidConnection.IceRpc,
-            new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>()
+        var request = new IncomingRequest(InvalidConnection.IceRpc)
+        {
+            Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>()
             {
                 [RequestFieldKey.TraceContext] = encodedTraceContext.Value
-            })
-        {
+            },
             Operation = "Op",
             Path = "/"
         };
@@ -231,13 +230,12 @@ public sealed class TelemetryMiddlewareTests
         });
 
         // Create an incoming request that carries an empty trace context field
-        var request = new IncomingRequest(
-            InvalidConnection.IceRpc,
-            new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>()
+        var request = new IncomingRequest(InvalidConnection.IceRpc)
+        {
+            Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>()
             {
                 [RequestFieldKey.TraceContext] = ReadOnlySequence<byte>.Empty
-            })
-        {
+            },
             Operation = "Op",
             Path = "/",
         };

@@ -2,17 +2,17 @@
 
 use super::{EntityExt, ParameterExt, ParameterSliceExt};
 use slice::code_gen_util::TypeContext;
-use slice::grammar::{Attributable, Contained, Operation};
+use slice::grammar::{Attributable, Contained, ClassFormat, Operation};
 
 pub trait OperationExt {
-    /// Returns true if the operation has the `cs:encoded-result` attribute. False otherwise.
+    /// Returns true if the operation has the `cs::encodedResult` attribute. False otherwise.
     fn has_encoded_result(&self) -> bool;
 
     /// The name of the generated encoded result type.
     fn encoded_result_struct(&self) -> String;
 
     /// The Slice format type of the operation
-    fn format_type(&self) -> String;
+    fn format_type(&self) -> &str;
 
     /// The operation return task.
     fn return_task(&self, is_dispatch: bool) -> String;
@@ -20,7 +20,7 @@ pub trait OperationExt {
 
 impl OperationExt for Operation {
     fn has_encoded_result(&self) -> bool {
-        self.has_attribute("cs:encoded-result", true)
+        self.has_attribute("cs::encodedResult", true)
     }
 
     fn encoded_result_struct(&self) -> String {
@@ -31,15 +31,10 @@ impl OperationExt for Operation {
         )
     }
 
-    // TODO move this to slicec
-    fn format_type(&self) -> String {
-        match self.get_attribute("format", true) {
-            Some(format) if format.len() == 1 => match format.first().unwrap().as_str() {
-                "Sliced" => "IceRpc.Slice.FormatType.Sliced".to_owned(),
-                "Compact" => "default".to_owned(), // compact is the default value
-                _ => panic!("unexpected format type"),
-            },
-            _ => "default".to_owned(),
+    fn format_type(&self) -> &str {
+        match self.class_format() {
+            ClassFormat::Sliced => "IceRpc.Slice.FormatType.Sliced",
+            ClassFormat::Compact => "default", // compact is the default value
         }
     }
 

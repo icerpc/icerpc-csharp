@@ -1,0 +1,43 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc::IntegrationTests;
+
+compact struct MyCompactStructA
+{
+    a: bool,
+    b: int8,
+    c: uint8,
+    d: int16,
+    e: uint16,
+    f: int32,
+    g: uint32,
+    h: varint32,
+    i: varuint32,
+    j: int64,
+    k: uint64,
+    l: varint62,
+    m: varuint62,
+    n: float32,
+    o: float64,
+    p: string
+}
+
+compact struct MyCompactStructWithOptionalsA
+{
+    a: bool?,
+    b: int8?,
+    c: uint8?,
+    d: int16?,
+    e: uint16?,
+    f: int32?,
+    g: uint32?,
+    h: varint32?,
+    i: varuint32?,
+    j: int64?,
+    k: uint64?,
+    l: varint62?,
+    m: varuint62?,
+    n: float32?,
+    o: float64?,
+    p: string?
+}

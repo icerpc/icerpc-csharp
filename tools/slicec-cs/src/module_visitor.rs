@@ -34,9 +34,9 @@ impl ModuleVisitor<'_> {
                 // C# namespace declaration as in `module Foo::Bar` -> `namespace Foo.Bar`
                 format!("{}.{}", prefix, module.identifier())
             }
-            None => match module.get_attribute("cs:namespace", false) {
-                // If a top-level module has a 'cs:namespace' attribute, use its argument as module indetifier
-                // otherwise use the module indentifier.
+            None => match module.get_attribute("cs::namespace", false) {
+                // If a top-level module has a 'cs::namespace' attribute, use its argument as module identifier
+                // otherwise use the module identifier.
                 Some(attribute) if module.is_top_level() => attribute.first().unwrap().to_owned(),
                 _ => module.identifier().to_owned(),
             },

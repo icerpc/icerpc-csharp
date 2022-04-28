@@ -1,0 +1,15 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+encoding = 1;
+
+module IceRpc::IntegrationTests::Slice1;
+
+exception ExceptionA
+{
+    a: int32
+}
+
+exception ExceptionB : ExceptionA
+{
+    b: int32
+}

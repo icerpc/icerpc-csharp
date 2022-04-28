@@ -1,0 +1,47 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc::IntegrationTests;
+
+interface MyEmptyInterface
+{
+}
+
+interface MyInterface
+{
+    op1();
+    op2(x: int32);
+    op3() -> int32;
+    op4(x: int32) -> int32;
+    op5(x: int32, y: int32) -> (x: int32, y: int32);
+}
+
+interface MyDerivedInterface : MyInterface {}
+
+interface MyInterfaceWithTaggedParams
+{
+    op1(x: tag(10) int32?, y: tag(20) int32?) -> (x: tag(10) int32?, y: tag(20) int32?);
+}
+
+interface MyInterfaceWithOptionalParams
+{
+    op1(x: int32?, y: int32?) -> (x: int32?, y: int32?);
+}
+
+[cs::encodedResult]
+interface MyInterfaceWithEncodedResult
+{
+    op1() -> (x: int32, y: int32);
+    op2() -> MyStructA;
+}
+
+interface MyCompressOperations
+{
+    [compress(Args)] opCompressArgs(size: int32, p1: sequence<uint8>);
+    [compress(Return)] opCompressReturn(size: int32) -> sequence<uint8>;
+    [compress(Args, Return)] opCompressArgsAndReturn(p1: sequence<uint8>) -> sequence<uint8>;
+    [compress(Args, Return)] opWithUserException(size: int32);
+
+    [compress(Args)] opCompressStreamArg(p1: stream uint8) -> int32;
+    [compress(Return)] opCompressReturnStream(size: int32) -> stream uint8;
+    [compress(Args, Return)] opCompressStreamArgAndReturnStream(p1: stream uint8) -> stream uint8;
+}

@@ -15,7 +15,22 @@ namespace IceRpc.Slice
         /// this deadline automatically using the proxy's invocation timeout and sends it with icerpc requests but not
         /// with ice requests. As a result, the deadline for an ice request is always <see cref="DateTime.MaxValue"/>
         /// on the server-side even though the invocation timeout is usually not infinite.</summary>
-        public DateTime Deadline { get; }
+        public DateTime Deadline
+        {
+            get
+            {
+                if (_deadline == null)
+                {
+                    long value = _request.Fields.DecodeValue(
+                        RequestFieldKey.Deadline,
+                        (ref SliceDecoder decoder) => decoder.DecodeVarInt62());
+
+                    // unset or <= 0 results in DateTime.MaxValue
+                    _deadline = value > 0 ? DateTime.UnixEpoch + TimeSpan.FromMilliseconds(value) : DateTime.MaxValue;
+                }
+                return _deadline.Value;
+            }
+        }
 
         /// <summary>The features associated with the request.</summary>
         public FeatureCollection Features
@@ -36,19 +51,11 @@ namespace IceRpc.Slice
         /// <summary>The protocol used by the request.</summary>
         public Protocol Protocol => _request.Protocol;
 
+        private DateTime? _deadline;
+
         private readonly IncomingRequest _request;
 
         /// <summary>Constructs a dispatch from an incoming request.</summary>
-        public Dispatch(IncomingRequest request)
-        {
-            _request = request;
-
-            long value = _request.Fields.DecodeValue(
-                RequestFieldKey.Deadline,
-                (ref SliceDecoder decoder) => decoder.DecodeVarInt62());
-
-            // unset or <= 0 results in DateTime.MaxValue
-            Deadline = value > 0 ? DateTime.UnixEpoch + TimeSpan.FromMilliseconds(value) : DateTime.MaxValue;
-        }
+        public Dispatch(IncomingRequest request) => _request = request;
     }
 }
