@@ -298,8 +298,8 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
             writeln!(
                 body,
                 "\
-        Proxy.InvokeAsync(
-            {})",
+Proxy.InvokeAsync(
+    {})",
                 CodeBlock::from(invoke_args.join(",\n")).indent()
             );
         }
@@ -307,8 +307,8 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
             writeln!(
                 body,
                 "\
-        return Proxy.InvokeAsync(
-            {});",
+return Proxy.InvokeAsync(
+    {});",
                 CodeBlock::from(invoke_args.join(",\n")).indent()
             );
         }
