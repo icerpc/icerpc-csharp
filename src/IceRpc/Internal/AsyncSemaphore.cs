@@ -91,6 +91,11 @@ namespace IceRpc.Internal
             }
         }
 
+        /// <summary>Notify callers that are waiting to enter the semaphore that the semaphore is being terminated. The
+        /// given exception will be raised by the awaited EnterAsync operation. In addition, this method waits for the
+        /// semaphore to be fully released.</summary>
+        /// <param name="exception">The exception raised to notify the callers waiting to enter the semaphore of the
+        /// completion.</param>
         internal Task CompleteAndWaitAsync(Exception exception)
         {
             Complete(exception);
