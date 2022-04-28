@@ -208,8 +208,7 @@ namespace IceRpc.Internal
                         request,
                         cancelDispatchSource.Token).ConfigureAwait(false);
 
-                    Debug.Assert(request.Response != null);
-                    response = request.Response;
+                    response = request.Response ?? new OutgoingResponse(request); // TODO: temporary
                 }
                 catch (Exception exception)
                 {

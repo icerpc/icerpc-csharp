@@ -141,7 +141,7 @@ namespace IceRpc.Tests.ClientServer
         {
             private readonly Proxy _target;
 
-            async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(
+            async ValueTask IDispatcher.DispatchAsync(
                 IncomingRequest incomingRequest,
                 CancellationToken cancel)
             {
@@ -196,7 +196,7 @@ namespace IceRpc.Tests.ClientServer
                                 new OutgoingFieldValue(pair.Value))));
                 _ = fields.Remove(ResponseFieldKey.RetryPolicy);
 
-                return incomingRequest.Response = new OutgoingResponse(incomingRequest)
+                incomingRequest.Response = new OutgoingResponse(incomingRequest)
                 {
                     Fields = fields,
                     Payload = incomingResponse.Payload,

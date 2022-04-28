@@ -9,7 +9,7 @@ public sealed class LoggerMiddlewareTests
     [Test]
     public async Task Log_successful_request()
     {
-        var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
+        var dispatcher = new InlineDispatcher((request, cancel) => default);
         using var loggerFactory = new TestLoggerFactory();
         await using var connection = new Connection("icerpc://127.0.0.1");
         var request = new IncomingRequest(connection)

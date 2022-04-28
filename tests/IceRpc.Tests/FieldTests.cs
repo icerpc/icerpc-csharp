@@ -24,7 +24,7 @@ public class FieldTests
             Dispatcher = new InlineDispatcher((request, cancel) =>
             {
                 fieldValue = request.Connection.Features.Get<byte[]>();
-                return new(request.Response = new OutgoingResponse(request));
+                return default;
             }),
             MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport),
             OnConnect = (fields, features) => features.Set(fields[TestConnectionFieldKey].ToArray())
