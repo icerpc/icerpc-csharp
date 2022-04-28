@@ -3,7 +3,11 @@
 using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Transports;
+using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using System.Net.Security;
 
 namespace IceRpc.Tests;
 
@@ -36,12 +40,50 @@ internal struct ClientServerProtocolConnection : IAsyncDisposable
     }
 }
 
-internal class ProtocolServiceCollection : TransportServiceCollection
+internal class ProtocolServiceCollection : ServiceCollection
 {
     public ProtocolServiceCollection()
     {
+        this.AddScoped(_ => new ColocTransport());
+
+        this.AddScoped(provider => provider.GetRequiredService<ColocTransport>().ServerTransport);
+        this.AddScoped<IServerTransport<IMultiplexedNetworkConnection>>(
+            provider => new SlicServerTransport(provider.GetRequiredService<ColocTransport>().ServerTransport));
+
+        this.AddScoped(provider => provider.GetRequiredService<ColocTransport>().ClientTransport);
+        this.AddScoped<IClientTransport<IMultiplexedNetworkConnection>>(
+            provider => new SlicClientTransport(provider.GetRequiredService<ColocTransport>().ClientTransport));
+
+        this.AddScoped(
+            typeof(Endpoint),
+            provider => Endpoint.FromString($"{provider.GetRequiredService<Protocol>().Name}://{Guid.NewGuid()}"));
+
         this.AddSingleton(IceProtocol.Instance.ProtocolConnectionFactory);
         this.AddSingleton(IceRpcProtocol.Instance.ProtocolConnectionFactory);
+        this.AddScoped(serviceProvider => CreateListener<ISimpleNetworkConnection>(serviceProvider));
+        this.AddScoped(serviceProvider => CreateListener<IMultiplexedNetworkConnection>(serviceProvider));
+
+        static IListener<T> CreateListener<T>(IServiceProvider serviceProvider) where T : INetworkConnection
+        {
+            ILogger logger = serviceProvider.GetService<ILogger>() ?? NullLogger.Instance;
+
+            IListener<T> listener =
+                serviceProvider.GetRequiredService<IServerTransport<T>>().Listen(
+                    serviceProvider.GetRequiredService<Endpoint>(),
+                    serviceProvider.GetService<SslServerAuthenticationOptions>(),
+                    logger);
+
+            if (logger != NullLogger.Instance)
+            {
+                LogNetworkConnectionDecoratorFactory<T>? decorator =
+                    serviceProvider.GetService<LogNetworkConnectionDecoratorFactory<T>>();
+                if (decorator != null)
+                {
+                    listener = new LogListenerDecorator<T>(listener, logger, decorator);
+                }
+            }
+            return listener;
+        }
     }
 }
 
@@ -124,6 +166,53 @@ internal static class ProtocolServiceCollectionExtensions
                 Protocol.IceRpc,
                 isServer: true,
                 serviceProvider.GetMultiplexedServerConnectionAsync);
+
+    public static Task<IMultiplexedNetworkConnection> GetMultiplexedClientConnectionAsync(
+            this IServiceProvider serviceProvider) =>
+            GetClientNetworkConnectionAsync<IMultiplexedNetworkConnection>(serviceProvider);
+
+    public static Task<IMultiplexedNetworkConnection> GetMultiplexedServerConnectionAsync(
+        this IServiceProvider serviceProvider) =>
+        GetServerNetworkConnectionAsync<IMultiplexedNetworkConnection>(serviceProvider);
+
+    public static Task<ISimpleNetworkConnection> GetSimpleClientConnectionAsync(
+        this IServiceProvider serviceProvider) =>
+        GetClientNetworkConnectionAsync<ISimpleNetworkConnection>(serviceProvider);
+
+    public static Task<ISimpleNetworkConnection> GetSimpleServerConnectionAsync(
+        this IServiceProvider serviceProvider) =>
+        GetServerNetworkConnectionAsync<ISimpleNetworkConnection>(serviceProvider);
+
+    private static async Task<T> GetClientNetworkConnectionAsync<T>(
+        IServiceProvider serviceProvider) where T : INetworkConnection
+    {
+        Endpoint endpoint = serviceProvider.GetRequiredService<IListener<T>>().Endpoint;
+        ILogger logger = serviceProvider.GetService<ILogger>() ?? NullLogger.Instance;
+        T connection = serviceProvider.GetRequiredService<IClientTransport<T>>().CreateConnection(
+            endpoint,
+            serviceProvider.GetService<SslClientAuthenticationOptions>(),
+            logger);
+        if (logger != NullLogger.Instance)
+        {
+            LogNetworkConnectionDecoratorFactory<T>? decorator =
+                serviceProvider.GetService<LogNetworkConnectionDecoratorFactory<T>>();
+            if (decorator != null)
+            {
+                connection = decorator(connection, endpoint, false, logger);
+            }
+        }
+        await connection.ConnectAsync(default);
+        return connection;
+    }
+
+    private static async Task<T> GetServerNetworkConnectionAsync<T>(
+        IServiceProvider serviceProvider) where T : INetworkConnection
+    {
+        IListener<T> listener = serviceProvider.GetRequiredService<IListener<T>>();
+        T connection = await listener.AcceptAsync();
+        await connection.ConnectAsync(default);
+        return connection;
+    }
 
     private sealed class ClientConnectionOptions
     {

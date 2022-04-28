@@ -1,12 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc;
 using IceRpc.Slice;
 using IceRpc.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
-namespace IntegrationTests;
+namespace IceRpc.IntegrationTests;
 
 [Parallelizable(ParallelScope.All)]
 [Timeout(5000)]
@@ -14,13 +13,14 @@ public class ServiceTests
 {
     /// <summary>Verifies the operations of <see cref="Service"/>.</summary>
     [Test]
-    public async Task Service_operations()
+    public async Task Service_operations([Values("ice", "icerpc")] string protocol)
     {
-        await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-            .AddTransient<IDispatcher, Service>()
+        await using ServiceProvider provider = new IntegrationTestServiceCollection()
+            .UseDispatcher(new Service())
+            .UseProtocol(protocol)
             .BuildServiceProvider();
 
-        var service = serviceProvider.GetProxy<ServicePrx>();
+        var service = new ServicePrx(provider.GetRequiredService<Proxy>());
 
         string[] ids = new string[]
         {
