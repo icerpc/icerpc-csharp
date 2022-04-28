@@ -110,13 +110,13 @@ public sealed class IceRpcProtocolConnectionTests
             .UseServerConnectionOptions(new ConnectionOptions()
             {
                 Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>()
-                        .With(ConnectionFieldKey.MaxHeaderSize, (ref SliceEncoder encoder) => encoder.EncodeInt32(56))
+                    .With(ConnectionFieldKey.MaxHeaderSize, (ref SliceEncoder encoder) => encoder.EncodeInt32(56))
             })
             .UseClientConnectionOptions(new ConnectionOptions()
             {
                 Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>()
-                        .With(ConnectionFieldKey.MaxHeaderSize, (ref SliceEncoder encoder) => encoder.EncodeInt32(34))
-                        .With((ConnectionFieldKey)10, (ref SliceEncoder encoder) => encoder.EncodeInt32(38))
+                    .With(ConnectionFieldKey.MaxHeaderSize, (ref SliceEncoder encoder) => encoder.EncodeInt32(34))
+                    .With((ConnectionFieldKey)10, (ref SliceEncoder encoder) => encoder.EncodeInt32(38))
             })
             .BuildServiceProvider();
 

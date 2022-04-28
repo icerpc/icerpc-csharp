@@ -1,0 +1,11 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+encoding = 1;
+
+module IceRpc::IntegrationTests::Slice1;
+
+interface MyInterface
+{
+    op1(c: AnyClass) -> AnyClass;
+    op2(c: MyClassA) -> MyClassA;
+}

@@ -1,0 +1,15 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+encoding = 1;
+
+module IceRpc::IntegrationTests::Slice1;
+
+class MyClassA
+{
+    x: int32
+}
+
+class MyClassB : MyClassA
+{
+    y: int32
+}

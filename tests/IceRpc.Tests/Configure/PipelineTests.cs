@@ -92,4 +92,26 @@ public class PipelineTests
 
         Assert.That(calls, Is.EqualTo(expectedCalls));
     }
+
+    /// <summary>Verifies that the pipeline sets the request features.</summary>
+    [Test]
+    public void Use_feature()
+    {
+        // Arrange
+        const string expected = "foo";
+        var pipeline = new Pipeline();
+
+        // Act
+        pipeline.UseFeature(expected);
+
+        // Assert
+        string? feature = null;
+        pipeline.Use(next => new InlineInvoker((request, cancel) =>
+        {
+            feature = request.Features.Get<string>();
+            return Task.FromResult(new IncomingResponse(request, request.Connection!));
+        }));
+        pipeline.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
+        Assert.That(feature, Is.EqualTo(expected));
+    }
 }

@@ -1,0 +1,11 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+encoding = 1;
+
+module IceRpc::IntegrationTests::Slice1;
+
+interface DictionaryOperations
+{
+    op1(a: dictionary<bool, AnyClass>) -> dictionary<bool, AnyClass>;
+    op2(a: dictionary<bool, AnyClass?>) -> dictionary<bool, AnyClass?>;
+}

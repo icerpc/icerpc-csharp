@@ -77,7 +77,7 @@ generated
 
 # Test generated files
 tests/**/Test.cs
-tests/TestReport
+tests/CodeCoverageReport
 TestResults
 
 # docfx
