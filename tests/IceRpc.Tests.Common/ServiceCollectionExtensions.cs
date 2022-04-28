@@ -2,6 +2,7 @@
 
 using IceRpc.Configure;
 using IceRpc.Transports;
+using IceRpc.Transports.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Net.Security;
@@ -30,6 +31,53 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection UseProtocol(this IServiceCollection collection, string protocol) =>
         collection.AddScoped(_ => Protocol.FromString(protocol));
+
+    public static IServiceCollection UseSlic(this IServiceCollection collection)
+    {
+        collection.AddScoped<IServerTransport<IMultiplexedNetworkConnection>>(provider =>
+        {
+            var simpleServerTransport = provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>();
+            var serverOptions = provider.GetService<SlicServerTransportOptions>() ?? new SlicServerTransportOptions();
+            var multiplexedTransportOptions = provider.GetService<MultiplexedTransportOptions>();
+            if (multiplexedTransportOptions?.BidirectionalStreamMaxCount is int bidirectionalStreamMaxCount)
+            {
+                serverOptions.BidirectionalStreamMaxCount = bidirectionalStreamMaxCount;
+            }
+            if (multiplexedTransportOptions?.UnidirectionalStreamMaxCount is int unidirectionalStreamMaxCount)
+            {
+                serverOptions.UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount;
+            }
+            serverOptions.SimpleServerTransport = simpleServerTransport;
+            return new SlicServerTransport(serverOptions);
+        });
+
+        collection.AddScoped<IClientTransport<IMultiplexedNetworkConnection>>(provider =>
+        {
+            var simpleClientTransport = provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>();
+            var clientOptions = provider.GetService<SlicClientTransportOptions>() ?? new SlicClientTransportOptions();
+            var multiplexedTransportOptions = provider.GetService<MultiplexedTransportOptions>();
+            if (multiplexedTransportOptions?.BidirectionalStreamMaxCount is int bidirectionalStreamMaxCount)
+            {
+                clientOptions.BidirectionalStreamMaxCount = bidirectionalStreamMaxCount;
+            }
+            if (multiplexedTransportOptions?.UnidirectionalStreamMaxCount is int unidirectionalStreamMaxCount)
+            {
+                clientOptions.UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount;
+            }
+            clientOptions.SimpleClientTransport = simpleClientTransport;
+            return new SlicClientTransport(clientOptions);
+        });
+
+        collection.AddScoped(provider =>
+        {
+            var serverTransport = provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>();
+            return serverTransport.Listen(
+                (Endpoint)provider.GetRequiredService(typeof(Endpoint)),
+                null,
+                NullLogger.Instance);
+        });
+        return collection;
+    }
 
     public static ServiceCollection UseSimpleTransport(this ServiceCollection collection)
     {
@@ -66,8 +114,6 @@ public static class ServiceCollectionExtensions
         TcpServerTransportOptions? serverTransportOptions = null,
         TcpClientTransportOptions? clientTransportOptions = null)
     {
-        collection.UseSimpleTransport();
-
         collection.AddScoped<IServerTransport<ISimpleNetworkConnection>>(
             provider => new TcpServerTransport(
                 serverTransportOptions ??

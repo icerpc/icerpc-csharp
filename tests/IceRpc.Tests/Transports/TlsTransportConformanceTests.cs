@@ -20,6 +20,7 @@ public class TlsTransportConformanceTests : SimpleTransportConformanceTests
     protected override IServiceCollection CreateServiceCollection() =>
         new ServiceCollection()
             .UseTcp()
+            .UseSimpleTransport()
             .AddScoped(_ => new SslClientAuthenticationOptions
             {
                 ClientCertificates = new X509CertificateCollection()

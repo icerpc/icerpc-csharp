@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Tests;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;

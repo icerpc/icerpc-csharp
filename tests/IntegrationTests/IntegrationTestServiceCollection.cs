@@ -15,10 +15,7 @@ public class IntegrationTestServiceCollection : ServiceCollection
     {
         this.UseColoc();
 
-        this.AddScoped<IServerTransport<IMultiplexedNetworkConnection>>(
-            provider => new SlicServerTransport(provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()));
-        this.AddScoped<IClientTransport<IMultiplexedNetworkConnection>>(
-            provider => new SlicClientTransport(provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()));
+        this.UseSlic();
 
         this.AddScoped(provider => new ConnectionPool(provider.GetService<ConnectionOptions>() ?? new ConnectionOptions()));
 
