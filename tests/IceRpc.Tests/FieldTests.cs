@@ -5,36 +5,36 @@ using IceRpc.Slice;
 using IceRpc.Transports;
 using NUnit.Framework;
 using System.Buffers;
-using System.Collections.Immutable;
 
 namespace IceRpc.Tests;
 
 [Timeout(30000)]
 public class FieldTests
 {
-    private const ConnectionFieldKey ConnectionFieldKey = (ConnectionFieldKey)100;
+    private const ConnectionFieldKey TestConnectionFieldKey = (ConnectionFieldKey)100;
     private static readonly byte[] _connectionFieldValue = new byte[] { 0xAA, 0xBB, 0xCC };
 
     [Test]
     public async Task Client_connection_field_is_received_by_server_connection()
     {
-        ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>>? peerFields = null;
+        byte[]? fieldValue = null;
         var colocTransport = new ColocTransport();
         await using var server = new Server(new ServerOptions
         {
             Dispatcher = new InlineDispatcher((request, cancel) =>
             {
-                peerFields = request.Connection.PeerFields;
+                fieldValue = request.Connection.Features.Get<byte[]>();
                 return new(new OutgoingResponse(request));
             }),
-            MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+            MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport),
+            OnConnect = (fields, features) => features.Set(fields[TestConnectionFieldKey].ToArray())
         });
         server.Listen();
         await using var connection = new Connection(new ConnectionOptions
         {
             Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>
             {
-                [ConnectionFieldKey] = new OutgoingFieldValue(new ReadOnlySequence<byte>(_connectionFieldValue))
+                [TestConnectionFieldKey] = new(new ReadOnlySequence<byte>(_connectionFieldValue))
             },
             MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
             RemoteEndpoint = server.Endpoint
@@ -43,8 +43,8 @@ public class FieldTests
 
         await prx.IcePingAsync();
 
-        Assert.That(peerFields, Is.Not.Null);
-        Assert.That(peerFields[ConnectionFieldKey].ToArray(), Is.EqualTo(_connectionFieldValue));
+        Assert.That(fieldValue, Is.Not.Null);
+        Assert.That(fieldValue, Is.EqualTo(_connectionFieldValue));
     }
 
     [Test]
@@ -55,7 +55,7 @@ public class FieldTests
         {
             Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>
             {
-                [ConnectionFieldKey] = new OutgoingFieldValue(new ReadOnlySequence<byte>(_connectionFieldValue))
+                [TestConnectionFieldKey] = new(new ReadOnlySequence<byte>(_connectionFieldValue))
             },
             MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
         });
@@ -63,11 +63,12 @@ public class FieldTests
         await using var connection = new Connection(new ConnectionOptions
         {
             MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
+            OnConnect = (fields, features) => features.Set(fields[TestConnectionFieldKey].ToArray()),
             RemoteEndpoint = server.Endpoint
         });
 
         await connection.ConnectAsync();
 
-        Assert.That(connection.PeerFields[ConnectionFieldKey].ToArray(), Is.EqualTo(_connectionFieldValue));
+        Assert.That(connection.Features.Get<byte[]>, Is.EqualTo(_connectionFieldValue));
     }
 }

@@ -6,7 +6,6 @@ using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
-using System.Collections.Immutable;
 
 namespace IceRpc.Tests;
 
@@ -99,24 +98,48 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(exception.ErrorCode, Is.EqualTo(errorCode));
     }
 
-    /// <summary>Ensures that the connection fields are correctly exchanged on the protocol connection
-    /// initialization.</summary>
+    /// <summary>Checks that the connection fields are correctly exchanged during connection establishment.</summary>
     [Test]
-    public async Task Initialize_peer_fields()
+    public async Task Exchange_fields_on_connection_establishment()
     {
         // Arrange
+        ConnectionFieldKey connectionFieldKeyA = (ConnectionFieldKey)100;
+        ConnectionFieldKey connectionFieldKeyB = (ConnectionFieldKey)10;
+        int clientCount = -1;
+        int? clientA = null;
+        int? clientB = null;
+        int? serverA = null;
+        int serverCount = -1;
+        int? serverB = null;
+
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
             .UseServerConnectionOptions(new ConnectionOptions()
             {
                 Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>()
-                    .With(ConnectionFieldKey.MaxHeaderSize, (ref SliceEncoder encoder) => encoder.EncodeInt32(56))
+                {
+                    [connectionFieldKeyA] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(56))
+                },
+                OnConnect = (fields, _) =>
+                {
+                    serverCount = fields.Count;
+                    serverA = DecodeField(fields, connectionFieldKeyA);
+                    serverB = DecodeField(fields, connectionFieldKeyB);
+                }
             })
             .UseClientConnectionOptions(new ConnectionOptions()
             {
                 Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>()
-                    .With(ConnectionFieldKey.MaxHeaderSize, (ref SliceEncoder encoder) => encoder.EncodeInt32(34))
-                    .With((ConnectionFieldKey)10, (ref SliceEncoder encoder) => encoder.EncodeInt32(38))
+                {
+                    [connectionFieldKeyA] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(34)),
+                    [connectionFieldKeyB] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(38))
+                },
+                OnConnect = (fields, _) =>
+                {
+                    clientCount = fields.Count;
+                    clientA = DecodeField(fields, connectionFieldKeyA);
+                    clientB = DecodeField(fields, connectionFieldKeyB);
+                }
             })
             .BuildServiceProvider();
 
@@ -126,18 +149,20 @@ public sealed class IceRpcProtocolConnectionTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(sut.Server.PeerFields, Has.Count.EqualTo(2));
-            Assert.That(sut.Client.PeerFields, Has.Count.EqualTo(1));
-            Assert.That(DecodeField(sut.Server.PeerFields, ConnectionFieldKey.MaxHeaderSize), Is.EqualTo(34));
-            Assert.That(DecodeField(sut.Server.PeerFields, (ConnectionFieldKey)10), Is.EqualTo(38));
-            Assert.That(DecodeField(sut.Client.PeerFields, ConnectionFieldKey.MaxHeaderSize), Is.EqualTo(56));
-        });
+            Assert.That(clientCount, Is.EqualTo(1));
+            Assert.That(clientA, Is.EqualTo(56));
+            Assert.That(clientB, Is.Null);
 
-        static int DecodeField(
-            ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>> fields,
-            ConnectionFieldKey key) =>
-            fields.DecodeValue(key, (ref SliceDecoder decoder) => decoder.DecodeInt32());
+            Assert.That(serverCount, Is.EqualTo(2));
+            Assert.That(serverA, Is.EqualTo(34));
+            Assert.That(serverB, Is.EqualTo(38));
+        });
     }
+
+    private static int? DecodeField(
+        IDictionary<ConnectionFieldKey, ReadOnlySequence<byte>> fields,
+        ConnectionFieldKey key) =>
+        fields.ContainsKey(key) ? fields.DecodeValue(key, (ref SliceDecoder decoder) => decoder.DecodeInt32()) : null;
 
     /// <summary>Ensures that the request payload is completed if the request fields are invalid.</summary>
     [Test]

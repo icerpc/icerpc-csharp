@@ -5,8 +5,6 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
-using System.Buffers;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Net.Security;
 
@@ -56,13 +54,13 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Returns the connection fields set by the peer, or an empty dictionary if the connection is not
-        /// active.</summary>
-        public ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>> PeerFields =>
-            _protocolConnection?.PeerFields ?? ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>>.Empty;
+        /// <summary>Gets the features of this connection.</summary>
+        public FeatureCollection Features => _features ?? _options.Features;
 
         // True once DisposeAsync is called. Once disposed the connection can't be resumed.
         private bool _disposed;
+
+        private FeatureCollection? _features;
 
         // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
         private readonly object _mutex = new();
@@ -393,11 +391,14 @@ namespace IceRpc
                 NetworkConnectionInformation = await networkConnection.ConnectAsync(
                     connectCancellationSource.Token).ConfigureAwait(false);
 
+                var features = new FeatureCollection(_options.Features);
+
                 // Create the protocol connection.
                 _protocolConnection = await protocolConnectionFactory.CreateProtocolConnectionAsync(
                     networkConnection,
                     NetworkConnectionInformation.Value,
                     _options,
+                    features,
                     _serverEndpoint != null,
                     connectCancellationSource.Token).ConfigureAwait(false);
 
@@ -411,6 +412,7 @@ namespace IceRpc
 
                     _state = ConnectionState.Active;
                     _stateTask = null;
+                    _features = features;
 
                     _onClose = onClose;
 

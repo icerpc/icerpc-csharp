@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using System.Buffers;
 
 namespace IceRpc.Internal
 {
@@ -11,6 +12,7 @@ namespace IceRpc.Internal
             T networkConnection,
             NetworkConnectionInformation connectionInformation,
             Configure.ConnectionOptions connectionOptions,
+            FeatureCollection features,
             bool isServer,
             CancellationToken cancel);
     }

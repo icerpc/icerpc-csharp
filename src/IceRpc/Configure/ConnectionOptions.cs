@@ -4,6 +4,7 @@ using IceRpc.Slice;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Buffers;
 using System.Collections.Immutable;
 using System.Net.Security;
 
@@ -53,7 +54,11 @@ namespace IceRpc.Configure
         /// <value>The dispatcher that dispatches requests received by this connection.</value>
         public IDispatcher Dispatcher { get; set; } = DefaultDispatcher;
 
-        /// <summary>Gets or sets the connection fields to send to the server.</summary>
+        /// <summary>Gets of sets the default features of the new connection.</summary>
+        public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
+
+        /// <summary>Gets or sets the connection fields to send to the server when establishing a connection with the
+        /// icerpc protocol.</summary>
         public IDictionary<ConnectionFieldKey, OutgoingFieldValue> Fields { get; set; } =
             ImmutableDictionary<ConnectionFieldKey, OutgoingFieldValue>.Empty;
 
@@ -88,6 +93,10 @@ namespace IceRpc.Configure
 
         /// <summary>Gets or set an action that executes when the connection is closed.</summary>
         public Action<Connection, Exception>? OnClose { get; set; }
+
+        /// <summary>Gets or sets the action to execute during connection establishment. This action (or linked actions)
+        /// can convert the fields received from the remote peer into features.</summary>
+        public Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>, FeatureCollection>? OnConnect { get; set; }
 
         /// <summary>Gets or sets the connection's remote endpoint.</summary>
         public Endpoint? RemoteEndpoint

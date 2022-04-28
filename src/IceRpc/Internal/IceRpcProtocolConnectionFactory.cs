@@ -11,13 +11,16 @@ namespace IceRpc.Internal
             IMultiplexedNetworkConnection networkConnection,
             NetworkConnectionInformation connectionInfo,
             Configure.ConnectionOptions connectionOptions,
+            FeatureCollection features,
             bool _,
             CancellationToken cancel)
         {
             var protocolConnection = new IceRpcProtocolConnection(
                 connectionOptions.Dispatcher,
                 networkConnection,
-                connectionOptions.Fields);
+                connectionOptions.Fields,
+                connectionOptions.OnConnect == null ? null : fields => connectionOptions.OnConnect(fields, features));
+
             try
             {
                 await protocolConnection.InitializeAsync(cancel).ConfigureAwait(false);
