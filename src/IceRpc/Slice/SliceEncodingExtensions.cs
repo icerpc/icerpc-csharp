@@ -137,7 +137,6 @@ namespace IceRpc.Slice
                     {
                         await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
                     }
-
                 }
 
                 return await _pipe.Reader.ReadAsync(cancel).ConfigureAwait(false);

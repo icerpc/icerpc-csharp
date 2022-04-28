@@ -581,26 +581,16 @@ namespace IceRpc
                 // that _closeTask is assigned before any synchronous continuations are ran.
                 await Task.Yield();
 
-                try
-                {
-                    _protocolConnection?.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    // The protocol or transport aren't supposed to raise.
-                    Debug.Assert(false, $"unexpected protocol close exception\n{ex}");
-                }
-
-                if (_networkConnection is INetworkConnection networkConnection)
+                if (_protocolConnection is IProtocolConnection protocolConnection)
                 {
                     try
                     {
-                        await networkConnection.DisposeAsync().ConfigureAwait(false);
+                        await protocolConnection.DisposeAsync().ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
                         // The protocol or transport aren't supposed to raise.
-                        Debug.Assert(false, $"unexpected transport close exception\n{ex}");
+                        Debug.Assert(false, $"unexpected protocol close exception\n{ex}");
                     }
                 }
 

@@ -84,13 +84,13 @@ namespace IceRpc.Internal
             }
             catch (Exception exception)
             {
-                Abort(exception);
+                await AbortAsync(exception).ConfigureAwait(false);
                 throw;
             }
         }
 
         /// <inheritdoc/>
-        public void Dispose() => Abort(new ObjectDisposedException($"{typeof(IceProtocolConnection)}"));
+        public ValueTask DisposeAsync() => AbortAsync(new ObjectDisposedException($"{typeof(IceProtocolConnection)}"));
 
         /// <inheritdoc/>
         public async Task PingAsync(CancellationToken cancel)
@@ -478,7 +478,7 @@ namespace IceRpc.Internal
             }
         }
 
-        private void Abort(Exception exception)
+        private async ValueTask AbortAsync(Exception exception)
         {
             lock (_mutex)
             {
@@ -489,12 +489,13 @@ namespace IceRpc.Internal
                 _isAborted = true;
             }
 
-            // First close the network connection pipe reader/writer. This ensures that pending dispatches won't send
+            // First close the network connection and its reader/writer. This ensures that pending dispatches won't send
             // responses and in particular it will ensure that the dispatch cancellation below doesn't send a
-            // DispatchException. If dispatches are in progress and the connection forcefully closed the peer
-            // invocations will fail with ConnectionLostException.
+            // DispatchException. If dispatches are in progress and the connection forcefully closed, the peer
+            // invocations should fail with ConnectionLostException.
             _networkConnectionReader.Dispose();
             _networkConnectionWriter.Dispose();
+            await _networkConnection.DisposeAsync().ConfigureAwait(false);
 
             CancelInvocations(exception);
             CancelDispatches();
@@ -678,7 +679,8 @@ namespace IceRpc.Internal
                         // The peer waits for the network connection to be closed.
                         await _networkConnection.DisposeAsync().ConfigureAwait(false);
 
-                        Abort(new ConnectionClosedException("connection shutdown by peer"));
+                        await AbortAsync(new ConnectionClosedException(
+                            "connection shutdown by peer")).ConfigureAwait(false);
 
                         return;
                     }
