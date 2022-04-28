@@ -105,7 +105,7 @@ run_test()
     run_command dotnet "${arguments[@]}"
 
     if [ "$coverage" == "yes" ]; then
-        arguments=("-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/CodeCoverageRerport")
+        arguments=("-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/CodeCoverageReport")
         run_command reportgenerator "${arguments[@]}"
     fi
 }

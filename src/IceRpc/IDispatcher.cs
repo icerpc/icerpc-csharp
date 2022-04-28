@@ -9,7 +9,7 @@ namespace IceRpc
         /// <param name="request">The incoming request being dispatched.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The corresponding <see cref="OutgoingResponse"/>.</returns>
-        public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel = default);
+        ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel = default);
     }
 
     /// <summary>Adapts a dispatcher delegate to the <see cref="IDispatcher"/> interface.</summary>
