@@ -5,8 +5,6 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
-using System.Buffers;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Net.Security;
 
