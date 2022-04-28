@@ -104,7 +104,7 @@ public sealed class ClassTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: FormatType.Sliced);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
 
         // Act
         encoder.EncodeClass(new MyClassA
@@ -249,7 +249,7 @@ public sealed class ClassTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: FormatType.Sliced);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
         var theA = new MyClassA();
         var theB = new MyClassB();
         var theC = new MyClassC();
@@ -366,7 +366,7 @@ public sealed class ClassTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: FormatType.Sliced);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
 
         // Act
         encoder.EncodeClass(new MyDerivedCompactClass());
@@ -668,7 +668,7 @@ public sealed class ClassTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: FormatType.Sliced);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
         encoder.EncodeSize(1); // Instance marker
         encoder.EncodeUInt8(
             (byte)Slice1Definitions.TypeIdKind.String |
@@ -785,7 +785,7 @@ public sealed class ClassTests
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: FormatType.Sliced);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
 
         encoder.EncodeSize(1); // Instance marker
         encoder.EncodeUInt8(
@@ -858,7 +858,6 @@ public sealed class ClassTests
         {
             encoder.EncodeUInt8(Slice1Definitions.TagEndMarker);
         }
-
 
         sliceFlags = (byte)Slice1Definitions.SliceFlags.IsLastSlice;
         if (a != null)

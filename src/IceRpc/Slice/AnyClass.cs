@@ -9,14 +9,7 @@ namespace IceRpc.Slice
     {
         /// <summary>Returns the unknown slices if the class has a preserved-slice base class and has been sliced-off
         /// during decoding.</summary>
-        public virtual ImmutableList<SliceInfo> UnknownSlices
-        {
-            get => ImmutableList<SliceInfo>.Empty;
-            set
-            {
-                // the default implementation has no underlying field.
-            }
-        }
+        public ImmutableList<SliceInfo> UnknownSlices { get; internal set; } = ImmutableList<SliceInfo>.Empty;
 
         /// <summary>Decodes the properties of this instance.</summary>
         /// <param name="decoder">The Slice decoder.</param>
