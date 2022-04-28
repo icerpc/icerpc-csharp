@@ -859,7 +859,6 @@ public sealed class ClassTests
             encoder.EncodeUInt8(Slice1Definitions.TagEndMarker);
         }
 
-
         sliceFlags = (byte)Slice1Definitions.SliceFlags.IsLastSlice;
         if (a != null)
         {
