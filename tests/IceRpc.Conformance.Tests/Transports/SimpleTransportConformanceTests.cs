@@ -428,61 +428,7 @@ public abstract class SimpleTransportConformanceTests
     }
 
     /// <summary>Creates the service collection used for the simple transport conformance tests.</summary>
-    protected abstract ServiceCollection CreateServiceCollection();
-}
-
-public static class SimpleTransportServiceCollectionExtensions
-{
-    public static ServiceCollection UseSimpleTransport(this ServiceCollection serviceCollection)
-    {
-        serviceCollection.AddScoped(provider =>
-        {
-            SslServerAuthenticationOptions? serverAuthenticationOptions =
-                provider.GetService<SslServerAuthenticationOptions>();
-            IServerTransport<ISimpleNetworkConnection>? serverTransport =
-                provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>();
-            return serverTransport.Listen(
-                provider.GetRequiredService<Endpoint>(),
-                serverAuthenticationOptions,
-                NullLogger.Instance);
-        });
-
-        serviceCollection.AddScoped(provider =>
-        {
-            SslClientAuthenticationOptions? clientAuthenticationOptions =
-                provider.GetService<SslClientAuthenticationOptions>();
-            IListener<ISimpleNetworkConnection> listener = provider.GetListener();
-            IClientTransport<ISimpleNetworkConnection> clientTransport =
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>();
-            return clientTransport.CreateConnection(
-                listener.Endpoint,
-                clientAuthenticationOptions,
-                NullLogger.Instance);
-        });
-        return serviceCollection;
-    }
-
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Security",
-        "CA5359:Do Not Disable Certificate Validation",
-        Justification = "The transport tests do not rely on certificate validation")]
-    public static ServiceCollection UseSslAuthentication(this ServiceCollection serviceCollection)
-    {
-        serviceCollection.AddScoped(_ => new SslClientAuthenticationOptions
-        {
-            ClientCertificates = new X509CertificateCollection()
-            {
-                new X509Certificate2("../../../certs/client.p12", "password")
-            },
-            RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true,
-        });
-        serviceCollection.AddScoped(_ => new SslServerAuthenticationOptions
-        {
-            ClientCertificateRequired = false,
-            ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
-        });
-        return serviceCollection;
-    }
+    protected abstract IServiceCollection CreateServiceCollection();
 }
 
 public static class SimpleTransportServiceProviderExtensions

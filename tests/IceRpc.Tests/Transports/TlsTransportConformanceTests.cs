@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
@@ -10,6 +11,6 @@ namespace IceRpc.Transports.Tests;
 [Parallelizable(ParallelScope.All)]
 public class TlsTransportConformanceTests : SimpleTransportConformanceTests
 {
-    protected override ServiceCollection CreateServiceCollection() =>
+    protected override IServiceCollection CreateServiceCollection() =>
         new ServiceCollection().UseTcp().UseSslAuthentication();
 }

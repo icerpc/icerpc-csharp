@@ -44,19 +44,11 @@ internal class ProtocolServiceCollection : ServiceCollection
 {
     public ProtocolServiceCollection()
     {
-        this.AddScoped(_ => new ColocTransport());
-
-        this.AddScoped(provider => provider.GetRequiredService<ColocTransport>().ServerTransport);
+        this.UseColoc();
         this.AddScoped<IServerTransport<IMultiplexedNetworkConnection>>(
             provider => new SlicServerTransport(provider.GetRequiredService<ColocTransport>().ServerTransport));
-
-        this.AddScoped(provider => provider.GetRequiredService<ColocTransport>().ClientTransport);
         this.AddScoped<IClientTransport<IMultiplexedNetworkConnection>>(
             provider => new SlicClientTransport(provider.GetRequiredService<ColocTransport>().ClientTransport));
-
-        this.AddScoped(
-            typeof(Endpoint),
-            provider => Endpoint.FromString($"{provider.GetRequiredService<Protocol>().Name}://{Guid.NewGuid()}"));
 
         this.AddSingleton(IceProtocol.Instance.ProtocolConnectionFactory);
         this.AddSingleton(IceRpcProtocol.Instance.ProtocolConnectionFactory);

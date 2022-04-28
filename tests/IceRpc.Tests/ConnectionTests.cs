@@ -552,11 +552,6 @@ public class ConnectionServiceCollection : ServiceCollection
 
 public static class ConnectionServiceCollectionExtensions
 {
-    public static IServiceCollection UseDispatcher(
-        this IServiceCollection serviceCollection,
-        IDispatcher dispatcher) =>
-        serviceCollection.AddScoped(_ => dispatcher);
-
     public static IServiceCollection UseConnectionOptions(
         this IServiceCollection serviceCollection,
         ConnectionOptions connectionOptions) =>

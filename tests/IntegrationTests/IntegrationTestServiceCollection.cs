@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Tests;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -12,19 +13,12 @@ public class IntegrationTestServiceCollection : ServiceCollection
 {
     public IntegrationTestServiceCollection()
     {
-        this.AddScoped(_ => new ColocTransport());
+        this.UseColoc();
 
-        this.AddScoped(provider => provider.GetRequiredService<ColocTransport>().ServerTransport);
         this.AddScoped<IServerTransport<IMultiplexedNetworkConnection>>(
             provider => new SlicServerTransport(provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()));
-
-        this.AddScoped(provider => provider.GetRequiredService<ColocTransport>().ClientTransport);
         this.AddScoped<IClientTransport<IMultiplexedNetworkConnection>>(
             provider => new SlicClientTransport(provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()));
-
-        this.AddScoped(
-            typeof(Endpoint),
-            provider => Endpoint.FromString($"{provider.GetRequiredService<Protocol>().Name}://{Guid.NewGuid()}"));
 
         this.AddScoped(provider => new ConnectionPool(provider.GetService<ConnectionOptions>() ?? new ConnectionOptions()));
 
@@ -53,26 +47,5 @@ public class IntegrationTestServiceCollection : ServiceCollection
             connectionOptions.LoggerFactory = provider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;
             return new Connection(connectionOptions);
         });
-    }
-}
-
-public static class IntegrationTestServiceCollectionExtensions
-{
-    public static IServiceCollection UseDispatcher(this IServiceCollection collection, IDispatcher dispatcher) =>
-        collection.AddScoped(_ => dispatcher);
-
-    public static IServiceCollection UseProtocol(this IServiceCollection collection, string protocol) =>
-        collection.AddScoped(_ => Protocol.FromString(protocol));
-
-    public static IServiceCollection UseTcp(this IServiceCollection collection)
-    {
-        collection.AddScoped(
-            typeof(Endpoint),
-            provider => Endpoint.FromString($"{provider.GetRequiredService<Protocol>().Name}://127.0.0.1:0"));
-
-        collection.AddScoped<IServerTransport<ISimpleNetworkConnection>>(_ => new TcpServerTransport());
-        collection.AddScoped<IClientTransport<ISimpleNetworkConnection>>(_ => new TcpClientTransport());
-
-        return collection;
     }
 }
