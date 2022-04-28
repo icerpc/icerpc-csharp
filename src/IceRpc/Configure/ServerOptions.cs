@@ -83,6 +83,9 @@ namespace IceRpc.Configure
         public IServerTransport<IMultiplexedNetworkConnection> MultiplexedServerTransport { get; set; } =
             DefaultMultiplexedServerTransport;
 
+        /// <summary>Gets or set an action that executes when the connection is closed.</summary>
+        public Action<Connection, Exception>? OnClose { get; set; }
+
         /// <summary>Gets or sets the <see cref="IServerTransport{ISimpleNetworkConnection}"/> used by the server
         /// to accept simple connections.</summary>
         public IServerTransport<ISimpleNetworkConnection> SimpleServerTransport { get; set; } =
