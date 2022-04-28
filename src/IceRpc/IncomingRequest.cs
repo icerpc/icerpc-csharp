@@ -37,6 +37,10 @@ namespace IceRpc
         /// <value>The path of the target service. The default is <c>/</c>.</value>
         public string Path { get; init; } = "/";
 
+        /// <summary>Gets or sets the response to this request.</summary>
+        /// <value>The response to this request. A successful two-way request always carry a non-null response.</value>
+        public OutgoingResponse? Response { get; set; }
+
         private readonly string _fragment = "";
 
         /// <summary>Constructs an incoming request.</summary>

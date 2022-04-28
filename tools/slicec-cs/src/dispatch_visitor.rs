@@ -420,7 +420,7 @@ await request.DecodeEmptyArgsAsync({}, cancel).ConfigureAwait(false);", encoding
 
         writeln!(
             dispatch_and_return,
-            "return new IceRpc.OutgoingResponse(request) {{ Payload = returnValue.Payload }};"
+            "return request.Response = new IceRpc.OutgoingResponse(request) {{ Payload = returnValue.Payload }};"
         );
     } else {
         let mut args = match parameters.as_slice() {
@@ -448,7 +448,7 @@ await request.DecodeEmptyArgsAsync({}, cancel).ConfigureAwait(false);", encoding
         writeln!(
             dispatch_and_return,
             "\
-return new IceRpc.OutgoingResponse(request)
+return request.Response = new IceRpc.OutgoingResponse(request)
 {{
     Payload = {payload},
     PayloadStream = {payload_stream}
