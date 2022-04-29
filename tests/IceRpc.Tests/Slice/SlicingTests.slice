@@ -49,7 +49,6 @@ exception MyMostDerivedException : MyDerivedException
     m3: string,
 }
 
-[preserveSlice]
 class MyPreservedClass : MyBaseClass
 {
     m2: string,

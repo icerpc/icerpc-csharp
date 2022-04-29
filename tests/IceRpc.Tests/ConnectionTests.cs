@@ -3,7 +3,6 @@
 using IceRpc.Configure;
 using IceRpc.Slice;
 using IceRpc.Transports;
-using IceRpc.Transports.Internal;
 using IceRpc.Transports.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -43,8 +42,19 @@ public class ConnectionTests
             return new OutgoingResponse(request);
         });
 
+        var serverConnectionClosed = new TaskCompletionSource();
+        var clientConnectionClosed = new TaskCompletionSource();
+
         await using var provider = new ConnectionServiceCollection(protocol)
             .UseTcp(tcpServerTransportOptions, tcpClientTransportOptions)
+            .UseConnectionOptions(new ConnectionOptions
+            {
+                OnClose = (_, _) => clientConnectionClosed.SetResult()
+            })
+            .UseServerOptions(new ServerOptions
+            {
+                OnClose = (_, _) => serverConnectionClosed.SetResult()
+            })
             .UseDispatcher(dispatcher)
             .BuildServiceProvider();
 
@@ -54,12 +64,6 @@ public class ConnectionTests
 
         var invokeTask = proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
         await start.WaitAsync();
-
-        var serverConnectionClosed = new TaskCompletionSource();
-        serverConnection!.Closed += (sender, args) => serverConnectionClosed.SetResult();
-
-        var clientConnectionClosed = new TaskCompletionSource();
-        clientConnection!.Closed += (sender, args) => clientConnectionClosed.SetResult();
 
         // Act
         hold.Release(); // let the connection idle
@@ -148,8 +152,20 @@ public class ConnectionTests
             serverConnection = request.Connection;
             return new(new OutgoingResponse(request));
         });
+
+        var serverConnectionClosed = new TaskCompletionSource<object?>();
+        var clientConnectionClosed = new TaskCompletionSource<object?>();
+
         await using var provider = new ConnectionServiceCollection(protocol)
             .UseDispatcher(dispatcher)
+            .UseConnectionOptions(new ConnectionOptions
+            {
+                OnClose = (_, _) => clientConnectionClosed.SetResult(null)
+            })
+            .UseServerOptions(new ServerOptions
+            {
+                OnClose = (_, _) => serverConnectionClosed.SetResult(null)
+            })
             .BuildServiceProvider();
         var server = provider.GetRequiredService<Server>();
         var clientConnection = provider.GetRequiredService<Connection>();
@@ -157,11 +173,6 @@ public class ConnectionTests
         var proxy = Proxy.FromConnection(clientConnection, "/foo");
 
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
-        var serverConnectionClosed = new TaskCompletionSource<object?>();
-        serverConnection!.Closed += (sender, args) => serverConnectionClosed.SetResult(null);
-
-        var clientConnectionClosed = new TaskCompletionSource<object?>();
-        clientConnection!.Closed += (sender, args) => clientConnectionClosed.SetResult(null);
 
         // Act
         await (closeClientConnection ? clientConnection : serverConnection!).CloseAsync();
@@ -553,11 +564,6 @@ public class ConnectionServiceCollection : ServiceCollection
 
 public static class ConnectionServiceCollectionExtensions
 {
-    public static IServiceCollection UseDispatcher(
-        this IServiceCollection serviceCollection,
-        IDispatcher dispatcher) =>
-        serviceCollection.AddScoped(_ => dispatcher);
-
     public static IServiceCollection UseConnectionOptions(
         this IServiceCollection serviceCollection,
         ConnectionOptions connectionOptions) =>

@@ -5,8 +5,6 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
-using System.Buffers;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Net.Security;
 
@@ -33,38 +31,9 @@ namespace IceRpc
         Closed
     }
 
-    /// <summary>Event arguments for the <see cref="Connection.Closed"/> event.</summary>
-    public sealed class ClosedEventArgs : EventArgs
-    {
-        /// <summary>The exception responsible for the connection closure.</summary>
-        public Exception Exception { get; }
-
-        internal ClosedEventArgs(Exception exception) => Exception = exception;
-    }
-
     /// <summary>Represents a connection used to send and receive requests and responses.</summary>
     public sealed class Connection : IAsyncDisposable
     {
-        /// <summary>This event is raised when the connection is closed. The connection object is passed as the
-        /// event sender argument. The event handler should not throw.</summary>
-        /// <exception cref="InvalidOperationException">Thrown on event addition if the connection is closed.
-        /// </exception>
-        public event EventHandler<ClosedEventArgs>? Closed
-        {
-            add
-            {
-                lock (_mutex)
-                {
-                    if (_state == ConnectionState.Closed)
-                    {
-                        throw new InvalidOperationException("the connection is closed");
-                    }
-                    _closed += value;
-                }
-            }
-            remove => _closed -= value;
-        }
-
         /// <summary>The network connection information or <c>null</c> if the connection is not connected.</summary>
         public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
 
@@ -85,20 +54,20 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Returns the connection fields set by the peer, or an empty dictionary if the connection is not
-        /// active.</summary>
-        public ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>> PeerFields =>
-            _protocolConnection?.PeerFields ?? ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>>.Empty;
-
-        private EventHandler<ClosedEventArgs>? _closed;
+        /// <summary>Gets the features of this connection.</summary>
+        public FeatureCollection Features => _features ?? _options.Features;
 
         // True once DisposeAsync is called. Once disposed the connection can't be resumed.
         private bool _disposed;
+
+        private FeatureCollection? _features;
 
         // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
         private readonly object _mutex = new();
 
         private INetworkConnection? _networkConnection;
+
+        private Action<Connection, Exception>? _onClose;
 
         private readonly ConnectionOptions _options;
 
@@ -212,7 +181,7 @@ namespace IceRpc
                     _options.AuthenticationOptions,
                     logger);
 
-                EventHandler<ClosedEventArgs>? closedEventHandler = null;
+                Action<Connection, Exception>? onClose = null;
 
                 if (logger.IsEnabled(LogLevel.Error)) // TODO: log level
                 {
@@ -221,13 +190,11 @@ namespace IceRpc
                     protocolConnectionFactory =
                         new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, logger);
 
-                    closedEventHandler = (sender, args) =>
+                    onClose = (connection, exception) =>
                     {
-                        if (args.Exception is Exception exception)
+                        if (NetworkConnectionInformation is NetworkConnectionInformation connectionInformation)
                         {
-                            // This event handler is added/executed after NetworkConnectionInformation is set.
-                            using IDisposable scope =
-                                logger.StartClientConnectionScope(NetworkConnectionInformation!.Value);
+                            using IDisposable scope = logger.StartClientConnectionScope(connectionInformation);
                             logger.LogConnectionClosedReason(exception);
                         }
                     };
@@ -238,7 +205,7 @@ namespace IceRpc
                 _networkConnection = networkConnection;
                 _state = ConnectionState.Connecting;
 
-                return ConnectAsync(networkConnection, protocolConnectionFactory, closedEventHandler);
+                return ConnectAsync(networkConnection, protocolConnectionFactory, onClose);
             }
         }
 
@@ -408,12 +375,11 @@ namespace IceRpc
         /// <summary>Establishes a connection. This method is used for both client and server connections.</summary>
         /// <param name="networkConnection">The underlying network connection.</param>
         /// <param name="protocolConnectionFactory">The protocol connection factory.</param>
-        /// <param name="closedEventHandler">A closed event handler added to the connection once the connection is
-        /// active.</param>
+        /// <param name="onClose">An action to execute when the connection is closed.</param>
         internal async Task ConnectAsync<T>(
             T networkConnection,
             IProtocolConnectionFactory<T> protocolConnectionFactory,
-            EventHandler<ClosedEventArgs>? closedEventHandler) where T : INetworkConnection
+            Action<Connection, Exception>? onClose) where T : INetworkConnection
         {
             using var connectCancellationSource = new CancellationTokenSource(_options.ConnectTimeout);
             try
@@ -425,11 +391,14 @@ namespace IceRpc
                 NetworkConnectionInformation = await networkConnection.ConnectAsync(
                     connectCancellationSource.Token).ConfigureAwait(false);
 
+                var features = new FeatureCollection(_options.Features);
+
                 // Create the protocol connection.
                 _protocolConnection = await protocolConnectionFactory.CreateProtocolConnectionAsync(
                     networkConnection,
                     NetworkConnectionInformation.Value,
                     _options,
+                    features,
                     _serverEndpoint != null,
                     connectCancellationSource.Token).ConfigureAwait(false);
 
@@ -443,8 +412,9 @@ namespace IceRpc
 
                     _state = ConnectionState.Active;
                     _stateTask = null;
+                    _features = features;
 
-                    _closed += closedEventHandler;
+                    _onClose = onClose;
 
                     // Switch the connection to the ShuttingDown state as soon as the protocol receives a notification
                     // that peer initiated shutdown. This is in particular useful for the connection pool to not return
@@ -516,7 +486,8 @@ namespace IceRpc
                     _protocolConnection != null &&
                     NetworkConnectionInformation != null);
 
-                TimeSpan idleTime = Time.Elapsed - _networkConnection!.LastActivity;
+                TimeSpan idleTime =
+                    TimeSpan.FromMilliseconds(Environment.TickCount64) - _networkConnection!.LastActivity;
                 if (idleTime > NetworkConnectionInformation.Value.IdleTimeout)
                 {
                     if (_protocolConnection.HasInvocationsInProgress)
@@ -583,15 +554,7 @@ namespace IceRpc
 
                 if (_protocolConnection is IProtocolConnection protocolConnection)
                 {
-                    try
-                    {
-                        await protocolConnection.DisposeAsync().ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        // The protocol or transport aren't supposed to raise.
-                        Debug.Assert(false, $"unexpected protocol close exception\n{ex}");
-                    }
+                    await protocolConnection.DisposeAsync().ConfigureAwait(false);
                 }
 
                 if (_timer != null)
@@ -620,14 +583,13 @@ namespace IceRpc
                     try
                     {
                         // TODO: pass a null exception instead? See issue #1100.
-                        _closed?.Invoke(
+                        (_onClose + _options?.OnClose)?.Invoke(
                             this,
-                            new ClosedEventArgs(
-                                exception ?? new ConnectionClosedException("connection gracefully shut down")));
+                            exception ?? new ConnectionClosedException("connection gracefully shut down"));
                     }
                     catch
                     {
-                        // Ignore, application event handlers shouldn't raise exceptions.
+                        // Ignore, on close actions shouldn't raise exceptions.
                     }
                 }
             }

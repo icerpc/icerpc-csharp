@@ -180,7 +180,8 @@ public class LocationResolverTests
             }
             else
             {
-                value = (Time.Elapsed - _insertionTime, location.IsAdapterId ? _adapterIdProxy! : _wellKnownProxy!);
+                value = (TimeSpan.FromMilliseconds(Environment.TickCount64) - _insertionTime,
+                         location.IsAdapterId ? _adapterIdProxy! : _wellKnownProxy!);
                 return true;
             }
         }

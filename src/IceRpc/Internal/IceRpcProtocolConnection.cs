@@ -38,10 +38,6 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
-        public ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>> PeerFields { get; private set; } =
-            ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>>.Empty;
-
-        /// <inheritdoc/>
         public Action<string>? PeerShutdownInitiated { get; set; }
 
         private IMultiplexedStream? _controlStream;
@@ -58,6 +54,7 @@ namespace IceRpc.Internal
         private readonly IDictionary<ConnectionFieldKey, OutgoingFieldValue> _localFields;
         private readonly object _mutex = new();
         private readonly IMultiplexedNetworkConnection _networkConnection;
+        private readonly Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? _onConnect;
         private IMultiplexedStream? _remoteControlStream;
         private readonly CancellationTokenSource _shutdownCancellationSource = new();
         private readonly TaskCompletionSource _waitForGoAwayCompleted =
@@ -225,8 +222,7 @@ namespace IceRpc.Internal
                 {
                     // If we catch an exception, we return a failure response with a Slice-encoded payload.
 
-                    if (exception is OperationCanceledException ||
-                        exception is MultiplexedStreamAbortedException)
+                    if (exception is OperationCanceledException || exception is MultiplexedStreamAbortedException)
                     {
                         await stream.Output.CompleteAsync(
                             IceRpcStreamError.DispatchCanceled.ToException()).ConfigureAwait(false);
@@ -369,11 +365,11 @@ namespace IceRpc.Internal
             _shutdownCancellationSource.Dispose();
             if (_controlStream != null)
             {
-                await _controlStream.Output.CompleteAsync(null).ConfigureAwait(false);
+                await _controlStream.Output.CompleteAsync().ConfigureAwait(false);
             }
             if (_remoteControlStream != null)
             {
-                await _remoteControlStream.Input.CompleteAsync(null).ConfigureAwait(false);
+                await _remoteControlStream.Input.CompleteAsync().ConfigureAwait(false);
             }
 
             await _networkConnection.DisposeAsync().ConfigureAwait(false);
@@ -649,7 +645,7 @@ namespace IceRpc.Internal
             }
 
             // Close the control stream and wait for the peer to close its control stream.
-            await _controlStream!.Output.CompleteAsync(null).ConfigureAwait(false);
+            await _controlStream!.Output.CompleteAsync().ConfigureAwait(false);
             await _remoteControlStream!.Input.ReadAsync(CancellationToken.None).ConfigureAwait(false);
 
             // We can now close the connection. This will cause the peer AcceptStreamAsync call to return.
@@ -658,7 +654,7 @@ namespace IceRpc.Internal
                 // TODO: Error code constant?
                 await _networkConnection.CloseAsync(0, CancellationToken.None).ConfigureAwait(false);
             }
-            catch (Exception)
+            catch
             {
                 // Ignore, the peer already closed the connection.
             }
@@ -668,11 +664,13 @@ namespace IceRpc.Internal
         internal IceRpcProtocolConnection(
             IDispatcher dispatcher,
             IMultiplexedNetworkConnection networkConnection,
-            IDictionary<ConnectionFieldKey, OutgoingFieldValue> localFields)
+            IDictionary<ConnectionFieldKey, OutgoingFieldValue> localFields,
+            Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect)
         {
             _dispatcher = dispatcher;
             _networkConnection = networkConnection;
             _localFields = localFields;
+            _onConnect = onConnect;
         }
 
         internal async Task InitializeAsync(CancellationToken cancel)
@@ -693,11 +691,7 @@ namespace IceRpc.Internal
             _remoteControlStream = await _networkConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
 
             await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.Initialize, cancel).ConfigureAwait(false);
-
-            PeerFields = await ReceiveControlFrameBodyAsync(
-                (ref SliceDecoder decoder) => decoder.DecodeFieldDictionary(
-                    (ref SliceDecoder decoder) => decoder.DecodeConnectionFieldKey()).ToImmutableDictionary(),
-                cancel).ConfigureAwait(false);
+            await ReceiveInitializeFrameBody(cancel).ConfigureAwait(false);
 
             // Start a task to wait to receive the go away frame to initiate shutdown.
             _ = Task.Run(() => WaitForGoAwayAsync(), CancellationToken.None);
@@ -783,30 +777,6 @@ namespace IceRpc.Internal
             }
         }
 
-        private async ValueTask<T> ReceiveControlFrameBodyAsync<T>(
-            DecodeFunc<T> decodeFunc,
-            CancellationToken cancel)
-        {
-            PipeReader input = _remoteControlStream!.Input;
-            ReadResult readResult = await input.ReadSegmentAsync(SliceEncoding.Slice2, cancel).ConfigureAwait(false);
-            if (readResult.IsCanceled)
-            {
-                throw new OperationCanceledException();
-            }
-
-            try
-            {
-                return SliceEncoding.Slice2.DecodeBuffer(readResult.Buffer, decodeFunc);
-            }
-            finally
-            {
-                if (!readResult.Buffer.IsEmpty)
-                {
-                    input.AdvanceTo(readResult.Buffer.End);
-                }
-            }
-        }
-
         private async ValueTask ReceiveControlFrameHeaderAsync(
             IceRpcControlFrameType expectedFrameType,
             CancellationToken cancel)
@@ -844,6 +814,59 @@ namespace IceRpc.Internal
                     // Received expected frame type, returning.
                     break; // while
                 }
+            }
+        }
+
+        private async ValueTask ReceiveInitializeFrameBody(CancellationToken cancel)
+        {
+            PipeReader input = _remoteControlStream!.Input;
+            ReadResult readResult = await input.ReadSegmentAsync(SliceEncoding.Slice2, cancel).ConfigureAwait(false);
+            if (readResult.IsCanceled)
+            {
+                throw new OperationCanceledException();
+            }
+
+            try
+            {
+                Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>> fields =
+                    SliceEncoding.Slice2.DecodeBuffer(readResult.Buffer, Decode);
+
+                // TODO: consume fields specific to the icerpc protocol such as MaxHeaderSize
+
+                _onConnect?.Invoke(fields);
+            }
+            finally
+            {
+                input.AdvanceTo(readResult.Buffer.End);
+            }
+
+            static Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>> Decode(ref SliceDecoder decoder)
+            {
+                int size = decoder.DecodeAndCheckDictionarySize(minKeySize: 1, minValueSize: 1);
+                return size == 0 ? new() : decoder.DecodeShallowFieldDictionary(
+                    size,
+                    (ref SliceDecoder decoder) => decoder.DecodeConnectionFieldKey());
+            }
+        }
+
+        private async ValueTask<IceRpcGoAway> ReceiveGoAwayBodyAsync(CancellationToken cancel)
+        {
+            PipeReader input = _remoteControlStream!.Input;
+            ReadResult readResult = await input.ReadSegmentAsync(SliceEncoding.Slice2, cancel).ConfigureAwait(false);
+            if (readResult.IsCanceled)
+            {
+                throw new OperationCanceledException();
+            }
+
+            try
+            {
+                return SliceEncoding.Slice2.DecodeBuffer(
+                    readResult.Buffer,
+                    (ref SliceDecoder decoder) => new IceRpcGoAway(ref decoder));
+            }
+            finally
+            {
+                input.AdvanceTo(readResult.Buffer.End);
             }
         }
 
@@ -1003,9 +1026,7 @@ namespace IceRpc.Internal
                     IceRpcControlFrameType.GoAway,
                     CancellationToken.None).ConfigureAwait(false);
 
-                IceRpcGoAway goAwayFrame = await ReceiveControlFrameBodyAsync(
-                    (ref SliceDecoder decoder) => new IceRpcGoAway(ref decoder),
-                    CancellationToken.None).ConfigureAwait(false);
+                IceRpcGoAway goAwayFrame = await ReceiveGoAwayBodyAsync(CancellationToken.None).ConfigureAwait(false);
 
                 // Call the peer shutdown callback.
                 try

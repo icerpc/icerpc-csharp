@@ -38,10 +38,6 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
-        public ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>> PeerFields =>
-            ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>>.Empty;
-
-        /// <inheritdoc/>
         public Action<string>? PeerShutdownInitiated { get; set; }
 
         private static readonly IDictionary<RequestFieldKey, ReadOnlySequence<byte>> _idempotentFields =

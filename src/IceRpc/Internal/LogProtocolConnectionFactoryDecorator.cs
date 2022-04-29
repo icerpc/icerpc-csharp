@@ -15,6 +15,7 @@ namespace IceRpc.Internal
             T networkConnection,
             NetworkConnectionInformation connectionInformation,
             Configure.ConnectionOptions connectionOptions,
+            FeatureCollection features,
             bool isServer,
             CancellationToken cancel)
         {
@@ -24,6 +25,7 @@ namespace IceRpc.Internal
                 networkConnection,
                 connectionInformation,
                 connectionOptions,
+                features,
                 isServer,
                 cancel).ConfigureAwait(false);
 
