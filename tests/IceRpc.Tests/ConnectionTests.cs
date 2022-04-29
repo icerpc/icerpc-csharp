@@ -3,7 +3,6 @@
 using IceRpc.Configure;
 using IceRpc.Slice;
 using IceRpc.Transports;
-using IceRpc.Transports.Internal;
 using IceRpc.Transports.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -565,11 +564,6 @@ public class ConnectionServiceCollection : ServiceCollection
 
 public static class ConnectionServiceCollectionExtensions
 {
-    public static IServiceCollection UseDispatcher(
-        this IServiceCollection serviceCollection,
-        IDispatcher dispatcher) =>
-        serviceCollection.AddScoped(_ => dispatcher);
-
     public static IServiceCollection UseConnectionOptions(
         this IServiceCollection serviceCollection,
         ConnectionOptions connectionOptions) =>

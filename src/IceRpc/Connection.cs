@@ -485,7 +485,8 @@ namespace IceRpc
                     _protocolConnection != null &&
                     NetworkConnectionInformation != null);
 
-                TimeSpan idleTime = Time.Elapsed - _networkConnection!.LastActivity;
+                TimeSpan idleTime =
+                    TimeSpan.FromMilliseconds(Environment.TickCount64) - _networkConnection!.LastActivity;
                 if (idleTime > NetworkConnectionInformation.Value.IdleTimeout)
                 {
                     if (_protocolConnection.HasInvocationsInProgress)
@@ -550,27 +551,9 @@ namespace IceRpc
                 // that _closeTask is assigned before any synchronous continuations are ran.
                 await Task.Yield();
 
-                try
+                if (_protocolConnection is IProtocolConnection protocolConnection)
                 {
-                    _protocolConnection?.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    // The protocol or transport aren't supposed to raise.
-                    Debug.Assert(false, $"unexpected protocol close exception\n{ex}");
-                }
-
-                if (_networkConnection is INetworkConnection networkConnection)
-                {
-                    try
-                    {
-                        await networkConnection.DisposeAsync().ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        // The protocol or transport aren't supposed to raise.
-                        Debug.Assert(false, $"unexpected transport close exception\n{ex}");
-                    }
+                    await protocolConnection.DisposeAsync().ConfigureAwait(false);
                 }
 
                 if (_timer != null)
