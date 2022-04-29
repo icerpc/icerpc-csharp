@@ -273,18 +273,15 @@ fn encode_tagged_type(
             if let Some(underlying) = &enum_def.underlying {
                 (Some(underlying.min_wire_size().to_string()), None)
             } else {
-                (
-                    Some(format!(
-                        "{encoder_param}.GetSizeLength((int){value})",
-                        encoder_param = encoder_param,
-                        value = value
-                    )),
-                    None,
-                )
+                (None, None)
             }
         }
         Types::Sequence(sequence_def) if sequence_def.element_type.is_fixed_size() => {
-            if read_only_memory {
+            if sequence_def.element_type.is_fixed_size()
+                && sequence_def.element_type.min_wire_size() == 1
+            {
+                (None, None)
+            } else if read_only_memory {
                 (
                     Some(format!(
                         "{encoder_param}.GetSizeLength({value}.Length) + {min_wire_size} * {value}.Length",
@@ -336,10 +333,10 @@ fn encode_tagged_type(
 
     let mut encode_tagged_args = vec![tag.to_string()];
     if use_tag_format {
-        encode_tagged_args.push(format!(
-            "IceRpc.Slice.TagFormat.{}",
-            data_type.tag_format().unwrap()
-        ));
+        let tag_format = data_type.tag_format().unwrap();
+        if tag_format != TagFormat::VSize {
+            encode_tagged_args.push(format!("IceRpc.Slice.TagFormat.{}", tag_format));
+        }
     }
     if let Some(size) = size_parameter {
         encode_tagged_args.push(format!(
