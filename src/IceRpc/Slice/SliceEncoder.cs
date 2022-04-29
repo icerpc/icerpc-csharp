@@ -467,8 +467,6 @@ namespace IceRpc.Slice
                     break;
 
                 case TagFormat.OVSize:
-                    // A VSize where the size is optimized out. Used here for strings (and only strings) because we
-                    // cannot easily compute the number of UTF-8 bytes in a C# string before encoding it.
                     EncodeTaggedParamHeader(tag, TagFormat.VSize);
                     encodeAction(ref this, v);
                     break;
