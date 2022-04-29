@@ -11,3 +11,12 @@ exception ExceptionB
 {
     inner: ExceptionA
 }
+
+interface ExceptionOperations
+{
+    op1(p1: ExceptionA) -> ExceptionA;
+    op2(p1: ExceptionB) -> ExceptionB;
+
+    throwA(p1: ExceptionA);
+    throwB(p1: ExceptionB);
+}

@@ -1,3 +1,14 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-// TODO
+encoding = 1;
+
+module IceRpc::IntegrationTests::Slice1;
+
+enum MyEnumA { One, Two, Three }
+enum MyEnumB { Ten = 10, Twenty = 20, Thirty = 30 }
+
+interface MyEnumOperations
+{
+    op1(p1: MyEnumA) -> MyEnumA;
+    op2(p1: MyEnumB) -> MyEnumB;
+}

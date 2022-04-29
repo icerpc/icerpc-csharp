@@ -41,3 +41,9 @@ compact struct MyCompactStructWithOptionalsA
     o: float64?,
     p: string?
 }
+
+interface CompactStructOperations
+{
+    op1(p1: MyCompactStructA) -> MyCompactStructA;
+    op2(p1: MyCompactStructWithOptionalsA) -> MyCompactStructWithOptionalsA;
+}

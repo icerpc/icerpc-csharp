@@ -4,7 +4,7 @@ encoding = 1;
 
 module IceRpc::IntegrationTests::Slice1;
 
-compact struct MyCompactStructB
+compact struct MyCompactStructA
 {
     a: bool,
     b: uint8,
@@ -14,5 +14,10 @@ compact struct MyCompactStructB
     f: float32,
     g: float64,
     h: string,
-    i: AnyClass
+    i: AnyClass?
+}
+
+interface CompactStructOperations
+{
+    op1(p1: MyCompactStructA) -> MyCompactStructA;
 }

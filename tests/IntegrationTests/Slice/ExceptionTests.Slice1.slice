@@ -13,3 +13,9 @@ exception ExceptionB : ExceptionA
 {
     b: int32
 }
+
+interface ExceptionOperations
+{
+    throwsA();
+    throwsB();
+}

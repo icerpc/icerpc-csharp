@@ -13,3 +13,9 @@ class MyClassB : MyClassA
 {
     y: int32
 }
+
+interface MyClassOperations
+{
+    op1(p1: MyClassA) -> MyClassA;
+    op2(p1: MyClassB) -> MyClassB;
+}
