@@ -12,6 +12,7 @@ namespace IceRpc.Internal
     {
         bool IProtocolConnection.HasDispatchesInProgress => _decoratee.HasDispatchesInProgress;
         bool IProtocolConnection.HasInvocationsInProgress => _decoratee.HasInvocationsInProgress;
+        TimeSpan IProtocolConnection.LastActivity => _decoratee.LastActivity;
 
         Action<string>? IProtocolConnection.PeerShutdownInitiated
         {
@@ -39,12 +40,8 @@ namespace IceRpc.Internal
             _logger.LogProtocolConnectionDispose(_protocol);
         }
 
-        async Task IProtocolConnection.PingAsync(CancellationToken cancel)
-        {
-            using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
-            await _decoratee.PingAsync(cancel).ConfigureAwait(false);
-            _logger.LogPing();
-        }
+        bool IProtocolConnection.HasCompatibleParams(Endpoint remoteEndpoint) =>
+            _decoratee.HasCompatibleParams(remoteEndpoint);
 
         async Task<IncomingResponse> IProtocolConnection.InvokeAsync(
             OutgoingRequest request,
@@ -59,6 +56,13 @@ namespace IceRpc.Internal
                 cancel).ConfigureAwait(false);
             _logger.LogSendRequest();
             return response;
+        }
+
+        async Task IProtocolConnection.PingAsync(CancellationToken cancel)
+        {
+            using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
+            await _decoratee.PingAsync(cancel).ConfigureAwait(false);
+            _logger.LogPing();
         }
 
         async Task IProtocolConnection.ShutdownAsync(string message, CancellationToken cancel)

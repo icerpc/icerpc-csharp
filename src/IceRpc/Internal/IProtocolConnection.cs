@@ -17,6 +17,9 @@ namespace IceRpc.Internal
         /// otherwise.</summary>
         bool HasInvocationsInProgress { get; }
 
+        /// <summary>The time elapsed since the last activity of the connection.</summary>
+        TimeSpan LastActivity { get; }
+
         /// <summary>This event is raised when the protocol connection is notified of the peer shutdown.</summary>
         Action<string>? PeerShutdownInitiated { get; set; }
 
@@ -24,9 +27,13 @@ namespace IceRpc.Internal
         /// <param name="connection">The connection of incoming requests created by this method.</param>
         Task AcceptRequestsAsync(Connection connection);
 
-        /// <summary>Sends a ping frame to defer the idle timeout.</summary>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        Task PingAsync(CancellationToken cancel = default);
+        /// <summary>Checks if the parameters of the provided endpoint are compatible with the network connection of
+        /// this protocol connection. Compatible means a client could reuse the network connection instead of
+        /// establishing a new network connection.</summary>
+        /// <param name="remoteEndpoint">The endpoint to check.</param>
+        /// <returns><c>true</c> when the network connection is a network connection whose parameters are compatible
+        /// with the parameters of the provided endpoint; otherwise, <c>false</c>.</returns>
+        bool HasCompatibleParams(Endpoint remoteEndpoint);
 
         /// <summary>Sends a request and returns the response. The implementation must complete the request payload
         /// and payload stream.</summary>
@@ -38,6 +45,10 @@ namespace IceRpc.Internal
             OutgoingRequest request,
             Connection connection,
             CancellationToken cancel = default);
+
+        /// <summary>Sends a ping frame to defer the idle timeout.</summary>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        Task PingAsync(CancellationToken cancel = default);
 
         /// <summary>Shutdowns gracefully the connection.</summary>
         /// <param name="message">The reason of the connection shutdown.</param>

@@ -17,8 +17,6 @@ namespace IceRpc.Transports.Internal
             return new ColocNetworkConnection(Endpoint, isServer: true, writer, reader);
         }
 
-        public override string ToString() => $"{base.ToString()} {Endpoint}";
-
         public ValueTask DisposeAsync()
         {
             _queue.TryComplete(new ObjectDisposedException(nameof(ColocListener)));

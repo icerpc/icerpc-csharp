@@ -279,11 +279,7 @@ public class ProxyTests
     public async Task From_connection_with_a_server_connection()
     {
         // Arrange
-        await using var networkConnection = new MockNetworkConnection();
-        await using var serverConnection = new Connection(
-            new Endpoint(Protocol.IceRpc),
-            networkConnection,
-            new ConnectionOptions());
+        await using var serverConnection = new Connection(new Endpoint(Protocol.IceRpc), new ConnectionOptions());
 
         // Act
         var proxy = Proxy.FromConnection(serverConnection, "/");
@@ -438,16 +434,6 @@ public class ProxyTests
 
         Assert.That(proxy.Fragment, Is.EqualTo("bar"));
         Assert.That(proxy.Protocol.HasFragment, Is.True);
-    }
-
-    /// <summary>INetworkConnection mock used to create a server connection.</summary>
-    private class MockNetworkConnection : INetworkConnection
-    {
-        public TimeSpan LastActivity => throw new NotImplementedException();
-
-        public Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel) => throw new NotImplementedException();
-        public ValueTask DisposeAsync() => default;
-        public bool HasCompatibleParams(Endpoint remoteEndpoint) => throw new NotImplementedException();
     }
 
     private class ReceiveProxyTest : Service, IReceiveProxyTest

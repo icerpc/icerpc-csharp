@@ -13,7 +13,6 @@ namespace IceRpc.Internal
 {
     internal sealed class IceRpcProtocolConnection : IProtocolConnection
     {
-        /// <inheritdoc/>
         public bool HasDispatchesInProgress
         {
             get
@@ -25,7 +24,6 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <inheritdoc/>
         public bool HasInvocationsInProgress
         {
             get
@@ -37,7 +35,8 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <inheritdoc/>
+        public TimeSpan LastActivity => _networkConnection.LastActivity;
+
         public Action<string>? PeerShutdownInitiated { get; set; }
 
         private IMultiplexedStream? _controlStream;
@@ -377,8 +376,8 @@ namespace IceRpc.Internal
             await _networkConnection.DisposeAsync().ConfigureAwait(false);
         }
 
-        public Task PingAsync(CancellationToken cancel) =>
-            SendControlFrameAsync(IceRpcControlFrameType.Ping, encodeAction: null, cancel).AsTask();
+        public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
+            _networkConnection.HasCompatibleParams(remoteEndpoint);
 
         public async Task<IncomingResponse> InvokeAsync(
             OutgoingRequest request,
@@ -571,7 +570,9 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <inheritdoc/>
+        public Task PingAsync(CancellationToken cancel) =>
+            SendControlFrameAsync(IceRpcControlFrameType.Ping, encodeAction: null, cancel).AsTask();
+
         public async Task ShutdownAsync(string message, CancellationToken cancel)
         {
             IceRpcGoAway goAwayFrame;
@@ -662,7 +663,6 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <inheritdoc/>
         internal IceRpcProtocolConnection(
             IDispatcher dispatcher,
             IMultiplexedNetworkConnection networkConnection,

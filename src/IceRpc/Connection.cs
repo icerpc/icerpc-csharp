@@ -39,8 +39,7 @@ namespace IceRpc
 
         /// <summary>The connection's endpoint. For a client connection this is the connection's remote endpoint,
         /// for a server connection it's the server's endpoint.</summary>
-        public Endpoint Endpoint => _serverEndpoint ?? _options?.RemoteEndpoint ??
-            throw new InvalidOperationException($"{nameof(Endpoint)} is not configured");
+        public Endpoint Endpoint => _serverEndpoint ?? _options!.RemoteEndpoint!.Value;
 
         /// <summary>The state of the connection.</summary>
         public ConnectionState State
@@ -64,8 +63,6 @@ namespace IceRpc
         // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
         private readonly object _mutex = new();
 
-        private INetworkConnection? _networkConnection;
-
         private Action<Connection, Exception>? _onClose;
 
         private readonly ConnectionOptions _options;
@@ -86,7 +83,15 @@ namespace IceRpc
 
         /// <summary>Constructs a client connection.</summary>
         /// <param name="options">The connection options.</param>
-        public Connection(ConnectionOptions options) => _options = options;
+        public Connection(ConnectionOptions options)
+        {
+            if (options.RemoteEndpoint is not Endpoint remoteEndpoint || remoteEndpoint == default)
+            {
+                throw new InvalidOperationException(
+                    $"cannot create connection without configuring {nameof(ConnectionOptions.RemoteEndpoint)}");
+            }
+            _options = options;
+        }
 
         /// <summary>Constructs a client connection with the specified remote endpoint and  authentication options.
         /// All other properties have their default values.</summary>
@@ -128,14 +133,8 @@ namespace IceRpc
                 {
                     if (_state == ConnectionState.NotConnected)
                     {
-                        // Only called for client connections which at this point must have configured a remote
-                        // endpoint.
-                        if (_options.RemoteEndpoint is not Endpoint remoteEndpoint || remoteEndpoint == default)
-                        {
-                            throw new InvalidOperationException(
-                                $"cannot call connect without configuring {nameof(ConnectionOptions.RemoteEndpoint)}");
-                        }
-                        Debug.Assert(_networkConnection == null && _protocolConnection == null);
+                        Debug.Assert(_options.RemoteEndpoint != null);
+                        Debug.Assert(_protocolConnection == null);
 
                         _stateTask = Endpoint.Protocol == Protocol.Ice ?
                             PerformConnectAsync(
@@ -199,9 +198,6 @@ namespace IceRpc
                     };
                 }
 
-                // This local function is called with _mutex locked and executes synchronously until the call to
-                // ConnectAsync so it's safe to assign _networkConnection here.
-                _networkConnection = networkConnection;
                 _state = ConnectionState.Connecting;
 
                 return ConnectAsync(networkConnection, protocolConnectionFactory, onClose);
@@ -253,7 +249,7 @@ namespace IceRpc
             {
                 return _serverEndpoint == null &&
                     State == ConnectionState.Active &&
-                   _networkConnection!.HasCompatibleParams(remoteEndpoint);
+                    _protocolConnection!.HasCompatibleParams(remoteEndpoint);
             }
         }
 
@@ -360,13 +356,12 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public override string ToString() => _networkConnection?.ToString() ?? "";
+        public override string ToString() => Endpoint.ToString();
 
         /// <summary>Constructs a server connection from an accepted network connection.</summary>
-        internal Connection(Endpoint endpoint, INetworkConnection connection, ConnectionOptions options)
+        internal Connection(Endpoint endpoint, ConnectionOptions options)
         {
             _serverEndpoint = endpoint;
-            _networkConnection = connection;
             _options = options;
             _state = ConnectionState.Connecting;
         }
@@ -480,13 +475,11 @@ namespace IceRpc
                 {
                     return;
                 }
-                Debug.Assert(
-                    _networkConnection != null &&
-                    _protocolConnection != null &&
-                    NetworkConnectionInformation != null);
+
+                Debug.Assert(_protocolConnection != null && NetworkConnectionInformation != null);
 
                 TimeSpan idleTime =
-                    TimeSpan.FromMilliseconds(Environment.TickCount64) - _networkConnection!.LastActivity;
+                    TimeSpan.FromMilliseconds(Environment.TickCount64) - _protocolConnection!.LastActivity;
                 if (idleTime > NetworkConnectionInformation.Value.IdleTimeout)
                 {
                     if (_protocolConnection.HasInvocationsInProgress)
@@ -571,7 +564,6 @@ namespace IceRpc
 
                     _stateTask = null;
                     _protocolConnection = null;
-                    _networkConnection = null;
                     _timer = null;
                     _protocolShutdownCancellationSource = null;
                 }
