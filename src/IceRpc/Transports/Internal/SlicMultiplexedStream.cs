@@ -80,9 +80,6 @@ namespace IceRpc.Transports.Internal
         public void OnShutdown(Action callback) =>
             RegisterStateAction(ref _shutdownAction, State.WritesCompleted | State.ReadsCompleted, callback);
 
-        /// <inheritdoc/>
-        public override string ToString() => $"{base.ToString()} (ID={Id})";
-
         internal SlicMultiplexedStream(
             SlicNetworkConnection connection,
             bool bidirectional,
