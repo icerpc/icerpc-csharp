@@ -42,7 +42,7 @@ namespace IceRpc.Transports.Internal
         private long _nextUnidirectionalId;
         private readonly int _packetMaxSize;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly CancellationTokenSource _readCancelSource = new();
+        private readonly CancellationTokenSource _receiveCancelSource = new();
         private readonly AsyncSemaphore _readSemaphore = new(1, 1);
         private readonly ISlicFrameReader _reader;
         private readonly AsyncSemaphore _sendSemaphore = new(1, 1);
@@ -206,7 +206,7 @@ namespace IceRpc.Transports.Internal
                 {
                     try
                     {
-                        await ReadFramesAsync(_readCancelSource.Token).ConfigureAwait(false);
+                        await ReceiveFrameAsync(_receiveCancelSource.Token).ConfigureAwait(false);
                     }
                     catch (Exception exception)
                     {
@@ -504,17 +504,18 @@ namespace IceRpc.Transports.Internal
 
             _pendingClose.TrySetResult();
 
-            // Close the network connection.
+            // Close the network connection and cancel the pending receive.
             await _simpleNetworkConnection.DisposeAsync().ConfigureAwait(false);
-            _readCancelSource.Cancel();
+            _receiveCancelSource.Cancel();
 
-            // The network connection close will trigger the release of the semaphore. We have to wait for the release
-            // of the semaphore in order to dispose of the network connection reader.
+            // Wait for the pending receive to complete.
             await _readSemaphore.CompleteAndWaitAsync(exception).ConfigureAwait(false);
+
+            // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
             _simpleNetworkConnectionReader.Dispose();
             _simpleNetworkConnectionWriter.Dispose();
 
-            _readCancelSource.Dispose();
+            _receiveCancelSource.Dispose();
         }
 
         private Dictionary<int, IList<byte>> GetParameters()
@@ -542,7 +543,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private async Task ReadFramesAsync(CancellationToken cancel)
+        private async Task ReceiveFrameAsync(CancellationToken cancel)
         {
             await _readSemaphore.EnterAsync(cancel).ConfigureAwait(false);
             try
