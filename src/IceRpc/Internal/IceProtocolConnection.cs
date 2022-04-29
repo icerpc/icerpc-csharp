@@ -38,6 +38,9 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
+        public TimeSpan LastActivity => _networkConnection.LastActivity;
+
+        /// <inheritdoc/>
         public Action<string>? PeerShutdownInitiated { get; set; }
 
         private static readonly IDictionary<RequestFieldKey, ReadOnlySequence<byte>> _idempotentFields =
@@ -87,28 +90,6 @@ namespace IceRpc.Internal
 
         /// <inheritdoc/>
         public ValueTask DisposeAsync() => AbortAsync(new ObjectDisposedException($"{typeof(IceProtocolConnection)}"));
-
-        /// <inheritdoc/>
-        public async Task PingAsync(CancellationToken cancel)
-        {
-            await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
-            try
-            {
-                EncodeValidateConnectionFrame(_networkConnectionWriter);
-                // The flush can't be canceled because it would lead to the writing of an incomplete frame.
-                await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-            }
-            finally
-            {
-                _sendSemaphore.Release();
-            }
-
-            static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
-            {
-                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
-                IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
-            }
-        }
 
         /// <inheritdoc/>
         public async Task<IncomingResponse> InvokeAsync(
@@ -328,6 +309,33 @@ namespace IceRpc.Internal
             }
         }
 
+        /// <inheritdoc/>
+        public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
+            _networkConnection.HasCompatibleParams(remoteEndpoint);
+
+        /// <inheritdoc/>
+        public async Task PingAsync(CancellationToken cancel)
+        {
+            await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+            try
+            {
+                EncodeValidateConnectionFrame(_networkConnectionWriter);
+                // The flush can't be canceled because it would lead to the writing of an incomplete frame.
+                await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            finally
+            {
+                _sendSemaphore.Release();
+            }
+
+            static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
+            {
+                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
+                IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
+            }
+        }
+
+        /// <inheritdoc/>
         public async Task ShutdownAsync(string message, CancellationToken cancel)
         {
             var exception = new ConnectionClosedException(message);

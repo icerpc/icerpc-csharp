@@ -38,6 +38,9 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
+        public TimeSpan LastActivity => _networkConnection.LastActivity;
+
+        /// <inheritdoc/>
         public Action<string>? PeerShutdownInitiated { get; set; }
 
         private IMultiplexedStream? _controlStream;
@@ -60,6 +63,7 @@ namespace IceRpc.Internal
         private readonly TaskCompletionSource _waitForGoAwayCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+        /// <inheritdoc/>
         public async Task AcceptRequestsAsync(Connection connection)
         {
             while (true)
@@ -360,6 +364,7 @@ namespace IceRpc.Internal
             }
         }
 
+        /// <inheritdoc/>
         public async ValueTask DisposeAsync()
         {
             _shutdownCancellationSource.Dispose();
@@ -375,9 +380,11 @@ namespace IceRpc.Internal
             await _networkConnection.DisposeAsync().ConfigureAwait(false);
         }
 
-        public Task PingAsync(CancellationToken cancel) =>
-            SendControlFrameAsync(IceRpcControlFrameType.Ping, encodeAction: null, cancel).AsTask();
+        /// <inheritdoc/>
+        public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
+            _networkConnection.HasCompatibleParams(remoteEndpoint);
 
+        /// <inheritdoc/>
         public async Task<IncomingResponse> InvokeAsync(
             OutgoingRequest request,
             Connection connection,
@@ -570,6 +577,10 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
+        public Task PingAsync(CancellationToken cancel) =>
+            SendControlFrameAsync(IceRpcControlFrameType.Ping, encodeAction: null, cancel).AsTask();
+
+        /// <inheritdoc/>
         public async Task ShutdownAsync(string message, CancellationToken cancel)
         {
             IceRpcGoAway goAwayFrame;
@@ -660,7 +671,6 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <inheritdoc/>
         internal IceRpcProtocolConnection(
             IDispatcher dispatcher,
             IMultiplexedNetworkConnection networkConnection,
