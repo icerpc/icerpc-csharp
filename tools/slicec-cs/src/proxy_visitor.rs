@@ -196,12 +196,13 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
 
     let encoding = operation.encoding.to_cs_encoding();
 
-    let mut builder = FunctionBuilder::new(
-        &access,
-        &return_task,
-        &async_operation_name,
-        FunctionType::BlockBody,
-    );
+    let body_type = if operation.compress_arguments() {
+        FunctionType::BlockBody
+    } else {
+        FunctionType::ExpressionBody
+    };
+
+    let mut builder = FunctionBuilder::new(&access, &return_task, &async_operation_name, body_type);
     builder.set_inherit_doc(true);
     builder.add_operation_parameters(operation, TypeContext::Encode);
 
@@ -292,13 +293,27 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
 
     invoke_args.push(format!("cancel: {}", cancel_parameter));
 
-    writeln!(
-        body,
-        "\
+    match body_type {
+        FunctionType::ExpressionBody => {
+            writeln!(
+                body,
+                "\
+Proxy.InvokeAsync(
+    {})",
+                CodeBlock::from(invoke_args.join(",\n")).indent()
+            );
+        }
+        FunctionType::BlockBody => {
+            writeln!(
+                body,
+                "\
 return Proxy.InvokeAsync(
     {});",
-        CodeBlock::from(invoke_args.join(",\n")).indent()
-    );
+                CodeBlock::from(invoke_args.join(",\n")).indent()
+            );
+        }
+        _ => panic!("unsupported function type"),
+    }
 
     builder.set_body(body);
 

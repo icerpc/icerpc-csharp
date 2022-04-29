@@ -160,7 +160,7 @@ impl CommentBuilder for ContainerBuilder {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum FunctionType {
     Declaration,
     BlockBody,
