@@ -467,7 +467,7 @@ namespace IceRpc.Slice
                     break;
 
                 case TagFormat.OVSize:
-                    // Used to encode strings, and sequences of non optional elements with 1 byte min wire size,
+                    // Used to encode string, and sequences of non optional elements with 1 byte min wire size,
                     // in this case OVSize is always used to optimize out the size.
                     EncodeTaggedParamHeader(tag, TagFormat.VSize);
                     encodeAction(ref this, v);
