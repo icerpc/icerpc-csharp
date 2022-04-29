@@ -81,7 +81,7 @@ public abstract class MultiplexedTransportConformanceTests
        [Values(true, false)] bool bidirectional)
     {
         // Arrange
-        ServiceCollection serviceCollection = CreateServiceCollection();
+        IServiceCollection serviceCollection = CreateServiceCollection();
         if (bidirectional)
         {
             serviceCollection.UseTransportOptions(bidirectionalStreamMaxCount: streamMaxCount);
@@ -821,7 +821,7 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     /// <summary>Creates the service collection used for multiplexed transport conformance tests.</summary>
-    protected abstract ServiceCollection CreateServiceCollection();
+    protected abstract IServiceCollection CreateServiceCollection();
 
     private static async Task<(IMultiplexedStream LocalStream, IMultiplexedStream RemoteStream)> CreateAndAcceptStreamAsync(
         IMultiplexedNetworkConnection remoteConnection,

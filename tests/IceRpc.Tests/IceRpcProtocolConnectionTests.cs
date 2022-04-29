@@ -119,7 +119,7 @@ public sealed class IceRpcProtocolConnectionTests
                 {
                     [connectionFieldKeyA] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(56))
                 },
-                OnConnect = (fields, _) =>
+                OnConnect = (_, fields, _) =>
                 {
                     serverCount = fields.Count;
                     serverA = DecodeField(fields, connectionFieldKeyA);
@@ -133,7 +133,7 @@ public sealed class IceRpcProtocolConnectionTests
                     [connectionFieldKeyA] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(34)),
                     [connectionFieldKeyB] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(38))
                 },
-                OnConnect = (fields, _) =>
+                OnConnect = (_, fields, _) =>
                 {
                     clientCount = fields.Count;
                     clientA = DecodeField(fields, connectionFieldKeyA);

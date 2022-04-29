@@ -104,7 +104,7 @@ public sealed class RetryInterceptorTests
         var sut = new RetryInterceptor(invoker, new RetryOptions());
 
         var request = new OutgoingRequest(proxy) { Operation = "Op" };
-        var start = Time.Elapsed;
+        var start = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
         // Act
         var response = await sut.InvokeAsync(request, default);
@@ -179,14 +179,17 @@ public sealed class RetryInterceptorTests
         var sut = new RetryInterceptor(invoker, new RetryOptions());
 
         var request = new OutgoingRequest(proxy) { Operation = "Op" };
-        var start = Time.Elapsed;
+        var start = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
         // Act
         await sut.InvokeAsync(request, default);
 
         // Assert
-        Assert.That(Time.Elapsed - start, Is.GreaterThanOrEqualTo(delay - TimeSpan.FromMilliseconds(1)));
-        Assert.That(attempts, Is.EqualTo(2));
+        Assert.Multiple(() =>
+        {
+            Assert.That(TimeSpan.FromMilliseconds(Environment.TickCount64) - start, Is.GreaterThanOrEqualTo(delay));
+            Assert.That(attempts, Is.EqualTo(2));
+        });
     }
 
     [Test]
@@ -313,7 +316,7 @@ public sealed class RetryInterceptorTests
         var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = 3 });
 
         var request = new OutgoingRequest(proxy) { Operation = "Op" };
-        var start = Time.Elapsed;
+        var start = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
         // Act
         var response = await sut.InvokeAsync(request, default);

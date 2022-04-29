@@ -54,13 +54,12 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Gets the features of this connection.</summary>
-        public FeatureCollection Features => _features ?? _options.Features;
+        /// <summary>Gets the features of this connection. These features are empty until the connection is connected.
+        /// </summary>
+        public FeatureCollection Features { get; private set; } = FeatureCollection.Empty;
 
         // True once DisposeAsync is called. Once disposed the connection can't be resumed.
         private bool _disposed;
-
-        private FeatureCollection? _features;
 
         // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
         private readonly object _mutex = new();
@@ -398,7 +397,7 @@ namespace IceRpc
                     networkConnection,
                     NetworkConnectionInformation.Value,
                     _options,
-                    features,
+                    _options.OnConnect == null ? null : fields => _options.OnConnect(this, fields, features),
                     _serverEndpoint != null,
                     connectCancellationSource.Token).ConfigureAwait(false);
 
@@ -412,7 +411,7 @@ namespace IceRpc
 
                     _state = ConnectionState.Active;
                     _stateTask = null;
-                    _features = features;
+                    Features = features;
 
                     _onClose = onClose;
 
@@ -486,7 +485,8 @@ namespace IceRpc
                     _protocolConnection != null &&
                     NetworkConnectionInformation != null);
 
-                TimeSpan idleTime = Time.Elapsed - _networkConnection!.LastActivity;
+                TimeSpan idleTime =
+                    TimeSpan.FromMilliseconds(Environment.TickCount64) - _networkConnection!.LastActivity;
                 if (idleTime > NetworkConnectionInformation.Value.IdleTimeout)
                 {
                     if (_protocolConnection.HasInvocationsInProgress)
@@ -551,27 +551,9 @@ namespace IceRpc
                 // that _closeTask is assigned before any synchronous continuations are ran.
                 await Task.Yield();
 
-                try
+                if (_protocolConnection is IProtocolConnection protocolConnection)
                 {
-                    _protocolConnection?.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    // The protocol or transport aren't supposed to raise.
-                    Debug.Assert(false, $"unexpected protocol close exception\n{ex}");
-                }
-
-                if (_networkConnection is INetworkConnection networkConnection)
-                {
-                    try
-                    {
-                        await networkConnection.DisposeAsync().ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        // The protocol or transport aren't supposed to raise.
-                        Debug.Assert(false, $"unexpected transport close exception\n{ex}");
-                    }
+                    await protocolConnection.DisposeAsync().ConfigureAwait(false);
                 }
 
                 if (_timer != null)

@@ -83,6 +83,7 @@ public sealed class ProtocolConnectionTests
 
     /// <summary>Verifies that if shutdown is canceled the dispatches are canceled too.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
+    [Repeat(1000)]
     public async Task Canceling_shutdown_cancels_pending_dispatches(Protocol protocol)
     {
         // Arrange
@@ -210,8 +211,8 @@ public sealed class ProtocolConnectionTests
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
         // Act
-        sut.Client.Dispose();
-        sut.Server.Dispose();
+        await sut.Client.DisposeAsync();
+        await sut.Server.DisposeAsync();
     }
 
     /// <summary>Verifies that disposing the server connection kills pending invocations, peer invocations will fail
@@ -243,7 +244,7 @@ public sealed class ProtocolConnectionTests
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
-        sut.Server.Dispose();
+        await sut.Server.DisposeAsync();
         await sut.ServerNetworkConnection.DisposeAsync(); // TODO BUGFIX remove when #1032 is fixed
 
         // Assert
@@ -279,7 +280,7 @@ public sealed class ProtocolConnectionTests
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
-        sut.Client.Dispose();
+        await sut.Client.DisposeAsync();
         await sut.ClientNetworkConnection.DisposeAsync(); // TODO BUGFIX remove when #1032 is fixed
 
         // Assert

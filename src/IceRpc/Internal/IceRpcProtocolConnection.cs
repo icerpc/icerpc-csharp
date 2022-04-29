@@ -176,7 +176,17 @@ namespace IceRpc.Internal
                     {
                         await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
                     }
-                    throw;
+
+                    if (exception is MultiplexedStreamAbortedException streamAbortedException)
+                    {
+                        // The stream can be aborted if the invocation is canceled. It's not a fatal connection error,
+                        // we can continue accepting new requests.
+                        continue; // while (true)
+                    }
+                    else
+                    {
+                        throw;
+                    }
                 }
             }
 
@@ -214,13 +224,13 @@ namespace IceRpc.Internal
                 {
                     // If we catch an exception, we return a failure response with a Slice-encoded payload.
 
-                    if (exception is OperationCanceledException)
+                    if (exception is OperationCanceledException || exception is MultiplexedStreamAbortedException)
                     {
                         await stream.Output.CompleteAsync(
                             IceRpcStreamError.DispatchCanceled.ToException()).ConfigureAwait(false);
 
-                        // We're done since the completion of the stream output aborts the stream, we don't send a
-                        // response.
+                        // We're done since the completion of the stream Output pipe writer aborted the stream or the
+                        // stream was already aborted.
                         return;
                     }
 
@@ -352,11 +362,19 @@ namespace IceRpc.Internal
             }
         }
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
             _shutdownCancellationSource.Dispose();
-            _controlStream?.Output.Complete(null);
-            _remoteControlStream?.Input.Complete(null);
+            if (_controlStream != null)
+            {
+                await _controlStream.Output.CompleteAsync().ConfigureAwait(false);
+            }
+            if (_remoteControlStream != null)
+            {
+                await _remoteControlStream.Input.CompleteAsync().ConfigureAwait(false);
+            }
+
+            await _networkConnection.DisposeAsync().ConfigureAwait(false);
         }
 
         public Task PingAsync(CancellationToken cancel) =>
@@ -410,7 +428,23 @@ namespace IceRpc.Internal
                         await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
                     }
                 }
-                throw;
+
+                if (exception is MultiplexedStreamAbortedException streamAbortedException)
+                {
+                    if (streamAbortedException.ErrorKind == MultiplexedStreamErrorKind.Protocol)
+                    {
+                        throw streamAbortedException.ToIceRpcException();
+                    }
+                    else
+                    {
+                        throw new ConnectionLostException(exception);
+                    }
+                }
+                else
+                {
+                    // TODO: Should we wrap unexpected exceptions with ConnectionLostException?
+                    throw;
+                }
             }
 
             request.IsSent = true;
@@ -453,18 +487,6 @@ namespace IceRpc.Internal
                     ResultType = header.ResultType
                 };
             }
-            catch (MultiplexedStreamAbortedException exception)
-            {
-                await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
-                if (exception.ErrorKind == MultiplexedStreamErrorKind.Protocol)
-                {
-                    throw exception.ToIceRpcException();
-                }
-                else
-                {
-                    throw new ConnectionLostException(exception);
-                }
-            }
             catch (OperationCanceledException)
             {
                 // Notify the peer that we give up on receiving the response. The peer will cancel the dispatch upon
@@ -476,7 +498,23 @@ namespace IceRpc.Internal
             catch (Exception exception)
             {
                 await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
-                throw;
+
+                if (exception is MultiplexedStreamAbortedException streamAbortedException)
+                {
+                    if (streamAbortedException.ErrorKind == MultiplexedStreamErrorKind.Protocol)
+                    {
+                        throw streamAbortedException.ToIceRpcException();
+                    }
+                    else
+                    {
+                        throw new ConnectionLostException(exception);
+                    }
+                }
+                else
+                {
+                    // TODO: Should we wrap unexpected exceptions with ConnectionLostException?
+                    throw;
+                }
             }
 
             void EncodeHeader(PipeWriter writer)
@@ -609,7 +647,7 @@ namespace IceRpc.Internal
             }
 
             // Close the control stream and wait for the peer to close its control stream.
-            await _controlStream!.Output.CompleteAsync(null).ConfigureAwait(false);
+            await _controlStream!.Output.CompleteAsync().ConfigureAwait(false);
             await _remoteControlStream!.Input.ReadAsync(CancellationToken.None).ConfigureAwait(false);
 
             // We can now close the connection. This will cause the peer AcceptStreamAsync call to return.
@@ -618,14 +656,9 @@ namespace IceRpc.Internal
                 // TODO: Error code constant?
                 await _networkConnection.CloseAsync(0, CancellationToken.None).ConfigureAwait(false);
             }
-            catch (MultiplexedNetworkConnectionClosedException)
+            catch
             {
-                // Graceful close
-            }
-            catch (Exception exception)
-            {
-                // Unexpected connection close failure.
-                throw new ConnectionLostException(exception);
+                // Ignore, the peer already closed the connection.
             }
         }
 

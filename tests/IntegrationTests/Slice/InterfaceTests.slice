@@ -8,25 +8,24 @@ interface MyEmptyInterface
 
 interface MyInterface
 {
-	op1();
-	op2(x: int32);
-	op3() -> int32;
-	op4(x: int32) -> int32;
-	op5(x: int32, y: int32) -> (x: int32, y: int32);
+    op1();
+    op2(x: int32);
+    op3() -> int32;
+    op4(x: int32) -> int32;
+    op5(x: int32, y: int32) -> (x: int32, y: int32);
 }
 
 interface MyDerivedInterface : MyInterface {}
 
 interface MyInterfaceWithTaggedParams
 {
-	op1(x: tag(10) int32?, y: tag(20) int32?) -> (x: tag(10) int32?, y: tag(20) int32?);
+    op1(x: tag(10) int32?, y: tag(20) int32?) -> (x: tag(10) int32?, y: tag(20) int32?);
 }
 
 interface MyInterfaceWithOptionalParams
 {
-	op1(x: int32?, y: int32?) -> (x: int32?, y: int32?);
+    op1(x: int32?, y: int32?) -> (x: int32?, y: int32?);
 }
-
 
 [cs::encodedResult]
 interface MyInterfaceWithEncodedResult

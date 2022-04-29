@@ -12,7 +12,7 @@ namespace IceRpc.Internal
             T networkConnection,
             NetworkConnectionInformation connectionInformation,
             Configure.ConnectionOptions connectionOptions,
-            FeatureCollection features,
+            Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect,
             bool isServer,
             CancellationToken cancel);
     }

@@ -2,209 +2,191 @@
 
 using IceRpc.Configure;
 using IceRpc.Slice;
-using IceRpc.Transports;
+using IceRpc.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Collections.Immutable;
 
-namespace IceRpc.Tests.ClientServer
+namespace IceRpc.IntegrationTests;
+
+[FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
+[Parallelizable(ParallelScope.All)]
+[Timeout(5000)]
+public sealed class ProtocolBridgingTests
 {
-    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    [Parallelizable(ParallelScope.All)]
-    [Timeout(5000)]
-    public sealed class ProtocolBridgingTests
+    [Test]
+    public async Task ProtocolBridging_Forward(
+        [Values("ice", "icerpc")] string forwarderProtocol,
+        [Values("ice", "icerpc")] string targetProtocol)
     {
-        [TestCase("icerpc", "icerpc", true)]
-        [TestCase("ice", "ice", true)]
-        [TestCase("icerpc", "icerpc", false)]
-        [TestCase("ice", "ice", false)]
-        [TestCase("icerpc", "ice", true)]
-        [TestCase("ice", "icerpc", true)]
-        [TestCase("icerpc", "ice", false)]
-        [TestCase("ice", "icerpc", false)]
-        public async Task ProtocolBridging_Forward(string forwarderProtocol, string targetProtocol, bool colocated)
+        var router = new Router();
+        var targetServiceCollection = new IntegrationTestServiceCollection();
+        var forwarderServiceCollection = new IntegrationTestServiceCollection();
+
+        targetServiceCollection.UseProtocol(targetProtocol).AddTransient<IDispatcher>(_ => router);
+        forwarderServiceCollection.UseProtocol(forwarderProtocol).AddTransient<IDispatcher>(_ => router);
+
+        targetServiceCollection.UseTcp();
+        forwarderServiceCollection.UseTcp();
+
+        targetServiceCollection.AddTransient<IInvoker>(serviceProvider =>
+            new Pipeline().UseBinder(serviceProvider.GetRequiredService<ConnectionPool>()));
+        forwarderServiceCollection.AddTransient<IInvoker>(serviceProvider =>
+            new Pipeline().UseBinder(serviceProvider.GetRequiredService<ConnectionPool>()));
+
+        await using ServiceProvider targetServiceProvider = targetServiceCollection.BuildServiceProvider();
+        await using ServiceProvider forwarderServiceProvider = forwarderServiceCollection.BuildServiceProvider();
+
+        // TODO: add context testing
+
+        Server targetServer = targetServiceProvider.GetRequiredService<Server>();
+        var targetServicePrx = ProtocolBridgingTestPrx.Parse($"{targetServer.Endpoint.Protocol}:/target");
+        targetServicePrx.Proxy.Endpoint = targetServer.Endpoint;
+        targetServicePrx.Proxy.Invoker = targetServiceProvider.GetRequiredService<IInvoker>();
+
+        Server forwarderServer = forwarderServiceProvider.GetRequiredService<Server>();
+        var forwarderServicePrx = ProtocolBridgingTestPrx.Parse($"{forwarderServer.Endpoint.Protocol}:/forward");
+        forwarderServicePrx.Proxy.Endpoint = forwarderServer.Endpoint;
+        forwarderServicePrx.Proxy.Invoker = forwarderServiceProvider.GetRequiredService<IInvoker>();
+
+        var targetService = new ProtocolBridgingTest();
+        router.Map("/target", targetService);
+        router.Map("/forward", new Forwarder(targetServicePrx.Proxy));
+
+        // TODO: test with the other encoding; currently, the encoding is always the encoding of
+        // forwardService.Proxy.Proxy
+
+        ProtocolBridgingTestPrx newPrx = await TestProxyAsync(forwarderServicePrx, direct: false);
+        Assert.That((object)newPrx.Proxy.Protocol.Name, Is.EqualTo(targetProtocol));
+        _ = await TestProxyAsync(newPrx, direct: true);
+
+        async Task<ProtocolBridgingTestPrx> TestProxyAsync(ProtocolBridgingTestPrx prx, bool direct)
         {
-            var router = new Router();
-            var targetServiceCollection = new IntegrationTestServiceCollection();
-            var forwarderServiceCollection = new IntegrationTestServiceCollection();
+            var expectedPath = direct ? "/target" : "/forward";
+            Assert.That(prx.Proxy.Path, Is.EqualTo(expectedPath));
+            Assert.That(await prx.OpAsync(13), Is.EqualTo(13));
 
-            targetServiceCollection.UseProtocol(targetProtocol).AddTransient<IDispatcher>(_ => router);
-            forwarderServiceCollection.UseProtocol(forwarderProtocol).AddTransient<IDispatcher>(_ => router);
-            if (colocated)
+            var invocation = new Invocation
             {
-                // Use the same colocated transport instance to ensure we can invoke on the proxy returned by
-                // the forwarder.
-                var colocTransport = new ColocTransport();
-                targetServiceCollection.UseColoc(colocTransport, port: 1);
-                forwarderServiceCollection.UseColoc(colocTransport, port: 2);
-            }
-            else
-            {
-                targetServiceCollection.UseTransport("tcp");
-                forwarderServiceCollection.UseTransport("tcp");
-            }
+                Features = new FeatureCollection().WithContext(
+                    new Dictionary<string, string> { ["MyCtx"] = "hello" })
+            };
+            await prx.OpContextAsync(invocation);
+            Assert.That(invocation.Features.GetContext(), Is.EqualTo(targetService.Context));
+            targetService.Context = ImmutableDictionary<string, string>.Empty;
 
-            targetServiceCollection.AddTransient<IInvoker>(serviceProvider =>
-                new Pipeline().UseBinder(serviceProvider.GetRequiredService<ConnectionPool>()));
-            forwarderServiceCollection.AddTransient<IInvoker>(serviceProvider =>
-                new Pipeline().UseBinder(serviceProvider.GetRequiredService<ConnectionPool>()));
+            await prx.OpVoidAsync();
 
-            await using ServiceProvider targetServiceProvider = targetServiceCollection.BuildServiceProvider();
-            await using ServiceProvider forwarderServiceProvider = forwarderServiceCollection.BuildServiceProvider();
+            await prx.OpOnewayAsync(42);
 
-            // TODO: add context testing
+            Assert.ThrowsAsync<ProtocolBridgingException>(async () => await prx.OpExceptionAsync());
 
-            Server targetServer = targetServiceProvider.GetRequiredService<Server>();
-            var targetServicePrx = ProtocolBridgingTestPrx.Parse($"{targetServer.Endpoint.Protocol}:/target");
-            targetServicePrx.Proxy.Endpoint = targetServer.Endpoint;
-            targetServicePrx.Proxy.Invoker = targetServiceProvider.GetRequiredService<IInvoker>();
+            var dispatchException = Assert.ThrowsAsync<DispatchException>(
+                () => prx.OpServiceNotFoundExceptionAsync());
 
-            Server forwarderServer = forwarderServiceProvider.GetRequiredService<Server>();
-            var forwarderServicePrx = ProtocolBridgingTestPrx.Parse($"{forwarderServer.Endpoint.Protocol}:/forward");
-            forwarderServicePrx.Proxy.Endpoint = forwarderServer.Endpoint;
-            forwarderServicePrx.Proxy.Invoker = forwarderServiceProvider.GetRequiredService<IInvoker>();
+            Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
+            Assert.That(dispatchException!.Origin, Is.Not.Null);
 
-            var targetService = new ProtocolBridgingTest();
-            router.Map("/target", targetService);
-            router.Map("/forward", new Forwarder(targetServicePrx.Proxy));
+            ProtocolBridgingTestPrx newProxy = await prx.OpNewProxyAsync();
+            return newProxy;
+        }
+    }
 
-            // TODO: test with the other encoding; currently, the encoding is always the encoding of
-            // forwardService.Proxy.Proxy
+    internal class ProtocolBridgingTest : Service, IProtocolBridgingTest
+    {
+        public ImmutableDictionary<string, string> Context { get; set; } = ImmutableDictionary<string, string>.Empty;
 
-            ProtocolBridgingTestPrx newPrx = await TestProxyAsync(forwarderServicePrx, direct: false);
-            Assert.That((object)newPrx.Proxy.Protocol.Name, Is.EqualTo(targetProtocol));
-            _ = await TestProxyAsync(newPrx, direct: true);
+        public ValueTask<int> OpAsync(int x, Dispatch dispatch, CancellationToken cancel) =>
+            new(x);
 
-            async Task<ProtocolBridgingTestPrx> TestProxyAsync(ProtocolBridgingTestPrx prx, bool direct)
-            {
-                var expectedPath = direct ? "/target" : "/forward";
-                Assert.That(prx.Proxy.Path, Is.EqualTo(expectedPath));
-                Assert.That(await prx.OpAsync(13), Is.EqualTo(13));
+        public ValueTask OpContextAsync(Dispatch dispatch, CancellationToken cancel)
+        {
+            Context = dispatch.Features.GetContext().ToImmutableDictionary();
+            return default;
+        }
+        public ValueTask OpExceptionAsync(Dispatch dispatch, CancellationToken cancel) =>
+            throw new ProtocolBridgingException(42);
 
-                var invocation = new Invocation
-                {
-                    Features = new FeatureCollection().WithContext(
-                        new Dictionary<string, string> { ["MyCtx"] = "hello" })
-                };
-                await prx.OpContextAsync(invocation);
-                Assert.That(invocation.Features.GetContext(), Is.EqualTo(targetService.Context));
-                targetService.Context = ImmutableDictionary<string, string>.Empty;
-
-                await prx.OpVoidAsync();
-
-                await prx.OpOnewayAsync(42);
-
-                Assert.ThrowsAsync<ProtocolBridgingException>(async () => await prx.OpExceptionAsync());
-
-                var dispatchException = Assert.ThrowsAsync<DispatchException>(
-                    () => prx.OpServiceNotFoundExceptionAsync());
-
-                Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
-                Assert.That(dispatchException!.Origin, Is.Not.Null);
-
-                ProtocolBridgingTestPrx newProxy = await prx.OpNewProxyAsync();
-                return newProxy;
-            }
+        public ValueTask<ProtocolBridgingTestPrx> OpNewProxyAsync(Dispatch dispatch, CancellationToken cancel)
+        {
+            var proxy = new Proxy(dispatch.Protocol) { Path = dispatch.Path };
+            proxy.Endpoint = dispatch.Connection.Endpoint;
+            return new(new ProtocolBridgingTestPrx(proxy));
         }
 
-        internal class ProtocolBridgingTest : Service, IProtocolBridgingTest
+        public ValueTask OpOnewayAsync(int x, Dispatch dispatch, CancellationToken cancel) => default;
+
+        public ValueTask OpServiceNotFoundExceptionAsync(Dispatch dispatch, CancellationToken cancel) =>
+            throw new DispatchException(DispatchErrorCode.ServiceNotFound);
+
+        public ValueTask OpVoidAsync(Dispatch dispatch, CancellationToken cancel) => default;
+    }
+
+    public sealed class Forwarder : IDispatcher
+    {
+        private readonly Proxy _target;
+
+        async ValueTask IDispatcher.DispatchAsync(IncomingRequest incomingRequest, CancellationToken cancel)
         {
-            public ImmutableDictionary<string, string> Context { get; set; } = ImmutableDictionary<string, string>.Empty;
+            // First create an outgoing request to _target from the incoming request:
 
-            public ValueTask<int> OpAsync(int x, Dispatch dispatch, CancellationToken cancel) =>
-                new(x);
+            Protocol targetProtocol = _target.Protocol;
 
-            public ValueTask OpContextAsync(Dispatch dispatch, CancellationToken cancel)
+            // Context forwarding
+            FeatureCollection features = FeatureCollection.Empty;
+            if (incomingRequest.Protocol == Protocol.Ice || targetProtocol == Protocol.Ice)
             {
-                Context = dispatch.Features.GetContext().ToImmutableDictionary();
-                return default;
-            }
-            public ValueTask OpExceptionAsync(Dispatch dispatch, CancellationToken cancel) =>
-                throw new ProtocolBridgingException(42);
-
-            public ValueTask<ProtocolBridgingTestPrx> OpNewProxyAsync(Dispatch dispatch, CancellationToken cancel)
-            {
-                var proxy = new Proxy(dispatch.Protocol) { Path = dispatch.Path };
-                proxy.Endpoint = dispatch.Connection.Endpoint;
-                return new(new ProtocolBridgingTestPrx(proxy));
+                // When Protocol or targetProtocol is ice, we put the request context in the initial features of the
+                // new outgoing request to ensure it gets forwarded.
+                features = features.WithContext(incomingRequest.Features.GetContext());
             }
 
-            public ValueTask OpOnewayAsync(int x, Dispatch dispatch, CancellationToken cancel) => default;
+            var outgoingRequest = new OutgoingRequest(_target)
+            {
+                Features = features,
+                // mostly ignored by ice, with the exception of Idempotent
+                Fields = new Dictionary<RequestFieldKey, OutgoingFieldValue>(
+                    incomingRequest.Fields.Select(
+                        pair => new KeyValuePair<RequestFieldKey, OutgoingFieldValue>(
+                            pair.Key,
+                            new OutgoingFieldValue(pair.Value)))),
+                IsOneway = incomingRequest.IsOneway,
+                Operation = incomingRequest.Operation,
+                Payload = incomingRequest.Payload
+            };
 
-            public ValueTask OpServiceNotFoundExceptionAsync(Dispatch dispatch, CancellationToken cancel) =>
-                throw new DispatchException(DispatchErrorCode.ServiceNotFound);
+            // Then invoke
 
-            public ValueTask OpVoidAsync(Dispatch dispatch, CancellationToken cancel) => default;
+            IncomingResponse incomingResponse = await _target.Invoker!.InvokeAsync(outgoingRequest, cancel);
+
+            // Then create an outgoing response from the incoming response.
+
+            // When ResultType == Failure and the protocols are different, we need to transcode the exception
+            // (typically a dispatch exception). Fortunately, we can simply decode it and throw it.
+            if (incomingRequest.Protocol != incomingResponse.Protocol &&
+                incomingResponse.ResultType == ResultType.Failure)
+            {
+                RemoteException remoteException = await incomingResponse.DecodeFailureAsync(cancel: cancel);
+                remoteException.ConvertToUnhandled = false;
+                throw remoteException;
+            }
+
+            // Don't forward RetryPolicy
+            var fields = new Dictionary<ResponseFieldKey, OutgoingFieldValue>(
+                    incomingResponse.Fields.Select(
+                        pair => new KeyValuePair<ResponseFieldKey, OutgoingFieldValue>(
+                            pair.Key,
+                            new OutgoingFieldValue(pair.Value))));
+            _ = fields.Remove(ResponseFieldKey.RetryPolicy);
+
+            incomingRequest.Response = new OutgoingResponse(incomingRequest)
+            {
+                Fields = fields,
+                Payload = incomingResponse.Payload,
+                ResultType = incomingResponse.ResultType
+            };
         }
 
-        public sealed class Forwarder : IDispatcher
-        {
-            private readonly Proxy _target;
-
-            async ValueTask IDispatcher.DispatchAsync(
-                IncomingRequest incomingRequest,
-                CancellationToken cancel)
-            {
-                // First create an outgoing request to _target from the incoming request:
-
-                Protocol targetProtocol = _target.Protocol;
-
-                // Context forwarding
-                FeatureCollection features = FeatureCollection.Empty;
-                if (incomingRequest.Protocol == Protocol.Ice || targetProtocol == Protocol.Ice)
-                {
-                    // When Protocol or targetProtocol is ice, we put the request context in the initial features of the
-                    // new outgoing request to ensure it gets forwarded.
-                    features = features.WithContext(incomingRequest.Features.GetContext());
-                }
-
-                var outgoingRequest = new OutgoingRequest(_target)
-                {
-                    Features = features,
-                    // mostly ignored by ice, with the exception of Idempotent
-                    Fields = new Dictionary<RequestFieldKey, OutgoingFieldValue>(
-                        incomingRequest.Fields.Select(
-                            pair => new KeyValuePair<RequestFieldKey, OutgoingFieldValue>(
-                                pair.Key,
-                                new OutgoingFieldValue(pair.Value)))),
-                    IsOneway = incomingRequest.IsOneway,
-                    Operation = incomingRequest.Operation,
-                    Payload = incomingRequest.Payload
-                };
-
-                // Then invoke
-
-                IncomingResponse incomingResponse = await _target.Invoker!.InvokeAsync(outgoingRequest, cancel);
-
-                // Then create an outgoing response from the incoming response.
-
-                // When ResultType == Failure and the protocols are different, we need to transcode the exception
-                // (typically a dispatch exception). Fortunately, we can simply decode it and throw it.
-                if (incomingRequest.Protocol != incomingResponse.Protocol &&
-                    incomingResponse.ResultType == ResultType.Failure)
-                {
-                    RemoteException remoteException = await incomingResponse.DecodeFailureAsync(cancel: cancel);
-                    remoteException.ConvertToUnhandled = false;
-                    throw remoteException;
-                }
-
-                // Don't forward RetryPolicy
-                var fields = new Dictionary<ResponseFieldKey, OutgoingFieldValue>(
-                        incomingResponse.Fields.Select(
-                            pair => new KeyValuePair<ResponseFieldKey, OutgoingFieldValue>(
-                                pair.Key,
-                                new OutgoingFieldValue(pair.Value))));
-                _ = fields.Remove(ResponseFieldKey.RetryPolicy);
-
-                incomingRequest.Response = new OutgoingResponse(incomingRequest)
-                {
-                    Fields = fields,
-                    Payload = incomingResponse.Payload,
-                    ResultType = incomingResponse.ResultType
-                };
-            }
-
-            internal Forwarder(Proxy target) => _target = target;
-        }
+        internal Forwarder(Proxy target) => _target = target;
     }
 }

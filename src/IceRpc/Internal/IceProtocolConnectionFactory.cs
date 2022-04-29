@@ -12,7 +12,7 @@ namespace IceRpc.Internal
             ISimpleNetworkConnection networkConnection,
             NetworkConnectionInformation connectionInfo,
             Configure.ConnectionOptions connectionOptions,
-            FeatureCollection features,
+            Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect,
             bool isServer,
             CancellationToken cancel)
         {
@@ -24,13 +24,11 @@ namespace IceRpc.Internal
             try
             {
                 await protocolConnection.InitializeAsync(isServer, cancel).ConfigureAwait(false);
-                connectionOptions.OnConnect?.Invoke(
-                        new Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>(),
-                        features);
+                onConnect?.Invoke(new Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>());
             }
             catch
             {
-                protocolConnection.Dispose();
+                await protocolConnection.DisposeAsync().ConfigureAwait(false);
                 throw;
             }
             return protocolConnection;

@@ -25,6 +25,7 @@ namespace IceRpc.Internal
         private readonly int _maxCount;
         private readonly object _mutex = new();
         private readonly Queue<ManualResetValueTaskCompletionSource<bool>> _queue = new();
+        private TaskCompletionSource? _waitForReleaseSource;
 
         /// <summary>Initializes a new instance of the asynchronous semaphore with the given maximum number of
         /// times to the semaphore can be entered.</summary>
@@ -49,8 +50,8 @@ namespace IceRpc.Internal
             _maxCount = maxCount;
         }
 
-        /// <summary>Notify callers that are waiting to enter the semaphore that the semaphore is being terminated.
-        /// The given exception will be raised by the awaited EnterAsync operation.</summary>
+        /// <summary>Notifies the callers that are waiting to enter the semaphore that the semaphore is being
+        /// terminated. The given exception will be raised by the awaited EnterAsync operation.</summary>
         /// <param name="exception">The exception raised to notify the callers waiting to enter the semaphore of the
         /// completion.</param>
         internal void Complete(Exception exception)
@@ -86,7 +87,39 @@ namespace IceRpc.Internal
                         // Ignore, the source might already be completed if canceled.
                     }
                 }
+                _queue.Clear();
             }
+        }
+
+        /// <summary>Notifies the callers that are waiting to enter the semaphore that the semaphore is being
+        /// terminated. The given exception will be raised by the awaited EnterAsync operation. In addition, this method
+        /// waits for the semaphore to be fully released.</summary>
+        /// <param name="exception">The exception raised to notify the callers waiting to enter the semaphore of the
+        /// completion.</param>
+        internal Task CompleteAndWaitAsync(Exception exception)
+        {
+            Complete(exception);
+
+            Task waitForReleaseTask;
+            lock (_mutex)
+            {
+                if (_waitForReleaseSource != null)
+                {
+                    throw new InvalidOperationException($"can't call {nameof(CompleteAndWaitAsync)} twice");
+                }
+
+                if (_currentCount == _maxCount)
+                {
+                    waitForReleaseTask = Task.CompletedTask;
+                }
+                else
+                {
+                    _waitForReleaseSource = new();
+                    waitForReleaseTask = _waitForReleaseSource.Task;
+                }
+            }
+
+            return waitForReleaseTask;
         }
 
         /// <summary>Asynchronously enter the semaphore. If the semaphore can't be entered, this method waits
@@ -169,6 +202,11 @@ namespace IceRpc.Internal
 
                 // Increment the semaphore if there's no waiter.
                 ++_currentCount;
+
+                if (_currentCount == _maxCount)
+                {
+                    _waitForReleaseSource?.TrySetResult();
+                }
             }
         }
     }
