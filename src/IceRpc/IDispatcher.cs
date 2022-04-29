@@ -9,6 +9,8 @@ namespace IceRpc
         /// <param name="request">The incoming request being dispatched.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>A value task that completes when the dispatch completes.</returns>
+        /// <remarks>A dispatch provides a response to a request by setting <see cref="IncomingRequest.Response"/>.
+        /// </remarks>
         ValueTask DispatchAsync(IncomingRequest request, CancellationToken cancel = default);
     }
 
