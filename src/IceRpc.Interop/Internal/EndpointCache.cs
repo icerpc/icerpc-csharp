@@ -57,7 +57,8 @@ namespace IceRpc.Internal
             {
                 Remove(location); // remove existing cache entry if present
 
-                _cache[location] = (Time.Elapsed, proxy, _cacheKeys.AddFirst(location));
+                _cache[location] =
+                    (TimeSpan.FromMilliseconds(Environment.TickCount64), proxy, _cacheKeys.AddFirst(location));
 
                 if (_cacheKeys.Count == _cacheMaxSize + 1)
                 {
