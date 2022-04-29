@@ -50,6 +50,10 @@ namespace IceRpc.Internal
             _maxCount = maxCount;
         }
 
+        /// <summary>Cancels the callers that are waiting to enter the semaphore. The given exception will be raised by
+        /// the awaited EnterAsync operation.</summary>
+        /// <param name="exception">The exception raised to notify the callers waiting to enter the semaphore of the
+        /// cancellation.</param>
         internal void CancelAwaiters(Exception exception)
         {
             lock (_mutex)
@@ -81,7 +85,6 @@ namespace IceRpc.Internal
                 {
                     return;
                 }
-
                 _exception = exception;
             }
 
