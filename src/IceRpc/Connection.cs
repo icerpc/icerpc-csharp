@@ -486,7 +486,8 @@ namespace IceRpc
                     _protocolConnection != null &&
                     NetworkConnectionInformation != null);
 
-                TimeSpan idleTime = Time.Elapsed - _networkConnection!.LastActivity;
+                TimeSpan idleTime =
+                    TimeSpan.FromMilliseconds(Environment.TickCount64) - _networkConnection!.LastActivity;
                 if (idleTime > NetworkConnectionInformation.Value.IdleTimeout)
                 {
                     if (_protocolConnection.HasInvocationsInProgress)

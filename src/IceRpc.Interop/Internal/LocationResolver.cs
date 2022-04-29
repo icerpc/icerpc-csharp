@@ -76,7 +76,7 @@ namespace IceRpc.Internal
             if (_endpointCache.TryGetValue(location, out (TimeSpan InsertionTime, Proxy Proxy) entry))
             {
                 proxy = entry.Proxy;
-                TimeSpan cacheEntryAge = Time.Elapsed - entry.InsertionTime;
+                TimeSpan cacheEntryAge = TimeSpan.FromMilliseconds(Environment.TickCount64) - entry.InsertionTime;
                 expired = _ttl != Timeout.InfiniteTimeSpan && cacheEntryAge > _ttl;
                 justRefreshed = cacheEntryAge <= _refreshThreshold;
             }
