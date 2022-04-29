@@ -338,7 +338,6 @@ namespace IceRpc.Internal
 
         public async Task ShutdownAsync(string message, CancellationToken cancel)
         {
-            var exception = new ConnectionClosedException(message);
             bool alreadyShuttingDown = false;
             lock (_mutex)
             {
@@ -375,20 +374,25 @@ namespace IceRpc.Internal
                     await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
                 }
 
-                // Cancel any pending requests waiting to be written.
-                _writeSemaphore.Complete(exception);
-
                 // Mark the connection as shut down at this point. This is necessary to ensure ReadsFramesAsync returns
                 // successfully on a graceful connection shutdown. This needs to be set before writing the close
                 // connection frame since the peer will close the simple network connection as soon as it receives the
                 // frame.
                 _isShutdown = true;
 
-                // Write the CloseConnection frame once all the dispatches are done.
-                EncodeCloseConnectionFrame(_networkConnectionWriter);
+                await _writeSemaphore.EnterAsync(CancellationToken.None).ConfigureAwait(false);
+                try
+                {
+                    // Write the CloseConnection frame once all the dispatches are done.
+                    EncodeCloseConnectionFrame(_networkConnectionWriter);
 
-                // The flush can't be canceled because it would lead to the writing of an incomplete frame.
-                await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                    // The flush can't be canceled because it would lead to the writing of an incomplete frame.
+                    await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                }
+                finally
+                {
+                    _writeSemaphore.Release();
+                }
             }
 
             // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
