@@ -83,7 +83,6 @@ public sealed class ProtocolConnectionTests
 
     /// <summary>Verifies that if shutdown is canceled the dispatches are canceled too.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    [Repeat(1000)]
     public async Task Canceling_shutdown_cancels_pending_dispatches(Protocol protocol)
     {
         // Arrange
