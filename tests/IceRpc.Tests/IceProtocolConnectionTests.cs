@@ -106,6 +106,40 @@ public sealed class IceProtocolConnectionTests
         Assert.That(maxCount, Is.EqualTo(maxConcurrentDispatches));
     }
 
+    /// <summary>Verifies that when dispatches are blocked waiting for the dispatch semaphore that disposing the server
+    /// connection correctly cancels the dispatch semaphore wait. If the dispatch semaphore wait wasn't canceled, the
+    /// DisposeAsync call would hang because it waits for the read semaphore to be released.</summary>
+    /// </summary>
+    [Test]
+    public async Task Connection_with_dispatches_waiting_for_max_concurrent_dispatch_unblock_on_dispose()
+    {
+        // Arrange
+        var semaphore = new SemaphoreSlim(1);
+        var serverConnectionOptions = new ConnectionOptions
+        {
+            Dispatcher = new InlineDispatcher((request, cancel) => semaphore.WaitAsync(CancellationToken.None)),
+            IceProtocolOptions = new { MaxConcurrentDispatches = 1 }
+        };
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(Protocol.Ice)
+            .UseServerConnectionOptions(serverConnectionOptions)
+            .BuildServiceProvider();
+
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.Ice);
+        _ = sut.Client.AcceptRequestsAsync(InvalidConnection.Ice);
+
+        // Perform two invocations. The first blocks so the second won't be dispatched by instead block on the dispatch
+        // semaphore.
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.Ice)), InvalidConnection.Ice, default);
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.Ice)), InvalidConnection.Ice, default);
+
+        // Act/Assert
+        await sut.Server.DisposeAsync();
+        semaphore.Release();
+    }
+
     /// <summary>Verifies that with the ice protocol, when a exception other than a DispatchException is thrown
     /// during the dispatch, we encode a DispatchException with the expected error code.</summary>
     [Test, TestCaseSource(nameof(ExceptionIsEncodedAsADispatchExceptionSource))]
