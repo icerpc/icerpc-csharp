@@ -14,6 +14,9 @@ namespace IceRpc
         private readonly Dictionary<Endpoint, List<Connection>> _connections = new(EndpointComparer.ParameterLess);
         private readonly object _mutex = new();
         private readonly bool _preferExistingConnection;
+
+        private readonly Action<Connection, Exception> _removeOnClose;
+
         private CancellationTokenSource? _shutdownCancelSource;
         private Task? _shutdownTask;
 
@@ -30,6 +33,7 @@ namespace IceRpc
         {
             _connectionOptions = connectionOptions ?? new ConnectionOptions();
             _preferExistingConnection = preferExistingConnection;
+            _removeOnClose = (connection, _) => Remove(connection);
         }
 
         /// <summary>An alias for <see cref="ShutdownAsync"/>, except this method returns a <see cref="ValueTask"/>.
@@ -196,7 +200,11 @@ namespace IceRpc
                 if (connection == null)
                 {
                     // Connections from the connection pool are not resumable.
-                    connection = new Connection(_connectionOptions with { RemoteEndpoint = endpoint });
+                    connection = new Connection(_connectionOptions with
+                    {
+                        OnClose = _removeOnClose + _connectionOptions.OnClose,
+                        RemoteEndpoint = endpoint
+                    });
 
                     if (!_connections.TryGetValue(endpoint, out connections))
                     {
@@ -204,28 +212,24 @@ namespace IceRpc
                         _connections[endpoint] = connections;
                     }
                     connections.Add(connection);
-
-                    // Set the callback used to remove the connection from the pool. This can throw if the connection is
-                    // closed but it's not possible here since we've just constructed the connection.
-                    connection.Closed += (sender, state) => Remove(endpoint, connection);
                 }
             }
             await connection.ConnectAsync(cancel).ConfigureAwait(false);
             return connection;
         }
 
-        private void Remove(Endpoint endpoint, Connection connection)
+        private void Remove(Connection connection)
         {
             lock (_mutex)
             {
                 // _connections is immutable after shutdown
                 if (_shutdownTask == null)
                 {
-                    List<Connection> list = _connections[endpoint];
+                    List<Connection> list = _connections[connection.Endpoint];
                     list.Remove(connection);
                     if (list.Count == 0)
                     {
-                        _connections.Remove(endpoint);
+                        _connections.Remove(connection.Endpoint);
                     }
                 }
             }

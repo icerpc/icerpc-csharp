@@ -17,9 +17,6 @@ namespace IceRpc.Internal
         /// otherwise.</summary>
         bool HasInvocationsInProgress { get; }
 
-        /// <summary>Returns the fields provided by the peer.</summary>
-        ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>> PeerFields { get; }
-
         /// <summary>This event is raised when the protocol connection is notified of the peer shutdown.</summary>
         Action<string>? PeerShutdownInitiated { get; set; }
 

@@ -13,9 +13,6 @@ namespace IceRpc.Internal
         bool IProtocolConnection.HasDispatchesInProgress => _decoratee.HasDispatchesInProgress;
         bool IProtocolConnection.HasInvocationsInProgress => _decoratee.HasInvocationsInProgress;
 
-        ImmutableDictionary<ConnectionFieldKey, ReadOnlySequence<byte>> IProtocolConnection.PeerFields =>
-            _decoratee.PeerFields;
-
         Action<string>? IProtocolConnection.PeerShutdownInitiated
         {
             get => _decoratee.PeerShutdownInitiated;

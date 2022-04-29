@@ -102,6 +102,7 @@ internal static class ProtocolServiceCollectionExtensions
                 connectionOptions: isServer ?
                     serviceProvider.GetService<ServerConnectionOptions>()?.Value ?? new() :
                     serviceProvider.GetService<ClientConnectionOptions>()?.Value ?? new(),
+                new FeatureCollection(),
                 isServer,
                 CancellationToken.None);
         return (networkConnection, protocolConnection);
