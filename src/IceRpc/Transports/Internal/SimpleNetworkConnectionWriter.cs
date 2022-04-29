@@ -13,7 +13,6 @@ namespace IceRpc.Transports.Internal
         private readonly ISimpleNetworkConnection _connection;
         private readonly Pipe _pipe;
         private readonly List<ReadOnlyMemory<byte>> _sendBuffers = new(16);
-        private int _state;
 
         /// <inheritdoc/>
         public void Advance(int bytes) => _pipe.Writer.Advance(bytes);
@@ -21,21 +20,8 @@ namespace IceRpc.Transports.Internal
         /// <inheritdoc/>
         public void Dispose()
         {
-            if (_state.TrySetFlag(State.Disposed))
-            {
-                // If the pipe is being used for reading we can't call CompleteAsync since it's not safe. We call
-                // CancelPendingRead instead, the implementation will complete the pipe reader/writer once it's no
-                // longer writing.
-                if (_state.HasFlag(State.Writing))
-                {
-                    _pipe.Reader.CancelPendingRead();
-                }
-                else
-                {
-                    _pipe.Writer.Complete();
-                    _pipe.Reader.Complete();
-                }
-            }
+            _pipe.Writer.Complete();
+            _pipe.Reader.Complete();
         }
 
         /// <inheritdoc/>
@@ -71,76 +57,52 @@ namespace IceRpc.Transports.Internal
             ReadOnlySequence<byte> source2,
             CancellationToken cancel)
         {
-            if (!_state.TrySetFlag(State.Writing))
+            if (_pipe.Writer.UnflushedBytes == 0 && source1.IsEmpty && source2.IsEmpty)
             {
-                throw new InvalidOperationException("writing is not thread safe");
+                return;
             }
 
-            try
+            _sendBuffers.Clear();
+
+            // First add the data from the internal pipe.
+            SequencePosition? consumed = null;
+            if (_pipe.Writer.UnflushedBytes > 0)
             {
-                if (_state.HasFlag(State.Disposed))
+                await _pipe.Writer.FlushAsync(cancel).ConfigureAwait(false);
+                _pipe.Reader.TryRead(out ReadResult readResult);
+
+                if (readResult.IsCanceled)
                 {
                     throw new ObjectDisposedException($"{typeof(SimpleNetworkConnectionWriter)}");
                 }
+                Debug.Assert(!readResult.IsCompleted);
 
-                if (_pipe.Writer.UnflushedBytes == 0 && source1.IsEmpty && source2.IsEmpty)
+                consumed = readResult.Buffer.GetPosition(readResult.Buffer.Length);
+                AddToSendBuffers(readResult.Buffer);
+            }
+
+            // Next add the data from source1 and source2.
+            AddToSendBuffers(source1);
+            AddToSendBuffers(source2);
+
+            try
+            {
+                ValueTask task = _connection.WriteAsync(_sendBuffers, cancel);
+                if (task.IsCompleted)
                 {
-                    return;
+                    await task.ConfigureAwait(false);
                 }
-
-                _sendBuffers.Clear();
-
-                // First add the data from the internal pipe.
-                SequencePosition? consumed = null;
-                if (_pipe.Writer.UnflushedBytes > 0)
+                else
                 {
-                    await _pipe.Writer.FlushAsync(cancel).ConfigureAwait(false);
-                    _pipe.Reader.TryRead(out ReadResult readResult);
-
-                    if (readResult.IsCanceled)
-                    {
-                        throw new ObjectDisposedException($"{typeof(SimpleNetworkConnectionWriter)}");
-                    }
-                    Debug.Assert(!readResult.IsCompleted);
-
-                    consumed = readResult.Buffer.GetPosition(readResult.Buffer.Length);
-                    AddToSendBuffers(readResult.Buffer);
-                }
-
-                // Next add the data from source1 and source2.
-                AddToSendBuffers(source1);
-                AddToSendBuffers(source2);
-
-                try
-                {
-                    ValueTask task = _connection.WriteAsync(_sendBuffers, cancel);
-                    if (task.IsCompleted)
-                    {
-                        await task.ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        await task.AsTask().WaitAsync(cancel).ConfigureAwait(false);
-                    }
-                }
-                finally
-                {
-                    if (consumed != null)
-                    {
-                        _pipe.Reader.AdvanceTo(consumed.Value);
-                    }
+                    await task.AsTask().WaitAsync(cancel).ConfigureAwait(false);
                 }
             }
             finally
             {
-                if (_state.HasFlag(State.Disposed))
+                if (consumed != null)
                 {
-#pragma warning disable CA1849 // Call async methods when in an async method
-                    _pipe.Reader.Complete();
-                    _pipe.Writer.Complete();
-#pragma warning restore CA1849
+                    _pipe.Reader.AdvanceTo(consumed.Value);
                 }
-                _state.ClearFlag(State.Writing);
             }
 
             void AddToSendBuffers(ReadOnlySequence<byte> source)
@@ -161,12 +123,6 @@ namespace IceRpc.Transports.Internal
                     }
                 }
             }
-        }
-
-        private enum State : int
-        {
-            Disposed = 1,
-            Writing = 2,
         }
     }
 }
