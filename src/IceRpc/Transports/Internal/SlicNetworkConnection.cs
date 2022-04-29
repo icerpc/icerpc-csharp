@@ -218,7 +218,7 @@ namespace IceRpc.Transports.Internal
 
         public IMultiplexedStream CreateStream(bool bidirectional) =>
             // TODO: Cache SliceMultiplexedStream
-            new SlicMultiplexedStream(this, bidirectional, remote: false, _reader, _writer);
+            new SlicMultiplexedStream(this, bidirectional, remote: false, _simpleNetworkConnectionReader);
 
         public ValueTask DisposeAsync() => AbortAsync(new ObjectDisposedException($"{typeof(SlicNetworkConnection)}"));
 
@@ -466,13 +466,13 @@ namespace IceRpc.Transports.Internal
             return new FlushResult(isCanceled: false, isCompleted: false);
         }
 
-        private ValueTask AbortAsync(Exception exception)
+        private async ValueTask AbortAsync(Exception exception)
         {
             lock (_mutex)
             {
                 if (_exception != null)
                 {
-                    return new();
+                    return;
                 }
                 _exception = exception;
             }
@@ -480,7 +480,10 @@ namespace IceRpc.Transports.Internal
             // Unblock requests waiting on the semaphores.
             _bidirectionalStreamSemaphore?.Complete(exception);
             _unidirectionalStreamSemaphore?.Complete(exception);
-            _sendSemaphore.Complete(exception);
+
+            // Unblock requests waiting on the semaphore and wait for the semaphore to be released to ensure we don't
+            // dispose the simple network connection while a frame is being sent (the close frame in particular).
+            await _sendSemaphore.CompleteAndWaitAsync(exception).ConfigureAwait(false);
 
             foreach (SlicMultiplexedStream stream in _streams.Values)
             {
@@ -501,7 +504,7 @@ namespace IceRpc.Transports.Internal
 
             _simpleNetworkConnectionReader.Dispose();
             _simpleNetworkConnectionWriter.Dispose();
-            return _simpleNetworkConnection.DisposeAsync();
+            await _simpleNetworkConnection.DisposeAsync().ConfigureAwait(false);
         }
 
         private Dictionary<int, IList<byte>> GetParameters()
@@ -613,7 +616,12 @@ namespace IceRpc.Transports.Internal
 
                             // Accept the new remote stream.
                             // TODO: Cache SliceMultiplexedStream
-                            stream = new SlicMultiplexedStream(this, isBidirectional, remote: true, _reader, _writer);
+                            stream = new SlicMultiplexedStream(
+                                this,
+                                isBidirectional,
+                                remote: true,
+                                _simpleNetworkConnectionReader);
+
                             try
                             {
                                 AddStream(streamId.Value, stream);

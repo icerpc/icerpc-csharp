@@ -55,8 +55,6 @@ namespace IceRpc.Transports.Internal
         internal bool WritesCompleted => _state.HasFlag(State.WritesCompleted);
 
         private readonly SlicNetworkConnection _connection;
-        private readonly ISlicFrameReader _frameReader;
-        private readonly ISlicFrameWriter _frameWriter;
         private long _id = -1;
         private readonly SlicPipeReader _inputPipeReader;
         private readonly object _mutex = new();
@@ -89,14 +87,10 @@ namespace IceRpc.Transports.Internal
             SlicNetworkConnection connection,
             bool bidirectional,
             bool remote,
-            ISlicFrameReader reader,
-            ISlicFrameWriter writer)
+            SimpleNetworkConnectionReader networkConnectionReader)
         {
             _connection = connection;
             _sendCredit = _connection.PeerPauseWriterThreshold;
-
-            _frameReader = reader;
-            _frameWriter = writer;
 
             _inputPipeReader = new SlicPipeReader(
                 this,
@@ -104,7 +98,7 @@ namespace IceRpc.Transports.Internal
                 _connection.MinimumSegmentSize,
                 _connection.ResumeWriterThreshold,
                 _connection.PauseWriterThreshold,
-                _frameReader.NetworkConnectionReader);
+                networkConnectionReader);
 
             _outputPipeWriter = new SlicPipeWriter(this, _connection.Pool, _connection.MinimumSegmentSize);
 

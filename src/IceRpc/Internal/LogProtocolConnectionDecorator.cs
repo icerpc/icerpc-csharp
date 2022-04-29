@@ -32,10 +32,10 @@ namespace IceRpc.Internal
             await _decoratee.AcceptRequestsAsync(connection).ConfigureAwait(false);
         }
 
-        void IDisposable.Dispose()
+        async ValueTask IAsyncDisposable.DisposeAsync()
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
-            _decoratee.Dispose();
+            await _decoratee.DisposeAsync().ConfigureAwait(false);
             _logger.LogProtocolConnectionDispose(_protocol);
         }
 

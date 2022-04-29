@@ -17,10 +17,8 @@ internal struct ClientServerProtocolConnection : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        Client.Dispose();
-        Server.Dispose();
-        await ClientNetworkConnection.DisposeAsync();
-        await ServerNetworkConnection.DisposeAsync();
+        await Client.DisposeAsync();
+        await Server.DisposeAsync();
     }
 
     internal ClientServerProtocolConnection(
@@ -84,18 +82,15 @@ internal static class ProtocolServiceCollectionExtensions
         this IServiceProvider serviceProvider) => serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ?
             GetProtocolConnectionAsync(
                 serviceProvider,
-                Protocol.Ice,
                 isServer: false,
                 serviceProvider.GetSimpleClientConnectionAsync) :
             GetProtocolConnectionAsync(
                 serviceProvider,
-                Protocol.IceRpc,
                 isServer: false,
                 serviceProvider.GetMultiplexedClientConnectionAsync);
 
     private static async Task<(INetworkConnection, IProtocolConnection)> GetProtocolConnectionAsync<T>(
         IServiceProvider serviceProvider,
-        Protocol protocol,
         bool isServer,
         Func<Task<T>> networkConnectionFactory) where T : INetworkConnection
     {
@@ -117,12 +112,10 @@ internal static class ProtocolServiceCollectionExtensions
         this IServiceProvider serviceProvider) => serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ?
             GetProtocolConnectionAsync(
                 serviceProvider,
-                Protocol.Ice,
                 isServer: true,
                 serviceProvider.GetSimpleServerConnectionAsync) :
             GetProtocolConnectionAsync(
                 serviceProvider,
-                Protocol.IceRpc,
                 isServer: true,
                 serviceProvider.GetMultiplexedServerConnectionAsync);
 
