@@ -29,7 +29,6 @@ public sealed class InvokeAsyncTests
         {
             ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
             payload = readResult.Buffer.ToArray();
-            return new OutgoingResponse(request);
         });
 
         await using var server = new Server(serverOptions);
@@ -64,10 +63,13 @@ public sealed class InvokeAsyncTests
         var colocTransport = new ColocTransport();
         var serverOptions = CreateServerOptions(endpoint, colocTransport);
         serverOptions.Dispatcher = new InlineDispatcher((request, cancel) =>
-            new(new OutgoingResponse(request)
+        {
+            request.Response = new OutgoingResponse(request)
             {
                 Payload = PipeReader.Create(new ReadOnlySequence<byte>(_expectedPayload)),
-            }));
+            };
+            return default;
+        });
 
         await using var server = new Server(serverOptions);
         server.Listen();

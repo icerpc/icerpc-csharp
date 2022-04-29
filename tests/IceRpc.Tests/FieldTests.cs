@@ -24,10 +24,10 @@ public class FieldTests
             Dispatcher = new InlineDispatcher((request, cancel) =>
             {
                 fieldValue = request.Connection.Features.Get<byte[]>();
-                return new(new OutgoingResponse(request));
+                return default;
             }),
             MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport),
-            OnConnect = (fields, features) => features.Set(fields[TestConnectionFieldKey].ToArray())
+            OnConnect = (_, fields, features) => features.Set(fields[TestConnectionFieldKey].ToArray())
         });
         server.Listen();
         await using var connection = new Connection(new ConnectionOptions
@@ -63,7 +63,7 @@ public class FieldTests
         await using var connection = new Connection(new ConnectionOptions
         {
             MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
-            OnConnect = (fields, features) => features.Set(fields[TestConnectionFieldKey].ToArray()),
+            OnConnect = (_, fields, features) => features.Set(fields[TestConnectionFieldKey].ToArray()),
             RemoteEndpoint = server.Endpoint
         });
 

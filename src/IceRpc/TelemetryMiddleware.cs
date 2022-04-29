@@ -29,7 +29,7 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
+        public async ValueTask DispatchAsync(IncomingRequest request, CancellationToken cancel)
         {
             if (request.Protocol.HasFields)
             {
@@ -57,7 +57,7 @@ namespace IceRpc
 
                 try
                 {
-                    return await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
+                    await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -67,7 +67,7 @@ namespace IceRpc
             }
             else
             {
-                return await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
+                await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
             }
         }
 

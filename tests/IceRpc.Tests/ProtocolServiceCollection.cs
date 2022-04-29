@@ -7,6 +7,7 @@ using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Buffers;
 using System.Net.Security;
 
 namespace IceRpc.Tests;
@@ -131,14 +132,23 @@ internal static class ProtocolServiceCollectionExtensions
         Func<Task<T>> networkConnectionFactory) where T : INetworkConnection
     {
         T networkConnection = await networkConnectionFactory();
+        ConnectionOptions connectionOptions = isServer ?
+            serviceProvider.GetService<ServerConnectionOptions>()?.Value ?? new() :
+            serviceProvider.GetService<ClientConnectionOptions>()?.Value ?? new();
+
+        Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect =
+            connectionOptions.OnConnect == null ? null :
+            fields => connectionOptions.OnConnect(
+                serviceProvider.GetInvalidConnection(),
+                fields,
+                new FeatureCollection());
+
         IProtocolConnection protocolConnection =
             await serviceProvider.GetRequiredService<IProtocolConnectionFactory<T>>().CreateProtocolConnectionAsync(
                 networkConnection,
                 connectionInformation: new(),
-                connectionOptions: isServer ?
-                    serviceProvider.GetService<ServerConnectionOptions>()?.Value ?? new() :
-                    serviceProvider.GetService<ClientConnectionOptions>()?.Value ?? new(),
-                new FeatureCollection(),
+                connectionOptions,
+                onConnect,
                 isServer,
                 CancellationToken.None);
         return (networkConnection, protocolConnection);
