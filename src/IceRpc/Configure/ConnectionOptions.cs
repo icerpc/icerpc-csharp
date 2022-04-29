@@ -10,6 +10,20 @@ using System.Net.Security;
 
 namespace IceRpc.Configure
 {
+    /// <summary>The type of the delegate registered using the <see cref="ConnectionOptions.OnConnect"/> and
+    /// <see cref="ServerOptions.OnConnect"/> properties.</summary>
+    /// <param name="connection">The connection that was just connected.</param>
+    /// <param name="fields">The fields received from the remote peer.</param>
+    /// <param name="features">The features of the connection. This feature collection is read-write and its default
+    ///  is <see cref="ConnectionOptions.Features"/> or <see cref="ServerOptions.Features"/>.</param>
+    /// <remarks>The <paramref name="fields"/> correspond to the <see cref="ConnectionOptions.Fields"/> or
+    /// <see cref="ServerOptions.Fields"/> property of the remote peer with the icerpc protocol. This dictionary is
+    /// always empty with the ice protocol.</remarks>
+    public delegate void OnConnectAction(
+        Connection connection,
+        Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>> fields,
+        FeatureCollection features);
+
     /// <summary>A property bag used to configure a client <see cref="Connection"/>.</summary>
     public sealed record class ConnectionOptions
     {
@@ -94,9 +108,8 @@ namespace IceRpc.Configure
         /// <summary>Gets or set an action that executes when the connection is closed.</summary>
         public Action<Connection, Exception>? OnClose { get; set; }
 
-        /// <summary>Gets or sets the action to execute during connection establishment. This action (or linked actions)
-        /// can convert the fields received from the remote peer into features.</summary>
-        public Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>, FeatureCollection>? OnConnect { get; set; }
+        /// <summary>Gets or sets the action to execute during connection establishment.</summary>
+        public OnConnectAction? OnConnect { get; set; }
 
         /// <summary>Gets or sets the connection's remote endpoint.</summary>
         public Endpoint? RemoteEndpoint

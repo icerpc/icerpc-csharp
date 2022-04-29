@@ -34,13 +34,12 @@ namespace IceRpc
             {
                 if (IsReadOnly)
                 {
-                    // Currently only the shared Empty feature collection is read only.
                     throw new InvalidOperationException("cannot update read-only feature collection");
                 }
 
                 if (value == null)
                 {
-                    _features?.Remove(key);
+                    _ = _features?.Remove(key);
                 }
                 else
                 {
