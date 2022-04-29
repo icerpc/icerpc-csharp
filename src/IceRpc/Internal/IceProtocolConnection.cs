@@ -374,11 +374,14 @@ namespace IceRpc.Internal
                     await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
                 }
 
-                // Mark the connection as shut down at this point. This is necessary to ensure ReadsFramesAsync returns
+                // Mark the connection as shut down at this point. This is necessary to ensure ReadFramesAsync returns
                 // successfully on a graceful connection shutdown. This needs to be set before writing the close
                 // connection frame since the peer will close the simple network connection as soon as it receives the
                 // frame.
                 _isShutdown = true;
+
+                // Unblock invocations which are waiting on the write semaphore.
+                _writeSemaphore.CancelAwaiters(new ConnectionClosedException(message));
 
                 await _writeSemaphore.EnterAsync(CancellationToken.None).ConfigureAwait(false);
                 try
