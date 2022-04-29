@@ -27,12 +27,12 @@ namespace IceRpc.Internal
         /// <param name="connection">The connection of incoming requests created by this method.</param>
         Task AcceptRequestsAsync(Connection connection);
 
-        /// <summary>Checks if the parameters of the provided endpoint are compatible with this network connection.
-        /// Compatible means a client could reuse this network connection instead of establishing a new network
-        /// connection.</summary>
+        /// <summary>Checks if the parameters of the provided endpoint are compatible with the network connection of
+        /// this protocol connection. Compatible means a client could reuse the network connection instead of
+        /// establishing a new network connection.</summary>
         /// <param name="remoteEndpoint">The endpoint to check.</param>
-        /// <returns><c>true</c> when this connection is a network connection whose parameters are compatible with the
-        /// parameters of the provided endpoint; otherwise, <c>false</c>.</returns>
+        /// <returns><c>true</c> when the network connection is a network connection whose parameters are compatible
+        /// with the parameters of the provided endpoint; otherwise, <c>false</c>.</returns>
         bool HasCompatibleParams(Endpoint remoteEndpoint);
 
         /// <summary>Sends a request and returns the response. The implementation must complete the request payload

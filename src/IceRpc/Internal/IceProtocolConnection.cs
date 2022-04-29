@@ -13,7 +13,6 @@ namespace IceRpc.Internal
 {
     internal sealed class IceProtocolConnection : IProtocolConnection
     {
-        /// <inheritdoc/>
         public bool HasDispatchesInProgress
         {
             get
@@ -25,7 +24,6 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <inheritdoc/>
         public bool HasInvocationsInProgress
         {
             get
@@ -37,10 +35,8 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <inheritdoc/>
         public TimeSpan LastActivity => _networkConnection.LastActivity;
 
-        /// <inheritdoc/>
         public Action<string>? PeerShutdownInitiated { get; set; }
 
         private static readonly IDictionary<RequestFieldKey, ReadOnlySequence<byte>> _idempotentFields =
@@ -74,7 +70,6 @@ namespace IceRpc.Internal
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly AsyncSemaphore _sendSemaphore = new(1, 1);
 
-        /// <inheritdoc/>
         public async Task AcceptRequestsAsync(Connection connection)
         {
             try
@@ -88,10 +83,8 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <inheritdoc/>
         public ValueTask DisposeAsync() => AbortAsync(new ObjectDisposedException($"{typeof(IceProtocolConnection)}"));
 
-        /// <inheritdoc/>
         public async Task<IncomingResponse> InvokeAsync(
             OutgoingRequest request,
             Connection connection,
@@ -309,11 +302,9 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <inheritdoc/>
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             _networkConnection.HasCompatibleParams(remoteEndpoint);
 
-        /// <inheritdoc/>
         public async Task PingAsync(CancellationToken cancel)
         {
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
@@ -335,7 +326,6 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <inheritdoc/>
         public async Task ShutdownAsync(string message, CancellationToken cancel)
         {
             var exception = new ConnectionClosedException(message);

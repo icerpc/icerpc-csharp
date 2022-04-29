@@ -39,8 +39,7 @@ namespace IceRpc
 
         /// <summary>The connection's endpoint. For a client connection this is the connection's remote endpoint,
         /// for a server connection it's the server's endpoint.</summary>
-        public Endpoint Endpoint => _serverEndpoint ?? _options?.RemoteEndpoint ??
-            throw new InvalidOperationException($"{nameof(Endpoint)} is not configured");
+        public Endpoint Endpoint => _serverEndpoint ?? _options!.RemoteEndpoint!.Value;
 
         /// <summary>The state of the connection.</summary>
         public ConnectionState State
@@ -84,7 +83,15 @@ namespace IceRpc
 
         /// <summary>Constructs a client connection.</summary>
         /// <param name="options">The connection options.</param>
-        public Connection(ConnectionOptions options) => _options = options;
+        public Connection(ConnectionOptions options)
+        {
+            if (options.RemoteEndpoint is not Endpoint remoteEndpoint || remoteEndpoint == default)
+            {
+                throw new InvalidOperationException(
+                    $"cannot create connection without configuring {nameof(ConnectionOptions.RemoteEndpoint)}");
+            }
+            _options = options;
+        }
 
         /// <summary>Constructs a client connection with the specified remote endpoint and  authentication options.
         /// All other properties have their default values.</summary>
@@ -126,13 +133,7 @@ namespace IceRpc
                 {
                     if (_state == ConnectionState.NotConnected)
                     {
-                        // Only called for client connections which at this point must have configured a remote
-                        // endpoint.
-                        if (_options.RemoteEndpoint is not Endpoint remoteEndpoint || remoteEndpoint == default)
-                        {
-                            throw new InvalidOperationException(
-                                $"cannot call connect without configuring {nameof(ConnectionOptions.RemoteEndpoint)}");
-                        }
+                        Debug.Assert(_options.RemoteEndpoint != null);
                         Debug.Assert(_protocolConnection == null);
 
                         _stateTask = Endpoint.Protocol == Protocol.Ice ?
