@@ -28,18 +28,19 @@ public class CompressorMiddlewareTests
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
             request.Features = request.Features.With(Features.CompressPayload.Yes);
-            var response = new OutgoingResponse(request);
-            return new(response);
+            request.Response = new OutgoingResponse(request);
+            return default;
         });
         var sut = new DeflateMiddleware(dispatcher);
         var outStream = new MemoryStream();
         var output = PipeWriter.Create(outStream);
+        var request = new IncomingRequest(InvalidConnection.IceRpc);
 
         // Act
-        OutgoingResponse response = await sut.DispatchAsync(new IncomingRequest(InvalidConnection.IceRpc));
+        await sut.DispatchAsync(request);
 
         // Assert
-        PipeWriter payloadWriter = response.GetPayloadWriter(output);
+        PipeWriter payloadWriter = request.Response!.GetPayloadWriter(output);
         await payloadWriter.WriteAsync(_payload);
 
         // Rewind the out stream and check that it was correctly compressed.
@@ -56,13 +57,18 @@ public class CompressorMiddlewareTests
     [Test]
     public async Task Compressor_middleware_without_the_compress_feature_does_not_install_a_payload_writer_interceptor()
     {
-        var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
+        var dispatcher = new InlineDispatcher((request, cancel) =>
+        {
+            request.Response = new OutgoingResponse(request);
+            return default;
+        });
         var sut = new DeflateMiddleware(dispatcher);
+        var request = new IncomingRequest(InvalidConnection.IceRpc);
 
-        OutgoingResponse response = await sut.DispatchAsync(new IncomingRequest(InvalidConnection.IceRpc));
+        await sut.DispatchAsync(request);
 
         var pipe = new Pipe();
-        Assert.That(response.GetPayloadWriter(pipe.Writer), Is.EqualTo(pipe.Writer));
+        Assert.That(request.Response!.GetPayloadWriter(pipe.Writer), Is.EqualTo(pipe.Writer));
         await pipe.Reader.CompleteAsync();
         await pipe.Writer.CompleteAsync();
     }
@@ -79,14 +85,16 @@ public class CompressorMiddlewareTests
             response.Fields = response.Fields.With(
                 ResponseFieldKey.CompressionFormat,
                 _deflateEncodedCompressionFormatValue);
-            return new(response);
+            request.Response = response;
+            return default;
         });
         var sut = new DeflateMiddleware(dispatcher);
+        var request = new IncomingRequest(InvalidConnection.IceRpc);
 
-        var response = await sut.DispatchAsync(new IncomingRequest(InvalidConnection.IceRpc), default);
+        await sut.DispatchAsync(request, default);
 
         var pipe = new Pipe();
-        Assert.That(response.GetPayloadWriter(pipe.Writer), Is.EqualTo(pipe.Writer));
+        Assert.That(request.Response!.GetPayloadWriter(pipe.Writer), Is.EqualTo(pipe.Writer));
         await pipe.Reader.CompleteAsync();
         await pipe.Writer.CompleteAsync();
     }
@@ -100,7 +108,7 @@ public class CompressorMiddlewareTests
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
             requestPayload = request.Payload;
-            return new(new OutgoingResponse(request));
+            return default;
         });
         var sut = new DeflateMiddleware(dispatcher);
         IncomingRequest request = CreateRequestWitCompressionFormatField(_unknownEncodedCompressionFormatValue);
@@ -115,12 +123,12 @@ public class CompressorMiddlewareTests
     [Test]
     public async Task Decompress_request_payload()
     {
-        var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
+        var dispatcher = new InlineDispatcher((request, cancel) => default);
         var sut = new DeflateMiddleware(dispatcher);
         IncomingRequest request = CreateRequestWitCompressionFormatField(_deflateEncodedCompressionFormatValue);
         request.Payload = PipeReader.Create(CreateCompressedPayload(_payload));
 
-        OutgoingResponse response = await sut.DispatchAsync(request, default);
+        await sut.DispatchAsync(request, default);
 
         ReadResult readResult = await request.Payload.ReadAsync();
         Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(_payload));
