@@ -42,7 +42,6 @@ public sealed class IceRpcProtocolConnectionTests
                 {
                     start.Release();
                     await hold.WaitAsync(cancel);
-                    return new OutgoingResponse(request);
                 })
             })
             .BuildServiceProvider();
@@ -120,7 +119,7 @@ public sealed class IceRpcProtocolConnectionTests
                 {
                     [connectionFieldKeyA] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(56))
                 },
-                OnConnect = (fields, _) =>
+                OnConnect = (_, fields, _) =>
                 {
                     serverCount = fields.Count;
                     serverA = DecodeField(fields, connectionFieldKeyA);
@@ -134,7 +133,7 @@ public sealed class IceRpcProtocolConnectionTests
                     [connectionFieldKeyA] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(34)),
                     [connectionFieldKeyB] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(38))
                 },
-                OnConnect = (fields, _) =>
+                OnConnect = (_, fields, _) =>
                 {
                     clientCount = fields.Count;
                     clientA = DecodeField(fields, connectionFieldKeyA);
@@ -206,7 +205,8 @@ public sealed class IceRpcProtocolConnectionTests
                 response.Fields = response.Fields.With(
                     ResponseFieldKey.CompressionFormat,
                     (ref SliceEncoder encoder) => throw new NotSupportedException("invalid request fields"));
-                return new(response);
+                request.Response = response;
+                return default;
             });
 
         await using var serviceProvider = new ProtocolServiceCollection()
@@ -308,10 +308,13 @@ public sealed class IceRpcProtocolConnectionTests
         // Arrange
         var payloadStreamDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var dispatcher = new InlineDispatcher((request, cancel) =>
-                new(new OutgoingResponse(request)
-                {
-                    PayloadStream = payloadStreamDecorator
-                }));
+        {
+            request.Response = new OutgoingResponse(request)
+            {
+                PayloadStream = payloadStreamDecorator
+            };
+            return default;
+        });
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
@@ -334,10 +337,13 @@ public sealed class IceRpcProtocolConnectionTests
         // Arrange
         var payloadStreamDecorator = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
         var dispatcher = new InlineDispatcher((request, cancel) =>
-                new(new OutgoingResponse(request)
-                {
-                    PayloadStream = payloadStreamDecorator
-                }));
+        {
+            request.Response = new OutgoingResponse(request)
+            {
+                PayloadStream = payloadStreamDecorator
+            };
+            return default;
+        });
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
@@ -405,7 +411,8 @@ public sealed class IceRpcProtocolConnectionTests
                         payloadWriterSource.SetResult(payloadWriterDecorator);
                         return payloadWriterDecorator;
                     });
-                return new(response);
+                request.Response = response;
+                return default;
             });
 
         await using var serviceProvider = new ProtocolServiceCollection()
@@ -434,7 +441,8 @@ public sealed class IceRpcProtocolConnectionTests
             response.Fields = response.Fields.With(
                 (ResponseFieldKey)1000,
                 (ref SliceEncoder encoder) => encoder.EncodeString(expectedValue));
-            return new(response);
+            request.Response = response;
+            return default;
         });
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
@@ -473,7 +481,6 @@ public sealed class IceRpcProtocolConnectionTests
                 {
                     start.Release();
                     await hold.WaitAsync(cancel);
-                    return new OutgoingResponse(request);
                 })
             })
             .BuildServiceProvider();
