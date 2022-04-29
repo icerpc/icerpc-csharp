@@ -225,8 +225,7 @@ namespace IceRpc.Internal
                 {
                     // If we catch an exception, we return a failure response with a Slice-encoded payload.
 
-                    if (exception is OperationCanceledException ||
-                        exception is MultiplexedStreamAbortedException)
+                    if (exception is OperationCanceledException || exception is MultiplexedStreamAbortedException)
                     {
                         await stream.Output.CompleteAsync(
                             IceRpcStreamError.DispatchCanceled.ToException()).ConfigureAwait(false);
@@ -369,11 +368,11 @@ namespace IceRpc.Internal
             _shutdownCancellationSource.Dispose();
             if (_controlStream != null)
             {
-                await _controlStream.Output.CompleteAsync(null).ConfigureAwait(false);
+                await _controlStream.Output.CompleteAsync().ConfigureAwait(false);
             }
             if (_remoteControlStream != null)
             {
-                await _remoteControlStream.Input.CompleteAsync(null).ConfigureAwait(false);
+                await _remoteControlStream.Input.CompleteAsync().ConfigureAwait(false);
             }
 
             await _networkConnection.DisposeAsync().ConfigureAwait(false);
@@ -649,7 +648,7 @@ namespace IceRpc.Internal
             }
 
             // Close the control stream and wait for the peer to close its control stream.
-            await _controlStream!.Output.CompleteAsync(null).ConfigureAwait(false);
+            await _controlStream!.Output.CompleteAsync().ConfigureAwait(false);
             await _remoteControlStream!.Input.ReadAsync(CancellationToken.None).ConfigureAwait(false);
 
             // We can now close the connection. This will cause the peer AcceptStreamAsync call to return.
@@ -658,7 +657,7 @@ namespace IceRpc.Internal
                 // TODO: Error code constant?
                 await _networkConnection.CloseAsync(0, CancellationToken.None).ConfigureAwait(false);
             }
-            catch (Exception)
+            catch
             {
                 // Ignore, the peer already closed the connection.
             }

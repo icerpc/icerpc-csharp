@@ -698,7 +698,6 @@ public sealed class ProtocolConnectionTests
     /// <summary>Verifies that a connection will not accept further request after shutdown was called, and it will
     /// allow pending dispatches to finish.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    [Repeat(1000)]
     public async Task Shutdown_prevents_accepting_new_requests_and_let_pending_dispatches_complete(Protocol protocol)
     {
         // Arrange
