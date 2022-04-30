@@ -70,7 +70,7 @@ public sealed class MetricsMiddlewareTests
     public async Task Successful_dispatch_publishes_start_and_stop_events()
     {
         const string name = "Test.Successful.Dispatch.EventSource";
-        var dispatcher = new InlineDispatcher((request, cancel) => default);
+        var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
         using var eventListener = new TestEventListener(
             name,
             ("total-requests", "1"),

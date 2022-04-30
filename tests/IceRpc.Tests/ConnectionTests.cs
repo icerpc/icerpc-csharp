@@ -39,6 +39,7 @@ public class ConnectionTests
             serverConnection = request.Connection;
             start.Release();
             await hold.WaitAsync(cancel);
+            return new OutgoingResponse(request);
         });
 
         var serverConnectionClosed = new TaskCompletionSource();
@@ -83,6 +84,7 @@ public class ConnectionTests
         {
             start.Release();
             await hold.WaitAsync(cancel);
+            return new OutgoingResponse(request);
         });
 
         await using var provider = new ConnectionServiceCollection(protocol)
@@ -116,6 +118,7 @@ public class ConnectionTests
             serverConnection = request.Connection;
             start.Release();
             await hold.WaitAsync(cancel);
+            return new OutgoingResponse(request);
         });
 
         await using var provider = new ConnectionServiceCollection(protocol)
@@ -147,7 +150,7 @@ public class ConnectionTests
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
             serverConnection = request.Connection;
-            return default;
+            return new(new OutgoingResponse(request));
         });
 
         var serverConnectionClosed = new TaskCompletionSource<object?>();
@@ -204,7 +207,7 @@ public class ConnectionTests
     {
         // Arrange
         await using var provider = new ConnectionServiceCollection(protocol)
-            .UseDispatcher(new InlineDispatcher((request, cancel) => default))
+            .UseDispatcher(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))))
             .BuildServiceProvider();
         var server = provider.GetRequiredService<Server>();
         var connection = provider.GetRequiredService<Connection>();
@@ -225,7 +228,7 @@ public class ConnectionTests
     {
         // Arrange
         await using var provider = new ConnectionServiceCollection(protocol)
-            .UseDispatcher(new InlineDispatcher((request, cancel) => default))
+            .UseDispatcher(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))))
             .UseConnectionOptions(new ConnectionOptions { IsResumable = true })
             .BuildServiceProvider();
         var server = provider.GetRequiredService<Server>();
@@ -248,7 +251,7 @@ public class ConnectionTests
     {
         // Arrange
         await using var provider = new ConnectionServiceCollection(protocol)
-            .UseDispatcher(new InlineDispatcher((request, cancel) => default))
+            .UseDispatcher(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))))
             .UseConnectionOptions(new ConnectionOptions { IsResumable = true })
             .BuildServiceProvider();
         var server = provider.GetRequiredService<Server>();
@@ -316,6 +319,7 @@ public class ConnectionTests
         {
             start.Release();
             await hold.WaitAsync(CancellationToken.None);
+            return new OutgoingResponse(request);
         });
 
         await using var provider = new ConnectionServiceCollection(protocol)
@@ -352,6 +356,7 @@ public class ConnectionTests
             serverConnection = request.Connection;
             start.Release();
             await hold.WaitAsync(CancellationToken.None);
+            return new OutgoingResponse(request);
         });
 
         await using var provider = new ConnectionServiceCollection(protocol)
@@ -406,6 +411,7 @@ public class ConnectionTests
                 serverConnection = request.Connection;
                 start.Release();
                 await hold.WaitAsync(cancel);
+                return new OutgoingResponse(request);
             }
             catch (OperationCanceledException)
             {
@@ -467,6 +473,7 @@ public class ConnectionTests
             serverConnection = request.Connection;
             start.Release();
             await hold.WaitAsync(cancel);
+            return new OutgoingResponse(request);
         });
 
         await using var provider = new ConnectionServiceCollection(protocol)

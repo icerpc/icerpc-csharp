@@ -29,7 +29,7 @@ public class RouterTests
 
         // Act/Assert
         Assert.Throws<InvalidOperationException>(
-            () => router.Map("/foo", new InlineDispatcher((request, cancel) => default)));
+            () => router.Map("/foo", new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)))));
     }
 
     /// <summary>Verifies that a dispatcher cannot be mounted after a request has been dispatched.</summary>
@@ -41,7 +41,7 @@ public class RouterTests
 
         // Act/Assert
         Assert.Throws<InvalidOperationException>(
-            () => router.Mount("/foo", new InlineDispatcher((request, cancel) => default)));
+            () => router.Mount("/foo", new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)))));
     }
 
     /// <summary>Verifies that creating a <see cref="Router"/> with an invalid prefix fails.</summary>
@@ -66,13 +66,13 @@ public class RouterTests
             (current, cancel) =>
             {
                 currentPath = current.Path;
-                return default;
+                return new(new OutgoingResponse(current));
             }));
 
-        router.Mount(path, new InlineDispatcher((current, cancel) => default));
+        router.Mount(path, new InlineDispatcher((current, cancel) => new(new OutgoingResponse(current))));
 
         // Act
-        await router.DispatchAsync(
+        _ = await router.DispatchAsync(
             new IncomingRequest(InvalidConnection.IceRpc)
             {
                 Path = path
@@ -109,11 +109,11 @@ public class RouterTests
             (current, cancel) =>
             {
                 currentPath = current.Path;
-                return default;
+                return new(new OutgoingResponse(current));
             }));
 
         // Act
-        await router.DispatchAsync(
+        _ = await router.DispatchAsync(
             new IncomingRequest(InvalidConnection.IceRpc)
             {
                 Path = path
@@ -177,11 +177,11 @@ public class RouterTests
             .Use(next => new InlineDispatcher((request, cancel) =>
                 {
                     calls.Add("middleware-4");
-                    return default;
+                    return new(new OutgoingResponse(request));
                 }));
 
         // Act
-        await router.DispatchAsync(new IncomingRequest(InvalidConnection.IceRpc));
+        _ = await router.DispatchAsync(new IncomingRequest(InvalidConnection.IceRpc));
 
         // Assert
         Assert.That(calls, Is.EqualTo(expectedCalls));
@@ -250,13 +250,13 @@ public class RouterTests
                     (request, cancel) =>
                     {
                         calls.Add("dispatcher");
-                        return default;
+                        return new(new OutgoingResponse(request));
                     }));
             });
         });
 
         // Act
-        await router.DispatchAsync(
+        _ = await router.DispatchAsync(
             new IncomingRequest(InvalidConnection.IceRpc)
             {
                 Path = path
@@ -272,11 +272,11 @@ public class RouterTests
     /// <returns>The router.</returns>
     private static async Task<Router> CreateRouterAndCallDispatchAsync()
     {
-        var dispatcher = new InlineDispatcher((request, cancel) => default);
+        var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
         var router = new Router();
         router.Mount("/", dispatcher);
 
-        await router.DispatchAsync(new IncomingRequest(InvalidConnection.IceRpc));
+        _ = await router.DispatchAsync(new IncomingRequest(InvalidConnection.IceRpc));
         return router;
     }
 }

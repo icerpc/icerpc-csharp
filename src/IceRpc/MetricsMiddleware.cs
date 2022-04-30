@@ -18,16 +18,17 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public async ValueTask DispatchAsync(IncomingRequest request, CancellationToken cancel)
+        public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
         {
             _eventSource.RequestStart(request);
             try
             {
-                await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
-                if (request.Response is OutgoingResponse response && response.ResultType != ResultType.Success)
+                OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
+                if (response.ResultType != ResultType.Success)
                 {
                     _eventSource.RequestFailed(request, "IceRpc.RemoteException"); // TODO: fix exception name
                 }
+                return response;
             }
             catch (OperationCanceledException)
             {

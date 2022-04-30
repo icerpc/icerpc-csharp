@@ -98,6 +98,7 @@ public sealed class ProtocolConnectionTests
                 {
                     start.Release();
                     await hold.WaitAsync(cancel);
+                    return new OutgoingResponse(request);
                 })
             })
             .BuildServiceProvider();
@@ -153,7 +154,7 @@ public sealed class ProtocolConnectionTests
                 Dispatcher = new InlineDispatcher((request, cancel) =>
                 {
                     result.SetResult(sut!.Value.Client.HasInvocationsInProgress);
-                    return default;
+                    return new(new OutgoingResponse(request));
                 })
             })
             .BuildServiceProvider();
@@ -185,7 +186,7 @@ public sealed class ProtocolConnectionTests
                 Dispatcher = new InlineDispatcher((request, cancel) =>
                 {
                     result.SetResult(sut!.Value.Server.HasDispatchesInProgress);
-                    return default;
+                    return new(new OutgoingResponse(request));
                 })
             })
             .BuildServiceProvider();
@@ -232,6 +233,8 @@ public sealed class ProtocolConnectionTests
                 {
                     start.Release();
                     await hold.WaitAsync(cancel);
+                    return new OutgoingResponse(request);
+
                 })
             })
             .BuildServiceProvider();
@@ -269,6 +272,7 @@ public sealed class ProtocolConnectionTests
                 {
                     start.Release();
                     await hold.WaitAsync(cancel);
+                    return new OutgoingResponse(request);
                 })
             })
             .BuildServiceProvider();
@@ -416,13 +420,10 @@ public sealed class ProtocolConnectionTests
         // Arrange
         var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var dispatcher = new InlineDispatcher((request, cancel) =>
-        {
-            request.Response = new OutgoingResponse(request)
-            {
-                Payload = payloadDecorator
-            };
-            return default;
-        });
+                new(new OutgoingResponse(request)
+                {
+                    Payload = payloadDecorator
+                }));
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
@@ -447,13 +448,10 @@ public sealed class ProtocolConnectionTests
         // Arrange
         var payloadDecorator = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
         var dispatcher = new InlineDispatcher((request, cancel) =>
-        {
-            request.Response = new OutgoingResponse(request)
-            {
-                Payload = payloadDecorator
-            };
-            return default;
-        });
+                new(new OutgoingResponse(request)
+                {
+                    Payload = payloadDecorator
+                }));
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
@@ -478,15 +476,14 @@ public sealed class ProtocolConnectionTests
         // Arrange
         var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var dispatcher = new InlineDispatcher((request, cancel) =>
-        {
-            var response = new OutgoingResponse(request)
             {
-                Payload = payloadDecorator
-            };
-            response.Use(writer => InvalidPipeWriter.Instance);
-            request.Response = response;
-            return default;
-        });
+                var response = new OutgoingResponse(request)
+                {
+                    Payload = payloadDecorator
+                };
+                response.Use(writer => InvalidPipeWriter.Instance);
+                return new(response);
+            });
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
@@ -546,8 +543,7 @@ public sealed class ProtocolConnectionTests
                         payloadWriterSource.SetResult(payloadWriterDecorator);
                         return payloadWriterDecorator;
                     });
-               request.Response = response;
-               return default;
+                return new(response);
             });
 
         await using var serviceProvider = new ProtocolServiceCollection()
@@ -617,8 +613,7 @@ public sealed class ProtocolConnectionTests
                     payloadWriterSource.SetResult(payloadWriterDecorator);
                     return payloadWriterDecorator;
                 });
-            request.Response = response;
-            return default;
+            return new(response);
         });
 
         await using var serviceProvider = new ProtocolServiceCollection()
@@ -675,7 +670,7 @@ public sealed class ProtocolConnectionTests
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
             context = request.Features.GetContext();
-            return default;
+            return new(new OutgoingResponse(request));
         });
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
@@ -717,6 +712,7 @@ public sealed class ProtocolConnectionTests
                 {
                     start.Release();
                     await hold.WaitAsync(cancel);
+                    return new OutgoingResponse(request);
                 })
             })
             .BuildServiceProvider();
