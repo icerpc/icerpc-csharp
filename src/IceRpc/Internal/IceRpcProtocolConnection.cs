@@ -262,6 +262,7 @@ namespace IceRpc.Internal
                         ResultType = ResultType.Failure
                     };
 
+                    // Encode the retry policy into the fields of the new response.
                     if (remoteException.RetryPolicy != RetryPolicy.NoRetry)
                     {
                         RetryPolicy retryPolicy = remoteException.RetryPolicy;
