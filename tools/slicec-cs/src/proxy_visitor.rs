@@ -228,15 +228,12 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
     }
 
     // The payload argument
-    if parameters.is_empty() {
+    if operation.parameters.is_empty() {
+        invoke_args.push("payload: null".to_owned());
+    } else if parameters.is_empty() {
         invoke_args.push(format!(
-            "{encoding}.CreateEmptyPayload(hasStream: {has_stream})",
+            "{encoding}.CreateSizeZeroPayload()",
             encoding = encoding,
-            has_stream = if operation.parameters.is_empty() {
-                "false"
-            } else {
-                "true"
-            }
         ));
     } else {
         invoke_args.push(format!(
