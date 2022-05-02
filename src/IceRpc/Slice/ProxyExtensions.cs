@@ -84,6 +84,7 @@ namespace IceRpc.Slice
                 request.Complete(exception);
                 throw;
             }
+            // if the call succeeds, ReadResponseAsync is responsible for completing the request
 
             async Task<T> ReadResponseAsync(Task<IncomingResponse> responseTask, OutgoingRequest request)
             {
@@ -105,7 +106,6 @@ namespace IceRpc.Slice
                 }
                 finally
                 {
-                    // This method always completes the request.
                     request.Complete(exception);
                 }
             }
@@ -167,6 +167,7 @@ namespace IceRpc.Slice
                 request.Complete(exception);
                 throw;
             }
+            // if the call succeeds, ReadResponseAsync is responsible for completing the request
 
             async Task ReadResponseAsync(Task<IncomingResponse> responseTask, OutgoingRequest request)
             {
@@ -193,7 +194,6 @@ namespace IceRpc.Slice
                 }
                 finally
                 {
-                    // This method always completes the request.
                     request.Complete(exception);
                 }
             }

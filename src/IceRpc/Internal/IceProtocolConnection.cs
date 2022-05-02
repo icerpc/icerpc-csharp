@@ -176,11 +176,13 @@ namespace IceRpc.Internal
                         "payload writer cancellation or completion is not supported with the ice protocol");
                 }
 
-                request.Complete();
+                await request.Payload.CompleteAsync().ConfigureAwait(false);
                 await payloadWriter.CompleteAsync().ConfigureAwait(false);
             }
             catch (Exception exception)
             {
+                // TODO: since the caller must complete the request, is it necessary/desirable to complete the request
+                // early here? Some of our Slice-free unit tests currently rely on this behavior.
                 request.Complete(exception);
                 await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
                 throw;
