@@ -523,8 +523,8 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
         writeln!(
             code,
             "{param_type} {decode}",
-            // For optional value types we have to use the full type as the compiler cannot disambiguate between
-            // null and the actual value type.
+            // For optional value types we have to use the full type as the compiler cannot
+            // disambiguate between null and the actual value type.
             param_type = match member.data_type().is_optional && member.data_type().is_value_type()
             {
                 true => member
@@ -544,8 +544,8 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
         writeln!(
             code,
             "{param_type} {decode}",
-            // For optional value types we have to use the full type as the compiler cannot disambiguate between
-            // null and the actual value type.
+            // For optional value types we have to use the full type as the compiler cannot
+            // disambiguate between null and the actual value type.
             param_type = match member.data_type().is_value_type() {
                 true => member
                     .data_type()

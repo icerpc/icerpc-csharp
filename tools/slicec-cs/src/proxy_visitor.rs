@@ -4,8 +4,7 @@ use crate::builders::{
     AttributeBuilder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType,
 };
 use crate::code_block::CodeBlock;
-use crate::comments::operation_parameter_doc_comment;
-use crate::comments::*;
+use crate::comments::{operation_parameter_doc_comment, *};
 use crate::decoding::*;
 use crate::encoding::*;
 use crate::generated_code::GeneratedCode;

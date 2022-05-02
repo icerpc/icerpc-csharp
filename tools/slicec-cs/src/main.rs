@@ -55,9 +55,7 @@ fn try_main() -> Result<(), Error> {
     let slice_options = &options.slice_options;
     let (_ast, mut error_reporter, slice_files) = slice::parse_from_options(slice_options)?;
 
-    let mut cs_validator = CsValidator {
-        error_reporter: &mut error_reporter,
-    };
+    let mut cs_validator = CsValidator { error_reporter: &mut error_reporter };
     for slice_file in slice_files.values() {
         slice_file.visit_with(&mut cs_validator);
     }
@@ -75,44 +73,28 @@ fn try_main() -> Result<(), Error> {
 
             generated_code.code_blocks.push(preamble(slice_file));
 
-            let mut struct_visitor = StructVisitor {
-                generated_code: &mut generated_code,
-            };
+            let mut struct_visitor = StructVisitor { generated_code: &mut generated_code };
             slice_file.visit_with(&mut struct_visitor);
 
-            let mut proxy_visitor = ProxyVisitor {
-                generated_code: &mut generated_code,
-            };
+            let mut proxy_visitor = ProxyVisitor { generated_code: &mut generated_code };
             slice_file.visit_with(&mut proxy_visitor);
 
-            let mut dispatch_visitor = DispatchVisitor {
-                generated_code: &mut generated_code,
-            };
+            let mut dispatch_visitor = DispatchVisitor { generated_code: &mut generated_code };
             slice_file.visit_with(&mut dispatch_visitor);
 
-            let mut exception_visitor = ExceptionVisitor {
-                generated_code: &mut generated_code,
-            };
+            let mut exception_visitor = ExceptionVisitor { generated_code: &mut generated_code };
             slice_file.visit_with(&mut exception_visitor);
 
-            let mut enum_visitor = EnumVisitor {
-                generated_code: &mut generated_code,
-            };
+            let mut enum_visitor = EnumVisitor { generated_code: &mut generated_code };
             slice_file.visit_with(&mut enum_visitor);
 
-            let mut class_visitor = ClassVisitor {
-                generated_code: &mut generated_code,
-            };
+            let mut class_visitor = ClassVisitor { generated_code: &mut generated_code };
             slice_file.visit_with(&mut class_visitor);
 
-            let mut trait_visitor = TraitVisitor {
-                generated_code: &mut generated_code,
-            };
+            let mut trait_visitor = TraitVisitor { generated_code: &mut generated_code };
             slice_file.visit_with(&mut trait_visitor);
 
-            let mut module_visitor = ModuleVisitor {
-                generated_code: &mut generated_code,
-            };
+            let mut module_visitor = ModuleVisitor { generated_code: &mut generated_code };
             slice_file.visit_with(&mut module_visitor);
 
             {
@@ -123,7 +105,8 @@ fn try_main() -> Result<(), Error> {
                 .join(format!("{}.cs", &slice_file.filename))
                 .to_owned();
 
-                // Move the generated code out of the generated_code struct and consolidate into a single string.
+                // Move the generated code out of the generated_code struct and consolidate into a
+                // single string.
                 let code_string = generated_code
                     .code_blocks
                     .into_iter()

@@ -1,3 +1,5 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
 use crate::builders::{AttributeBuilder, CommentBuilder, ContainerBuilder};
 use crate::comments::doc_comment_message;
 use crate::generated_code::GeneratedCode;

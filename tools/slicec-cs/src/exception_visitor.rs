@@ -209,11 +209,7 @@ encoder.EndSlice(lastSlice: {is_last_slice});
                 true, // this block is for Slice1, which always uses tag formats
             ),
             is_last_slice = !has_base,
-            encode_base = if has_base {
-                "base.EncodeCore(ref encoder);"
-            } else {
-                ""
-            },
+            encode_base = if has_base { "base.EncodeCore(ref encoder);" } else { "" },
         )
         .into(),
     )

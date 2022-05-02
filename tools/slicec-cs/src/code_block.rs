@@ -9,9 +9,7 @@ pub struct CodeBlock {
 
 impl CodeBlock {
     pub fn new() -> CodeBlock {
-        CodeBlock {
-            content: String::new(),
-        }
+        CodeBlock { content: String::new() }
     }
 
     pub fn write<T: fmt::Display + ?Sized>(&mut self, s: &T) {
@@ -66,7 +64,8 @@ impl fmt::Display for CodeBlock {
             self.content
                 .lines()
                 .map(
-                    // Trim whitespace only lines and remove trailing whitespace from non-empty lines
+                    // Trim whitespace only lines and remove trailing whitespace from non-empty
+                    // lines
                     |line| match line.trim_matches(char::is_whitespace).is_empty() {
                         true => "",
                         _ => line.trim_end_matches(char::is_whitespace),
@@ -126,8 +125,6 @@ impl From<String> for CodeBlock {
 /// eg. let code_block: CodeBlock = "Hello, World!".into();
 impl From<&str> for CodeBlock {
     fn from(s: &str) -> Self {
-        CodeBlock {
-            content: s.to_owned(),
-        }
+        CodeBlock { content: s.to_owned() }
     }
 }
