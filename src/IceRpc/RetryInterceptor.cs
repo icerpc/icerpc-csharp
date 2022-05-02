@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using IceRpc.Features;
 using IceRpc.Internal;
+using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
@@ -79,7 +80,24 @@ namespace IceRpc
                             return response;
                         }
 
-                        retryPolicy = request.Features.Get<RetryPolicy>() ?? RetryPolicy.NoRetry;
+                        // Extracts the retry policy from the fields and sets it in the features.
+                        // TODO: do we really need to set in Features? Who is it for?
+
+                        retryPolicy = response.Fields.DecodeValue(
+                            ResponseFieldKey.RetryPolicy,
+                            (ref SliceDecoder decoder) => new RetryPolicy(ref decoder)) ?? RetryPolicy.NoRetry;
+
+                        if (retryPolicy == RetryPolicy.NoRetry)
+                        {
+                            if (!request.Features.IsReadOnly)
+                            {
+                                request.Features.Set<RetryPolicy>(null);
+                            }
+                        }
+                        else
+                        {
+                            request.Features = request.Features.With(retryPolicy);
+                        }
                     }
                     catch (NoEndpointException ex)
                     {
