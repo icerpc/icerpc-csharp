@@ -38,6 +38,17 @@ namespace IceRpc
         /// <summary>Returns the proxy that is sending this request.</summary>
         public Proxy Proxy { get; }
 
+        /// <summary>Gets or sets the latest response to this request.</summary>
+        internal IncomingResponse? Response
+        {
+            get => _incomingResponse;
+            set
+            {
+                _incomingResponse?.Complete();
+                _incomingResponse = value;
+            }
+        }
+
         private IncomingResponse? _incomingResponse;
 
         /// <summary>Constructs an outgoing request.</summary>
@@ -57,16 +68,6 @@ namespace IceRpc
             Payload.Complete(exception);
             PayloadStream?.Complete(exception);
             _incomingResponse?.Complete(exception);
-        }
-
-        internal IncomingResponse? Response
-        {
-            get => _incomingResponse;
-            set
-            {
-                _incomingResponse?.Complete();
-                _incomingResponse = value;
-            }
         }
     }
 }

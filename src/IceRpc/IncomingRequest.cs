@@ -38,6 +38,18 @@ namespace IceRpc
         /// <value>The path of the target service. The default is <c>/</c>.</value>
         public string Path { get; init; } = "/";
 
+        /// <summary>Gets or sets the latest response to this request.</summary>
+        internal OutgoingResponse? Response
+        {
+            get => _response;
+            set
+            {
+                _response?.Payload.Complete();
+                _response?.PayloadStream?.Complete();
+                _response = value;
+            }
+        }
+
         private readonly string _fragment = "";
 
         private OutgoingResponse? _response;
@@ -57,17 +69,6 @@ namespace IceRpc
             Payload.Complete(exception);
             _response?.Payload.Complete(exception);
             _response?.PayloadStream?.Complete(exception);
-        }
-
-        internal OutgoingResponse? Response
-        {
-            get => _response;
-            set
-            {
-                _response?.Payload.Complete();
-                _response?.PayloadStream?.Complete();
-                _response = value;
-            }
         }
     }
 }
