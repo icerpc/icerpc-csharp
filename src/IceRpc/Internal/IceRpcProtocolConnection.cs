@@ -913,20 +913,28 @@ namespace IceRpc.Internal
             CancellationToken cancel)
         {
             PipeWriter payloadWriter = outgoingFrame.GetPayloadWriter(stream.Output);
+            PipeReader? payloadStream = outgoingFrame.PayloadStream;
 
             try
             {
                 FlushResult flushResult = await CopyReaderToWriterAsync(
                     outgoingFrame.Payload,
                     payloadWriter,
-                    endStream: outgoingFrame.PayloadStream == null,
+                    endStream: payloadStream == null,
                     cancel).ConfigureAwait(false);
 
                 if (flushResult.IsCompleted)
                 {
                     // The remote reader gracefully completed the stream input pipe. We're done.
                     await payloadWriter.CompleteAsync().ConfigureAwait(false);
-                    outgoingFrame.Complete();
+
+                    // We complete the payload and payload stream immediately. For example, we've just sent an outgoing
+                    // request and we're waiting for the exception to come back.
+                    await outgoingFrame.Payload.CompleteAsync().ConfigureAwait(false);
+                    if (payloadStream != null)
+                    {
+                        await payloadStream.CompleteAsync().ConfigureAwait(false);
+                    }
                     return;
                 }
                 else if (flushResult.IsCanceled)
@@ -938,12 +946,13 @@ namespace IceRpc.Internal
             catch (Exception exception)
             {
                 await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
+
+                // An exception will trigger the immediate completion of the request and indirectly of the
+                // outgoingFrame payloads.
                 throw;
             }
 
             await outgoingFrame.Payload.CompleteAsync().ConfigureAwait(false);
-
-            PipeReader? payloadStream = outgoingFrame.PayloadStream;
 
             if (payloadStream == null)
             {

@@ -55,7 +55,8 @@ namespace IceRpc
         public void Complete(Exception? exception = null)
         {
             Payload.Complete(exception);
-            _response?.Complete(exception);
+            _response?.Payload.Complete(exception);
+            _response?.PayloadStream?.Complete(exception);
         }
 
         internal OutgoingResponse? Response
@@ -63,7 +64,8 @@ namespace IceRpc
             get => _response;
             set
             {
-                _response?.Complete();
+                _response?.Payload.Complete();
+                _response?.PayloadStream?.Complete();
                 _response = value;
             }
         }

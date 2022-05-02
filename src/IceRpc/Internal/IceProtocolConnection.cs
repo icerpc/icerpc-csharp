@@ -939,6 +939,7 @@ namespace IceRpc.Internal
                     PipeWriter payloadWriter = _payloadWriter;
                     bool acquiredSemaphore = false;
 
+                    Exception? completeException = null;
                     try
                     {
                         if (response.PayloadStream != null)
@@ -948,7 +949,6 @@ namespace IceRpc.Internal
 
                         if (request.IsOneway)
                         {
-                            response.Complete();
                             return;
                         }
 
@@ -1003,12 +1003,12 @@ namespace IceRpc.Internal
                                 "payload writer cancellation or completion is not supported with the ice protocol");
                         }
 
-                        response.Complete();
                         await payloadWriter.CompleteAsync().ConfigureAwait(false);
                     }
                     catch (Exception exception)
                     {
-                        response.Complete(exception);
+                        completeException = exception;
+
                         await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
 
                         // This is an unrecoverable failure, so we kill the connection.
@@ -1016,6 +1016,8 @@ namespace IceRpc.Internal
                     }
                     finally
                     {
+                        request.Complete(completeException);
+
                         if (acquiredSemaphore)
                         {
                             _writeSemaphore.Release();
