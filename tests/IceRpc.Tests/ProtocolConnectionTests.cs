@@ -158,6 +158,7 @@ public sealed class ProtocolConnectionTests
                 {
                     start.Release();
                     await hold.WaitAsync(cancel);
+                    return new OutgoingResponse(request);
                 })
             })
             .BuildServiceProvider();
