@@ -51,20 +51,14 @@ namespace IceRpc.Transports.Internal
             }
 
             // If there's still data on the pipe reader, copy the data from the pipe reader synchronously.
-            if (_pipe.Reader.TryRead(out ReadResult result))
+            if (_pipe.Reader.TryRead(out ReadResult readResult))
             {
-                ReadOnlySequence<byte> buffer = result.Buffer;
-                if (result.IsCanceled)
-                {
-                    throw new ObjectDisposedException($"{typeof(SimpleNetworkConnectionReader)}");
-                }
-                else if (buffer.Length > byteCount)
+                Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled && !readResult.Buffer.IsEmpty);
+
+                ReadOnlySequence<byte> buffer = readResult.Buffer;
+                if (buffer.Length > byteCount)
                 {
                     buffer = buffer.Slice(0, byteCount);
-                }
-                else if (buffer.IsEmpty || (result.IsCompleted && buffer.Length < byteCount))
-                {
-                    throw new ConnectionLostException();
                 }
 
                 bufferWriter.Write(buffer);
@@ -113,15 +107,13 @@ namespace IceRpc.Transports.Internal
         {
             if (_pipe.Reader.TryRead(out ReadResult readResult))
             {
-                if (readResult.IsCanceled)
-                {
-                    throw new ObjectDisposedException($"{typeof(SimpleNetworkConnectionReader)}");
-                }
-                else if (readResult.Buffer.Length >= minimumSize)
+                Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled && !readResult.Buffer.IsEmpty);
+                if (readResult.Buffer.Length >= minimumSize)
                 {
                     return readResult.Buffer;
                 }
                 _pipe.Reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                minimumSize -= (int)readResult.Buffer.Length;
             }
 
             do
@@ -141,12 +133,7 @@ namespace IceRpc.Transports.Internal
             _ = await _pipe.Writer.FlushAsync(cancel).ConfigureAwait(false);
 
             _pipe.Reader.TryRead(out readResult);
-            if (readResult.IsCanceled)
-            {
-                throw new ObjectDisposedException($"{typeof(SimpleNetworkConnectionReader)}");
-            }
-
-            Debug.Assert(readResult.Buffer.Length >= minimumSize);
+            Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled && readResult.Buffer.Length >= minimumSize);
             return readResult.Buffer;
         }
 
@@ -154,10 +141,7 @@ namespace IceRpc.Transports.Internal
         {
             if (_pipe.Reader.TryRead(out ReadResult readResult))
             {
-                if (readResult.IsCanceled)
-                {
-                    throw new ObjectDisposedException($"{typeof(SimpleNetworkConnectionReader)}");
-                }
+                Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled && !readResult.Buffer.IsEmpty);
                 buffer = readResult.Buffer;
                 return true;
             }
