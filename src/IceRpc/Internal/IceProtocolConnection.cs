@@ -884,11 +884,9 @@ namespace IceRpc.Internal
                     {
                         // The dispatcher can complete the incoming request payload to release its memory as soon as
                         // possible.
-                        await _dispatcher.DispatchAsync(
+                        response = await _dispatcher.DispatchAsync(
                             request,
                             cancelDispatchSource.Token).ConfigureAwait(false);
-
-                        response = request.Response ?? new OutgoingResponse(request); // TODO: temporary
                     }
                     catch (Exception exception)
                     {

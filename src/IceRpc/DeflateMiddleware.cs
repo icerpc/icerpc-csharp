@@ -29,7 +29,9 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public async ValueTask DispatchAsync(IncomingRequest request, CancellationToken cancel = default)
+        public async ValueTask<OutgoingResponse> DispatchAsync(
+            IncomingRequest request,
+            CancellationToken cancel = default)
         {
             if (request.Protocol.HasFields && request.Fields.ContainsKey(RequestFieldKey.CompressionFormat))
             {
@@ -45,12 +47,11 @@ namespace IceRpc
                 // else don't do anything
             }
 
-            await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
+            OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
 
             // The CompressPayload feature is typically set through the Slice compress attribute.
 
-            if (request.Response is OutgoingResponse response &&
-                request.Protocol.HasFields &&
+            if (request.Protocol.HasFields &&
                 response.ResultType == ResultType.Success &&
                 request.Features.Get<Features.CompressPayload>() == Features.CompressPayload.Yes &&
                 !response.Fields.ContainsKey(ResponseFieldKey.CompressionFormat))
@@ -61,6 +62,8 @@ namespace IceRpc
                     ResponseFieldKey.CompressionFormat,
                     _encodedCompressionFormatValue);
             }
+
+            return response;
         }
     }
 }

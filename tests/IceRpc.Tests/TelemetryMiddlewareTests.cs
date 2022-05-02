@@ -21,7 +21,7 @@ public sealed class TelemetryMiddlewareTests
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
             dispatchActivity = Activity.Current;
-            return default;
+            return new(new OutgoingResponse(request));
         });
 
         // Add a mock activity listener that allows the activity source to create the dispatch activity.
@@ -65,7 +65,7 @@ public sealed class TelemetryMiddlewareTests
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
             dispatchActivity = Activity.Current;
-            return default;
+            return new(new OutgoingResponse(request));
         });
 
         var sut = new TelemetryMiddleware(dispatcher, new Configure.TelemetryOptions());
@@ -106,7 +106,7 @@ public sealed class TelemetryMiddlewareTests
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
             dispatchActivity = Activity.Current;
-            return default;
+            return new(new OutgoingResponse(request));
         });
 
         // A mock logger factory to trigger the creation of the dispatch activity
@@ -148,7 +148,7 @@ public sealed class TelemetryMiddlewareTests
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
             dispatchActivity = Activity.Current;
-            return default;
+            return new(new OutgoingResponse(request));
         });
 
         string? encodedActivityId;
@@ -218,7 +218,7 @@ public sealed class TelemetryMiddlewareTests
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
             dispatchActivity = Activity.Current;
-            return default;
+            return new(new OutgoingResponse(request));
         });
 
         // Add a mock activity listener that allows the activity source to create the dispatch activity.

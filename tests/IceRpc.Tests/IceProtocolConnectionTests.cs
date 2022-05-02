@@ -48,6 +48,7 @@ public sealed class IceProtocolConnectionTests
                 startSemaphore.Release();
                 await workSemaphore.WaitAsync(cancel);
                 DecrementCount();
+                return new OutgoingResponse(request);
 
                 void DecrementCount()
                 {
@@ -122,6 +123,7 @@ public sealed class IceProtocolConnectionTests
                 {
                     ++dispatchCount;
                     await semaphore.WaitAsync(CancellationToken.None);
+                    return new OutgoingResponse(request);
                 }),
             IceProtocolOptions = new IceProtocolOptions { MaxConcurrentDispatches = 1 }
         };
@@ -214,13 +216,10 @@ public sealed class IceProtocolConnectionTests
         // Arrange
         var payloadStreamDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var dispatcher = new InlineDispatcher((request, cancel) =>
-        {
-            request.Response = new OutgoingResponse(request)
-            {
-                PayloadStream = payloadStreamDecorator
-            };
-            return default;
-        });
+                new(new OutgoingResponse(request)
+                {
+                    PayloadStream = payloadStreamDecorator
+                }));
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
@@ -256,6 +255,7 @@ public sealed class IceProtocolConnectionTests
                 {
                     start.Release();
                     await hold.WaitAsync(cancel);
+                    return new OutgoingResponse(request);
                 })
             })
             .BuildServiceProvider();
