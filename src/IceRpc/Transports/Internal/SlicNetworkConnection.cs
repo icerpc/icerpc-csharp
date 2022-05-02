@@ -42,8 +42,9 @@ namespace IceRpc.Transports.Internal
         private long _nextUnidirectionalId;
         private readonly int _packetMaxSize;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly CancellationTokenSource _readCancelSource = new();
+        private TaskCompletionSource? _readFramesTaskCompletionSource;
         private readonly ISlicFrameReader _reader;
-        private readonly AsyncSemaphore _sendSemaphore = new(1, 1);
         private readonly ISimpleNetworkConnection _simpleNetworkConnection;
         private readonly SimpleNetworkConnectionReader _simpleNetworkConnectionReader;
         private readonly SimpleNetworkConnectionWriter _simpleNetworkConnectionWriter;
@@ -52,6 +53,7 @@ namespace IceRpc.Transports.Internal
         private int _unidirectionalStreamCount;
         private AsyncSemaphore? _unidirectionalStreamSemaphore;
         private readonly ISlicFrameWriter _writer;
+        private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
         public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel) =>
             _acceptedStreamQueue.DequeueAsync(cancel);
@@ -204,7 +206,23 @@ namespace IceRpc.Transports.Internal
                 {
                     try
                     {
-                        await ReadFramesAsync(CancellationToken.None).ConfigureAwait(false);
+                        lock (_mutex)
+                        {
+                            if (_exception != null)
+                            {
+                                return;
+                            }
+                            _readFramesTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                        }
+
+                        try
+                        {
+                            await ReadFramesAsync(_readCancelSource.Token).ConfigureAwait(false);
+                        }
+                        finally
+                        {
+                            _readFramesTaskCompletionSource.SetResult();
+                        }
                     }
                     catch (Exception exception)
                     {
@@ -337,14 +355,14 @@ namespace IceRpc.Transports.Internal
             EncodeAction? encode,
             CancellationToken cancel)
         {
-            await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+            await _writeSemaphore.EnterAsync(cancel).ConfigureAwait(false);
             try
             {
                 await _writer.WriteFrameAsync(frameType, stream?.Id, encode, cancel).ConfigureAwait(false);
             }
             finally
             {
-                _sendSemaphore.Release();
+                _writeSemaphore.Release();
             }
         }
 
@@ -378,8 +396,8 @@ namespace IceRpc.Transports.Internal
                 int sendCredit = await stream.AcquireSendCreditAsync(cancel).ConfigureAwait(false);
                 Debug.Assert(sendCredit > 0);
 
-                // Finally, acquire the send semaphore to ensure only one stream writes to the connection.
-                await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+                // Finally, acquire the write semaphore to ensure only one stream writes to the connection.
+                await _writeSemaphore.EnterAsync(cancel).ConfigureAwait(false);
                 try
                 {
                     // Allocate stream ID if the stream isn't started. Thread-safety is provided by the send
@@ -458,7 +476,7 @@ namespace IceRpc.Transports.Internal
                 }
                 finally
                 {
-                    _sendSemaphore.Release();
+                    _writeSemaphore.Release();
                 }
             }
             while (!source1.IsEmpty || !source2.IsEmpty); // Loop until there's no data left to send.
@@ -483,7 +501,7 @@ namespace IceRpc.Transports.Internal
 
             // Unblock requests waiting on the semaphore and wait for the semaphore to be released to ensure we don't
             // dispose the simple network connection while a frame is being sent (the close frame in particular).
-            await _sendSemaphore.CompleteAndWaitAsync(exception).ConfigureAwait(false);
+            await _writeSemaphore.CompleteAndWaitAsync(exception).ConfigureAwait(false);
 
             foreach (SlicMultiplexedStream stream in _streams.Values)
             {
@@ -502,9 +520,21 @@ namespace IceRpc.Transports.Internal
 
             _pendingClose.TrySetResult();
 
+            // Close the network connection and cancel the pending receive.
+            await _simpleNetworkConnection.DisposeAsync().ConfigureAwait(false);
+            _readCancelSource.Cancel();
+
+            // Wait for the receive task to complete.
+            if (_readFramesTaskCompletionSource != null)
+            {
+                await _readFramesTaskCompletionSource.Task.ConfigureAwait(false);
+            }
+
+            // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
             _simpleNetworkConnectionReader.Dispose();
             _simpleNetworkConnectionWriter.Dispose();
-            await _simpleNetworkConnection.DisposeAsync().ConfigureAwait(false);
+
+            _readCancelSource.Dispose();
         }
 
         private Dictionary<int, IList<byte>> GetParameters()

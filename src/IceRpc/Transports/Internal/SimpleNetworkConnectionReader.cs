@@ -13,25 +13,11 @@ namespace IceRpc.Transports.Internal
     {
         private readonly ISimpleNetworkConnection _connection;
         private readonly Pipe _pipe;
-        private int _state;
 
         public void Dispose()
         {
-            if (_state.TrySetFlag(State.Disposed))
-            {
-                // If the pipe is being used for reading we can't call CompleteAsync since it's not safe. We call
-                // CancelPendingRead instead, the implementation will complete the pipe reader/writer once it's no
-                // longer reading.
-                if (_state.HasFlag(State.Reading))
-                {
-                    _pipe.Reader.CancelPendingRead();
-                }
-                else
-                {
-                    _pipe.Writer.Complete();
-                    _pipe.Reader.Complete();
-                }
-            }
+            _pipe.Writer.Complete();
+            _pipe.Reader.Complete();
         }
 
         internal SimpleNetworkConnectionReader(
@@ -64,56 +50,26 @@ namespace IceRpc.Transports.Internal
                 return default;
             }
 
-            if (!_state.TrySetFlag(State.Reading))
+            // If there's still data on the pipe reader, copy the data from the pipe reader synchronously.
+            if (_pipe.Reader.TryRead(out ReadResult readResult))
             {
-                throw new InvalidOperationException("reading is not thread safe");
-            }
+                Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled && !readResult.Buffer.IsEmpty);
 
-            try
-            {
-                if (_state.HasFlag(State.Disposed))
+                ReadOnlySequence<byte> buffer = readResult.Buffer;
+                if (buffer.Length > byteCount)
                 {
-                    throw new ObjectDisposedException($"{typeof(SimpleNetworkConnectionReader)}");
+                    buffer = buffer.Slice(0, byteCount);
                 }
 
-                // If there's still data on the pipe reader, copy the data from the pipe reader synchronously.
-                if (_pipe.Reader.TryRead(out ReadResult result))
+                bufferWriter.Write(buffer);
+                _pipe.Reader.AdvanceTo(buffer.End);
+
+                byteCount -= (int)buffer.Length;
+
+                if (byteCount == 0)
                 {
-                    ReadOnlySequence<byte> buffer = result.Buffer;
-                    if (result.IsCanceled)
-                    {
-                        throw new ObjectDisposedException($"{typeof(SimpleNetworkConnectionReader)}");
-                    }
-                    else if (buffer.Length > byteCount)
-                    {
-                        buffer = buffer.Slice(0, byteCount);
-                    }
-                    else if (buffer.IsEmpty || (result.IsCompleted && buffer.Length < byteCount))
-                    {
-                        throw new ConnectionLostException();
-                    }
-
-                    bufferWriter.Write(buffer);
-                    _pipe.Reader.AdvanceTo(buffer.End);
-
-                    byteCount -= (int)buffer.Length;
-
-                    if (byteCount == 0)
-                    {
-                        return default;
-                    }
+                    return default;
                 }
-            }
-            finally
-            {
-                if (_state.HasFlag(State.Disposed))
-                {
-#pragma warning disable CA1849
-                    _pipe.Reader.Complete();
-                    _pipe.Writer.Complete();
-#pragma warning restore CA1849
-                }
-                _state.ClearFlag(State.Reading);
             }
 
             return ReadFromConnectionAsync(byteCount);
@@ -149,111 +105,51 @@ namespace IceRpc.Transports.Internal
             int minimumSize,
             CancellationToken cancel = default)
         {
-            if (!_state.TrySetFlag(State.Reading))
+            if (_pipe.Reader.TryRead(out ReadResult readResult))
             {
-                throw new InvalidOperationException("reading is not thread safe");
+                Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled && !readResult.Buffer.IsEmpty);
+                if (readResult.Buffer.Length >= minimumSize)
+                {
+                    return readResult.Buffer;
+                }
+                _pipe.Reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                minimumSize -= (int)readResult.Buffer.Length;
             }
 
-            try
+            do
             {
-                if (_state.HasFlag(State.Disposed))
+                // Fill the pipe with data read from the connection.
+                Memory<byte> buffer = _pipe.Writer.GetMemory();
+                int read = await _connection.ReadAsync(buffer, cancel).ConfigureAwait(false);
+                if (read == 0)
                 {
-                    throw new ObjectDisposedException($"{typeof(SimpleNetworkConnectionReader)}");
+                    throw new ConnectionLostException();
                 }
-
-                if (_pipe.Reader.TryRead(out ReadResult readResult))
-                {
-                    if (readResult.IsCanceled)
-                    {
-                        throw new ObjectDisposedException($"{typeof(SimpleNetworkConnectionReader)}");
-                    }
-                    else if (readResult.Buffer.Length >= minimumSize)
-                    {
-                        return readResult.Buffer;
-                    }
-                    _pipe.Reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                }
-
-                do
-                {
-                    // Fill the pipe with data read from the connection.
-                    Memory<byte> buffer = _pipe.Writer.GetMemory();
-                    int read = await _connection.ReadAsync(buffer, cancel).ConfigureAwait(false);
-                    if (read == 0)
-                    {
-                        throw new ConnectionLostException();
-                    }
-                    _pipe.Writer.Advance(read);
-                    minimumSize -= read;
-                }
-                while (minimumSize > 0);
-
-                _ = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-
-                _pipe.Reader.TryRead(out readResult);
-                if (readResult.IsCanceled)
-                {
-                    throw new ObjectDisposedException($"{typeof(SimpleNetworkConnectionReader)}");
-                }
-
-                Debug.Assert(readResult.Buffer.Length >= minimumSize);
-                return readResult.Buffer;
+                _pipe.Writer.Advance(read);
+                minimumSize -= read;
             }
-            finally
-            {
-                if (_state.HasFlag(State.Disposed))
-                {
-                    await _pipe.Reader.CompleteAsync().ConfigureAwait(false);
-                    await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
-                }
-                _state.ClearFlag(State.Reading);
-            }
+            while (minimumSize > 0);
+
+            _ = await _pipe.Writer.FlushAsync(cancel).ConfigureAwait(false);
+
+            _pipe.Reader.TryRead(out readResult);
+            Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled && readResult.Buffer.Length >= minimumSize);
+            return readResult.Buffer;
         }
 
         internal bool TryRead(out ReadOnlySequence<byte> buffer)
         {
-            if (!_state.TrySetFlag(State.Reading))
+            if (_pipe.Reader.TryRead(out ReadResult readResult))
             {
-                throw new InvalidOperationException("reading is not thread safe");
+                Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled && !readResult.Buffer.IsEmpty);
+                buffer = readResult.Buffer;
+                return true;
             }
-
-            try
+            else
             {
-                if (_state.HasFlag(State.Disposed))
-                {
-                    throw new ObjectDisposedException($"{typeof(SimpleNetworkConnectionReader)}");
-                }
-
-                if (_pipe.Reader.TryRead(out ReadResult readResult))
-                {
-                    if (readResult.IsCanceled)
-                    {
-                        throw new ObjectDisposedException($"{typeof(SimpleNetworkConnectionReader)}");
-                    }
-                    buffer = readResult.Buffer;
-                    return true;
-                }
-                else
-                {
-                    buffer = default;
-                    return false;
-                }
+                buffer = default;
+                return false;
             }
-            finally
-            {
-                if (_state.HasFlag(State.Disposed))
-                {
-                    _pipe.Reader.Complete();
-                    _pipe.Writer.Complete();
-                }
-                _state.ClearFlag(State.Reading);
-            }
-        }
-
-        private enum State : int
-        {
-            Disposed = 1,
-            Reading = 2,
         }
     }
 }
