@@ -49,6 +49,15 @@ namespace IceRpc
         {
         }
 
+        /// <summary>Completes the payload of this request, and the response associated with this request (if
+        /// any).</summary>
+        /// <param name="exception">The exception that caused this completion.</param>
+        public void Complete(Exception? exception = null)
+        {
+            Payload.Complete(exception);
+            _response?.Complete(exception);
+        }
+
         internal OutgoingResponse? Response
         {
             get => _response;

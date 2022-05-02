@@ -74,16 +74,24 @@ namespace IceRpc.Slice
                 ConfigureTimeout(ref invoker, invocation, request);
             }
 
-            // We perform as much work as possible in a non async method to throw exceptions synchronously.
-            return ReadResponseAsync(invoker.InvokeAsync(request, cancel), request);
+            try
+            {
+                // We perform as much work as possible in a non async method to throw exceptions synchronously.
+                return ReadResponseAsync(invoker.InvokeAsync(request, cancel), request);
+            }
+            catch (Exception exception) // synchronous exception throws by InvokeAsync
+            {
+                request.Complete(exception);
+                throw;
+            }
 
             async Task<T> ReadResponseAsync(Task<IncomingResponse> responseTask, OutgoingRequest request)
             {
-                IncomingResponse response = await responseTask.ConfigureAwait(false);
-
                 Exception? exception = null;
                 try
                 {
+                    IncomingResponse response = await responseTask.ConfigureAwait(false);
+
                     if (invocation != null)
                     {
                         invocation.Features = request.Features;
@@ -97,8 +105,8 @@ namespace IceRpc.Slice
                 }
                 finally
                 {
-                    // We always complete the response after decoding its payload.
-                    response.Complete(exception);
+                    // This method always completes the request.
+                    request.Complete(exception);
                 }
             }
         }
@@ -149,16 +157,24 @@ namespace IceRpc.Slice
                 ConfigureTimeout(ref invoker, invocation, request);
             }
 
-            // We perform as much work as possible in a non async method to throw exceptions synchronously.
-            return ReadResponseAsync(invoker.InvokeAsync(request, cancel), request);
+            try
+            {
+                // We perform as much work as possible in a non async method to throw exceptions synchronously.
+                return ReadResponseAsync(invoker.InvokeAsync(request, cancel), request);
+            }
+            catch (Exception exception) // synchronous exception thrown by InvokeAsync
+            {
+                request.Complete(exception);
+                throw;
+            }
 
             async Task ReadResponseAsync(Task<IncomingResponse> responseTask, OutgoingRequest request)
             {
-                IncomingResponse response = await responseTask.ConfigureAwait(false);
-
                 Exception? exception = null;
                 try
                 {
+                    IncomingResponse response = await responseTask.ConfigureAwait(false);
+
                     if (invocation != null)
                     {
                         invocation.Features = request.Features;
@@ -177,8 +193,8 @@ namespace IceRpc.Slice
                 }
                 finally
                 {
-                    // We always complete the response after decoding its payload.
-                    response.Complete(exception);
+                    // This method always completes the request.
+                    request.Complete(exception);
                 }
             }
         }

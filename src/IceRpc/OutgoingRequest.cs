@@ -49,6 +49,16 @@ namespace IceRpc
             Proxy = proxy;
         }
 
+        /// <summary>Completes the payload and payload stream of this request, and the response associated with this
+        /// request (if any).</summary>
+        /// <param name="exception">The exception that caused this completion.</param>
+        public void Complete(Exception? exception = null)
+        {
+            Payload.Complete(exception);
+            PayloadStream?.Complete(exception);
+            _incomingResponse?.Complete(exception);
+        }
+
         internal IncomingResponse? Response
         {
             get => _incomingResponse;

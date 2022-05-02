@@ -212,10 +212,15 @@ namespace IceRpc.Internal
                 OutgoingResponse response;
                 try
                 {
-                    // The dispatcher is responsible for completing the incoming request payload and payload stream.
                     response = await _dispatcher.DispatchAsync(
                         request,
                         cancelDispatchSource.Token).ConfigureAwait(false);
+
+                    if (response != request.Response)
+                    {
+                        throw new InvalidOperationException(
+                            "the dispatcher did not return the last response created for this request");
+                    }
                 }
                 catch (Exception exception)
                 {
@@ -309,10 +314,11 @@ namespace IceRpc.Internal
 
                 if (request.IsOneway)
                 {
-                    response.Complete();
+                    request.Complete();
                     return;
                 }
 
+                Exception? completeException = null;
                 try
                 {
                     EncodeHeader();
@@ -323,8 +329,12 @@ namespace IceRpc.Internal
                 }
                 catch (Exception exception)
                 {
-                    response.Complete(exception);
+                    completeException = exception;
                     await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
+                }
+                finally
+                {
+                    request.Complete(completeException);
                 }
 
                 void EncodeHeader()
@@ -416,7 +426,10 @@ namespace IceRpc.Internal
             }
             catch (Exception exception)
             {
+                // TODO: since the caller must complete the request, is it necessary/desirable to complete the request
+                // early here? Some of our Slice-free unit tests currently rely on this behavior.
                 request.Complete(exception);
+
                 if (stream != null)
                 {
                     await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
@@ -930,20 +943,24 @@ namespace IceRpc.Internal
 
             await outgoingFrame.Payload.CompleteAsync().ConfigureAwait(false);
 
-            if (outgoingFrame.PayloadStream == null)
+            PipeReader? payloadStream = outgoingFrame.PayloadStream;
+
+            if (payloadStream == null)
             {
                 await payloadWriter.CompleteAsync().ConfigureAwait(false);
             }
             else
             {
-                // Send PayloadStream in the background.
+                // Send payloadStream in the background.
+                outgoingFrame.PayloadStream = null; // we're now responsible for payloadStream
+
                 _ = Task.Run(
                     async () =>
                     {
                         try
                         {
                             FlushResult flushResult = await CopyReaderToWriterAsync(
-                                outgoingFrame.PayloadStream,
+                                payloadStream,
                                 payloadWriter,
                                 endStream: true,
                                 CancellationToken.None).ConfigureAwait(false);
@@ -954,12 +971,12 @@ namespace IceRpc.Internal
                                     "a payload writer interceptor is not allowed to return a canceled flush result");
                             }
 
-                            await outgoingFrame.PayloadStream.CompleteAsync().ConfigureAwait(false);
+                            await payloadStream.CompleteAsync().ConfigureAwait(false);
                             await payloadWriter.CompleteAsync().ConfigureAwait(false);
                         }
                         catch (Exception exception)
                         {
-                            await outgoingFrame.PayloadStream.CompleteAsync(exception).ConfigureAwait(false);
+                            await payloadStream.CompleteAsync(exception).ConfigureAwait(false);
                             await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
                         }
                     },
