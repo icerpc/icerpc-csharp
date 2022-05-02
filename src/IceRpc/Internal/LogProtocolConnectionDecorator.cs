@@ -65,7 +65,10 @@ namespace IceRpc.Internal
             _logger.LogPing();
         }
 
-        async Task IProtocolConnection.ShutdownAsync(string message, CancellationToken cancel)
+        async Task IProtocolConnection.ShutdownAsync(
+            string message,
+            CancellationToken cancelPendingInvocationsAndDispatches,
+            CancellationToken cancel)
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             await _decoratee.ShutdownAsync(message, cancel).ConfigureAwait(false);

@@ -73,17 +73,18 @@ public sealed class ProtocolConnectionTests
         Task serverAcceptRequestsTask = sut.Server.AcceptRequestsAsync(connection);
 
         // Act
-        _ = sut.Client.ShutdownAsync("", default);
-        _ = sut.Server.ShutdownAsync("", default);
+        _ = sut.Client.ShutdownAsync("", cancelPendingInvocationsAndDispatches: default);
+        _ = sut.Server.ShutdownAsync("", cancelPendingInvocationsAndDispatches: default);
 
         // Assert
         Assert.DoesNotThrowAsync(() => clientAcceptRequestsTask);
         Assert.DoesNotThrowAsync(() => serverAcceptRequestsTask);
     }
 
-    /// <summary>Verifies that if shutdown is canceled the dispatches are canceled too.</summary>
+    /// <summary>Verifies that if the shutdown pending invocations and dispatches cancellation token is canceled the
+    /// dispatches are canceled.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    public async Task Canceling_shutdown_cancels_pending_dispatches(Protocol protocol)
+    public async Task Shutdown_dispatch_cancellation(Protocol protocol)
     {
         // Arrange
         using var start = new SemaphoreSlim(0);
@@ -111,7 +112,9 @@ public sealed class ProtocolConnectionTests
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
-        await sut.Server.ShutdownAsync("", new CancellationToken(canceled: true));
+        await sut.Server.ShutdownAsync(
+            "",
+            cancelPendingInvocationsAndDispatches: new CancellationToken(canceled: true));
 
         // Assert
         Exception ex = Assert.CatchAsync(async () =>
@@ -136,6 +139,78 @@ public sealed class ProtocolConnectionTests
                 throw dispatchException;
             }
         }
+    }
+
+    /// <summary>Verifies that shutdown cancellation cancels shutdown even if a dispatch hangs.</summary>
+    [Test, TestCaseSource(nameof(_protocols))]
+    public async Task Shutdown_cancellation_on_dispatch_hang(Protocol protocol)
+    {
+        // Arrange
+        using var start = new SemaphoreSlim(0);
+        using var hold = new SemaphoreSlim(0);
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .UseServerConnectionOptions(new ConnectionOptions()
+            {
+                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                {
+                    start.Release();
+                    await hold.WaitAsync(cancel);
+                })
+            })
+            .BuildServiceProvider();
+
+        Connection connection = serviceProvider.GetInvalidConnection();
+
+        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        _ = sut.Client.AcceptRequestsAsync(connection);
+        _ = sut.Server.AcceptRequestsAsync(connection);
+        var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
+        await start.WaitAsync(); // Wait for the dispatch to start
+        using var cancellationTokenSource = new CancellationTokenSource(10);
+
+        // Act
+        Task shutdownTask = sut.Server.ShutdownAsync(
+            "",
+            cancelPendingInvocationsAndDispatches: default,
+            cancel: cancellationTokenSource.Token);
+
+        // Assert
+        Assert.CatchAsync<OperationCanceledException>(() => shutdownTask);
+
+        hold.Release();
+    }
+
+    /// <summary>Verifies that shutdown cancellation cancels shutdown even if a dispatch hangs.</summary>
+    [Test, TestCaseSource(nameof(_protocols))]
+    public async Task Shutdown_cancellation_on_pending_close_hang(Protocol protocol)
+    {
+        // Arrange
+        using var start = new SemaphoreSlim(0);
+        using var hold = new SemaphoreSlim(0);
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .BuildServiceProvider();
+
+        Connection connection = serviceProvider.GetInvalidConnection();
+
+        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        _ = sut.Client.AcceptRequestsAsync(connection);
+        _ = sut.Server.AcceptRequestsAsync(connection);
+        using var cancellationTokenSource = new CancellationTokenSource(10);
+
+        // Act
+        Task shutdownTask = sut.Server.ShutdownAsync(
+            "",
+            cancelPendingInvocationsAndDispatches: default,
+            cancel: cancellationTokenSource.Token);
+
+        // Assert
+        Assert.CatchAsync<OperationCanceledException>(() => shutdownTask);
+
+        hold.Release();
     }
 
     /// <summary>Ensures that the connection HasInvocationInProgress works.</summary>
@@ -297,7 +372,7 @@ public sealed class ProtocolConnectionTests
         Connection connection = serviceProvider.GetInvalidConnection();
 
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Client.ShutdownAsync("");
+        _ = sut.Client.ShutdownAsync("", cancelPendingInvocationsAndDispatches: default);
 
         // Act
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(
@@ -392,7 +467,7 @@ public sealed class ProtocolConnectionTests
         await using var serviceProvider = new ProtocolServiceCollection().UseProtocol(protocol).BuildServiceProvider();
         Connection connection = serviceProvider.GetInvalidConnection();
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Client.ShutdownAsync("", default);
+        _ = sut.Client.ShutdownAsync("", cancelPendingInvocationsAndDispatches: default);
 
         var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var request = new OutgoingRequest(new Proxy(protocol))
@@ -653,11 +728,11 @@ public sealed class ProtocolConnectionTests
         connection2.PeerShutdownInitiated = message =>
         {
             shutdownInitiatedCalled.SetResult(message);
-            _ = connection2.ShutdownAsync("");
+            _ = connection2.ShutdownAsync("", cancelPendingInvocationsAndDispatches: default);
         };
 
         // Act
-        _ = connection1.ShutdownAsync("hello world");
+        _ = connection1.ShutdownAsync("hello world", cancelPendingInvocationsAndDispatches: default);
 
         // Assert
         string message = protocol == Protocol.Ice ? "connection shutdown by peer" : "hello world";
@@ -722,14 +797,16 @@ public sealed class ProtocolConnectionTests
         Connection connection = serviceProvider.GetInvalidConnection();
 
         var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        sut.Client.PeerShutdownInitiated = message => _ = sut.Client.ShutdownAsync(message);
+        sut.Client.PeerShutdownInitiated = message => _ = sut.Client.ShutdownAsync(
+            message,
+            cancelPendingInvocationsAndDispatches: default);
         var invokeTask1 = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
         _ = sut.Client.AcceptRequestsAsync(connection);
         var serverAcceptTask = sut.Server.AcceptRequestsAsync(connection);
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
-        var shutdownTask = sut.Server.ShutdownAsync("", default);
+        var shutdownTask = sut.Server.ShutdownAsync("", cancelPendingInvocationsAndDispatches: default);
 
         // Assert
         var invokeTask2 = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);

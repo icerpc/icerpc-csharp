@@ -24,11 +24,10 @@ public sealed class IceRpcProtocolConnectionTests
         }
     }
 
-    /// <summary>Verifies that with icerpc protocol canceling connection shutdown cancels pending invocations. With ice
-    /// protocol they are always canceled see <see cref="IceProtocolConnectionTests.Shutdown_cancels_invocations"/>.
-    /// </summary>
+    /// <summary>Verifies that if the shutdown pending invocations and dispatches cancellation token is canceled the
+    /// invocations are canceled.</summary>
     [Test]
-    public async Task Canceling_shutdown_cancels_pending_invocations()
+    public async Task Shutdown_invocations_cancellation()
     {
         // Arrange
         using var start = new SemaphoreSlim(0);
@@ -47,7 +46,8 @@ public sealed class IceRpcProtocolConnectionTests
             .BuildServiceProvider();
 
         var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        sut.Server.PeerShutdownInitiated = message => _ = sut.Server.ShutdownAsync(message);
+        sut.Server.PeerShutdownInitiated = message =>
+            _ = sut.Server.ShutdownAsync(message, cancelPendingInvocationsAndDispatches: default);
         _ = sut.Client.AcceptRequestsAsync(InvalidConnection.IceRpc);
         var serverAcceptTask = sut.Server.AcceptRequestsAsync(InvalidConnection.IceRpc);
         var invokeTask = sut.Client.InvokeAsync(
@@ -282,7 +282,7 @@ public sealed class IceRpcProtocolConnectionTests
             .UseProtocol(Protocol.IceRpc)
             .BuildServiceProvider();
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Client.ShutdownAsync("", default);
+        _ = sut.Client.ShutdownAsync("", cancelPendingInvocationsAndDispatches: default);
 
         var payloadStreamDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
@@ -486,7 +486,8 @@ public sealed class IceRpcProtocolConnectionTests
             .BuildServiceProvider();
 
         var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        sut.Server.PeerShutdownInitiated = message => _ = sut.Server.ShutdownAsync(message);
+        sut.Server.PeerShutdownInitiated = message =>
+            _ = sut.Server.ShutdownAsync(message, cancelPendingInvocationsAndDispatches: default);
         var invokeTask = sut.Client.InvokeAsync(
             new OutgoingRequest(new Proxy(Protocol.IceRpc)),
             InvalidConnection.IceRpc);
@@ -494,7 +495,7 @@ public sealed class IceRpcProtocolConnectionTests
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
-        var shutdownTask = sut.Client.ShutdownAsync("", default);
+        var shutdownTask = sut.Client.ShutdownAsync("", cancelPendingInvocationsAndDispatches: default);
 
         // Assert
         Assert.That(invokeTask.IsCompleted, Is.False);

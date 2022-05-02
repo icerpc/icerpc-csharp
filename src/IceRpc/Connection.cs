@@ -375,7 +375,7 @@ namespace IceRpc
             IProtocolConnectionFactory<T> protocolConnectionFactory,
             Action<Connection, Exception>? onClose) where T : INetworkConnection
         {
-            using var connectCancellationSource = new CancellationTokenSource(_options.ConnectTimeout);
+            using var connectTimeoutCancellationSource = new CancellationTokenSource(_options.ConnectTimeout);
             try
             {
                 // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
@@ -383,7 +383,7 @@ namespace IceRpc
 
                 // Establish the network connection.
                 NetworkConnectionInformation = await networkConnection.ConnectAsync(
-                    connectCancellationSource.Token).ConfigureAwait(false);
+                    connectTimeoutCancellationSource.Token).ConfigureAwait(false);
 
                 var features = new FeatureCollection(_options.Features);
 
@@ -394,7 +394,7 @@ namespace IceRpc
                     _options,
                     _options.OnConnect == null ? null : fields => _options.OnConnect(this, fields, features),
                     _serverEndpoint != null,
-                    connectCancellationSource.Token).ConfigureAwait(false);
+                    connectTimeoutCancellationSource.Token).ConfigureAwait(false);
 
                 lock (_mutex)
                 {
@@ -612,15 +612,17 @@ namespace IceRpc
             // is assigned before any synchronous continuations are ran.
             await Task.Yield();
 
-            using var closeCancellationSource = new CancellationTokenSource(_options.CloseTimeout);
+            using var closeTimeoutCancellationSource = new CancellationTokenSource(_options.CloseTimeout);
             Exception exception;
             try
             {
-                // Shutdown the connection.
-                await protocolConnection
-                    .ShutdownAsync(message, cancel)
-                    .WaitAsync(closeCancellationSource.Token)
-                    .ConfigureAwait(false);
+                // Shutdown the connection. If the given cancellation token is canceled, pending invocations and
+                // dispatches are canceled to speed up shutdown. Otherwise, the protocol shutdown is canceled on close
+                // timeout.
+                await protocolConnection.ShutdownAsync(
+                    message,
+                    cancelPendingInvocationsAndDispatches: cancel,
+                    closeTimeoutCancellationSource.Token).ConfigureAwait(false);
 
                 // Close the connection.
                 exception = new ConnectionClosedException(message);
