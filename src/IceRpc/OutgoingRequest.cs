@@ -38,6 +38,8 @@ namespace IceRpc
         /// <summary>Returns the proxy that is sending this request.</summary>
         public Proxy Proxy { get; }
 
+        private IncomingResponse? _incomingResponse;
+
         /// <summary>Constructs an outgoing request.</summary>
         /// <param name="proxy">The <see cref="Proxy"/> used to send the request.</param>
         public OutgoingRequest(Proxy proxy)
@@ -45,6 +47,16 @@ namespace IceRpc
         {
             Connection = proxy.Connection;
             Proxy = proxy;
+        }
+
+        internal IncomingResponse? Response
+        {
+            get => _incomingResponse;
+            set
+            {
+                _incomingResponse?.Complete();
+                _incomingResponse = value;
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System.Buffers;
 using System.Collections.Immutable;
 
@@ -39,11 +40,23 @@ namespace IceRpc
 
         private readonly string _fragment = "";
 
+        private OutgoingResponse? _response;
+
         /// <summary>Constructs an incoming request.</summary>
         /// <param name="connection">The <see cref="Connection"/> that received the request.</param>
         public IncomingRequest(Connection connection)
             : base(connection)
         {
+        }
+
+        internal OutgoingResponse? Response
+        {
+            get => _response;
+            set
+            {
+                _response?.Complete();
+                _response = value;
+            }
         }
     }
 }

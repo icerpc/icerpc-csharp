@@ -12,9 +12,6 @@ namespace IceRpc
         /// <summary>Gets the fields of this incoming response.</summary>
         public IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> Fields { get; private set; }
 
-        /// <summary>The request that received this response.</summary>
-        public OutgoingRequest Request { get; }
-
         /// <summary>Gets or initializes the <see cref="IceRpc.ResultType"/> of this response.</summary>
         /// <value>The result type of the response. The default value is <see cref="ResultType.Success"/>.</value>
         public ResultType ResultType { get; init; } = ResultType.Success;
@@ -68,9 +65,9 @@ namespace IceRpc
             PipeReader? fieldsPipeReader)
             : base(connection)
         {
-            Request = request;
             Fields = fields;
             _fieldsPipeReader = fieldsPipeReader;
+            request.Response = this;
         }
     }
 }

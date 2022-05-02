@@ -309,7 +309,7 @@ namespace IceRpc.Internal
 
                 if (request.IsOneway)
                 {
-                    await response.CompleteAsync().ConfigureAwait(false);
+                    response.Complete();
                     return;
                 }
 
@@ -323,7 +323,7 @@ namespace IceRpc.Internal
                 }
                 catch (Exception exception)
                 {
-                    await response.CompleteAsync(exception).ConfigureAwait(false);
+                    response.Complete(exception);
                     await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
                 }
 
@@ -416,7 +416,7 @@ namespace IceRpc.Internal
             }
             catch (Exception exception)
             {
-                await request.CompleteAsync(exception).ConfigureAwait(false);
+                request.Complete(exception);
                 if (stream != null)
                 {
                     await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
@@ -913,7 +913,7 @@ namespace IceRpc.Internal
                 {
                     // The remote reader gracefully completed the stream input pipe. We're done.
                     await payloadWriter.CompleteAsync().ConfigureAwait(false);
-                    await outgoingFrame.CompleteAsync().ConfigureAwait(false);
+                    outgoingFrame.Complete();
                     return;
                 }
                 else if (flushResult.IsCanceled)

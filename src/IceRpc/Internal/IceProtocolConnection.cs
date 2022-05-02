@@ -176,12 +176,12 @@ namespace IceRpc.Internal
                         "payload writer cancellation or completion is not supported with the ice protocol");
                 }
 
-                await request.CompleteAsync().ConfigureAwait(false);
+                request.Complete();
                 await payloadWriter.CompleteAsync().ConfigureAwait(false);
             }
             catch (Exception exception)
             {
-                await request.CompleteAsync(exception).ConfigureAwait(false);
+                request.Complete(exception);
                 await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
                 throw;
             }
@@ -948,7 +948,7 @@ namespace IceRpc.Internal
 
                         if (request.IsOneway)
                         {
-                            await response.CompleteAsync().ConfigureAwait(false);
+                            response.Complete();
                             return;
                         }
 
@@ -1003,12 +1003,12 @@ namespace IceRpc.Internal
                                 "payload writer cancellation or completion is not supported with the ice protocol");
                         }
 
-                        await response.CompleteAsync().ConfigureAwait(false);
+                        response.Complete();
                         await payloadWriter.CompleteAsync().ConfigureAwait(false);
                     }
                     catch (Exception exception)
                     {
-                        await response.CompleteAsync(exception).ConfigureAwait(false);
+                        response.Complete(exception);
                         await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
 
                         // This is an unrecoverable failure, so we kill the connection.

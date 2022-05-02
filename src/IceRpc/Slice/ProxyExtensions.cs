@@ -8,10 +8,14 @@ namespace IceRpc.Slice
     /// <summary>A function that decodes the return value from a Slice-encoded response.</summary>
     /// <typeparam name="T">The type of the return value to read.</typeparam>
     /// <param name="response">The incoming response.</param>
+    /// <param name="request">The outgoing request.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>A value task that contains the return value or a <see cref="RemoteException"/> when the response
     /// carries a failure.</returns>
-    public delegate ValueTask<T> ResponseDecodeFunc<T>(IncomingResponse response, CancellationToken cancel);
+    public delegate ValueTask<T> ResponseDecodeFunc<T>(
+        IncomingResponse response,
+        OutgoingRequest request,
+        CancellationToken cancel);
 
     /// <summary>Provides extension methods for class Proxy.</summary>
     public static class ProxyExtensions
@@ -71,9 +75,9 @@ namespace IceRpc.Slice
             }
 
             // We perform as much work as possible in a non async method to throw exceptions synchronously.
-            return ReadResponseAsync(invoker.InvokeAsync(request, cancel));
+            return ReadResponseAsync(invoker.InvokeAsync(request, cancel), request);
 
-            async Task<T> ReadResponseAsync(Task<IncomingResponse> responseTask)
+            async Task<T> ReadResponseAsync(Task<IncomingResponse> responseTask, OutgoingRequest request)
             {
                 IncomingResponse response = await responseTask.ConfigureAwait(false);
 
@@ -82,9 +86,9 @@ namespace IceRpc.Slice
                 {
                     if (invocation != null)
                     {
-                        invocation.Features = response.Request.Features;
+                        invocation.Features = request.Features;
                     }
-                    return await responseDecodeFunc(response, cancel).ConfigureAwait(false);
+                    return await responseDecodeFunc(response, request, cancel).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -146,9 +150,9 @@ namespace IceRpc.Slice
             }
 
             // We perform as much work as possible in a non async method to throw exceptions synchronously.
-            return ReadResponseAsync(invoker.InvokeAsync(request, cancel));
+            return ReadResponseAsync(invoker.InvokeAsync(request, cancel), request);
 
-            async Task ReadResponseAsync(Task<IncomingResponse> responseTask)
+            async Task ReadResponseAsync(Task<IncomingResponse> responseTask, OutgoingRequest request)
             {
                 IncomingResponse response = await responseTask.ConfigureAwait(false);
 
@@ -157,10 +161,11 @@ namespace IceRpc.Slice
                 {
                     if (invocation != null)
                     {
-                        invocation.Features = response.Request.Features;
+                        invocation.Features = request.Features;
                     }
 
                     await response.DecodeVoidReturnValueAsync(
+                        request,
                         encoding,
                         defaultActivator,
                         cancel).ConfigureAwait(false);
