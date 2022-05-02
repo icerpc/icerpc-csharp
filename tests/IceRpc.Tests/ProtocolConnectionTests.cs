@@ -182,37 +182,6 @@ public sealed class ProtocolConnectionTests
         hold.Release();
     }
 
-    /// <summary>Verifies that shutdown cancellation cancels shutdown even if a dispatch hangs.</summary>
-    [Test, TestCaseSource(nameof(_protocols))]
-    public async Task Shutdown_cancellation_on_pending_close_hang(Protocol protocol)
-    {
-        // Arrange
-        using var start = new SemaphoreSlim(0);
-        using var hold = new SemaphoreSlim(0);
-
-        await using var serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(protocol)
-            .BuildServiceProvider();
-
-        Connection connection = serviceProvider.GetInvalidConnection();
-
-        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Client.AcceptRequestsAsync(connection);
-        _ = sut.Server.AcceptRequestsAsync(connection);
-        using var cancellationTokenSource = new CancellationTokenSource(10);
-
-        // Act
-        Task shutdownTask = sut.Server.ShutdownAsync(
-            "",
-            cancelPendingInvocationsAndDispatches: default,
-            cancel: cancellationTokenSource.Token);
-
-        // Assert
-        Assert.CatchAsync<OperationCanceledException>(() => shutdownTask);
-
-        hold.Release();
-    }
-
     /// <summary>Ensures that the connection HasInvocationInProgress works.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
     public async Task Connection_has_invocation_in_progress(Protocol protocol)
