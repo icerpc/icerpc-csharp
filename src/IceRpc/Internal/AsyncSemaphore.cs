@@ -50,6 +50,29 @@ namespace IceRpc.Internal
             _maxCount = maxCount;
         }
 
+        /// <summary>Cancels the callers that are waiting to enter the semaphore. The given exception will be raised by
+        /// the awaited EnterAsync operation.</summary>
+        /// <param name="exception">The exception raised to notify the callers waiting to enter the semaphore of the
+        /// cancellation.</param>
+        internal void CancelAwaiters(Exception exception)
+        {
+            lock (_mutex)
+            {
+                foreach (ManualResetValueTaskCompletionSource<bool> source in _queue)
+                {
+                    try
+                    {
+                        source.SetException(exception);
+                    }
+                    catch
+                    {
+                        // Ignore, the source might already be completed if canceled.
+                    }
+                }
+                _queue.Clear();
+            }
+        }
+
         /// <summary>Notifies the callers that are waiting to enter the semaphore that the semaphore is being
         /// terminated. The given exception will be raised by the awaited EnterAsync operation.</summary>
         /// <param name="exception">The exception raised to notify the callers waiting to enter the semaphore of the
@@ -62,33 +85,10 @@ namespace IceRpc.Internal
                 {
                     return;
                 }
-
                 _exception = exception;
-
-                // While we could instead use the EnterAsync cancellation token to cancel the operation, it's
-                // simpler and more efficient to trigger the cancellation directly by setting the exception on
-                // the task completion source. It also ensures the awaiters will throw the given exception
-                // instead of a generic OperationCanceledException.
-                foreach (ManualResetValueTaskCompletionSource<bool> source in _queue)
-                {
-                    try
-                    {
-                        if (exception != null)
-                        {
-                            source.SetException(exception);
-                        }
-                        else
-                        {
-                            source.SetResult(false);
-                        }
-                    }
-                    catch
-                    {
-                        // Ignore, the source might already be completed if canceled.
-                    }
-                }
-                _queue.Clear();
             }
+
+            CancelAwaiters(exception);
         }
 
         /// <summary>Notifies the callers that are waiting to enter the semaphore that the semaphore is being
