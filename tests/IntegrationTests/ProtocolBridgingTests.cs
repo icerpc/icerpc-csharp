@@ -126,7 +126,9 @@ public sealed class ProtocolBridgingTests
     {
         private readonly Proxy _target;
 
-        async ValueTask IDispatcher.DispatchAsync(IncomingRequest incomingRequest, CancellationToken cancel)
+        async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(
+            IncomingRequest incomingRequest,
+            CancellationToken cancel)
         {
             // First create an outgoing request to _target from the incoming request:
 
@@ -179,7 +181,7 @@ public sealed class ProtocolBridgingTests
                             new OutgoingFieldValue(pair.Value))));
             _ = fields.Remove(ResponseFieldKey.RetryPolicy);
 
-            incomingRequest.Response = new OutgoingResponse(incomingRequest)
+            return new OutgoingResponse(incomingRequest)
             {
                 Fields = fields,
                 Payload = incomingResponse.Payload,

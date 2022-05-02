@@ -21,19 +21,20 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public async ValueTask DispatchAsync(IncomingRequest request, CancellationToken cancel)
+        public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
         {
             _logger.LogReceivedRequest(request.Connection, request.Path, request.Operation);
             try
             {
-                await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
+                OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
                 if (!request.IsOneway)
                 {
                     _logger.LogSendingResponse(request.Connection,
                                                request.Path,
                                                request.Operation,
-                                               request.Response?.ResultType ?? ResultType.Success);
+                                               response.ResultType);
                 }
+                return response;
             }
             catch (Exception ex)
             {

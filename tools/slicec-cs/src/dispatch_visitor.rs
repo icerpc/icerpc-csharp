@@ -331,7 +331,7 @@ fn operation_dispatch(operation: &Operation) -> CodeBlock {
     format!(
         r#"
 [IceRpc.Slice.Operation("{name}")]
-protected static async global::System.Threading.Tasks.ValueTask {internal_name}(
+protected static async global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> {internal_name}(
     {interface_name} target,
     IceRpc.IncomingRequest request,
     global::System.Threading.CancellationToken cancel)
@@ -420,7 +420,7 @@ await request.DecodeEmptyArgsAsync({}, cancel).ConfigureAwait(false);", encoding
 
         writeln!(
             dispatch_and_return,
-            "request.Response = new IceRpc.OutgoingResponse(request) {{ Payload = returnValue.Payload }};"
+            "return new IceRpc.OutgoingResponse(request) {{ Payload = returnValue.Payload }};"
         );
     } else {
         let mut args = match parameters.as_slice() {
@@ -448,7 +448,7 @@ await request.DecodeEmptyArgsAsync({}, cancel).ConfigureAwait(false);", encoding
         writeln!(
             dispatch_and_return,
             "\
-request.Response = new IceRpc.OutgoingResponse(request)
+return new IceRpc.OutgoingResponse(request)
 {{
     Payload = {payload},
     PayloadStream = {payload_stream}
@@ -471,7 +471,7 @@ catch (RemoteException remoteException)
         throw;
     }}
 
-    request.Response = request.CreateServiceFailureResponse(remoteException, {encoding});
+    return request.CreateServiceFailureResponse(remoteException, {encoding});
 }}",
     check_and_decode = check_and_decode,
     dispatch_and_return = dispatch_and_return.indent(),
