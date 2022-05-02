@@ -889,6 +889,12 @@ namespace IceRpc.Internal
                         response = await _dispatcher.DispatchAsync(
                             request,
                             cancelDispatchSource.Token).ConfigureAwait(false);
+
+                        if (response != request.Response)
+                        {
+                            throw new InvalidOperationException(
+                                "the dispatcher did not return the last response created for this request");
+                        }
                     }
                     catch (Exception exception)
                     {

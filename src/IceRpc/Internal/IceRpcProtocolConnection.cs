@@ -233,6 +233,7 @@ namespace IceRpc.Internal
 
                         // We're done since the completion of the stream Output pipe writer aborted the stream or the
                         // stream was already aborted.
+                        request.Complete();
                         return;
                     }
 

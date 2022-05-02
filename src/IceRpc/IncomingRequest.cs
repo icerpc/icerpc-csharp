@@ -39,6 +39,7 @@ namespace IceRpc
         public string Path { get; init; } = "/";
 
         /// <summary>Gets or sets the latest response to this request.</summary>
+        /// <remarks>Setting a response completes the previous response when there is one.</remarks>
         internal OutgoingResponse? Response
         {
             get => _response;
