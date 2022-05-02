@@ -44,14 +44,6 @@ namespace IceRpc
         {
         }
 
-        /// <summary>Completes the payload and releases the fields memory.</summary>
-        public void Complete(Exception? exception = null)
-        {
-            Payload.Complete(exception);
-            _fieldsPipeReader?.Complete(exception);
-            Fields = ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
-        }
-
         /// <summary>Constructs an incoming response with a pipe reader holding the memory for the fields.</summary>
         /// <param name="request">The corresponding outgoing request.</param>
         /// <param name="connection">The <see cref="Connection"/> that received the response.</param>
@@ -68,6 +60,14 @@ namespace IceRpc
             Fields = fields;
             _fieldsPipeReader = fieldsPipeReader;
             request.Response = this;
+        }
+
+        /// <summary>Completes the payload and releases the fields memory.</summary>
+        internal void Complete(Exception? exception = null)
+        {
+            Payload.Complete(exception);
+            _fieldsPipeReader?.Complete(exception);
+            Fields = ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
         }
     }
 }

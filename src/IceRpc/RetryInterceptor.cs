@@ -154,15 +154,7 @@ namespace IceRpc
 
                         if (retryPolicy.Retryable == Retryable.AfterDelay && retryPolicy.Delay != TimeSpan.Zero)
                         {
-                            try
-                            {
-                                await Task.Delay(retryPolicy.Delay, cancel).ConfigureAwait(false);
-                            }
-                            catch
-                            {
-                                response?.Complete();
-                                throw;
-                            }
+                            await Task.Delay(retryPolicy.Delay, cancel).ConfigureAwait(false);
                         }
 
                         if (request.Connection != null &&
