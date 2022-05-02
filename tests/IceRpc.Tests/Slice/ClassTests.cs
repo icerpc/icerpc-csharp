@@ -849,7 +849,6 @@ public sealed class ClassTests
             encoder.EncodeTagged(
                 30,
                 TagFormat.F8,
-                size: 8,
                 c.Value,
                 (ref SliceEncoder encoder, long value) => encoder.EncodeInt64(value));
         }
@@ -872,7 +871,6 @@ public sealed class ClassTests
             encoder.EncodeTagged(
                 10,
                 TagFormat.F4,
-                size: 4,
                 a.Value,
                 (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
             encoder.EncodeUInt8(Slice1Definitions.TagEndMarker);

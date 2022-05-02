@@ -395,21 +395,28 @@ namespace IceRpc.Slice
             EncodeVarUInt62((ulong)(EncodedByteCount - startPos), sizePlaceholder);
         }
 
-        /// <summary>Encodes a non-null Slice2 encoded tagged value. The number of bytes needed to encode the value is
-        /// known before encoding the value (Slice2 only).</summary>
+        /// <summary>Encodes a non-null encoded tagged value. The number of bytes needed to encode the value is
+        /// known before encoding the value. With Slice1 encoding this method always use the VSize tag format.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="size">The number of bytes needed to encode the value.</param>
         /// <param name="v">The value to encode.</param>
         /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
         public void EncodeTagged<T>(int tag, int size, T v, EncodeAction<T> encodeAction) where T : notnull
         {
+            if (size <= 0)
+            {
+                throw new ArgumentException("invalid size value, size must be greater than zero", nameof(size));
+            }
+
             if (Encoding == SliceEncoding.Slice1)
             {
-                throw new InvalidOperationException("Slice1 encoded tags must be encoded with tag formats");
+                EncodeTaggedParamHeader(tag, TagFormat.VSize);
             }
-            Debug.Assert(size > 0);
+            else
+            {
+                EncodeVarInt32(tag);
+            }
 
-            EncodeVarInt32(tag); // the key
             EncodeSize(size);
             int startPos = EncodedByteCount;
             encodeAction(ref this, v);
@@ -428,8 +435,7 @@ namespace IceRpc.Slice
         /// <param name="tagFormat">The tag format.</param>
         /// <param name="v">The value to encode.</param>
         /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="tagFormat"/> is not FSize or OVSize.
-        /// </exception>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="tagFormat"/> is VSize.</exception>
         public void EncodeTagged<T>(
             int tag,
             TagFormat tagFormat,
@@ -443,6 +449,14 @@ namespace IceRpc.Slice
 
             switch (tagFormat)
             {
+                case TagFormat.F1:
+                case TagFormat.F2:
+                case TagFormat.F4:
+                case TagFormat.F8:
+                case TagFormat.Size:
+                    EncodeTaggedParamHeader(tag, tagFormat);
+                    encodeAction(ref this, v);
+                    break;
                 case TagFormat.FSize:
                     EncodeTaggedParamHeader(tag, tagFormat);
                     Span<byte> placeholder = GetPlaceholderSpan(4);
@@ -453,58 +467,14 @@ namespace IceRpc.Slice
                     break;
 
                 case TagFormat.OVSize:
-                    // A VSize where the size is optimized out. Used here for strings (and only strings) because we
-                    // cannot easily compute the number of UTF-8 bytes in a C# string before encoding it.
+                    // Used to encode string, and sequences of non optional elements with 1 byte min wire size,
+                    // in this case OVSize is always used to optimize out the size.
                     EncodeTaggedParamHeader(tag, TagFormat.VSize);
                     encodeAction(ref this, v);
                     break;
 
                 default:
                     throw new ArgumentException($"invalid value {tagFormat}", nameof(tagFormat));
-            }
-        }
-
-        /// <summary>Encodes a non-null Slice1 encoded tagged value. The number of bytes needed to encode the
-        /// value is known before encoding the value.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="tagFormat">The tag format.</param>
-        /// <param name="size">The number of bytes needed to encode the value.</param>
-        /// <param name="v">The value to encode.</param>
-        /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
-        /// <exception cref="ArgumentException">Thrown if <paramref name="tagFormat"/> is FSize.</exception>
-        public void EncodeTagged<T>(
-            int tag,
-            TagFormat tagFormat,
-            int size,
-            T v,
-            EncodeAction<T> encodeAction) where T : notnull
-        {
-            if (Encoding != SliceEncoding.Slice1)
-            {
-                throw new InvalidOperationException("tag formats can only be used with the Slice1 encoding");
-            }
-            if (tagFormat == TagFormat.FSize)
-            {
-                throw new ArgumentException($"invalid value {tagFormat}", nameof(tagFormat));
-            }
-            Debug.Assert(size > 0);
-
-            EncodeTaggedParamHeader(tag, tagFormat == TagFormat.OVSize ? TagFormat.VSize : tagFormat);
-
-            if (tagFormat == TagFormat.VSize)
-            {
-                EncodeSize(size);
-            }
-
-            int startPos = EncodedByteCount;
-            encodeAction(ref this, v);
-
-            int actualSize = EncodedByteCount - startPos;
-            if (actualSize != size)
-            {
-                throw new ArgumentException(
-                    $"value of size ({size}) does not match encoded size ({actualSize})",
-                    nameof(size));
             }
         }
 

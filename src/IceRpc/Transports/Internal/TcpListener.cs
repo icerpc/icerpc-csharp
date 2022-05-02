@@ -49,8 +49,6 @@ namespace IceRpc.Transports.Internal
             return default;
         }
 
-        public override string ToString() => Endpoint.ToString();
-
         internal TcpListener(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
