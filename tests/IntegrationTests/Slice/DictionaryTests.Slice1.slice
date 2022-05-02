@@ -6,6 +6,6 @@ module IceRpc::IntegrationTests::Slice1;
 
 interface DictionaryOperations
 {
-    op1(a: dictionary<bool, AnyClass>) -> dictionary<bool, AnyClass>;
-    op2(a: dictionary<bool, AnyClass?>) -> dictionary<bool, AnyClass?>;
+    op1(a: dictionary<int32, AnyClass>) -> dictionary<int32, AnyClass>;
+    op2(a: dictionary<int32, AnyClass?>) -> dictionary<int32, AnyClass?>;
 }
