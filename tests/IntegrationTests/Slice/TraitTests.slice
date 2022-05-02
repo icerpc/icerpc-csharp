@@ -4,6 +4,12 @@ module IceRpc::IntegrationTests;
 
 trait MyTrait;
 
+struct MyTraitStruct
+{
+    x: int32,
+    y: int32
+}
+
 struct MyStructWithTraitMember
 {
     a: MyTrait

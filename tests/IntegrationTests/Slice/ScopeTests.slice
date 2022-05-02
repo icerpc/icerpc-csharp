@@ -35,10 +35,6 @@ module IceRpc::IntegrationTests::Scope
         opS(p1: S) -> S;
         opSSeq(p1: SSeq) -> SSeq;
         opSMap(p1: SMap) -> SMap;
-
-        // Ensure that a type name can be used as a parameter name
-        opE1(E1: E1) -> E1;
-        opS1(S1: S1) -> S1;
     }
 
     typealias OperationsMap = dictionary<string, Operations>;

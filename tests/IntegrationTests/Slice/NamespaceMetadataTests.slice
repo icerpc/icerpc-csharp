@@ -47,7 +47,7 @@ module M0
     }
 }
 
-module IceRpc::Tests::Slice
+module IceRpc::IntegrationTests
 {
     interface NamespaceMDOperations
     {

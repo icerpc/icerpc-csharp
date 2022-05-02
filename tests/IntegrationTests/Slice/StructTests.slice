@@ -61,3 +61,10 @@ struct MyStructWithTaggedMembersA
     o: tag (4096) float64?,
     p: tag (8192) string?
 }
+
+interface StructOperations
+{
+    op1(p1: MyStructA) -> MyStructA;
+    op2(p1: MyStructWithOptionalMembersA) -> MyStructWithOptionalMembersA;
+    op3(p1: MyStructWithTaggedMembersA) -> MyStructWithTaggedMembersA;
+}
