@@ -243,7 +243,8 @@ await request.DecodeEmptyArgsAsync({encoding}, cancel).ConfigureAwait(false);
 
 return {decode_operation_stream}",
                 encoding = encoding,
-                decode_operation_stream = decode_operation_stream(stream_member, namespace, encoding, true, false)
+                decode_operation_stream =
+                    decode_operation_stream(stream_member, namespace, encoding, true, false)
             );
         } else {
             writeln!(
@@ -369,8 +370,11 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
     match parameters.as_slice() {
         [] => {
             // Verify the payload is indeed empty (it can contain tagged params that we have to skip).
-            writeln!(check_and_decode, "\
-await request.DecodeEmptyArgsAsync({}, cancel).ConfigureAwait(false);", encoding
+            writeln!(
+                check_and_decode,
+                "\
+await request.DecodeEmptyArgsAsync({}, cancel).ConfigureAwait(false);",
+                encoding
             );
         }
         [parameter] => {
@@ -458,7 +462,8 @@ return new IceRpc.OutgoingResponse(request)
         );
     }
 
-    format!("
+    format!(
+        "
 {check_and_decode}
 try
 {{
@@ -473,10 +478,11 @@ catch (RemoteException remoteException)
 
     return request.CreateServiceFailureResponse(remoteException, {encoding});
 }}",
-    check_and_decode = check_and_decode,
-    dispatch_and_return = dispatch_and_return.indent(),
-    encoding = encoding
-    ).into()
+        check_and_decode = check_and_decode,
+        dispatch_and_return = dispatch_and_return.indent(),
+        encoding = encoding
+    )
+    .into()
 }
 
 fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {

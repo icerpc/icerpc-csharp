@@ -33,7 +33,8 @@ fn validate_cs_attribute(attribute: &Attribute, error_reporter: &mut ErrorReport
     match attribute.arguments.len() {
         1 => (), // Expected 1 argument
         0 => error_reporter.report_error(
-            r#"missing required argument, expected 'cs::attribute("<attribute-value>")'"#.to_owned(),
+            r#"missing required argument, expected 'cs::attribute("<attribute-value>")'"#
+                .to_owned(),
             Some(&attribute.location),
         ),
         _ => error_reporter.report_error(
@@ -52,7 +53,7 @@ fn validate_cs_internal(attribute: &Attribute, error_reporter: &mut ErrorReporte
     }
 }
 
-fn validate_cs_encoded_result(attribute: &Attribute,  error_reporter: &mut ErrorReporter) {
+fn validate_cs_encoded_result(attribute: &Attribute, error_reporter: &mut ErrorReporter) {
     if !attribute.arguments.is_empty() {
         error_reporter.report_error(
             "too many arguments expected 'cs::encodedResult'".to_owned(),
@@ -89,7 +90,10 @@ fn validate_cs_type(attribute: &Attribute, error_reporter: &mut ErrorReporter) {
     }
 }
 
-fn validate_collection_attributes<T: Attributable>(attributable: &T, error_reporter: &mut ErrorReporter) {
+fn validate_collection_attributes<T: Attributable>(
+    attributable: &T,
+    error_reporter: &mut ErrorReporter,
+) {
     for attribute in &cs_attributes(attributable.attributes()) {
         match attribute.directive.as_ref() {
             "generic" => validate_cs_generic(attribute, error_reporter),
@@ -108,12 +112,17 @@ fn validate_common_attributes(attribute: &Attribute, error_reporter: &mut ErrorR
 
 fn validate_data_type_attributes(data_type: &TypeRef, error_reporter: &mut ErrorReporter) {
     match data_type.concrete_type() {
-        Types::Sequence(_) | Types::Dictionary(_) => validate_collection_attributes(data_type, error_reporter),
+        Types::Sequence(_) | Types::Dictionary(_) => {
+            validate_collection_attributes(data_type, error_reporter)
+        }
         _ => report_typeref_unexpected_attributes(data_type, error_reporter),
     }
 }
 
-fn report_typeref_unexpected_attributes<T: Attributable>(attributable: &T, error_reporter: &mut ErrorReporter) {
+fn report_typeref_unexpected_attributes<T: Attributable>(
+    attributable: &T,
+    error_reporter: &mut ErrorReporter,
+) {
     for attribute in &cs_attributes(attributable.attributes()) {
         report_unexpected_attribute(attribute, error_reporter);
     }

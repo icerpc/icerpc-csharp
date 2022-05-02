@@ -2,7 +2,7 @@
 
 use super::{EntityExt, ParameterExt, ParameterSliceExt};
 use slice::code_gen_util::TypeContext;
-use slice::grammar::{Attributable, Contained, ClassFormat, Operation};
+use slice::grammar::{Attributable, ClassFormat, Contained, Operation};
 
 pub trait OperationExt {
     /// Returns true if the operation has the `cs::encodedResult` attribute. False otherwise.

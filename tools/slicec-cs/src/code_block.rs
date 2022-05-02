@@ -37,7 +37,7 @@ impl CodeBlock {
     }
 
     pub fn indent(&mut self) -> &mut Self {
-        self.content = self.content.replace("\n", "\n    ");
+        self.content = self.content.replace('\n', "\n    ");
         self
     }
 

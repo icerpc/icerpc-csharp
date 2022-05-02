@@ -55,11 +55,17 @@ fn try_main() -> Result<(), Error> {
     let slice_options = &options.slice_options;
     let (_ast, mut error_reporter, slice_files) = slice::parse_from_options(slice_options)?;
 
-    let mut cs_validator = CsValidator{ error_reporter: &mut error_reporter };
+    let mut cs_validator = CsValidator {
+        error_reporter: &mut error_reporter,
+    };
     for slice_file in slice_files.values() {
         slice_file.visit_with(&mut cs_validator);
     }
-    slice::handle_errors(slice_options.warn_as_error, &slice_files, &mut error_reporter)?;
+    slice::handle_errors(
+        slice_options.warn_as_error,
+        &slice_files,
+        &mut error_reporter,
+    )?;
 
     if !slice_options.validate {
         for slice_file in slice_files.values().filter(|file| file.is_source) {
