@@ -71,11 +71,7 @@ namespace IceRpc.Transports.Internal
                 await _pipe.Writer.FlushAsync(cancel).ConfigureAwait(false);
                 _pipe.Reader.TryRead(out ReadResult readResult);
 
-                if (readResult.IsCanceled)
-                {
-                    throw new ObjectDisposedException($"{typeof(SimpleNetworkConnectionWriter)}");
-                }
-                Debug.Assert(!readResult.IsCompleted);
+                Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled);
 
                 consumed = readResult.Buffer.GetPosition(readResult.Buffer.Length);
                 AddToSendBuffers(readResult.Buffer);
@@ -88,13 +84,13 @@ namespace IceRpc.Transports.Internal
             try
             {
                 ValueTask task = _connection.WriteAsync(_sendBuffers, cancel);
-                if (task.IsCompleted)
+                if (cancel.CanBeCanceled && !task.IsCompleted)
                 {
-                    await task.ConfigureAwait(false);
+                    await task.AsTask().WaitAsync(cancel).ConfigureAwait(false);
                 }
                 else
                 {
-                    await task.AsTask().WaitAsync(cancel).ConfigureAwait(false);
+                    await task.ConfigureAwait(false);
                 }
             }
             finally

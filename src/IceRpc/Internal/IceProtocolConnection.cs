@@ -70,7 +70,7 @@ namespace IceRpc.Internal
         private readonly IcePayloadPipeWriter _payloadWriter;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly CancellationTokenSource _readCancelSource = new();
-        private readonly AsyncSemaphore _readSemaphore = new(1, 1);
+        private TaskCompletionSource? _readFramesTaskCompletionSource;
         private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
         /// <inheritdoc/>
@@ -78,9 +78,28 @@ namespace IceRpc.Internal
         {
             try
             {
-                bool shutdownByPeer = await ReadFramesAsync(
-                    connection,
-                    _readCancelSource.Token).ConfigureAwait(false);
+                lock (_mutex)
+                {
+                    if (_isAborted)
+                    {
+                        // The connection can only be aborted here if it has been disposed.
+                        throw new ObjectDisposedException($"{typeof(IceProtocolConnection)}");
+                    }
+
+                    _readFramesTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                }
+
+                bool shutdownByPeer;
+                try
+                {
+                    shutdownByPeer = await ReadFramesAsync(
+                        connection,
+                        _readCancelSource.Token).ConfigureAwait(false);
+                }
+                finally
+                {
+                    _readFramesTaskCompletionSource.SetResult();
+                }
 
                 await AbortAsync(new ConnectionClosedException(shutdownByPeer ?
                     "connection shutdown by peer" :
@@ -505,11 +524,14 @@ namespace IceRpc.Internal
             await _networkConnection.DisposeAsync().ConfigureAwait(false);
             _readCancelSource.Cancel();
 
-            // Wait for writes and the pending read to complete.
+            // Wait for writes and the pending read task to complete.
             await _writeSemaphore.CompleteAndWaitAsync(exception).ConfigureAwait(false);
-            await _readSemaphore.CompleteAndWaitAsync(exception).ConfigureAwait(false);
+            if (_readFramesTaskCompletionSource != null)
+            {
+                await _readFramesTaskCompletionSource.Task.ConfigureAwait(false);
+            }
 
-            // It's now safe to dispose of the reader/writer since no more threads are writting/reading data.
+            // It's now safe to dispose of the reader/writer since no more threads are writing/reading data.
             _networkConnectionReader.Dispose();
             _networkConnectionWriter.Dispose();
 
@@ -615,122 +637,114 @@ namespace IceRpc.Internal
                 throw new ArgumentException("the payload size is greater than int.MaxValue", nameof(payload));
         }
 
-        /// <summary>Receives incoming frames and returns on graceful connection shutdown.</summary>
+        /// <summary>Read incoming frames and returns on graceful connection shutdown.</summary>
         /// <param name="connection">The connection assigned to <see cref="IncomingFrame.Connection"/>.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns><c>true</c> if the connection was shutdown by the peer, <c>false</c> otherwise.</returns>
         private async ValueTask<bool> ReadFramesAsync(Connection connection, CancellationToken cancel)
         {
-            await _readSemaphore.EnterAsync(cancel).ConfigureAwait(false);
-            try
+            while (true)
             {
-                while (true)
+                ReadOnlySequence<byte> buffer;
+                try
                 {
-                    ReadOnlySequence<byte> buffer;
-                    try
+                    buffer = await _networkConnectionReader.ReadAtLeastAsync(
+                        IceDefinitions.PrologueSize,
+                        cancel).ConfigureAwait(false);
+                }
+                catch (ConnectionLostException) when (_isShutdown)
+                {
+                    // The peer closed the simple network connection after the writing the close connection frame.
+                    // Unblock ShutdownAsync and return since this indicates a successful graceful shutdown.
+                    _pendingClose.TrySetResult();
+                    return false;
+                }
+
+                // First decode and check the prologue.
+
+                ReadOnlySequence<byte> prologueBuffer = buffer.Slice(0, IceDefinitions.PrologueSize);
+
+                IcePrologue prologue = SliceEncoding.Slice1.DecodeBuffer(
+                    prologueBuffer,
+                    (ref SliceDecoder decoder) => new IcePrologue(ref decoder));
+
+                _networkConnectionReader.AdvanceTo(prologueBuffer.End);
+
+                IceDefinitions.CheckPrologue(prologue);
+                if (prologue.FrameSize > _options.MaxIncomingFrameSize)
+                {
+                    throw new InvalidDataException(
+                        $"incoming frame size ({prologue.FrameSize}) is greater than max incoming frame size");
+                }
+
+                if (prologue.CompressionStatus == 2)
+                {
+                    throw new NotSupportedException("cannot decompress Ice frame");
+                }
+
+                // Then process the frame based on its type.
+                switch (prologue.FrameType)
+                {
+                    case IceFrameType.CloseConnection:
                     {
-                        buffer = await _networkConnectionReader.ReadAtLeastAsync(
-                            IceDefinitions.PrologueSize,
-                            cancel).ConfigureAwait(false);
-                    }
-                    catch (ConnectionLostException) when (_isShutdown)
-                    {
-                        // The peer closed the simple network connection after the writing the close connection frame.
-                        // Unblock ShutdownAsync and return since this indicates a successful graceful shutdown.
-                        _pendingClose.TrySetResult();
-                        return false;
-                    }
-
-                    // First decode and check the prologue.
-
-                    ReadOnlySequence<byte> prologueBuffer = buffer.Slice(0, IceDefinitions.PrologueSize);
-
-                    IcePrologue prologue = SliceEncoding.Slice1.DecodeBuffer(
-                        prologueBuffer,
-                        (ref SliceDecoder decoder) => new IcePrologue(ref decoder));
-
-                    _networkConnectionReader.AdvanceTo(prologueBuffer.End);
-
-                    IceDefinitions.CheckPrologue(prologue);
-                    if (prologue.FrameSize > _options.MaxIncomingFrameSize)
-                    {
-                        throw new InvalidDataException(
-                            $"incoming frame size ({prologue.FrameSize}) is greater than max incoming frame size");
-                    }
-
-                    if (prologue.CompressionStatus == 2)
-                    {
-                        throw new NotSupportedException("cannot decompress Ice frame");
-                    }
-
-                    // Then process the frame based on its type.
-                    switch (prologue.FrameType)
-                    {
-                        case IceFrameType.CloseConnection:
-                        {
-                            if (prologue.FrameSize != IceDefinitions.PrologueSize)
-                            {
-                                throw new InvalidDataException(
-                                    $"unexpected data for {nameof(IceFrameType.CloseConnection)}");
-                            }
-
-                            lock (_mutex)
-                            {
-                                // If local shutdown is in progress, shutdown from peer prevails. The local shutdown
-                                // will return once the connection disposes this protocol connection.
-                                _isShuttingDown = true;
-                            }
-
-                            // Call the peer shutdown initiated callback.
-                            PeerShutdownInitiated?.Invoke("connection shutdown by peer");
-
-                            // The peer waits for the network connection to be closed.
-                            await _networkConnection.DisposeAsync().ConfigureAwait(false);
-                            return true;
-                        }
-
-                        case IceFrameType.Request:
-                            await ReadRequestAsync(prologue.FrameSize).ConfigureAwait(false);
-                            break;
-
-                        case IceFrameType.RequestBatch:
-                            // Read and ignore
-                            PipeReader batchRequestReader = await CreateFrameReaderAsync(
-                                prologue.FrameSize - IceDefinitions.PrologueSize,
-                                _networkConnectionReader,
-                                _memoryPool,
-                                _minimumSegmentSize,
-                                CancellationToken.None).ConfigureAwait(false);
-                            await batchRequestReader.CompleteAsync().ConfigureAwait(false);
-                            break;
-
-                        case IceFrameType.Reply:
-                            await ReadReplyAsync(prologue.FrameSize).ConfigureAwait(false);
-                            break;
-
-                        case IceFrameType.ValidateConnection:
-                        {
-                            // Notify the control stream of the reception of a Ping frame.
-                            if (prologue.FrameSize != IceDefinitions.PrologueSize)
-                            {
-                                throw new InvalidDataException(
-                                    $"unexpected data for {nameof(IceFrameType.ValidateConnection)}");
-                            }
-                            break;
-                        }
-
-                        default:
+                        if (prologue.FrameSize != IceDefinitions.PrologueSize)
                         {
                             throw new InvalidDataException(
-                                $"received Ice frame with unknown frame type '{prologue.FrameType}'");
+                                $"unexpected data for {nameof(IceFrameType.CloseConnection)}");
                         }
+
+                        lock (_mutex)
+                        {
+                            // If local shutdown is in progress, shutdown from peer prevails. The local shutdown
+                            // will return once the connection disposes this protocol connection.
+                            _isShuttingDown = true;
+                        }
+
+                        // Call the peer shutdown initiated callback.
+                        PeerShutdownInitiated?.Invoke("connection shutdown by peer");
+
+                        // The peer waits for the network connection to be closed.
+                        await _networkConnection.DisposeAsync().ConfigureAwait(false);
+                        return true;
                     }
-                } // while
-            }
-            finally
-            {
-                _readSemaphore.Release();
-            }
+
+                    case IceFrameType.Request:
+                        await ReadRequestAsync(prologue.FrameSize).ConfigureAwait(false);
+                        break;
+
+                    case IceFrameType.RequestBatch:
+                        // Read and ignore
+                        PipeReader batchRequestReader = await CreateFrameReaderAsync(
+                            prologue.FrameSize - IceDefinitions.PrologueSize,
+                            _networkConnectionReader,
+                            _memoryPool,
+                            _minimumSegmentSize,
+                            CancellationToken.None).ConfigureAwait(false);
+                        await batchRequestReader.CompleteAsync().ConfigureAwait(false);
+                        break;
+
+                    case IceFrameType.Reply:
+                        await ReadReplyAsync(prologue.FrameSize).ConfigureAwait(false);
+                        break;
+
+                    case IceFrameType.ValidateConnection:
+                    {
+                        // Notify the control stream of the reception of a Ping frame.
+                        if (prologue.FrameSize != IceDefinitions.PrologueSize)
+                        {
+                            throw new InvalidDataException(
+                                $"unexpected data for {nameof(IceFrameType.ValidateConnection)}");
+                        }
+                        break;
+                    }
+
+                    default:
+                    {
+                        throw new InvalidDataException(
+                            $"received Ice frame with unknown frame type '{prologue.FrameType}'");
+                    }
+                }
+            } // while
 
             async Task ReadReplyAsync(int replyFrameSize)
             {
