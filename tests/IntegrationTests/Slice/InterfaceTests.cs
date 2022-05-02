@@ -38,7 +38,26 @@ public class InterfaceTests
         public ValueTask<IMyInterfaceWithEncodedResult.Op1EncodedResult> Op1Async(Dispatch dispatch, CancellationToken cancel) =>
             new(new IMyInterfaceWithEncodedResult.Op1EncodedResult(10, 20));
         public ValueTask<IMyInterfaceWithEncodedResult.Op2EncodedResult> Op2Async(Dispatch dispatch, CancellationToken cancel) =>
-            new(new IMyInterfaceWithEncodedResult.Op2EncodedResult(new MyStructA()));
+            new(new IMyInterfaceWithEncodedResult.Op2EncodedResult(
+                new MyStructA
+                {
+                    A = true,
+                    B = 0,
+                    C = 1,
+                    D = 2,
+                    E = 3,
+                    F = 4,
+                    G = 5,
+                    H = 6,
+                    I = 7,
+                    J = 8,
+                    K = 9,
+                    L = 10,
+                    M = 11,
+                    N = 12,
+                    O = 13,
+                    P = "hello"
+                }));
     }
 
     [Test]
@@ -92,7 +111,26 @@ public class InterfaceTests
         var r1 = await prx.Op1Async();
         Assert.That(r1, Is.EqualTo((10, 20)));
 
+        var p2 = new MyStructA
+        {
+            A = true,
+            B = 0,
+            C = 1,
+            D = 2,
+            E = 3,
+            F = 4,
+            G = 5,
+            H = 6,
+            I = 7,
+            J = 8,
+            K = 9,
+            L = 10,
+            M = 11,
+            N = 12,
+            O = 13,
+            P = "hello"
+        };
         var r2 = await prx.Op2Async();
-        Assert.That(r2, Is.EqualTo(new MyStructA()));
+        Assert.That(r2, Is.EqualTo(p2));
     }
 }
