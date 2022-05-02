@@ -470,14 +470,6 @@ namespace IceRpc.Internal
                     DecodeHeader(readResult.Buffer);
                 stream.Input.AdvanceTo(readResult.Buffer.End);
 
-                RetryPolicy? retryPolicy = fields.DecodeValue(
-                    ResponseFieldKey.RetryPolicy,
-                    (ref SliceDecoder decoder) => new RetryPolicy(ref decoder));
-                if (retryPolicy != null)
-                {
-                    request.Features = request.Features.With(retryPolicy);
-                }
-
                 return new IncomingResponse(request, connection, fields, fieldsPipeReader)
                 {
                     Payload = stream.Input,
