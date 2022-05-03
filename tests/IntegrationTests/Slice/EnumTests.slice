@@ -1,3 +1,14 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-// TODO
+module IceRpc::IntegrationTests;
+
+enum MyEnumA : uint8 { One, Two, Three }
+unchecked enum MyEnumB : uint32 { Four, Five, Six }
+
+interface MyEnumOperations
+{
+    op1(p1: MyEnumA) -> MyEnumA;
+    op2(p1: MyEnumB) -> MyEnumB;
+    op3() -> MyEnumA;
+    op4(p1: stream MyEnumA) -> stream MyEnumA;
+}
