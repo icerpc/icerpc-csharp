@@ -1,0 +1,40 @@
+# Copyright (c) ZeroC, Inc. All rights reserved.
+
+# Needed for:
+# comment_width (https://github.com/rust-lang/rustfmt/issues/33459)
+# enum_discrim_align_threshold (https://github.com/rust-lang/rustfmt/issues/3372)
+# format_code_in_doc_comments (https://github.com/rust-lang/rustfmt/issues/3348)
+# format_macro_matchers (https://github.com/rust-lang/rustfmt/issues/3354)
+# license_template_path (https://github.com/rust-lang/rustfmt/issues/3352)
+# normalize_doc_attributes (https://github.com/rust-lang/rustfmt/issues/3351)
+# overflow_delimited_expression (https://github.com/rust-lang/rustfmt/issues/3370)
+# wrap_comments (https://github.com/rust-lang/rustfmt/issues/3347)
+unstable_features = true
+
+max_width = 100
+array_width = 90
+comment_width = 100
+fn_call_width = 60
+single_line_if_else_max_width = 60
+struct_lit_width = 70
+struct_variant_width = 40
+
+format_code_in_doc_comments = true
+format_macro_matchers = true
+
+license_template_path = ".rustfmt-license-template"
+
+merge_derives = true
+
+imports_granularity = "Module"
+
+wrap_comments = true
+normalize_comments = true
+normalize_doc_attributes = true
+
+overflow_delimited_expr = true
+
+use_field_init_shorthand = true
+use_try_shorthand = true
+
+reorder_impl_items = true

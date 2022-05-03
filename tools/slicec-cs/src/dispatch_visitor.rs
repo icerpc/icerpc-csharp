@@ -1,9 +1,10 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
 use crate::builders::{
     AttributeBuilder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType,
 };
 use crate::code_block::CodeBlock;
-use crate::comments::doc_comment_message;
-use crate::comments::operation_parameter_doc_comment;
+use crate::comments::{doc_comment_message, operation_parameter_doc_comment};
 use crate::cs_util::*;
 use crate::decoding::*;
 use crate::encoded_result::encoded_result_struct;
@@ -110,7 +111,8 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             FunctionType::ExpressionBody
         };
 
-        // We need the async/await for proper type inference when returning tuples with nullable elements like string?.
+        // We need the async/await for proper type inference when returning tuples with nullable
+        // elements like string?.
         let mut builder = FunctionBuilder::new(
             &format!("{} static async", access),
             &format!(
@@ -369,9 +371,13 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
 
     match parameters.as_slice() {
         [] => {
-            // Verify the payload is indeed empty (it can contain tagged params that we have to skip).
-            writeln!(check_and_decode, "\
-await request.DecodeEmptyArgsAsync({}, cancel).ConfigureAwait(false);", encoding
+            // Verify the payload is indeed empty (it can contain tagged params that we have to
+            // skip).
+            writeln!(
+                check_and_decode,
+                "\
+await request.DecodeEmptyArgsAsync({}, cancel).ConfigureAwait(false);",
+                encoding
             );
         }
         [parameter] => {
@@ -466,7 +472,8 @@ return new IceRpc.OutgoingResponse(request)
         }
     }
 
-    format!("
+    format!(
+        "
 {check_and_decode}
 try
 {{
@@ -481,10 +488,11 @@ catch (RemoteException remoteException)
 
     return request.CreateServiceFailureResponse(remoteException, {encoding});
 }}",
-    check_and_decode = check_and_decode,
-    dispatch_and_return = dispatch_and_return.indent(),
-    encoding = encoding
-    ).into()
+        check_and_decode = check_and_decode,
+        dispatch_and_return = dispatch_and_return.indent(),
+        encoding = encoding
+    )
+    .into()
 }
 
 // only called for non-void operations

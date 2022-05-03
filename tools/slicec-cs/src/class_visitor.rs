@@ -224,11 +224,7 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
             start_slice_args.push("_compactSliceTypeId");
         }
 
-        writeln!(
-            code,
-            "encoder.StartSlice({});",
-            start_slice_args.join(", ")
-        );
+        writeln!(code, "encoder.StartSlice({});", start_slice_args.join(", "));
 
         code.writeln(&encode_data_members(
             &members,
@@ -262,7 +258,7 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
             &members,
             namespace,
             true, // classes are Slice1 only, and always use tag formats
-            FieldType::Class
+            FieldType::Class,
         ));
         code.writeln("decoder.EndSlice();");
         if has_base_class {
