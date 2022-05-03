@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System.Buffers;
 using System.Collections.Immutable;
 
@@ -37,13 +38,44 @@ namespace IceRpc
         /// <value>The path of the target service. The default is <c>/</c>.</value>
         public string Path { get; init; } = "/";
 
+        /// <summary>Gets or sets the latest response to this request.</summary>
+        /// <remarks>Setting a response completes the previous response when there is one.</remarks>
+        internal OutgoingResponse? Response
+        {
+            get => _response;
+            set
+            {
+                if (_response != null)
+                {
+                    _response.Payload.Complete();
+                    _response.PayloadStream?.Complete();
+                }
+                _response = value;
+            }
+        }
+
         private readonly string _fragment = "";
+
+        private OutgoingResponse? _response;
 
         /// <summary>Constructs an incoming request.</summary>
         /// <param name="connection">The <see cref="Connection"/> that received the request.</param>
         public IncomingRequest(Connection connection)
             : base(connection)
         {
+        }
+
+        /// <summary>Completes the payload of this request, and the response associated with this request (if
+        /// any).</summary>
+        /// <param name="exception">The exception that caused this completion.</param>
+        public void Complete(Exception? exception = null)
+        {
+            Payload.Complete(exception);
+            if (_response != null)
+            {
+                _response.Payload.Complete(exception);
+                _response.PayloadStream?.Complete(exception);
+            }
         }
     }
 }

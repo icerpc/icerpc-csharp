@@ -66,19 +66,17 @@ namespace IceRpc
 
                     // At this point, response can be non-null and carry a failure for which we're retrying. If
                     // _next.InvokeAsync throws NoEndpointException, we return this previous failure.
-                    IncomingResponse? previousResponse = response;
                     try
                     {
                         response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
 
                         // TODO: release payload if releaseRequestAfterSent is true
 
-                        previousResponse?.Complete();
-
                         if (response.ResultType == ResultType.Success)
                         {
                             return response;
                         }
+                        // else response carries a failure and we may want to retry
 
                         // Extracts the retry policy from the fields and sets it in the features.
                         // TODO: do we really need to set in Features? Who is it for?
@@ -103,23 +101,16 @@ namespace IceRpc
                     {
                         // NoEndpointException is always considered non-retryable; it typically occurs because we
                         // removed all remaining usable endpoints through request.ExcludedEndpoints.
-                        return previousResponse ?? throw ExceptionUtil.Throw(exception ?? ex);
+                        return response ?? throw ExceptionUtil.Throw(exception ?? ex);
                     }
                     catch (OperationCanceledException)
                     {
-                        // Previous response is discarded so we make sure to complete its payload.
-                        previousResponse?.Complete();
                         // TODO: try other replica in some cases?
                         throw;
                     }
                     catch (Exception ex)
                     {
-                        // Previous response is discarded so we make sure to complete its payload.
-                        if (previousResponse != null)
-                        {
-                            previousResponse.Complete();
-                            response = null;
-                        }
+                        response = null;
                         exception = ex;
 
                         // ConnectionClosedException is a graceful connection closure that is always safe to retry.
@@ -181,15 +172,7 @@ namespace IceRpc
 
                         if (retryPolicy.Retryable == Retryable.AfterDelay && retryPolicy.Delay != TimeSpan.Zero)
                         {
-                            try
-                            {
-                                await Task.Delay(retryPolicy.Delay, cancel).ConfigureAwait(false);
-                            }
-                            catch
-                            {
-                                response?.Complete();
-                                throw;
-                            }
+                            await Task.Delay(retryPolicy.Delay, cancel).ConfigureAwait(false);
                         }
 
                         if (request.Connection != null &&

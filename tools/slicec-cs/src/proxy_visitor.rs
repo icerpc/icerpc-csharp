@@ -228,15 +228,12 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
     }
 
     // The payload argument
-    if parameters.is_empty() {
+    if operation.parameters.is_empty() {
+        invoke_args.push("payload: null".to_owned());
+    } else if parameters.is_empty() {
         invoke_args.push(format!(
-            "{encoding}.CreateEmptyPayload(hasStream: {has_stream})",
+            "{encoding}.CreateSizeZeroPayload()",
             encoding = encoding,
-            has_stream = if operation.parameters.is_empty() {
-                "false"
-            } else {
-                "true"
-            }
         ));
     } else {
         invoke_args.push(format!(
@@ -488,6 +485,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 
         builder.add_comment("summary", &format!(r#"The <see cref="ResponseDecodeFunc{{T}}"/> for the return value type of operation {}."#, operation.identifier()));
         builder.add_parameter("IceRpc.IncomingResponse", "response", None, None);
+        builder.add_parameter("IceRpc.OutgoingRequest", "request", None, None);
         builder.add_parameter(
             "global::System.Threading.CancellationToken",
             "cancel",
@@ -515,6 +513,7 @@ fn response_operation_body(operation: &Operation) -> CodeBlock {
                 code,
                 "\
 await response.DecodeVoidReturnValueAsync(
+    request,
     {encoding},
     _defaultActivator,
     cancel).ConfigureAwait(false);
@@ -530,6 +529,7 @@ return {decode_operation_stream}
                 code,
                 "\
 var {return_value} = await response.DecodeReturnValueAsync(
+    request,
     {encoding},
     _defaultActivator,
     {response_decode_func},
@@ -552,6 +552,7 @@ return {return_value_and_stream};
             code,
             "\
 await response.DecodeReturnValueAsync(
+    request,
     {encoding},
     _defaultActivator,
     {response_decode_func},

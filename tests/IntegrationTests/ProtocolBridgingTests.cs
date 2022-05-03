@@ -168,7 +168,9 @@ public sealed class ProtocolBridgingTests
             if (incomingRequest.Protocol != incomingResponse.Protocol &&
                 incomingResponse.ResultType == ResultType.Failure)
             {
-                RemoteException remoteException = await incomingResponse.DecodeFailureAsync(cancel: cancel);
+                RemoteException remoteException = await incomingResponse.DecodeFailureAsync(
+                    outgoingRequest,
+                    cancel: cancel);
                 remoteException.ConvertToUnhandled = false;
                 throw remoteException;
             }
