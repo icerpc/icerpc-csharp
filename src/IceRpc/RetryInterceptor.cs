@@ -78,24 +78,10 @@ namespace IceRpc
                         }
                         // else response carries a failure and we may want to retry
 
-                        // Extracts the retry policy from the fields and sets it in the features.
-                        // TODO: do we really need to set in Features? Who is it for?
-
+                        // Extracts the retry policy from the fields
                         retryPolicy = response.Fields.DecodeValue(
                             ResponseFieldKey.RetryPolicy,
                             (ref SliceDecoder decoder) => new RetryPolicy(ref decoder)) ?? RetryPolicy.NoRetry;
-
-                        if (retryPolicy == RetryPolicy.NoRetry)
-                        {
-                            if (!request.Features.IsReadOnly)
-                            {
-                                request.Features.Set<RetryPolicy>(null);
-                            }
-                        }
-                        else
-                        {
-                            request.Features = request.Features.With(retryPolicy);
-                        }
                     }
                     catch (NoEndpointException ex)
                     {
