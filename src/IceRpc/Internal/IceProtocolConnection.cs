@@ -1015,8 +1015,7 @@ namespace IceRpc.Internal
                     }
                     catch (Exception exception)
                     {
-                        completeException = exception;
-
+                        request.Complete(exception);
                         await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
 
                         // This is an unrecoverable failure, so we kill the connection.

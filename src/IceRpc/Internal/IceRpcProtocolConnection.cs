@@ -319,7 +319,6 @@ namespace IceRpc.Internal
                     return;
                 }
 
-                Exception? completeException = null;
                 try
                 {
                     EncodeHeader();
@@ -327,15 +326,12 @@ namespace IceRpc.Internal
                     // SendPayloadAsync takes care of the completion of the response payload, payload stream and stream
                     // output.
                     await SendPayloadAsync(response, stream, CancellationToken.None).ConfigureAwait(false);
+                    request.Complete();
                 }
                 catch (Exception exception)
                 {
-                    completeException = exception;
+                    request.Complete(exception);
                     await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
-                }
-                finally
-                {
-                    request.Complete(completeException);
                 }
 
                 void EncodeHeader()

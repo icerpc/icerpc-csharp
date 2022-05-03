@@ -63,9 +63,9 @@ namespace IceRpc
         }
 
         /// <summary>Completes the payload and releases the fields memory.</summary>
-        // Complete is internal because application code (including the Slice engine) must complete the outgoing request
-        // that owns this incoming response or create a different incoming response that completes the previous response
-        // held by this outgoing request.
+        /// <remarks>Complete is internal because application code (including the Slice engine) must complete the
+        /// outgoing request that owns this incoming response or create a different incoming response that completes the
+        /// previous response held by this outgoing request.</remarks>
         internal void Complete(Exception? exception = null)
         {
             Payload.Complete(exception);

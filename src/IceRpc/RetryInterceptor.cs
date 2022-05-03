@@ -62,7 +62,6 @@ namespace IceRpc
                 do
                 {
                     RetryPolicy retryPolicy = RetryPolicy.NoRetry;
-                    IncomingResponse? previousResponse = response;
 
                     // At this point, response can be non-null and carry a failure for which we're retrying. If
                     // _next.InvokeAsync throws NoEndpointException, we return this previous failure.
@@ -76,6 +75,7 @@ namespace IceRpc
                         {
                             return response;
                         }
+                        // else response carries a failure and we may want to retry
 
                         retryPolicy = request.Features.Get<RetryPolicy>() ?? RetryPolicy.NoRetry;
                     }
@@ -83,7 +83,7 @@ namespace IceRpc
                     {
                         // NoEndpointException is always considered non-retryable; it typically occurs because we
                         // removed all remaining usable endpoints through request.ExcludedEndpoints.
-                        return previousResponse ?? throw ExceptionUtil.Throw(exception ?? ex);
+                        return response ?? throw ExceptionUtil.Throw(exception ?? ex);
                     }
                     catch (OperationCanceledException)
                     {

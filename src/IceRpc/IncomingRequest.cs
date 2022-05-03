@@ -45,8 +45,11 @@ namespace IceRpc
             get => _response;
             set
             {
-                _response?.Payload.Complete();
-                _response?.PayloadStream?.Complete();
+                if (_response != null)
+                {
+                    _response.Payload.Complete();
+                    _response.PayloadStream?.Complete();
+                }
                 _response = value;
             }
         }
@@ -68,8 +71,11 @@ namespace IceRpc
         public void Complete(Exception? exception = null)
         {
             Payload.Complete(exception);
-            _response?.Payload.Complete(exception);
-            _response?.PayloadStream?.Complete(exception);
+            if (_response != null)
+            {
+                _response.Payload.Complete(exception);
+                _response.PayloadStream?.Complete(exception);
+            }
         }
     }
 }
