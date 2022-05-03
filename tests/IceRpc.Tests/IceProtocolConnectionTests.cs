@@ -183,6 +183,34 @@ public sealed class IceProtocolConnectionTests
         Assert.That(exception.ErrorCode, Is.EqualTo(errorCode));
     }
 
+    /// <summary>Verifies that with the ice protocol when we receive a ServiceNotFound failure using a proxy without
+    /// endpoints the response fields contains the <see cref="RetryPolicy.OtherReplica"/> retry policy field.</summary>
+    [Test]
+    public async Task ObjectNotExistException_response_with_an_idirect_proxy_contains_OtherReplica_RetryPolicy_field()
+    {
+        var dispatcher = new InlineDispatcher(
+            (request, cancel) => throw new DispatchException(errorCode: DispatchErrorCode.ServiceNotFound));
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(Protocol.Ice)
+            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .BuildServiceProvider();
+
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.Ice);
+        _ = sut.Client.AcceptRequestsAsync(InvalidConnection.Ice);
+        var proxy = new Proxy(Protocol.Ice);
+        var request = new OutgoingRequest(proxy);
+
+        // Act
+        var response = await sut.Client.InvokeAsync(request, InvalidConnection.Ice);
+
+        var retryPolicy = response.Fields.DecodeValue(
+                ResponseFieldKey.RetryPolicy,
+                (ref SliceDecoder decoder) => new RetryPolicy(ref decoder)) ?? RetryPolicy.NoRetry;
+        Assert.That(retryPolicy, Is.EqualTo(RetryPolicy.OtherReplica));
+    }
+
     /// <summary>Ensures that the request payload stream is completed even if the Ice protocol doesn't support
     /// it.</summary>
     [Test]
