@@ -268,6 +268,7 @@ namespace IceRpc.Internal
                         ResultType = ResultType.Failure
                     };
 
+                    // Encode the retry policy into the fields of the new response.
                     if (remoteException.RetryPolicy != RetryPolicy.NoRetry)
                     {
                         RetryPolicy retryPolicy = remoteException.RetryPolicy;
@@ -479,14 +480,6 @@ namespace IceRpc.Internal
                 (IceRpcResponseHeader header, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields, PipeReader? fieldsPipeReader) =
                     DecodeHeader(readResult.Buffer);
                 stream.Input.AdvanceTo(readResult.Buffer.End);
-
-                RetryPolicy? retryPolicy = fields.DecodeValue(
-                    ResponseFieldKey.RetryPolicy,
-                    (ref SliceDecoder decoder) => new RetryPolicy(ref decoder));
-                if (retryPolicy != null)
-                {
-                    request.Features = request.Features.With(retryPolicy);
-                }
 
                 return new IncomingResponse(request, connection, fields, fieldsPipeReader)
                 {

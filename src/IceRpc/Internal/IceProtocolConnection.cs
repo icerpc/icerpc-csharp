@@ -45,6 +45,15 @@ namespace IceRpc.Internal
                 [RequestFieldKey.Idempotent] = default
             }.ToImmutableDictionary();
 
+        private static readonly IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> _otherReplicaFields =
+            new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
+            {
+                [ResponseFieldKey.RetryPolicy] = new ReadOnlySequence<byte>(new byte[]
+                {
+                    (byte)Retryable.OtherReplica
+                })
+            }.ToImmutableDictionary();
+
         private readonly IDispatcher _dispatcher;
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -259,12 +268,12 @@ namespace IceRpc.Internal
                     }
 
                     // For compatibility with ZeroC Ice "indirect" proxies
-                    if (replyStatus == ReplyStatus.ObjectNotExistException && request.Proxy.Endpoint == null)
-                    {
-                        request.Features = request.Features.With(RetryPolicy.OtherReplica);
-                    }
+                    IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields =
+                        replyStatus == ReplyStatus.ObjectNotExistException && request.Proxy.Endpoint == null ?
+                        _otherReplicaFields :
+                        ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
 
-                    return new IncomingResponse(request, connection)
+                    return new IncomingResponse(request, connection, fields)
                     {
                         Payload = frameReader,
                         ResultType = replyStatus switch

@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using IceRpc.Features;
 using IceRpc.Internal;
+using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
@@ -77,7 +78,10 @@ namespace IceRpc
                         }
                         // else response carries a failure and we may want to retry
 
-                        retryPolicy = request.Features.Get<RetryPolicy>() ?? RetryPolicy.NoRetry;
+                        // Extracts the retry policy from the fields
+                        retryPolicy = response.Fields.DecodeValue(
+                            ResponseFieldKey.RetryPolicy,
+                            (ref SliceDecoder decoder) => new RetryPolicy(ref decoder)) ?? RetryPolicy.NoRetry;
                     }
                     catch (NoEndpointException ex)
                     {

@@ -49,6 +49,7 @@ namespace IceRpc.Slice
 
             if (response.Protocol.HasFields && remoteException.RetryPolicy != RetryPolicy.NoRetry)
             {
+                // Encode the retry policy into the fields of the new response.
                 RetryPolicy retryPolicy = remoteException.RetryPolicy;
                 response.Fields = response.Fields.With(
                     ResponseFieldKey.RetryPolicy,
