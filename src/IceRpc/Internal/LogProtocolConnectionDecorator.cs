@@ -33,6 +33,9 @@ namespace IceRpc.Internal
             await _decoratee.AcceptRequestsAsync(connection).ConfigureAwait(false);
         }
 
+        void IProtocolConnection.CancelPendingInvocationsAndDispatchesOnShutdown() =>
+            _decoratee.CancelPendingInvocationsAndDispatchesOnShutdown();
+
         async ValueTask IAsyncDisposable.DisposeAsync()
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
@@ -65,10 +68,7 @@ namespace IceRpc.Internal
             _logger.LogPing();
         }
 
-        async Task IProtocolConnection.ShutdownAsync(
-            string message,
-            CancellationToken cancelPendingInvocationsAndDispatches,
-            CancellationToken cancel)
+        async Task IProtocolConnection.ShutdownAsync(string message, CancellationToken cancel)
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             await _decoratee.ShutdownAsync(message, cancel).ConfigureAwait(false);

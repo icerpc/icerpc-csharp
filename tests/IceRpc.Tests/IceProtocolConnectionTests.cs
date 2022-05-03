@@ -264,14 +264,14 @@ public sealed class IceProtocolConnectionTests
         var clientAcceptTask = sut.Client.AcceptRequestsAsync(InvalidConnection.Ice);
         _ = sut.Server.AcceptRequestsAsync(InvalidConnection.Ice);
         sut.Server.PeerShutdownInitiated = message =>
-            sut.Server.ShutdownAsync("", cancelPendingInvocationsAndDispatches: default);
+            sut.Server.ShutdownAsync("");
         var invokeTask = sut.Client.InvokeAsync(
             new OutgoingRequest(new Proxy(Protocol.Ice)),
             InvalidConnection.Ice);
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
-        _ = sut.Client.ShutdownAsync("", cancelPendingInvocationsAndDispatches: default);
+        _ = sut.Client.ShutdownAsync("");
 
         // Assert
         Assert.That(async () => await invokeTask, Throws.TypeOf<OperationCanceledException>());

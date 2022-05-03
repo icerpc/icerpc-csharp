@@ -612,6 +612,10 @@ namespace IceRpc
             // is assigned before any synchronous continuations are ran.
             await Task.Yield();
 
+            // If shutdown is canceled, cancel the pending invocations and dispatches from the protocol connection to
+            // speed up shutdown.
+            cancel.Register(protocolConnection.CancelPendingInvocationsAndDispatchesOnShutdown);
+
             using var closeTimeoutCancellationSource = new CancellationTokenSource(_options.CloseTimeout);
             Exception exception;
             try
@@ -621,7 +625,6 @@ namespace IceRpc
                 // timeout.
                 await protocolConnection.ShutdownAsync(
                     message,
-                    cancelPendingInvocationsAndDispatches: cancel,
                     closeTimeoutCancellationSource.Token).ConfigureAwait(false);
 
                 // Close the connection.

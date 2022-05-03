@@ -73,16 +73,16 @@ public sealed class ProtocolConnectionTests
         Task serverAcceptRequestsTask = sut.Server.AcceptRequestsAsync(connection);
 
         // Act
-        _ = sut.Client.ShutdownAsync("", cancelPendingInvocationsAndDispatches: default);
-        _ = sut.Server.ShutdownAsync("", cancelPendingInvocationsAndDispatches: default);
+        _ = sut.Client.ShutdownAsync("");
+        _ = sut.Server.ShutdownAsync("");
 
         // Assert
         Assert.DoesNotThrowAsync(() => clientAcceptRequestsTask);
         Assert.DoesNotThrowAsync(() => serverAcceptRequestsTask);
     }
 
-    /// <summary>Verifies that if the shutdown pending invocations and dispatches cancellation token is canceled the
-    /// dispatches are canceled.</summary>
+    /// <summary>Verifies that if the pending invocations and dispatches are canceled on shutdown dispatches are
+    /// canceled.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
     public async Task Shutdown_dispatch_cancellation(Protocol protocol)
     {
@@ -111,19 +111,22 @@ public sealed class ProtocolConnectionTests
         sut.Client.PeerShutdownInitiated += (message) => sut.Client.ShutdownAsync("shutdown", default);
         var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
         await start.WaitAsync(); // Wait for the dispatch to start
+        Task shutdownTask = sut.Server.ShutdownAsync("");
 
         // Act
-        await sut.Server.ShutdownAsync(
-            "",
-            cancelPendingInvocationsAndDispatches: new CancellationToken(canceled: true));
+        sut.Server.CancelPendingInvocationsAndDispatchesOnShutdown();
 
         // Assert
-        Exception ex = Assert.CatchAsync(async () =>
+        Exception? ex = Assert.CatchAsync(async () =>
         {
             IncomingResponse response = await invokeTask;
             DecodeAndThrowException(response);
         });
-        Assert.That(ex, Is.TypeOf<OperationCanceledException>());
+        Assert.Multiple(() =>
+        {
+            Assert.That(ex!, Is.TypeOf<OperationCanceledException>());
+            Assert.That(async () => await shutdownTask, Throws.Nothing);
+        });
 
         // TODO should we raise OperationCanceledException directly from Ice, here with Ice we get a DispatchException
         // with DispatchErrorCode.Canceled and with IceRpc we get OperationCanceledException
@@ -173,10 +176,7 @@ public sealed class ProtocolConnectionTests
         using var cancellationTokenSource = new CancellationTokenSource(10);
 
         // Act
-        Task shutdownTask = sut.Server.ShutdownAsync(
-            "",
-            cancelPendingInvocationsAndDispatches: default,
-            cancel: cancellationTokenSource.Token);
+        Task shutdownTask = sut.Server.ShutdownAsync("", cancel: cancellationTokenSource.Token);
 
         // Assert
         Assert.CatchAsync<OperationCanceledException>(() => shutdownTask);
@@ -346,7 +346,7 @@ public sealed class ProtocolConnectionTests
         Connection connection = serviceProvider.GetInvalidConnection();
 
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Client.ShutdownAsync("", cancelPendingInvocationsAndDispatches: default);
+        _ = sut.Client.ShutdownAsync("");
 
         // Act
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(
@@ -441,7 +441,7 @@ public sealed class ProtocolConnectionTests
         await using var serviceProvider = new ProtocolServiceCollection().UseProtocol(protocol).BuildServiceProvider();
         Connection connection = serviceProvider.GetInvalidConnection();
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Client.ShutdownAsync("", cancelPendingInvocationsAndDispatches: default);
+        _ = sut.Client.ShutdownAsync("");
 
         var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var request = new OutgoingRequest(new Proxy(protocol))
@@ -693,11 +693,11 @@ public sealed class ProtocolConnectionTests
         connection2.PeerShutdownInitiated = message =>
         {
             shutdownInitiatedCalled.SetResult(message);
-            _ = connection2.ShutdownAsync("", cancelPendingInvocationsAndDispatches: default);
+            _ = connection2.ShutdownAsync("");
         };
 
         // Act
-        _ = connection1.ShutdownAsync("hello world", cancelPendingInvocationsAndDispatches: default);
+        _ = connection1.ShutdownAsync("hello world");
 
         // Assert
         string message = protocol == Protocol.Ice ? "connection shutdown by peer" : "hello world";
@@ -736,7 +736,7 @@ public sealed class ProtocolConnectionTests
 
         // Assert
         Assert.That(context, Is.Not.Null);
-        Assert.That(context["foo"], Is.EqualTo(expectedValue));
+        Assert.That(context!["foo"], Is.EqualTo(expectedValue));
     }
 
     /// <summary>Verifies that a connection will not accept further request after shutdown was called, and it will
@@ -763,22 +763,23 @@ public sealed class ProtocolConnectionTests
         Connection connection = serviceProvider.GetInvalidConnection();
 
         var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        sut.Client.PeerShutdownInitiated = message => _ = sut.Client.ShutdownAsync(
-            message,
-            cancelPendingInvocationsAndDispatches: default);
+        sut.Client.PeerShutdownInitiated = message => _ = sut.Client.ShutdownAsync(message);
         var invokeTask1 = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
         _ = sut.Client.AcceptRequestsAsync(connection);
         var serverAcceptTask = sut.Server.AcceptRequestsAsync(connection);
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
-        var shutdownTask = sut.Server.ShutdownAsync("", cancelPendingInvocationsAndDispatches: default);
+        var shutdownTask = sut.Server.ShutdownAsync("");
 
         // Assert
         var invokeTask2 = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
         hold.Release();
-        Assert.That(async () => await invokeTask1, Throws.Nothing);
-        Assert.That(async () => await invokeTask2, Throws.TypeOf<ConnectionClosedException>());
-        Assert.That(async () => await shutdownTask, Throws.Nothing);
+        Assert.Multiple(() =>
+        {
+            Assert.That(async () => await invokeTask1, Throws.Nothing);
+            Assert.That(async () => await invokeTask2, Throws.TypeOf<ConnectionClosedException>());
+            Assert.That(async () => await shutdownTask, Throws.Nothing);
+        });
     }
 }

@@ -47,21 +47,24 @@ public sealed class IceRpcProtocolConnectionTests
             .BuildServiceProvider();
 
         var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        sut.Server.PeerShutdownInitiated = message =>
-            _ = sut.Server.ShutdownAsync(message, cancelPendingInvocationsAndDispatches: default);
+        sut.Server.PeerShutdownInitiated = message => _ = sut.Server.ShutdownAsync(message);
         _ = sut.Client.AcceptRequestsAsync(InvalidConnection.IceRpc);
         var serverAcceptTask = sut.Server.AcceptRequestsAsync(InvalidConnection.IceRpc);
         var invokeTask = sut.Client.InvokeAsync(
             new OutgoingRequest(new Proxy(Protocol.IceRpc)),
             InvalidConnection.IceRpc);
         await start.WaitAsync(); // Wait for the dispatch to start
+        var shutdownTask = sut.Client.ShutdownAsync("");
 
         // Act
-        var shutdownTask = sut.Client.ShutdownAsync("", new CancellationToken(canceled: true));
+        sut.Client.CancelPendingInvocationsAndDispatchesOnShutdown();
 
         // Assert
-        Assert.That(async () => await invokeTask, Throws.TypeOf<OperationCanceledException>());
-        Assert.That(async () => await shutdownTask, Throws.Nothing);
+        Assert.Multiple(() =>
+        {
+            Assert.That(async () => await invokeTask, Throws.TypeOf<OperationCanceledException>());
+            Assert.That(async () => await shutdownTask, Throws.Nothing);
+        });
         hold.Release();
     }
 
@@ -282,7 +285,7 @@ public sealed class IceRpcProtocolConnectionTests
             .UseProtocol(Protocol.IceRpc)
             .BuildServiceProvider();
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Client.ShutdownAsync("", cancelPendingInvocationsAndDispatches: default);
+        _ = sut.Client.ShutdownAsync("");
 
         var payloadStreamDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
@@ -480,7 +483,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         sut.Server.PeerShutdownInitiated = message =>
-            _ = sut.Server.ShutdownAsync(message, cancelPendingInvocationsAndDispatches: default);
+            _ = sut.Server.ShutdownAsync(message);
         var invokeTask = sut.Client.InvokeAsync(
             new OutgoingRequest(new Proxy(Protocol.IceRpc)),
             InvalidConnection.IceRpc);
@@ -488,7 +491,7 @@ public sealed class IceRpcProtocolConnectionTests
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
-        var shutdownTask = sut.Client.ShutdownAsync("", cancelPendingInvocationsAndDispatches: default);
+        var shutdownTask = sut.Client.ShutdownAsync("");
 
         // Assert
         Assert.That(invokeTask.IsCompleted, Is.False);

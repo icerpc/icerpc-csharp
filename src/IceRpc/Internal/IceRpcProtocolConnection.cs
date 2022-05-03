@@ -41,6 +41,7 @@ namespace IceRpc.Internal
 
         private IMultiplexedStream? _controlStream;
         private readonly HashSet<CancellationTokenSource> _cancelDispatchSources = new();
+        private bool _cancelPendingInvocationsAndDispatchesOnShutdown;
         private readonly IDispatcher _dispatcher;
         private readonly TaskCompletionSource _streamsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -358,6 +359,22 @@ namespace IceRpc.Internal
             }
         }
 
+        public void CancelPendingInvocationsAndDispatchesOnShutdown()
+        {
+            lock (_mutex)
+            {
+                if (!_isShuttingDown)
+                {
+                    // If ShutdownAsync hasn't been called yet, we'll cancel pending invocations and dispatches when
+                    // ShutdownAsync is called.
+                    _cancelPendingInvocationsAndDispatchesOnShutdown = true;
+                    return;
+                }
+            }
+
+            CancelPendingInvocationsAndDispatches();
+        }
+
         public async ValueTask DisposeAsync()
         {
             if (_controlStream != null)
@@ -569,10 +586,7 @@ namespace IceRpc.Internal
         public Task PingAsync(CancellationToken cancel) =>
             SendControlFrameAsync(IceRpcControlFrameType.Ping, encodeAction: null, cancel).AsTask();
 
-        public async Task ShutdownAsync(
-            string message,
-            CancellationToken cancelPendingInvocationsAndDispatches,
-            CancellationToken cancel)
+        public async Task ShutdownAsync(string message, CancellationToken cancel)
         {
             IceRpcGoAway goAwayFrame;
             lock (_mutex)
@@ -586,7 +600,10 @@ namespace IceRpc.Internal
                 goAwayFrame = new(_lastRemoteBidirectionalStreamId, _lastRemoteUnidirectionalStreamId, message);
             }
 
-            cancelPendingInvocationsAndDispatches.Register(CancelPendingInvocationsAndDispatches);
+            if (_cancelPendingInvocationsAndDispatchesOnShutdown)
+            {
+                CancelPendingInvocationsAndDispatches();
+            }
 
             // Send GoAway frame.
             await SendControlFrameAsync(

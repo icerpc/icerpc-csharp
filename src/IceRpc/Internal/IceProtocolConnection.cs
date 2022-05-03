@@ -45,6 +45,7 @@ namespace IceRpc.Internal
                 [RequestFieldKey.Idempotent] = default
             }.ToImmutableDictionary();
 
+        private bool _cancelPendingDispatchesOnShutdown;
         private readonly IDispatcher _dispatcher;
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -108,6 +109,22 @@ namespace IceRpc.Internal
                 await AbortAsync(exception).ConfigureAwait(false);
                 throw;
             }
+        }
+
+        public void CancelPendingInvocationsAndDispatchesOnShutdown()
+        {
+            lock (_mutex)
+            {
+                if (!_isShuttingDown)
+                {
+                    // If ShutdownAsync hasn't been called yet, we'll cancel pending dispatches when ShutdownAsync is
+                    // called. ShutdownAsync always cancels pending invocations so there's no need to cancel them.
+                    _cancelPendingDispatchesOnShutdown = true;
+                    return;
+                }
+            }
+
+            CancelDispatches();
         }
 
         public ValueTask DisposeAsync() => AbortAsync(new ObjectDisposedException($"{typeof(IceProtocolConnection)}"));
@@ -353,10 +370,7 @@ namespace IceRpc.Internal
             }
         }
 
-        public async Task ShutdownAsync(
-            string message,
-            CancellationToken cancelPendingInvocationsAndDispatches,
-            CancellationToken cancel)
+        public async Task ShutdownAsync(string message, CancellationToken cancel)
         {
             bool alreadyShuttingDown = false;
             lock (_mutex)
@@ -381,7 +395,10 @@ namespace IceRpc.Internal
                 CancelInvocations(new OperationCanceledException(message));
 
                 // Just cancel dispatches, the invocations are already canceled.
-                cancelPendingInvocationsAndDispatches.Register(CancelDispatches);
+                if (_cancelPendingDispatchesOnShutdown)
+                {
+                    CancelDispatches();
+                }
 
                 // Wait for dispatches and invocations to complete.
                 await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);

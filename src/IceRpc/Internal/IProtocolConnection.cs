@@ -27,6 +27,11 @@ namespace IceRpc.Internal
         /// <param name="connection">The connection of incoming requests created by this method.</param>
         Task AcceptRequestsAsync(Connection connection);
 
+        /// <summary>Cancels pending invocations and dispatches if the connection is being shut down. If it's not being
+        /// shut down, the pending invocations and dispatches will be canceled when the connection is
+        /// shut down.</summary>
+        public void CancelPendingInvocationsAndDispatchesOnShutdown();
+
         /// <summary>Checks if the parameters of the provided endpoint are compatible with the network connection of
         /// this protocol connection. Compatible means a client could reuse the network connection instead of
         /// establishing a new network connection.</summary>
@@ -50,14 +55,9 @@ namespace IceRpc.Internal
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         Task PingAsync(CancellationToken cancel = default);
 
-        /// <summary>Shutdowns gracefully the connection.</summary>
+        /// <summary>Shuts down gracefully the connection.</summary>
         /// <param name="message">The reason of the connection shutdown.</param>
-        /// <param name="cancelPendingInvocationsAndDispatches">A cancellation token that receives cancellation requests
-        /// to cancel pending invocations and dispatches.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        Task ShutdownAsync(
-            string message,
-            CancellationToken cancelPendingInvocationsAndDispatches,
-            CancellationToken cancel = default);
+        Task ShutdownAsync(string message, CancellationToken cancel = default);
     }
 }
