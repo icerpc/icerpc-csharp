@@ -339,16 +339,11 @@ fn encode_tagged_type(
         }
     }
     if let Some(size) = size_parameter {
-        encode_tagged_args.push(format!(
-            "size: {}",
-            size
-        ));
+        encode_tagged_args.push(format!("size: {}", size));
     }
+    encode_tagged_args.push(if read_only_memory { value } else { unwrapped_name });
     encode_tagged_args.push(
-        if read_only_memory { value } else { unwrapped_name }
-    );
-    encode_tagged_args.push(
-        encode_action(&clone_as_non_optional(data_type), type_context, namespace).to_string()
+        encode_action(&clone_as_non_optional(data_type), type_context, namespace).to_string(),
     );
 
     writeln!(
@@ -359,10 +354,8 @@ if ({null_check})
     {encoder_param}.EncodeTagged({args});
 }}",
         null_check = null_check,
-        count_variable = count_value.map_or(
-            "".to_owned(),
-            |v| format!("\nint count_ = {}.Count();", v),
-        ),
+        count_variable =
+            count_value.map_or("".to_owned(), |v| format!("\nint count_ = {}.Count();", v),),
         encoder_param = encoder_param,
         args = encode_tagged_args.join(", ")
     );
@@ -633,7 +626,7 @@ fn encode_operation_parameters(
             name.as_str(),
             encoder_param,
             TypeContext::Encode,
-            operation.encoding == Encoding::Slice1, //tag formats are only used with Slice1
+            operation.encoding == Encoding::Slice1, // tag formats are only used with Slice1
         ));
     }
 

@@ -88,11 +88,14 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
 
         let mut decode_body_slice2 = decode_data_members(
             &members,
-            &namespace,
+            namespace,
             false, // this block is for Slice2, which never uses tag formats
-            FieldType::Exception
+            FieldType::Exception,
         );
-        writeln!(decode_body_slice2, "decoder.SkipTagged(useTagEndMarker: true);");
+        writeln!(
+            decode_body_slice2,
+            "decoder.SkipTagged(useTagEndMarker: true);"
+        );
 
         exception_class_builder.add_block(
             FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody)
@@ -116,7 +119,10 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
                 .build(),
         );
 
-        if exception_def.supported_encodings().supports(&Encoding::Slice2) {
+        if exception_def
+            .supported_encodings()
+            .supports(&Encoding::Slice2)
+        {
             exception_class_builder.add_block(encode_trait_method());
         }
 
@@ -149,7 +155,8 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
 
         exception_class_builder.add_block(encode_core_method(exception_def));
 
-        self.generated_code.insert_scoped(exception_def, exception_class_builder.build().into());
+        self.generated_code
+            .insert_scoped(exception_def, exception_class_builder.build().into());
     }
 }
 
@@ -160,7 +167,12 @@ fn encode_trait_method() -> CodeBlock {
         "EncodeTrait",
         FunctionType::BlockBody,
     )
-    .add_parameter("ref SliceEncoder", "encoder", None, Some("The Slice encoder."))
+    .add_parameter(
+        "ref SliceEncoder",
+        "encoder",
+        None,
+        Some("The Slice encoder."),
+    )
     .set_inherit_doc(true)
     .set_body(
         "\
@@ -197,12 +209,9 @@ encoder.EndSlice(lastSlice: {is_last_slice});
                 true, // this block is for Slice1, which always uses tag formats
             ),
             is_last_slice = !has_base,
-            encode_base = if has_base {
-                "base.EncodeCore(ref encoder);"
-            } else {
-                ""
-            },
-        ).into()
+            encode_base = if has_base { "base.EncodeCore(ref encoder);" } else { "" },
+        )
+        .into(),
     )
     .add_encoding_block(
         Encoding::Slice2,
@@ -217,7 +226,8 @@ encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);",
                 FieldType::Exception,
                 false, // this block is for Slice2, which never uses tag formats
             ),
-        ).into()
+        )
+        .into(),
     )
     .build();
 

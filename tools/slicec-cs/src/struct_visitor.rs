@@ -1,3 +1,5 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
 use crate::builders::{
     AttributeBuilder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType,
 };
@@ -96,7 +98,8 @@ impl<'a> Visitor for StructVisitor<'a> {
             let mut decode_body = decode_data_members(
                 &members,
                 &namespace,
-                false, // tags in structs are only supported by Slice2, which never uses tag formats
+                false, /* tags in structs are only supported by Slice2, which never uses tag
+                        * formats */
                 FieldType::NonMangled,
             );
             if !struct_def.is_compact {
@@ -126,7 +129,8 @@ impl<'a> Visitor for StructVisitor<'a> {
                 &members,
                 &namespace,
                 FieldType::NonMangled,
-                false, // tags in structs are only supported by Slice2, which never uses tag formats
+                false, /* tags in structs are only supported by Slice2, which never uses tag
+                        * formats */
             );
             if !struct_def.is_compact {
                 writeln!(

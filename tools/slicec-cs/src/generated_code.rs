@@ -1,3 +1,5 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
 use crate::code_block::CodeBlock;
 use std::collections::HashMap;
 
@@ -14,10 +16,7 @@ pub struct GeneratedCode {
 
 impl GeneratedCode {
     pub fn new() -> GeneratedCode {
-        GeneratedCode {
-            scoped_code_blocks: HashMap::new(),
-            code_blocks: Vec::new(),
-        }
+        GeneratedCode { scoped_code_blocks: HashMap::new(), code_blocks: Vec::new() }
     }
 
     pub fn insert_scoped(&mut self, symbol: &dyn ScopedSymbol, code: CodeBlock) {

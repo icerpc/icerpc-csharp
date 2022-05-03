@@ -1,9 +1,10 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
 use crate::builders::{
     AttributeBuilder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType,
 };
 use crate::code_block::CodeBlock;
-use crate::comments::doc_comment_message;
-use crate::comments::operation_parameter_doc_comment;
+use crate::comments::{doc_comment_message, operation_parameter_doc_comment};
 use crate::cs_util::*;
 use crate::decoding::*;
 use crate::encoded_result::encoded_result_struct;
@@ -110,7 +111,8 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             FunctionType::ExpressionBody
         };
 
-        // We need the async/await for proper type inference when returning tuples with nullable elements like string?.
+        // We need the async/await for proper type inference when returning tuples with nullable
+        // elements like string?.
         let mut builder = FunctionBuilder::new(
             &format!("{} static async", access),
             &format!(
@@ -243,7 +245,8 @@ await request.DecodeEmptyArgsAsync({encoding}, cancel).ConfigureAwait(false);
 
 return {decode_operation_stream}",
                 encoding = encoding,
-                decode_operation_stream = decode_operation_stream(stream_member, namespace, encoding, true, false)
+                decode_operation_stream =
+                    decode_operation_stream(stream_member, namespace, encoding, true, false)
             );
         } else {
             writeln!(
@@ -368,9 +371,13 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
 
     match parameters.as_slice() {
         [] => {
-            // Verify the payload is indeed empty (it can contain tagged params that we have to skip).
-            writeln!(check_and_decode, "\
-await request.DecodeEmptyArgsAsync({}, cancel).ConfigureAwait(false);", encoding
+            // Verify the payload is indeed empty (it can contain tagged params that we have to
+            // skip).
+            writeln!(
+                check_and_decode,
+                "\
+await request.DecodeEmptyArgsAsync({}, cancel).ConfigureAwait(false);",
+                encoding
             );
         }
         [parameter] => {
@@ -445,20 +452,28 @@ await request.DecodeEmptyArgsAsync({}, cancel).ConfigureAwait(false);", encoding
             args = args.join(", ")
         );
 
-        writeln!(
-            dispatch_and_return,
-            "\
+        if operation.return_type.is_empty() {
+            writeln!(
+                dispatch_and_return,
+                "return new IceRpc.OutgoingResponse(request);"
+            )
+        } else {
+            writeln!(
+                dispatch_and_return,
+                "\
 return new IceRpc.OutgoingResponse(request)
 {{
     Payload = {payload},
     PayloadStream = {payload_stream}
 }};",
-            payload = dispatch_return_payload(operation, encoding),
-            payload_stream = payload_stream(operation, encoding)
-        );
+                payload = dispatch_return_payload(operation, encoding),
+                payload_stream = payload_stream(operation, encoding)
+            );
+        }
     }
 
-    format!("
+    format!(
+        "
 {check_and_decode}
 try
 {{
@@ -473,12 +488,14 @@ catch (RemoteException remoteException)
 
     return request.CreateServiceFailureResponse(remoteException, {encoding});
 }}",
-    check_and_decode = check_and_decode,
-    dispatch_and_return = dispatch_and_return.indent(),
-    encoding = encoding
-    ).into()
+        check_and_decode = check_and_decode,
+        dispatch_and_return = dispatch_and_return.indent(),
+        encoding = encoding
+    )
+    .into()
 }
 
+// only called for non-void operations
 fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
     let non_streamed_return_values = operation.nonstreamed_return_members();
 
@@ -494,15 +511,7 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
     });
 
     match non_streamed_return_values.len() {
-        0 => format!(
-            "{encoding}.CreateEmptyPayload(hasStream: {has_stream})",
-            encoding = encoding,
-            has_stream = if operation.return_type.is_empty() {
-                "false"
-            } else {
-                "true"
-            }
-        ),
+        0 => format!("{encoding}.CreateSizeZeroPayload()", encoding = encoding),
         _ => format!(
             "Response.{operation_name}({args})",
             operation_name = operation.escape_identifier(),

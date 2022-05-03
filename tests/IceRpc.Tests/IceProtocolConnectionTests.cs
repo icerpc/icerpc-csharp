@@ -171,15 +171,14 @@ public sealed class IceProtocolConnectionTests
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Server.AcceptRequestsAsync(InvalidConnection.Ice);
         _ = sut.Client.AcceptRequestsAsync(InvalidConnection.Ice);
+        var request = new OutgoingRequest(new Proxy(Protocol.Ice));
 
         // Act
-        var response = await sut.Client.InvokeAsync(
-            new OutgoingRequest(new Proxy(Protocol.Ice)),
-            InvalidConnection.Ice);
+        var response = await sut.Client.InvokeAsync(request, InvalidConnection.Ice);
 
         // Assert
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
-        var exception = await response.DecodeFailureAsync() as DispatchException;
+        var exception = await response.DecodeFailureAsync(request) as DispatchException;
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception.ErrorCode, Is.EqualTo(errorCode));
     }

@@ -35,17 +35,17 @@ impl ModuleVisitor<'_> {
                 format!("{}.{}", prefix, module.identifier())
             }
             None => match module.get_attribute("cs::namespace", false) {
-                // If a top-level module has a 'cs::namespace' attribute, use its argument as module identifier
-                // otherwise use the module identifier.
+                // If a top-level module has a 'cs::namespace' attribute, use its argument as module
+                // identifier otherwise use the module identifier.
                 Some(attribute) if module.is_top_level() => attribute.first().unwrap().to_owned(),
                 _ => module.identifier().to_owned(),
             },
         };
 
         let code_blocks = self.generated_code.remove_scoped(module);
-        // If this module has any code blocks the submodules are mapped to namespaces inside the current
-        // namespace (not using a prefix), otherwise if the current module doesn't contain any code blocks
-        // we map the submodules with this module as a prefix.
+        // If this module has any code blocks the submodules are mapped to namespaces inside the
+        // current namespace (not using a prefix), otherwise if the current module doesn't
+        // contain any code blocks we map the submodules with this module as a prefix.
         let submodules_code: CodeBlock = module
             .submodules()
             .iter()

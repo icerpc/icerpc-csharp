@@ -88,15 +88,14 @@ public sealed class IceRpcProtocolConnectionTests
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Server.AcceptRequestsAsync(InvalidConnection.IceRpc);
         _ = sut.Client.AcceptRequestsAsync(InvalidConnection.IceRpc);
+        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
 
         // Act
-        var response = await sut.Client.InvokeAsync(
-            new OutgoingRequest(new Proxy(Protocol.IceRpc)),
-            InvalidConnection.IceRpc);
+        var response = await sut.Client.InvokeAsync(request, InvalidConnection.IceRpc);
 
         // Assert
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
-        var exception = await response.DecodeFailureAsync() as DispatchException;
+        var exception = await response.DecodeFailureAsync(request) as DispatchException;
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception.ErrorCode, Is.EqualTo(errorCode));
     }

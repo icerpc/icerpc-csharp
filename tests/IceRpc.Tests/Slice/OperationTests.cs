@@ -69,12 +69,13 @@ public class OperationTests
     [Test]
     public async Task Slice2_operation_decode_with_single_return()
     {
-        var response = new IncomingResponse(new OutgoingRequest(new Proxy(Protocol.IceRpc)), InvalidConnection.IceRpc)
+        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var response = new IncomingResponse(request, InvalidConnection.IceRpc)
         {
             Payload = Encode(10)
         };
 
-        int value = await MyOperationsPrx.Response.OpInt32Async(response, default);
+        int value = await MyOperationsPrx.Response.OpInt32Async(response, request, default);
 
         Assert.That(value, Is.EqualTo(10));
 
@@ -149,12 +150,13 @@ public class OperationTests
     [Test]
     public async Task Slice2_operation_decode_with_multiple_return()
     {
-        var response = new IncomingResponse(new OutgoingRequest(new Proxy(Protocol.IceRpc)), InvalidConnection.IceRpc)
+        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var response = new IncomingResponse(request, InvalidConnection.IceRpc)
         {
             Payload = Encode(10, "hello world!")
         };
 
-        (int r1, string r2) = await MyOperationsPrx.Response.OpInt32AndStringAsync(response, default);
+        (int r1, string r2) = await MyOperationsPrx.Response.OpInt32AndStringAsync(response, request, default);
 
         Assert.That(r1, Is.EqualTo(10));
         Assert.That(r2, Is.EqualTo("hello world!"));
@@ -310,12 +312,13 @@ public class OperationTests
     {
         const int p1 = 10;
         const string p2 = "hello world!";
-        var response = new IncomingResponse(new OutgoingRequest(new Proxy(Protocol.IceRpc)), InvalidConnection.IceRpc)
+        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var response = new IncomingResponse(request, InvalidConnection.IceRpc)
         {
             Payload = Encode(p1, p2, p3, p4)
         };
 
-        var value = await MyOperationsPrx.Response.OpOptionalAsync(response, default);
+        var value = await MyOperationsPrx.Response.OpOptionalAsync(response, request, default);
 
         Assert.That(value.R1, Is.EqualTo(p1));
         Assert.That(value.R2, Is.EqualTo(p2));
@@ -479,12 +482,13 @@ public class OperationTests
     {
         const int p1 = 10;
         const string p2 = "hello world!";
-        var response = new IncomingResponse(new OutgoingRequest(new Proxy(Protocol.IceRpc)), InvalidConnection.IceRpc)
+        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var response = new IncomingResponse(request, InvalidConnection.IceRpc)
         {
             Payload = Encode(p1, p2, p3, p4)
         };
 
-        var value = await MyOperationsPrx.Response.OpTaggedAsync(response, default);
+        var value = await MyOperationsPrx.Response.OpTaggedAsync(response, request, default);
 
         Assert.That(value.R1, Is.EqualTo(p1));
         Assert.That(value.R2, Is.EqualTo(p2));

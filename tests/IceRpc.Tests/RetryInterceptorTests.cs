@@ -3,6 +3,8 @@
 using IceRpc.Configure;
 using IceRpc.Features;
 using IceRpc.Internal;
+using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System.Buffers;
@@ -93,7 +95,6 @@ public sealed class RetryInterceptorTests
         var invoker = new InlineInvoker((request, cancel) =>
         {
             attempts++;
-            request.Features = new FeatureCollection().With(RetryPolicy.NoRetry);
             return Task.FromResult(new IncomingResponse(request, request.Connection!)
             {
                 ResultType = ResultType.Failure
@@ -119,15 +120,18 @@ public sealed class RetryInterceptorTests
     {
         // Arrange
         int attempts = 0;
-        RetryPolicy? retryPolicy = null;
-        bool isSent = true;
         var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var invoker = new InlineInvoker((request, cancel) =>
         {
             if (++attempts == 1)
             {
-                request.Features.With(RetryPolicy.Immediately);
-                return Task.FromResult(new IncomingResponse(request, request.Connection!)
+                return Task.FromResult(new IncomingResponse(
+                    request,
+                    request.Connection!,
+                    new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
+                    {
+                        [ResponseFieldKey.RetryPolicy] = EncodeRetryPolicy(RetryPolicy.Immediately)
+                    })
                 {
                     ResultType = ResultType.Failure,
                     Payload = payloadDecorator
@@ -135,8 +139,6 @@ public sealed class RetryInterceptorTests
             }
             else
             {
-                isSent = request.IsSent;
-                retryPolicy = request.Features.Get<RetryPolicy>();
                 return Task.FromResult(new IncomingResponse(request, request.Connection!));
             }
         });
@@ -163,8 +165,13 @@ public sealed class RetryInterceptorTests
         {
             if (++attempts == 1)
             {
-                request.Features = new FeatureCollection().With(RetryPolicy.AfterDelay(delay));
-                return Task.FromResult(new IncomingResponse(request, request.Connection!)
+                return Task.FromResult(new IncomingResponse(
+                    request,
+                    request.Connection!,
+                    new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
+                    {
+                        [ResponseFieldKey.RetryPolicy] = EncodeRetryPolicy(RetryPolicy.AfterDelay(delay))
+                    })
                 {
                     ResultType = ResultType.Failure
                 });
@@ -303,8 +310,13 @@ public sealed class RetryInterceptorTests
                 };
             }
 
-            request.Features = request.Features.With(RetryPolicy.OtherReplica);
-            return Task.FromResult(new IncomingResponse(request, request.Connection!)
+            return Task.FromResult(new IncomingResponse(
+                request,
+                request.Connection!,
+                new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
+                {
+                    [ResponseFieldKey.RetryPolicy] = EncodeRetryPolicy(RetryPolicy.OtherReplica)
+                })
             {
                 ResultType = ResultType.Failure
             });
@@ -330,19 +342,23 @@ public sealed class RetryInterceptorTests
     }
 
     [Test]
-    public async Task RetryPolicy_and_IsSent_property_are_reset_on_retry()
+    public async Task IsSent_property_is_reset_on_retry()
     {
         // Arrange
         int attempts = 0;
-        RetryPolicy? retryPolicy = null;
         bool isSent = true;
         var invoker = new InlineInvoker((request, cancel) =>
         {
             if (++attempts == 1)
             {
                 request.IsSent = true;
-                request.Features.With(RetryPolicy.Immediately);
-                return Task.FromResult(new IncomingResponse(request, request.Connection!)
+                return Task.FromResult(new IncomingResponse(
+                    request,
+                    request.Connection!,
+                    new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
+                    {
+                        [ResponseFieldKey.RetryPolicy] = EncodeRetryPolicy(RetryPolicy.Immediately)
+                    })
                 {
                     ResultType = ResultType.Failure,
                 });
@@ -350,7 +366,6 @@ public sealed class RetryInterceptorTests
             else
             {
                 isSent = request.IsSent;
-                retryPolicy = request.Features.Get<RetryPolicy>();
                 return Task.FromResult(new IncomingResponse(request, request.Connection!));
             }
         });
@@ -364,7 +379,14 @@ public sealed class RetryInterceptorTests
 
         // Assert
         Assert.That(attempts, Is.EqualTo(2));
-        Assert.That(retryPolicy, Is.Null);
         Assert.That(isSent, Is.False);
+    }
+
+    private static ReadOnlySequence<byte> EncodeRetryPolicy(RetryPolicy retryPolicy)
+    {
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        retryPolicy.Encode(ref encoder);
+        return new ReadOnlySequence<byte>(buffer.WrittenMemory);
     }
 }
