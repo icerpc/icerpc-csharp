@@ -12,9 +12,9 @@ namespace IceRpc.Slice
             {
                 string message = $"{nameof(DispatchException)} {{ ErrorCode = {ErrorCode} }}";
 
-                if (Origin is IncomingResponse response)
+                if (Origin is OutgoingRequest request)
                 {
-                    message += $" thrown by operation '{response.Request.Operation}' on '{response.Request.Proxy}'";
+                    message += $" thrown by operation '{request.Operation}' on '{request.Proxy}'";
                 }
                 if (InnerException != null)
                 {

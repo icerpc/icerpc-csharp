@@ -74,11 +74,12 @@ public sealed class InvokeAsyncTests
 
         await using var connection = new Connection(CreateConnectionOptions(server.Endpoint, colocTransport));
         var proxy = Proxy.FromConnection(connection, "/name");
+        var request = new OutgoingRequest(proxy);
 
         // Act
-        IncomingResponse response = await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy), default);
+        IncomingResponse response = await proxy.Invoker.InvokeAsync(request, default);
         byte[] responsePayload = (await response.Payload.ReadAllAsync(default)).Buffer.ToArray();
-        response.Complete();
+        request.Complete();
 
         // Assert
         Assert.Multiple(() =>

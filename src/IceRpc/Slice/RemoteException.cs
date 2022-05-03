@@ -15,7 +15,7 @@ namespace IceRpc.Slice
         public bool ConvertToUnhandled { get; set; }
 
         /// <summary>The remote exception origin.</summary>
-        public IncomingResponse? Origin { get; internal set; }
+        public OutgoingRequest? Origin { get; internal set; }
 
         /// <summary>The remote exception retry policy.</summary>
         public RetryPolicy RetryPolicy { get; } = RetryPolicy.NoRetry;

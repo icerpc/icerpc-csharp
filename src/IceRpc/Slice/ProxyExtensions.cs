@@ -8,10 +8,14 @@ namespace IceRpc.Slice
     /// <summary>A function that decodes the return value from a Slice-encoded response.</summary>
     /// <typeparam name="T">The type of the return value to read.</typeparam>
     /// <param name="response">The incoming response.</param>
+    /// <param name="request">The outgoing request.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>A value task that contains the return value or a <see cref="RemoteException"/> when the response
     /// carries a failure.</returns>
-    public delegate ValueTask<T> ResponseDecodeFunc<T>(IncomingResponse response, CancellationToken cancel);
+    public delegate ValueTask<T> ResponseDecodeFunc<T>(
+        IncomingResponse response,
+        OutgoingRequest request,
+        CancellationToken cancel);
 
     /// <summary>Provides extension methods for class Proxy.</summary>
     public static class ProxyExtensions
@@ -70,21 +74,30 @@ namespace IceRpc.Slice
                 ConfigureTimeout(ref invoker, invocation, request);
             }
 
-            // We perform as much work as possible in a non async method to throw exceptions synchronously.
-            return ReadResponseAsync(invoker.InvokeAsync(request, cancel));
-
-            async Task<T> ReadResponseAsync(Task<IncomingResponse> responseTask)
+            try
             {
-                IncomingResponse response = await responseTask.ConfigureAwait(false);
+                // We perform as much work as possible in a non async method to throw exceptions synchronously.
+                return ReadResponseAsync(invoker.InvokeAsync(request, cancel), request);
+            }
+            catch (Exception exception) // synchronous exception throws by InvokeAsync
+            {
+                request.Complete(exception);
+                throw;
+            }
+            // if the call succeeds, ReadResponseAsync is responsible for completing the request
 
+            async Task<T> ReadResponseAsync(Task<IncomingResponse> responseTask, OutgoingRequest request)
+            {
                 Exception? exception = null;
                 try
                 {
+                    IncomingResponse response = await responseTask.ConfigureAwait(false);
+
                     if (invocation != null)
                     {
-                        invocation.Features = response.Request.Features;
+                        invocation.Features = request.Features;
                     }
-                    return await responseDecodeFunc(response, cancel).ConfigureAwait(false);
+                    return await responseDecodeFunc(response, request, cancel).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -93,8 +106,7 @@ namespace IceRpc.Slice
                 }
                 finally
                 {
-                    // We always complete the response after decoding its payload.
-                    response.Complete(exception);
+                    request.Complete(exception);
                 }
             }
         }
@@ -145,22 +157,32 @@ namespace IceRpc.Slice
                 ConfigureTimeout(ref invoker, invocation, request);
             }
 
-            // We perform as much work as possible in a non async method to throw exceptions synchronously.
-            return ReadResponseAsync(invoker.InvokeAsync(request, cancel));
-
-            async Task ReadResponseAsync(Task<IncomingResponse> responseTask)
+            try
             {
-                IncomingResponse response = await responseTask.ConfigureAwait(false);
+                // We perform as much work as possible in a non async method to throw exceptions synchronously.
+                return ReadResponseAsync(invoker.InvokeAsync(request, cancel), request);
+            }
+            catch (Exception exception) // synchronous exception thrown by InvokeAsync
+            {
+                request.Complete(exception);
+                throw;
+            }
+            // if the call succeeds, ReadResponseAsync is responsible for completing the request
 
+            async Task ReadResponseAsync(Task<IncomingResponse> responseTask, OutgoingRequest request)
+            {
                 Exception? exception = null;
                 try
                 {
+                    IncomingResponse response = await responseTask.ConfigureAwait(false);
+
                     if (invocation != null)
                     {
-                        invocation.Features = response.Request.Features;
+                        invocation.Features = request.Features;
                     }
 
                     await response.DecodeVoidReturnValueAsync(
+                        request,
                         encoding,
                         defaultActivator,
                         cancel).ConfigureAwait(false);
@@ -172,8 +194,7 @@ namespace IceRpc.Slice
                 }
                 finally
                 {
-                    // We always complete the response after decoding its payload.
-                    response.Complete(exception);
+                    request.Complete(exception);
                 }
             }
         }
