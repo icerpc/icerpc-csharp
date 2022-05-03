@@ -183,30 +183,6 @@ public sealed class IceProtocolConnectionTests
         Assert.That(exception.ErrorCode, Is.EqualTo(errorCode));
     }
 
-    /// <summary>Ensures that the request payload stream is completed even if the Ice protocol doesn't support
-    /// it.</summary>
-    [Test]
-    public async Task PayloadStream_completed_on_request()
-    {
-        // Arrange
-        await using var serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(Protocol.Ice)
-            .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-
-        var payloadStreamDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
-        var request = new OutgoingRequest(new Proxy(Protocol.Ice))
-        {
-            PayloadStream = payloadStreamDecorator
-        };
-
-        // Act
-        _ = sut.Client.InvokeAsync(request, InvalidConnection.Ice);
-
-        // Assert
-        Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
-    }
-
     /// <summary>Ensures that the response payload stream is completed even if the Ice protocol doesn't support
     /// it.</summary>
     [Test]
