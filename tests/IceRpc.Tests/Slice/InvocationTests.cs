@@ -34,7 +34,7 @@ public class InvocationTests
         await proxy.InvokeAsync(
             "",
             SliceEncoding.Slice2,
-            EmptyPipeReader.Instance,
+            payload: null,
             payloadStream: null,
             defaultActivator: null,
             invocation);
@@ -65,7 +65,7 @@ public class InvocationTests
         await sut.InvokeAsync(
             "",
             SliceEncoding.Slice2,
-            EmptyPipeReader.Instance,
+            payload: null,
             payloadStream: null,
             defaultActivator: null,
             invocation,
@@ -99,7 +99,7 @@ public class InvocationTests
             () => sut.InvokeAsync(
                 "",
                 SliceEncoding.Slice2,
-                EmptyPipeReader.Instance,
+                payload: null,
                 payloadStream: null,
                 defaultActivator: null,
                 new Invocation { Timeout = TimeSpan.FromMilliseconds(20) }),
@@ -134,7 +134,7 @@ public class InvocationTests
         await sut.InvokeAsync(
             "",
             SliceEncoding.Slice2,
-            EmptyPipeReader.Instance,
+            payload: null,
             payloadStream: null,
             defaultActivator: null,
             new Invocation() { Timeout = invocationTimeout });
@@ -165,7 +165,7 @@ public class InvocationTests
         await sut.InvokeAsync(
             "",
             SliceEncoding.Slice2,
-            EmptyPipeReader.Instance,
+            payload: null,
             payloadStream: null,
             defaultActivator: null,
             new Invocation { Timeout = Timeout.InfiniteTimeSpan });
@@ -189,7 +189,7 @@ public class InvocationTests
             () => sut.InvokeAsync(
                 "",
                 SliceEncoding.Slice2,
-                EmptyPipeReader.Instance,
+                payload: null,
                 payloadStream: null,
                 defaultActivator: null,
                 new Invocation { Deadline = DateTime.Now + TimeSpan.FromSeconds(60) },
