@@ -36,6 +36,8 @@ public class InvokeAsyncTests
         // Assert
         Assert.Multiple(async () =>
         {
+            Assert.That(requestPayload.Completed.IsCompleted, Is.True);
+            Assert.That(responsePayload.Completed.IsCompleted, Is.True);
             Assert.That(await requestPayload.Completed, Is.Null);
             Assert.That(await responsePayload.Completed, Is.Null);
         });
@@ -67,6 +69,8 @@ public class InvokeAsyncTests
                     invocation: null),
                 Throws.InstanceOf<InvalidDataException>());
 
+            Assert.That(requestPayload.Completed.IsCompleted, Is.True);
+            Assert.That(requestPayloadStream.Completed.IsCompleted, Is.True);
             Assert.That(await requestPayload.Completed, Is.TypeOf<InvalidDataException>());
             Assert.That(await requestPayloadStream.Completed, Is.TypeOf<InvalidDataException>());
         });
