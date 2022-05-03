@@ -11,7 +11,4 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("IceRpc.Interop.Tests")]
 [assembly: InternalsVisibleTo("IceRpc.Conformance.Tests")]
 [assembly: InternalsVisibleTo("IceRpc.Tests.Common")]
-
-// TODO: remove the attributes below after finish restructuring the tests
-[assembly: InternalsVisibleTo("IceRpc.Tests.Internal")]
-[assembly: InternalsVisibleTo("IceRpc.Tests.SliceInternal")]
+[assembly: InternalsVisibleTo("IntegrationTests")]

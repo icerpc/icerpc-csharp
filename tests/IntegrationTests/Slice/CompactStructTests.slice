@@ -4,40 +4,19 @@ module IceRpc::IntegrationTests;
 
 compact struct MyCompactStructA
 {
-    a: bool,
-    b: int8,
-    c: uint8,
-    d: int16,
-    e: uint16,
-    f: int32,
-    g: uint32,
-    h: varint32,
-    i: varuint32,
-    j: int64,
-    k: uint64,
-    l: varint62,
-    m: varuint62,
-    n: float32,
-    o: float64,
-    p: string
+    a: int32,
+    b: string
 }
 
-compact struct MyCompactStructWithOptionalsA
+compact struct MyCompactStructB
 {
-    a: bool?,
-    b: int8?,
-    c: uint8?,
-    d: int16?,
-    e: uint16?,
-    f: int32?,
-    g: uint32?,
-    h: varint32?,
-    i: varuint32?,
-    j: int64?,
-    k: uint64?,
-    l: varint62?,
-    m: varuint62?,
-    n: float32?,
-    o: float64?,
-    p: string?
+    a: MyCompactStructA,
+    b: MyCompactStructA?,
+    c: string?
+}
+
+interface CompactStructOperations
+{
+    op1(p1: MyCompactStructA, p2: MyCompactStructB) -> (r1: MyCompactStructA, r2: MyCompactStructB);
+    op2(p1: stream MyCompactStructB) -> stream MyCompactStructB;
 }
