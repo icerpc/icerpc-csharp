@@ -12,9 +12,6 @@ namespace IceRpc
         /// <summary>Gets the fields of this incoming response.</summary>
         public IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> Fields { get; private set; }
 
-        /// <summary>The request that received this response.</summary>
-        public OutgoingRequest Request { get; }
-
         /// <summary>Gets or initializes the <see cref="IceRpc.ResultType"/> of this response.</summary>
         /// <value>The result type of the response. The default value is <see cref="ResultType.Success"/>.</value>
         public ResultType ResultType { get; init; } = ResultType.Success;
@@ -47,14 +44,6 @@ namespace IceRpc
         {
         }
 
-        /// <summary>Completes the payload and releases the fields memory.</summary>
-        public void Complete(Exception? exception = null)
-        {
-            Payload.Complete(exception);
-            _fieldsPipeReader?.Complete(exception);
-            Fields = ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
-        }
-
         /// <summary>Constructs an incoming response with a pipe reader holding the memory for the fields.</summary>
         /// <param name="request">The corresponding outgoing request.</param>
         /// <param name="connection">The <see cref="Connection"/> that received the response.</param>
@@ -68,9 +57,20 @@ namespace IceRpc
             PipeReader? fieldsPipeReader)
             : base(connection)
         {
-            Request = request;
             Fields = fields;
             _fieldsPipeReader = fieldsPipeReader;
+            request.Response = this;
+        }
+
+        /// <summary>Completes the payload and releases the fields memory.</summary>
+        /// <remarks>Complete is internal because application code (including the Slice engine) must complete the
+        /// outgoing request that owns this incoming response or create a different incoming response that completes the
+        /// previous response held by this outgoing request.</remarks>
+        internal void Complete(Exception? exception = null)
+        {
+            Payload.Complete(exception);
+            _fieldsPipeReader?.Complete(exception);
+            Fields = ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
         }
     }
 }

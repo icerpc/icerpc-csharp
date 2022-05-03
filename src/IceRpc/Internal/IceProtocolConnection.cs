@@ -176,12 +176,14 @@ namespace IceRpc.Internal
                         "payload writer cancellation or completion is not supported with the ice protocol");
                 }
 
-                await request.CompleteAsync().ConfigureAwait(false);
+                await request.Payload.CompleteAsync().ConfigureAwait(false);
                 await payloadWriter.CompleteAsync().ConfigureAwait(false);
             }
             catch (Exception exception)
             {
-                await request.CompleteAsync(exception).ConfigureAwait(false);
+                // TODO: since the caller must complete the request, is it necessary/desirable to complete the request
+                // early here? Some of our Slice-free unit tests currently rely on this behavior.
+                request.Complete(exception);
                 await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
                 throw;
             }
@@ -887,6 +889,12 @@ namespace IceRpc.Internal
                         response = await _dispatcher.DispatchAsync(
                             request,
                             cancelDispatchSource.Token).ConfigureAwait(false);
+
+                        if (response != request.Response)
+                        {
+                            throw new InvalidOperationException(
+                                "the dispatcher did not return the last response created for this request");
+                        }
                     }
                     catch (Exception exception)
                     {
@@ -939,6 +947,7 @@ namespace IceRpc.Internal
                     PipeWriter payloadWriter = _payloadWriter;
                     bool acquiredSemaphore = false;
 
+                    Exception? completeException = null;
                     try
                     {
                         if (response.PayloadStream != null)
@@ -948,7 +957,6 @@ namespace IceRpc.Internal
 
                         if (request.IsOneway)
                         {
-                            await response.CompleteAsync().ConfigureAwait(false);
                             return;
                         }
 
@@ -1003,12 +1011,11 @@ namespace IceRpc.Internal
                                 "payload writer cancellation or completion is not supported with the ice protocol");
                         }
 
-                        await response.CompleteAsync().ConfigureAwait(false);
                         await payloadWriter.CompleteAsync().ConfigureAwait(false);
                     }
                     catch (Exception exception)
                     {
-                        await response.CompleteAsync(exception).ConfigureAwait(false);
+                        request.Complete(exception);
                         await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
 
                         // This is an unrecoverable failure, so we kill the connection.
@@ -1016,6 +1023,8 @@ namespace IceRpc.Internal
                     }
                     finally
                     {
+                        request.Complete(completeException);
+
                         if (acquiredSemaphore)
                         {
                             _writeSemaphore.Release();

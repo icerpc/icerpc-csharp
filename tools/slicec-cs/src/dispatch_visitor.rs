@@ -452,17 +452,24 @@ await request.DecodeEmptyArgsAsync({}, cancel).ConfigureAwait(false);",
             args = args.join(", ")
         );
 
-        writeln!(
-            dispatch_and_return,
-            "\
+        if operation.return_type.is_empty() {
+            writeln!(
+                dispatch_and_return,
+                "return new IceRpc.OutgoingResponse(request);"
+            )
+        } else {
+            writeln!(
+                dispatch_and_return,
+                "\
 return new IceRpc.OutgoingResponse(request)
 {{
     Payload = {payload},
     PayloadStream = {payload_stream}
 }};",
-            payload = dispatch_return_payload(operation, encoding),
-            payload_stream = payload_stream(operation, encoding)
-        );
+                payload = dispatch_return_payload(operation, encoding),
+                payload_stream = payload_stream(operation, encoding)
+            );
+        }
     }
 
     format!(
@@ -488,6 +495,7 @@ catch (RemoteException remoteException)
     .into()
 }
 
+// only called for non-void operations
 fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
     let non_streamed_return_values = operation.nonstreamed_return_members();
 
@@ -503,15 +511,7 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
     });
 
     match non_streamed_return_values.len() {
-        0 => format!(
-            "{encoding}.CreateEmptyPayload(hasStream: {has_stream})",
-            encoding = encoding,
-            has_stream = if operation.return_type.is_empty() {
-                "false"
-            } else {
-                "true"
-            }
-        ),
+        0 => format!("{encoding}.CreateSizeZeroPayload()", encoding = encoding),
         _ => format!(
             "Response.{operation_name}({args})",
             operation_name = operation.escape_identifier(),
