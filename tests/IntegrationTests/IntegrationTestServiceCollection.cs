@@ -17,7 +17,17 @@ public class IntegrationTestServiceCollection : ServiceCollection
 
         this.UseSlic();
 
-        this.AddScoped(provider => new ConnectionPool(provider.GetService<ConnectionOptions>() ?? new ConnectionOptions()));
+        this.AddScoped(provider => new ConnectionOptions
+        {
+            SimpleClientTransport = provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
+            MultiplexedClientTransport =
+                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
+            Dispatcher = provider.GetService<IDispatcher>() ?? ConnectionOptions.DefaultDispatcher,
+            RemoteEndpoint = provider.GetService<Server>()?.Endpoint,
+            LoggerFactory = provider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance,
+        });
+
+        this.AddScoped(provider => new ConnectionPool(provider.GetRequiredService<ConnectionOptions>()));
 
         this.AddScoped(provider =>
         {
@@ -33,16 +43,6 @@ public class IntegrationTestServiceCollection : ServiceCollection
             return server;
         });
 
-        this.AddScoped(provider =>
-        {
-            var connectionOptions = provider.GetService<ConnectionOptions>() ?? new ConnectionOptions();
-            connectionOptions.SimpleClientTransport = provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>();
-            connectionOptions.MultiplexedClientTransport =
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
-            connectionOptions.Dispatcher ??= provider.GetRequiredService<IDispatcher>();
-            connectionOptions.RemoteEndpoint = provider.GetRequiredService<Server>().Endpoint;
-            connectionOptions.LoggerFactory = provider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;
-            return new Connection(connectionOptions);
-        });
+        this.AddScoped(provider => new Connection(provider.GetRequiredService<ConnectionOptions>()));
     }
 }
