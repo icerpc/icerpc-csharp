@@ -188,6 +188,7 @@ public sealed class IceProtocolConnectionTests
     [Test]
     public async Task ObjectNotExistException_response_with_an_idirect_proxy_contains_OtherReplica_RetryPolicy_field()
     {
+        // Arrange
         var dispatcher = new InlineDispatcher(
             (request, cancel) => throw new DispatchException(errorCode: DispatchErrorCode.ServiceNotFound));
 
@@ -205,6 +206,7 @@ public sealed class IceProtocolConnectionTests
         // Act
         var response = await sut.Client.InvokeAsync(request, InvalidConnection.Ice);
 
+        // Assert
         var retryPolicy = response.Fields.DecodeValue(
                 ResponseFieldKey.RetryPolicy,
                 (ref SliceDecoder decoder) => new RetryPolicy(ref decoder)) ?? RetryPolicy.NoRetry;
