@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System.Collections.Immutable;
 using System.IO.Pipelines;
 
@@ -29,7 +30,7 @@ namespace IceRpc.Slice
         /// <summary>Sends a request to a service and decodes the response.</summary>
         /// <param name="proxy">A proxy for the remote service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
-        /// <param name="payload">The payload of the request.</param>
+        /// <param name="payload">The payload of the request. <c>null</c> is equivalent to an empty payload.</param>
         /// <param name="payloadStream">The optional payload stream of the request.</param>
         /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws a
         /// <see cref="RemoteException"/> when the response payload contains a failure.</param>
@@ -43,7 +44,7 @@ namespace IceRpc.Slice
         public static Task<T> InvokeAsync<T>(
             this Proxy proxy,
             string operation,
-            PipeReader payload,
+            PipeReader? payload,
             PipeReader? payloadStream,
             ResponseDecodeFunc<T> responseDecodeFunc,
             Invocation? invocation,
@@ -57,13 +58,20 @@ namespace IceRpc.Slice
                     nameof(invocation));
             }
 
+            if (payload == null && payloadStream != null)
+            {
+                throw new ArgumentNullException(
+                    nameof(payload),
+                    $"when {nameof(payloadStream)} is not null, {nameof(payload)} cannot be null");
+            }
+
             var request = new OutgoingRequest(proxy)
             {
                 Features = invocation?.Features ?? FeatureCollection.Empty,
                 Fields = idempotent ?
                     _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
                 Operation = operation,
-                Payload = payload,
+                Payload = payload ?? EmptyPipeReader.Instance,
                 PayloadStream = payloadStream
             };
 
@@ -115,7 +123,7 @@ namespace IceRpc.Slice
         /// <param name="proxy">A proxy for the remote service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="encoding">The encoding of the request payload.</param>
-        /// <param name="payload">The payload of the request.</param>
+        /// <param name="payload">The payload of the request. <c>null</c> is equivalent to an empty payload.</param>
         /// <param name="payloadStream">The payload stream of the request.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
         /// <param name="invocation">The invocation properties.</param>
@@ -131,7 +139,7 @@ namespace IceRpc.Slice
             this Proxy proxy,
             string operation,
             SliceEncoding encoding,
-            PipeReader payload,
+            PipeReader? payload,
             PipeReader? payloadStream,
             IActivator? defaultActivator,
             Invocation? invocation,
@@ -139,6 +147,13 @@ namespace IceRpc.Slice
             bool oneway = false,
             CancellationToken cancel = default)
         {
+            if (payload == null && payloadStream != null)
+            {
+                throw new ArgumentNullException(
+                    nameof(payload),
+                    $"when {nameof(payloadStream)} is not null, {nameof(payload)} cannot be null");
+            }
+
             var request = new OutgoingRequest(proxy)
             {
                 Features = invocation?.Features ?? FeatureCollection.Empty,
@@ -146,7 +161,7 @@ namespace IceRpc.Slice
                     _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
                 IsOneway = oneway || (invocation?.IsOneway ?? false),
                 Operation = operation,
-                Payload = payload,
+                Payload = payload ?? EmptyPipeReader.Instance,
                 PayloadStream = payloadStream
             };
 

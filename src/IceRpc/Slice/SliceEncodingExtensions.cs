@@ -9,22 +9,20 @@ namespace IceRpc.Slice
     /// <summary>Extension methods for <see cref="SliceEncoding"/>.</summary>
     public static class SliceEncodingExtensions
     {
-        private static readonly ReadOnlySequence<byte> _payloadWithZeroSize = new(new byte[] { 0 });
+        private static readonly ReadOnlySequence<byte> _sizeZeroPayload = new(new byte[] { 0 });
 
-        /// <summary>Creates an empty payload encoded with this encoding.</summary>
+        /// <summary>Creates a non-empty payload with size 0.</summary>
         /// <param name="encoding">The Slice encoding.</param>
-        /// <param name="hasStream">When true, the Slice operation includes a stream in addition to the empty parameters
-        /// or void return.</param>
-        /// <returns>A new empty payload.</returns>
-        public static PipeReader CreateEmptyPayload(this SliceEncoding encoding, bool hasStream = false)
+        /// <returns>A non-empty payload with size 0.</returns>
+        public static PipeReader CreateSizeZeroPayload(this SliceEncoding encoding)
         {
-            if (hasStream && encoding == SliceEncoding.Slice1)
+            if (encoding == SliceEncoding.Slice1)
             {
-                throw new ArgumentException(
-                    $"{nameof(hasStream)} must be false when encoding is Slice1", nameof(hasStream));
-            }
+                throw new NotSupportedException(
+                    $"{nameof(CreateSizeZeroPayload)} is only available for stream-capable Slice encodings");
 
-            return hasStream ? PipeReader.Create(_payloadWithZeroSize) : EmptyPipeReader.Instance;
+            }
+            return PipeReader.Create(_sizeZeroPayload);
         }
 
         /// <summary>Creates a payload stream from an async enumerable.</summary>
