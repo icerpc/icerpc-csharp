@@ -172,7 +172,7 @@ namespace IceRpc
                     Fields = _options.Fields,
                     IceProtocolOptions = _options.IceProtocolOptions,
                     KeepAlive = _options.KeepAlive,
-                    OnClose = onClose + _options.OnClose,
+                    OnClose = RemoveOnClose + _options.OnClose,
                     OnConnect = _options.OnConnect,
                 };
 
@@ -213,20 +213,6 @@ namespace IceRpc
                         }
 
                         _ = _connections.Add(connection);
-
-                        // Set the callback used to remove the connection from _connections. This can throw if the
-                        // connection is closed but it's not possible here since we've just constructed the
-                        // connection.
-                        onClose = (connection, _) =>
-                        {
-                            lock (_mutex)
-                            {
-                                if (_shutdownTask == null)
-                                {
-                                    _connections.Remove(connection);
-                                }
-                            }
-                        };
                     }
 
                     // We don't wait for the connection to be activated. This could take a while for some transports
@@ -234,6 +220,17 @@ namespace IceRpc
                     // and server. Waiting could also cause a security issue if the client doesn't respond to the
                     // connection initialization as we wouldn't be able to accept new connections in the meantime.
                     _ = connection.ConnectAsync(networkConnection, protocolConnectionFactory, onClose);
+                }
+            }
+
+            void RemoveOnClose(Connection connection, Exception _)
+            {
+                lock (_mutex)
+                {
+                    if (_shutdownTask == null)
+                    {
+                        _connections.Remove(connection);
+                    }
                 }
             }
         }

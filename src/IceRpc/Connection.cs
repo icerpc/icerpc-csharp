@@ -334,8 +334,16 @@ namespace IceRpc
                         _protocolConnection!,
                         message,
                         _protocolShutdownCancellationSource.Token);
+                    shutdownTask = _stateTask;
                 }
-                shutdownTask = _stateTask ?? CloseAsync(new ConnectionClosedException(message));
+                else if (_state < ConnectionState.Active)
+                {
+                    shutdownTask = CloseAsync(new ConnectionClosedException(message));
+                }
+                else
+                {
+                    shutdownTask = _stateTask ?? CloseAsync(new ConnectionClosedException(message));
+                }
                 cancellationTokenSource = _protocolShutdownCancellationSource;
             }
 
