@@ -95,7 +95,6 @@ public sealed class RetryInterceptorTests
         var invoker = new InlineInvoker((request, cancel) =>
         {
             attempts++;
-            request.Features = new FeatureCollection().With(RetryPolicy.NoRetry);
             return Task.FromResult(new IncomingResponse(request, request.Connection!)
             {
                 ResultType = ResultType.Failure
@@ -343,11 +342,10 @@ public sealed class RetryInterceptorTests
     }
 
     [Test]
-    public async Task RetryPolicy_and_IsSent_property_are_reset_on_retry()
+    public async Task IsSent_property_is_reset_on_retry()
     {
         // Arrange
         int attempts = 0;
-        RetryPolicy? retryPolicy = null;
         bool isSent = true;
         var invoker = new InlineInvoker((request, cancel) =>
         {
@@ -368,7 +366,6 @@ public sealed class RetryInterceptorTests
             else
             {
                 isSent = request.IsSent;
-                retryPolicy = request.Features.Get<RetryPolicy>();
                 return Task.FromResult(new IncomingResponse(request, request.Connection!));
             }
         });
@@ -382,7 +379,6 @@ public sealed class RetryInterceptorTests
 
         // Assert
         Assert.That(attempts, Is.EqualTo(2));
-        Assert.That(retryPolicy, Is.Null);
         Assert.That(isSent, Is.False);
     }
 
