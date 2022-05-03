@@ -24,8 +24,8 @@ public sealed class IceRpcProtocolConnectionTests
         }
     }
 
-    /// <summary>Verifies that if the shutdown pending invocations and dispatches cancellation token is canceled the
-    /// invocations are canceled.</summary>
+    /// <summary>Verifies that if the shutdown pending invocations and dispatches are canceled the invocations are
+    /// canceled.</summary>
     [Test]
     public async Task Shutdown_invocations_cancellation()
     {

@@ -81,8 +81,8 @@ public sealed class ProtocolConnectionTests
         Assert.DoesNotThrowAsync(() => serverAcceptRequestsTask);
     }
 
-    /// <summary>Verifies that if the pending invocations and dispatches are canceled on shutdown dispatches are
-    /// canceled.</summary>
+    /// <summary>Verifies that calling CancelPendingInvocationsAndDispatchesOnShutdown results in the cancellation of
+    /// the the pending dispatches.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
     public async Task Shutdown_dispatch_cancellation(Protocol protocol)
     {
@@ -147,11 +147,12 @@ public sealed class ProtocolConnectionTests
 
     /// <summary>Verifies that shutdown cancellation cancels shutdown even if a dispatch hangs.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    public async Task Shutdown_cancellation_on_dispatch_hang(Protocol protocol)
+    public async Task Shutdown_completes_on_cancellation_and_dispatch_hang(Protocol protocol)
     {
         // Arrange
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
+        // var dispatchCanceled = new TaskCompletionSource();
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
@@ -160,7 +161,7 @@ public sealed class ProtocolConnectionTests
                 Dispatcher = new InlineDispatcher(async (request, cancel) =>
                 {
                     start.Release();
-                    await hold.WaitAsync(cancel);
+                    await hold.WaitAsync(CancellationToken.None);
                     return new OutgoingResponse(request);
                 })
             })
@@ -173,14 +174,13 @@ public sealed class ProtocolConnectionTests
         _ = sut.Server.AcceptRequestsAsync(connection);
         var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
         await start.WaitAsync(); // Wait for the dispatch to start
-        using var cancellationTokenSource = new CancellationTokenSource(10);
+        using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(10));
 
         // Act
         Task shutdownTask = sut.Server.ShutdownAsync("", cancel: cancellationTokenSource.Token);
 
         // Assert
         Assert.CatchAsync<OperationCanceledException>(() => shutdownTask);
-
         hold.Release();
     }
 
