@@ -5,8 +5,9 @@ using System.Globalization;
 
 namespace IceRpc
 {
-    /// <summary>The retry policy can be specified when constructing a <see cref="RemoteException"/>. It's also used
-    /// as a request feature to retry (or not retry) when a local exception is thrown during an invocation.</summary>
+    /// <summary>The retry policy can be specified when constructing a <see cref="RemoteException"/>. With the icerpc
+    /// protocol, the retry policy is transmitted as a field with the response and later decoded by the client's
+    /// <see cref="RetryInterceptor"/>.</summary>
     public sealed record class RetryPolicy
     {
         /// <summary>The Immediately policy specifies that the exception can be retried without any delay.</summary>
