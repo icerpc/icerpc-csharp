@@ -39,7 +39,7 @@ namespace IceRpc
 
         /// <summary>The connection's endpoint. For a client connection this is the connection's remote endpoint,
         /// for a server connection it's the server's endpoint.</summary>
-        public Endpoint Endpoint => _serverEndpoint ?? _options.RemoteEndpoint ?? default;
+        public Endpoint Endpoint => _serverEndpoint ?? _options.RemoteEndpoint ?? new Endpoint();
 
         /// <summary>The state of the connection.</summary>
         public ConnectionState State
