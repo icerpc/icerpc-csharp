@@ -591,11 +591,3 @@ public class ConnectionServiceCollection : ServiceCollection
         });
     }
 }
-
-public static class ConnectionServiceCollectionExtensions
-{
-    public static IServiceCollection UseConnectionOptions(
-        this IServiceCollection serviceCollection,
-        ConnectionOptions connectionOptions) =>
-        serviceCollection.AddScoped(_ => connectionOptions);
-}

@@ -85,11 +85,6 @@ internal static class ProtocolServiceCollectionExtensions
     internal static IServiceCollection UseProtocol(this IServiceCollection collection, Protocol protocol) =>
         collection.AddSingleton(protocol);
 
-    internal static IServiceCollection UseClientConnectionOptions(
-        this IServiceCollection collection,
-        ConnectionOptions options) =>
-        collection.AddSingleton(new ClientConnectionOptions(options));
-
     internal static async Task<ClientServerProtocolConnection> GetClientServerProtocolConnectionAsync(
         this IServiceProvider serviceProvider)
     {
@@ -113,7 +108,7 @@ internal static class ProtocolServiceCollectionExtensions
     private static Task<(INetworkConnection, IProtocolConnection)> GetClientProtocolConnectionAsync(
         this IServiceProvider serviceProvider)
     {
-        ConnectionOptions connectionOptions = serviceProvider.GetService<ClientConnectionOptions>()?.Value ?? new();
+        ConnectionOptions connectionOptions = serviceProvider.GetService<ConnectionOptions>() ?? new();
 
         return serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ?
             GetProtocolConnectionAsync<ISimpleNetworkConnection, IceOptions>(
@@ -228,12 +223,5 @@ internal static class ProtocolServiceCollectionExtensions
         T connection = await listener.AcceptAsync();
         await connection.ConnectAsync(default);
         return connection;
-    }
-
-    private sealed class ClientConnectionOptions
-    {
-        internal ConnectionOptions Value { get; }
-
-        internal ClientConnectionOptions(ConnectionOptions options) => Value = options;
     }
 }

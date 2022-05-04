@@ -132,7 +132,7 @@ public sealed class IceRpcProtocolConnectionTests
                     serverB = DecodeField(fields, connectionFieldKeyB);
                 }
             })
-            .UseClientConnectionOptions(new ConnectionOptions()
+            .UseConnectionOptions(new ConnectionOptions()
             {
                 IceRpcClientOptions = new()
                 {
