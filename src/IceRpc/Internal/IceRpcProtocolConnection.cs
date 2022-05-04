@@ -39,6 +39,8 @@ namespace IceRpc.Internal
 
         public Action<string>? PeerShutdownInitiated { get; set; }
 
+        public Protocol Protocol => Protocol.IceRpc;
+
         private IMultiplexedStream? _controlStream;
         private readonly HashSet<CancellationTokenSource> _cancelDispatchSources = new();
         private bool _cancelPendingInvocationsAndDispatchesOnShutdown;

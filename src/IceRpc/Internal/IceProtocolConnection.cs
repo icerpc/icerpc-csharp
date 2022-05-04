@@ -39,6 +39,8 @@ namespace IceRpc.Internal
 
         public Action<string>? PeerShutdownInitiated { get; set; }
 
+        public Protocol Protocol => Protocol.Ice;
+
         private static readonly IDictionary<RequestFieldKey, ReadOnlySequence<byte>> _idempotentFields =
             new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
             {

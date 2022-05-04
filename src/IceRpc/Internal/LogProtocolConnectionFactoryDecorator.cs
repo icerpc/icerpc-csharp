@@ -34,17 +34,13 @@ namespace IceRpc.Internal
                 protocolOptions,
                 cancel).ConfigureAwait(false);
 
-            // TODO: do we need this parameter?
-            Protocol protocol = protocolConnection is IceRpcProtocolConnection ? Protocol.IceRpc : Protocol.Ice;
-
             _logger.LogCreateProtocolConnection(
-                protocol,
+                protocolConnection.Protocol,
                 connectionInformation.LocalEndPoint,
                 connectionInformation.RemoteEndPoint);
 
             return new LogProtocolConnectionDecorator(
                 protocolConnection,
-                protocol,
                 connectionInformation,
                 isServer,
                 _logger);
