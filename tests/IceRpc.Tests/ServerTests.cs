@@ -44,24 +44,12 @@ public class ServerTests
     /// <summary>Verifies that <see cref="Server.ShutdownComplete"/> task is completed after
     /// <see cref="Server.ShutdownAsync(CancellationToken)"/> completed.</summary>
     [Test]
-    public async Task The_shudow_complete_task_is_completed_after_shutdow()
+    public async Task The_shutdown_complete_task_is_completed_after_shutdow()
     {
         await using var server = new Server(ConnectionOptions.DefaultDispatcher);
 
         await server.ShutdownAsync();
 
         Assert.That(server.ShutdownComplete.IsCompleted, Is.True);
-    }
-
-    /// <summary>Verifies that two servers cannot listen on the same endpoint. The second attempt throws a
-    /// <see cref="TransportException"/>.</summary>
-    [Test]
-    public async Task Two_servers_listening_on_the_same_endpoint_fails_with_transport_exception()
-    {
-        await using var server1 = new Server(ConnectionOptions.DefaultDispatcher, "icerpc://127.0.0.1:15001");
-        await using var server2 = new Server(ConnectionOptions.DefaultDispatcher, "icerpc://127.0.0.1:15001");
-        server1.Listen();
-
-        Assert.Throws<TransportException>(() => server2.Listen());
     }
 }
