@@ -33,6 +33,9 @@ namespace IceRpc.Internal
             await _decoratee.AcceptRequestsAsync(connection).ConfigureAwait(false);
         }
 
+        void IProtocolConnection.CancelPendingInvocationsAndDispatchesOnShutdown() =>
+            _decoratee.CancelPendingInvocationsAndDispatchesOnShutdown();
+
         async ValueTask IAsyncDisposable.DisposeAsync()
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);

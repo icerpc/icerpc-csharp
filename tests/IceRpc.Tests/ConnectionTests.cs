@@ -393,6 +393,28 @@ public class ConnectionTests
     }
 
     [Test]
+    public async Task Shutdown_does_not_throw_if_connect_fails()
+    {
+        // Arrange
+        await using var connection = new Connection("icerpc://localhost");
+        _ = connection.ConnectAsync();
+
+        // Act/Assert
+        Assert.DoesNotThrowAsync(() => connection.ShutdownAsync());
+    }
+
+    [Test]
+    public async Task Dispose_does_not_throw_if_connect_fails()
+    {
+        // Arrange
+        await using var connection = new Connection("icerpc://localhost");
+        _ = connection.ConnectAsync();
+
+        // Act/Assert
+        Assert.DoesNotThrowAsync(async () => await connection.DisposeAsync());
+    }
+
+    [Test]
     public async Task Shutdown_cancellation(
         [Values("ice", "icerpc")] string protocol,
         [Values(true, false)] bool closeClientSide)
