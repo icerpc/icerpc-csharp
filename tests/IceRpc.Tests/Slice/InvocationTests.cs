@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace IceRpc.Slice.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
-[Timeout(30000)]
+[Timeout(5000)]
 public class InvocationTests
 {
     /// <summary>Verifies that the request context feature is set to the invocation context.</summary>
