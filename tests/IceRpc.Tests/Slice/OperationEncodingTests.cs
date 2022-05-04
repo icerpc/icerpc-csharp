@@ -6,10 +6,10 @@ using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
 
-namespace IceRpc.Slice.Tests;
+namespace IceRpc.Slice.Encoding.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
-public class OperationTests
+public class OperationEncodingTests
 {
     [Test]
     public void Slice2_operation_encode_with_single_parameter()

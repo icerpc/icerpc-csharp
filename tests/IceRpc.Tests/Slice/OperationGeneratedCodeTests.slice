@@ -1,0 +1,46 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc::Slice::Tests;
+
+interface MyOperations
+{
+    // No parameters and void return
+	opWithoutParametersAndVoidReturn();
+
+	// Single parameter and return
+	opWithSingleParameterAndReturnValue(p: int32) -> int32;
+
+	// Multiple parameter and return
+	opWithMultipleParametersAndReturnValues(p1: int32, p2: int32) -> (r1: int32, r2: int32);
+
+	// Compress attribute
+	[compress(Args, Return)] opWithCompressArgsAndReturnAttribute(p: int32) -> int32;
+
+	// Stream parameters and return alone
+	opWithByteStreamArgumentAndReturn(p: stream uint8) -> stream uint8;
+	opWithIntStreamArgumentAndReturn(p: stream int32) -> stream int32;
+
+	// Stream parameters and return along regular return and parameters
+	opWithBothRegularAndStreamParameterAndReturn(p1: int32, p2: stream int32) -> (r1: int32, r2: stream int32);
+
+	// idempotent operation
+	idempotent idempotentOp();
+
+	// invocation, cancel and dispatch as regular parameter names
+	opWithSpecialParameterNames(invocation: int32, cancel: int32, dispatch: int32);
+
+	// Parameter with cs::attribute
+	opWithCsAttribute(p: [cs::attribute("MyAttribute")] int32) -> int32;
+
+	// Encoded result
+	[cs::encodedResult] opWithSingleReturnValueAndEncodedResultAttribute() -> int32;
+	[cs::encodedResult] opWithMultipleReturnValuesAndEncodedResultAttribute() -> (r1: int32, r2: int32);
+
+	// Internal operation
+	[cs::internal] opWithCsInternalAttribute();
+
+	// C# keyword as operation name
+	continue();
+}
+
+interface MyDerivedOperations : MyOperations {}
