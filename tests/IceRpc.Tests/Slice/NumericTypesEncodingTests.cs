@@ -125,7 +125,7 @@ public class NumericTypesEncodingTests
         }, Throws.InstanceOf<ArgumentOutOfRangeException>());
     }
 
-    /// <summary>Tests the encoding of sizes with the 1.1 encoding.</summary>
+    /// <summary>Tests the encoding of sizes with the Slice1 encoding.</summary>
     /// <param name="size">The size to encode.</param>
     /// <param name="expected">The expected byte array produced by encoding size.</param>
     [TestCase(64, new byte[] { 0x40 })]
@@ -135,7 +135,7 @@ public class NumericTypesEncodingTests
     [TestCase(254, new byte[] { 0xFE })]
     [TestCase(255, new byte[] { 0xFF, 0xFF, 0x00, 0x00, 0x00 })]
     [TestCase(1000, new byte[] { 0xFF, 0xE8, 0x03, 0x00, 0x00 })]
-    public void Encode_size_with_1_1(int size, byte[] expected)
+    public void Encode_size_with_slice_1(int size, byte[] expected)
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);
@@ -145,5 +145,19 @@ public class NumericTypesEncodingTests
 
         Assert.That(encoder.EncodedByteCount, Is.EqualTo(expected.Length));
         Assert.That(buffer[0..bufferWriter.WrittenMemory.Length], Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void Encode_negative_size_fails([Values] SliceEncoding encoding)
+    {
+        var bufferWriter = new MemoryBufferWriter(new byte[256]);
+
+        Assert.That(
+            () =>
+            {
+                var encoder = new SliceEncoder(bufferWriter, encoding);
+                encoder.EncodeSize(-10);
+            },
+            Throws.InstanceOf<ArgumentException>());
     }
 }
