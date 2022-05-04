@@ -92,7 +92,7 @@ public sealed class IceProtocolConnectionTests
                 }
             }),
 
-            IceProtocolOptions = new IceProtocolOptions { MaxConcurrentDispatches = maxConcurrentDispatches }
+            IceClientOptions = new() { MaxConcurrentDispatches = maxConcurrentDispatches }
         };
 
         await using var serviceProvider = new ProtocolServiceCollection()
@@ -149,7 +149,7 @@ public sealed class IceProtocolConnectionTests
                     await semaphore.WaitAsync(CancellationToken.None);
                     return new OutgoingResponse(request);
                 }),
-            IceProtocolOptions = new IceProtocolOptions { MaxConcurrentDispatches = 1 }
+            IceClientOptions = new() { MaxConcurrentDispatches = 1 }
         };
 
         await using var serviceProvider = new ProtocolServiceCollection()

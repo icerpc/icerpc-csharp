@@ -94,11 +94,14 @@ public sealed class InvokeAsyncTests
         var connectionOptions = new ConnectionOptions { RemoteEndpoint = remoteEndpoint };
         if (remoteEndpoint.Protocol == Protocol.Ice)
         {
-            connectionOptions.SimpleClientTransport = colocTransport.ClientTransport;
+            connectionOptions.IceClientOptions = new() { ClientTransport = colocTransport.ClientTransport };
         }
         else
         {
-            connectionOptions.MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport);
+            connectionOptions.IceRpcClientOptions = new()
+            {
+                ClientTransport = new SlicClientTransport(colocTransport.ClientTransport)
+            };
         }
         return connectionOptions;
     }
@@ -108,11 +111,14 @@ public sealed class InvokeAsyncTests
         var serverOptions = new ServerOptions { Endpoint = endpoint };
         if (endpoint.Protocol == Protocol.Ice)
         {
-            serverOptions.SimpleServerTransport = colocTransport.ServerTransport;
+            serverOptions.IceServerOptions = new() { ServerTransport = colocTransport.ServerTransport };
         }
         else
         {
-            serverOptions.MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport);
+            serverOptions.IceRpcServerOptions = new()
+            {
+                ServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+            };
         }
         return serverOptions;
     }

@@ -138,11 +138,14 @@ namespace IceRpc
 
                         _stateTask = Endpoint.Protocol == Protocol.Ice ?
                             PerformConnectAsync(
-                                _options.SimpleClientTransport,
+                                _options.IceClientOptions?.ClientTransport ?? IceClientOptions.DefaultClientTransport,
+                                _options.IceClientOptions,
                                 IceProtocol.Instance.ProtocolConnectionFactory,
                                 LogSimpleNetworkConnectionDecorator.Decorate) :
                             PerformConnectAsync(
-                                _options.MultiplexedClientTransport,
+                                _options.IceRpcClientOptions?.ClientTransport ??
+                                    IceRpcClientOptions.DefaultClientTransport,
+                                _options.IceRpcClientOptions,
                                 IceRpcProtocol.Instance.ProtocolConnectionFactory,
                             LogMultiplexedNetworkConnectionDecorator.Decorate);
 
@@ -164,10 +167,12 @@ namespace IceRpc
                 await waitTask.WaitAsync(cancel).ConfigureAwait(false);
             }
 
-            Task PerformConnectAsync<T>(
+            Task PerformConnectAsync<T, TOptions>(
                 IClientTransport<T> clientTransport,
-                IProtocolConnectionFactory<T> protocolConnectionFactory,
-                LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory) where T : INetworkConnection
+                TOptions? protocolOptions,
+                IProtocolConnectionFactory<T, TOptions> protocolConnectionFactory,
+                LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory)
+                    where T : INetworkConnection where TOptions : class
             {
                 // This is the composition root of client Connections, where we install log decorators when logging is
                 // enabled.
@@ -186,7 +191,7 @@ namespace IceRpc
                     networkConnection = logDecoratorFactory(networkConnection, Endpoint, isServer: false, logger);
 
                     protocolConnectionFactory =
-                        new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, logger);
+                        new LogProtocolConnectionFactoryDecorator<T, TOptions>(protocolConnectionFactory, logger);
 
                     onClose = (connection, exception) =>
                     {
@@ -200,7 +205,7 @@ namespace IceRpc
 
                 _state = ConnectionState.Connecting;
 
-                return ConnectAsync(networkConnection, protocolConnectionFactory, onClose);
+                return ConnectAsync(networkConnection, protocolOptions, protocolConnectionFactory, onClose);
             }
         }
 
@@ -376,12 +381,14 @@ namespace IceRpc
 
         /// <summary>Establishes a connection. This method is used for both client and server connections.</summary>
         /// <param name="networkConnection">The underlying network connection.</param>
+        /// <param name="protocolOptions">The protocol options for the new connection.</param>
         /// <param name="protocolConnectionFactory">The protocol connection factory.</param>
         /// <param name="onClose">An action to execute when the connection is closed.</param>
-        internal async Task ConnectAsync<T>(
+        internal async Task ConnectAsync<T, TOptions>(
             T networkConnection,
-            IProtocolConnectionFactory<T> protocolConnectionFactory,
-            Action<Connection, Exception>? onClose) where T : INetworkConnection
+            TOptions? protocolOptions,
+            IProtocolConnectionFactory<T, TOptions> protocolConnectionFactory,
+            Action<Connection, Exception>? onClose) where T : INetworkConnection where TOptions : class
         {
             using var connectTimeoutCancellationSource = new CancellationTokenSource(_options.ConnectTimeout);
             try
@@ -400,6 +407,7 @@ namespace IceRpc
                     networkConnection,
                     NetworkConnectionInformation.Value,
                     _options,
+                    protocolOptions,
                     _options.OnConnect == null ? null : fields => _options.OnConnect(this, fields, features),
                     _serverEndpoint != null,
                     connectTimeoutCancellationSource.Token).ConfigureAwait(false);

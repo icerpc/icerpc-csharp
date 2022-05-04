@@ -7,15 +7,18 @@ using System.Buffers;
 namespace IceRpc.Internal
 {
     /// <summary>A log decorator for protocol connection factory.</summary>
-    internal class LogProtocolConnectionFactoryDecorator<T> : IProtocolConnectionFactory<T> where T : INetworkConnection
+    internal class LogProtocolConnectionFactoryDecorator<T, TOptions> : IProtocolConnectionFactory<T, TOptions>
+        where T : INetworkConnection
+        where TOptions : class
     {
-        private readonly IProtocolConnectionFactory<T> _decoratee;
+        private readonly IProtocolConnectionFactory<T, TOptions> _decoratee;
         private readonly ILogger _logger;
 
-        async Task<IProtocolConnection> IProtocolConnectionFactory<T>.CreateProtocolConnectionAsync(
+        async Task<IProtocolConnection> IProtocolConnectionFactory<T, TOptions>.CreateProtocolConnectionAsync(
             T networkConnection,
             NetworkConnectionInformation connectionInformation,
             Configure.ConnectionOptions connectionOptions,
+            TOptions? protocolOptions,
             Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect,
             bool isServer,
             CancellationToken cancel)
@@ -26,6 +29,7 @@ namespace IceRpc.Internal
                 networkConnection,
                 connectionInformation,
                 connectionOptions,
+                protocolOptions,
                 onConnect,
                 isServer,
                 cancel).ConfigureAwait(false);
@@ -46,7 +50,9 @@ namespace IceRpc.Internal
                 _logger);
         }
 
-        internal LogProtocolConnectionFactoryDecorator(IProtocolConnectionFactory<T> decoratee, ILogger logger)
+        internal LogProtocolConnectionFactoryDecorator(
+            IProtocolConnectionFactory<T, TOptions> decoratee,
+            ILogger logger)
         {
             _decoratee = decoratee;
             _logger = logger;

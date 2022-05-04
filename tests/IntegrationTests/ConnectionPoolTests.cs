@@ -19,7 +19,10 @@ public sealed class ConnectionPoolTests
             new ServerOptions()
             {
                 Endpoint = "icerpc://foo",
-                MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+                IceRpcServerOptions = new()
+                {
+                    ServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+                }
             });
         server1.Listen();
 
@@ -27,14 +30,20 @@ public sealed class ConnectionPoolTests
             new ServerOptions()
             {
                 Endpoint = "icerpc://bar",
-                MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+                IceRpcServerOptions = new()
+                {
+                    ServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+                }
             });
         server2.Listen();
 
         await using var pool = new ConnectionPool(
             new ConnectionOptions()
             {
-                MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport)
+                IceRpcClientOptions = new()
+                {
+                    ClientTransport = new SlicClientTransport(colocTransport.ClientTransport)
+                }
             },
             preferExistingConnection: false);
 
@@ -67,14 +76,20 @@ public sealed class ConnectionPoolTests
             new ServerOptions()
             {
                 Endpoint = "icerpc://foo",
-                MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+                IceRpcServerOptions = new()
+                {
+                    ServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+                }
             });
         server.Listen();
 
         await using var pool = new ConnectionPool(
             new ConnectionOptions()
             {
-                MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport)
+                IceRpcClientOptions = new()
+                {
+                    ClientTransport = new SlicClientTransport(colocTransport.ClientTransport)
+                }
             },
             preferExistingConnection: true);
 
@@ -99,7 +114,10 @@ public sealed class ConnectionPoolTests
             new ServerOptions()
             {
                 Endpoint = "icerpc://foo",
-                MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+                IceRpcServerOptions = new()
+                {
+                    ServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+                }
             });
         server1.Listen();
 
@@ -107,14 +125,20 @@ public sealed class ConnectionPoolTests
             new ServerOptions()
             {
                 Endpoint = "icerpc://bar",
-                MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+                IceRpcServerOptions = new()
+                {
+                    ServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+                }
             });
         server2.Listen();
 
         await using var pool = new ConnectionPool(
             new ConnectionOptions()
             {
-                MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport)
+                IceRpcClientOptions = new()
+                {
+                    ClientTransport = new SlicClientTransport(colocTransport.ClientTransport)
+                }
             });
 
         // Act
@@ -138,14 +162,20 @@ public sealed class ConnectionPoolTests
             new ServerOptions()
             {
                 Endpoint = "icerpc://foo",
-                MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+                IceRpcServerOptions = new()
+                {
+                    ServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+                }
             });
         server.Listen();
 
         await using var pool = new ConnectionPool(
             new ConnectionOptions()
             {
-                MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport)
+                IceRpcClientOptions = new()
+                {
+                    ClientTransport = new SlicClientTransport(colocTransport.ClientTransport)
+                }
             },
             preferExistingConnection: true);
 
@@ -176,7 +206,10 @@ public sealed class ConnectionPoolTests
             new ServerOptions()
             {
                 Endpoint = "icerpc://foo",
-                MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+                IceRpcServerOptions = new()
+                {
+                    ServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+                }
             });
         server1.Listen();
 
@@ -184,14 +217,20 @@ public sealed class ConnectionPoolTests
             new ServerOptions()
             {
                 Endpoint = "icerpc://bar",
-                MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+                IceRpcServerOptions = new()
+                {
+                    ServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+                }
             });
         server2.Listen();
 
         await using var pool = new ConnectionPool(
            new ConnectionOptions()
            {
-               MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport)
+               IceRpcClientOptions = new()
+               {
+                   ClientTransport = new SlicClientTransport(colocTransport.ClientTransport)
+               }
            },
            preferExistingConnection: true);
 

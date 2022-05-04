@@ -559,10 +559,14 @@ public class ConnectionServiceCollection : ServiceCollection
                 serverOptions.Dispatcher = dispatcher;
             }
             serverOptions.Endpoint = provider.GetRequiredService<Endpoint>();
-            serverOptions.SimpleServerTransport =
-                provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>();
-            serverOptions.MultiplexedServerTransport =
-                provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>();
+            serverOptions.IceServerOptions = new()
+            {
+                ServerTransport = provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()
+            };
+            serverOptions.IceRpcServerOptions = new()
+            {
+                ServerTransport = provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>()
+            };
             var server = new Server(serverOptions);
             server.Listen();
             return server;
@@ -575,10 +579,14 @@ public class ConnectionServiceCollection : ServiceCollection
             {
                 connectionOptions.RemoteEndpoint = provider.GetRequiredService<Server>().Endpoint;
             }
-            connectionOptions.SimpleClientTransport =
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>();
-            connectionOptions.MultiplexedClientTransport =
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
+            connectionOptions.IceClientOptions = new()
+            {
+                ClientTransport = provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()
+            };
+            connectionOptions.IceRpcClientOptions = new()
+            {
+                ClientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>()
+            };
             return new Connection(connectionOptions);
         });
     }

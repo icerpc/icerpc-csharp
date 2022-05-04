@@ -117,19 +117,22 @@ internal static class ProtocolServiceCollectionExtensions
 
     private static Task<(INetworkConnection, IProtocolConnection)> GetClientProtocolConnectionAsync(
         this IServiceProvider serviceProvider) => serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ?
-            GetProtocolConnectionAsync(
+            GetProtocolConnectionAsync<ISimpleNetworkConnection, IceOptions>(
                 serviceProvider,
+                serviceProvider.GetService<ClientConnectionOptions>()?.Value?.IceClientOptions,
                 isServer: false,
                 serviceProvider.GetSimpleClientConnectionAsync) :
-            GetProtocolConnectionAsync(
+            GetProtocolConnectionAsync<IMultiplexedNetworkConnection, IceRpcOptions>(
                 serviceProvider,
+                serviceProvider.GetService<ClientConnectionOptions>()?.Value?.IceRpcClientOptions,
                 isServer: false,
                 serviceProvider.GetMultiplexedClientConnectionAsync);
 
-    private static async Task<(INetworkConnection, IProtocolConnection)> GetProtocolConnectionAsync<T>(
+    private static async Task<(INetworkConnection, IProtocolConnection)> GetProtocolConnectionAsync<T, TOptions>(
         IServiceProvider serviceProvider,
+        TOptions? protocolOptions,
         bool isServer,
-        Func<Task<T>> networkConnectionFactory) where T : INetworkConnection
+        Func<Task<T>> networkConnectionFactory) where T : INetworkConnection where TOptions : class
     {
         T networkConnection = await networkConnectionFactory();
         ConnectionOptions connectionOptions = isServer ?
@@ -144,10 +147,11 @@ internal static class ProtocolServiceCollectionExtensions
                 new FeatureCollection());
 
         IProtocolConnection protocolConnection =
-            await serviceProvider.GetRequiredService<IProtocolConnectionFactory<T>>().CreateProtocolConnectionAsync(
+            await serviceProvider.GetRequiredService<IProtocolConnectionFactory<T, TOptions>>().CreateProtocolConnectionAsync(
                 networkConnection,
                 connectionInformation: new(),
                 connectionOptions,
+                protocolOptions,
                 onConnect,
                 isServer,
                 CancellationToken.None);
@@ -156,12 +160,14 @@ internal static class ProtocolServiceCollectionExtensions
 
     private static Task<(INetworkConnection, IProtocolConnection)> GetServerProtocolConnectionAsync(
         this IServiceProvider serviceProvider) => serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ?
-            GetProtocolConnectionAsync(
+            GetProtocolConnectionAsync<ISimpleNetworkConnection, IceOptions>(
                 serviceProvider,
+                serviceProvider.GetService<ServerConnectionOptions>()?.Value?.IceClientOptions, // TODO: weird
                 isServer: true,
                 serviceProvider.GetSimpleServerConnectionAsync) :
-            GetProtocolConnectionAsync(
+            GetProtocolConnectionAsync<IMultiplexedNetworkConnection, IceRpcOptions>(
                 serviceProvider,
+                serviceProvider.GetService<ServerConnectionOptions>()?.Value?.IceRpcClientOptions,
                 isServer: true,
                 serviceProvider.GetMultiplexedServerConnectionAsync);
 

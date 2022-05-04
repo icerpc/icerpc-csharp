@@ -26,17 +26,20 @@ public class FieldTests
                 fieldValue = request.Connection.Features.Get<byte[]>();
                 return new(new OutgoingResponse(request));
             }),
-            MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport),
+            IceRpcServerOptions = new() { ServerTransport = new SlicServerTransport(colocTransport.ServerTransport) },
             OnConnect = (_, fields, features) => features.Set(fields[TestConnectionFieldKey].ToArray())
         });
         server.Listen();
         await using var connection = new Connection(new ConnectionOptions
         {
-            Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>
+            IceRpcClientOptions = new()
             {
-                [TestConnectionFieldKey] = new(new ReadOnlySequence<byte>(_connectionFieldValue))
+                ClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
+                Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>
+                {
+                    [TestConnectionFieldKey] = new(new ReadOnlySequence<byte>(_connectionFieldValue))
+                }
             },
-            MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
             RemoteEndpoint = server.Endpoint
         });
         var prx = ServicePrx.FromConnection(connection);
@@ -53,16 +56,19 @@ public class FieldTests
         var colocTransport = new ColocTransport();
         await using var server = new Server(new ServerOptions
         {
-            Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>
+            IceRpcServerOptions = new()
             {
-                [TestConnectionFieldKey] = new(new ReadOnlySequence<byte>(_connectionFieldValue))
-            },
-            MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+                Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>
+                {
+                    [TestConnectionFieldKey] = new(new ReadOnlySequence<byte>(_connectionFieldValue))
+                },
+                ServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
+            }
         });
         server.Listen();
         await using var connection = new Connection(new ConnectionOptions
         {
-            MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
+            IceRpcClientOptions = new() { ClientTransport = new SlicClientTransport(colocTransport.ClientTransport) },
             OnConnect = (_, fields, features) => features.Set(fields[TestConnectionFieldKey].ToArray()),
             RemoteEndpoint = server.Endpoint
         });

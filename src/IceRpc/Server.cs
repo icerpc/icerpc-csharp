@@ -105,14 +105,16 @@ namespace IceRpc
                 if (_options.Endpoint.Protocol == Protocol.Ice)
                 {
                     PerformListen(
-                        _options.SimpleServerTransport,
+                        _options.IceServerOptions?.ServerTransport ?? IceServerOptions.DefaultServerTransport,
+                        _options.IceServerOptions,
                         IceProtocol.Instance.ProtocolConnectionFactory,
                         LogSimpleNetworkConnectionDecorator.Decorate);
                 }
                 else
                 {
                     PerformListen(
-                        _options.MultiplexedServerTransport,
+                        _options.IceRpcServerOptions?.ServerTransport ?? IceRpcServerOptions.DefaultServerTransport,
+                        _options.IceRpcServerOptions,
                         IceRpcProtocol.Instance.ProtocolConnectionFactory,
                         LogMultiplexedNetworkConnectionDecorator.Decorate);
                 }
@@ -120,10 +122,13 @@ namespace IceRpc
                 _listening = true;
             }
 
-            void PerformListen<T>(
+            void PerformListen<T, TOptions>(
                 IServerTransport<T> serverTransport,
-                IProtocolConnectionFactory<T> protocolConnectionFactory,
-                LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory) where T : INetworkConnection
+                TOptions? protocolOptions,
+                IProtocolConnectionFactory<T, TOptions> protocolConnectionFactory,
+                LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory)
+                    where T : INetworkConnection
+                    where TOptions : class
             {
                 // This is the composition root of Server, where we install log decorators when logging is enabled.
 
@@ -141,7 +146,7 @@ namespace IceRpc
                     _listener = listener;
 
                     protocolConnectionFactory =
-                        new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, logger);
+                        new LogProtocolConnectionFactoryDecorator<T, TOptions>(protocolConnectionFactory, logger);
 
                     onClose = (connection, exception) =>
                     {
@@ -154,13 +159,14 @@ namespace IceRpc
                 }
 
                 // Run task to start accepting new connections.
-                _ = Task.Run(() => AcceptAsync(listener, protocolConnectionFactory, onClose));
+                _ = Task.Run(() => AcceptAsync(listener, protocolOptions, protocolConnectionFactory, onClose));
             }
 
-            async Task AcceptAsync<T>(
+            async Task AcceptAsync<T, TOptions>(
                 IListener<T> listener,
-                IProtocolConnectionFactory<T> protocolConnectionFactory,
-                Action<Connection, Exception>? onClose) where T : INetworkConnection
+                TOptions? protocolOptions,
+                IProtocolConnectionFactory<T, TOptions> protocolConnectionFactory,
+                Action<Connection, Exception>? onClose) where T : INetworkConnection where TOptions : class
             {
                 // The common connection options, set through ServerOptions.
                 var connectionOptions = new ConnectionOptions
@@ -169,8 +175,6 @@ namespace IceRpc
                     ConnectTimeout = _options.ConnectTimeout,
                     Dispatcher = _options.Dispatcher,
                     Features = _options.Features,
-                    Fields = _options.Fields,
-                    IceProtocolOptions = _options.IceProtocolOptions,
                     KeepAlive = _options.KeepAlive,
                     OnClose = RemoveOnClose + _options.OnClose,
                     OnConnect = _options.OnConnect,
@@ -219,7 +223,7 @@ namespace IceRpc
                     // such as TLS based transports where the handshake requires few round trips between the client
                     // and server. Waiting could also cause a security issue if the client doesn't respond to the
                     // connection initialization as we wouldn't be able to accept new connections in the meantime.
-                    _ = connection.ConnectAsync(networkConnection, protocolConnectionFactory, onClose);
+                    _ = connection.ConnectAsync(networkConnection, protocolOptions, protocolConnectionFactory, onClose);
                 }
             }
 

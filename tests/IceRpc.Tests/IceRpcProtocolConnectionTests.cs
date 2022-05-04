@@ -118,9 +118,12 @@ public sealed class IceRpcProtocolConnectionTests
             .UseProtocol(Protocol.IceRpc)
             .UseServerConnectionOptions(new ConnectionOptions()
             {
-                Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>()
+                IceRpcClientOptions = new()
                 {
-                    [connectionFieldKeyA] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(56))
+                    Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>()
+                    {
+                        [connectionFieldKeyA] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(56))
+                    }
                 },
                 OnConnect = (_, fields, _) =>
                 {
@@ -131,10 +134,13 @@ public sealed class IceRpcProtocolConnectionTests
             })
             .UseClientConnectionOptions(new ConnectionOptions()
             {
-                Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>()
+                IceRpcClientOptions = new()
                 {
-                    [connectionFieldKeyA] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(34)),
-                    [connectionFieldKeyB] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(38))
+                    Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>()
+                    {
+                        [connectionFieldKeyA] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(34)),
+                        [connectionFieldKeyB] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(38))
+                    }
                 },
                 OnConnect = (_, fields, _) =>
                 {

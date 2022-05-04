@@ -75,7 +75,7 @@ namespace IceRpc.Internal
         private readonly SimpleNetworkConnectionWriter _networkConnectionWriter;
 
         private int _nextRequestId;
-        private readonly Configure.IceProtocolOptions _options;
+        private readonly Configure.IceOptions _options;
         private readonly IcePayloadPipeWriter _payloadWriter;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly CancellationTokenSource _readCancelSource = new();
@@ -445,7 +445,7 @@ namespace IceRpc.Internal
         internal IceProtocolConnection(
             IDispatcher dispatcher,
             ISimpleNetworkConnection simpleNetworkConnection,
-            Configure.IceProtocolOptions options)
+            Configure.IceOptions options)
         {
             _dispatcher = dispatcher;
             _options = options;
