@@ -407,9 +407,9 @@ namespace IceRpc
                     networkConnection,
                     NetworkConnectionInformation.Value,
                     _options.Dispatcher,
-                    protocolOptions,
                     _options.OnConnect == null ? null : fields => _options.OnConnect(this, fields, features),
                     _serverEndpoint != null,
+                    protocolOptions,
                     connectTimeoutCancellationSource.Token).ConfigureAwait(false);
 
                 lock (_mutex)

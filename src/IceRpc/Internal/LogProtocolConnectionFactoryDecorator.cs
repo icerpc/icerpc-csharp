@@ -18,9 +18,9 @@ namespace IceRpc.Internal
             T networkConnection,
             NetworkConnectionInformation connectionInformation,
             IDispatcher dispatcher,
-            TOptions? protocolOptions,
             Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect,
             bool isServer,
+            TOptions? protocolOptions,
             CancellationToken cancel)
         {
             using IDisposable scope = _logger.StartConnectionScope(connectionInformation, isServer);
@@ -29,9 +29,9 @@ namespace IceRpc.Internal
                 networkConnection,
                 connectionInformation,
                 dispatcher,
-                protocolOptions,
                 onConnect,
                 isServer,
+                protocolOptions,
                 cancel).ConfigureAwait(false);
 
             // TODO: do we need this parameter?

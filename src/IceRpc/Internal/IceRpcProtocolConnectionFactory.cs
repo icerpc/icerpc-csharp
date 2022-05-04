@@ -12,9 +12,9 @@ namespace IceRpc.Internal
             IMultiplexedNetworkConnection networkConnection,
             NetworkConnectionInformation connectionInfo,
             IDispatcher dispatcher,
-            Configure.IceRpcOptions? protocolOptions,
             Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect,
             bool _,
+            Configure.IceRpcOptions? protocolOptions,
             CancellationToken cancel)
         {
             var protocolConnection = new IceRpcProtocolConnection(

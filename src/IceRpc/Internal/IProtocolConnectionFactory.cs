@@ -12,9 +12,9 @@ namespace IceRpc.Internal
             T networkConnection,
             NetworkConnectionInformation connectionInformation,
             IDispatcher dispatcher,
-            TOptions? protocolOptions,
             Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect,
             bool isServer,
+            TOptions? protocolOptions,
             CancellationToken cancel);
     }
 }

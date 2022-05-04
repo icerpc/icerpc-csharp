@@ -115,15 +115,15 @@ internal static class ProtocolServiceCollectionExtensions
                 serviceProvider,
                 connectionOptions.Dispatcher,
                 connectionOptions.OnConnect,
-                connectionOptions.IceClientOptions,
                 isServer: false,
+                connectionOptions.IceClientOptions,
                 serviceProvider.GetSimpleClientConnectionAsync) :
             GetProtocolConnectionAsync<IMultiplexedNetworkConnection, IceRpcOptions>(
                 serviceProvider,
                 connectionOptions.Dispatcher,
                 connectionOptions.OnConnect,
-                connectionOptions.IceRpcClientOptions,
                 isServer: false,
+                connectionOptions.IceRpcClientOptions,
                 serviceProvider.GetMultiplexedClientConnectionAsync);
     }
 
@@ -131,8 +131,8 @@ internal static class ProtocolServiceCollectionExtensions
         IServiceProvider serviceProvider,
         IDispatcher dispatcher,
         OnConnectAction? onConnect,
-        TOptions? protocolOptions,
         bool isServer,
+        TOptions? protocolOptions,
         Func<Task<T>> networkConnectionFactory) where T : INetworkConnection where TOptions : class
     {
         T networkConnection = await networkConnectionFactory();
@@ -149,9 +149,9 @@ internal static class ProtocolServiceCollectionExtensions
                 networkConnection,
                 connectionInformation: new(),
                 dispatcher,
-                protocolOptions,
                 protocolOnConnect,
                 isServer,
+                protocolOptions,
                 CancellationToken.None);
         return (networkConnection, protocolConnection);
     }
@@ -166,15 +166,15 @@ internal static class ProtocolServiceCollectionExtensions
                 serviceProvider,
                 serverOptions.Dispatcher,
                 serverOptions.OnConnect,
-                serverOptions.IceServerOptions,
                 isServer: true,
+                serverOptions.IceServerOptions,
                 serviceProvider.GetSimpleServerConnectionAsync) :
             GetProtocolConnectionAsync<IMultiplexedNetworkConnection, IceRpcOptions>(
                 serviceProvider,
                 serverOptions.Dispatcher,
                 serverOptions.OnConnect,
-                serverOptions.IceRpcServerOptions,
                 isServer: true,
+                serverOptions.IceRpcServerOptions,
                 serviceProvider.GetMultiplexedServerConnectionAsync);
     }
 
