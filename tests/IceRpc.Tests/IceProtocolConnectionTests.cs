@@ -23,6 +23,30 @@ public sealed class IceProtocolConnectionTests
         }
     }
 
+    public static IEnumerable<TestCaseData> DispatchExceptionRetryPolicySource
+    {
+        get
+        {
+            // Service not found failure with endpointless proxy gets OtherReplica retry policy response field.
+            yield return new TestCaseData(
+                new Proxy(Protocol.Ice),
+                DispatchErrorCode.ServiceNotFound,
+                RetryPolicy.OtherReplica);
+
+            // Service not found failure with a proxy that has endpoints does not get a retry policy response field
+            yield return new TestCaseData(
+                Proxy.Parse("ice://localhost/service"),
+                DispatchErrorCode.ServiceNotFound,
+                null);
+
+            // No retry policy field with other dispatch errors
+            yield return new TestCaseData(
+                new Proxy(Protocol.Ice),
+                DispatchErrorCode.UnhandledException,
+                null);
+        }
+    }
+
     /// <summary>Verifies that concurrent dispatches on a given ice connection are limited to MaxConcurrentDispatches.
     /// </summary>
     [Test]
@@ -154,6 +178,38 @@ public sealed class IceProtocolConnectionTests
         semaphore.Release();
     }
 
+    /// <summary>Verifies that a failure response contains the expected retry policy field.</summary>
+    [Test, TestCaseSource(nameof(DispatchExceptionRetryPolicySource))]
+    public async Task Dispatch_failure_response_contain_the_expected_retry_policy_field(
+        Proxy proxy,
+        DispatchErrorCode errorCode,
+        RetryPolicy? expectedRetryPolicy)
+    {
+        // Arrange
+        var dispatcher = new InlineDispatcher(
+            (request, cancel) => throw new DispatchException(errorCode: errorCode));
+
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(Protocol.Ice)
+            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .BuildServiceProvider();
+
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.Ice);
+        _ = sut.Client.AcceptRequestsAsync(InvalidConnection.Ice);
+        var request = new OutgoingRequest(proxy);
+
+        // Act
+        var response = await sut.Client.InvokeAsync(request, InvalidConnection.Ice);
+
+        // Assert
+        Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
+        var retryPolicy = response.Fields.DecodeValue(
+                ResponseFieldKey.RetryPolicy,
+                (ref SliceDecoder decoder) => new RetryPolicy(ref decoder));
+        Assert.That(retryPolicy, Is.EqualTo(expectedRetryPolicy));
+    }
+
     /// <summary>Verifies that with the ice protocol, when a exception other than a DispatchException is thrown
     /// during the dispatch, we encode a DispatchException with the expected error code.</summary>
     [Test, TestCaseSource(nameof(ExceptionIsEncodedAsADispatchExceptionSource))]
@@ -181,30 +237,6 @@ public sealed class IceProtocolConnectionTests
         var exception = await response.DecodeFailureAsync(request) as DispatchException;
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception.ErrorCode, Is.EqualTo(errorCode));
-    }
-
-    /// <summary>Ensures that the request payload stream is completed even if the Ice protocol doesn't support
-    /// it.</summary>
-    [Test]
-    public async Task PayloadStream_completed_on_request()
-    {
-        // Arrange
-        await using var serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(Protocol.Ice)
-            .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-
-        var payloadStreamDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
-        var request = new OutgoingRequest(new Proxy(Protocol.Ice))
-        {
-            PayloadStream = payloadStreamDecorator
-        };
-
-        // Act
-        _ = sut.Client.InvokeAsync(request, InvalidConnection.Ice);
-
-        // Assert
-        Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
     }
 
     /// <summary>Ensures that the response payload stream is completed even if the Ice protocol doesn't support

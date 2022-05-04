@@ -439,10 +439,6 @@ namespace IceRpc.Internal
             }
             catch (Exception exception)
             {
-                // TODO: since the caller must complete the request, is it necessary/desirable to complete the request
-                // early here? Some of our Slice-free unit tests currently rely on this behavior.
-                request.Complete(exception);
-
                 if (stream != null)
                 {
                     await stream.Output.CompleteAsync(exception).ConfigureAwait(false);

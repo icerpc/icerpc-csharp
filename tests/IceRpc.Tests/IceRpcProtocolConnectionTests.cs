@@ -166,33 +166,6 @@ public sealed class IceRpcProtocolConnectionTests
         ConnectionFieldKey key) =>
         fields.ContainsKey(key) ? fields.DecodeValue(key, (ref SliceDecoder decoder) => decoder.DecodeInt32()) : null;
 
-    /// <summary>Ensures that the request payload is completed if the request fields are invalid.</summary>
-    [Test]
-    public async Task Payload_completed_on_invalid_request_fields([Values(true, false)] bool isOneway)
-    {
-        // Arrange
-        await using var serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(Protocol.IceRpc)
-            .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-
-        var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
-        {
-            IsOneway = isOneway,
-            Payload = payloadDecorator
-        };
-        request.Fields = request.Fields.With(
-            RequestFieldKey.Idempotent,
-            (ref SliceEncoder encoder) => throw new NotSupportedException("invalid request fields"));
-
-        // Act
-        _ = sut.Client.InvokeAsync(request, InvalidConnection.IceRpc);
-
-        // Assert
-        Assert.That(await payloadDecorator.Completed, Is.InstanceOf<NotSupportedException>());
-    }
-
     /// <summary>Ensures that the response payload is completed if the response fields are invalid.</summary>
     [Test]
     public async Task Payload_completed_on_invalid_response_fields()
@@ -273,34 +246,6 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
-    }
-
-    /// <summary>Ensures that the request payload stream is completed if the connection is shutdown.</summary>
-    [Test]
-    public async Task PayloadStream_completed_on_request_when_connection_is_shutdown()
-    {
-        // Arrange
-        await using var serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(Protocol.IceRpc)
-            .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Client.ShutdownAsync("");
-
-        var payloadStreamDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
-        {
-            PayloadStream = payloadStreamDecorator
-        };
-
-        // Act
-        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request, InvalidConnection.IceRpc);
-
-        // Assert
-        Assert.Multiple(async () =>
-        {
-            Assert.ThrowsAsync<ConnectionClosedException>(() => invokeTask);
-            Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<ConnectionClosedException>());
-        });
     }
 
     /// <summary>Ensures that the response payload stream is completed on a valid response.</summary>

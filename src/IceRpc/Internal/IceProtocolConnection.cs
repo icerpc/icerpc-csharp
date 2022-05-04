@@ -207,9 +207,6 @@ namespace IceRpc.Internal
             }
             catch (Exception exception)
             {
-                // TODO: since the caller must complete the request, is it necessary/desirable to complete the request
-                // early here? Some of our Slice-free unit tests currently rely on this behavior.
-                request.Complete(exception);
                 await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
                 throw;
             }
