@@ -598,9 +598,4 @@ public static class ConnectionServiceCollectionExtensions
         this IServiceCollection serviceCollection,
         ConnectionOptions connectionOptions) =>
         serviceCollection.AddScoped(_ => connectionOptions);
-
-    public static IServiceCollection UseServerOptions(
-        this IServiceCollection serviceCollection,
-        ServerOptions serverOptions) =>
-        serviceCollection.AddScoped(_ => serverOptions);
 }

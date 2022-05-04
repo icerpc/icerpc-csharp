@@ -138,4 +138,7 @@ public static class ServiceCollectionExtensions
 
         return collection;
     }
+
+    public static IServiceCollection UseServerOptions(this IServiceCollection collection, ServerOptions options) =>
+        collection.AddSingleton(options);
 }

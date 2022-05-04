@@ -85,11 +85,6 @@ internal static class ProtocolServiceCollectionExtensions
     internal static IServiceCollection UseProtocol(this IServiceCollection collection, Protocol protocol) =>
         collection.AddSingleton(protocol);
 
-    internal static IServiceCollection UseServerConnectionOptions(
-        this IServiceCollection collection,
-        ConnectionOptions options) =>
-        collection.AddSingleton(new ServerConnectionOptions(options));
-
     internal static IServiceCollection UseClientConnectionOptions(
         this IServiceCollection collection,
         ConnectionOptions options) =>
@@ -116,32 +111,40 @@ internal static class ProtocolServiceCollectionExtensions
             InvalidConnection.IceRpc;
 
     private static Task<(INetworkConnection, IProtocolConnection)> GetClientProtocolConnectionAsync(
-        this IServiceProvider serviceProvider) => serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ?
+        this IServiceProvider serviceProvider)
+    {
+        ConnectionOptions connectionOptions = serviceProvider.GetService<ClientConnectionOptions>()?.Value ?? new();
+
+        return serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ?
             GetProtocolConnectionAsync<ISimpleNetworkConnection, IceOptions>(
                 serviceProvider,
-                serviceProvider.GetService<ClientConnectionOptions>()?.Value?.IceClientOptions,
+                connectionOptions.Dispatcher,
+                connectionOptions.OnConnect,
+                connectionOptions.IceClientOptions,
                 isServer: false,
                 serviceProvider.GetSimpleClientConnectionAsync) :
             GetProtocolConnectionAsync<IMultiplexedNetworkConnection, IceRpcOptions>(
                 serviceProvider,
-                serviceProvider.GetService<ClientConnectionOptions>()?.Value?.IceRpcClientOptions,
+                connectionOptions.Dispatcher,
+                connectionOptions.OnConnect,
+                connectionOptions.IceRpcClientOptions,
                 isServer: false,
                 serviceProvider.GetMultiplexedClientConnectionAsync);
+    }
 
     private static async Task<(INetworkConnection, IProtocolConnection)> GetProtocolConnectionAsync<T, TOptions>(
         IServiceProvider serviceProvider,
+        IDispatcher dispatcher,
+        OnConnectAction? onConnect,
         TOptions? protocolOptions,
         bool isServer,
         Func<Task<T>> networkConnectionFactory) where T : INetworkConnection where TOptions : class
     {
         T networkConnection = await networkConnectionFactory();
-        ConnectionOptions connectionOptions = isServer ?
-            serviceProvider.GetService<ServerConnectionOptions>()?.Value ?? new() :
-            serviceProvider.GetService<ClientConnectionOptions>()?.Value ?? new();
 
-        Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect =
-            connectionOptions.OnConnect == null ? null :
-            fields => connectionOptions.OnConnect(
+        Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? protocolOnConnect =
+            onConnect == null ? null :
+            fields => onConnect(
                 serviceProvider.GetInvalidConnection(),
                 fields,
                 new FeatureCollection());
@@ -150,26 +153,35 @@ internal static class ProtocolServiceCollectionExtensions
             await serviceProvider.GetRequiredService<IProtocolConnectionFactory<T, TOptions>>().CreateProtocolConnectionAsync(
                 networkConnection,
                 connectionInformation: new(),
-                connectionOptions.Dispatcher,
+                dispatcher,
                 protocolOptions,
-                onConnect,
+                protocolOnConnect,
                 isServer,
                 CancellationToken.None);
         return (networkConnection, protocolConnection);
     }
 
     private static Task<(INetworkConnection, IProtocolConnection)> GetServerProtocolConnectionAsync(
-        this IServiceProvider serviceProvider) => serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ?
+        this IServiceProvider serviceProvider)
+    {
+        ServerOptions serverOptions = serviceProvider.GetService<ServerOptions>() ?? new();
+
+        return serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ?
             GetProtocolConnectionAsync<ISimpleNetworkConnection, IceOptions>(
                 serviceProvider,
-                serviceProvider.GetService<ServerConnectionOptions>()?.Value?.IceClientOptions, // TODO: weird
+                serverOptions.Dispatcher,
+                serverOptions.OnConnect,
+                serverOptions.IceServerOptions,
                 isServer: true,
                 serviceProvider.GetSimpleServerConnectionAsync) :
             GetProtocolConnectionAsync<IMultiplexedNetworkConnection, IceRpcOptions>(
                 serviceProvider,
-                serviceProvider.GetService<ServerConnectionOptions>()?.Value?.IceRpcClientOptions,
+                serverOptions.Dispatcher,
+                serverOptions.OnConnect,
+                serverOptions.IceRpcServerOptions,
                 isServer: true,
                 serviceProvider.GetMultiplexedServerConnectionAsync);
+    }
 
     public static Task<IMultiplexedNetworkConnection> GetMultiplexedClientConnectionAsync(
             this IServiceProvider serviceProvider) =>
@@ -223,12 +235,5 @@ internal static class ProtocolServiceCollectionExtensions
         internal ConnectionOptions Value { get; }
 
         internal ClientConnectionOptions(ConnectionOptions options) => Value = options;
-    }
-
-    private sealed class ServerConnectionOptions
-    {
-        internal ConnectionOptions Value { get; }
-
-        internal ServerConnectionOptions(ConnectionOptions options) => Value = options;
     }
 }
