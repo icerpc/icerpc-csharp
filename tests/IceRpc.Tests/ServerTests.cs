@@ -52,18 +52,4 @@ public class ServerTests
 
         Assert.That(server.ShutdownComplete.IsCompleted, Is.True);
     }
-
-    /// <summary>Verifies that two servers cannot listen on the same endpoint. The second attempt throws a
-    /// <see cref="TransportException"/>.</summary>
-    [Test]
-    public async Task Two_servers_listening_on_the_same_endpoint_fails_with_transport_exception()
-    {
-        // Arrange
-        await using var server1 = new Server(ConnectionOptions.DefaultDispatcher, "icerpc://127.0.0.1");
-        server1.Listen();
-        await using var server2 = new Server(ConnectionOptions.DefaultDispatcher, server1.Endpoint);
-
-        // Assert/Act
-        Assert.Throws<TransportException>(() => server2.Listen());
-    }
 }
