@@ -54,6 +54,7 @@ namespace IceRpc.Internal
                 })
             }.ToImmutableDictionary();
 
+        private bool _cancelPendingDispatchesOnShutdown;
         private readonly IDispatcher _dispatcher;
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -117,6 +118,22 @@ namespace IceRpc.Internal
                 await AbortAsync(exception).ConfigureAwait(false);
                 throw;
             }
+        }
+
+        public void CancelPendingInvocationsAndDispatchesOnShutdown()
+        {
+            lock (_mutex)
+            {
+                if (!_isShuttingDown)
+                {
+                    // If ShutdownAsync hasn't been called yet, we'll cancel pending dispatches when ShutdownAsync is
+                    // called. ShutdownAsync always cancels pending invocations so there's no need to cancel them.
+                    _cancelPendingDispatchesOnShutdown = true;
+                    return;
+                }
+            }
+
+            CancelDispatches();
         }
 
         public ValueTask DisposeAsync() => AbortAsync(new ObjectDisposedException($"{typeof(IceProtocolConnection)}"));
@@ -385,19 +402,14 @@ namespace IceRpc.Internal
                 // Cancel pending invocations immediately. Wait for dispatches to complete however.
                 CancelInvocations(new OperationCanceledException(message));
 
-                try
+                // Just cancel dispatches, the invocations are already canceled.
+                if (_cancelPendingDispatchesOnShutdown)
                 {
-                    // Wait for dispatches to complete.
-                    await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    // Try to speed up dispatch completion.
                     CancelDispatches();
-
-                    // Wait again for the dispatches to complete.
-                    await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
                 }
+
+                // Wait for dispatches and invocations to complete.
+                await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
 
                 // Mark the connection as shut down at this point. This is necessary to ensure ReadFramesAsync returns
                 // successfully on a graceful connection shutdown. This needs to be set before writing the close
@@ -405,17 +417,12 @@ namespace IceRpc.Internal
                 // frame.
                 _isShutdown = true;
 
-                // Unblock invocations which are waiting on the write semaphore.
-                _writeSemaphore.CancelAwaiters(new ConnectionClosedException(message));
-
-                await _writeSemaphore.EnterAsync(CancellationToken.None).ConfigureAwait(false);
+                await _writeSemaphore.EnterAsync(cancel).ConfigureAwait(false);
                 try
                 {
-                    // Write the CloseConnection frame once all the dispatches are done.
+                    // Encode and write the CloseConnection frame once all the dispatches are done.
                     EncodeCloseConnectionFrame(_networkConnectionWriter);
-
-                    // The flush can't be canceled because it would lead to the writing of an incomplete frame.
-                    await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                    await _networkConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -426,7 +433,7 @@ namespace IceRpc.Internal
             // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
             // connection closure here. We can't just return and close the underlying transport since this could abort
             // the receive of the dispatch responses and close connection frame by the peer.
-            await _pendingClose.Task.ConfigureAwait(false);
+            await _pendingClose.Task.WaitAsync(cancel).ConfigureAwait(false);
 
             static void EncodeCloseConnectionFrame(SimpleNetworkConnectionWriter writer)
             {
@@ -584,6 +591,10 @@ namespace IceRpc.Internal
                 invocations = _invocations.Values.ToArray();
             }
 
+            // Unblock invocations which are waiting on the write semaphore.
+            _writeSemaphore.CancelAwaiters(exception);
+
+            // Unblock invocations which are waiting for the reply frame.
             foreach (TaskCompletionSource<PipeReader> responseCompletionSource in invocations)
             {
                 responseCompletionSource.TrySetException(exception);
