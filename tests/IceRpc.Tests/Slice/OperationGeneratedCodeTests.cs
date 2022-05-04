@@ -211,7 +211,7 @@ public class OperationGeneratedCodeTests
             async () => await prx.OpWithSpecialParameterNamesAsync(
                 invocation: 1,
                 cancel: 2,
-                dispatch: 3), 
+                dispatch: 3),
             Throws.Nothing);
     }
 
@@ -228,7 +228,6 @@ public class OperationGeneratedCodeTests
         // Act
         Assert.That(async () => await prx.OpWithCsAttributeAsync(10), Throws.Nothing);
     }
-
 
     [Test]
     public async Task Operation_with_single_return_value_and_encoded_result_attribute()
@@ -280,36 +279,35 @@ public class OperationGeneratedCodeTests
     class MyOperations : Service, IMyOperations
     {
         public ValueTask ContinueAsync(Dispatch dispatch, CancellationToken cancel) => default;
-        
+
         public ValueTask OpWithoutParametersAndVoidReturnAsync(Dispatch dispatch, CancellationToken cancel) => default;
 
         public ValueTask<int> OpWithSingleParameterAndReturnValueAsync(
             int p,
             Dispatch dispatch,
             CancellationToken cancel) => new(p);
-        
+
         public ValueTask<(int R1, int R2)> OpWithMultipleParametersAndReturnValuesAsync(
             int p1,
             int p2,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p2));
-        
-        
+
         public ValueTask<int> OpWithCompressArgsAndReturnAttributeAsync(
-            int p, 
-            Dispatch dispatch, 
+            int p,
+            Dispatch dispatch,
             CancellationToken cancel) => new(p);
-        
+
         public ValueTask<PipeReader> OpWithByteStreamArgumentAndReturnAsync(
             PipeReader p,
-            Dispatch dispatch, 
+            Dispatch dispatch,
             CancellationToken cancel) => new(p);
 
         public ValueTask<IAsyncEnumerable<int>> OpWithIntStreamArgumentAndReturnAsync(
             IAsyncEnumerable<int> p,
             Dispatch dispatch,
             CancellationToken cancel) => new(p);
-        
+
         public ValueTask<(int R1, IAsyncEnumerable<int> R2)> OpWithBothRegularAndStreamParameterAndReturnAsync(
             int p1,
             IAsyncEnumerable<int> p2,
@@ -326,20 +324,20 @@ public class OperationGeneratedCodeTests
             int dispatch,
             Dispatch dispatch_,
             CancellationToken cancel_) => default;
-        
+
         public ValueTask<int> OpWithCsAttributeAsync(
             int p,
             Dispatch dispatch,
             CancellationToken cancel) => default;
-        
+
         public ValueTask<IMyOperations.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult> OpWithSingleReturnValueAndEncodedResultAttributeAsync(
-            Dispatch dispatch, 
+            Dispatch dispatch,
             CancellationToken cancel) => new(new IMyOperations.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult(10));
-        
+
         public ValueTask<IMyOperations.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult> OpWithMultipleReturnValuesAndEncodedResultAttributeAsync(
             Dispatch dispatch,
             CancellationToken cancel) => new(new IMyOperations.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult(10, 20));
-        
+
         public ValueTask OpWithCsInternalAttributeAsync(Dispatch dispatch, CancellationToken cancel) => default;
     }
 
