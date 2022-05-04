@@ -11,16 +11,13 @@ namespace IceRpc.Internal
         public async Task<IProtocolConnection> CreateProtocolConnectionAsync(
             ISimpleNetworkConnection networkConnection,
             NetworkConnectionInformation connectionInfo,
-            Configure.ConnectionOptions connectionOptions,
+            IDispatcher dispatcher,
             Configure.IceOptions? protocolOptions,
             Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect,
             bool isServer,
             CancellationToken cancel)
         {
-            var protocolConnection = new IceProtocolConnection(
-                connectionOptions.Dispatcher,
-                networkConnection,
-                protocolOptions ?? Configure.IceOptions.Default);
+            var protocolConnection = new IceProtocolConnection(dispatcher, networkConnection, protocolOptions);
 
             try
             {

@@ -17,7 +17,7 @@ namespace IceRpc.Internal
         async Task<IProtocolConnection> IProtocolConnectionFactory<T, TOptions>.CreateProtocolConnectionAsync(
             T networkConnection,
             NetworkConnectionInformation connectionInformation,
-            Configure.ConnectionOptions connectionOptions,
+            IDispatcher dispatcher,
             TOptions? protocolOptions,
             Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect,
             bool isServer,
@@ -28,7 +28,7 @@ namespace IceRpc.Internal
             IProtocolConnection protocolConnection = await _decoratee.CreateProtocolConnectionAsync(
                 networkConnection,
                 connectionInformation,
-                connectionOptions,
+                dispatcher,
                 protocolOptions,
                 onConnect,
                 isServer,

@@ -150,7 +150,7 @@ internal static class ProtocolServiceCollectionExtensions
             await serviceProvider.GetRequiredService<IProtocolConnectionFactory<T, TOptions>>().CreateProtocolConnectionAsync(
                 networkConnection,
                 connectionInformation: new(),
-                connectionOptions,
+                connectionOptions.Dispatcher,
                 protocolOptions,
                 onConnect,
                 isServer,

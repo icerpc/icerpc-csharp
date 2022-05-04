@@ -11,7 +11,7 @@ namespace IceRpc.Internal
         Task<IProtocolConnection> CreateProtocolConnectionAsync(
             T networkConnection,
             NetworkConnectionInformation connectionInformation,
-            Configure.ConnectionOptions connectionOptions,
+            IDispatcher dispatcher,
             TOptions? protocolOptions,
             Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect,
             bool isServer,

@@ -445,16 +445,16 @@ namespace IceRpc.Internal
         internal IceProtocolConnection(
             IDispatcher dispatcher,
             ISimpleNetworkConnection simpleNetworkConnection,
-            Configure.IceOptions options)
+            Configure.IceOptions? options)
         {
             _dispatcher = dispatcher;
-            _options = options;
+            _options = options ?? Configure.IceOptions.Default;
 
-            if (options.MaxConcurrentDispatches > 0)
+            if (_options.MaxConcurrentDispatches > 0)
             {
                 _dispatchSemaphore = new SemaphoreSlim(
-                    initialCount: options.MaxConcurrentDispatches,
-                    maxCount: options.MaxConcurrentDispatches);
+                    initialCount: _options.MaxConcurrentDispatches,
+                    maxCount: _options.MaxConcurrentDispatches);
             }
 
             // TODO: get the pool and minimum segment size from an option class, but which one? The Slic connection gets

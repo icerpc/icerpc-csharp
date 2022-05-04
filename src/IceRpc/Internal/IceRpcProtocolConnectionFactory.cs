@@ -12,14 +12,14 @@ namespace IceRpc.Internal
         public async Task<IProtocolConnection> CreateProtocolConnectionAsync(
             IMultiplexedNetworkConnection networkConnection,
             NetworkConnectionInformation connectionInfo,
-            Configure.ConnectionOptions connectionOptions,
+            IDispatcher dispatcher,
             Configure.IceRpcOptions? protocolOptions,
             Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect,
             bool _,
             CancellationToken cancel)
         {
             var protocolConnection = new IceRpcProtocolConnection(
-                connectionOptions.Dispatcher,
+                dispatcher,
                 networkConnection,
                 protocolOptions?.Fields ?? ImmutableDictionary<ConnectionFieldKey, OutgoingFieldValue>.Empty,
                 onConnect);
