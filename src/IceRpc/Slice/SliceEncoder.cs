@@ -81,13 +81,14 @@ namespace IceRpc.Slice
         /// <param name="v">The size to encode.</param>
         public void EncodeSize(int v)
         {
+            if (v < 0)
+            {
+                throw new ArgumentException($"{nameof(v)} must be at least 0", nameof(v));
+            }
+
             if (Encoding == SliceEncoding.Slice1)
             {
-                if (v < 0)
-                {
-                    throw new ArgumentException($"{nameof(v)} must be at least 0", nameof(v));
-                }
-                else if (v < 255)
+                if (v < 255)
                 {
                     EncodeUInt8((byte)v);
                 }
@@ -99,14 +100,7 @@ namespace IceRpc.Slice
             }
             else
             {
-                try
-                {
-                    EncodeVarUInt62(checked((ulong)v));
-                }
-                catch (OverflowException exception)
-                {
-                    throw new ArgumentException($"{nameof(v)} is out of range", nameof(v), exception);
-                }
+                EncodeVarUInt62((ulong)v);
             }
         }
 
