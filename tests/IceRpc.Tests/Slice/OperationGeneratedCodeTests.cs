@@ -10,7 +10,7 @@ using System.IO.Pipelines;
 namespace IceRpc.Slice.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
-public class OperationTests
+public class OperationGeneratedCodeTests
 {
     [Test]
     public async Task Operation_without_parameters_and_void_return()
@@ -19,6 +19,17 @@ public class OperationTests
             .UseDispatcher(new MyOperations())
             .BuildServiceProvider();
         var prx = MyOperationsPrx.FromConnection(provider.GetRequiredService<Connection>());
+
+        Assert.That(async () => await prx.OpWithoutParametersAndVoidReturnAsync(), Throws.Nothing);
+    }
+
+    [Test]
+    public async Task Operation_from_base_class()
+    {
+        await using var provider = new SliceTestServiceCollection()
+            .UseDispatcher(new MyDerivedOperations())
+            .BuildServiceProvider();
+        var prx = MyDerivedOperationsPrx.FromConnection(provider.GetRequiredService<Connection>());
 
         Assert.That(async () => await prx.OpWithoutParametersAndVoidReturnAsync(), Throws.Nothing);
     }
@@ -331,4 +342,6 @@ public class OperationTests
         
         public ValueTask OpWithCsInternalAttributeAsync(Dispatch dispatch, CancellationToken cancel) => default;
     }
+
+    class MyDerivedOperations : MyOperations { }
 }
