@@ -17,7 +17,7 @@ namespace IceRpc.Internal
             bool isServer,
             CancellationToken cancel)
         {
-            var protocolConnection = new IceProtocolConnection(dispatcher, networkConnection, protocolOptions);
+            var protocolConnection = new IceProtocolConnection(networkConnection, dispatcher, protocolOptions);
 
             try
             {

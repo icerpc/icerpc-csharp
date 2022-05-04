@@ -633,14 +633,14 @@ namespace IceRpc.Internal
         }
 
         internal IceRpcProtocolConnection(
-            IDispatcher dispatcher,
             IMultiplexedNetworkConnection networkConnection,
-            IDictionary<ConnectionFieldKey, OutgoingFieldValue> localFields,
+            IDispatcher dispatcher,
+            Configure.IceRpcOptions? options,
             Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect)
         {
             _dispatcher = dispatcher;
             _networkConnection = networkConnection;
-            _localFields = localFields;
+            _localFields = options?.Fields ?? ImmutableDictionary<ConnectionFieldKey, OutgoingFieldValue>.Empty;
             _onConnect = onConnect;
         }
 

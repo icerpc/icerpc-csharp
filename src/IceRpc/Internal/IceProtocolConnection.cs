@@ -443,8 +443,8 @@ namespace IceRpc.Internal
         }
 
         internal IceProtocolConnection(
-            IDispatcher dispatcher,
             ISimpleNetworkConnection simpleNetworkConnection,
+            IDispatcher dispatcher,
             Configure.IceOptions? options)
         {
             _dispatcher = dispatcher;

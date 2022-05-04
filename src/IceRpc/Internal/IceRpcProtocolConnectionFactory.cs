@@ -2,7 +2,6 @@
 
 using IceRpc.Transports;
 using System.Buffers;
-using System.Collections.Immutable;
 
 namespace IceRpc.Internal
 {
@@ -19,9 +18,9 @@ namespace IceRpc.Internal
             CancellationToken cancel)
         {
             var protocolConnection = new IceRpcProtocolConnection(
-                dispatcher,
                 networkConnection,
-                protocolOptions?.Fields ?? ImmutableDictionary<ConnectionFieldKey, OutgoingFieldValue>.Empty,
+                dispatcher,
+                protocolOptions,
                 onConnect);
 
             try
