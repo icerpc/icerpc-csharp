@@ -1,13 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 using NUnit.Framework;
 
 namespace IceRpc.Slice.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
-[Timeout(30000)]
+[Timeout(5000)]
 public class InvocationTests
 {
     /// <summary>Verifies that the request context feature is set to the invocation context.</summary>
@@ -34,7 +33,7 @@ public class InvocationTests
         await proxy.InvokeAsync(
             "",
             SliceEncoding.Slice2,
-            EmptyPipeReader.Instance,
+            payload: null,
             payloadStream: null,
             defaultActivator: null,
             invocation);
@@ -65,7 +64,7 @@ public class InvocationTests
         await sut.InvokeAsync(
             "",
             SliceEncoding.Slice2,
-            EmptyPipeReader.Instance,
+            payload: null,
             payloadStream: null,
             defaultActivator: null,
             invocation,
@@ -99,7 +98,7 @@ public class InvocationTests
             () => sut.InvokeAsync(
                 "",
                 SliceEncoding.Slice2,
-                EmptyPipeReader.Instance,
+                payload: null,
                 payloadStream: null,
                 defaultActivator: null,
                 new Invocation { Timeout = TimeSpan.FromMilliseconds(20) }),
@@ -134,7 +133,7 @@ public class InvocationTests
         await sut.InvokeAsync(
             "",
             SliceEncoding.Slice2,
-            EmptyPipeReader.Instance,
+            payload: null,
             payloadStream: null,
             defaultActivator: null,
             new Invocation() { Timeout = invocationTimeout });
@@ -165,7 +164,7 @@ public class InvocationTests
         await sut.InvokeAsync(
             "",
             SliceEncoding.Slice2,
-            EmptyPipeReader.Instance,
+            payload: null,
             payloadStream: null,
             defaultActivator: null,
             new Invocation { Timeout = Timeout.InfiniteTimeSpan });
@@ -189,7 +188,7 @@ public class InvocationTests
             () => sut.InvokeAsync(
                 "",
                 SliceEncoding.Slice2,
-                EmptyPipeReader.Instance,
+                payload: null,
                 payloadStream: null,
                 defaultActivator: null,
                 new Invocation { Deadline = DateTime.Now + TimeSpan.FromSeconds(60) },

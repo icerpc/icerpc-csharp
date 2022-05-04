@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using IceRpc.Slice;
 using IceRpc.Tests;
+using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Collections.Immutable;
@@ -23,11 +24,13 @@ public sealed class ProtocolBridgingTests
         var targetServiceCollection = new IntegrationTestServiceCollection();
         var forwarderServiceCollection = new IntegrationTestServiceCollection();
 
+        // We need to use the same coloc transport everywhere for connections to work.
+        var coloc = new ColocTransport();
+        targetServiceCollection.UseColoc(coloc);
+        forwarderServiceCollection.UseColoc(coloc);
+
         targetServiceCollection.UseProtocol(targetProtocol).AddTransient<IDispatcher>(_ => router);
         forwarderServiceCollection.UseProtocol(forwarderProtocol).AddTransient<IDispatcher>(_ => router);
-
-        targetServiceCollection.UseTcp();
-        forwarderServiceCollection.UseTcp();
 
         targetServiceCollection.AddTransient<IInvoker>(serviceProvider =>
             new Pipeline().UseBinder(serviceProvider.GetRequiredService<ConnectionPool>()));
