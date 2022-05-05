@@ -1,0 +1,28 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+// Ensure that using the same type names in different modules, doesn't cause any conflicts and generates correct code.
+module IceRpc::Slice::Tests
+{
+    struct S
+    {
+        v: int32,
+    }
+
+    module Inner
+    {
+        struct S
+        {
+            v: int32,
+        }
+
+        interface ScopeOperations
+        {
+            op(s: S) -> IceRpc::Slice::Tests::S;
+        }
+    }
+
+    interface ScopeOperations
+    {
+        op(s: S) -> Inner::S;
+    }
+}
