@@ -87,7 +87,7 @@ public class SequenceDecodingTests
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        long?[] seq = new long?[(4096 / Unsafe.SizeOf<long?>()) + 1];
+        long?[] seq = new long?[100];
         encoder.EncodeSequenceWithBitSequence(
             seq,
             (ref SliceEncoder encoder, long? value) => encoder.EncodeInt64(value!.Value));
@@ -106,7 +106,7 @@ public class SequenceDecodingTests
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        long?[] seq = new long?[(4096 / Unsafe.SizeOf<long?>()) + 1];
+        long?[] seq = new long?[100];
         encoder.EncodeSequenceWithBitSequence(
             seq,
             (ref SliceEncoder encoder, long? value) => encoder.EncodeInt64(value!.Value));
