@@ -17,12 +17,9 @@ public class SliceTestServiceCollection : ServiceCollection
 
         this.UseSlic();
 
-        this.AddScoped(provider => new ConnectionPool(provider.GetService<ConnectionOptions>() ?? new ConnectionOptions()));
-
         this.AddScoped(provider =>
         {
             var serverOptions = provider.GetService<ServerOptions>() ?? new ServerOptions();
-            serverOptions.SimpleServerTransport = provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>();
             serverOptions.MultiplexedServerTransport =
                 provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>();
             serverOptions.Dispatcher = provider.GetRequiredService<IDispatcher>();
@@ -36,7 +33,6 @@ public class SliceTestServiceCollection : ServiceCollection
         this.AddScoped(provider =>
         {
             var connectionOptions = provider.GetService<ConnectionOptions>() ?? new ConnectionOptions();
-            connectionOptions.SimpleClientTransport = provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>();
             connectionOptions.MultiplexedClientTransport =
                 provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
             connectionOptions.Dispatcher ??= provider.GetRequiredService<IDispatcher>();

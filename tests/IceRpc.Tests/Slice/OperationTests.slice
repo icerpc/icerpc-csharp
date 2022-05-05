@@ -2,7 +2,8 @@
 
 module IceRpc::Slice::Tests;
 
-interface MyOperations
+// Used for testing the generated code corresponding to proxy and dispatch visitors.
+interface MyOperationsA
 {
     // No parameters and void return
 	opWithoutParametersAndVoidReturn();
@@ -43,4 +44,4 @@ interface MyOperations
 	continue();
 }
 
-interface MyDerivedOperations : MyOperations {}
+interface MyDerivedOperationsA : MyOperationsA {}

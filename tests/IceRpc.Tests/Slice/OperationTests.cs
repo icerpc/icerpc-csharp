@@ -16,9 +16,9 @@ public class OperationGeneratedCodeTests
     public async Task Operation_without_parameters_and_void_return()
     {
         await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyOperations())
+            .UseDispatcher(new MyOperationsA())
             .BuildServiceProvider();
-        var prx = MyOperationsPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
 
         Assert.That(async () => await prx.OpWithoutParametersAndVoidReturnAsync(), Throws.Nothing);
     }
@@ -27,9 +27,9 @@ public class OperationGeneratedCodeTests
     public async Task Operation_from_base_class()
     {
         await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyDerivedOperations())
+            .UseDispatcher(new MyDerivedOperationsA())
             .BuildServiceProvider();
-        var prx = MyDerivedOperationsPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyDerivedOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
 
         Assert.That(async () => await prx.OpWithoutParametersAndVoidReturnAsync(), Throws.Nothing);
     }
@@ -38,9 +38,9 @@ public class OperationGeneratedCodeTests
     public async Task Operation_with_single_parameter_and_return_value()
     {
         await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyOperations())
+            .UseDispatcher(new MyOperationsA())
             .BuildServiceProvider();
-        var prx = MyOperationsPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
 
         int r = await prx.OpWithSingleParameterAndReturnValueAsync(10);
 
@@ -51,9 +51,9 @@ public class OperationGeneratedCodeTests
     public async Task Operation_with_multiple_parameters_and_return_values()
     {
         await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyOperations())
+            .UseDispatcher(new MyOperationsA())
             .BuildServiceProvider();
-        var prx = MyOperationsPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
 
         (int r1, int r2) = await prx.OpWithMultipleParametersAndReturnValuesAsync(10, 20);
 
@@ -84,13 +84,13 @@ public class OperationGeneratedCodeTests
             compressResponseFeature = request.Features.Get<Features.CompressPayload>() == Features.CompressPayload.Yes;
             return response;
         }));
-        router.Map("/", new MyOperations());
+        router.Map("/", new MyOperationsA());
 
         await using var provider = new SliceTestServiceCollection()
             .UseDispatcher(router)
             .BuildServiceProvider();
 
-        var prx = MyOperationsPrx.FromConnection(provider.GetRequiredService<Connection>(), "/", pipeline);
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>(), "/", pipeline);
 
         // Act
         int r = await prx.OpWithCompressArgsAndReturnAttributeAsync(10);
@@ -106,9 +106,9 @@ public class OperationGeneratedCodeTests
     {
         // Arrange
         await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyOperations())
+            .UseDispatcher(new MyOperationsA())
             .BuildServiceProvider();
-        var prx = MyOperationsPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
         var data = new byte[] { 1, 2, 3 };
         var pipe = new Pipe();
 
@@ -131,9 +131,9 @@ public class OperationGeneratedCodeTests
     {
         // Arrange
         await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyOperations())
+            .UseDispatcher(new MyOperationsA())
             .BuildServiceProvider();
-        var prx = MyOperationsPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
 
         // Act
         var r = await prx.OpWithIntStreamArgumentAndReturnAsync(GetDataAsync());
@@ -165,9 +165,9 @@ public class OperationGeneratedCodeTests
     {
         // Arrange
         await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyOperations())
+            .UseDispatcher(new MyOperationsA())
             .BuildServiceProvider();
-        var prx = MyOperationsPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
 
         // Act
         (int r1, IAsyncEnumerable<int> r2) =
@@ -202,9 +202,9 @@ public class OperationGeneratedCodeTests
     {
         // Arrange
         await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyOperations())
+            .UseDispatcher(new MyOperationsA())
             .BuildServiceProvider();
-        var prx = MyOperationsPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
 
         // Act
         Assert.That(
@@ -221,9 +221,9 @@ public class OperationGeneratedCodeTests
     {
         // Arrange
         await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyOperations())
+            .UseDispatcher(new MyOperationsA())
             .BuildServiceProvider();
-        var prx = MyOperationsPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
 
         // Act
         Assert.That(async () => await prx.OpWithCsAttributeAsync(10), Throws.Nothing);
@@ -234,9 +234,9 @@ public class OperationGeneratedCodeTests
     {
         // Arrange
         await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyOperations())
+            .UseDispatcher(new MyOperationsA())
             .BuildServiceProvider();
-        var prx = MyOperationsPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
 
         // Act
         var r = await prx.OpWithSingleReturnValueAndEncodedResultAttributeAsync();
@@ -250,9 +250,9 @@ public class OperationGeneratedCodeTests
     {
         // Arrange
         await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyOperations())
+            .UseDispatcher(new MyOperationsA())
             .BuildServiceProvider();
-        var prx = MyOperationsPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
 
         // Act
         (int r1, int r2) = await prx.OpWithMultipleReturnValuesAndEncodedResultAttributeAsync();
@@ -268,15 +268,15 @@ public class OperationGeneratedCodeTests
     {
         // Arrange
         await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyOperations())
+            .UseDispatcher(new MyOperationsA())
             .BuildServiceProvider();
-        var prx = MyOperationsPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
 
         // Act/Assert
         Assert.That(async () => await prx.OpWithCsInternalAttributeAsync(), Throws.Nothing);
     }
 
-    class MyOperations : Service, IMyOperations
+    class MyOperationsA : Service, IMyOperationsA
     {
         public ValueTask ContinueAsync(Dispatch dispatch, CancellationToken cancel) => default;
 
@@ -330,16 +330,16 @@ public class OperationGeneratedCodeTests
             Dispatch dispatch,
             CancellationToken cancel) => default;
 
-        public ValueTask<IMyOperations.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult> OpWithSingleReturnValueAndEncodedResultAttributeAsync(
+        public ValueTask<IMyOperationsA.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult> OpWithSingleReturnValueAndEncodedResultAttributeAsync(
             Dispatch dispatch,
-            CancellationToken cancel) => new(new IMyOperations.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult(10));
+            CancellationToken cancel) => new(new IMyOperationsA.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult(10));
 
-        public ValueTask<IMyOperations.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult> OpWithMultipleReturnValuesAndEncodedResultAttributeAsync(
+        public ValueTask<IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult> OpWithMultipleReturnValuesAndEncodedResultAttributeAsync(
             Dispatch dispatch,
-            CancellationToken cancel) => new(new IMyOperations.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult(10, 20));
+            CancellationToken cancel) => new(new IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult(10, 20));
 
         public ValueTask OpWithCsInternalAttributeAsync(Dispatch dispatch, CancellationToken cancel) => default;
     }
 
-    class MyDerivedOperations : MyOperations { }
+    class MyDerivedOperationsA : MyOperationsA { }
 }

@@ -1,8 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Slice::Encoding::Tests;
+module IceRpc::Slice::Tests;
 
-interface MyOperations
+// Used for testing the generated Request and Response classes.
+interface MyOperationsB
 {
     // Single input parameter and return value
     opInt32(p1: int32) -> int32;
