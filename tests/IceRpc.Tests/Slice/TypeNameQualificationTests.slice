@@ -16,9 +16,8 @@ module IceRpc::Slice::Tests
         }
     }
 
-    interface ScopeOperations
+    interface TypeNameQualificationOperations
     {
-        opWithParameterDefinedInDifferentScope(s: Inner::S) -> S;
-        opWithReturnDefinedInDifferentScope(s: S) -> Inner::S;
+        opWithTypeNamesDefinedInMultipleModules(s: Inner::S) -> S;
     }
 }
