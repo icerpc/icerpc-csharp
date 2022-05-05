@@ -37,9 +37,6 @@ interface MyOperationsA
 	[cs::encodedResult] opWithSingleReturnValueAndEncodedResultAttribute() -> int32;
 	[cs::encodedResult] opWithMultipleReturnValuesAndEncodedResultAttribute() -> (r1: int32, r2: int32);
 
-	// Internal operation
-	[cs::internal] opWithCsInternalAttribute();
-
 	// C# keyword as operation name
 	continue();
 }
