@@ -18,14 +18,14 @@ namespace IceRpc.Transports.Internal
                 await _decoratee.AcceptStreamAsync(cancel).ConfigureAwait(false),
                 Logger);
 
-        public async ValueTask CloseAsync(int applicationErrorCode, CancellationToken cancel)
+        public async Task ShutdownAsync(ulong applicationErrorCode, CancellationToken cancel)
         {
-            await _decoratee.CloseAsync(applicationErrorCode, cancel).ConfigureAwait(false);
+            await _decoratee.ShutdownAsync(applicationErrorCode, cancel).ConfigureAwait(false);
 
             if (Information is NetworkConnectionInformation connectionInformation)
             {
                 using IDisposable scope = Logger.StartConnectionScope(connectionInformation, IsServer);
-                Logger.LogMultiplexedNetworkConnectionClose(applicationErrorCode);
+                Logger.LogMultiplexedNetworkConnectionShutdown(applicationErrorCode);
             }
         }
 

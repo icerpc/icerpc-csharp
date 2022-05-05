@@ -16,6 +16,10 @@ namespace IceRpc.Transports
         /// <exception cref="OperationCanceledException">Thrown if the cancellation token was canceled.</exception>
         ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel);
 
+        /// <summary>Shuts down the connection.</summary>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        Task ShutdownAsync(CancellationToken cancel);
+
         /// <summary>Writes data over the connection.</summary>
         /// <param name="buffers">The buffers containing the data to write.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

@@ -180,7 +180,7 @@ namespace IceRpc.Transports.Internal
 
         internal void Abort(Exception exception) => CompletePipeReader(exception);
 
-        internal void ReceivedStopSendingFrame(long error) => CompletePipeReader(
+        internal void ReceivedStopSendingFrame(ulong error) => CompletePipeReader(
             error == SlicStreamError.NoError.ToError() ? null : new MultiplexedStreamAbortedException(error));
 
         private void CheckIfCompleted()

@@ -13,7 +13,7 @@ namespace IceRpc.Transports.Internal
 
     internal static class SlicStreamErrorExtensions
     {
-        internal static long ToError(this SlicStreamError error) =>
-            (long)MultiplexedStreamErrorKind.Transport | (long)error;
+        internal static ulong ToError(this SlicStreamError error) =>
+            (ulong)MultiplexedStreamErrorKind.Transport | (ulong)error;
     }
 }

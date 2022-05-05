@@ -85,13 +85,16 @@ namespace IceRpc.Transports.Internal
                         buffer = buffer[0..byteCount];
                     }
 
-                    int length = await _connection.ReadAsync(buffer, cancel).ConfigureAwait(false);
-                    if (length == 0)
+                    int read = await _connection.ReadAsync(buffer, cancel).ConfigureAwait(false);
+                    bufferWriter.Advance(read);
+                    byteCount -= read;
+
+                    if (byteCount > 0 && read == 0)
                     {
-                        throw new ConnectionLostException();
+                        // The peer gracefully shut down the connection but returned less data than expected, it's
+                        // considered as an error.
+                        throw new ConnectionLostException("received less data than expected");
                     }
-                    bufferWriter.Advance(length);
-                    byteCount -= length;
                 } while (byteCount > 0);
             }
         }
@@ -121,19 +124,22 @@ namespace IceRpc.Transports.Internal
                 // Fill the pipe with data read from the connection.
                 Memory<byte> buffer = _pipe.Writer.GetMemory();
                 int read = await _connection.ReadAsync(buffer, cancel).ConfigureAwait(false);
-                if (read == 0)
-                {
-                    throw new ConnectionLostException();
-                }
                 _pipe.Writer.Advance(read);
                 minimumSize -= read;
+
+                if (minimumSize > 0 && read == 0)
+                {
+                    // The peer gracefully shut down the connection but returned less data than expected, it's
+                    // considered as an error.
+                    throw new ConnectionLostException("received less data than expected");
+                }
             }
             while (minimumSize > 0);
 
             _ = await _pipe.Writer.FlushAsync(cancel).ConfigureAwait(false);
 
             _pipe.Reader.TryRead(out readResult);
-            Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled && readResult.Buffer.Length >= minimumSize);
+            Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled && !readResult.Buffer.IsEmpty);
             return readResult.Buffer;
         }
 

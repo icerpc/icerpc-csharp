@@ -208,7 +208,7 @@ namespace IceRpc
                     {
                         if (_shutdownTask != null)
                         {
-                            _ = connection.CloseAsync("server shutdown");
+                            connection.Abort();
                             return;
                         }
 

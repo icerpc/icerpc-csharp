@@ -54,10 +54,9 @@ public sealed class IceRpcProtocolConnectionTests
             new OutgoingRequest(new Proxy(Protocol.IceRpc)),
             InvalidConnection.IceRpc);
         await start.WaitAsync(); // Wait for the dispatch to start
-        var shutdownTask = sut.Client.ShutdownAsync("");
 
         // Act
-        sut.Client.CancelPendingInvocationsAndDispatchesOnShutdown();
+        var shutdownTask = sut.Client.ShutdownAsync("", new CancellationToken(canceled: true));
 
         // Assert
         Assert.Multiple(() =>
@@ -97,7 +96,7 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
         var exception = await response.DecodeFailureAsync(request) as DispatchException;
         Assert.That(exception, Is.Not.Null);
-        Assert.That(exception.ErrorCode, Is.EqualTo(errorCode));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(errorCode));
     }
 
     /// <summary>Checks that the connection fields are correctly exchanged during connection establishment.</summary>

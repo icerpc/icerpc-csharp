@@ -27,11 +27,10 @@ namespace IceRpc.Transports.Internal
         internal MemoryPool<byte> Pool { get; }
         internal int ResumeWriterThreshold { get; }
 
-        private readonly AsyncQueue<IMultiplexedStream> _acceptedStreamQueue = new();
+        private readonly AsyncQueue<IMultiplexedStream> _acceptStreamQueue = new();
         private int _bidirectionalStreamCount;
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly int _bidirectionalMaxStreams;
-        private long? _closeApplicationErrorCode;
         private Exception? _exception;
         private long _lastRemoteBidirectionalStreamId = -1;
         private long _lastRemoteUnidirectionalStreamId = -1;
@@ -41,7 +40,6 @@ namespace IceRpc.Transports.Internal
         private long _nextBidirectionalId;
         private long _nextUnidirectionalId;
         private readonly int _packetMaxSize;
-        private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly CancellationTokenSource _readCancelSource = new();
         private TaskCompletionSource? _readFramesTaskCompletionSource;
         private readonly ISlicFrameReader _reader;
@@ -56,24 +54,7 @@ namespace IceRpc.Transports.Internal
         private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
         public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel) =>
-            _acceptedStreamQueue.DequeueAsync(cancel);
-
-        public async ValueTask CloseAsync(int applicationErrorCode, CancellationToken cancel)
-        {
-            // Save the close application error code. AcceptStreamAsync will raise
-            // MultiplexedNetworkConnectionClosedException if this is set instead of ConnectionLostException.
-            _closeApplicationErrorCode = applicationErrorCode;
-
-            // Send the close frame.
-            await SendFrameAsync(
-                stream: null,
-                FrameType.Close,
-                new CloseBody(applicationErrorCode).Encode,
-                cancel).ConfigureAwait(false);
-
-            // Wait for the peer to close the simple network connection.
-            await _pendingClose.Task.ConfigureAwait(false);
-        }
+            _acceptStreamQueue.DequeueAsync(cancel);
 
         public async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
         {
@@ -217,7 +198,14 @@ namespace IceRpc.Transports.Internal
 
                         try
                         {
-                            await ReadFramesAsync(_readCancelSource.Token).ConfigureAwait(false);
+                            // Read frames. This will return when the Close frame is received.
+                            ulong errorCode = await ReadFramesAsync(_readCancelSource.Token).ConfigureAwait(false);
+
+                            // Send back a Close frame to the peer with the same error code.
+                            await ShutdownAsync(errorCode, _readCancelSource.Token).ConfigureAwait(false);
+
+                            // It's time for AcceptStreamAsync to complete.
+                            _acceptStreamQueue.TryComplete(new MultiplexedNetworkConnectionClosedException(errorCode));
                         }
                         finally
                         {
@@ -226,7 +214,7 @@ namespace IceRpc.Transports.Internal
                     }
                     catch (Exception exception)
                     {
-                        await AbortAsync(exception).ConfigureAwait(false);
+                        Abort(exception);
                     }
                 },
                 CancellationToken.None);
@@ -238,10 +226,26 @@ namespace IceRpc.Transports.Internal
             // TODO: Cache SliceMultiplexedStream
             new SlicMultiplexedStream(this, bidirectional, remote: false, _simpleNetworkConnectionReader);
 
-        public ValueTask DisposeAsync() => AbortAsync(new ObjectDisposedException($"{typeof(SlicNetworkConnection)}"));
+        public void Dispose() => Abort(new ObjectDisposedException($"{typeof(SlicNetworkConnection)}"));
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             _simpleNetworkConnection.HasCompatibleParams(remoteEndpoint);
+
+        public async Task ShutdownAsync(ulong applicationErrorCode, CancellationToken cancel)
+        {
+            // Send the close frame.
+            await SendFrameAsync(
+                stream: null,
+                FrameType.Close,
+                new CloseBody(applicationErrorCode).Encode,
+                cancel).ConfigureAwait(false);
+
+            // Prevent further writes.
+            _writeSemaphore.Complete(new MultiplexedNetworkConnectionClosedException(applicationErrorCode));
+
+            // Shutdown the simple network connection.
+            await _simpleNetworkConnection.ShutdownAsync(cancel).ConfigureAwait(false);
+        }
 
         internal SlicNetworkConnection(
             ISimpleNetworkConnection simpleNetworkConnection,
@@ -484,7 +488,7 @@ namespace IceRpc.Transports.Internal
             return new FlushResult(isCanceled: false, isCompleted: false);
         }
 
-        private async ValueTask AbortAsync(Exception exception)
+        private void Abort(Exception exception)
         {
             lock (_mutex)
             {
@@ -499,42 +503,39 @@ namespace IceRpc.Transports.Internal
             _bidirectionalStreamSemaphore?.Complete(exception);
             _unidirectionalStreamSemaphore?.Complete(exception);
 
-            // Unblock requests waiting on the semaphore and wait for the semaphore to be released to ensure we don't
-            // dispose the simple network connection while a frame is being sent (the close frame in particular).
-            await _writeSemaphore.CompleteAndWaitAsync(exception).ConfigureAwait(false);
-
             foreach (SlicMultiplexedStream stream in _streams.Values)
             {
                 stream.Abort(exception);
             }
 
-            if (_exception is not MultiplexedNetworkConnectionClosedException &&
-                _closeApplicationErrorCode is long errorCode)
-            {
-                _acceptedStreamQueue.TryComplete(new MultiplexedNetworkConnectionClosedException(errorCode));
-            }
-            else
-            {
-                _acceptedStreamQueue.TryComplete(_exception);
-            }
+            _acceptStreamQueue.TryComplete(_exception);
 
-            _pendingClose.TrySetResult();
-
-            // Close the network connection and cancel the pending receive.
-            await _simpleNetworkConnection.DisposeAsync().ConfigureAwait(false);
+            // Close the network connection and cancel the pending receive or shutdown.
+            _simpleNetworkConnection.Dispose();
             _readCancelSource.Cancel();
 
-            // Wait for the receive task to complete.
-            if (_readFramesTaskCompletionSource != null)
+            // Release remaining resources in the background.
+            _ = AbortAsync();
+
+            async Task AbortAsync()
             {
-                await _readFramesTaskCompletionSource.Task.ConfigureAwait(false);
+                // Unblock requests waiting on the semaphore and wait for the semaphore to be released to ensure we
+                // don't dispose the simple network connection writer while it's being used.
+                await _writeSemaphore.CompleteAndWaitAsync(exception).ConfigureAwait(false);
+
+                // Wait for the receive task to complete to ensure we don't dispose the simple network connection reader
+                // while it's being used.
+                if (_readFramesTaskCompletionSource != null)
+                {
+                    await _readFramesTaskCompletionSource.Task.ConfigureAwait(false);
+                }
+
+                // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
+                _simpleNetworkConnectionReader.Dispose();
+                _simpleNetworkConnectionWriter.Dispose();
+
+                _readCancelSource.Dispose();
             }
-
-            // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
-            _simpleNetworkConnectionReader.Dispose();
-            _simpleNetworkConnectionWriter.Dispose();
-
-            _readCancelSource.Dispose();
         }
 
         private Dictionary<int, IList<byte>> GetParameters()
@@ -562,7 +563,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private async Task ReadFramesAsync(CancellationToken cancel)
+        private async Task<ulong> ReadFramesAsync(CancellationToken cancel)
         {
             while (true)
             {
@@ -585,9 +586,8 @@ namespace IceRpc.Transports.Internal
                             (ref SliceDecoder decoder) => new CloseBody(ref decoder),
                             cancel).ConfigureAwait(false);
 
-                        await AbortAsync(new MultiplexedNetworkConnectionClosedException(
-                            closeBody.ApplicationProtocolErrorCode)).ConfigureAwait(false);
-                        break;
+                        // Graceful connection shutdown, we're done.
+                        return closeBody.ApplicationProtocolErrorCode;
                     }
                     case FrameType.Stream:
                     case FrameType.StreamLast:
@@ -676,7 +676,7 @@ namespace IceRpc.Transports.Internal
                             // Queue the new stream only if it read the full size (otherwise, it has been shutdown).
                             if (readSize == dataSize)
                             {
-                                _acceptedStreamQueue.Enqueue(stream);
+                                _acceptStreamQueue.Enqueue(stream);
                             }
                         }
 

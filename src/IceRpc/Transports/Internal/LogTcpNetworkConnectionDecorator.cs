@@ -14,8 +14,6 @@ namespace IceRpc.Transports.Internal
         private readonly TcpNetworkConnection _decoratee;
         private readonly ILogger _logger;
 
-        ValueTask IAsyncDisposable.DisposeAsync() => _decoratee.DisposeAsync();
-
         public async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
         {
             try
@@ -38,11 +36,15 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        void IDisposable.Dispose() => _decoratee.Dispose();
+
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             _decoratee.HasCompatibleParams(remoteEndpoint);
 
         public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel) =>
             _decoratee.ReadAsync(buffer, cancel);
+
+        public Task ShutdownAsync(CancellationToken cancel) => _decoratee.ShutdownAsync(cancel);
 
         public override string? ToString() => _decoratee.ToString();
 

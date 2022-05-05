@@ -23,14 +23,14 @@ namespace IceRpc.Internal
         /// <summary>This event is raised when the protocol connection is notified of the peer shutdown.</summary>
         Action<string>? PeerShutdownInitiated { get; set; }
 
+        /// <summary>Aborts the connection.</summary>
+        /// <param name="exception">The exception that caused the abort. Pending invocations will raise this
+        /// exception.</param>
+        void Abort(Exception exception);
+
         /// <summary>Accepts requests and returns once the connection is closed or the shutdown completes.</summary>
         /// <param name="connection">The connection of incoming requests created by this method.</param>
         Task AcceptRequestsAsync(Connection connection);
-
-        /// <summary>Cancels pending invocations and dispatches if the connection is being shut down. If it's not being
-        /// shut down, the pending invocations and dispatches will be canceled when the connection is
-        /// shut down.</summary>
-        public void CancelPendingInvocationsAndDispatchesOnShutdown();
 
         /// <summary>Checks if the parameters of the provided endpoint are compatible with the network connection of
         /// this protocol connection. Compatible means a client could reuse the network connection instead of

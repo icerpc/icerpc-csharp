@@ -16,9 +16,7 @@ namespace IceRpc.Tests;
 internal struct ClientServerProtocolConnection : IAsyncDisposable
 {
     internal IProtocolConnection Client { get; }
-    internal INetworkConnection ClientNetworkConnection { get; }
     internal IProtocolConnection Server { get; }
-    internal INetworkConnection ServerNetworkConnection { get; }
 
     public async ValueTask DisposeAsync()
     {
@@ -26,14 +24,8 @@ internal struct ClientServerProtocolConnection : IAsyncDisposable
         await Server.DisposeAsync();
     }
 
-    internal ClientServerProtocolConnection(
-        INetworkConnection clientNetworkConnection,
-        INetworkConnection serverNetworkConnection,
-        IProtocolConnection clientConnection,
-        IProtocolConnection serverConnection)
+    internal ClientServerProtocolConnection(IProtocolConnection clientConnection, IProtocolConnection serverConnection)
     {
-        ClientNetworkConnection = clientNetworkConnection;
-        ServerNetworkConnection = serverNetworkConnection;
         Client = clientConnection;
         Server = serverConnection;
     }
@@ -98,24 +90,18 @@ internal static class ProtocolServiceCollectionExtensions
     internal static async Task<ClientServerProtocolConnection> GetClientServerProtocolConnectionAsync(
         this IServiceProvider serviceProvider)
     {
-        Task<(INetworkConnection, IProtocolConnection)> serverTask =
-            serviceProvider.GetServerProtocolConnectionAsync();
-        (INetworkConnection clientNetworkConnection, IProtocolConnection clientProtocolConnection) =
+        Task<IProtocolConnection> serverTask = serviceProvider.GetServerProtocolConnectionAsync();
+        IProtocolConnection clientProtocolConnection =
             await serviceProvider.GetClientProtocolConnectionAsync();
-        (INetworkConnection serverNetworkConnection, IProtocolConnection serverProtocolConnection) =
-            await serverTask;
-        return new ClientServerProtocolConnection(
-            clientNetworkConnection,
-            serverNetworkConnection,
-            clientProtocolConnection,
-            serverProtocolConnection);
+        IProtocolConnection serverProtocolConnection = await serverTask;
+        return new ClientServerProtocolConnection(clientProtocolConnection, serverProtocolConnection);
     }
 
     internal static Connection GetInvalidConnection(this IServiceProvider serviceProvider) =>
         serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ? InvalidConnection.Ice :
             InvalidConnection.IceRpc;
 
-    private static Task<(INetworkConnection, IProtocolConnection)> GetClientProtocolConnectionAsync(
+    private static Task<IProtocolConnection> GetClientProtocolConnectionAsync(
         this IServiceProvider serviceProvider) => serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ?
             GetProtocolConnectionAsync(
                 serviceProvider,
@@ -126,7 +112,7 @@ internal static class ProtocolServiceCollectionExtensions
                 isServer: false,
                 serviceProvider.GetMultiplexedClientConnectionAsync);
 
-    private static async Task<(INetworkConnection, IProtocolConnection)> GetProtocolConnectionAsync<T>(
+    private static async Task<IProtocolConnection> GetProtocolConnectionAsync<T>(
         IServiceProvider serviceProvider,
         bool isServer,
         Func<Task<T>> networkConnectionFactory) where T : INetworkConnection
@@ -151,10 +137,10 @@ internal static class ProtocolServiceCollectionExtensions
                 onConnect,
                 isServer,
                 CancellationToken.None);
-        return (networkConnection, protocolConnection);
+        return protocolConnection;
     }
 
-    private static Task<(INetworkConnection, IProtocolConnection)> GetServerProtocolConnectionAsync(
+    private static Task<IProtocolConnection> GetServerProtocolConnectionAsync(
         this IServiceProvider serviceProvider) => serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ?
             GetProtocolConnectionAsync(
                 serviceProvider,

@@ -43,10 +43,10 @@ public class TcpTransportTests
     [TestCase(64 * 1024)]
     [TestCase(256 * 1024)]
     [TestCase(384 * 1024)]
-    public async Task Configure_client_connection_buffer_size(int bufferSize)
+    public void Configure_client_connection_buffer_size(int bufferSize)
     {
         // Act
-        await using TcpClientNetworkConnection connection = CreateTcpClientConnection(
+        using TcpClientNetworkConnection connection = CreateTcpClientConnection(
             options: new TcpClientTransportOptions
             {
                 ReceiveBufferSize = bufferSize,
@@ -86,11 +86,11 @@ public class TcpTransportTests
     /// <summary>Verifies that setting the <see cref="TcpClientTransportOptions.LocalEndPoint"/> properties, sets
     /// the socket local endpoint.</summary>
     [Test]
-    public async Task Configure_client_connection_local_endpoint()
+    public void Configure_client_connection_local_endpoint()
     {
         var localEndPoint = new IPEndPoint(IPAddress.IPv6Loopback, 10000);
 
-        await using TcpClientNetworkConnection connection = CreateTcpClientConnection(
+        using TcpClientNetworkConnection connection = CreateTcpClientConnection(
             options: new TcpClientTransportOptions
             {
                 LocalEndPoint = localEndPoint,
@@ -120,11 +120,11 @@ public class TcpTransportTests
         IClientTransport<ISimpleNetworkConnection> clientTransport = new TcpClientTransport(
             new TcpClientTransportOptions());
 
-        await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(listener.Endpoint);
+        using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(listener.Endpoint);
         await clientConnection.ConnectAsync(default);
 
         // Act
-        await using var serverConnection = (TcpServerNetworkConnection)await acceptTask;
+        using var serverConnection = (TcpServerNetworkConnection)await acceptTask;
 
         // Assert
         Assert.Multiple(() =>
@@ -206,7 +206,10 @@ public class TcpTransportTests
         Assert.That(connections, Has.Count.GreaterThanOrEqualTo(18));
         Assert.That(connections, Has.Count.LessThanOrEqualTo(25));
 
-        await Task.WhenAll(connections.Select(connection => connection.DisposeAsync().AsTask()));
+        foreach (IDisposable connection in connections)
+        {
+            connection.Dispose();
+        }
     }
 
     /// <summary>Verifies that connect cancellation works if connect hangs.</summary>
@@ -247,7 +250,7 @@ public class TcpTransportTests
             {
                 if (connection != null)
                 {
-                    await connection.DisposeAsync();
+                    connection.Dispose();
                 }
             }
         }
@@ -257,7 +260,7 @@ public class TcpTransportTests
 
         // Assert
         Assert.That(async () => await connectTask, Throws.InstanceOf<OperationCanceledException>());
-        await clientConnection.DisposeAsync();
+        clientConnection.Dispose();
     }
 
     /// <summary>Verifies that the client connect call on a tls connection fails with
@@ -270,7 +273,7 @@ public class TcpTransportTests
         await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
             authenticationOptions: DefaultSslServerAuthenticationOptions);
 
-        await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(
+        using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(
             listener.Endpoint,
             authenticationOptions:
                 new SslClientAuthenticationOptions
@@ -299,7 +302,7 @@ public class TcpTransportTests
         await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
             authenticationOptions: tls ? DefaultSslServerAuthenticationOptions : null);
 
-        await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(
+        using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(
             listener.Endpoint,
             authenticationOptions: tls ? DefaultSslClientAuthenticationOptions : null);
 
@@ -332,14 +335,14 @@ public class TcpTransportTests
         // Arrange
         await using IListener<ISimpleNetworkConnection> listener =
             CreateTcpListener(authenticationOptions: DefaultSslServerAuthenticationOptions);
-        await using TcpClientNetworkConnection clientConnection =
+        using TcpClientNetworkConnection clientConnection =
             CreateTcpClientConnection(listener.Endpoint, authenticationOptions: DefaultSslClientAuthenticationOptions);
 
         Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
         // We don't use clientConnection.ConnectAsync() here as this would start the TLS handshake
         await clientConnection.Socket.ConnectAsync(new DnsEndPoint(listener.Endpoint.Host, listener.Endpoint.Port));
         ISimpleNetworkConnection serverConnection = await acceptTask;
-        await clientConnection.DisposeAsync();
+        clientConnection.Dispose();
 
         // Act/Assert
         Assert.That(
@@ -366,7 +369,7 @@ public class TcpTransportTests
                 }
             });
 
-        await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(
+        using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(
             listener.Endpoint,
             authenticationOptions: DefaultSslClientAuthenticationOptions);
 

@@ -168,7 +168,7 @@ namespace IceRpc.Transports.Internal
         internal void Abort(Exception exception) => CompletePipeWriter(exception);
 
         /// <summary>Called when a stream reset is received.</summary>
-        internal void ReceivedResetFrame(long error) => CompletePipeWriter(
+        internal void ReceivedResetFrame(ulong error) => CompletePipeWriter(
             error == SlicStreamError.NoError.ToError() ? null : new MultiplexedStreamAbortedException(error));
 
         /// <summary>Called when a stream frame is received. It writes the data from the received stream frame to the

@@ -54,13 +54,14 @@ namespace IceRpc.Internal
                 })
             }.ToImmutableDictionary();
 
-        private bool _cancelPendingDispatchesOnShutdown;
         private readonly IDispatcher _dispatcher;
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly HashSet<CancellationTokenSource> _dispatches = new();
 
-        private readonly SemaphoreSlim? _dispatchSemaphore;
+#pragma warning disable CA2213 // IDisposable type which is never disposed
+        private readonly SemaphoreSlim? _dispatchSemaphore; // Disposed by Abort()
+#pragma warning restore CA2213
 
         private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
         private bool _isAborted;
@@ -71,19 +72,75 @@ namespace IceRpc.Internal
 
         private readonly object _mutex = new();
         private readonly ISimpleNetworkConnection _networkConnection;
-        private readonly SimpleNetworkConnectionReader _networkConnectionReader;
-        private readonly SimpleNetworkConnectionWriter _networkConnectionWriter;
+
+#pragma warning disable CA2213 // IDisposable type which is never disposed
+        private readonly SimpleNetworkConnectionReader _networkConnectionReader; // Disposed by Abort()
+        private readonly SimpleNetworkConnectionWriter _networkConnectionWriter; // Disposed by Abort()
+#pragma warning restore CA2213
 
         private int _nextRequestId;
         private readonly Configure.IceProtocolOptions _options;
         private readonly IcePayloadPipeWriter _payloadWriter;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly CancellationTokenSource _readCancelSource = new();
+#pragma warning disable CA2213 // IDisposable type which is never disposed
+        private readonly CancellationTokenSource _readCancelSource = new(); // Disposed by Abort()
+#pragma warning restore CA2213
         private TaskCompletionSource? _readFramesTaskCompletionSource;
         private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
+        public void Abort(Exception exception)
+        {
+            lock (_mutex)
+            {
+                if (_isAborted)
+                {
+                    return;
+                }
+                _isAborted = true;
+            }
+
+            // Close the network connection and cancel the pending receive.
+            _networkConnection.Dispose();
+            _readCancelSource.Cancel();
+
+            CancelInvocations(exception);
+            CancelDispatches();
+
+            _dispatchSemaphore?.Dispose();
+
+            // Unblock ShutdownAsync which might be waiting for the connection to be disposed.
+            _pendingClose.TrySetResult();
+
+            // Unblock ShutdownAsync if it's waiting for invocations and dispatches to complete.
+            _dispatchesAndInvocationsCompleted.TrySetException(exception);
+
+            // Release remaining resources in the background.
+            _ = AbortAsync();
+
+            async Task AbortAsync()
+            {
+                // Unblock requests waiting on the semaphore and wait for the semaphore to be released to ensure we
+                // don't dispose the simple network connection writer while it's being used.
+                await _writeSemaphore.CompleteAndWaitAsync(exception).ConfigureAwait(false);
+
+                // Wait for the receive task to complete to ensure we don't dispose the simple network connection reader
+                // while it's being used.
+                if (_readFramesTaskCompletionSource != null)
+                {
+                    await _readFramesTaskCompletionSource.Task.ConfigureAwait(false);
+                }
+
+                // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
+                _networkConnectionReader.Dispose();
+                _networkConnectionWriter.Dispose();
+
+                _readCancelSource.Dispose();
+            }
+        }
+
         public async Task AcceptRequestsAsync(Connection connection)
         {
+            Exception? exception = null;
             try
             {
                 lock (_mutex)
@@ -97,46 +154,31 @@ namespace IceRpc.Internal
                     _readFramesTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
                 }
 
-                bool shutdownByPeer;
-                try
-                {
-                    shutdownByPeer = await ReadFramesAsync(
+                bool shutdownByPeer = await ReadFramesAsync(
                         connection,
                         _readCancelSource.Token).ConfigureAwait(false);
-                }
-                finally
-                {
-                    _readFramesTaskCompletionSource.SetResult();
-                }
 
-                await AbortAsync(new ConnectionClosedException(shutdownByPeer ?
+                exception = new ConnectionClosedException(shutdownByPeer ?
                     "connection shutdown by peer" :
-                    "connection shutdown locally")).ConfigureAwait(false);
+                    "connection shutdown locally");
             }
-            catch (Exception exception)
+            catch (Exception ex)
             {
-                await AbortAsync(exception).ConfigureAwait(false);
+                exception = ex;
                 throw;
             }
-        }
-
-        public void CancelPendingInvocationsAndDispatchesOnShutdown()
-        {
-            lock (_mutex)
+            finally
             {
-                if (!_isShuttingDown)
-                {
-                    // If ShutdownAsync hasn't been called yet, we'll cancel pending dispatches when ShutdownAsync is
-                    // called. ShutdownAsync always cancels pending invocations so there's no need to cancel them.
-                    _cancelPendingDispatchesOnShutdown = true;
-                    return;
-                }
-            }
+                Debug.Assert(exception != null);
 
-            CancelDispatches();
+                Abort(exception);
+
+                _readFramesTaskCompletionSource?.SetResult();
+            }
         }
 
-        public ValueTask DisposeAsync() => AbortAsync(new ObjectDisposedException($"{typeof(IceProtocolConnection)}"));
+        public async ValueTask DisposeAsync() =>
+            await ShutdownAsync("connection disposed", new CancellationToken(canceled: true)).ConfigureAwait(false);
 
         public async Task<IncomingResponse> InvokeAsync(
             OutgoingRequest request,
@@ -397,19 +439,15 @@ namespace IceRpc.Internal
                 }
             }
 
+            cancel.Register(CancelDispatches);
+
             if (!alreadyShuttingDown)
             {
                 // Cancel pending invocations immediately. Wait for dispatches to complete however.
                 CancelInvocations(new OperationCanceledException(message));
 
-                // Just cancel dispatches, the invocations are already canceled.
-                if (_cancelPendingDispatchesOnShutdown)
-                {
-                    CancelDispatches();
-                }
-
                 // Wait for dispatches and invocations to complete.
-                await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
+                await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
 
                 // Mark the connection as shut down at this point. This is necessary to ensure ReadFramesAsync returns
                 // successfully on a graceful connection shutdown. This needs to be set before writing the close
@@ -417,12 +455,12 @@ namespace IceRpc.Internal
                 // frame.
                 _isShutdown = true;
 
-                await _writeSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+                await _writeSemaphore.EnterAsync(CancellationToken.None).ConfigureAwait(false);
                 try
                 {
                     // Encode and write the CloseConnection frame once all the dispatches are done.
                     EncodeCloseConnectionFrame(_networkConnectionWriter);
-                    await _networkConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
+                    await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -433,7 +471,7 @@ namespace IceRpc.Internal
             // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
             // connection closure here. We can't just return and close the underlying transport since this could abort
             // the receive of the dispatch responses and close connection frame by the peer.
-            await _pendingClose.Task.WaitAsync(cancel).ConfigureAwait(false);
+            await _pendingClose.Task.ConfigureAwait(false);
 
             static void EncodeCloseConnectionFrame(SimpleNetworkConnectionWriter writer)
             {
@@ -520,46 +558,6 @@ namespace IceRpc.Internal
                 var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
                 return (new IcePrologue(ref decoder), decoder.Consumed);
             }
-        }
-
-        private async ValueTask AbortAsync(Exception exception)
-        {
-            lock (_mutex)
-            {
-                if (_isAborted)
-                {
-                    return;
-                }
-                _isAborted = true;
-            }
-
-            // Close the network connection and cancel the pending receive.
-            await _networkConnection.DisposeAsync().ConfigureAwait(false);
-            _readCancelSource.Cancel();
-
-            // Wait for writes and the pending read task to complete.
-            await _writeSemaphore.CompleteAndWaitAsync(exception).ConfigureAwait(false);
-            if (_readFramesTaskCompletionSource != null)
-            {
-                await _readFramesTaskCompletionSource.Task.ConfigureAwait(false);
-            }
-
-            // It's now safe to dispose of the reader/writer since no more threads are writing/reading data.
-            _networkConnectionReader.Dispose();
-            _networkConnectionWriter.Dispose();
-
-            CancelInvocations(exception);
-            CancelDispatches();
-
-            _dispatchSemaphore?.Dispose();
-
-            // Unblock ShutdownAsync which might be waiting for the connection to be disposed.
-            _pendingClose.TrySetResult();
-
-            // Unblock ShutdownAsync if it's waiting for invocations and dispatches to complete.
-            _dispatchesAndInvocationsCompleted.TrySetException(exception);
-
-            _readCancelSource.Dispose();
         }
 
         private void CancelDispatches()
@@ -721,7 +719,7 @@ namespace IceRpc.Internal
                         PeerShutdownInitiated?.Invoke("connection shutdown by peer");
 
                         // The peer waits for the network connection to be closed.
-                        await _networkConnection.DisposeAsync().ConfigureAwait(false);
+                        _networkConnection.Dispose();
                         return true;
                     }
 
@@ -1036,7 +1034,7 @@ namespace IceRpc.Internal
                         await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
 
                         // This is an unrecoverable failure, so we kill the connection.
-                        await _networkConnection.DisposeAsync().ConfigureAwait(false);
+                        _networkConnection.Dispose();
                     }
                     finally
                     {

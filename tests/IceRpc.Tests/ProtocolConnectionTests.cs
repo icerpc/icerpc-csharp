@@ -81,8 +81,8 @@ public sealed class ProtocolConnectionTests
         Assert.DoesNotThrowAsync(() => serverAcceptRequestsTask);
     }
 
-    /// <summary>Verifies that calling CancelPendingInvocationsAndDispatchesOnShutdown results in the cancellation of
-    /// the the pending dispatches.</summary>
+    /// <summary>Verifies that calling ShutdownAsync with a canceled token results in the cancellation of the the
+    /// pending dispatches.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
     public async Task Shutdown_dispatch_cancellation(Protocol protocol)
     {
@@ -111,10 +111,9 @@ public sealed class ProtocolConnectionTests
         sut.Client.PeerShutdownInitiated += (message) => sut.Client.ShutdownAsync("shutdown", default);
         var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
         await start.WaitAsync(); // Wait for the dispatch to start
-        Task shutdownTask = sut.Server.ShutdownAsync("");
 
         // Act
-        sut.Server.CancelPendingInvocationsAndDispatchesOnShutdown();
+        Task shutdownTask = sut.Server.ShutdownAsync("", new CancellationToken(canceled: true));
 
         // Assert
         Exception? ex = Assert.CatchAsync(async () =>
@@ -143,45 +142,6 @@ public sealed class ProtocolConnectionTests
                 throw dispatchException;
             }
         }
-    }
-
-    /// <summary>Verifies that shutdown cancellation cancels shutdown even if a dispatch hangs.</summary>
-    [Test, TestCaseSource(nameof(_protocols))]
-    public async Task Shutdown_completes_on_cancellation_and_dispatch_hang(Protocol protocol)
-    {
-        // Arrange
-        using var start = new SemaphoreSlim(0);
-        using var hold = new SemaphoreSlim(0);
-        // var dispatchCanceled = new TaskCompletionSource();
-
-        await using var serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(protocol)
-            .UseServerConnectionOptions(new ConnectionOptions()
-            {
-                Dispatcher = new InlineDispatcher(async (request, cancel) =>
-                {
-                    start.Release();
-                    await hold.WaitAsync(CancellationToken.None);
-                    return new OutgoingResponse(request);
-                })
-            })
-            .BuildServiceProvider();
-
-        Connection connection = serviceProvider.GetInvalidConnection();
-
-        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Client.AcceptRequestsAsync(connection);
-        _ = sut.Server.AcceptRequestsAsync(connection);
-        var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
-        await start.WaitAsync(); // Wait for the dispatch to start
-        using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(10));
-
-        // Act
-        Task shutdownTask = sut.Server.ShutdownAsync("", cancel: cancellationTokenSource.Token);
-
-        // Assert
-        Assert.CatchAsync<OperationCanceledException>(() => shutdownTask);
-        hold.Release();
     }
 
     /// <summary>Ensures that the connection HasInvocationInProgress works.</summary>
@@ -292,7 +252,6 @@ public sealed class ProtocolConnectionTests
 
         // Act
         await sut.Server.DisposeAsync();
-        await sut.ServerNetworkConnection.DisposeAsync(); // TODO BUGFIX remove when #1032 is fixed
 
         // Assert
         Assert.That(async () => await invokeTask, Throws.TypeOf<ConnectionLostException>());
@@ -329,7 +288,6 @@ public sealed class ProtocolConnectionTests
 
         // Act
         await sut.Client.DisposeAsync();
-        await sut.ClientNetworkConnection.DisposeAsync(); // TODO BUGFIX remove when #1032 is fixed
 
         // Assert
         Assert.That(async () => await invokeTask, Throws.TypeOf<ObjectDisposedException>());
@@ -362,9 +320,7 @@ public sealed class ProtocolConnectionTests
     public async Task Payload_completed_on_valid_request(Protocol protocol, bool isOneway)
     {
         // Arrange
-        await using var serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(protocol)
-            .BuildServiceProvider();
+        await using var serviceProvider = new ProtocolServiceCollection().UseProtocol(protocol).BuildServiceProvider();
         Connection connection = serviceProvider.GetInvalidConnection();
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 

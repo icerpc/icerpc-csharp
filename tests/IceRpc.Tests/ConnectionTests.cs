@@ -73,9 +73,9 @@ public class ConnectionTests
         Assert.That(async () => await clientConnectionClosed.Task, Throws.Nothing);
     }
 
-    /// <summary>Verifies that closing the connection aborts the invocations.</summary>
+    /// <summary>Verifies that aborting the connection aborts the invocations.</summary>
     [Test]
-    public async Task Closing_the_client_connection_aborts_the_invocations([Values("ice", "icerpc")] string protocol)
+    public async Task Aborting_the_client_connection_aborts_the_invocations([Values("ice", "icerpc")] string protocol)
     {
         // Arrange
         using var start = new SemaphoreSlim(0);
@@ -99,15 +99,15 @@ public class ConnectionTests
         await start.WaitAsync(); // Wait for dispatch to start
 
         // Act
-        await connection.CloseAsync();
+        connection.Abort();
 
         // Assert
-        Assert.That(async () => await invokeTask, Throws.TypeOf<ObjectDisposedException>());
+        Assert.That(async () => await invokeTask, Throws.TypeOf<ConnectionAbortedException>());
     }
 
-    /// <summary>Verifies that closing the server connection aborts the invocations.</summary>
+    /// <summary>Verifies that aborting the server connection aborts the invocations.</summary>
     [Test]
-    public async Task Closing_the_server_connection_aborts_the_invocations([Values("ice", "icerpc")] string protocol)
+    public async Task Aborting_the_server_connection_aborts_the_invocations([Values("ice", "icerpc")] string protocol)
     {
         // Arrange
         using var start = new SemaphoreSlim(0);
@@ -133,13 +133,13 @@ public class ConnectionTests
         await start.WaitAsync(); // Wait for dispatch to start
 
         // Act
-        await serverConnection!.CloseAsync();
+        serverConnection!.Abort();
 
         // Assert
         Assert.That(async () => await invokeTask, Throws.TypeOf<ConnectionLostException>());
     }
 
-    /// <summary>Verifies that closing the connection raises the connection closed event.</summary>
+    /// <summary>Verifies that aborting the connection raises the connection closed event.</summary>
     [Test]
     public async Task Connection_closed_event(
         [Values("ice", "icerpc")] string protocol,
@@ -175,7 +175,7 @@ public class ConnectionTests
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
         // Act
-        await (closeClientConnection ? clientConnection : serverConnection!).CloseAsync();
+        (closeClientConnection ? clientConnection : serverConnection!).Abort();
 
         // Assert
         Assert.That(async () => await serverConnectionClosed.Task, Throws.Nothing);
