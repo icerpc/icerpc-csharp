@@ -234,6 +234,9 @@ namespace IceRpc.Slice
                 }
 
                 _reader.Advance(size);
+
+                // We can only compute the new allocation _after_ decoding the string. For dictionaries and sequences,
+                // we perform this check before the allocation.
                 IncreaseCollectionAllocation(result.Length * Unsafe.SizeOf<char>());
                 return result;
             }
