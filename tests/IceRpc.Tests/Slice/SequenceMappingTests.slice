@@ -1,0 +1,14 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc::Slice::Tests;
+
+interface SequenceMappingOperations
+{
+    opMultipeReturnValuesWithCsGenericAttribute() ->
+        ([cs::generic("CustomSequence")] r1: sequence<int32>,
+         [cs::generic("CustomSequence")] r2: sequence<int32>);
+
+    opSingleReturnValueWithCsGenericAttribute() -> [cs::generic("CustomSequence")] sequence<int32>;
+
+    opParameterWithCsGenericAttribute([cs::generic("CustomSequence")] p: sequence<int32>);
+}

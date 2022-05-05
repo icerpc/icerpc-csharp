@@ -1,0 +1,14 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc::Slice::Tests;
+
+interface DictionaryMappingOperations
+{
+    opMultipeReturnValuesWithCsGenericAttribute() ->
+        ([cs::generic("CustomDictionary")] r1: dictionary<int32, int32>,
+         [cs::generic("CustomDictionary")] r2: dictionary<int32, int32>);
+
+    opSingleReturnValueWithCsGenericAttribute() -> [cs::generic("CustomDictionary")] dictionary<int32, int32>;
+
+    opParameterWithCsGenericAttribute([cs::generic("CustomDictionary")] p: dictionary<int32, int32>);
+}
