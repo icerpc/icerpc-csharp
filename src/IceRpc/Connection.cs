@@ -172,7 +172,8 @@ namespace IceRpc
                 TOptions? protocolOptions,
                 IProtocolConnectionFactory<T, TOptions> protocolConnectionFactory,
                 LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory)
-                    where T : INetworkConnection where TOptions : class
+                    where T : INetworkConnection
+                    where TOptions : class
             {
                 // This is the composition root of client Connections, where we install log decorators when logging is
                 // enabled.
@@ -388,7 +389,9 @@ namespace IceRpc
             T networkConnection,
             TOptions? protocolOptions,
             IProtocolConnectionFactory<T, TOptions> protocolConnectionFactory,
-            Action<Connection, Exception>? onClose) where T : INetworkConnection where TOptions : class
+            Action<Connection, Exception>? onClose)
+                where T : INetworkConnection
+                where TOptions : class
         {
             using var connectTimeoutCancellationSource = new CancellationTokenSource(_options.ConnectTimeout);
             try

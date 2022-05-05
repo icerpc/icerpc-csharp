@@ -133,7 +133,9 @@ internal static class ProtocolServiceCollectionExtensions
         OnConnectAction? onConnect,
         bool isServer,
         TOptions? protocolOptions,
-        Func<Task<T>> networkConnectionFactory) where T : INetworkConnection where TOptions : class
+        Func<Task<T>> networkConnectionFactory)
+            where T : INetworkConnection
+            where TOptions : class
     {
         T networkConnection = await networkConnectionFactory();
 

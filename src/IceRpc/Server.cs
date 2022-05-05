@@ -166,7 +166,9 @@ namespace IceRpc
                 IListener<T> listener,
                 TOptions? protocolOptions,
                 IProtocolConnectionFactory<T, TOptions> protocolConnectionFactory,
-                Action<Connection, Exception>? onClose) where T : INetworkConnection where TOptions : class
+                Action<Connection, Exception>? onClose)
+                    where T : INetworkConnection
+                    where TOptions : class
             {
                 // The common connection options, set through ServerOptions.
                 var connectionOptions = new ConnectionOptions
