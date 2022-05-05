@@ -3,17 +3,19 @@
 using IceRpc.Transports;
 using System.Buffers;
 
-namespace IceRpc.Internal
+namespace IceRpc.Internal;
+
+internal interface IProtocolConnectionFactory<T, TOptions>
+    where T : INetworkConnection
+    where TOptions : class
 {
-    internal interface IProtocolConnectionFactory<T> where T : INetworkConnection
-    {
-        /// <summary>Creates a protocol connection from a network connection.</summary>
-        Task<IProtocolConnection> CreateProtocolConnectionAsync(
-            T networkConnection,
-            NetworkConnectionInformation connectionInformation,
-            Configure.ConnectionOptions connectionOptions,
-            Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect,
-            bool isServer,
-            CancellationToken cancel);
-    }
+    /// <summary>Creates a protocol connection over a connected network connection.</summary>
+    Task<IProtocolConnection> CreateProtocolConnectionAsync(
+        T networkConnection,
+        NetworkConnectionInformation connectionInformation,
+        IDispatcher dispatcher,
+        Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect,
+        bool isServer,
+        TOptions? protocolOptions,
+        CancellationToken cancel);
 }

@@ -273,7 +273,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
         invoke_args.push("Response.".to_owned() + &async_operation_name);
     }
 
-    invoke_args.push("invocation".to_owned());
+    invoke_args.push(invocation_parameter);
 
     if operation.is_idempotent {
         invoke_args.push("idempotent: true".to_owned());

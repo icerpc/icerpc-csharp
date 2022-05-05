@@ -23,6 +23,9 @@ namespace IceRpc.Internal
         /// <summary>This event is raised when the protocol connection is notified of the peer shutdown.</summary>
         Action<string>? PeerShutdownInitiated { get; set; }
 
+        /// <summary>Returns the protocol implemented by this protocol connection.</summary>
+        Protocol Protocol { get; }
+
         /// <summary>Accepts requests and returns once the connection is closed or the shutdown completes.</summary>
         /// <param name="connection">The connection of incoming requests created by this method.</param>
         Task AcceptRequestsAsync(Connection connection);
