@@ -82,9 +82,8 @@ namespace IceRpc.Slice
         /// </param>
         /// <param name="activator">The optional activator.</param>
         /// <param name="maxCollectionAllocation">The maximum cumulative allocation when decoding strings, sequences,
-        /// and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to:
-        /// - for slice2, 8 times the buffer length
-        /// - for slice1, 4 times the buffer length</param>
+        /// and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer length.
+        /// </param>
         /// <param name="maxDepth">The maximum depth when decoding a type recursively. <c>-1</c> uses the default.
         /// </param>
         public SliceDecoder(
@@ -105,18 +104,11 @@ namespace IceRpc.Slice
             _currentDepth = 0;
             _invoker = invoker ?? Proxy.DefaultInvoker;
 
-            if (maxCollectionAllocation == -1)
-            {
-                _maxCollectionAllocation = encoding == SliceEncoding.Slice1 ? 4 * (int)buffer.Length :
-                    8 * (int)buffer.Length;
-            }
-            else
-            {
-                _maxCollectionAllocation = maxCollectionAllocation >= 0 ? maxCollectionAllocation :
+            _maxCollectionAllocation = maxCollectionAllocation == -1 ? 8 * (int)buffer.Length :
+                (maxCollectionAllocation >= 0 ? maxCollectionAllocation :
                     throw new ArgumentException(
                         $"{nameof(maxCollectionAllocation)} must be at least -1",
-                        nameof(maxCollectionAllocation));
-            }
+                        nameof(maxCollectionAllocation)));
 
             _maxDepth = maxDepth == -1 ? 100 :
                 (maxDepth >= 1 ? maxDepth :
