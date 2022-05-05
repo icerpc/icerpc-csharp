@@ -105,7 +105,6 @@ fn validate_collection_attributes<T: Attributable>(
 fn validate_common_attributes(attribute: &Attribute, error_reporter: &mut ErrorReporter) {
     match attribute.directive.as_ref() {
         "attribute" => validate_cs_attribute(attribute, error_reporter),
-        "internal" => validate_cs_internal(attribute, error_reporter),
         _ => report_unexpected_attribute(attribute, error_reporter),
     }
 }
@@ -154,6 +153,7 @@ impl Visitor for CsValidator<'_> {
                         );
                     }
                 }
+                "internal" => validate_cs_internal(attribute, self.error_reporter),
                 _ => validate_common_attributes(attribute, self.error_reporter),
             }
         }
@@ -178,6 +178,7 @@ impl Visitor for CsValidator<'_> {
                     }
                     validate_cs_type(attribute, self.error_reporter);
                 }
+                "internal" => validate_cs_internal(attribute, self.error_reporter),
                 _ => validate_common_attributes(attribute, self.error_reporter),
             }
         }
@@ -185,15 +186,18 @@ impl Visitor for CsValidator<'_> {
 
     fn visit_class_start(&mut self, class_def: &Class) {
         for attribute in &cs_attributes(class_def.attributes()) {
-            validate_common_attributes(attribute, self.error_reporter);
+            match attribute.directive.as_ref() {
+                "internal" => validate_cs_internal(attribute, self.error_reporter),
+                _ => validate_common_attributes(attribute, self.error_reporter),
+            }
         }
     }
 
     fn visit_exception_start(&mut self, exception_def: &Exception) {
         for attribute in &cs_attributes(exception_def.attributes()) {
             match attribute.directive.as_ref() {
-                "attribute" => validate_cs_attribute(attribute, self.error_reporter),
-                _ => report_unexpected_attribute(attribute, self.error_reporter),
+                "internal" => validate_cs_internal(attribute, self.error_reporter),
+                _ => validate_common_attributes(attribute, self.error_reporter),
             }
         }
     }
@@ -202,6 +206,7 @@ impl Visitor for CsValidator<'_> {
         for attribute in &cs_attributes(interface_def.attributes()) {
             match attribute.directive.as_ref() {
                 "encodedResult" => validate_cs_encoded_result(attribute, self.error_reporter),
+                "internal" => validate_cs_internal(attribute, self.error_reporter),
                 _ => validate_common_attributes(attribute, self.error_reporter),
             }
         }
@@ -209,7 +214,10 @@ impl Visitor for CsValidator<'_> {
 
     fn visit_enum_start(&mut self, enum_def: &Enum) {
         for attribute in &cs_attributes(enum_def.attributes()) {
-            validate_common_attributes(attribute, self.error_reporter);
+            match attribute.directive.as_ref() {
+                "internal" => validate_cs_internal(attribute, self.error_reporter),
+                _ => validate_common_attributes(attribute, self.error_reporter),
+            }
         }
     }
 
@@ -224,7 +232,10 @@ impl Visitor for CsValidator<'_> {
 
     fn visit_trait(&mut self, trait_def: &Trait) {
         for attribute in &cs_attributes(trait_def.attributes()) {
-            validate_common_attributes(attribute, self.error_reporter);
+            match attribute.directive.as_ref() {
+                "internal" => validate_cs_internal(attribute, self.error_reporter),
+                _ => validate_common_attributes(attribute, self.error_reporter),
+            }
         }
     }
 
@@ -239,9 +250,8 @@ impl Visitor for CsValidator<'_> {
 
         for attribute in &cs_attributes(custom_type.attributes()) {
             match attribute.directive.as_ref() {
-                "attribute" => validate_cs_attribute(attribute, self.error_reporter),
                 "type" => validate_cs_type(attribute, self.error_reporter),
-                _ => report_unexpected_attribute(attribute, self.error_reporter),
+                _ => validate_common_attributes(attribute, self.error_reporter),
             }
         }
     }
