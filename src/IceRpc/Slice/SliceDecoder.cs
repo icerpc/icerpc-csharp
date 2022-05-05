@@ -703,6 +703,7 @@ namespace IceRpc.Slice
             // We can't use the normal max collection allocation check here because SizeOf<ReadOnlySequence<byte>> is
             // quite large (24).
 
+            // Each field consumes at least 2 bytes: 1 for the key and one for the value size.
             if (count * 2 > _reader.Remaining)
             {
                 throw new InvalidDataException("too many fields");
