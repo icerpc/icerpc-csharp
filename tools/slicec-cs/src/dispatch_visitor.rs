@@ -113,7 +113,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         // We need the async/await for proper type inference when returning tuples with nullable
         // elements like string?.
         let mut builder = FunctionBuilder::new(
-            &format!("public static async"),
+            "public static async",
             &format!(
                 "global::System.Threading.Tasks.ValueTask<{}>",
                 &parameters.to_tuple_type(namespace, TypeContext::Decode, false)
