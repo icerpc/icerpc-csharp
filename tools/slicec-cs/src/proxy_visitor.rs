@@ -169,7 +169,7 @@ public {prx_impl}(IceRpc.Proxy proxy) => Proxy = proxy;
 
 /// <inheritdoc/>
 public override string ToString() => Proxy.ToString();"#,
-        prx_impl = interface_def.proxy_implementation_name()
+        prx_impl = interface_def.proxy_implementation_name(),
     ).into()
 }
 
