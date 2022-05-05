@@ -120,9 +120,13 @@ namespace IceRpc.Slice
         /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="encoding">The Slice encoding version.</param>
-        /// <param name="connection">The connection.</param>
-        /// <param name="invoker">The invoker.</param>
-        /// <param name="activator">The activator.</param>
+        /// <param name="connection">The connection, used only when decoding relative proxies.</param>
+        /// <param name="invoker">The invoker of proxies decoded by this decoder. Use null to get the default invoker.
+        /// </param>
+        /// <param name="activator">The optional activator.</param>
+        /// <param name="maxCollectionAllocation">The maximum cumulative allocation when decoding strings, sequences,
+        /// and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to the larger of 4096 or 8 times
+        /// the buffer length.</param>
         /// <param name="maxDepth">The maximum depth when decoding a type recursively. <c>-1</c> uses the default.
         /// </param>
         public SliceDecoder(
@@ -131,8 +135,16 @@ namespace IceRpc.Slice
             Connection? connection = null,
             IInvoker? invoker = null,
             IActivator? activator = null,
+            int maxCollectionAllocation = -1,
             int maxDepth = -1)
-            : this(new ReadOnlySequence<byte>(buffer), encoding, connection, invoker, activator, maxDepth)
+            : this(
+                new ReadOnlySequence<byte>(buffer),
+                encoding,
+                connection,
+                invoker,
+                activator,
+                maxCollectionAllocation,
+                maxDepth)
         {
         }
 
