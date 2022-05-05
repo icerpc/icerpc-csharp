@@ -25,8 +25,6 @@ public class DictionaryDecodingTests
 
         // Act
         var decoded = decoder.DecodeDictionary(
-            minKeySize: 4,
-            minValueSize: 1,
             count => new Dictionary<int, string>(count),
             (ref SliceDecoder decoder) => decoder.DecodeInt32(),
             (ref SliceDecoder decoder) => decoder.DecodeString());
@@ -60,7 +58,6 @@ public class DictionaryDecodingTests
 
         // Act
         var decoded = decoder.DecodeDictionaryWithBitSequence(
-            minKeySize: 4,
             count => new Dictionary<int, string?>(count),
             (ref SliceDecoder decoder) => decoder.DecodeInt32(),
             (ref SliceDecoder decoder) => decoder.DecodeString());

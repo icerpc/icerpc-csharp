@@ -82,8 +82,8 @@ namespace IceRpc.Slice
         /// </param>
         /// <param name="activator">The optional activator.</param>
         /// <param name="maxCollectionAllocation">The maximum cumulative allocation when decoding strings, sequences,
-        /// and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer length.
-        /// </param>
+        /// and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to the larger of 4096 or 8 times
+        /// the buffer length.</param>
         /// <param name="maxDepth">The maximum depth when decoding a type recursively. <c>-1</c> uses the default.
         /// </param>
         public SliceDecoder(
@@ -104,7 +104,7 @@ namespace IceRpc.Slice
             _currentDepth = 0;
             _invoker = invoker ?? Proxy.DefaultInvoker;
 
-            _maxCollectionAllocation = maxCollectionAllocation == -1 ? 8 * (int)buffer.Length :
+            _maxCollectionAllocation = maxCollectionAllocation == -1 ? Math.Max(4096, 8 * (int)buffer.Length) :
                 (maxCollectionAllocation >= 0 ? maxCollectionAllocation :
                     throw new ArgumentException(
                         $"{nameof(maxCollectionAllocation)} must be -1 or greater",
@@ -676,57 +676,6 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Decodes a dictionary size and makes sure there is enough space in the underlying buffer to decode
-        /// the dictionary. This validation is performed to make sure we do not allocate a large dictionary based on an
-        /// invalid encoded size.</summary>
-        /// <param name="minKeySize">The minimum encoded size of a key, in bytes.</param>
-        /// <param name="minValueSize">The minimum encoded size of a value, in bytes. It's 0 for values with an optional
-        /// type.</param>
-        /// <returns>The number of elements in the dictionary.</returns>
-        internal int DecodeAndCheckDictionarySize(int minKeySize, int minValueSize)
-        {
-            if (minKeySize <= 0)
-            {
-                throw new ArgumentException($"{nameof(minKeySize)} must be greater than 0", nameof(minKeySize));
-            }
-
-            Debug.Assert(minValueSize >= 0);
-
-            int size = DecodeSize();
-
-            if (size == 0)
-            {
-                return 0;
-            }
-
-            int minSize = (size * minKeySize) +
-                (minValueSize > 0 ? size * minValueSize : SliceEncoder.GetBitSequenceByteCount(size));
-
-            return _reader.Remaining >= minSize ? size : throw new InvalidDataException("invalid dictionary size");
-        }
-
-        /// <summary>Decodes a sequence size and makes sure there is enough space in the underlying buffer to decode the
-        /// sequence. This validation is performed to make sure we do not allocate a large container based on an
-        /// invalid encoded size.</summary>
-        /// <param name="minElementSize">The minimum encoded size of an element of the sequence, in bytes. It's 0 for an
-        /// optional type.</param>
-        /// <returns>The number of elements in the sequence.</returns>
-        internal int DecodeAndCheckSequenceSize(int minElementSize)
-        {
-            Debug.Assert(minElementSize >= 0);
-
-            int size = DecodeSize();
-
-            if (size == 0)
-            {
-                return 0;
-            }
-
-            int minSize = minElementSize > 0 ? size * minElementSize : SliceEncoder.GetBitSequenceByteCount(size);
-
-            return _reader.Remaining >= minSize ? size : throw new InvalidDataException("invalid sequence size");
-        }
-
         /// <summary>Decodes non-empty field dictionary without making a copy of the field values.</summary>
         /// <returns>The fields dictionary. The field values reference memory in the underlying buffer. They are not
         /// copied.</returns>
@@ -1126,9 +1075,7 @@ namespace IceRpc.Slice
                     $"received proxy with invalid protocolMinor value: {proxyData.ProtocolMinor}");
             }
 
-            // The min size for an Endpoint with Slice1 is: transport (short = 2 bytes) + encapsulation
-            // header (6 bytes), for a total of 8 bytes.
-            int count = DecodeAndCheckSequenceSize(8);
+            int count = DecodeSize();
 
             Endpoint? endpoint = null;
             IEnumerable<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;

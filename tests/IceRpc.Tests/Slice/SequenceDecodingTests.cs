@@ -26,7 +26,7 @@ public class SequenceDecodingTests
         }
         var sut = new SliceDecoder(buffer.WrittenMemory, encoding);
 
-        int[] result = sut.DecodeSequence(minElementSize: 4, (ref SliceDecoder decoder) => decoder.DecodeInt32());
+        int[] result = sut.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeInt32());
 
         Assert.That(result, Is.EqualTo(expected));
         Assert.That(sut.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
@@ -48,7 +48,7 @@ public class SequenceDecodingTests
         }
         var sut = new SliceDecoder(buffer.WrittenMemory, encoding);
 
-        string[] decoded = sut.DecodeSequence(minElementSize: 1, (ref SliceDecoder decoder) => decoder.DecodeString());
+        string[] decoded = sut.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeString());
 
         Assert.That(decoded, Is.EqualTo(expected));
         Assert.That(sut.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));

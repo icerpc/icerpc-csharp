@@ -138,8 +138,6 @@ namespace IceRpc.Internal
                         if (fields.DecodeValue(
                             RequestFieldKey.Context,
                             (ref SliceDecoder decoder) => decoder.DecodeDictionary(
-                                minKeySize: 1,
-                                minValueSize: 1,
                                 size => new Dictionary<string, string>(size),
                                 keyDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString(),
                                 valueDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString()))
@@ -739,8 +737,7 @@ namespace IceRpc.Internal
             ref SliceDecoder decoder,
             DecodeFunc<TKey> decodeKeyFunc) where TKey : struct
         {
-            // The value includes at least a size, encoded on at least 1 byte.
-            int count = decoder.DecodeAndCheckDictionarySize(minKeySize: 1, minValueSize: 1);
+            int count = decoder.DecodeSize();
 
             IDictionary<TKey, ReadOnlySequence<byte>> fields;
             PipeReader? pipeReader;
@@ -847,10 +844,11 @@ namespace IceRpc.Internal
 
             static Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>> Decode(ref SliceDecoder decoder)
             {
-                int size = decoder.DecodeAndCheckDictionarySize(minKeySize: 1, minValueSize: 1);
-                return size == 0 ? new() : decoder.DecodeShallowFieldDictionary(
-                    size,
-                    (ref SliceDecoder decoder) => decoder.DecodeConnectionFieldKey());
+                int count = decoder.DecodeSize();
+                return count == 0 ? new() :
+                    decoder.DecodeShallowFieldDictionary(
+                        count,
+                        (ref SliceDecoder decoder) => decoder.DecodeConnectionFieldKey());
             }
         }
 
