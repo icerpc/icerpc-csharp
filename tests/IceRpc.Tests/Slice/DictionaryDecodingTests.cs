@@ -99,7 +99,7 @@ public class DictionaryDecodingTests
     [Test]
     public void Decode_dictionary_with_bit_sequence_and_custom_max_collection_allocation()
     {
-        var buffer = new MemoryBufferWriter(new byte[1024 * 4]);
+        var buffer = new MemoryBufferWriter(new byte[1024 * 2 + 256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         var dict = new Dictionary<short, long?>();
         for (short i = 0; i < 1024; ++i)
