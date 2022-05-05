@@ -20,8 +20,11 @@ public class SliceTestServiceCollection : ServiceCollection
         this.AddScoped(provider =>
         {
             var serverOptions = provider.GetService<ServerOptions>() ?? new ServerOptions();
-            serverOptions.MultiplexedServerTransport =
-                provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>();
+            serverOptions.IceRpcServerOptions = new IceRpcServerOptions
+            {
+                ServerTransport =
+                    provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>()
+            };
             serverOptions.Dispatcher = provider.GetRequiredService<IDispatcher>();
             serverOptions.Endpoint = provider.GetRequiredService<Endpoint>();
             serverOptions.LoggerFactory = provider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;
@@ -33,8 +36,10 @@ public class SliceTestServiceCollection : ServiceCollection
         this.AddScoped(provider =>
         {
             var connectionOptions = provider.GetService<ConnectionOptions>() ?? new ConnectionOptions();
-            connectionOptions.MultiplexedClientTransport =
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
+            connectionOptions.IceRpcClientOptions = new IceRpcClientOptions
+            {
+                ClientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>()
+        };
             connectionOptions.Dispatcher ??= provider.GetRequiredService<IDispatcher>();
             connectionOptions.RemoteEndpoint = provider.GetRequiredService<Server>().Endpoint;
             connectionOptions.LoggerFactory = provider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;
