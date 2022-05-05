@@ -161,7 +161,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
     }
 
     let mut class_builder = ContainerBuilder::new(
-        &if bases.is_empty() {
+        if bases.is_empty() {
             "public static class"
         } else {
             "public static new class"
