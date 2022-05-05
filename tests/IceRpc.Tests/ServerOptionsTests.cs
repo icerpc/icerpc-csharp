@@ -27,9 +27,8 @@ public class ServerOptionsTests
             Assert.That(options.Fields, Is.Empty);
             Assert.That(options.KeepAlive, Is.False);
             Assert.That(options.LoggerFactory, Is.EqualTo(NullLoggerFactory.Instance));
-            Assert.That(options.IceProtocolOptions, Is.Null);
-            Assert.That(options.MultiplexedServerTransport, Is.EqualTo(ServerOptions.DefaultMultiplexedServerTransport));
-            Assert.That(options.SimpleServerTransport, Is.EqualTo(ServerOptions.DefaultSimpleServerTransport));
+            Assert.That(options.IceServerOptions, Is.Null);
+            Assert.That(options.IceRpcServerOptions, Is.Null);
         });
     }
 }

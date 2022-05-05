@@ -19,9 +19,14 @@ public class IntegrationTestServiceCollection : ServiceCollection
 
         this.AddScoped(provider => new ConnectionOptions
         {
-            SimpleClientTransport = provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
-            MultiplexedClientTransport =
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
+            IceClientOptions = new()
+            {
+                ClientTransport = provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()
+            },
+            IceRpcClientOptions = new()
+            {
+                ClientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>()
+            },
             Dispatcher = provider.GetService<IDispatcher>() ?? ConnectionOptions.DefaultDispatcher,
             RemoteEndpoint = provider.GetService<Server>()?.Endpoint,
             LoggerFactory = provider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance,
@@ -32,9 +37,14 @@ public class IntegrationTestServiceCollection : ServiceCollection
         this.AddScoped(provider =>
         {
             var serverOptions = provider.GetService<ServerOptions>() ?? new ServerOptions();
-            serverOptions.SimpleServerTransport = provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>();
-            serverOptions.MultiplexedServerTransport =
-                provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>();
+            serverOptions.IceServerOptions = new()
+            {
+                ServerTransport = provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()
+            };
+            serverOptions.IceRpcServerOptions = new()
+            {
+                ServerTransport = provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>()
+            };
             serverOptions.Dispatcher = provider.GetRequiredService<IDispatcher>();
             serverOptions.Endpoint = provider.GetRequiredService<Endpoint>();
             serverOptions.LoggerFactory = provider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;

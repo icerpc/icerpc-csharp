@@ -35,7 +35,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
-            .UseServerConnectionOptions(new ConnectionOptions()
+            .UseServerOptions(new ServerOptions
             {
                 Dispatcher = new InlineDispatcher(async (request, cancel) =>
                 {
@@ -82,7 +82,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
-            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
 
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
@@ -116,11 +116,14 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
-            .UseServerConnectionOptions(new ConnectionOptions()
+            .UseServerOptions(new ServerOptions
             {
-                Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>()
+                IceRpcServerOptions = new()
                 {
-                    [connectionFieldKeyA] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(56))
+                    Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>()
+                    {
+                        [connectionFieldKeyA] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(56))
+                    }
                 },
                 OnConnect = (_, fields, _) =>
                 {
@@ -129,12 +132,15 @@ public sealed class IceRpcProtocolConnectionTests
                     serverB = DecodeField(fields, connectionFieldKeyB);
                 }
             })
-            .UseClientConnectionOptions(new ConnectionOptions()
+            .UseConnectionOptions(new ConnectionOptions()
             {
-                Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>()
+                IceRpcClientOptions = new()
                 {
-                    [connectionFieldKeyA] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(34)),
-                    [connectionFieldKeyB] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(38))
+                    Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>()
+                    {
+                        [connectionFieldKeyA] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(34)),
+                        [connectionFieldKeyB] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(38))
+                    }
                 },
                 OnConnect = (_, fields, _) =>
                 {
@@ -186,7 +192,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
-            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Server.AcceptRequestsAsync(InvalidConnection.IceRpc);
@@ -262,7 +268,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
-            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Server.AcceptRequestsAsync(InvalidConnection.IceRpc);
@@ -288,7 +294,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
-            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Server.AcceptRequestsAsync(InvalidConnection.IceRpc);
@@ -357,7 +363,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
-            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = sut.Server.AcceptRequestsAsync(InvalidConnection.IceRpc);
@@ -385,7 +391,7 @@ public sealed class IceRpcProtocolConnectionTests
         });
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
-            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
@@ -414,7 +420,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
-            .UseServerConnectionOptions(new ConnectionOptions()
+            .UseServerOptions(new ServerOptions
             {
                 Dispatcher = new InlineDispatcher(async (request, cancel) =>
                 {

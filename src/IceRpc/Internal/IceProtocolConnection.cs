@@ -39,6 +39,8 @@ namespace IceRpc.Internal
 
         public Action<string>? PeerShutdownInitiated { get; set; }
 
+        public Protocol Protocol => Protocol.Ice;
+
         private static readonly IDictionary<RequestFieldKey, ReadOnlySequence<byte>> _idempotentFields =
             new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
             {
@@ -75,7 +77,7 @@ namespace IceRpc.Internal
         private readonly SimpleNetworkConnectionWriter _networkConnectionWriter;
 
         private int _nextRequestId;
-        private readonly Configure.IceProtocolOptions _options;
+        private readonly Configure.IceOptions _options;
         private readonly IcePayloadPipeWriter _payloadWriter;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly CancellationTokenSource _readCancelSource = new();
@@ -443,18 +445,18 @@ namespace IceRpc.Internal
         }
 
         internal IceProtocolConnection(
-            IDispatcher dispatcher,
             ISimpleNetworkConnection simpleNetworkConnection,
-            Configure.IceProtocolOptions options)
+            IDispatcher dispatcher,
+            Configure.IceOptions? options)
         {
             _dispatcher = dispatcher;
-            _options = options;
+            _options = options ?? Configure.IceOptions.Default;
 
-            if (options.MaxConcurrentDispatches > 0)
+            if (_options.MaxConcurrentDispatches > 0)
             {
                 _dispatchSemaphore = new SemaphoreSlim(
-                    initialCount: options.MaxConcurrentDispatches,
-                    maxCount: options.MaxConcurrentDispatches);
+                    initialCount: _options.MaxConcurrentDispatches,
+                    maxCount: _options.MaxConcurrentDispatches);
             }
 
             // TODO: get the pool and minimum segment size from an option class, but which one? The Slic connection gets

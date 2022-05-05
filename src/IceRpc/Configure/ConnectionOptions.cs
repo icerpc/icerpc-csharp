@@ -1,11 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice;
-using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Buffers;
-using System.Collections.Immutable;
 using System.Net.Security;
 
 namespace IceRpc.Configure
@@ -16,9 +14,8 @@ namespace IceRpc.Configure
     /// <param name="fields">The fields received from the remote peer.</param>
     /// <param name="features">The features of the connection. This feature collection is read-write and its default
     ///  is <see cref="ConnectionOptions.Features"/> or <see cref="ServerOptions.Features"/>.</param>
-    /// <remarks>The <paramref name="fields"/> correspond to the <see cref="ConnectionOptions.Fields"/> or
-    /// <see cref="ServerOptions.Fields"/> property of the remote peer with the icerpc protocol. This dictionary is
-    /// always empty with the ice protocol.</remarks>
+    /// <remarks>The <paramref name="fields"/> correspond to the <see cref="IceRpcOptions.Fields"/> property of the
+    /// remote peer with the icerpc protocol. This dictionary is always empty with the ice protocol.</remarks>
     public delegate void OnConnectAction(
         Connection connection,
         Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>> fields,
@@ -30,14 +27,6 @@ namespace IceRpc.Configure
         /// <summary>Returns the default value for <see cref="Dispatcher"/>.</summary>
         public static IDispatcher DefaultDispatcher { get; } = new InlineDispatcher((request, cancel) =>
             throw new DispatchException(DispatchErrorCode.ServiceNotFound, RetryPolicy.OtherReplica));
-
-        /// <summary>Returns the default value for <see cref="MultiplexedClientTransport"/>.</summary>
-        public static IClientTransport<IMultiplexedNetworkConnection> DefaultMultiplexedClientTransport { get; } =
-            new CompositeMultiplexedClientTransport().UseSlicOverTcp();
-
-        /// <summary>Returns the default value for <see cref="SimpleClientTransport"/>.</summary>
-        public static IClientTransport<ISimpleNetworkConnection> DefaultSimpleClientTransport { get; } =
-            new CompositeSimpleClientTransport().UseTcp();
 
         /// <summary>Gets or sets the SSL client authentication options.</summary>
         /// <value>The SSL client authentication options. When not null, <see cref="Connection.ConnectAsync"/>
@@ -71,14 +60,13 @@ namespace IceRpc.Configure
         /// <summary>Gets of sets the default features of the new connection.</summary>
         public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
-        /// <summary>Gets or sets the connection fields to send to the server when establishing a connection with the
-        /// icerpc protocol.</summary>
-        public IDictionary<ConnectionFieldKey, OutgoingFieldValue> Fields { get; set; } =
-            ImmutableDictionary<ConnectionFieldKey, OutgoingFieldValue>.Empty;
+        /// <summary>Gets or sets the client options for the ice protocol.</summary>
+        /// <value>The client options for the ice protocol.</value>
+        public IceClientOptions? IceClientOptions { get; set; }
 
-        /// <summary>Gets or sets the options for the ice protocol.</summary>
-        /// <value>The options for the ice protocol.</value>
-        public IceProtocolOptions? IceProtocolOptions { get; set; }
+        /// <summary>Gets or sets the client options for the icerpc protocol.</summary>
+        /// <value>The client options for the icerpc protocol.</value>
+        public IceRpcClientOptions? IceRpcClientOptions { get; set; }
 
         /// <summary>Specifies if the connection can be resumed after being closed.</summary>
         /// <value>When <c>true</c>, the connection will be re-established by the next call to
@@ -99,11 +87,6 @@ namespace IceRpc.Configure
         /// <summary>Gets or sets the logger factory used to create loggers to log connection-related activities.
         /// </summary>
         public ILoggerFactory LoggerFactory { get; set; } = NullLoggerFactory.Instance;
-
-        /// <summary>Gets or sets the <see cref="IClientTransport{IMultiplexedNetworkConnection}"/> used by this
-        /// connection to create multiplexed network connections.</summary>
-        public IClientTransport<IMultiplexedNetworkConnection> MultiplexedClientTransport { get; set; } =
-            DefaultMultiplexedClientTransport;
 
         /// <summary>Gets or set an action that executes when the connection is closed.</summary>
         public Action<Connection, Exception>? OnClose { get; set; }
@@ -129,11 +112,6 @@ namespace IceRpc.Configure
                 }
             }
         }
-
-        /// <summary>Gets or sets the <see cref="IClientTransport{ISimpleNetworkConnection}"/> used by this
-        /// connection to create simple network connections.</summary>
-        public IClientTransport<ISimpleNetworkConnection> SimpleClientTransport { get; set; } =
-            DefaultSimpleClientTransport;
 
         private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
         private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);

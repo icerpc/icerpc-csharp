@@ -77,7 +77,7 @@ public class CustomTransportTests
     {
         await using var server = new Server(new ServerOptions
         {
-            MultiplexedServerTransport = new CustomServerTransport(),
+            IceRpcServerOptions = new() { ServerTransport = new CustomServerTransport() },
             Endpoint = "icerpc://127.0.0.1:0?transport=custom",
             Dispatcher = new MyService()
         });
@@ -86,7 +86,7 @@ public class CustomTransportTests
 
         await using var connection = new Connection(new ConnectionOptions
         {
-            MultiplexedClientTransport = new CustomClientTransport(),
+            IceRpcClientOptions = new() { ClientTransport = new CustomClientTransport() },
             RemoteEndpoint = server.Endpoint
         });
 
@@ -101,7 +101,7 @@ public class CustomTransportTests
         {
             await using var server = new Server(new ServerOptions
             {
-                MultiplexedServerTransport = new SlicServerTransport(new TcpServerTransport()),
+                IceRpcServerOptions = new() { ServerTransport = new SlicServerTransport(new TcpServerTransport()) },
                 Endpoint = "icerpc://127.0.0.1:0?custom-p=bar",
                 Dispatcher = new MyService()
             });
@@ -112,7 +112,7 @@ public class CustomTransportTests
         {
             await using var server = new Server(new ServerOptions
             {
-                MultiplexedServerTransport = new CustomServerTransport(),
+                IceRpcServerOptions = new() { ServerTransport = new CustomServerTransport() },
                 Endpoint = "icerpc://127.0.0.1:0?transport=custom&custom-p=bar",
                 Dispatcher = new MyService()
             });
@@ -120,7 +120,7 @@ public class CustomTransportTests
 
             await using var connection1 = new Connection(new ConnectionOptions
             {
-                MultiplexedClientTransport = new CustomClientTransport(),
+                IceRpcClientOptions = new() { ClientTransport = new CustomClientTransport() },
                 // We add the custom endpoint here because listen updates the endpoint and the custom transport
                 // removes the parameter
                 RemoteEndpoint = server.Endpoint with
@@ -134,7 +134,7 @@ public class CustomTransportTests
 
             await using var connection2 = new Connection(new ConnectionOptions
             {
-                MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport()),
+                IceRpcClientOptions = new() { ClientTransport = new SlicClientTransport(new TcpClientTransport()) },
                 // We add the custom endpoint here because listen updates the endpoint and the custom transport
                 // removes the parameter
                 RemoteEndpoint = server.Endpoint with

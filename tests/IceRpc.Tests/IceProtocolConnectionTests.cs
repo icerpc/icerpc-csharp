@@ -60,7 +60,7 @@ public sealed class IceProtocolConnectionTests
         int maxCount = 0;
         var mutex = new object();
 
-        var serverConnectionOptions = new ConnectionOptions
+        var serverOptions = new ServerOptions
         {
             Dispatcher = new InlineDispatcher(async (request, cancel) =>
             {
@@ -92,12 +92,12 @@ public sealed class IceProtocolConnectionTests
                 }
             }),
 
-            IceProtocolOptions = new IceProtocolOptions { MaxConcurrentDispatches = maxConcurrentDispatches }
+            IceServerOptions = new() { MaxConcurrentDispatches = maxConcurrentDispatches }
         };
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
-            .UseServerConnectionOptions(serverConnectionOptions)
+            .UseServerOptions(serverOptions)
             .BuildServiceProvider();
 
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
@@ -140,7 +140,7 @@ public sealed class IceProtocolConnectionTests
         // Arrange
         using var semaphore = new SemaphoreSlim(0);
         int dispatchCount = 0;
-        var serverConnectionOptions = new ConnectionOptions
+        var serverOptions = new ServerOptions
         {
             Dispatcher = new InlineDispatcher(
                 async (request, cancel) =>
@@ -149,12 +149,12 @@ public sealed class IceProtocolConnectionTests
                     await semaphore.WaitAsync(CancellationToken.None);
                     return new OutgoingResponse(request);
                 }),
-            IceProtocolOptions = new IceProtocolOptions { MaxConcurrentDispatches = 1 }
+            IceServerOptions = new() { MaxConcurrentDispatches = 1 }
         };
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
-            .UseServerConnectionOptions(serverConnectionOptions)
+            .UseServerOptions(serverOptions)
             .BuildServiceProvider();
 
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
@@ -191,7 +191,7 @@ public sealed class IceProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
-            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
 
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
@@ -221,7 +221,7 @@ public sealed class IceProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
-            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
 
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
@@ -254,7 +254,7 @@ public sealed class IceProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
-            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
         await using var clientServerProtocolConnection = await serviceProvider.GetClientServerProtocolConnectionAsync();
         _ = clientServerProtocolConnection.Server.AcceptRequestsAsync(InvalidConnection.Ice);
@@ -280,7 +280,7 @@ public sealed class IceProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
-            .UseServerConnectionOptions(new ConnectionOptions()
+            .UseServerOptions(new ServerOptions
             {
                 Dispatcher = new InlineDispatcher(async (request, cancel) =>
                 {
