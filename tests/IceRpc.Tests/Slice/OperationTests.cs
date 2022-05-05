@@ -120,7 +120,6 @@ public class OperationGeneratedCodeTests
         var readResult = await reader.ReadAtLeastAsync(data.Length);
 
         // Assert
-        Assert.That(readResult.IsCompleted, Is.True);
         Assert.That(readResult.Buffer.Length, Is.EqualTo(data.Length));
         Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(data));
         reader.AdvanceTo(readResult.Buffer.End);
