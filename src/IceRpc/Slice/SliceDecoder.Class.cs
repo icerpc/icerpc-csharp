@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 
 using static IceRpc.Slice.Internal.Slice1Definitions;
 
@@ -180,6 +181,7 @@ namespace IceRpc.Slice
             {
                 throw new InvalidDataException("invalid empty indirection table");
             }
+            IncreaseCollectionAllocation(size * Unsafe.SizeOf<AnyClass>());
             var indirectionTable = new AnyClass[size];
             for (int i = 0; i < indirectionTable.Length; ++i)
             {

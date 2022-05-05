@@ -30,9 +30,10 @@ namespace IceRpc.Slice
             where TKey : notnull
             where TDictionary : IDictionary<TKey, TValue>
         {
-            int sz = decoder.DecodeAndCheckDictionarySize(minKeySize, minValueSize);
-            TDictionary dict = dictionaryFactory(sz);
-            for (int i = 0; i < sz; ++i)
+            int count = decoder.DecodeAndCheckDictionarySize(minKeySize, minValueSize);
+            decoder.IncreaseCollectionAllocation(count * (Unsafe.SizeOf<TKey>() + Unsafe.SizeOf<TValue>()));
+            TDictionary dict = dictionaryFactory(count);
+            for (int i = 0; i < count; ++i)
             {
                 TKey key = keyDecodeFunc(ref decoder);
                 TValue value = valueDecodeFunc(ref decoder);
@@ -61,6 +62,7 @@ namespace IceRpc.Slice
             where TDictionary : IDictionary<TKey, TValue?>
         {
             int count = decoder.DecodeAndCheckDictionarySize(minKeySize, minValueSize: 0);
+            decoder.IncreaseCollectionAllocation(count * (Unsafe.SizeOf<TKey>() + Unsafe.SizeOf<TValue?>()));
             TDictionary dictionary = dictionaryFactory(count);
             if (count > 0)
             {
@@ -92,7 +94,9 @@ namespace IceRpc.Slice
             where T : struct
         {
             int elementSize = Unsafe.SizeOf<T>();
-            var value = new T[decoder.DecodeAndCheckSequenceSize(elementSize)];
+            int count = decoder.DecodeAndCheckSequenceSize(elementSize);
+            decoder.IncreaseCollectionAllocation(count * elementSize);
+            var value = new T[count];
 
             Span<byte> destination = MemoryMarshal.Cast<T, byte>(value);
             Debug.Assert(destination.Length == elementSize * value.Length);
@@ -127,6 +131,7 @@ namespace IceRpc.Slice
             }
             else
             {
+                decoder.IncreaseCollectionAllocation(count * Unsafe.SizeOf<T>());
                 var array = new T[count];
                 for (int i = 0; i < count; ++i)
                 {
@@ -151,6 +156,7 @@ namespace IceRpc.Slice
             DecodeFunc<TElement> decodeFunc) where TSequence : IList<TElement>
         {
             int count = decoder.DecodeAndCheckSequenceSize(minElementSize);
+            decoder.IncreaseCollectionAllocation(count * Unsafe.SizeOf<TElement>());
             TSequence sequence = sequenceFactory(count);
             for (int i = 0; i < count; ++i)
             {
@@ -173,6 +179,7 @@ namespace IceRpc.Slice
             }
             else
             {
+                decoder.IncreaseCollectionAllocation(count * Unsafe.SizeOf<T>());
                 BitSequenceReader bitSequenceReader = decoder.GetBitSequenceReader(count);
                 var array = new T[count];
                 for (int i = 0; i < count; ++i)
@@ -196,6 +203,7 @@ namespace IceRpc.Slice
             DecodeFunc<TElement> decodeFunc) where TSequence : IList<TElement>
         {
             int count = decoder.DecodeAndCheckSequenceSize(0);
+            decoder.IncreaseCollectionAllocation(count * Unsafe.SizeOf<TElement>());
             TSequence sequence = sequenceFactory(count);
             if (count > 0)
             {

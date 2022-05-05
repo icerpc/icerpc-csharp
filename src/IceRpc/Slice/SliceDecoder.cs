@@ -8,6 +8,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -55,11 +56,17 @@ namespace IceRpc.Slice
         // Connection used when decoding relative proxies.
         private readonly Connection? _connection;
 
+        // The number of bytes already allocated for strings, dictionaries and sequences.
+        private int _currentCollectionAllocation;
+
         // The current depth when decoding a type recursively.
         private int _currentDepth;
 
         // Invoker used when decoding proxies.
         private readonly IInvoker _invoker;
+
+        // The maximum number of bytes that can be allocated for strings, dictionaries and sequences.
+        private readonly int _maxCollectionAllocation;
 
         // The maximum depth when decoding a type recursively.
         private readonly int _maxDepth;
@@ -74,6 +81,9 @@ namespace IceRpc.Slice
         /// <param name="invoker">The invoker of proxies decoded by this decoder. Use null to get the default invoker.
         /// </param>
         /// <param name="activator">The optional activator.</param>
+        /// <param name="maxCollectionAllocation">The maximum cumulative allocation when decoding strings, sequences,
+        /// and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer length.
+        /// </param>
         /// <param name="maxDepth">The maximum depth when decoding a type recursively. <c>-1</c> uses the default.
         /// </param>
         public SliceDecoder(
@@ -82,6 +92,7 @@ namespace IceRpc.Slice
             Connection? connection = null,
             IInvoker? invoker = null,
             IActivator? activator = null,
+            int maxCollectionAllocation = -1,
             int maxDepth = -1)
         {
             Encoding = encoding;
@@ -89,8 +100,15 @@ namespace IceRpc.Slice
             _activator = activator ?? _defaultActivator;
             _classContext = default;
             _connection = connection;
+            _currentCollectionAllocation = 0;
             _currentDepth = 0;
             _invoker = invoker ?? Proxy.DefaultInvoker;
+
+            _maxCollectionAllocation = maxCollectionAllocation == -1 ? 8 * (int)buffer.Length :
+                (maxCollectionAllocation >= 0 ? maxCollectionAllocation :
+                    throw new ArgumentException(
+                        $"{nameof(maxCollectionAllocation)} must be -1 or greater",
+                        nameof(maxCollectionAllocation)));
 
             _maxDepth = maxDepth == -1 ? 100 :
                 (maxDepth >= 1 ? maxDepth :
@@ -204,6 +222,7 @@ namespace IceRpc.Slice
                 }
 
                 _reader.Advance(size);
+                IncreaseCollectionAllocation(result.Length * Unsafe.SizeOf<char>());
                 return result;
             }
         }
@@ -648,6 +667,15 @@ namespace IceRpc.Slice
             _reader.AdvanceToEnd();
         }
 
+        internal void IncreaseCollectionAllocation(int count)
+        {
+            _currentCollectionAllocation += count;
+            if (_currentCollectionAllocation > _maxCollectionAllocation)
+            {
+                throw new InvalidDataException("decoding exceeds max collection allocation");
+            }
+        }
+
         /// <summary>Decodes a dictionary size and makes sure there is enough space in the underlying buffer to decode
         /// the dictionary. This validation is performed to make sure we do not allocate a large dictionary based on an
         /// invalid encoded size.</summary>
@@ -703,17 +731,29 @@ namespace IceRpc.Slice
         /// <returns>The fields dictionary. The field values reference memory in the underlying buffer. They are not
         /// copied.</returns>
         internal Dictionary<TKey, ReadOnlySequence<byte>> DecodeShallowFieldDictionary<TKey>(
-            int size,
+            int count,
             DecodeFunc<TKey> decodeKeyFunc) where TKey : struct
         {
-            Debug.Assert(size > 0);
+            Debug.Assert(count > 0);
 
-            var fields = new Dictionary<TKey, ReadOnlySequence<byte>>(size);
+            // We can't use the normal max collection allocation check here because SizeOf<ReadOnlySequence<byte>> is
+            // quite large (24).
 
-            for (int i = 0; i < size; ++i)
+            if (count * 2 > _reader.Remaining)
+            {
+                throw new InvalidDataException("too many fields");
+            }
+
+            var fields = new Dictionary<TKey, ReadOnlySequence<byte>>(count);
+
+            for (int i = 0; i < count; ++i)
             {
                 TKey key = decodeKeyFunc(ref this);
                 int valueSize = DecodeSize();
+                if (valueSize > _reader.Remaining)
+                {
+                    throw new InvalidDataException($"the value of field '{key}' extends beyond the end of the buffer");
+                }
                 ReadOnlySequence<byte> value = _reader.UnreadSequence.Slice(0, valueSize);
                 _reader.Advance(valueSize);
                 fields.Add(key, value);
@@ -1088,14 +1128,14 @@ namespace IceRpc.Slice
 
             // The min size for an Endpoint with Slice1 is: transport (short = 2 bytes) + encapsulation
             // header (6 bytes), for a total of 8 bytes.
-            int size = DecodeAndCheckSequenceSize(8);
+            int count = DecodeAndCheckSequenceSize(8);
 
             Endpoint? endpoint = null;
             IEnumerable<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
             var protocol = Protocol.FromByte(proxyData.ProtocolMajor);
             ImmutableDictionary<string, string> proxyParams = ImmutableDictionary<string, string>.Empty;
 
-            if (size == 0)
+            if (count == 0)
             {
                 if (DecodeString() is string adapterId && adapterId.Length > 0)
                 {
@@ -1105,10 +1145,13 @@ namespace IceRpc.Slice
             else
             {
                 endpoint = DecodeEndpoint(protocol);
-                if (size >= 2)
+                if (count >= 2)
                 {
-                    var endpointArray = new Endpoint[size - 1];
-                    for (int i = 0; i < size - 1; ++i)
+                    // Note: Endpoint is a fairly large struct
+                    IncreaseCollectionAllocation(count * Unsafe.SizeOf<Endpoint>());
+
+                    var endpointArray = new Endpoint[count - 1];
+                    for (int i = 0; i < count - 1; ++i)
                     {
                         endpointArray[i] = DecodeEndpoint(protocol);
                     }
