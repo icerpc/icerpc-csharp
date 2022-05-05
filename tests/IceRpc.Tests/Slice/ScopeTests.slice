@@ -14,15 +14,11 @@ module IceRpc::Slice::Tests
         {
             v: int32,
         }
-
-        interface ScopeOperations
-        {
-            op(s: S) -> IceRpc::Slice::Tests::S;
-        }
     }
 
     interface ScopeOperations
     {
-        op(s: S) -> Inner::S;
+        opWithParameterDefinedInDifferentScope(s: Inner::S) -> S;
+        opWithReturnDefinedInDifferentScope(s: S) -> Inner::S;
     }
 }
