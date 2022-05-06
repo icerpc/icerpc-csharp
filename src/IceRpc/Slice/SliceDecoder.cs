@@ -81,11 +81,11 @@ namespace IceRpc.Slice
         /// <param name="invoker">The invoker of proxies decoded by this decoder. Use null to get the default invoker.
         /// </param>
         /// <param name="activator">The optional activator.</param>
-        /// <param name="maxCollectionAllocation">The maximum cumulative allocation when decoding strings, sequences,
-        /// and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer length.
-        /// </param>
-        /// <param name="maxDepth">The maximum depth when decoding a type recursively. <c>-1</c> uses the default.
-        /// </param>
+        /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
+        /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
+        /// length.</param>
+        /// <param name="maxDepth">The maximum depth when decoding a type recursively. <c>-1</c> uses the default value,
+        /// <c>100</c>.</param>
         public SliceDecoder(
             ReadOnlySequence<byte> buffer,
             SliceEncoding encoding,
@@ -107,7 +107,7 @@ namespace IceRpc.Slice
             _maxCollectionAllocation = maxCollectionAllocation == -1 ? 8 * (int)buffer.Length :
                 (maxCollectionAllocation >= 0 ? maxCollectionAllocation :
                     throw new ArgumentException(
-                        $"{nameof(maxCollectionAllocation)} must be at least -1",
+                        $"{nameof(maxCollectionAllocation)} must be greater than or equal to -1",
                         nameof(maxCollectionAllocation)));
 
             _maxDepth = maxDepth == -1 ? 100 :
@@ -124,9 +124,9 @@ namespace IceRpc.Slice
         /// <param name="invoker">The invoker of proxies decoded by this decoder. Use null to get the default invoker.
         /// </param>
         /// <param name="activator">The optional activator.</param>
-        /// <param name="maxCollectionAllocation">The maximum cumulative allocation when decoding strings, sequences,
-        /// and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to the larger of 4096 or 8 times
-        /// the buffer length.</param>
+        /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
+        /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
+        /// length.</param>
         /// <param name="maxDepth">The maximum depth when decoding a type recursively. <c>-1</c> uses the default.
         /// </param>
         public SliceDecoder(
@@ -682,12 +682,13 @@ namespace IceRpc.Slice
             _reader.AdvanceToEnd();
         }
 
-        internal void IncreaseCollectionAllocation(int count)
+        internal void IncreaseCollectionAllocation(int byteCount)
         {
-            _currentCollectionAllocation += count;
+            _currentCollectionAllocation += byteCount;
             if (_currentCollectionAllocation > _maxCollectionAllocation)
             {
-                throw new InvalidDataException("decoding exceeds max collection allocation");
+                throw new InvalidDataException(
+                    $"decoding exceeds max collection allocation of '{_maxCollectionAllocation}'");
             }
         }
 
@@ -700,8 +701,12 @@ namespace IceRpc.Slice
         {
             Debug.Assert(count > 0);
 
-            // We can't use the normal max collection allocation check here because SizeOf<ReadOnlySequence<byte>> is
-            // quite large (24).
+            // We don't use the normal collection allocation check here because SizeOf<ReadOnlySequence<byte>> is quite
+            // large (24).
+            // For example, say we decode a fields dictionary with a single field with an empty value. It's encoded
+            // using 1 byte (dictionary size) + 1 byte (key) + 1 byte (value size) = 3 bytes. The decoder's default max
+            // allocation size is 3 * 8 = 24. If we simply call IncreaseCollectionAllocation(1 * (4 + 24)), we'll exceed
+            // the default collection allocation limit. (sizeof TKey is currently 4 but could/should increase to 8).
 
             // Each field consumes at least 2 bytes: 1 for the key and one for the value size.
             if (count * 2 > _reader.Remaining)
@@ -1110,7 +1115,8 @@ namespace IceRpc.Slice
                 endpoint = DecodeEndpoint(protocol);
                 if (count >= 2)
                 {
-                    // Note: Endpoint is a fairly large struct
+                    // A slice1 encoded endpoint consumes at least 8 bytes (2 bytes for the endpoint type and 6 bytes
+                    // for the encapsulation header). SizeOf Endpoint is large but less than 8 * 8.
                     IncreaseCollectionAllocation(count * Unsafe.SizeOf<Endpoint>());
 
                     var endpointArray = new Endpoint[count - 1];

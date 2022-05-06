@@ -109,7 +109,6 @@ namespace IceRpc.Slice
                 decoder.IncreaseCollectionAllocation(count * elementSize);
                 var value = new T[count];
                 Span<byte> destination = MemoryMarshal.Cast<T, byte>(value);
-                Debug.Assert(destination.Length == count * elementSize);
                 decoder.CopyTo(destination);
 
                 if (checkElement != null)
