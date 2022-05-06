@@ -432,7 +432,7 @@ public sealed class ExceptionTests
         await using var server = new Server(new Configure.ServerOptions
         {
             Dispatcher = new Slice2ExceptionOperations(throwException),
-            MultiplexedServerTransport = new SlicServerTransport(coloc.ServerTransport),
+            IceRpcServerOptions = new() { ServerTransport = new SlicServerTransport(coloc.ServerTransport) },
             Endpoint = $"icerpc://{Guid.NewGuid()}/"
         });
         server.Listen();
@@ -440,7 +440,7 @@ public sealed class ExceptionTests
         await using var connection = new Connection(new Configure.ConnectionOptions
         {
             RemoteEndpoint = server.Endpoint,
-            MultiplexedClientTransport = new SlicClientTransport(coloc.ClientTransport),
+            IceRpcClientOptions = new() { ClientTransport = new SlicClientTransport(coloc.ClientTransport) },
         });
         var prx = Slice2ExceptionOperationsPrx.FromConnection(connection);
 
@@ -459,7 +459,7 @@ public sealed class ExceptionTests
         await using var server = new Server(new Configure.ServerOptions
         {
             Dispatcher = new Slice1ExceptionOperations(throwException),
-            MultiplexedServerTransport = new SlicServerTransport(coloc.ServerTransport),
+            IceRpcServerOptions = new() { ServerTransport = new SlicServerTransport(coloc.ServerTransport) },
             Endpoint = $"icerpc://{Guid.NewGuid()}/"
         });
         server.Listen();
@@ -467,7 +467,7 @@ public sealed class ExceptionTests
         await using var connection = new Connection(new Configure.ConnectionOptions
         {
             RemoteEndpoint = server.Endpoint,
-            MultiplexedClientTransport = new SlicClientTransport(coloc.ClientTransport),
+            IceRpcClientOptions = new() { ClientTransport = new SlicClientTransport(coloc.ClientTransport) },
         });
         var prx = Slice1ExceptionOperationsPrx.FromConnection(connection);
 

@@ -60,7 +60,7 @@ public sealed class IceProtocolConnectionTests
         int maxCount = 0;
         var mutex = new object();
 
-        var serverConnectionOptions = new ConnectionOptions
+        var serverOptions = new ServerOptions
         {
             Dispatcher = new InlineDispatcher(async (request, cancel) =>
             {
@@ -92,17 +92,15 @@ public sealed class IceProtocolConnectionTests
                 }
             }),
 
-            IceProtocolOptions = new IceProtocolOptions { MaxConcurrentDispatches = maxConcurrentDispatches }
+            IceServerOptions = new() { MaxConcurrentDispatches = maxConcurrentDispatches }
         };
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
-            .UseServerConnectionOptions(serverConnectionOptions)
+            .UseServerOptions(serverOptions)
             .BuildServiceProvider();
 
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.Ice);
-        _ = sut.Client.AcceptRequestsAsync(InvalidConnection.Ice);
 
         var request = new OutgoingRequest(new Proxy(Protocol.Ice));
         var responseTasks = new List<Task<IncomingResponse>>();
@@ -140,7 +138,7 @@ public sealed class IceProtocolConnectionTests
         // Arrange
         using var semaphore = new SemaphoreSlim(0);
         int dispatchCount = 0;
-        var serverConnectionOptions = new ConnectionOptions
+        var serverOptions = new ServerOptions
         {
             Dispatcher = new InlineDispatcher(
                 async (request, cancel) =>
@@ -149,17 +147,15 @@ public sealed class IceProtocolConnectionTests
                     await semaphore.WaitAsync(CancellationToken.None);
                     return new OutgoingResponse(request);
                 }),
-            IceProtocolOptions = new IceProtocolOptions { MaxConcurrentDispatches = 1 }
+            IceServerOptions = new() { MaxConcurrentDispatches = 1 }
         };
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
-            .UseServerConnectionOptions(serverConnectionOptions)
+            .UseServerOptions(serverOptions)
             .BuildServiceProvider();
 
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.Ice);
-        _ = sut.Client.AcceptRequestsAsync(InvalidConnection.Ice);
 
         // Perform two invocations. The first blocks so the second won't be dispatched. It will block on the dispatch
         // semaphore.
@@ -191,12 +187,10 @@ public sealed class IceProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
-            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
 
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.Ice);
-        _ = sut.Client.AcceptRequestsAsync(InvalidConnection.Ice);
         var request = new OutgoingRequest(proxy);
 
         // Act
@@ -221,12 +215,10 @@ public sealed class IceProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
-            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
 
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.Ice);
-        _ = sut.Client.AcceptRequestsAsync(InvalidConnection.Ice);
         var request = new OutgoingRequest(new Proxy(Protocol.Ice));
 
         // Act
@@ -254,10 +246,9 @@ public sealed class IceProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
-            .UseServerConnectionOptions(new ConnectionOptions() { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
         await using var clientServerProtocolConnection = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = clientServerProtocolConnection.Server.AcceptRequestsAsync(InvalidConnection.Ice);
 
         // Act
         _ = clientServerProtocolConnection.Client.InvokeAsync(
@@ -280,7 +271,7 @@ public sealed class IceProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
-            .UseServerConnectionOptions(new ConnectionOptions()
+            .UseServerOptions(new ServerOptions
             {
                 Dispatcher = new InlineDispatcher(async (request, cancel) =>
                 {
@@ -291,14 +282,15 @@ public sealed class IceProtocolConnectionTests
             })
             .BuildServiceProvider();
 
-        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        var clientAcceptTask = sut.Client.AcceptRequestsAsync(InvalidConnection.Ice);
-        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.Ice);
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+
         sut.Server.PeerShutdownInitiated = message =>
             sut.Server.ShutdownAsync("");
+
         var invokeTask = sut.Client.InvokeAsync(
             new OutgoingRequest(new Proxy(Protocol.Ice)),
             InvalidConnection.Ice);
+
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act

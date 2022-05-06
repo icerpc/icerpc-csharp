@@ -11,9 +11,11 @@ namespace IceRpc.Tests;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection UseColoc(this IServiceCollection collection)
+    public static IServiceCollection UseColoc(this IServiceCollection collection) =>
+        collection.UseColoc(new ColocTransport());
+
+    public static IServiceCollection UseColoc(this IServiceCollection collection, ColocTransport coloc)
     {
-        var coloc = new ColocTransport();
         collection.AddScoped(_ => coloc.ServerTransport);
         collection.AddScoped(_ => coloc.ClientTransport);
         collection.AddScoped(
@@ -136,4 +138,12 @@ public static class ServiceCollectionExtensions
 
         return collection;
     }
+
+    public static IServiceCollection UseConnectionOptions(
+        this IServiceCollection collection,
+        ConnectionOptions options) =>
+        collection.AddSingleton(options);
+
+    public static IServiceCollection UseServerOptions(this IServiceCollection collection, ServerOptions options) =>
+        collection.AddSingleton(options);
 }

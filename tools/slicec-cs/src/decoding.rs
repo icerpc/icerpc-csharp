@@ -608,6 +608,7 @@ request.DecodeStream<{param_type}>(
                 format!(
                     "\
 response.DecodeStream<{param_type}>(
+    request,
     {encoding},
     _defaultActivator,
     {decode_func});",

@@ -39,6 +39,8 @@ namespace IceRpc.Internal
 
         public Action<string>? PeerShutdownInitiated { get; set; }
 
+        public Protocol Protocol => Protocol.Ice;
+
         private static readonly IDictionary<RequestFieldKey, ReadOnlySequence<byte>> _idempotentFields =
             new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
             {
@@ -79,7 +81,7 @@ namespace IceRpc.Internal
 #pragma warning restore CA2213
 
         private int _nextRequestId;
-        private readonly Configure.IceProtocolOptions _options;
+        private readonly Configure.IceOptions _options;
         private readonly IcePayloadPipeWriter _payloadWriter;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
 #pragma warning disable CA2213 // IDisposable type which is never disposed
@@ -109,7 +111,7 @@ namespace IceRpc.Internal
             _dispatchSemaphore?.Dispose();
 
             // Unblock ShutdownAsync which might be waiting for the connection to be disposed.
-            _pendingClose.TrySetResult();
+            _pendingClose.SetResult();
 
             // Unblock ShutdownAsync if it's waiting for invocations and dispatches to complete.
             _dispatchesAndInvocationsCompleted.TrySetException(exception);
@@ -140,7 +142,6 @@ namespace IceRpc.Internal
 
         public async Task AcceptRequestsAsync(Connection connection)
         {
-            Exception? exception = null;
             try
             {
                 lock (_mutex)
@@ -154,25 +155,24 @@ namespace IceRpc.Internal
                     _readFramesTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
                 }
 
-                bool shutdownByPeer = await ReadFramesAsync(
-                        connection,
-                        _readCancelSource.Token).ConfigureAwait(false);
+                // Read frames until the CloseConnection frame is received.
+                await ReadFramesAsync(connection, _readCancelSource.Token).ConfigureAwait(false);
 
-                exception = new ConnectionClosedException(shutdownByPeer ?
-                    "connection shutdown by peer" :
-                    "connection shutdown locally");
+                // The CloseConnection frame has been received, we can abort the connection.
+                Abort(new ConnectionClosedException("connection shutdown by peer"));
             }
-            catch (Exception ex)
+            catch (ConnectionLostException) when (_isShutdown)
             {
-                exception = ex;
+                // The peer closed the connection after we sent the CloseConnection frame.
+                Abort(new ConnectionClosedException("connection shutdown locally"));
+            }
+            catch (Exception exception)
+            {
+                Abort(exception);
                 throw;
             }
             finally
             {
-                Debug.Assert(exception != null);
-
-                Abort(exception);
-
                 _readFramesTaskCompletionSource?.SetResult();
             }
         }
@@ -481,18 +481,18 @@ namespace IceRpc.Internal
         }
 
         internal IceProtocolConnection(
-            IDispatcher dispatcher,
             ISimpleNetworkConnection simpleNetworkConnection,
-            Configure.IceProtocolOptions options)
+            IDispatcher dispatcher,
+            Configure.IceOptions? options)
         {
             _dispatcher = dispatcher;
-            _options = options;
+            _options = options ?? Configure.IceOptions.Default;
 
-            if (options.MaxConcurrentDispatches > 0)
+            if (_options.MaxConcurrentDispatches > 0)
             {
                 _dispatchSemaphore = new SemaphoreSlim(
-                    initialCount: options.MaxConcurrentDispatches,
-                    maxCount: options.MaxConcurrentDispatches);
+                    initialCount: _options.MaxConcurrentDispatches,
+                    maxCount: _options.MaxConcurrentDispatches);
             }
 
             // TODO: get the pool and minimum segment size from an option class, but which one? The Slic connection gets
@@ -656,24 +656,13 @@ namespace IceRpc.Internal
         /// <param name="connection">The connection assigned to <see cref="IncomingFrame.Connection"/>.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns><c>true</c> if the connection was shutdown by the peer, <c>false</c> otherwise.</returns>
-        private async ValueTask<bool> ReadFramesAsync(Connection connection, CancellationToken cancel)
+        private async ValueTask ReadFramesAsync(Connection connection, CancellationToken cancel)
         {
             while (true)
             {
-                ReadOnlySequence<byte> buffer;
-                try
-                {
-                    buffer = await _networkConnectionReader.ReadAtLeastAsync(
-                        IceDefinitions.PrologueSize,
-                        cancel).ConfigureAwait(false);
-                }
-                catch (ConnectionLostException) when (_isShutdown)
-                {
-                    // The peer closed the simple network connection after the writing the close connection frame.
-                    // Unblock ShutdownAsync and return since this indicates a successful graceful shutdown.
-                    _pendingClose.TrySetResult();
-                    return false;
-                }
+                ReadOnlySequence<byte> buffer = await _networkConnectionReader.ReadAtLeastAsync(
+                    IceDefinitions.PrologueSize,
+                    cancel).ConfigureAwait(false);
 
                 // First decode and check the prologue.
 
@@ -717,10 +706,7 @@ namespace IceRpc.Internal
 
                         // Call the peer shutdown initiated callback.
                         PeerShutdownInitiated?.Invoke("connection shutdown by peer");
-
-                        // The peer waits for the network connection to be closed.
-                        _networkConnection.Dispose();
-                        return true;
+                        return;
                     }
 
                     case IceFrameType.Request:

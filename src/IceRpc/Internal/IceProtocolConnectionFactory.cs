@@ -6,20 +6,18 @@ using System.Buffers;
 namespace IceRpc.Internal
 {
     /// <summary>Creates an ice protocol connection from a simple network connection.</summary>
-    internal class IceProtocolConnectionFactory : IProtocolConnectionFactory<ISimpleNetworkConnection>
+    internal class IceProtocolConnectionFactory : IProtocolConnectionFactory<ISimpleNetworkConnection, Configure.IceOptions>
     {
         public async Task<IProtocolConnection> CreateProtocolConnectionAsync(
             ISimpleNetworkConnection networkConnection,
             NetworkConnectionInformation connectionInfo,
-            Configure.ConnectionOptions connectionOptions,
+            IDispatcher dispatcher,
             Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect,
             bool isServer,
+            Configure.IceOptions? protocolOptions,
             CancellationToken cancel)
         {
-            var protocolConnection = new IceProtocolConnection(
-                connectionOptions.Dispatcher,
-                networkConnection,
-                connectionOptions.IceProtocolOptions ?? Configure.IceProtocolOptions.Default);
+            var protocolConnection = new IceProtocolConnection(networkConnection, dispatcher, protocolOptions);
 
             try
             {

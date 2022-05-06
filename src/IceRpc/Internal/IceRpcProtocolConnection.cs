@@ -39,6 +39,8 @@ namespace IceRpc.Internal
 
         public Action<string>? PeerShutdownInitiated { get; set; }
 
+        public Protocol Protocol => Protocol.IceRpc;
+
         private IMultiplexedStream? _controlStream;
         private readonly HashSet<CancellationTokenSource> _cancelDispatchSources = new();
         private readonly IDispatcher _dispatcher;
@@ -636,6 +638,7 @@ namespace IceRpc.Internal
                 MultiplexedStreamAbortedException exception = IceRpcStreamError.ConnectionShutdown.ToException();
                 foreach (IMultiplexedStream stream in streams)
                 {
+                    // TODO: should we just abort streams for invocations here???
                     stream.Abort(exception);
                 }
 
@@ -663,14 +666,14 @@ namespace IceRpc.Internal
         }
 
         internal IceRpcProtocolConnection(
-            IDispatcher dispatcher,
             IMultiplexedNetworkConnection networkConnection,
-            IDictionary<ConnectionFieldKey, OutgoingFieldValue> localFields,
+            IDispatcher dispatcher,
+            Configure.IceRpcOptions? options,
             Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect)
         {
             _dispatcher = dispatcher;
             _networkConnection = networkConnection;
-            _localFields = localFields;
+            _localFields = options?.Fields ?? ImmutableDictionary<ConnectionFieldKey, OutgoingFieldValue>.Empty;
             _onConnect = onConnect;
         }
 
@@ -1043,14 +1046,7 @@ namespace IceRpc.Internal
                 IceRpcGoAway goAwayFrame = await ReceiveGoAwayBodyAsync(CancellationToken.None).ConfigureAwait(false);
 
                 // Call the peer shutdown initiated callback.
-                try
-                {
-                    PeerShutdownInitiated?.Invoke(goAwayFrame.Message);
-                }
-                catch (Exception ex)
-                {
-                    Debug.Assert(false, $"{nameof(PeerShutdownInitiated)} raised unexpected exception\n{ex}");
-                }
+                PeerShutdownInitiated?.Invoke(goAwayFrame.Message);
 
                 IEnumerable<IMultiplexedStream> invocations;
                 lock (_mutex)

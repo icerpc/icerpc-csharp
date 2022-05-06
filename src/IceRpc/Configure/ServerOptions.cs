@@ -1,10 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Collections.Immutable;
-using System.Buffers;
 using System.Net.Security;
 
 namespace IceRpc.Configure
@@ -12,14 +10,6 @@ namespace IceRpc.Configure
     /// <summary>A property bag used to configure a <see cref="Server"/>.</summary>
     public sealed record class ServerOptions
     {
-        /// <summary>Returns the default value for <see cref="MultiplexedServerTransport"/>.</summary>
-        public static IServerTransport<IMultiplexedNetworkConnection> DefaultMultiplexedServerTransport { get; } =
-            new CompositeMultiplexedServerTransport().UseSlicOverTcp();
-
-        /// <summary>Returns the default value for <see cref="SimpleServerTransport"/>.</summary>
-        public static IServerTransport<ISimpleNetworkConnection> DefaultSimpleServerTransport { get; } =
-            new CompositeSimpleServerTransport().UseTcp();
-
         /// <summary>Gets or sets the SSL server authentication options.</summary>
         /// <value>The SSL server authentication options. When not null, the server will accept only secure connections.
         /// </value>
@@ -74,29 +64,23 @@ namespace IceRpc.Configure
         /// </value>
         public bool KeepAlive { get; set; }
 
-        /// <summary>Gets or sets the options for the ice protocol.</summary>
-        /// <value>The options for the ice protocol.</value>
-        public IceProtocolOptions? IceProtocolOptions { get; set; }
+        /// <summary>Gets or sets the server options for the ice protocol.</summary>
+        /// <value>The options for the server options for the ice protocol.</value>
+        public IceServerOptions? IceServerOptions { get; set; }
+
+        /// <summary>Gets or sets the server options for the icerpc protocol.</summary>
+        /// <value>The options for the server options for the icerpc protocol.</value>
+        public IceRpcServerOptions? IceRpcServerOptions { get; set; }
 
         /// <summary>Gets or sets the logger factory used to create loggers to log connection-related activities.
         /// </summary>
         public ILoggerFactory LoggerFactory { get; set; } = NullLoggerFactory.Instance;
-
-        /// <summary>Gets or sets <see cref="IServerTransport{IMultiplexedNetworkConnection}"/> used by the
-        /// server to accept multiplexed connections.</summary>
-        public IServerTransport<IMultiplexedNetworkConnection> MultiplexedServerTransport { get; set; } =
-            DefaultMultiplexedServerTransport;
 
         /// <summary>Gets or set an action that executes when the connection is closed.</summary>
         public Action<Connection, Exception>? OnClose { get; set; }
 
         /// <summary>Gets or sets the action to execute during connection establishment.</summary>
         public OnConnectAction? OnConnect { get; set; }
-
-        /// <summary>Gets or sets the <see cref="IServerTransport{ISimpleNetworkConnection}"/> used by the server
-        /// to accept simple connections.</summary>
-        public IServerTransport<ISimpleNetworkConnection> SimpleServerTransport { get; set; } =
-            DefaultSimpleServerTransport;
 
         private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
         private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);

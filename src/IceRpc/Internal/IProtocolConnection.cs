@@ -23,6 +23,9 @@ namespace IceRpc.Internal
         /// <summary>This event is raised when the protocol connection is notified of the peer shutdown.</summary>
         Action<string>? PeerShutdownInitiated { get; set; }
 
+        /// <summary>Returns the protocol implemented by this protocol connection.</summary>
+        Protocol Protocol { get; }
+
         /// <summary>Aborts the connection.</summary>
         /// <param name="exception">The exception that caused the abort. Pending invocations will raise this
         /// exception.</param>

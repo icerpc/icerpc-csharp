@@ -81,6 +81,11 @@ namespace IceRpc.Slice
         /// <param name="v">The size to encode.</param>
         public void EncodeSize(int v)
         {
+            if (v < 0)
+            {
+                throw new ArgumentException($"{nameof(v)} must be at least 0", nameof(v));
+            }
+
             if (Encoding == SliceEncoding.Slice1)
             {
                 if (v < 255)

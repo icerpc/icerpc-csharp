@@ -20,7 +20,8 @@ namespace IceRpc.Internal
             set => _decoratee.PeerShutdownInitiated = value;
         }
 
-        private readonly Protocol _protocol;
+        Protocol IProtocolConnection.Protocol => _decoratee.Protocol;
+
         private readonly IProtocolConnection _decoratee;
         private readonly NetworkConnectionInformation _information;
         private readonly bool _isServer;
@@ -30,7 +31,7 @@ namespace IceRpc.Internal
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             _decoratee.Abort(exception);
-            _logger.LogProtocolConnectionAbort(_protocol, exception);
+            _logger.LogProtocolConnectionAbort(_decoratee.Protocol, exception);
         }
 
         async Task IProtocolConnection.AcceptRequestsAsync(Connection connection)
@@ -44,7 +45,7 @@ namespace IceRpc.Internal
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             await _decoratee.DisposeAsync().ConfigureAwait(false);
-            _logger.LogProtocolConnectionDispose(_protocol);
+            _logger.LogProtocolConnectionDispose(_decoratee.Protocol);
         }
 
         bool IProtocolConnection.HasCompatibleParams(Endpoint remoteEndpoint) =>
@@ -80,23 +81,21 @@ namespace IceRpc.Internal
                 {
                     try
                     {
-                        _logger.LogProtocolConnectionShutdownCanceled(_protocol);
+                        _logger.LogProtocolConnectionShutdownCanceled(_decoratee.Protocol);
                     }
                     catch
                     {
                     }
                 });
-            _logger.LogProtocolConnectionShutdown(_protocol, message);
+            _logger.LogProtocolConnectionShutdown(_decoratee.Protocol, message);
         }
 
         internal LogProtocolConnectionDecorator(
             IProtocolConnection decoratee,
-            Protocol protocol,
             NetworkConnectionInformation connectionInformation,
             bool isServer,
             ILogger logger)
         {
-            _protocol = protocol;
             _decoratee = decoratee;
             _information = connectionInformation;
             _isServer = isServer;
