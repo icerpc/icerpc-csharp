@@ -34,7 +34,7 @@ exception MySlice1OnlyExceptionWithOptionalProxyMember
 {
     i: int32,
     j: Slice::Service?,
-    k: AnyClass?
+    k: AnyClass // Slice1 only because classes are not supported with Slice2
 }
 
 interface Slice1ExceptionOperations
