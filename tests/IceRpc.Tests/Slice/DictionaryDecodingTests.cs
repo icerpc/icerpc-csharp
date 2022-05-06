@@ -73,11 +73,7 @@ public class DictionaryDecodingTests
     {
         var buffer = new MemoryBufferWriter(new byte[1024 * 4]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        var dict = new Dictionary<short, long?>();
-        for (short i = 0; i < 1024; ++i)
-        {
-            dict[i] = null;
-        }
+        var dict = Enumerable.Range(0, 1024).ToDictionary(key => (short)key, value => (long?)null);
         encoder.EncodeDictionaryWithBitSequence(
             dict,
             (ref SliceEncoder encoder, short value) => encoder.EncodeInt16(value),
