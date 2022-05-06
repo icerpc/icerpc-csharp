@@ -9,6 +9,7 @@ use crate::slicec_ext::*;
 
 pub fn encode_data_members(
     members: &[&DataMember],
+    use_bit_sequence_writer: bool,
     namespace: &str,
     field_type: FieldType,
     use_tag_format: bool,
@@ -19,7 +20,11 @@ pub fn encode_data_members(
 
     // Tagged members are encoded in a dictionary and don't count towards the optional bit sequence
     // size.
-    let bit_sequence_size = get_bit_sequence_size(&required_members);
+    let bit_sequence_size = if use_bit_sequence_writer {
+        get_bit_sequence_size(&required_members)
+    } else {
+        0
+    };
 
     if bit_sequence_size > 0 {
         writeln!(
@@ -33,6 +38,7 @@ pub fn encode_data_members(
         let param = format!("this.{}", member.field_name(field_type));
         code.writeln(&encode_type(
             member.data_type(),
+            use_bit_sequence_writer,
             TypeContext::DataMember,
             namespace,
             &param,
@@ -58,6 +64,7 @@ pub fn encode_data_members(
 
 fn encode_type(
     type_ref: &TypeRef,
+    use_bit_sequence_writer: bool,
     type_context: TypeContext,
     namespace: &str,
     param: &str,
@@ -66,11 +73,18 @@ fn encode_type(
     match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) => {
             if type_ref.is_optional {
-                format!(
-                    "{encoder_param}.EncodeNullableProxy(ref bitSequenceWriter, {param}?.Proxy);",
-                    encoder_param = encoder_param,
-                    param = param
-                )
+                if use_bit_sequence_writer {
+                    format!(
+                        "{encoder_param}.EncodeNullableProxy(ref bitSequenceWriter, {param}?.Proxy);",
+                        encoder_param = encoder_param,
+                        param = param,
+                    )
+                } else {
+                    format!(
+                        "{encoder_param}.EncodeNullableProxy({param}?.Proxy);",
+                        encoder_param = encoder_param,
+                        param = param)
+                }
             } else {
                 format!(
                     "{encoder_param}.EncodeProxy({param}.Proxy);",
@@ -198,7 +212,7 @@ if ({param} != null)
                             format!("{}.Span", param),
                         _ => param.to_owned(),
                     },
-                    encode_type = encode_type
+                    encode_type = encode_type,
                 )
             } else {
                 encode_type
@@ -585,7 +599,11 @@ fn encode_operation_parameters(
 
     let (required_members, tagged_members) = get_sorted_members(&members);
 
-    let bit_sequence_size = get_bit_sequence_size(&members);
+    let bit_sequence_size = if operation.encoding == Encoding::Slice1 {
+        0
+    } else {
+        get_bit_sequence_size(&members)
+    };
 
     if bit_sequence_size > 0 {
         writeln!(
@@ -607,6 +625,7 @@ fn encode_operation_parameters(
 
         code.writeln(&encode_type(
             member.data_type(),
+            operation.encoding == Encoding::Slice2,
             TypeContext::Encode,
             namespace,
             name.as_str(),

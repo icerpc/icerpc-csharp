@@ -228,6 +228,7 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
 
         code.writeln(&encode_data_members(
             &members,
+            false,
             namespace,
             FieldType::Class,
             true, // classes are Slice1 only, and always use tag formats
@@ -256,6 +257,7 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
         code.writeln("decoder.StartSlice();");
         code.writeln(&decode_data_members(
             &members,
+            false, // Slice1 doesn't use bit sequences
             namespace,
             true, // classes are Slice1 only, and always use tag formats
             FieldType::Class,

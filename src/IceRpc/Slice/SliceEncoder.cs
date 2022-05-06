@@ -231,28 +231,40 @@ namespace IceRpc.Slice
         // Encode methods for constructed types
 
         /// <summary>Encodes a nullable proxy.</summary>
+        /// <param name="proxy">The proxy to encode, or null.</param>
+        public void EncodeNullableProxy(Proxy? proxy)
+        {
+            if (Encoding != SliceEncoding.Slice1)
+            {
+                throw new InvalidOperationException(
+                    "Encoding nullable proxies without a bit sequence is only supported with Slice1 encoding");
+            }
+
+            if (proxy != null)
+            {
+                EncodeProxy(proxy);
+            }
+            else
+            {
+                Identity.Empty.Encode(ref this);
+            }
+        }
+
+        /// <summary>Encodes a nullable proxy.</summary>
         /// <param name="bitSequenceWriter">The bit sequence writer.</param>
         /// <param name="proxy">The proxy to encode, or null.</param>
         public void EncodeNullableProxy(ref BitSequenceWriter bitSequenceWriter, Proxy? proxy)
         {
             if (Encoding == SliceEncoding.Slice1)
             {
-                if (proxy != null)
-                {
-                    EncodeProxy(proxy);
-                }
-                else
-                {
-                    Identity.Empty.Encode(ref this);
-                }
+                throw new InvalidOperationException(
+                    "Encoding nullable proxies with a bit sequence is not supported with Slice1 encoding");
             }
-            else
+
+            bitSequenceWriter.Write(proxy != null);
+            if (proxy != null)
             {
-                bitSequenceWriter.Write(proxy != null);
-                if (proxy != null)
-                {
-                    EncodeProxy(proxy);
-                }
+                EncodeProxy(proxy);
             }
         }
 

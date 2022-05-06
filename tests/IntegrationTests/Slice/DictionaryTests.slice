@@ -17,8 +17,6 @@ interface DictionaryOperations
     op11(a: dictionary<uint64, uint64>) -> dictionary<uint64, uint64>;
     op12(a: dictionary<varint62, varint62>) -> dictionary<varint62, varint62>;
     op13(a: dictionary<varuint62, varuint62>) -> dictionary<varuint62, varuint62>;
-    op14(a: dictionary<float32, float32>) -> dictionary<float32, float32>;
-    op15(a: dictionary<float64, float64>) -> dictionary<float64, float64>;
     op16(a: dictionary<string, string>) -> dictionary<string, string>;
 }
 
@@ -37,7 +35,5 @@ interface DictionaryWithOptionalValueOperations
     op11(a: dictionary<uint64, uint64?>) -> dictionary<uint64, uint64?>;
     op12(a: dictionary<varint62, varint62?>) -> dictionary<varint62, varint62?>;
     op13(a: dictionary<varuint62, varuint62?>) -> dictionary<varuint62, varuint62?>;
-    op14(a: dictionary<float32, float32?>) -> dictionary<float32, float32?>;
-    op15(a: dictionary<float64, float64?>) -> dictionary<float64, float64?>;
     op16(a: dictionary<string, string?>) -> dictionary<string, string?>;
 }

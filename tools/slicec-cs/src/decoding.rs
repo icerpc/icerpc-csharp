@@ -7,6 +7,7 @@ use slice::grammar::*;
 
 pub fn decode_data_members(
     members: &[&DataMember],
+    use_bit_sequence_reader: bool,
     namespace: &str,
     use_tag_format: bool,
     field_type: FieldType,
@@ -15,7 +16,11 @@ pub fn decode_data_members(
 
     let (required_members, tagged_members) = get_sorted_members(members);
 
-    let bit_sequence_size = get_bit_sequence_size(members);
+    let bit_sequence_size = if use_bit_sequence_reader {
+        get_bit_sequence_size(members)
+    } else {
+        0
+    };
 
     if bit_sequence_size > 0 {
         writeln!(
@@ -28,7 +33,12 @@ pub fn decode_data_members(
     // Decode required members
     for member in required_members {
         let param = format!("this.{}", member.field_name(field_type));
-        code.writeln(&decode_member(member, namespace, &param));
+        code.writeln(&decode_member(
+            member,
+            bit_sequence_size > 0,
+            namespace,
+            &param,
+        ));
     }
 
     // Decode tagged data members
@@ -46,7 +56,12 @@ pub fn decode_data_members(
     code
 }
 
-fn decode_member(member: &impl Member, namespace: &str, param: &str) -> CodeBlock {
+fn decode_member(
+    member: &impl Member,
+    use_bit_sequence: bool,
+    namespace: &str,
+    param: &str,
+) -> CodeBlock {
     let mut code = CodeBlock::new();
     let data_type = member.data_type();
     let type_string = data_type.to_type_string(namespace, TypeContext::Decode, true);
@@ -56,11 +71,15 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str) -> CodeBloc
     if data_type.is_optional {
         match data_type.concrete_type() {
             Types::Interface(_) => {
-                writeln!(
-                    code,
-                    "decoder.DecodeNullablePrx<{}>(ref bitSequenceReader);",
-                    type_string
-                );
+                if use_bit_sequence {
+                    writeln!(
+                        code,
+                        "decoder.DecodeNullablePrx<{}>(ref bitSequenceReader);",
+                        type_string
+                    );
+                } else {
+                    writeln!(code, "decoder.DecodeNullablePrx<{}>();", type_string);
+                }
                 return code;
             }
             _ if data_type.is_class_type() => {
@@ -509,7 +528,11 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
 
     let (required_members, tagged_members) = get_sorted_members(&non_streamed_members);
 
-    let bit_sequence_size = get_bit_sequence_size(&non_streamed_members);
+    let bit_sequence_size = if operation.encoding == Encoding::Slice2 {
+        get_bit_sequence_size(&non_streamed_members)
+    } else {
+        0
+    };
 
     if bit_sequence_size > 0 {
         writeln!(
@@ -534,6 +557,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
             },
             decode = decode_member(
                 member,
+                bit_sequence_size > 0,
                 namespace,
                 &member.parameter_name_with_prefix("sliceP_"),
             )

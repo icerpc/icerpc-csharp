@@ -24,6 +24,19 @@ exception MyDerivedException : MyException
     l: int32,
 }
 
+exception MyExceptionWithOptionalProxyMember
+{
+    i: int32,
+    j: Slice::Service?,
+}
+
+compact struct MyStructWithOptionalProxyMember
+{
+    i: int32,
+    j: Slice::Service?,
+    k: AnyClass?,
+}
+
 interface Slice1ExceptionOperations
 {
     opThrows();

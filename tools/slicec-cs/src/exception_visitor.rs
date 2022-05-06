@@ -88,8 +88,9 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
 
         let mut decode_body_slice2 = decode_data_members(
             &members,
+            true, // Slice2 use bit sequences
             namespace,
-            false, // this block is for Slice2, which never uses tag formats
+            false, // Slice2 doesn't use tag formats
             FieldType::Exception,
         );
         writeln!(
@@ -126,32 +127,38 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
             exception_class_builder.add_block(encode_trait_method());
         }
 
-        exception_class_builder.add_block(
-            FunctionBuilder::new(
-                "protected override",
-                "void",
-                "DecodeCore",
-                FunctionType::BlockBody,
-            )
-            .add_parameter("ref SliceDecoder", "decoder", None, None)
-            .set_body({
-                let mut code = CodeBlock::new();
-                code.writeln("decoder.StartSlice();");
-                code.writeln(&decode_data_members(
-                    &members,
-                    namespace,
-                    true, // this block is for Slice1, which always uses tag formats
-                    FieldType::Exception,
-                ));
-                code.writeln("decoder.EndSlice();");
+        if exception_def
+            .supported_encodings()
+            .supports(&Encoding::Slice1)
+        {
+            exception_class_builder.add_block(
+                FunctionBuilder::new(
+                    "protected override",
+                    "void",
+                    "DecodeCore",
+                    FunctionType::BlockBody,
+                )
+                .add_parameter("ref SliceDecoder", "decoder", None, None)
+                .set_body({
+                    let mut code = CodeBlock::new();
+                    code.writeln("decoder.StartSlice();");
+                    code.writeln(&decode_data_members(
+                        &members,
+                        false, // Slice1 doesn't use bit sequences
+                        namespace,
+                        true, // Slice1 uses tag formats
+                        FieldType::Exception,
+                    ));
+                    code.writeln("decoder.EndSlice();");
 
-                if has_base {
-                    code.writeln("base.DecodeCore(ref decoder);");
-                }
-                code
-            })
-            .build(),
-        );
+                    if has_base {
+                        code.writeln("base.DecodeCore(ref decoder);");
+                    }
+                    code
+                })
+                .build(),
+            );
+        }
 
         exception_class_builder.add_block(encode_core_method(exception_def));
 
@@ -204,6 +211,7 @@ encoder.EndSlice(lastSlice: {is_last_slice});
 {encode_base}",
             encode_data_members = &encode_data_members(
                 members,
+                false,
                 namespace,
                 FieldType::Exception,
                 true, // this block is for Slice1, which always uses tag formats
@@ -222,6 +230,7 @@ encoder.EncodeString(Message);
 encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);",
             encode_data_members = &encode_data_members(
                 members,
+                true,
                 namespace,
                 FieldType::Exception,
                 false, // this block is for Slice2, which never uses tag formats

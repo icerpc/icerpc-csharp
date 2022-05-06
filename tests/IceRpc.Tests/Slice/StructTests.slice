@@ -30,3 +30,19 @@ compact struct MyCompactStruct
     i: int32,
     j: int32,
 }
+
+compact struct MyCompactStructWithNullabeProxy
+{
+    a: int32,
+    i: Slice::Service?
+}
+
+compact struct MyCompactStructWithNullabeProxySequence
+{
+    i: sequence<Slice::Service?>
+}
+
+compact struct MyCompactStructWithNullabeProxyDictionary
+{
+    i: dictionary<int32, Slice::Service?>
+}
