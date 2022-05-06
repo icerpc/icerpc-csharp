@@ -1,11 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-// Ensure that using the same type names in different modules, doesn't cause any conflicts and generates correct code.
 module IceRpc::Slice::Tests
 {
     struct S
     {
-        v: int32,
+        v: string,
     }
 
     module Inner
