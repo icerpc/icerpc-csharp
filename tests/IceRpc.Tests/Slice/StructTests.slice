@@ -31,18 +31,9 @@ compact struct MyCompactStruct
     j: int32,
 }
 
-compact struct MyCompactStructWithNullabeProxy
+compact struct MySlice2OnlyCompactStructWithNullabeProxy
 {
     a: int32,
-    i: Slice::Service?
-}
-
-compact struct MyCompactStructWithNullabeProxySequence
-{
-    i: sequence<Slice::Service?>
-}
-
-compact struct MyCompactStructWithNullabeProxyDictionary
-{
-    i: dictionary<int32, Slice::Service?>
+    i: Slice::Service?,
+    j: int32?
 }
