@@ -466,7 +466,11 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         };
 
         let mut builder = FunctionBuilder::new(
-            "public static async",
+            if function_type == FunctionType::ExpressionBody {
+                "public static"
+            } else {
+                "public static async"
+            },
             &format!(
                 "global::System.Threading.Tasks.ValueTask<{}>",
                 members.to_tuple_type(namespace, TypeContext::Decode, false)
@@ -543,12 +547,12 @@ return {return_value_and_stream};
         writeln!(
             code,
             "\
-await response.DecodeReturnValueAsync(
+response.DecodeReturnValueAsync(
     request,
     {encoding},
     _defaultActivator,
     {response_decode_func},
-    cancel).ConfigureAwait(false)",
+    cancel)",
             encoding = encoding,
             response_decode_func = response_decode_func(operation).indent()
         );
