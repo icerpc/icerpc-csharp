@@ -46,7 +46,7 @@ namespace IceRpc.Slice.Internal
                     frame.Connection,
                     decodePayloadOptions.ProxyInvoker ?? defaultInvoker,
                     decodePayloadOptions.Activator ?? defaultActivator,
-                    decodePayloadOptions.MaxDepth);
+                    maxDepth: decodePayloadOptions.MaxDepth);
                 T value = decodeFunc(ref decoder);
                 decoder.CheckEndOfBuffer(skipTaggedParams: true);
 
@@ -133,7 +133,7 @@ namespace IceRpc.Slice.Internal
                     connection,
                     decodePayloadOptions.ProxyInvoker ?? defaultInvoker,
                     decodePayloadOptions.Activator ?? defaultActivator,
-                    decodePayloadOptions.MaxDepth);
+                    maxDepth: decodePayloadOptions.MaxDepth);
 
                 var items = new List<T>();
                 do

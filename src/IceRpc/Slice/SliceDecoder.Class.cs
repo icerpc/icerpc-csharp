@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 
 using static IceRpc.Slice.Internal.Slice1Definitions;
 
@@ -175,11 +176,12 @@ namespace IceRpc.Slice
         /// <returns>The indirection table.</returns>
         private AnyClass[] DecodeIndirectionTable()
         {
-            int size = DecodeAndCheckSequenceSize(1);
+            int size = DecodeSize();
             if (size == 0)
             {
                 throw new InvalidDataException("invalid empty indirection table");
             }
+            IncreaseCollectionAllocation(size * Unsafe.SizeOf<AnyClass>());
             var indirectionTable = new AnyClass[size];
             for (int i = 0; i < indirectionTable.Length; ++i)
             {
@@ -420,9 +422,6 @@ namespace IceRpc.Slice
             // We should never skip an exception's indirection table
             Debug.Assert(_classContext.Current.InstanceType == InstanceType.Class);
 
-            // We use DecodeSize and not DecodeAndCheckSeqSize here because we don't allocate memory for this sequence,
-            // and since we are skipping this sequence to decode it later, we don't want to double-count its
-            // contribution to _minTotalSeqSize.
             int tableSize = DecodeSize();
             for (int i = 0; i < tableSize; ++i)
             {
