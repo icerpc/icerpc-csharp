@@ -110,8 +110,6 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             FunctionType::ExpressionBody
         };
 
-        // We need the async/await for proper type inference when returning tuples with nullable
-        // elements like string?.
         let mut builder = FunctionBuilder::new(
             if function_type == FunctionType::BlockBody {
                 "public static async"

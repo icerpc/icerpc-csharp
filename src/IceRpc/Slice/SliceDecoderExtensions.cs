@@ -164,6 +164,8 @@ namespace IceRpc.Slice
         /// <param name="decodeFunc">The decode function for each non-null element of the sequence.</param>
         /// <typeparam name="T">The type of the elements in the array.</typeparam>
         /// <returns>An array of T.</returns>
+        /// <remarks>We return a T? and not a T to avoid ambiguities in the generated code with nullable reference
+        /// types such as string?</remarks>
         public static T?[] DecodeSequenceWithBitSequence<T>(this ref SliceDecoder decoder, DecodeFunc<T> decodeFunc)
         {
             int count = decoder.DecodeAndCheckSequenceSize(0);
