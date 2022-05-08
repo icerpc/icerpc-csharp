@@ -51,14 +51,12 @@ namespace IceRpc.Internal
         private long _lastRemoteBidirectionalStreamId = -1;
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
         private long _lastRemoteUnidirectionalStreamId = -1;
-
+        private readonly IDictionary<ConnectionFieldKey, OutgoingFieldValue> _localFields;
         private readonly int _maxLocalHeaderSize;
         private int _maxRemoteHeaderSize = Configure.IceRpcOptions.DefaultMaxHeaderSize;
         private readonly object _mutex = new();
         private readonly IMultiplexedNetworkConnection _networkConnection;
         private readonly Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? _onConnect;
-
-        private readonly Configure.IceRpcOptions? _options;
         private IMultiplexedStream? _remoteControlStream;
 
         private readonly HashSet<IMultiplexedStream> _streams = new();
@@ -654,9 +652,9 @@ namespace IceRpc.Internal
         {
             _dispatcher = dispatcher;
             _networkConnection = networkConnection;
-            _options = options;
             _onConnect = onConnect;
 
+            _localFields = options?.Fields ?? ImmutableDictionary<ConnectionFieldKey, OutgoingFieldValue>.Empty;
             _maxLocalHeaderSize = options?.MaxHeaderSize ?? Configure.IceRpcOptions.DefaultMaxHeaderSize;
         }
 
@@ -665,15 +663,13 @@ namespace IceRpc.Internal
             // Create the control stream and send the protocol initialize frame
             _controlStream = _networkConnection.CreateStream(false);
 
-            IDictionary<ConnectionFieldKey, OutgoingFieldValue> localFields =
-                _options?.Fields ?? ImmutableDictionary<ConnectionFieldKey, OutgoingFieldValue>.Empty;
-
-            if (_options != null && _options.MaxHeaderSize != Configure.IceRpcOptions.DefaultMaxHeaderSize)
+            IDictionary<ConnectionFieldKey, OutgoingFieldValue> localFields = _localFields;
+            if (_maxLocalHeaderSize != Configure.IceRpcOptions.DefaultMaxHeaderSize)
             {
                 localFields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>(localFields)
                 {
                     [ConnectionFieldKey.MaxHeaderSize] = new OutgoingFieldValue(
-                        (ref SliceEncoder encoder) => encoder.EncodeVarUInt32((uint)_options.MaxHeaderSize))
+                        (ref SliceEncoder encoder) => encoder.EncodeVarUInt32((uint)_maxLocalHeaderSize))
                 };
             }
 
