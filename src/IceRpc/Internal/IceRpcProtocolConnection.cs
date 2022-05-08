@@ -51,6 +51,8 @@ namespace IceRpc.Internal
         private long _lastRemoteBidirectionalStreamId = -1;
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
         private long _lastRemoteUnidirectionalStreamId = -1;
+
+        private readonly int _maxLocalHeaderSize;
         private int _maxRemoteHeaderSize = Configure.IceRpcOptions.DefaultMaxHeaderSize;
         private readonly object _mutex = new();
         private readonly IMultiplexedNetworkConnection _networkConnection;
@@ -90,6 +92,7 @@ namespace IceRpc.Internal
                 {
                     ReadResult readResult = await stream.Input.ReadSegmentAsync(
                         SliceEncoding.Slice2,
+                        _maxLocalHeaderSize,
                         CancellationToken.None).ConfigureAwait(false);
 
                     if (readResult.Buffer.IsEmpty)
@@ -486,6 +489,7 @@ namespace IceRpc.Internal
             {
                 ReadResult readResult = await stream.Input.ReadSegmentAsync(
                     SliceEncoding.Slice2,
+                    _maxLocalHeaderSize,
                     cancel).ConfigureAwait(false);
 
                 // Nothing cancels the stream input pipe reader.
@@ -652,6 +656,8 @@ namespace IceRpc.Internal
             _networkConnection = networkConnection;
             _options = options;
             _onConnect = onConnect;
+
+            _maxLocalHeaderSize = options?.MaxHeaderSize ?? Configure.IceRpcOptions.DefaultMaxHeaderSize;
         }
 
         internal async Task InitializeAsync(CancellationToken cancel)
@@ -846,7 +852,10 @@ namespace IceRpc.Internal
             // We are still in the single-threaded initialization at this point.
 
             PipeReader input = _remoteControlStream!.Input;
-            ReadResult readResult = await input.ReadSegmentAsync(SliceEncoding.Slice2, cancel).ConfigureAwait(false);
+            ReadResult readResult = await input.ReadSegmentAsync(
+                SliceEncoding.Slice2,
+                _maxLocalHeaderSize,
+                cancel).ConfigureAwait(false);
             if (readResult.IsCanceled)
             {
                 throw new OperationCanceledException();
@@ -888,7 +897,10 @@ namespace IceRpc.Internal
         private async ValueTask<IceRpcGoAway> ReceiveGoAwayBodyAsync(CancellationToken cancel)
         {
             PipeReader input = _remoteControlStream!.Input;
-            ReadResult readResult = await input.ReadSegmentAsync(SliceEncoding.Slice2, cancel).ConfigureAwait(false);
+            ReadResult readResult = await input.ReadSegmentAsync(
+                SliceEncoding.Slice2,
+                _maxLocalHeaderSize,
+                cancel).ConfigureAwait(false);
             if (readResult.IsCanceled)
             {
                 throw new OperationCanceledException();
