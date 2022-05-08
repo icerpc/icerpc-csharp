@@ -83,15 +83,7 @@ namespace IceRpc
 
         /// <summary>Constructs a client connection.</summary>
         /// <param name="options">The connection options.</param>
-        public Connection(ConnectionOptions options)
-        {
-            if (options.RemoteEndpoint is not Endpoint remoteEndpoint || remoteEndpoint == default)
-            {
-                throw new InvalidOperationException(
-                    $"cannot create connection without configuring {nameof(ConnectionOptions.RemoteEndpoint)}");
-            }
-            _options = options;
-        }
+        public Connection(ConnectionOptions options) => _options = options;
 
         /// <summary>Constructs a client connection with the specified remote endpoint and  authentication options.
         /// All other properties have their default values.</summary>
@@ -133,7 +125,12 @@ namespace IceRpc
                 {
                     if (_state == ConnectionState.NotConnected)
                     {
-                        Debug.Assert(_options.RemoteEndpoint != null);
+                        if (_options.RemoteEndpoint is not Endpoint remoteEndpoint || remoteEndpoint == default)
+                        {
+                            throw new InvalidOperationException(
+                                $"{nameof(ConnectionOptions.RemoteEndpoint)} is not set");
+                        }
+
                         Debug.Assert(_protocolConnection == null);
 
                         _stateTask = Endpoint.Protocol == Protocol.Ice ?
