@@ -11,7 +11,7 @@ public record class IceRpcOptions
     /// <summary>Gets or sets the maximum size of the header of an incoming request, response or control frame.
     /// </summary>
     /// <value>The maximum size of the header of an incoming request, response or control frame, in bytes. The default
-    /// value is 16,383, and the range of this value is 63 to 1,073,747,823.</value>
+    /// value is 16,383, and the range of this value is 63 to 1,048,575.</value>
     public int MaxHeaderSize
     {
         get => _maxHeaderSize;
@@ -27,8 +27,8 @@ public record class IceRpcOptions
 
     private int _maxHeaderSize = DefaultMaxHeaderSize;
 
-    internal static int CheckMaxHeaderSize(long value) => value is >= 63 and <= 1_073_747_823 ? (int)value :
-        throw new ArgumentOutOfRangeException(nameof(value), "value must be between 63 and 1,073,747,823");
+    internal static int CheckMaxHeaderSize(long value) => value is >= 63 and <= 1_048_575 ? (int)value :
+        throw new ArgumentOutOfRangeException(nameof(value), "value must be between 63 and 1,048,575");
 
 }
 
