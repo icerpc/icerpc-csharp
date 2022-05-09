@@ -568,8 +568,8 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
                 member,
                 namespace,
                 &member.parameter_name_with_prefix("sliceP_"),
-                false,            // no tag end marker for operations
-                Encoding::Slice1, // we only use tag_formats with Slice1
+                false, // no tag end marker for operations
+                operation.encoding
             )
         )
     }
