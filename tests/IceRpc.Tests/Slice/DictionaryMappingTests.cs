@@ -2,6 +2,7 @@
 
 using IceRpc.Tests;
 using NUnit.Framework;
+using System.IO.Pipelines;
 
 namespace IceRpc.Slice.Tests;
 
@@ -11,9 +12,9 @@ public class DictionaryMappingTests
     [Test]
     public async Task Return_tuple_with_elements_usig_cs_generic_attribute()
     {
-        var responsePayload = IDictionaryMappingOperations.Response.OpReturnTuple(
-             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 },
-              new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
+        PipeReader responsePayload = IDictionaryMappingOperations.Response.OpReturnTuple(
+            new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 },
+            new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
         var response = new IncomingResponse(request, InvalidConnection.IceRpc)
         {
@@ -30,7 +31,7 @@ public class DictionaryMappingTests
     [Test]
     public async Task Return_type_using_cs_generic_attribute()
     {
-        var responsePayload = IDictionaryMappingOperations.Response.OpReturnSingleType(
+        PipeReader responsePayload = IDictionaryMappingOperations.Response.OpReturnSingleType(
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
         var response = new IncomingResponse(request, InvalidConnection.IceRpc)
@@ -51,7 +52,7 @@ public class DictionaryMappingTests
     public void Parameter_using_cs_generic_attribute()
     {
         // Arrange
-        var requestPayload = DictionaryMappingOperationsPrx.Request.OpSingleParameter(
+        PipeReader requestPayload = DictionaryMappingOperationsPrx.Request.OpSingleParameter(
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
 
         // Act/Assert

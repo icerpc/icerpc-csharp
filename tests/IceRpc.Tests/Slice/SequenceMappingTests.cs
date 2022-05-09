@@ -2,6 +2,7 @@
 
 using IceRpc.Tests;
 using NUnit.Framework;
+using System.IO.Pipelines;
 
 namespace IceRpc.Slice.Tests;
 
@@ -11,7 +12,7 @@ public class SequenceMappingTests
     [Test]
     public async Task Return_tuple_with_elements_usig_cs_generic_attribute()
     {
-        var responsePayload = ISequenceMappingOperations.Response.OpReturnTuple(
+        PipeReader responsePayload = ISequenceMappingOperations.Response.OpReturnTuple(
             new int[] { 1, 2, 3 },
             new int[] { 1, 2, 3 });
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
@@ -30,7 +31,7 @@ public class SequenceMappingTests
     [Test]
     public async Task Return_single_type_usig_cs_generic_attribute()
     {
-        var responsePayload = ISequenceMappingOperations.Response.OpReturnSingleType(new int[] { 1, 2, 3 });
+        PipeReader responsePayload = ISequenceMappingOperations.Response.OpReturnSingleType(new int[] { 1, 2, 3 });
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
         var response = new IncomingResponse(request, InvalidConnection.IceRpc)
         {
@@ -48,7 +49,7 @@ public class SequenceMappingTests
     public void Parameter_using_cs_generic_attribute()
     {
         // Act
-        var requestPayload = SequenceMappingOperationsPrx.Request.OpSingleParameter(
+        PipeReader requestPayload = SequenceMappingOperationsPrx.Request.OpSingleParameter(
             new CustomSequence<int>(new int[] { 1, 2, 3 }));
 
         // Assert
