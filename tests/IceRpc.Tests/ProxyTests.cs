@@ -409,8 +409,7 @@ public class ProxyTests
         Assert.That(proxy.AltEndpoints, Is.Empty);
     }
 
-    /// <summary>Verifies that the proxy protocol and proxy connection protocol remain the same (currently not true due
-    /// to a bug).</summary>
+    /// <summary>Verifies that the proxy protocol and proxy connection protocol remain the same.</summary>
     [Test]
     public async Task Proxy_and_proxy_connection_have_the_same_protocol()
     {
