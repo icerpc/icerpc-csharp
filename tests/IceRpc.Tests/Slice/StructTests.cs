@@ -151,7 +151,7 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Decode_slice1_struct_with_nullable_proxy(
+    public void Decode_slice1_compact_struct_with_nullable_proxy(
         [Values("icerpc://localhost/service", null)] string? proxy)
     {
         var expected = new MyCompactStructWithNullabeProxy(
@@ -170,7 +170,7 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Decode_slice2_struct_with_nullable_proxy(
+    public void Decode_slice2_compact_struct_with_nullable_proxy(
         [Values("icerpc://localhost/service", null)]string? proxy)
     {
         var expected = new MySlice2OnlyCompactStructWithNullabeProxy(
@@ -197,7 +197,7 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Decode_slice1_struct_with_sequence_of_nullable_proxies()
+    public void Decode_slice1_compat_struct_with_sequence_of_nullable_proxies()
     {
         var expected = new MyCompactStructWithSequenceOfNullableProxies
         {
@@ -221,7 +221,7 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Decode_slice2_struct_with_sequence_of_nullable_proxies()
+    public void Decode_slice2_compat_struct_with_sequence_of_nullable_proxies()
     {
         var expected = new MyCompactStructWithSequenceOfNullableProxies
         {
@@ -245,7 +245,7 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Decode_slice1_struct_with_dictionary_of_nullable_proxies()
+    public void Decode_slice1_compat_struct_with_dictionary_of_nullable_proxies()
     {
         var expected = new MyCompactStructWithDictionaryOfNullableProxies
         {
@@ -270,7 +270,7 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Decode_slice2_struct_with_dictionary_of_nullable_proxies()
+    public void Decode_slice2_compat_struct_with_dictionary_of_nullable_proxies()
     {
         var expected = new MyCompactStructWithDictionaryOfNullableProxies
         {
@@ -429,7 +429,7 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Encode_slice1_struct_with_nullable_proxy(
+    public void Encode_slice1_compat_struct_with_nullable_proxy(
         [Values("icerpc://localhost/service", null)] string? proxy)
     {
         var expected = new MyCompactStructWithNullabeProxy(
@@ -447,7 +447,7 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Encode_slice2_struct_with_nullable_proxy(
+    public void Encode_slice2_compat_struct_with_nullable_proxy(
         [Values("icerpc://localhost/service", null)] string? proxy)
     {
         var expected = new MySlice2OnlyCompactStructWithNullabeProxy(
@@ -465,7 +465,7 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Encode_slice1_struct_with_sequence_of_nullable_proxies()
+    public void Encode_slice1_compat_struct_with_sequence_of_nullable_proxies()
     {
         var expected = new MyCompactStructWithSequenceOfNullableProxies
         {
@@ -488,7 +488,7 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Encode_slice2_struct_with_sequence_of_nullable_proxies()
+    public void Encode_slice2_compat_struct_with_sequence_of_nullable_proxies()
     {
         var expected = new MyCompactStructWithSequenceOfNullableProxies
         {
@@ -512,7 +512,7 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Encode_slice1_struct_with_dictionary_of_nullable_proxies()
+    public void Encode_slice1_compat_struct_with_dictionary_of_nullable_proxies()
     {
         var expected = new MyCompactStructWithDictionaryOfNullableProxies
         {
@@ -538,7 +538,7 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Encode_slice2_struct_with_dictionary_of_nullable_proxies()
+    public void Encode_slice2_compact_struct_with_dictionary_of_nullable_proxies()
     {
         var expected = new MyCompactStructWithDictionaryOfNullableProxies
         {
