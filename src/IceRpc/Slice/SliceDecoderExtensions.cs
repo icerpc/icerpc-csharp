@@ -199,10 +199,10 @@ namespace IceRpc.Slice
             {
                 BitSequenceReader bitSequenceReader = decoder.GetBitSequenceReader(count);
                 decoder.IncreaseCollectionAllocation(count * Unsafe.SizeOf<T>());
-                var array = new T[count];
+                var array = new T?[count];
                 for (int i = 0; i < count; ++i)
                 {
-                    array[i] = bitSequenceReader.Read() ? decodeFunc(ref decoder) : default!;
+                    array[i] = bitSequenceReader.Read() ? decodeFunc(ref decoder) : default;
                 }
                 return array;
             }

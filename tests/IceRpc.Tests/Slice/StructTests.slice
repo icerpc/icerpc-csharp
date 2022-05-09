@@ -35,5 +35,4 @@ compact struct MySlice2OnlyCompactStructWithNullabeProxy
 {
     a: int32,
     i: Slice::Service?,
-    j: int32?
 }

@@ -493,8 +493,18 @@ pub fn encode_action(
             if is_optional {
                 write!(
                     code,
-                    "(ref SliceEncoder encoder, {} value) => encoder.EncodeProxy(value!.Value.Proxy)",
-                    value_type
+                    "(ref SliceEncoder encoder, {value_type} value) => encoder.{encode_proxy_method}({encode_proxy_arg})",
+                    value_type = value_type,
+                    encode_proxy_method = if encoding == Encoding::Slice1 {
+                        "EncodeNullableProxy"
+                    } else {
+                        "EncodeProxy"
+                    },
+                    encode_proxy_arg = if encoding == Encoding::Slice1 {
+                        "value?.Proxy"
+                    } else {
+                        "value!.Value.Proxy"
+                    }
                 );
             } else {
                 write!(
