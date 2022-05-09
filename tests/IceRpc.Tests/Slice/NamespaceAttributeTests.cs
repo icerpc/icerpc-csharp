@@ -14,7 +14,7 @@ public class NamespaceAttributeTests
         public ValueTask<NamespaceAttribute.WithNamespace.N1.N2.S1> Op1Async(
             NamespaceAttribute.M1.M2.M3.S1 p,
             Dispatch dispatch,
-            CancellationToken cancel) => new(new NamespaceAttribute.WithNamespace.N1.N2.S1(p.I));
+            CancellationToken cancel) => new(new NamespaceAttribute.WithNamespace.N1.N2.S1($"{p.I}"));
     }
 
     [Test]
@@ -28,6 +28,6 @@ public class NamespaceAttributeTests
         NamespaceAttribute.WithNamespace.N1.N2.S1 r =
             await prx.Op1Async(new NamespaceAttribute.M1.M2.M3.S1(10));
 
-        Assert.That(r.I, Is.EqualTo(10));
+        Assert.That(r.I, Is.EqualTo("10"));
     }
 }
