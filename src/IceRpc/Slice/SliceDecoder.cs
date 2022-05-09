@@ -581,7 +581,7 @@ namespace IceRpc.Slice
         {
             if (Encoding == SliceEncoding.Slice1)
             {
-                throw new InvalidOperationException("bit sequence reader can only be used with the Slice1 encoding");
+                throw new InvalidOperationException("bit sequence reader cannot be used with the Slice1 encoding");
             }
 
             if (bitSequenceSize <= 0)
