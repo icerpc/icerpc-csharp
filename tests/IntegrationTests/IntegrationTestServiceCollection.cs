@@ -32,7 +32,18 @@ public class IntegrationTestServiceCollection : ServiceCollection
             LoggerFactory = provider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance,
         });
 
-        this.AddScoped(provider => new ConnectionPool(provider.GetRequiredService<ConnectionOptions>()));
+        this.AddScoped(provider =>
+        {
+            ConnectionOptions connectionOptions = provider.GetRequiredService<ConnectionOptions>();
+            return new ConnectionPool(new ConnectionOptions
+            {
+                IceClientOptions = connectionOptions.IceClientOptions,
+                IceRpcClientOptions = connectionOptions.IceRpcClientOptions,
+                Dispatcher = connectionOptions.Dispatcher,
+                // RemoteEndpoint must remain null
+                LoggerFactory = connectionOptions.LoggerFactory
+            });
+        });
 
         this.AddScoped(provider =>
         {

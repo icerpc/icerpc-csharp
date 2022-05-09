@@ -95,6 +95,8 @@ namespace IceRpc.Configure
         public OnConnectAction? OnConnect { get; set; }
 
         /// <summary>Gets or sets the connection's remote endpoint.</summary>
+        /// <remarks>You can only set RemoteEndpoint to a non-null value, and once set, you can only replace it with
+        /// an endpoint that uses the same protocol.</remarks>
         public Endpoint? RemoteEndpoint
         {
             get => _remoteEndpoint;
@@ -102,13 +104,19 @@ namespace IceRpc.Configure
             {
                 if (value is Endpoint remoteEndpoint)
                 {
+                    if (_remoteEndpoint is Endpoint oldRemoteEndpoint &&
+                        remoteEndpoint.Protocol != oldRemoteEndpoint.Protocol)
+                    {
+                        throw new ArgumentException("cannot change the protocol of RemoteEndpoint", nameof(value));
+                    }
+
                     _remoteEndpoint = remoteEndpoint.Protocol.IsSupported ? remoteEndpoint :
                         throw new NotSupportedException(
                             $"cannot connect to endpoint with protocol '{remoteEndpoint.Protocol}'");
                 }
                 else
                 {
-                    _remoteEndpoint = null;
+                    throw new ArgumentNullException(nameof(value));
                 }
             }
         }
