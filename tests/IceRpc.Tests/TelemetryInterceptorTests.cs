@@ -21,7 +21,7 @@ public sealed class TelemetryInterceptorTests
         var invoker = new InlineInvoker((request, cancel) =>
         {
             invocationActivity = Activity.Current;
-            return Task.FromResult(new IncomingResponse(request, request.Connection!));
+            return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
         });
 
         // Add a mock activity listener that allows the activity source to create the invocation activity.
@@ -66,7 +66,7 @@ public sealed class TelemetryInterceptorTests
         var invoker = new InlineInvoker((request, cancel) =>
         {
             invocationActivity = Activity.Current;
-            return Task.FromResult(new IncomingResponse(request, request.Connection!));
+            return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
         });
 
         var sut = new TelemetryInterceptor(invoker, new Configure.TelemetryOptions());
@@ -107,7 +107,7 @@ public sealed class TelemetryInterceptorTests
         var invoker = new InlineInvoker((request, cancel) =>
         {
             invocationActivity = Activity.Current;
-            return Task.FromResult(new IncomingResponse(request, request.Connection!));
+            return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
         });
 
         // A mock logger factory to trigger the creation of the invocation activity
@@ -156,7 +156,7 @@ public sealed class TelemetryInterceptorTests
                 invocationActivity.AddBaggage("foo", "bar");
                 decodedActivity = DecodeTraceContextField(request.Fields, "/op");
             }
-            return Task.FromResult(new IncomingResponse(request, request.Connection!));
+            return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
         });
 
         var sut = new TelemetryInterceptor(invoker, new Configure.TelemetryOptions());
@@ -195,7 +195,7 @@ public sealed class TelemetryInterceptorTests
         var invoker = new InlineInvoker((request, cancel) =>
         {
             invocationActivity = Activity.Current;
-            return Task.FromResult(new IncomingResponse(request, request.Connection!));
+            return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
         });
 
         var sut = new TelemetryInterceptor(invoker, new Configure.TelemetryOptions());

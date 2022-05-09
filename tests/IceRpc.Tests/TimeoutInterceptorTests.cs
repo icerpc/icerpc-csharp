@@ -22,7 +22,7 @@ public sealed class TimeoutInterceptorTests
             hasDeadline = request.Fields.ContainsKey(RequestFieldKey.Deadline);
             cancellationToken = cancel;
             await Task.Delay(TimeSpan.FromMilliseconds(100), cancel);
-            return new IncomingResponse(request, request.Connection!);
+            return new IncomingResponse(request, InvalidConnection.IceRpc);
         });
 
         var sut = new TimeoutInterceptor(invoker, TimeSpan.FromMilliseconds(10));
@@ -58,7 +58,7 @@ public sealed class TimeoutInterceptorTests
                 decoder.SkipSize();
                 deadline = DateTime.UnixEpoch + TimeSpan.FromMilliseconds(decoder.DecodeVarInt62());
             }
-            return Task.FromResult(new IncomingResponse(request, request.Connection!));
+            return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
         });
 
         var sut = new TimeoutInterceptor(invoker, timeout);

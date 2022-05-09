@@ -39,7 +39,7 @@ namespace IceRpc
 
         /// <summary>The connection's endpoint. For a client connection this is the connection's remote endpoint,
         /// for a server connection it's the server's endpoint.</summary>
-        public Endpoint Endpoint => _serverEndpoint ?? _options.RemoteEndpoint ?? new Endpoint();
+        public Endpoint? Endpoint => _serverEndpoint ?? _options.RemoteEndpoint;
 
         /// <summary>The state of the connection.</summary>
         public ConnectionState State
@@ -133,7 +133,7 @@ namespace IceRpc
 
                         Debug.Assert(_protocolConnection == null);
 
-                        _stateTask = Endpoint.Protocol == Protocol.Ice ?
+                        _stateTask = remoteEndpoint.Protocol == Protocol.Ice ?
                             PerformConnectAsync(
                                 _options.IceClientOptions?.ClientTransport ?? IceClientOptions.DefaultClientTransport,
                                 _options.IceClientOptions,
@@ -176,9 +176,10 @@ namespace IceRpc
                 // enabled.
 
                 ILogger logger = _options.LoggerFactory.CreateLogger("IceRpc.Client");
+                Endpoint remoteEndpoint = _options.RemoteEndpoint!.Value;
 
                 T networkConnection = clientTransport.CreateConnection(
-                    Endpoint,
+                    remoteEndpoint,
                     _options.AuthenticationOptions,
                     logger);
 
@@ -186,7 +187,7 @@ namespace IceRpc
 
                 if (logger.IsEnabled(LogLevel.Error)) // TODO: log level
                 {
-                    networkConnection = logDecoratorFactory(networkConnection, Endpoint, isServer: false, logger);
+                    networkConnection = logDecoratorFactory(networkConnection, remoteEndpoint, isServer: false, logger);
 
                     protocolConnectionFactory =
                         new LogProtocolConnectionFactoryDecorator<T, TOptions>(protocolConnectionFactory, logger);
@@ -367,7 +368,7 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public override string ToString() => Endpoint.ToString();
+        public override string ToString() => Endpoint?.ToString() ?? "";
 
         /// <summary>Constructs a server connection from an accepted network connection.</summary>
         internal Connection(Endpoint endpoint, ConnectionOptions options)

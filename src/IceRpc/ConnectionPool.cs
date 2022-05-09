@@ -222,11 +222,13 @@ namespace IceRpc
                     // _connections is immutable after shutdown
                     if (_shutdownTask == null)
                     {
-                        List<Connection> list = _connections[connection.Endpoint];
+                        Endpoint endpoint = connection.Endpoint!.Value;
+
+                        List<Connection> list = _connections[endpoint];
                         list.Remove(connection);
                         if (list.Count == 0)
                         {
-                            _connections.Remove(connection.Endpoint);
+                            _connections.Remove(endpoint);
                         }
                     }
                 }

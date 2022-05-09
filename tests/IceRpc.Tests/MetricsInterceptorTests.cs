@@ -70,7 +70,7 @@ public sealed class MetricsInterceptorTests
     public async Task Successful_invocation_publishes_start_and_stop_events()
     {
         const string name = "Test.Succesful.Invocation.EventSource";
-        var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request, request.Connection!)));
+        var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc)));
         using var eventListener = new TestEventListener(
             name,
             ("total-requests", "1"),

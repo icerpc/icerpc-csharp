@@ -62,9 +62,17 @@ namespace IceRpc
             set
             {
                 CheckSupportedProtocol(nameof(Connection));
-                if (value?.Endpoint.Protocol is Protocol newProtocol && newProtocol != Protocol)
+                if (value != null)
                 {
-                    throw new ArgumentException("cannot change the protocol of a proxy", nameof(Connection));
+                    Protocol newProtocol = value?.Endpoint?.Protocol ??
+                        throw new ArgumentException("cannot set connection with null Endpoint", nameof(value));
+
+                    if (newProtocol != Protocol)
+                    {
+                        throw new ArgumentException(
+                            "the connection's protocol must match the proxy's protocol",
+                            nameof(Connection));
+                    }
                 }
                 _connection = value;
             }
@@ -215,13 +223,20 @@ namespace IceRpc
         /// <param name="path">The path of the proxy.</param>
         /// <param name="invoker">The invoker of the new proxy.</param>
         /// <returns>The new proxy.</returns>
-        public static Proxy FromConnection(Connection connection, string path, IInvoker? invoker = null) =>
-            new(connection.Endpoint.Protocol)
+        public static Proxy FromConnection(Connection connection, string path, IInvoker? invoker = null)
+        {
+            Protocol protocol = connection.Endpoint?.Protocol ??
+                throw new ArgumentException(
+                    "cannot create a proxy from a connection with a null Endpoint",
+                    nameof(connection));
+
+            return new(protocol)
             {
                 Path = path,
                 Connection = connection,
                 Invoker = invoker ?? DefaultInvoker
             };
+        }
 
         /// <summary>Creates a relative proxy.</summary>
         /// <param name="path">The path.</param>
