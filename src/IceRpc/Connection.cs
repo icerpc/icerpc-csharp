@@ -125,7 +125,7 @@ namespace IceRpc
                 {
                     if (_state == ConnectionState.NotConnected)
                     {
-                        if (_options.RemoteEndpoint is not Endpoint remoteEndpoint || remoteEndpoint == default)
+                        if (_options.RemoteEndpoint is not Endpoint remoteEndpoint)
                         {
                             throw new InvalidOperationException(
                                 $"{nameof(ConnectionOptions.RemoteEndpoint)} is not set");

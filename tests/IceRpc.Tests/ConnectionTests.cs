@@ -202,6 +202,14 @@ public class ConnectionTests
         Assert.That(async () => await connection.ConnectAsync(default), Throws.TypeOf<ConnectTimeoutException>());
     }
 
+    /// <summary>Verifies that connecting without setting RemoteEndpoint fails.</summary>
+    [Test]
+    public async Task Connect_with_no_remote_endpoint_fails()
+    {
+        await using var connection = new Connection(new ConnectionOptions());
+        Assert.That(async () => await connection.ConnectAsync(), Throws.InvalidOperationException);
+    }
+
     [Test]
     public async Task Non_resumable_connection_cannot_reconnect([Values("ice", "icerpc")] string protocol)
     {
