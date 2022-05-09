@@ -258,7 +258,13 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
                 stream_type = stream_type.to_type_string(namespace, TypeContext::Encode, false),
                 stream_parameter = stream_parameter_name,
                 encoding = encoding,
-                encode_action = encode_action(stream_type, TypeContext::Encode, namespace).indent()
+                encode_action = encode_action(
+                    stream_type,
+                    operation.encoding == Encoding::Slice2, // Slice2 uses bit sequence writer
+                    TypeContext::Encode,
+                    namespace
+                )
+                .indent()
             )),
         }
     } else {

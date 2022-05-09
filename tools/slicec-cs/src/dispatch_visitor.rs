@@ -524,7 +524,7 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
 fn payload_stream(operation: &Operation, encoding: &str) -> CodeBlock {
     let namespace = &operation.namespace();
     let return_values = operation.return_members();
-
+    let use_bit_sequence_writer = operation.encoding == Encoding::Slice2;
     match operation.streamed_return_member() {
         None => "null".into(),
         Some(stream_return) => {
@@ -551,8 +551,13 @@ fn payload_stream(operation: &Operation, encoding: &str) -> CodeBlock {
                     stream_type = stream_type.to_type_string(namespace, TypeContext::Encode, false),
                     stream_arg = stream_arg,
                     encoding = encoding,
-                    encode_action =
-                        encode_action(stream_type, TypeContext::Encode, namespace).indent(),
+                    encode_action = encode_action(
+                        stream_type,
+                        use_bit_sequence_writer,
+                        TypeContext::Encode,
+                        namespace
+                    )
+                    .indent(),
                 )
                 .into(),
             }
