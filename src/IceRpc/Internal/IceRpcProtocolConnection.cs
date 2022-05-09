@@ -358,9 +358,9 @@ namespace IceRpc.Internal
                         (ref SliceEncoder encoder, OutgoingFieldValue value) => value.Encode(ref encoder));
 
                     // We're done with the header encoding, write the header size.
-                    uint headerSize = (uint)(encoder.EncodedByteCount - headerStartPos);
+                    int headerSize = encoder.EncodedByteCount - headerStartPos;
                     CheckRemoteHeaderSize(headerSize);
-                    SliceEncoder.EncodeVarUInt62(headerSize, sizePlaceholder);
+                    SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
                 }
             }
 
@@ -576,9 +576,9 @@ namespace IceRpc.Internal
                     (ref SliceEncoder encoder, OutgoingFieldValue value) => value.Encode(ref encoder));
 
                 // We're done with the header encoding, write the header size.
-                uint headerSize = (uint)(encoder.EncodedByteCount - headerStartPos);
+                int headerSize = encoder.EncodedByteCount - headerStartPos;
                 CheckRemoteHeaderSize(headerSize);
-                SliceEncoder.EncodeVarUInt62(headerSize, sizePlaceholder);
+                SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
             }
 
             static (IceRpcResponseHeader, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>>, PipeReader?) DecodeHeader(
@@ -929,9 +929,9 @@ namespace IceRpc.Internal
                 Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(_headerSizeLength);
                 int startPos = encoder.EncodedByteCount; // does not include the size
                 encodeAction?.Invoke(ref encoder);
-                uint headerSize = (uint)(encoder.EncodedByteCount - startPos);
+                int headerSize = encoder.EncodedByteCount - startPos;
                 CheckRemoteHeaderSize(headerSize);
-                SliceEncoder.EncodeVarUInt62(headerSize, sizePlaceholder);
+                SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
             }
 
             return output.FlushAsync(cancel);
@@ -1075,9 +1075,9 @@ namespace IceRpc.Internal
             }
         }
 
-        private void CheckRemoteHeaderSize(uint headerSize)
+        private void CheckRemoteHeaderSize(int headerSize)
         {
-            if (headerSize > (uint)_maxRemoteHeaderSize)
+            if (headerSize > _maxRemoteHeaderSize)
             {
                 throw new ProtocolException(
                     @$"header size ({headerSize
