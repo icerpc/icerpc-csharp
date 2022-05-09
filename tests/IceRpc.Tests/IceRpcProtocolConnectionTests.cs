@@ -403,7 +403,7 @@ public sealed class IceRpcProtocolConnectionTests
     {
         // Arrange
         // This large value should be large enough to create multiple buffers for the response header.
-        string expectedValue = new('A', 16_000);
+        var expectedValue = new string('A', 16_000);
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
             var response = new OutgoingResponse(request);
