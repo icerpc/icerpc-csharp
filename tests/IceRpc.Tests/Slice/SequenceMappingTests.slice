@@ -1,0 +1,14 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc::Slice::Tests;
+
+interface SequenceMappingOperations
+{
+    opReturnTuple() ->
+        ([cs::generic("CustomSequence")] r1: sequence<int32>,
+         [cs::generic("CustomSequence")] r2: sequence<int32>);
+
+    opReturnSingleType() -> [cs::generic("CustomSequence")] sequence<int32>;
+
+    opSingleParameter([cs::generic("CustomSequence")] p: sequence<int32>);
+}

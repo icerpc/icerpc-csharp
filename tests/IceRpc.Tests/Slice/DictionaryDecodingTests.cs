@@ -2,6 +2,7 @@
 
 using IceRpc.Slice.Internal;
 using NUnit.Framework;
+using System.Runtime.CompilerServices;
 
 namespace IceRpc.Slice.Tests;
 
@@ -25,8 +26,6 @@ public class DictionaryDecodingTests
 
         // Act
         var decoded = decoder.DecodeDictionary(
-            minKeySize: 4,
-            minValueSize: 1,
             count => new Dictionary<int, string>(count),
             (ref SliceDecoder decoder) => decoder.DecodeInt32(),
             (ref SliceDecoder decoder) => decoder.DecodeString());
@@ -60,7 +59,6 @@ public class DictionaryDecodingTests
 
         // Act
         var decoded = decoder.DecodeDictionaryWithBitSequence(
-            minKeySize: 4,
             count => new Dictionary<int, string?>(count),
             (ref SliceDecoder decoder) => decoder.DecodeInt32(),
             (ref SliceDecoder decoder) => decoder.DecodeString());
@@ -68,5 +66,55 @@ public class DictionaryDecodingTests
         // Assert
         Assert.That(decoded, Is.EqualTo(expected));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+    }
+
+    [Test]
+    public void Decode_dictionary_with_bit_sequence_exceeds_default_max_collection_allocation()
+    {
+        var buffer = new MemoryBufferWriter(new byte[1024 * 4]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var dict = Enumerable.Range(0, 1024).ToDictionary(key => (short)key, value => (long?)null);
+        encoder.EncodeDictionaryWithBitSequence(
+            dict,
+            (ref SliceEncoder encoder, short value) => encoder.EncodeInt16(value),
+            (ref SliceEncoder encoder, long? value) => encoder.EncodeInt64(value!.Value));
+
+        Assert.That(
+            () =>
+            {
+                // The default max collection allocation here is a little over 8 * 1024 * 2 = 16K.
+                var sut = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+                _ = sut.DecodeDictionaryWithBitSequence(
+                    count => new Dictionary<short, long?>(count),
+                    (ref SliceDecoder decoder) => decoder.DecodeInt16(),
+                    (ref SliceDecoder decoder) => decoder.DecodeInt64() as long?);
+            },
+            Throws.InstanceOf<InvalidDataException>());
+    }
+
+    [Test]
+    public void Decode_dictionary_with_bit_sequence_and_custom_max_collection_allocation()
+    {
+        var buffer = new MemoryBufferWriter(new byte[1024 * 2 + 256]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var dict = Enumerable.Range(0, 1024).ToDictionary(key => (short)key, value => (long?)null);
+        encoder.EncodeDictionaryWithBitSequence(
+            dict,
+            (ref SliceEncoder encoder, short value) => encoder.EncodeInt16(value),
+            (ref SliceEncoder encoder, long? value) => encoder.EncodeInt64(value!.Value));
+
+        Assert.That(
+            () =>
+            {
+                var sut = new SliceDecoder(
+                    buffer.WrittenMemory,
+                    SliceEncoding.Slice2,
+                    maxCollectionAllocation: 1024 * (Unsafe.SizeOf<short>() + Unsafe.SizeOf<long?>()));
+                _ = sut.DecodeDictionaryWithBitSequence(
+                    count => new Dictionary<short, long?>(count),
+                    (ref SliceDecoder decoder) => decoder.DecodeInt16(),
+                    (ref SliceDecoder decoder) => decoder.DecodeInt64() as long?);
+            },
+            Throws.Nothing);
     }
 }
