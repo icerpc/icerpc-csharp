@@ -394,10 +394,17 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
 
     let mut code: CodeBlock = match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) => {
-            format!(
-                "(ref SliceDecoder decoder) => new {}(decoder.DecodeProxy())",
-                type_name
-            )
+            if encoding == Encoding::Slice1 && type_ref.is_optional {
+                format!(
+                    "(ref SliceDecoder decoder) => decoder.DecodeNullableProxy() is IceRpc.Proxy value ? new {}(value) : null",
+                    type_name
+                )
+            } else {
+                format!(
+                    "(ref SliceDecoder decoder) => new {}(decoder.DecodeProxy())",
+                    type_name
+                )
+            }
         }
         _ if type_ref.is_class_type() => {
             // is_class_type is either Typeref::Class or Primitive::AnyClass
