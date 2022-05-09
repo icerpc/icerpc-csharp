@@ -32,17 +32,18 @@ namespace IceRpc
         }
 
         /// <summary>Encodes this field value using a Slice encoder.</summary>
-        public void Encode(ref SliceEncoder encoder)
+        public void Encode(ref SliceEncoder encoder, int maxHeaderSize)
         {
             if (encoder.Encoding == SliceEncoding.Slice1)
             {
                 throw new NotSupportedException(
-                    $"cannot encode am {nameof(OutgoingFieldValue)} using the Slice1");
+                    $"cannot encode an {nameof(OutgoingFieldValue)} using Slice1");
             }
 
             if (EncodeAction is EncodeAction encodeAction)
             {
-                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
+                Span<byte> sizePlaceholder =
+                    encoder.GetPlaceholderSpan(SliceEncoder.GetVarUInt62EncodedSize((ulong)maxHeaderSize));
                 int startPos = encoder.EncodedByteCount;
                 encodeAction(ref encoder);
                 SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);

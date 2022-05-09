@@ -355,7 +355,8 @@ namespace IceRpc.Internal
                     encoder.EncodeDictionary(
                         response.Fields,
                         (ref SliceEncoder encoder, ResponseFieldKey key) => encoder.EncodeResponseFieldKey(key),
-                        (ref SliceEncoder encoder, OutgoingFieldValue value) => value.Encode(ref encoder));
+                        (ref SliceEncoder encoder, OutgoingFieldValue value) =>
+                            value.Encode(ref encoder, _maxRemoteHeaderSize));
 
                     // We're done with the header encoding, write the header size.
                     int headerSize = encoder.EncodedByteCount - headerStartPos;
@@ -573,7 +574,8 @@ namespace IceRpc.Internal
                 encoder.EncodeDictionary(
                     request.Fields,
                     (ref SliceEncoder encoder, RequestFieldKey key) => encoder.EncodeRequestFieldKey(key),
-                    (ref SliceEncoder encoder, OutgoingFieldValue value) => value.Encode(ref encoder));
+                    (ref SliceEncoder encoder, OutgoingFieldValue value) =>
+                        value.Encode(ref encoder, _maxRemoteHeaderSize));
 
                 // We're done with the header encoding, write the header size.
                 int headerSize = encoder.EncodedByteCount - headerStartPos;
@@ -679,7 +681,8 @@ namespace IceRpc.Internal
                     encoder.EncodeDictionary(
                         localFields,
                         (ref SliceEncoder encoder, ConnectionFieldKey key) => encoder.EncodeConnectionFieldKey(key),
-                        (ref SliceEncoder encoder, OutgoingFieldValue value) => value.Encode(ref encoder)),
+                        (ref SliceEncoder encoder, OutgoingFieldValue value) =>
+                            value.Encode(ref encoder, _maxRemoteHeaderSize)),
                 cancel).ConfigureAwait(false);
 
             // Wait for the remote control stream to be accepted and read the protocol initialize frame
