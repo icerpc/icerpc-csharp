@@ -12,7 +12,7 @@ use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
 use slice::code_gen_util::TypeContext;
-use slice::grammar::{Class, DataMember};
+use slice::grammar::{Class, DataMember, Encoding};
 use slice::visitor::Visitor;
 
 pub struct ClassVisitor<'a> {
@@ -228,10 +228,9 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
 
         code.writeln(&encode_data_members(
             &members,
-            false,
             namespace,
             FieldType::Class,
-            true, // classes are Slice1 only, and always use tag formats
+            Encoding::Slice1, // classes are Slice1 only
         ));
 
         if has_base_class {
@@ -257,10 +256,9 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
         code.writeln("decoder.StartSlice();");
         code.writeln(&decode_data_members(
             &members,
-            false, // Slice1 doesn't use bit sequences
             namespace,
-            true, // classes are Slice1 only, and always use tag formats
             FieldType::Class,
+            Encoding::Slice1,
         ));
         code.writeln("decoder.EndSlice();");
         if has_base_class {

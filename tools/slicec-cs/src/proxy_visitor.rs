@@ -260,9 +260,9 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
                 encoding = encoding,
                 encode_action = encode_action(
                     stream_type,
-                    operation.encoding == Encoding::Slice2, // Slice2 uses bit sequence writer
                     TypeContext::Encode,
-                    namespace
+                    namespace,
+                    operation.encoding
                 )
                 .indent()
             )),
@@ -523,8 +523,14 @@ await response.DecodeVoidReturnValueAsync(
 return {decode_operation_stream}
 ",
                 encoding = encoding,
-                decode_operation_stream =
-                    decode_operation_stream(stream_member, namespace, encoding, false, false)
+                decode_operation_stream = decode_operation_stream(
+                    stream_member,
+                    namespace,
+                    encoding,
+                    false,
+                    false,
+                    operation.encoding
+                )
             );
         } else {
             writeln!(
@@ -544,8 +550,14 @@ return {return_value_and_stream};
                 encoding = encoding,
                 return_value = non_streamed_members.to_argument_tuple("sliceP_"),
                 response_decode_func = response_decode_func(operation).indent(),
-                decode_response_stream =
-                    decode_operation_stream(stream_member, namespace, encoding, false, true),
+                decode_response_stream = decode_operation_stream(
+                    stream_member,
+                    namespace,
+                    encoding,
+                    false,
+                    true,
+                    operation.encoding
+                ),
                 return_value_and_stream = operation.return_members().to_argument_tuple("sliceP_")
             );
         }
@@ -577,7 +589,11 @@ fn response_decode_func(operation: &Operation) -> CodeBlock {
         && get_bit_sequence_size(&members) == 0
         && members.first().unwrap().tag.is_none()
     {
-        decode_func(members.first().unwrap().data_type(), namespace)
+        decode_func(
+            members.first().unwrap().data_type(),
+            namespace,
+            operation.encoding,
+        )
     } else {
         format!(
             "\

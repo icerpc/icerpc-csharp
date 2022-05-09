@@ -245,8 +245,14 @@ await request.DecodeEmptyArgsAsync({encoding}, cancel).ConfigureAwait(false);
 
 return {decode_operation_stream}",
                 encoding = encoding,
-                decode_operation_stream =
-                    decode_operation_stream(stream_member, namespace, encoding, true, false)
+                decode_operation_stream = decode_operation_stream(
+                    stream_member,
+                    namespace,
+                    encoding,
+                    true,
+                    false,
+                    operation.encoding
+                )
             );
         } else {
             writeln!(
@@ -264,8 +270,14 @@ return {args_and_stream};",
                 args = non_streamed_parameters.to_argument_tuple("sliceP_"),
                 encoding = encoding,
                 decode_func = request_decode_func(operation).indent(),
-                decode_request_stream =
-                    decode_operation_stream(stream_member, namespace, encoding, true, true,),
+                decode_request_stream = decode_operation_stream(
+                    stream_member,
+                    namespace,
+                    encoding,
+                    true,
+                    true,
+                    operation.encoding
+                ),
                 args_and_stream = operation.parameters().to_argument_tuple("sliceP_")
             );
         }
@@ -301,7 +313,7 @@ fn request_decode_func(operation: &Operation) -> CodeBlock {
 
     if use_default_decode_func {
         let param = parameters.first().unwrap();
-        decode_func(param.data_type(), namespace)
+        decode_func(param.data_type(), namespace, operation.encoding)
     } else {
         format!(
             "(ref SliceDecoder decoder) =>
@@ -524,7 +536,6 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
 fn payload_stream(operation: &Operation, encoding: &str) -> CodeBlock {
     let namespace = &operation.namespace();
     let return_values = operation.return_members();
-    let use_bit_sequence_writer = operation.encoding == Encoding::Slice2;
     match operation.streamed_return_member() {
         None => "null".into(),
         Some(stream_return) => {
@@ -553,9 +564,9 @@ fn payload_stream(operation: &Operation, encoding: &str) -> CodeBlock {
                     encoding = encoding,
                     encode_action = encode_action(
                         stream_type,
-                        use_bit_sequence_writer,
                         TypeContext::Encode,
-                        namespace
+                        namespace,
+                        operation.encoding
                     )
                     .indent(),
                 )

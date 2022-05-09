@@ -96,53 +96,37 @@ impl<'a> Visitor for StructVisitor<'a> {
             builder.add_block(main_constructor.build());
 
             // Decode constructor
-            let mut decode_body = if struct_def.members().iter().any(|m| m.data_type.is_optional) {
-                let mut builder = EncodingBlockBuilder::new(
-                    "decoder.Encoding",
-                    &struct_def.escape_identifier(),
-                    struct_def.supported_encodings(),
-                    false, // No encoding check for structs
-                );
+            let mut encode_block_builder = EncodingBlockBuilder::new(
+                "decoder.Encoding",
+                &struct_def.escape_identifier(),
+                struct_def.supported_encodings(),
+                false, // No encoding check for structs
+            );
 
-                if struct_def.supported_encodings().supports(&Encoding::Slice1) {
-                    builder.add_encoding_block(
+            if struct_def.supported_encodings().supports(&Encoding::Slice1) {
+                encode_block_builder.add_encoding_block(
+                    Encoding::Slice1,
+                    decode_data_members(
+                        &members,
+                        &namespace,
+                        FieldType::NonMangled,
                         Encoding::Slice1,
-                        decode_data_members(
-                            &members,
-                            false,
-                            &namespace,
-                            false, /* tags in structs are only supported by Slice2, which never uses tag
-                                    * formats */
-                            FieldType::NonMangled,
-                        ),
-                    );
-                }
+                    ),
+                );
+            }
 
-                if struct_def.supported_encodings().supports(&Encoding::Slice2) {
-                    builder.add_encoding_block(
+            if struct_def.supported_encodings().supports(&Encoding::Slice2) {
+                encode_block_builder.add_encoding_block(
+                    Encoding::Slice2,
+                    decode_data_members(
+                        &members,
+                        &namespace,
+                        FieldType::NonMangled,
                         Encoding::Slice2,
-                        decode_data_members(
-                            &members,
-                            true,
-                            &namespace,
-                            false, /* tags in structs are only supported by Slice2, which never uses tag
-                                    * formats */
-                            FieldType::NonMangled,
-                        ),
-                    );
-                }
-                builder.build()
-            } else {
-                decode_data_members(
-                    &members,
-                    false, // No optional members
-                    &namespace,
-                    false, /* tags in structs are only supported by Slice2, which never uses tag
-                            * formats */
-                    FieldType::NonMangled,
-                )
-                .into()
-            };
+                    ),
+                );
+            }
+            let mut decode_body = encode_block_builder.build();
 
             if !struct_def.is_compact {
                 writeln!(decode_body, "decoder.SkipTagged(useTagEndMarker: true);");
@@ -167,53 +151,37 @@ impl<'a> Visitor for StructVisitor<'a> {
             );
 
             // Encode method
-            let mut encode_body = if struct_def.members().iter().any(|m| m.data_type.is_optional) {
-                let mut builder = EncodingBlockBuilder::new(
-                    "encoder.Encoding",
-                    &struct_def.escape_identifier(),
-                    struct_def.supported_encodings(),
-                    false, // No encoding check for structs
-                );
+            let mut encode_block_builder = EncodingBlockBuilder::new(
+                "encoder.Encoding",
+                &struct_def.escape_identifier(),
+                struct_def.supported_encodings(),
+                false, // No encoding check for structs
+            );
 
-                if struct_def.supported_encodings().supports(&Encoding::Slice1) {
-                    builder.add_encoding_block(
+            if struct_def.supported_encodings().supports(&Encoding::Slice1) {
+                encode_block_builder.add_encoding_block(
+                    Encoding::Slice1,
+                    encode_data_members(
+                        &members,
+                        &namespace,
+                        FieldType::NonMangled,
                         Encoding::Slice1,
-                        encode_data_members(
-                            &members,
-                            false,
-                            &namespace,
-                            FieldType::NonMangled,
-                            false, /* tags in structs are only supported by Slice2, which never uses tag
-                                    * formats */
-                        ),
-                    );
-                }
+                    ),
+                );
+            }
 
-                if struct_def.supported_encodings().supports(&Encoding::Slice2) {
-                    builder.add_encoding_block(
+            if struct_def.supported_encodings().supports(&Encoding::Slice2) {
+                encode_block_builder.add_encoding_block(
+                    Encoding::Slice2,
+                    encode_data_members(
+                        &members,
+                        &namespace,
+                        FieldType::NonMangled,
                         Encoding::Slice2,
-                        encode_data_members(
-                            &members,
-                            true,
-                            &namespace,
-                            FieldType::NonMangled,
-                            false, /* tags in structs are only supported by Slice2, which never uses tag
-                                    * formats */
-                        ),
-                    );
-                }
-                builder.build()
-            } else {
-                encode_data_members(
-                    &members,
-                    false, // No optional members
-                    &namespace,
-                    FieldType::NonMangled,
-                    false, /* tags in structs are only supported by Slice2, which never uses tag
-                            * formats */
-                )
-                .into()
-            };
+                    ),
+                );
+            }
+            let mut encode_body = encode_block_builder.build();
 
             if !struct_def.is_compact {
                 writeln!(

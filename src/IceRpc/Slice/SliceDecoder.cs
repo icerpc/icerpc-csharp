@@ -547,7 +547,7 @@ namespace IceRpc.Slice
         /// marks the end of the tagged parameters.</param>
         /// <returns>The decoded value of the tagged parameter or data member, or null if not found.</returns>
         /// <remarks>When T is a value type, it should be a nullable value type such as int?.</remarks>
-        public T DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<T> decodeFunc, bool useTagEndMarker)
+        public T? DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<T> decodeFunc, bool useTagEndMarker)
         {
             if (Encoding != SliceEncoding.Slice1)
             {

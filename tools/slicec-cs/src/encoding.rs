@@ -9,10 +9,9 @@ use crate::slicec_ext::*;
 
 pub fn encode_data_members(
     members: &[&DataMember],
-    use_bit_sequence_writer: bool,
     namespace: &str,
     field_type: FieldType,
-    use_tag_format: bool,
+    encoding: Encoding,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
 
@@ -20,7 +19,7 @@ pub fn encode_data_members(
 
     // Tagged members are encoded in a dictionary and don't count towards the optional bit sequence
     // size.
-    let bit_sequence_size = if use_bit_sequence_writer {
+    let bit_sequence_size = if encoding == Encoding::Slice2 {
         get_bit_sequence_size(&required_members)
     } else {
         0
@@ -38,11 +37,11 @@ pub fn encode_data_members(
         let param = format!("this.{}", member.field_name(field_type));
         code.writeln(&encode_type(
             member.data_type(),
-            use_bit_sequence_writer,
             TypeContext::DataMember,
             namespace,
             &param,
             "encoder",
+            encoding,
         ));
     }
 
@@ -51,12 +50,11 @@ pub fn encode_data_members(
         let param = format!("this.{}", member.field_name(field_type));
         code.writeln(&encode_tagged_type(
             member,
-            use_bit_sequence_writer,
             namespace,
             &param,
             "encoder",
             TypeContext::DataMember,
-            use_tag_format,
+            encoding,
         ));
     }
 
@@ -65,16 +63,16 @@ pub fn encode_data_members(
 
 fn encode_type(
     type_ref: &TypeRef,
-    use_bit_sequence_writer: bool,
     type_context: TypeContext,
     namespace: &str,
     param: &str,
     encoder_param: &str,
+    encoding: Encoding,
 ) -> CodeBlock {
     match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) => {
             if type_ref.is_optional {
-                if use_bit_sequence_writer {
+                if encoding == Encoding::Slice2 {
                     format!(
                         "{encoder_param}.EncodeNullableProxy(ref bitSequenceWriter, {param}?.Proxy);",
                         encoder_param = encoder_param,
@@ -168,12 +166,12 @@ fn encode_type(
                 }
                 TypeRefs::Sequence(sequence_ref) => format!(
                     "{};",
-                    encode_sequence(sequence_ref, use_bit_sequence_writer, namespace, param, type_context, encoder_param),
+                    encode_sequence(sequence_ref, namespace, param, type_context, encoder_param, encoding),
                 ),
                 TypeRefs::Dictionary(dictionary_ref) => {
                     format!(
                         "{};",
-                        encode_dictionary(dictionary_ref, use_bit_sequence_writer, namespace, param, encoder_param)
+                        encode_dictionary(dictionary_ref, namespace, param, encoder_param, encoding)
                     )
                 }
                 TypeRefs::Enum(enum_ref) => format!(
@@ -225,12 +223,11 @@ if ({param} != null)
 
 fn encode_tagged_type(
     member: &impl Member,
-    use_bit_sequence_writer: bool,
     namespace: &str,
     param: &str,
     encoder_param: &str,
     type_context: TypeContext,
-    use_tag_format: bool,
+    encoding: Encoding,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
     let data_type = member.data_type();
@@ -260,7 +257,7 @@ fn encode_tagged_type(
     // param/member:
     let (size_parameter, count_value) = match data_type.concrete_type() {
         Types::Primitive(primitive_def) if primitive_def.is_fixed_size() => {
-            if use_tag_format {
+            if encoding == Encoding::Slice1 {
                 (None, None)
             } else {
                 (Some(primitive_def.min_wire_size().to_string()), None)
@@ -348,7 +345,7 @@ fn encode_tagged_type(
     };
 
     let mut encode_tagged_args = vec![tag.to_string()];
-    if use_tag_format {
+    if encoding == Encoding::Slice1 {
         let tag_format = data_type.tag_format().unwrap();
         if tag_format != TagFormat::VSize {
             encode_tagged_args.push(format!("IceRpc.Slice.TagFormat.{}", tag_format));
@@ -361,9 +358,9 @@ fn encode_tagged_type(
     encode_tagged_args.push(
         encode_action(
             &clone_as_non_optional(data_type),
-            use_bit_sequence_writer,
             type_context,
             namespace,
+            encoding,
         )
         .to_string(),
     );
@@ -387,11 +384,11 @@ if ({null_check})
 
 fn encode_sequence(
     sequence_ref: &TypeRef<Sequence>,
-    use_bit_sequence_writer: bool,
     namespace: &str,
     value: &str,
     type_context: TypeContext,
     encoder_param: &str,
+    encoding: Encoding,
 ) -> CodeBlock {
     let has_custom_type = sequence_ref.has_attribute("cs::generic", false);
     if sequence_ref.has_fixed_size_numeric_elements() {
@@ -415,7 +412,7 @@ fn encode_sequence(
     {param},
     {encode_action})",
             with_bit_sequence = if sequence_ref.element_type.is_bit_sequence_encodable()
-                && use_bit_sequence_writer
+                && encoding == Encoding::Slice2
             {
                 "WithBitSequence"
             } else {
@@ -425,9 +422,9 @@ fn encode_sequence(
             param = value,
             encode_action = encode_action(
                 &sequence_ref.element_type,
-                use_bit_sequence_writer,
                 TypeContext::Nested,
-                namespace
+                namespace,
+                encoding
             )
             .indent()
         )
@@ -437,10 +434,10 @@ fn encode_sequence(
 
 fn encode_dictionary(
     dictionary_def: &Dictionary,
-    use_bit_sequence_writer: bool,
     namespace: &str,
     param: &str,
     encoder_param: &str,
+    encoding: Encoding,
 ) -> CodeBlock {
     format!(
         "\
@@ -448,7 +445,8 @@ fn encode_dictionary(
     {param},
     {encode_key},
     {encode_value})",
-        method = if dictionary_def.value_type.is_bit_sequence_encodable() && use_bit_sequence_writer
+        method = if dictionary_def.value_type.is_bit_sequence_encodable()
+            && encoding == Encoding::Slice2
         {
             "EncodeDictionaryWithBitSequence"
         } else {
@@ -458,16 +456,16 @@ fn encode_dictionary(
         param = param,
         encode_key = encode_action(
             &dictionary_def.key_type,
-            use_bit_sequence_writer,
             TypeContext::Nested,
-            namespace
+            namespace,
+            encoding
         )
         .indent(),
         encode_value = encode_action(
             &dictionary_def.value_type,
-            use_bit_sequence_writer,
             TypeContext::Nested,
-            namespace
+            namespace,
+            encoding
         )
         .indent()
     )
@@ -476,9 +474,9 @@ fn encode_dictionary(
 
 pub fn encode_action(
     type_ref: &TypeRef,
-    use_bit_sequence_writer: bool,
     type_context: TypeContext,
     namespace: &str,
+    encoding: Encoding,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
     let is_optional = type_ref.is_optional;
@@ -548,13 +546,8 @@ pub fn encode_action(
                 code,
                 "(ref SliceEncoder encoder, {value_type} value) => {encode_dictionary}",
                 value_type = value_type,
-                encode_dictionary = encode_dictionary(
-                    dictionary_ref,
-                    use_bit_sequence_writer,
-                    namespace,
-                    "value",
-                    "encoder"
-                )
+                encode_dictionary =
+                    encode_dictionary(dictionary_ref, namespace, "value", "encoder", encoding)
             );
         }
         TypeRefs::Sequence(sequence_ref) => {
@@ -566,11 +559,11 @@ pub fn encode_action(
                 value_type = value_type,
                 encode_sequence = encode_sequence(
                     sequence_ref,
-                    use_bit_sequence_writer,
                     namespace,
                     "value",
                     type_context,
-                    "encoder"
+                    "encoder",
+                    encoding
                 )
             )
         }
@@ -669,11 +662,11 @@ fn encode_operation_parameters(
 
         code.writeln(&encode_type(
             member.data_type(),
-            operation.encoding == Encoding::Slice2,
             TypeContext::Encode,
             namespace,
             name.as_str(),
             encoder_param,
+            operation.encoding,
         ));
     }
 
@@ -685,12 +678,11 @@ fn encode_operation_parameters(
         };
         code.writeln(&encode_tagged_type(
             member,
-            operation.encoding == Encoding::Slice2, // Slice2 use bitsequence writer
             namespace,
             name.as_str(),
             encoder_param,
             TypeContext::Encode,
-            operation.encoding == Encoding::Slice1, // tag formats are only used with Slice1
+            operation.encoding,
         ));
     }
 
