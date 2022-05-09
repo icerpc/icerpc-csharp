@@ -376,11 +376,34 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     [Test]
+    public async Task Request_with_header_size_larger_than_max_header_size_fails()
+    {
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(Protocol.IceRpc)
+            .UseServerOptions(new ServerOptions
+            {
+                IceRpcServerOptions = new() { MaxHeaderSize = 100 }
+            })
+            .BuildServiceProvider();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.IceRpc);
+        _ = sut.Client.AcceptRequestsAsync(InvalidConnection.IceRpc);
+        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
+        {
+            Operation = new string('x', 100)
+        };
+
+        Assert.That(
+            async () => await sut.Client.InvokeAsync(request, InvalidConnection.IceRpc),
+            Throws.InstanceOf<ProtocolException>());
+    }
+
+    [Test]
     public async Task Response_with_large_header()
     {
         // Arrange
         // This large value should be large enough to create multiple buffers for the response header.
-        string expectedValue = new('A', 4096);
+        string expectedValue = new('A', 16_000);
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
             var response = new OutgoingResponse(request);
