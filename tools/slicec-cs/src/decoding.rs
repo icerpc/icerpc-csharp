@@ -59,16 +59,8 @@ fn decode_member(
     if data_type.is_optional {
         assert!(encoding.is_some());
         match data_type.concrete_type() {
-            Types::Interface(_) => {
-                if encoding == Some(Encoding::Slice2) {
-                    writeln!(
-                        code,
-                        "decoder.DecodeNullablePrx<{}>(ref bitSequenceReader);",
-                        type_string
-                    );
-                } else {
-                    writeln!(code, "decoder.DecodeNullablePrx<{}>();", type_string);
-                }
+            Types::Interface(_) if encoding == Some(Encoding::Slice1) => {
+                writeln!(code, "decoder.DecodeNullablePrx<{}>();", type_string);
                 return code;
             }
             _ if data_type.is_class_type() => {
@@ -85,7 +77,6 @@ fn decode_member(
 
     match &data_type.concrete_typeref() {
         TypeRefs::Interface(_) => {
-            assert!(!data_type.is_optional);
             write!(code, "new {}(decoder.DecodeProxy())", type_string);
         }
         TypeRefs::Class(_) => {

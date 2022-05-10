@@ -68,28 +68,11 @@ fn encode_type(
     encoding: Option<Encoding>,
 ) -> CodeBlock {
     match &type_ref.concrete_typeref() {
-        TypeRefs::Interface(_) => {
-            if type_ref.is_optional {
-                assert!(encoding.is_some());
-                if encoding == Some(Encoding::Slice2) {
-                    format!(
-                        "{encoder_param}.EncodeNullableProxy(ref bitSequenceWriter, {param}?.Proxy);",
-                        encoder_param = encoder_param,
-                        param = param,
-                    )
-                } else {
-                    format!(
-                        "{encoder_param}.EncodeNullableProxy({param}?.Proxy);",
-                        encoder_param = encoder_param,
-                        param = param)
-                }
-            } else {
-                format!(
-                    "{encoder_param}.EncodeProxy({param}.Proxy);",
-                    encoder_param = encoder_param,
-                    param = param
-                )
-            }
+        TypeRefs::Interface(_) if type_ref.is_optional && encoding == Some(Encoding::Slice1) => {
+            format!(
+                "{encoder_param}.EncodeNullableProxy({param}?.Proxy);",
+                encoder_param = encoder_param,
+                param = param)
         }
         _ if type_ref.is_class_type() => {
             assert!(encoding == Some(Encoding::Slice1));
@@ -173,6 +156,9 @@ fn encode_type(
                         "{};",
                         encode_dictionary(dictionary_ref, namespace, param, encoder_param, encoding)
                     )
+                }
+                TypeRefs::Interface(_) => {
+                    format!("{encoder_param}.EncodeProxy({value}.Proxy);", encoder_param = encoder_param, value = value)
                 }
                 TypeRefs::Enum(enum_ref) => format!(
                     "{encoder_extensions_class}.Encode{name}(ref {encoder_param}, {param});",
@@ -503,28 +489,18 @@ pub fn encode_action(
 
     match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) => {
-            if is_optional {
-                assert!(encoding.is_some());
+            if is_optional && encoding == Some(Encoding::Slice1) {
                 write!(
                     code,
-                    "(ref SliceEncoder encoder, {value_type} value) => encoder.{encode_proxy_method}({encode_proxy_arg})",
+                    "(ref SliceEncoder encoder, {value_type} value) => encoder.EncodeNullableProxy(value?.Proxy)",
                     value_type = value_type,
-                    encode_proxy_method = if encoding == Some(Encoding::Slice1) {
-                        "EncodeNullableProxy"
-                    } else {
-                        "EncodeProxy"
-                    },
-                    encode_proxy_arg = if encoding == Some(Encoding::Slice1) {
-                        "value?.Proxy"
-                    } else {
-                        "value!.Value.Proxy"
-                    }
                 );
             } else {
                 write!(
                     code,
-                    "(ref SliceEncoder encoder, {} value) => encoder.EncodeProxy(value.Proxy)",
-                    value_type
+                    "(ref SliceEncoder encoder, {value_type} value) => encoder.EncodeProxy({value}.Proxy)",
+                    value_type = value_type,
+                    value = value
                 );
             }
         }

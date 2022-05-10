@@ -186,7 +186,7 @@ public sealed class StructTests
         else
         {
             bitSequenceWriter.Write(true);
-            encoder.EncodeNullableProxy(ref bitSequenceWriter, expected.I.Value.Proxy);
+            encoder.EncodeProxy(expected.I.Value.Proxy);
         }
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
@@ -460,7 +460,9 @@ public sealed class StructTests
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
         var bitSequenceReader = decoder.GetBitSequenceReader(1);
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(expected.A));
-        Assert.That(decoder.DecodeNullablePrx<ServicePrx>(ref bitSequenceReader), Is.EqualTo(expected.I));
+        Assert.That(
+            bitSequenceReader.Read() ? new ServicePrx(decoder.DecodeProxy()) : (ServicePrx?)null,
+            Is.EqualTo(expected.I));
     }
 
     [Test]

@@ -354,12 +354,6 @@ namespace IceRpc.Slice
             return path != "/" ? DecodeProxy(path) : null;
         }
 
-        /// <summary>Decodes a nullable proxy.</summary>
-        /// <param name="bitSequenceReader">The bit sequence reader.</param>
-        /// <returns>The decoded proxy, or null.</returns>
-        public Proxy? DecodeNullableProxy(ref BitSequenceReader bitSequenceReader) =>
-            bitSequenceReader.Read() ? DecodeProxy() : null;
-
         /// <summary>Decodes a proxy.</summary>
         /// <returns>The decoded proxy</returns>
         public Proxy DecodeProxy()
