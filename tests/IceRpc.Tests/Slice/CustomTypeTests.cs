@@ -8,14 +8,13 @@ namespace IceRpc.Slice.Tests;
 public class CustomTypeTests
 {
     [Test]
-    public void Decode_custom_type(
-        [Values(SliceEncoding.Slice1, SliceEncoding.Slice2)] SliceEncoding encoding)
+    public void Decode_custom_type()
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, encoding);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         var expected = new MyCustomType { Flag = true, Value = 10 };
         encoder.EncodeCustomType(expected);
-        var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
         var value = new StructWithCustomTypeMember(ref decoder);
         Assert.That(value.M, Is.EqualTo(expected));
@@ -23,16 +22,15 @@ public class CustomTypeTests
     }
 
     [Test]
-    public void Encode_custom_type(
-    [Values(SliceEncoding.Slice1, SliceEncoding.Slice2)] SliceEncoding encoding)
+    public void Encode_custom_type()
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, encoding);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         var expected = new StructWithCustomTypeMember(new MyCustomType { Flag = true, Value = 10 });
 
         expected.Encode(ref encoder);
 
-        var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
         var value = decoder.DecodeCustomType();
         Assert.That(expected.M, Is.EqualTo(value));
