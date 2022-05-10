@@ -1,12 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Tests;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Compression;
 using System.IO.Pipelines;
 
-namespace IceRpc.Interop.Tests;
+namespace IceRpc.Tests;
 
 public class CompressorMiddlewareTests
 {

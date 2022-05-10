@@ -1,5 +1,16 @@
 {
+    "cSpell.words": [
+        "coloc",
+        "colocated",
+        "cref",
+        "icerpc",
+        "Slic",
+        "slicec",
+    ],
     "rust-analyzer.linkedProjects": [
         "tools/slicec-cs/Cargo.toml"
-    ]
+    ],
+    "rust-analyzer.rustfmt.extraArgs": [
+        "+nightly"
+    ],
 }

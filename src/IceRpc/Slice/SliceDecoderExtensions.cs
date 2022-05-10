@@ -81,6 +81,12 @@ namespace IceRpc.Slice
             }
         }
 
+        /// <summary>Decodes a nullable Prx struct (Slice1 only).</summary>
+        /// <param name="decoder">The Slice decoder.</param>
+        /// <returns>The decoded Prx struct, or null.</returns>
+        public static T? DecodeNullablePrx<T>(ref this SliceDecoder decoder) where T : struct, IPrx =>
+            decoder.DecodeNullableProxy() is Proxy proxy ? new T { Proxy = proxy } : null;
+
         /// <summary>Decodes a nullable Prx struct.</summary>
         /// <param name="decoder">The Slice decoder.</param>
         /// <param name="bitSequenceReader">The bit sequence reader.</param>
@@ -192,10 +198,10 @@ namespace IceRpc.Slice
             {
                 BitSequenceReader bitSequenceReader = decoder.GetBitSequenceReader(count);
                 decoder.IncreaseCollectionAllocation(count * Unsafe.SizeOf<T>());
-                var array = new T[count];
+                var array = new T?[count];
                 for (int i = 0; i < count; ++i)
                 {
-                    array[i] = bitSequenceReader.Read() ? decodeFunc(ref decoder) : default!;
+                    array[i] = bitSequenceReader.Read() ? decodeFunc(ref decoder) : default;
                 }
                 return array;
             }

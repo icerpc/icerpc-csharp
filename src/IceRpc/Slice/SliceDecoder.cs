@@ -341,21 +341,24 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Decodes a nullable proxy.</summary>
-        /// <param name="bitSequenceReader">The bit sequence reader, ignored with Slice1.</param>
+        /// <summary>Decodes a nullable proxy (Slice1 only).</summary>
         /// <returns>The decoded proxy, or null.</returns>
-        public Proxy? DecodeNullableProxy(ref BitSequenceReader bitSequenceReader)
+        public Proxy? DecodeNullableProxy()
         {
-            if (Encoding == SliceEncoding.Slice1)
+            if (Encoding != SliceEncoding.Slice1)
             {
-                string path = this.DecodeIdentityPath();
-                return path != "/" ? DecodeProxy(path) : null;
+                throw new InvalidOperationException(
+                    "decoding nullable proxies without a bit sequence is only supported with Slice1 encoding");
             }
-            else
-            {
-                return bitSequenceReader.Read() ? DecodeProxy() : null;
-            }
+            string path = this.DecodeIdentityPath();
+            return path != "/" ? DecodeProxy(path) : null;
         }
+
+        /// <summary>Decodes a nullable proxy.</summary>
+        /// <param name="bitSequenceReader">The bit sequence reader.</param>
+        /// <returns>The decoded proxy, or null.</returns>
+        public Proxy? DecodeNullableProxy(ref BitSequenceReader bitSequenceReader) =>
+            bitSequenceReader.Read() ? DecodeProxy() : null;
 
         /// <summary>Decodes a proxy.</summary>
         /// <returns>The decoded proxy</returns>
@@ -537,8 +540,9 @@ namespace IceRpc.Slice
         /// end of the tagged data members. When <c>false</c>, we are decoding a parameter and the end of the buffer
         /// marks the end of the tagged parameters.</param>
         /// <returns>The decoded value of the tagged parameter or data member, or null if not found.</returns>
-        /// <remarks>When T is a value type, it should be a nullable value type such as int?.</remarks>
-        public T DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<T> decodeFunc, bool useTagEndMarker)
+        /// <remarks>We return a T? and not a T to avoid ambiguities in the generated code with nullable reference
+        /// types such as string?.</remarks>
+        public T? DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<T> decodeFunc, bool useTagEndMarker)
         {
             if (Encoding != SliceEncoding.Slice1)
             {
@@ -571,23 +575,21 @@ namespace IceRpc.Slice
         {
             if (Encoding == SliceEncoding.Slice1)
             {
-                return default;
+                throw new InvalidOperationException("cannot create a bit sequence reader with Slice1");
             }
-            else
-            {
-                if (bitSequenceSize <= 0)
-                {
-                    throw new ArgumentOutOfRangeException(
-                        nameof(bitSequenceSize),
-                        "bitSequenceSize must be greater than 0");
-                }
 
-                int size = SliceEncoder.GetBitSequenceByteCount(bitSequenceSize);
-                ReadOnlySequence<byte> bitSequence = _reader.UnreadSequence.Slice(0, size);
-                _reader.Advance(size);
-                Debug.Assert(bitSequence.Length == size);
-                return new BitSequenceReader(bitSequence);
+            if (bitSequenceSize <= 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(bitSequenceSize),
+                    "bitSequenceSize must be greater than 0");
             }
+
+            int size = SliceEncoder.GetBitSequenceByteCount(bitSequenceSize);
+            ReadOnlySequence<byte> bitSequence = _reader.UnreadSequence.Slice(0, size);
+            _reader.Advance(size);
+            Debug.Assert(bitSequence.Length == size);
+            return new BitSequenceReader(bitSequence);
         }
 
         /// <summary>Skips the remaining tagged data members or parameters.</summary>
