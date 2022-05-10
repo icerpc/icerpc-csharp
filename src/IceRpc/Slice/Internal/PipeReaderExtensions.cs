@@ -8,16 +8,15 @@ namespace IceRpc.Slice.Internal
     /// <summary>Extension methods to decode payloads carried by a PipeReader.</summary>
     internal static class PipeReaderExtensions
     {
-        private const int MaxSegmentSize = 4 * 1024 * 1024; // TODO: make MaxSegmentSize configurable
-
         /// <summary>Reads a Slice segment from a pipe reader.</summary>
         /// <param name="reader">The pipe reader.</param>
         /// <param name="encoding">The encoding.</param>
+        /// <param name="maxSize">The maximum size of this segment.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>A read result with the segment read from the reader unless <see cref="ReadResult.IsCanceled"/> is
         /// <c>true</c>.</returns>
         /// <exception cref="InvalidDataException">Thrown when the segment size could not be decoded or the segment size
-        /// exceeds the max segment size.</exception>
+        /// exceeds <paramref name="maxSize"/>.</exception>
         /// <remarks>The caller must call AdvanceTo on the reader, as usual. With Slice1, this method reads all
         /// the remaining bytes in the reader; otherwise, this method reads the segment size in the segment and returns
         /// exactly segment size bytes. This method often examines the buffer it returns as part of ReadResult,
@@ -25,20 +24,23 @@ namespace IceRpc.Slice.Internal
         internal static async ValueTask<ReadResult> ReadSegmentAsync(
             this PipeReader reader,
             SliceEncoding encoding,
+            int maxSize,
             CancellationToken cancel)
         {
+            Debug.Assert(maxSize is > 0 and < int.MaxValue);
+
             // This method does not attempt to read the reader synchronously. A caller that wants a sync attempt can
             // call TryReadSegment.
 
             if (encoding == SliceEncoding.Slice1)
             {
-                // We read everything up to the MaxSegmentSize + 1.
-                // It's MaxSegmentSize + 1 and not MaxSegmentSize because if the segment's size is MaxSegmentSize,
-                // we could get readResult.IsCompleted == false even though the full segment was read.
+                // We read everything up to the maxSize + 1.
+                // It's maxSize + 1 and not maxSize because if the segment's size is maxSize, we could get
+                // readResult.IsCompleted == false even though the full segment was read.
 
-                ReadResult readResult = await reader.ReadAtLeastAsync(MaxSegmentSize + 1, cancel).ConfigureAwait(false);
+                ReadResult readResult = await reader.ReadAtLeastAsync(maxSize + 1, cancel).ConfigureAwait(false);
 
-                if (readResult.IsCompleted && readResult.Buffer.Length <= MaxSegmentSize)
+                if (readResult.IsCompleted && readResult.Buffer.Length <= maxSize)
                 {
                     return readResult;
                 }
@@ -59,13 +61,12 @@ namespace IceRpc.Slice.Internal
 
                     try
                     {
-                        if (IsCompleteSegment(ref readResult, out segmentSize, out long consumed))
+                        if (IsCompleteSegment(ref readResult, maxSize, out segmentSize, out long consumed))
                         {
                             return readResult;
                         }
-                        else if (segmentSize >= 0)
+                        else if (segmentSize > 0)
                         {
-                            Debug.Assert(segmentSize > 0);
                             Debug.Assert(consumed > 0);
 
                             // We decoded the segmentSize and examined the whole buffer but it was not sufficient.
@@ -110,6 +111,7 @@ namespace IceRpc.Slice.Internal
         /// <summary>Attempts to read a Slice segment from a pipe reader.</summary>
         /// <param name="reader">The pipe reader.</param>
         /// <param name="encoding">The encoding.</param>
+        /// <param name="maxSize">The maximum size of this segment.</param>
         /// <param name="readResult">The read result.</param>
         /// <returns><c>true</c> when <paramref name="readResult"/> contains the segment read synchronously, or the
         /// call was cancelled; otherwise, <c>false</c>.</returns>
@@ -119,8 +121,14 @@ namespace IceRpc.Slice.Internal
         /// method often examines the buffer it returns as part of ReadResult, therefore the caller should never
         /// examine less than Buffer.End when the return value is <c>true</c>. When this method returns <c>false</c>,
         /// the caller must call <see cref="ReadSegmentAsync"/>.</remarks>
-        internal static bool TryReadSegment(this PipeReader reader, SliceEncoding encoding, out ReadResult readResult)
+        internal static bool TryReadSegment(
+            this PipeReader reader,
+            SliceEncoding encoding,
+            int maxSize,
+            out ReadResult readResult)
         {
+            Debug.Assert(maxSize is > 0 and < int.MaxValue);
+
             if (encoding == SliceEncoding.Slice1)
             {
                 if (reader.TryRead(out readResult))
@@ -130,7 +138,7 @@ namespace IceRpc.Slice.Internal
                         return true; // and the buffer does not matter
                     }
 
-                    if (readResult.Buffer.Length > MaxSegmentSize)
+                    if (readResult.Buffer.Length > maxSize)
                     {
                         reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
                         throw new InvalidDataException(
@@ -157,7 +165,7 @@ namespace IceRpc.Slice.Internal
                 {
                     try
                     {
-                        if (IsCompleteSegment(ref readResult, out int _, out long _))
+                        if (IsCompleteSegment(ref readResult, maxSize, out int segmentSize, out long _))
                         {
                             return true;
                         }
@@ -182,12 +190,17 @@ namespace IceRpc.Slice.Internal
             }
         }
 
-        /// <summary>Checks if a read result holds a complete Slice segment.</summary>
+        /// <summary>Checks if a read result holds a complete Slice segment and if the segment size does not exceed the
+        /// maximum size.</summary>
         /// <returns><c>true</c> when <paramref name="readResult"/> holds a complete segment or is canceled; otherwise,
         /// <c>false</c>.</returns>
         /// <remarks><paramref name="segmentSize"/> and <paramref name="consumed"/> can be set when this method returns
         /// <c>false</c>. In this case, both segmentSize and consumed are greater than 0.</remarks>
-        private static bool IsCompleteSegment(ref ReadResult readResult, out int segmentSize, out long consumed)
+        private static bool IsCompleteSegment(
+            ref ReadResult readResult,
+            int maxSize,
+            out int segmentSize,
+            out long consumed)
         {
             consumed = 0;
             segmentSize = -1;
@@ -209,7 +222,7 @@ namespace IceRpc.Slice.Internal
             {
                 consumed = decoder.Consumed;
 
-                if (segmentSize > MaxSegmentSize)
+                if (segmentSize > maxSize)
                 {
                     throw new InvalidDataException($"segment size '{segmentSize}' exceeds maximum value");
                 }

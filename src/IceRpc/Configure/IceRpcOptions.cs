@@ -8,9 +8,28 @@ namespace IceRpc.Configure;
 /// <summary>A property bag used to configure the icerpc protocol.</summary>
 public record class IceRpcOptions
 {
+    /// <summary>Gets or sets the maximum size of the header of an incoming request, response or control frame.
+    /// </summary>
+    /// <value>The maximum size of the header of an incoming request, response or control frame, in bytes. The default
+    /// value is 16,383, and the range of this value is 63 to 1,048,575.</value>
+    public int MaxHeaderSize
+    {
+        get => _maxHeaderSize;
+        set => _maxHeaderSize = CheckMaxHeaderSize(value);
+    }
+
     /// <summary>Gets or sets the connection fields to send to the peer when establishing a connection.</summary>
     public IDictionary<ConnectionFieldKey, OutgoingFieldValue> Fields { get; set; } =
         ImmutableDictionary<ConnectionFieldKey, OutgoingFieldValue>.Empty;
+
+    /// <summary>The default value for <see cref="MaxHeaderSize"/>.</summary>
+    internal const int DefaultMaxHeaderSize = 16_383;
+
+    private int _maxHeaderSize = DefaultMaxHeaderSize;
+
+    internal static int CheckMaxHeaderSize(long value) => value is >= 63 and <= 1_048_575 ? (int)value :
+        throw new ArgumentOutOfRangeException(nameof(value), "value must be between 63 and 1,048,575");
+
 }
 
 /// <summary>A property bag used to configure a client connection using the icerpc protocol.</summary>

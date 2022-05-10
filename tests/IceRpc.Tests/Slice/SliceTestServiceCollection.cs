@@ -39,7 +39,7 @@ public class SliceTestServiceCollection : ServiceCollection
             connectionOptions.IceRpcClientOptions = new IceRpcClientOptions
             {
                 ClientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>()
-        };
+            };
             connectionOptions.Dispatcher ??= provider.GetRequiredService<IDispatcher>();
             connectionOptions.RemoteEndpoint = provider.GetRequiredService<Server>().Endpoint;
             connectionOptions.LoggerFactory = provider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;

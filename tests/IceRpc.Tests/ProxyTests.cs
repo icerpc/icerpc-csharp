@@ -2,7 +2,6 @@
 
 using IceRpc.Configure;
 using IceRpc.Slice;
-using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Collections.Immutable;

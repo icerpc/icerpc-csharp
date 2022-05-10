@@ -3,7 +3,6 @@
 using IceRpc.Configure;
 using IceRpc.Slice;
 using IceRpc.Transports;
-using IceRpc.Transports.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;

@@ -139,6 +139,7 @@ namespace IceRpc.Slice
             {
                 ReadResult readResult = await response.Payload.ReadSegmentAsync(
                     encoding,
+                    maxSize: 4_000_000, // TODO: configuration
                     cancel).ConfigureAwait(false);
 
                 if (readResult.IsCanceled)

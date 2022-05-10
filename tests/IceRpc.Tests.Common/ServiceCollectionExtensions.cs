@@ -100,7 +100,7 @@ public static class ServiceCollectionExtensions
             SslClientAuthenticationOptions? clientAuthenticationOptions =
                 provider.GetService<SslClientAuthenticationOptions>();
             IListener<ISimpleNetworkConnection> listener =
-                provider.GetRequiredService<IListener<ISimpleNetworkConnection>>();;
+                provider.GetRequiredService<IListener<ISimpleNetworkConnection>>();
             IClientTransport<ISimpleNetworkConnection> clientTransport =
                 provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>();
             return clientTransport.CreateConnection(
