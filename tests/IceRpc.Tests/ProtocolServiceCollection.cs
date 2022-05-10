@@ -101,7 +101,7 @@ internal static class ProtocolServiceCollectionExtensions
             serverProtocolConnection);
     }
 
-    internal static Connection GetInvalidConnection(this IServiceProvider serviceProvider) =>
+    internal static IConnection GetInvalidConnection(this IServiceProvider serviceProvider) =>
         serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ? InvalidConnection.Ice :
             InvalidConnection.IceRpc;
 
@@ -142,7 +142,7 @@ internal static class ProtocolServiceCollectionExtensions
         Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? protocolOnConnect =
             onConnect == null ? null :
             fields => onConnect(
-                serviceProvider.GetInvalidConnection(),
+                (Connection)serviceProvider.GetInvalidConnection(),
                 fields,
                 new FeatureCollection());
 

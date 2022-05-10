@@ -132,7 +132,7 @@ namespace IceRpc.Slice
         public SliceDecoder(
             ReadOnlyMemory<byte> buffer,
             SliceEncoding encoding,
-            Connection? connection = null,
+            IConnection? connection = null,
             IInvoker? invoker = null,
             IActivator? activator = null,
             int maxCollectionAllocation = -1,

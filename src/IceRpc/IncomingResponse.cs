@@ -46,7 +46,7 @@ namespace IceRpc
 
         /// <summary>Constructs an incoming response with a pipe reader holding the memory for the fields.</summary>
         /// <param name="request">The corresponding outgoing request.</param>
-        /// <param name="connection">The <see cref="Connection"/> that received the response.</param>
+        /// <param name="connection">The <see cref="IConnection"/> that received the response.</param>
         /// <param name="fields">The fields of this response.</param>
         /// <param name="fieldsPipeReader">The pipe reader that holds the memory of the fields. Use <c>null</c> when the
         /// fields memory is not held by a pipe reader.</param>
