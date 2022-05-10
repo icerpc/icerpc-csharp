@@ -6,6 +6,7 @@ using IceRpc.Slice;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Buffers;
 using System.IO.Pipelines;
 
 namespace IceRpc.Tests;
@@ -63,7 +64,7 @@ public sealed class ProtocolConnectionTests
     public async Task AcceptRequests_returns_successfully_on_graceful_shutdown(Protocol protocol)
     {
         // Arrange
-        await using var serviceProvider = new ProtocolServiceCollection()
+        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
             .BuildServiceProvider();
         Connection connection = serviceProvider.GetInvalidConnection();
@@ -90,7 +91,7 @@ public sealed class ProtocolConnectionTests
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
 
-        await using var serviceProvider = new ProtocolServiceCollection()
+        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions
             {
@@ -154,7 +155,7 @@ public sealed class ProtocolConnectionTests
         using var hold = new SemaphoreSlim(0);
         // var dispatchCanceled = new TaskCompletionSource();
 
-        await using var serviceProvider = new ProtocolServiceCollection()
+        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions
             {
@@ -191,7 +192,7 @@ public sealed class ProtocolConnectionTests
         // Arrange
         var result = new TaskCompletionSource<bool>();
         ClientServerProtocolConnection? sut = null;
-        await using var serviceProvider = new ProtocolServiceCollection()
+        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions
             {
@@ -223,7 +224,7 @@ public sealed class ProtocolConnectionTests
         // Arrange
         var result = new TaskCompletionSource<bool>();
         ClientServerProtocolConnection? sut = null;
-        await using var serviceProvider = new ProtocolServiceCollection()
+        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions
             {
@@ -252,7 +253,9 @@ public sealed class ProtocolConnectionTests
     public async Task Dispose_the_protocol_connections(Protocol protocol)
     {
         // Arrange
-        await using var serviceProvider = new ProtocolServiceCollection().UseProtocol(protocol).BuildServiceProvider();
+        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .BuildServiceProvider();
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
         // Act
@@ -269,7 +272,7 @@ public sealed class ProtocolConnectionTests
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
 
-        await using var serviceProvider = new ProtocolServiceCollection()
+        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions
             {
@@ -308,7 +311,7 @@ public sealed class ProtocolConnectionTests
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
 
-        await using var serviceProvider = new ProtocolServiceCollection()
+        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions
             {
@@ -342,7 +345,9 @@ public sealed class ProtocolConnectionTests
     public async Task Invoke_on_shutdown_connection_fails(Protocol protocol)
     {
         // Arrange
-        await using var serviceProvider = new ProtocolServiceCollection().UseProtocol(protocol).BuildServiceProvider();
+        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .BuildServiceProvider();
         Connection connection = serviceProvider.GetInvalidConnection();
 
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
@@ -362,7 +367,7 @@ public sealed class ProtocolConnectionTests
     public async Task Payload_completed_on_valid_request(Protocol protocol, bool isOneway)
     {
         // Arrange
-        await using var serviceProvider = new ProtocolServiceCollection()
+        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
             .BuildServiceProvider();
         Connection connection = serviceProvider.GetInvalidConnection();
@@ -394,7 +399,7 @@ public sealed class ProtocolConnectionTests
                     Payload = payloadDecorator
                 }));
 
-        await using var serviceProvider = new ProtocolServiceCollection()
+        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
@@ -422,7 +427,7 @@ public sealed class ProtocolConnectionTests
                     Payload = payloadDecorator
                 }));
 
-        await using var serviceProvider = new ProtocolServiceCollection()
+        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
@@ -454,7 +459,7 @@ public sealed class ProtocolConnectionTests
                 return new(response);
             });
 
-        await using var serviceProvider = new ProtocolServiceCollection()
+        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
@@ -474,7 +479,7 @@ public sealed class ProtocolConnectionTests
     public async Task PayloadWriter_completed_with_valid_request(Protocol protocol)
     {
         // Arrange
-        await using var serviceProvider = new ProtocolServiceCollection()
+        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
             .BuildServiceProvider();
         Connection connection = serviceProvider.GetInvalidConnection();
@@ -515,7 +520,7 @@ public sealed class ProtocolConnectionTests
                 return new(response);
             });
 
-        await using var serviceProvider = new ProtocolServiceCollection()
+        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
@@ -537,7 +542,7 @@ public sealed class ProtocolConnectionTests
     public async Task PayloadWriter_completed_with_invalid_request()
     {
         // Arrange
-        await using var serviceProvider = new ProtocolServiceCollection()
+        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
             .BuildServiceProvider();
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
@@ -585,7 +590,7 @@ public sealed class ProtocolConnectionTests
             return new(response);
         });
 
-        await using var serviceProvider = new ProtocolServiceCollection()
+        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
             .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
@@ -605,7 +610,9 @@ public sealed class ProtocolConnectionTests
     public async Task PeerShutdownInitiated_callback_is_called(Protocol protocol, ConnectionType connectionType)
     {
         // Arrange
-        await using var serviceProvider = new ProtocolServiceCollection().UseProtocol(protocol).BuildServiceProvider();
+        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .BuildServiceProvider();
         Connection connection = serviceProvider.GetInvalidConnection();
         await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
@@ -630,18 +637,59 @@ public sealed class ProtocolConnectionTests
     }
 
     [Test, TestCaseSource(nameof(_protocols))]
+    public async Task Receive_payload(Protocol protocol)
+    {
+        // Arrange
+        byte[] expectedPayload = Enumerable.Range(0, 4096).Select(p => (byte)p).ToArray();
+        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .UseServerOptions(new ServerOptions
+            {
+                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                {
+                    ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
+                    request.Payload.AdvanceTo(readResult.Buffer.End);
+                    return new OutgoingResponse(request)
+                    {
+                        Payload = PipeReader.Create(new ReadOnlySequence<byte>(expectedPayload))
+                    };
+                })
+            })
+            .BuildServiceProvider();
+
+        Connection connection = serviceProvider.GetInvalidConnection();
+
+        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        _ = sut.Client.AcceptRequestsAsync(connection);
+        _ = sut.Server.AcceptRequestsAsync(connection);
+
+        // Act
+        var response = await sut.Client.InvokeAsync(
+            new OutgoingRequest(new Proxy(protocol))
+            {
+                Payload = PipeReader.Create(new ReadOnlySequence<byte>(expectedPayload))
+            },
+            protocol == Protocol.IceRpc ? InvalidConnection.IceRpc : InvalidConnection.Ice,
+            default);
+
+        // Assert
+        var readResult = await response.Payload.ReadAllAsync(default);
+        Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(expectedPayload));
+    }
+
+    [Test, TestCaseSource(nameof(_protocols))]
     public async Task Request_with_large_header(Protocol protocol)
     {
         // Arrange
         // This large value should be large enough to create multiple buffers for the request header.
-        string expectedValue = new('A', 4096);
+        var expectedValue = new string('A', 4096);
         IDictionary<string, string>? context = null;
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
             context = request.Features.GetContext();
             return new(new OutgoingResponse(request));
         });
-        await using var serviceProvider = new ProtocolServiceCollection()
+        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
@@ -664,6 +712,45 @@ public sealed class ProtocolConnectionTests
         Assert.That(context!["foo"], Is.EqualTo(expectedValue));
     }
 
+    [Test, TestCaseSource(nameof(_protocols))]
+    public async Task Send_payload(Protocol protocol)
+    {
+        // Arrange
+        byte[] expectedPayload = Enumerable.Range(0, 4096).Select(p => (byte)p).ToArray();
+        byte[]? receivedPayload = null;
+        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(protocol)
+            .UseServerOptions(new ServerOptions
+            {
+                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                {
+                    ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
+                    receivedPayload = readResult.Buffer.ToArray();
+                    request.Payload.AdvanceTo(readResult.Buffer.End);
+                    return new OutgoingResponse(request);
+                })
+            })
+            .BuildServiceProvider();
+
+        Connection connection = serviceProvider.GetInvalidConnection();
+
+        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        _ = sut.Client.AcceptRequestsAsync(connection);
+        _ = sut.Server.AcceptRequestsAsync(connection);
+
+        // Act
+        await sut.Client.InvokeAsync(
+            new OutgoingRequest(new Proxy(protocol))
+            {
+                Payload = PipeReader.Create(new ReadOnlySequence<byte>(expectedPayload))
+            },
+            protocol == Protocol.IceRpc ? InvalidConnection.IceRpc : InvalidConnection.Ice,
+            default);
+
+        // Assert
+        Assert.That(receivedPayload, Is.EqualTo(expectedPayload));
+    }
+
     /// <summary>Verifies that a connection will not accept further request after shutdown was called, and it will
     /// allow pending dispatches to finish.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
@@ -673,7 +760,7 @@ public sealed class ProtocolConnectionTests
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
 
-        await using var serviceProvider = new ProtocolServiceCollection()
+        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions
             {
