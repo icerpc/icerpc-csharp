@@ -200,7 +200,7 @@ pub fn decode_dictionary(
     namespace: &str,
     encoding: Option<Encoding>,
 ) -> CodeBlock {
-    // Encoding must be set when encoding a dictionary of optional values
+    // Encoding must be set when decoding a dictionary of optional values
     assert!(
         (dictionary_ref.value_type.is_optional && encoding.is_some())
             || !dictionary_ref.value_type.is_optional
@@ -258,7 +258,7 @@ pub fn decode_sequence(
     let mut code = CodeBlock::new();
     let element_type = &sequence_ref.element_type;
 
-    // Encoding must be set when encoding a dictionary of optional values
+    // Encoding must be set when decoding a sequence of optional elements
     assert!((element_type.is_optional && encoding.is_some()) || !element_type.is_optional);
 
     if sequence_ref.get_attribute("cs::generic", false).is_some() {

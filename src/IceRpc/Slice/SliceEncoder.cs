@@ -237,7 +237,7 @@ namespace IceRpc.Slice
             if (Encoding != SliceEncoding.Slice1)
             {
                 throw new InvalidOperationException(
-                    "Encoding nullable proxies without a bit sequence is only supported with Slice1 encoding");
+                    "encoding nullable proxies without a bit sequence is only supported with Slice1");
             }
 
             if (proxy != null)
