@@ -181,10 +181,9 @@ namespace IceRpc
                 // enabled.
 
                 ILogger logger = _options.LoggerFactory.CreateLogger("IceRpc.Client");
-                Endpoint remoteEndpoint = _options.RemoteEndpoint!.Value;
 
                 T networkConnection = clientTransport.CreateConnection(
-                    remoteEndpoint,
+                    Endpoint,
                     _options.AuthenticationOptions,
                     logger);
 
@@ -192,7 +191,7 @@ namespace IceRpc
 
                 if (logger.IsEnabled(LogLevel.Error)) // TODO: log level
                 {
-                    networkConnection = logDecoratorFactory(networkConnection, remoteEndpoint, isServer: false, logger);
+                    networkConnection = logDecoratorFactory(networkConnection, Endpoint, isServer: false, logger);
 
                     protocolConnectionFactory =
                         new LogProtocolConnectionFactoryDecorator<T, TOptions>(protocolConnectionFactory, logger);
