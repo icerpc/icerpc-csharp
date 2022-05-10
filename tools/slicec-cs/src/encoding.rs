@@ -17,12 +17,10 @@ pub fn encode_data_members(
 
     let (required_members, tagged_members) = get_sorted_members(members);
 
-    let bit_sequence_size = if encoding == Some(Encoding::Slice2) {
-        // Tagged members are encoded in a dictionary and don't count towards the optional bit sequence
-        // size.
-        get_bit_sequence_size(&required_members)
-    } else {
+    let bit_sequence_size = if encoding == Some(Encoding::Slice1) {
         0
+    } else {
+        get_bit_sequence_size(&required_members)
     };
 
     if bit_sequence_size > 0 {
@@ -421,7 +419,7 @@ fn encode_sequence(
 {encoder_param}.EncodeSequence{with_bit_sequence}(
     {param},
     {encode_action})",
-            with_bit_sequence = if encoding == Some(Encoding::Slice2)
+            with_bit_sequence = if encoding != Some(Encoding::Slice1)
                 && sequence_ref.element_type.is_bit_sequence_encodable()
             {
                 "WithBitSequence"
@@ -460,7 +458,7 @@ fn encode_dictionary(
     {param},
     {encode_key},
     {encode_value})",
-        method = if encoding == Some(Encoding::Slice2)
+        method = if encoding != Some(Encoding::Slice1)
             && dictionary_def.value_type.is_bit_sequence_encodable()
         {
             "EncodeDictionaryWithBitSequence"
@@ -663,10 +661,10 @@ fn encode_operation_parameters(
 
     let (required_members, tagged_members) = get_sorted_members(&members);
 
-    let bit_sequence_size = if operation.encoding == Encoding::Slice2 {
-        get_bit_sequence_size(&members)
-    } else {
+    let bit_sequence_size = if operation.encoding == Encoding::Slice1 {
         0
+    } else {
+        get_bit_sequence_size(&members)
     };
 
     if bit_sequence_size > 0 {

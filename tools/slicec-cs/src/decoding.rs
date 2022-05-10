@@ -15,10 +15,10 @@ pub fn decode_data_members(
 
     let (required_members, tagged_members) = get_sorted_members(members);
 
-    let bit_sequence_size = if encoding == Some(Encoding::Slice2) {
-        get_bit_sequence_size(members)
-    } else {
+    let bit_sequence_size = if encoding == Some(Encoding::Slice1) {
         0
+    } else {
+        get_bit_sequence_size(members)
     };
 
     if bit_sequence_size > 0 {
@@ -224,7 +224,7 @@ pub fn decode_dictionary(
         );
     }
 
-    if encoding == Some(Encoding::Slice2) && value_type.is_bit_sequence_encodable() {
+    if encoding != Some(Encoding::Slice1) && value_type.is_bit_sequence_encodable() {
         format!(
             "\
 decoder.DecodeDictionaryWithBitSequence(
@@ -300,7 +300,7 @@ decoder.DecodeSequence(
                 }
             }
             _ => {
-                if encoding == Some(Encoding::Slice2) && element_type.is_bit_sequence_encodable() {
+                if encoding != Some(Encoding::Slice1) && element_type.is_bit_sequence_encodable() {
                     write!(
                         code,
                         "\
@@ -337,7 +337,7 @@ new {}(
                 CodeBlock::from(arg).indent(),
             );
         }
-    } else if encoding == Some(Encoding::Slice2) && element_type.is_bit_sequence_encodable() {
+    } else if encoding != Some(Encoding::Slice1) && element_type.is_bit_sequence_encodable() {
         write!(
             code,
             "\
@@ -535,10 +535,10 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
 
     let (required_members, tagged_members) = get_sorted_members(&non_streamed_members);
 
-    let bit_sequence_size = if operation.encoding == Encoding::Slice2 {
-        get_bit_sequence_size(&non_streamed_members)
-    } else {
+    let bit_sequence_size = if operation.encoding == Encoding::Slice1 {
         0
+    } else {
+        get_bit_sequence_size(&non_streamed_members)
     };
 
     if bit_sequence_size > 0 {

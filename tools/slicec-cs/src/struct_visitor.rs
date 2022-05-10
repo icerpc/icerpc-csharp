@@ -188,12 +188,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                     false, // No encoding check for structs
                 );
 
-                // If the struct contains nullable proxies and it supports the Slice1 encoding or if the struct only
-                // support the Slice1 encoding add a Slice1 encoding block.
-                if (contains_nullable_proxies
-                    && struct_def.supported_encodings().supports(&Encoding::Slice1))
-                    || !struct_def.supported_encodings().supports(&Encoding::Slice2)
-                {
+                if struct_def.supported_encodings().supports(&Encoding::Slice1) {
                     encode_block_builder.add_encoding_block(
                         Encoding::Slice1,
                         encode_data_members(
@@ -205,12 +200,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                     );
                 }
 
-                // If the struct contains nullable proxies and it supports the Slice2 encoding or if the struct only
-                // support the Slice2 encoding add a Slice2 encoding block.
-                if (contains_nullable_proxies
-                    && struct_def.supported_encodings().supports(&Encoding::Slice2))
-                    || !struct_def.supported_encodings().supports(&Encoding::Slice1)
-                {
+                if struct_def.supported_encodings().supports(&Encoding::Slice2) {
                     encode_block_builder.add_encoding_block(
                         Encoding::Slice2,
                         encode_data_members(
