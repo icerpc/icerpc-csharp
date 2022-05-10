@@ -396,32 +396,46 @@ public class ProxyTests
     /// <summary>Verifies that setting the alt endpoints containing endpoints that uses a protocol different than the
     /// proxy protocol throws <see cref="ArgumentException"/>.</summary>
     [Test]
-    public void Set_the_alt_endpoints_using_a_diferent_protocol_fails()
+    public void Setting_alt_endpoints_with_a_different_protocol_fails()
     {
-        var prx = Proxy.Parse("ice://host.zeroc.com:10000/hello");
+        var proxy = Proxy.Parse("ice://host.zeroc.com:10000/hello");
         var endpoint1 = Proxy.Parse("ice://host.zeroc.com:10001/hello").Endpoint!.Value;
         var endpoint2 = Proxy.Parse("icerpc://host.zeroc.com/hello").Endpoint!.Value;
         var altEndpoints = new Endpoint[] { endpoint1, endpoint2 }.ToImmutableList();
 
-        Assert.Throws<ArgumentException>(() => prx.AltEndpoints = altEndpoints);
+        Assert.That(() => proxy.AltEndpoints = altEndpoints, Throws.ArgumentException);
 
         // Ensure the alt endpoints weren't updated
-        Assert.That(prx.AltEndpoints, Is.Empty);
+        Assert.That(proxy.AltEndpoints, Is.Empty);
+    }
+
+    /// <summary>Verifies that the proxy protocol and proxy connection protocol remain the same (currently not true due
+    /// to a bug).</summary>
+    [Test]
+    public async Task Proxy_and_proxy_connection_have_the_same_protocol()
+    {
+        var connectionOptions = new ConnectionOptions();
+        await using var connection = new Connection(connectionOptions);
+        var proxy = Proxy.FromConnection(connection, "/");
+
+        Assert.That(proxy.Protocol, Is.EqualTo(Protocol.IceRpc));
+        connectionOptions.RemoteEndpoint = "ice://localhost";
+        Assert.That(proxy.Connection!.Endpoint.Protocol, Is.EqualTo(Protocol.Ice));
     }
 
     /// <summary>Verifies that setting an endpoint that uses a protocol different than the proxy protocol throws
     /// <see cref="ArgumentException"/>.</summary>
     [Test]
-    public void Set_the_endpoint_using_a_diferent_protocol_fails()
+    public void Setting_endpoint_with_a_different_protocol_fails()
     {
-        var prx = Proxy.Parse("ice://host.zeroc.com/hello");
-        var endpoint = prx.Endpoint;
+        var proxy = Proxy.Parse("ice://host.zeroc.com/hello");
+        var endpoint = proxy.Endpoint;
         var newEndpoint = Proxy.Parse("icerpc://host.zeroc.com/hello").Endpoint!.Value;
 
-        Assert.Throws<ArgumentException>(() => prx.Endpoint = newEndpoint);
+        Assert.That(() => proxy.Endpoint = newEndpoint, Throws.ArgumentException);
 
         // Ensure the endpoint wasn't updated
-        Assert.That(prx.Endpoint, Is.EqualTo(endpoint));
+        Assert.That(proxy.Endpoint, Is.EqualTo(endpoint));
     }
 
     /// <summary>Verifies that we can set the fragment on an ice proxy.</summary>
