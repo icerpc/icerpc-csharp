@@ -861,6 +861,7 @@ namespace IceRpc.Internal
                     _maxRemoteHeaderSize = Configure.IceRpcOptions.CheckMaxHeaderSize((long)value);
                     _headerSizeLength = SliceEncoder.GetVarUInt62EncodedSize(value);
                 }
+                // all other settings are unknown and ignored
             }
             finally
             {

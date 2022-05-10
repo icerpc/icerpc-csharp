@@ -42,7 +42,7 @@ compact struct IceRpcResponseHeader
     // fields: dictionary<ResponseFieldKey, sequence<uint8>>, (encoded/decoded manually)
 }
 
-/// The settings frame is sent by each side on connection establishment to exchange settings.
+/// The settings frame is sent by each peer on connection establishment to exchange settings.
 [cs::readonly]
 compact struct IceRpcSettings
 {
