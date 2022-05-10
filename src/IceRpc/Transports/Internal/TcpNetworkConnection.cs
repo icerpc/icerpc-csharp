@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
-using IceRpc.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.Net;
@@ -9,7 +8,6 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Security.Authentication;
-using System.Text;
 
 namespace IceRpc.Transports.Internal
 {
