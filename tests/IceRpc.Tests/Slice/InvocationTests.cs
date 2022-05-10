@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice.Internal;
-using IceRpc.Tests;
 using NUnit.Framework;
 
 namespace IceRpc.Slice.Tests;
@@ -26,7 +25,7 @@ public class InvocationTests
             Invoker = new InlineInvoker((request, cancel) =>
             {
                 context = request.Features.GetContext();
-                return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
+                return Task.FromResult(new IncomingResponse(request, request.Connection!));
             }),
         };
 
@@ -53,7 +52,7 @@ public class InvocationTests
         var invoker = new InlineInvoker((request, cancel) =>
         {
             deadline = DecodeDeadlineField(request.Fields);
-            return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
+            return Task.FromResult(new IncomingResponse(request, request.Connection!));
         });
 
         using var cancellationSource = new CancellationTokenSource();
@@ -90,7 +89,7 @@ public class InvocationTests
                 hasDeadline = request.Fields.ContainsKey(RequestFieldKey.Deadline);
                 cancellationToken = cancel;
                 await Task.Delay(TimeSpan.FromMilliseconds(100), cancel);
-                return new IncomingResponse(request, InvalidConnection.IceRpc);
+                return new IncomingResponse(request, request.Connection!);
             }),
         };
 
@@ -125,7 +124,7 @@ public class InvocationTests
         var invoker = new InlineInvoker((request, cancel) =>
         {
             deadline = DecodeDeadlineField(request.Fields);
-            return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
+            return Task.FromResult(new IncomingResponse(request, request.Connection!));
         });
         var timeoutInterceptor = new TimeoutInterceptor(invoker, TimeSpan.FromSeconds(120));
         var sut = new Proxy(Protocol.IceRpc) { Invoker = timeoutInterceptor };
@@ -157,7 +156,7 @@ public class InvocationTests
             {
                 cancellationToken = cancel;
                 hasDeadline = request.Fields.ContainsKey(RequestFieldKey.Deadline);
-                return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
+                return Task.FromResult(new IncomingResponse(request, request.Connection!));
             }),
         };
 
