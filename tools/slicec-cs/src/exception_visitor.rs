@@ -86,8 +86,12 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
             );
         }
 
-        let mut decode_body_slice2 =
-            decode_data_members(&members, namespace, FieldType::Exception, Encoding::Slice2);
+        let mut decode_body_slice2 = decode_data_members(
+            &members,
+            namespace,
+            FieldType::Exception,
+            Some(Encoding::Slice2),
+        );
         writeln!(
             decode_body_slice2,
             "decoder.SkipTagged(useTagEndMarker: true);"
@@ -141,7 +145,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
                         &members,
                         namespace,
                         FieldType::Exception,
-                        Encoding::Slice1,
+                        Some(Encoding::Slice1),
                     ));
                     code.writeln("decoder.EndSlice();");
 
@@ -189,40 +193,60 @@ fn encode_core_method(exception_def: &Exception) -> CodeBlock {
     let namespace = &exception_def.namespace();
     let has_base = exception_def.base.is_some();
 
-    let body = EncodingBlockBuilder::new(
+    let mut builder = EncodingBlockBuilder::new(
         "encoder.Encoding",
         &exception_def.escape_identifier(),
         exception_def.supported_encodings(),
         true,
-    )
-    .add_encoding_block(
-        Encoding::Slice1,
-        format!(
-            "\
+    );
+
+    if exception_def
+        .supported_encodings()
+        .supports(&Encoding::Slice1)
+    {
+        builder.add_encoding_block(
+            Encoding::Slice1,
+            format!(
+                "\
 encoder.StartSlice(SliceTypeId);
 {encode_data_members}
 encoder.EndSlice(lastSlice: {is_last_slice});
 {encode_base}",
-            encode_data_members =
-                &encode_data_members(members, namespace, FieldType::Exception, Encoding::Slice1),
-            is_last_slice = !has_base,
-            encode_base = if has_base { "base.EncodeCore(ref encoder);" } else { "" },
-        )
-        .into(),
-    )
-    .add_encoding_block(
-        Encoding::Slice2,
-        format!(
-            "\
+                encode_data_members = &encode_data_members(
+                    members,
+                    namespace,
+                    FieldType::Exception,
+                    Some(Encoding::Slice1)
+                ),
+                is_last_slice = !has_base,
+                encode_base = if has_base { "base.EncodeCore(ref encoder);" } else { "" },
+            )
+            .into(),
+        );
+    }
+
+    if exception_def
+        .supported_encodings()
+        .supports(&Encoding::Slice2)
+    {
+        builder.add_encoding_block(
+            Encoding::Slice2,
+            format!(
+                "\
 encoder.EncodeString(Message);
 {encode_data_members}
 encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);",
-            encode_data_members =
-                &encode_data_members(members, namespace, FieldType::Exception, Encoding::Slice2),
-        )
-        .into(),
-    )
-    .build();
+                encode_data_members = &encode_data_members(
+                    members,
+                    namespace,
+                    FieldType::Exception,
+                    Some(Encoding::Slice2)
+                ),
+            )
+            .into(),
+        );
+    }
+    let body = builder.build();
 
     FunctionBuilder::new(
         "protected override",

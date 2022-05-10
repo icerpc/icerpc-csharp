@@ -105,12 +105,7 @@ impl<'a> Visitor for StructVisitor<'a> {
             {
                 // If the struct doesn't contain nullable proxies and it supports both encoding, we need a
                 // single decode code block.
-                decode_data_members(
-                    &members,
-                    &namespace,
-                    FieldType::NonMangled,
-                    Encoding::Slice1,
-                )
+                decode_data_members(&members, &namespace, FieldType::NonMangled, None)
             } else {
                 let mut encode_block_builder = EncodingBlockBuilder::new(
                     "decoder.Encoding",
@@ -131,7 +126,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                             &members,
                             &namespace,
                             FieldType::NonMangled,
-                            Encoding::Slice1,
+                            Some(Encoding::Slice1),
                         ),
                     );
                 }
@@ -148,7 +143,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                             &members,
                             &namespace,
                             FieldType::NonMangled,
-                            Encoding::Slice2,
+                            Some(Encoding::Slice2),
                         ),
                     );
                 }
@@ -184,12 +179,7 @@ impl<'a> Visitor for StructVisitor<'a> {
             {
                 // If the struct doesn't contain nullable proxies and it supports both encoding, we need a
                 // single encode code block.
-                encode_data_members(
-                    &members,
-                    &namespace,
-                    FieldType::NonMangled,
-                    Encoding::Slice1,
-                )
+                encode_data_members(&members, &namespace, FieldType::NonMangled, None)
             } else {
                 let mut encode_block_builder = EncodingBlockBuilder::new(
                     "encoder.Encoding",
@@ -210,7 +200,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                             &members,
                             &namespace,
                             FieldType::NonMangled,
-                            Encoding::Slice1,
+                            Some(Encoding::Slice1),
                         ),
                     );
                 }
@@ -227,7 +217,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                             &members,
                             &namespace,
                             FieldType::NonMangled,
-                            Encoding::Slice2,
+                            Some(Encoding::Slice2),
                         ),
                     );
                 }

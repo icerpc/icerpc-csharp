@@ -30,9 +30,3 @@ compact struct MyCompactStruct
     i: int32,
     j: int32,
 }
-
-compact struct MySlice2OnlyCompactStructWithNullabeProxy
-{
-    a: int32,
-    i: Slice::Service?,
-}

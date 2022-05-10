@@ -341,7 +341,7 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Decodes a nullable proxy.</summary>
+        /// <summary>Decodes a nullable proxy (Slice1 only).</summary>
         /// <returns>The decoded proxy, or null.</returns>
         public Proxy? DecodeNullableProxy()
         {
@@ -354,17 +354,10 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Decodes a nullable proxy.</summary>
-        /// <param name="bitSequenceReader">The bit sequence reader, ignored with Slice1.</param>
+        /// <param name="bitSequenceReader">The bit sequence reader.</param>
         /// <returns>The decoded proxy, or null.</returns>
-        public Proxy? DecodeNullableProxy(ref BitSequenceReader bitSequenceReader)
-        {
-            if (Encoding == SliceEncoding.Slice1)
-            {
-                throw new InvalidOperationException(
-                    "Slice1 nullable proxy must be decoded without a bit sequence reader");
-            }
-            return bitSequenceReader.Read() ? DecodeProxy() : null;
-        }
+        public Proxy? DecodeNullableProxy(ref BitSequenceReader bitSequenceReader) =>
+            bitSequenceReader.Read() ? DecodeProxy() : null;
 
         /// <summary>Decodes a proxy.</summary>
         /// <returns>The decoded proxy</returns>
@@ -581,7 +574,7 @@ namespace IceRpc.Slice
         {
             if (Encoding == SliceEncoding.Slice1)
             {
-                throw new InvalidOperationException("bit sequence reader cannot be used with the Slice1 encoding");
+                throw new InvalidOperationException("cannot create a bit sequence reader with Slice1");
             }
 
             if (bitSequenceSize <= 0)

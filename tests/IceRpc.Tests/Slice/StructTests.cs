@@ -154,7 +154,7 @@ public sealed class StructTests
     public void Decode_slice1_compact_struct_with_nullable_proxy(
         [Values("icerpc://localhost/service", null)] string? proxy)
     {
-        var expected = new MyCompactStructWithNullabeProxy(
+        var expected = new MyCompactStructWithNullableProxy(
             10,
             proxy == null ? null : ServicePrx.Parse(proxy));
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -163,7 +163,7 @@ public sealed class StructTests
         encoder.EncodeNullableProxy(expected.I?.Proxy);
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
-        var value = new MyCompactStructWithNullabeProxy(ref decoder);
+        var value = new MyCompactStructWithNullableProxy(ref decoder);
 
         Assert.That(value, Is.EqualTo(expected));
 
@@ -173,7 +173,7 @@ public sealed class StructTests
     public void Decode_slice2_compact_struct_with_nullable_proxy(
         [Values("icerpc://localhost/service", null)]string? proxy)
     {
-        var expected = new MySlice2OnlyCompactStructWithNullabeProxy(
+        var expected = new MyCompactStructWithNullableProxy(
             10,
             proxy == null ? null : ServicePrx.Parse(proxy));
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -191,7 +191,7 @@ public sealed class StructTests
         }
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
-        var value = new MySlice2OnlyCompactStructWithNullabeProxy(ref decoder);
+        var value = new MyCompactStructWithNullableProxy(ref decoder);
 
         Assert.That(value, Is.EqualTo(expected));
     }
@@ -432,7 +432,7 @@ public sealed class StructTests
     public void Encode_slice1_compat_struct_with_nullable_proxy(
         [Values("icerpc://localhost/service", null)] string? proxy)
     {
-        var expected = new MyCompactStructWithNullabeProxy(
+        var expected = new MyCompactStructWithNullableProxy(
             10,
             proxy == null ? null : ServicePrx.Parse(proxy));
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -450,7 +450,7 @@ public sealed class StructTests
     public void Encode_slice2_compat_struct_with_nullable_proxy(
         [Values("icerpc://localhost/service", null)] string? proxy)
     {
-        var expected = new MySlice2OnlyCompactStructWithNullabeProxy(
+        var expected = new MyCompactStructWithNullableProxy(
             10,
             proxy == null ? null : ServicePrx.Parse(proxy));
         var buffer = new MemoryBufferWriter(new byte[256]);

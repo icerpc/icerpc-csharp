@@ -82,7 +82,7 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Decodes a nullable Prx struct.</summary>
+        /// <summary>Decodes a nullable Prx struct (Slice1 only).</summary>
         /// <param name="decoder">The Slice decoder.</param>
         /// <returns>The decoded Prx struct, or null.</returns>
         public static T? DecodeNullablePrx<T>(ref this SliceDecoder decoder) where T : struct, IPrx =>

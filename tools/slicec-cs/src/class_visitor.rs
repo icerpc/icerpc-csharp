@@ -230,7 +230,7 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
             &members,
             namespace,
             FieldType::Class,
-            Encoding::Slice1, // classes are Slice1 only
+            Some(Encoding::Slice1), // classes are Slice1 only
         ));
 
         if has_base_class {
@@ -258,7 +258,7 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
             &members,
             namespace,
             FieldType::Class,
-            Encoding::Slice1,
+            Some(Encoding::Slice1), // classes are Slice1 only
         ));
         code.writeln("decoder.EndSlice();");
         if has_base_class {
