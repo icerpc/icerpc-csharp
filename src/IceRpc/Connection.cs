@@ -39,7 +39,7 @@ namespace IceRpc
 
         /// <summary>The connection's endpoint. For a client connection this is the connection's remote endpoint,
         /// for a server connection it's the server's endpoint.</summary>
-        public Endpoint Endpoint => _serverEndpoint ?? _options.RemoteEndpoint ?? new Endpoint();
+        public Endpoint Endpoint { get; }
 
         /// <summary>The state of the connection.</summary>
         public ConnectionState State
@@ -60,11 +60,14 @@ namespace IceRpc
         // True once DisposeAsync is called. Once disposed the connection can't be resumed.
         private bool _disposed;
 
+        private readonly bool _isServer;
+
         // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
         private readonly object _mutex = new();
 
         private Action<Connection, Exception>? _onClose;
 
+        // TODO: replace this field by individual fields
         private readonly ConnectionOptions _options;
 
         private IProtocolConnection? _protocolConnection;
@@ -72,8 +75,6 @@ namespace IceRpc
         private CancellationTokenSource? _protocolShutdownCancellationSource;
 
         private ConnectionState _state = ConnectionState.NotConnected;
-
-        private readonly Endpoint? _serverEndpoint;
 
         // The state task is assigned when the state is updated to Connecting, ShuttingDown, Closing. It's completed
         // once the state update completes. It's protected with _mutex.
@@ -83,7 +84,17 @@ namespace IceRpc
 
         /// <summary>Constructs a client connection.</summary>
         /// <param name="options">The connection options.</param>
-        public Connection(ConnectionOptions options) => _options = options;
+        public Connection(ConnectionOptions options)
+        {
+            Endpoint = options.RemoteEndpoint ??
+                throw new ArgumentException(
+                    $"{nameof(ConnectionOptions.RemoteEndpoint)} is not set",
+                    nameof(options));
+
+            // At this point, we consider options to be read-only.
+            // TODO: replace _options by "splatted" properties.
+            _options = options;
+        }
 
         /// <summary>Constructs a client connection with the specified remote endpoint and  authentication options.
         /// All other properties have their default values.</summary>
@@ -125,12 +136,6 @@ namespace IceRpc
                 {
                     if (_state == ConnectionState.NotConnected)
                     {
-                        if (_options.RemoteEndpoint is not Endpoint remoteEndpoint)
-                        {
-                            throw new InvalidOperationException(
-                                $"{nameof(ConnectionOptions.RemoteEndpoint)} is not set");
-                        }
-
                         Debug.Assert(_protocolConnection == null);
 
                         _stateTask = Endpoint.Protocol == Protocol.Ice ?
@@ -250,7 +255,7 @@ namespace IceRpc
         {
             lock (_mutex)
             {
-                return _serverEndpoint == null &&
+                return !_isServer &&
                     State == ConnectionState.Active &&
                     _protocolConnection!.HasCompatibleParams(remoteEndpoint);
             }
@@ -372,7 +377,8 @@ namespace IceRpc
         /// <summary>Constructs a server connection from an accepted network connection.</summary>
         internal Connection(Endpoint endpoint, ConnectionOptions options)
         {
-            _serverEndpoint = endpoint;
+            _isServer = true;
+            Endpoint = endpoint;
             _options = options;
             _state = ConnectionState.Connecting;
         }
@@ -407,7 +413,7 @@ namespace IceRpc
                     networkConnection,
                     NetworkConnectionInformation.Value,
                     _options.Dispatcher,
-                    _serverEndpoint != null,
+                    _isServer,
                     protocolOptions,
                     connectTimeoutCancellationSource.Token).ConfigureAwait(false);
 

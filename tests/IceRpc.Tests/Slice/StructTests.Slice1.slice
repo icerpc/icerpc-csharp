@@ -1,0 +1,21 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+encoding = 1;
+
+module IceRpc::Slice::Tests;
+
+compact struct MyCompactStructWithNullableProxy
+{
+    a: int32,
+    i: Slice::Service?
+}
+
+compact struct MyCompactStructWithSequenceOfNullableProxies
+{
+    i: sequence<Slice::Service?>
+}
+
+compact struct MyCompactStructWithDictionaryOfNullableProxies
+{
+    i: dictionary<int32, Slice::Service?>
+}

@@ -64,7 +64,9 @@ namespace IceRpc
                 CheckSupportedProtocol(nameof(Connection));
                 if (value?.Endpoint.Protocol is Protocol newProtocol && newProtocol != Protocol)
                 {
-                    throw new ArgumentException("cannot change the protocol of a proxy", nameof(Connection));
+                    throw new ArgumentException(
+                        "the new connection's protocol must match the proxy's protocol",
+                        nameof(Connection));
                 }
                 _connection = value;
             }
