@@ -255,9 +255,13 @@ namespace IceRpc.Slice
         /// <param name="proxy">The proxy to encode, or null.</param>
         public void EncodeNullableProxy(ref BitSequenceWriter bitSequenceWriter, Proxy? proxy)
         {
-            bitSequenceWriter.Write(proxy != null);
-            if (proxy != null)
+            if (proxy == null)
             {
+                bitSequenceWriter.Write(false);
+            }
+            else
+            {
+                bitSequenceWriter.Write(true);
                 EncodeProxy(proxy);
             }
         }
