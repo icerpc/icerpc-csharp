@@ -42,11 +42,17 @@ compact struct IceRpcResponseHeader
     // fields: dictionary<ResponseFieldKey, sequence<uint8>>, (encoded/decoded manually)
 }
 
-/// The initialize frame is sent by each side on connection establishment to exchange connection fields.
+/// The settings frame is sent by each side on connection establishment to exchange settings.
 [cs::readonly]
-compact struct IceRpcInitialize
+compact struct IceRpcSettings
 {
-    fields: dictionary<ConnectionFieldKey, sequence<uint8>>,
+    value: dictionary<IceRpcSettingKey, varuint62>,
+}
+
+/// The keys for Settings entries.
+unchecked enum IceRpcSettingKey : varuint62
+{
+    MaxHeaderSize = 0,
 }
 
 /// The GoAway frame is sent on connection shutdown to notify the peer that it shouldn't perform new invocations and to

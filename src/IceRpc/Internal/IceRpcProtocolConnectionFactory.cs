@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
-using System.Buffers;
 
 namespace IceRpc.Internal
 {
@@ -12,7 +11,6 @@ namespace IceRpc.Internal
             IMultiplexedNetworkConnection networkConnection,
             NetworkConnectionInformation connectionInfo,
             IDispatcher dispatcher,
-            Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect,
             bool _,
             Configure.IceRpcOptions? protocolOptions,
             CancellationToken cancel)
@@ -20,8 +18,7 @@ namespace IceRpc.Internal
             var protocolConnection = new IceRpcProtocolConnection(
                 networkConnection,
                 dispatcher,
-                protocolOptions,
-                onConnect);
+                protocolOptions);
 
             try
             {

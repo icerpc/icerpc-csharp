@@ -79,9 +79,6 @@ namespace IceRpc.Configure
         /// <summary>Gets or set an action that executes when the connection is closed.</summary>
         public Action<Connection, Exception>? OnClose { get; set; }
 
-        /// <summary>Gets or sets the action to execute during connection establishment.</summary>
-        public OnConnectAction? OnConnect { get; set; }
-
         private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
         private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
         private Endpoint _endpoint = new(Protocol.IceRpc);

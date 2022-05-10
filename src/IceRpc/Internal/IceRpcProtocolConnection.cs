@@ -58,7 +58,6 @@ namespace IceRpc.Internal
         private int _maxRemoteHeaderSize = Configure.IceRpcOptions.DefaultMaxHeaderSize;
         private readonly object _mutex = new();
         private readonly IMultiplexedNetworkConnection _networkConnection;
-        private readonly Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? _onConnect;
         private IMultiplexedStream? _remoteControlStream;
 
         private readonly HashSet<IMultiplexedStream> _streams = new();
@@ -651,12 +650,10 @@ namespace IceRpc.Internal
         internal IceRpcProtocolConnection(
             IMultiplexedNetworkConnection networkConnection,
             IDispatcher dispatcher,
-            Configure.IceRpcOptions? options,
-            Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect)
+            Configure.IceRpcOptions? options)
         {
             _dispatcher = dispatcher;
             _networkConnection = networkConnection;
-            _onConnect = onConnect;
 
             _localFields = options?.Fields ?? ImmutableDictionary<ConnectionFieldKey, OutgoingFieldValue>.Empty;
             _maxLocalHeaderSize = options?.MaxHeaderSize ?? Configure.IceRpcOptions.DefaultMaxHeaderSize;
@@ -877,8 +874,6 @@ namespace IceRpc.Internal
                     _maxRemoteHeaderSize = Configure.IceRpcOptions.CheckMaxHeaderSize(value);
                     _headerSizeLength = SliceEncoder.GetVarUInt62EncodedSize(value);
                 }
-
-                _onConnect?.Invoke(fields);
             }
             finally
             {
