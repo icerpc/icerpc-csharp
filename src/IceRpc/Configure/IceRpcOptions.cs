@@ -18,7 +18,7 @@ public sealed record class IceRpcClientOptions : IceRpcOptions
 {
     /// <summary>Returns the default value for <see cref="ClientTransport"/>.</summary>
     public static IClientTransport<IMultiplexedNetworkConnection> DefaultClientTransport { get; } =
-        new CompositeMultiplexedClientTransport().UseSlicOverTcp();
+        new SlicClientTransport(new TcpClientTransport());
 
     /// <summary>Gets or sets the <see cref="IClientTransport{IMultiplexedNetworkConnection}"/> used by this
     /// connection to create multiplexed network connections.</summary>
@@ -30,7 +30,7 @@ public sealed record class IceRpcServerOptions : IceRpcOptions
 {
     /// <summary>Returns the default value for <see cref="ServerTransport"/>.</summary>
     public static IServerTransport<IMultiplexedNetworkConnection> DefaultServerTransport { get; } =
-        new CompositeMultiplexedServerTransport().UseSlicOverTcp();
+        new SlicServerTransport(new TcpServerTransport());
 
     /// <summary>Gets or sets <see cref="IServerTransport{IMultiplexedNetworkConnection}"/> used by the
     /// server to accept multiplexed connections.</summary>

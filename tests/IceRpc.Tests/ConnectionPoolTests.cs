@@ -4,7 +4,7 @@ using IceRpc.Configure;
 using IceRpc.Transports;
 using NUnit.Framework;
 
-namespace IceRpc.IntegrationTests;
+namespace IceRpc.Tests;
 
 public sealed class ConnectionPoolTests
 {

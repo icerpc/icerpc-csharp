@@ -2,8 +2,6 @@
 
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
-using System.Buffers;
-using System.Collections.Immutable;
 
 namespace IceRpc.Internal
 {

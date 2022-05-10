@@ -72,14 +72,13 @@ impl<'a> Visitor for ProxyVisitor<'_> {
             .add_block(response_class(interface_def))
             .add_block(format!(r#"
 /// <summary>The default path for services that implement Slice interface <c>{interface_name}</c>.</summary>
-{access} static readonly string DefaultPath = typeof({prx_impl}).GetDefaultPath();
+public static readonly string DefaultPath = typeof({prx_impl}).GetDefaultPath();
 
 private static readonly IActivator _defaultActivator =
     SliceDecoder.GetActivator(typeof({prx_impl}).Assembly);
 
 /// <summary>The proxy to the remote service.</summary>
-{access} IceRpc.Proxy Proxy {{ get; init; }}"#,
-                               access = access,
+public IceRpc.Proxy Proxy {{ get; init; }}"#,
                                interface_name = interface_def.identifier(),
                                prx_impl = prx_impl
             ).into());
@@ -89,8 +88,7 @@ private static readonly IActivator _defaultActivator =
                 format!(
                     r#"
 /// <summary>Implicit conversion to <see cref="{base_impl}"/>.</summary>
-{access} static implicit operator {base_impl}({prx_impl} prx) => new(prx.Proxy);"#,
-                    access = access,
+public static implicit operator {base_impl}({prx_impl} prx) => new(prx.Proxy);"#,
                     base_impl = base_impl,
                     prx_impl = prx_impl
                 )
@@ -115,7 +113,6 @@ private static readonly IActivator _defaultActivator =
 }
 
 fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
-    let access = interface_def.access_modifier();
     format!(
         r#"/// <summary>Creates a new <see cref="{prx_impl}"/> from the give connection and path.</summary>
 /// <param name="connection">The connection of the new proxy.</param>
@@ -123,7 +120,7 @@ fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
 /// <param name="invoker">The invoker. If null and connection is an incoming connection, the invoker is set to
 /// the server's invoker.</param>
 /// <returns>The new proxy.</returns>
-{access} static {prx_impl} FromConnection(
+public static {prx_impl} FromConnection(
     IceRpc.Connection connection,
     string? path = null,
     IceRpc.IInvoker? invoker = null) =>
@@ -132,7 +129,7 @@ fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
 /// <summary>Creates a new relative proxy with the given path.</summary>
 /// <param name="path">The path.</param>
 /// <returns>The new relative proxy.</returns>
-{access} static {prx_impl} FromPath(string path) => new(IceRpc.Proxy.FromPath(path));
+public static {prx_impl} FromPath(string path) => new(IceRpc.Proxy.FromPath(path));
 
 /// <summary>Creates a new <see cref="{prx_impl}"/> from a string and invoker.</summary>
 /// <param name="s">The string representation of the proxy.</param>
@@ -142,7 +139,7 @@ fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
 /// <returns>The new proxy.</returns>
 /// <exception cref="global::System.FormatException"><c>s</c> does not contain a valid string representation
 /// of a proxy.</exception>
-{access} static {prx_impl} Parse(string s, IceRpc.IInvoker? invoker = null, IceRpc.IProxyFormat? format = null) =>
+public static {prx_impl} Parse(string s, IceRpc.IInvoker? invoker = null, IceRpc.IProxyFormat? format = null) =>
     new((format ?? IceRpc.UriProxyFormat.Instance).Parse(s, invoker));
 
 /// <summary>Creates a new <see cref="{prx_impl}"/> from a string and invoker.</summary>
@@ -152,7 +149,7 @@ fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
 /// </param>
 /// <param name="prx">The new proxy.</param>
 /// <returns><c>true</c> if the s parameter was parsed successfully; otherwise, <c>false</c>.</returns>
-{access} static bool TryParse(string s, IceRpc.IInvoker? invoker, IceRpc.IProxyFormat? format, out {prx_impl} prx)
+public static bool TryParse(string s, IceRpc.IInvoker? invoker, IceRpc.IProxyFormat? format, out {prx_impl} prx)
 {{
     if ((format ?? IceRpc.UriProxyFormat.Instance).TryParse(s, invoker, out IceRpc.Proxy? proxy))
     {{
@@ -168,12 +165,11 @@ fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
 
 /// <summary>Constructs an instance of <see cref="{prx_impl}"/>.</summary>
 /// <param name="proxy">The proxy to the remote service.</param>
-{access} {prx_impl}(IceRpc.Proxy proxy) => Proxy = proxy;
+public {prx_impl}(IceRpc.Proxy proxy) => Proxy = proxy;
 
 /// <inheritdoc/>
-{access} override string ToString() => Proxy.ToString();"#,
+public override string ToString() => Proxy.ToString();"#,
         prx_impl = interface_def.proxy_implementation_name(),
-        access = access
     ).into()
 }
 
@@ -191,7 +187,6 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
     let cancel_parameter = escape_parameter_name(&operation.parameters(), "cancel");
 
     let void_return = operation.return_type.is_empty();
-    let access = operation.parent().unwrap().access_modifier();
 
     let encoding = operation.encoding.to_cs_encoding();
 
@@ -201,7 +196,8 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
         FunctionType::ExpressionBody
     };
 
-    let mut builder = FunctionBuilder::new(&access, &return_task, &async_operation_name, body_type);
+    let mut builder =
+        FunctionBuilder::new("public", &return_task, &async_operation_name, body_type);
     builder.set_inherit_doc(true);
     builder.add_operation_parameters(operation, TypeContext::Encode);
 
@@ -329,7 +325,7 @@ fn proxy_base_operation_impl(operation: &Operation) -> CodeBlock {
     operation_params.push(escape_parameter_name(&operation.parameters(), "cancel"));
 
     let mut builder = FunctionBuilder::new(
-        &operation.parent().unwrap().access_modifier(),
+        "public",
         &return_task,
         &async_name,
         FunctionType::ExpressionBody,
@@ -386,8 +382,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         return "".into();
     }
 
-    let access = interface_def.access_modifier();
-    let mut class_builder = ContainerBuilder::new(&format!("{} static class", access), "Request");
+    let mut class_builder = ContainerBuilder::new("public static class", "Request");
 
     class_builder.add_comment(
         "summary",
@@ -400,7 +395,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         assert!(!params.is_empty());
 
         let mut builder = FunctionBuilder::new(
-            &format!("{} static", access),
+            "public static",
             "global::System.IO.Pipelines.PipeReader",
             &operation.escape_identifier(),
             FunctionType::BlockBody,
@@ -452,9 +447,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         return "".into();
     }
 
-    let access = interface_def.access_modifier();
-
-    let mut class_builder = ContainerBuilder::new(&format!("{} static class", access), "Response");
+    let mut class_builder = ContainerBuilder::new("public static class", "Response");
 
     class_builder.add_comment(
         "summary",
@@ -473,7 +466,11 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         };
 
         let mut builder = FunctionBuilder::new(
-            &format!("{} static async", access),
+            if function_type == FunctionType::ExpressionBody {
+                "public static"
+            } else {
+                "public static async"
+            },
             &format!(
                 "global::System.Threading.Tasks.ValueTask<{}>",
                 members.to_tuple_type(namespace, TypeContext::Decode, false)
@@ -550,12 +547,12 @@ return {return_value_and_stream};
         writeln!(
             code,
             "\
-await response.DecodeReturnValueAsync(
+response.DecodeReturnValueAsync(
     request,
     {encoding},
     _defaultActivator,
     {response_decode_func},
-    cancel).ConfigureAwait(false)",
+    cancel)",
             encoding = encoding,
             response_decode_func = response_decode_func(operation).indent()
         );

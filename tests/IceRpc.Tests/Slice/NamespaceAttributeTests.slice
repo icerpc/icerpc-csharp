@@ -1,0 +1,34 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+[cs::namespace("IceRpc.Slice.Tests.NamespaceAttribute.WithNamespace")]
+module WithNamespace
+{
+    module N1::N2
+    {
+        struct S1
+        {
+            i: string,
+        }
+    }
+}
+
+// Verify that a top level module which contains __only__ submodules works
+[cs::namespace("IceRpc.Slice.Tests.NamespaceAttribute.M1")]
+module M0
+{
+    module M2::M3
+    {
+        struct S1
+        {
+            i: int32,
+        }
+    }
+}
+
+module IceRpc::Slice::Tests
+{
+    interface NamespaceOperations
+    {
+        op1(p: M0::M2::M3::S1) -> WithNamespace::N1::N2::S1;
+    }
+}

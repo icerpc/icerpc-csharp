@@ -96,9 +96,7 @@ namespace IceRpc
             // Read tracestate encoded as a string
             activity.TraceStateString = decoder.DecodeString();
 
-            // The min element size is 2 bytes for a struct with two empty strings.
             IEnumerable<(string key, string value)> baggage = decoder.DecodeSequence(
-                minElementSize: 2,
                 (ref SliceDecoder decoder) =>
                 {
                     string key = decoder.DecodeString();

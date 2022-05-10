@@ -3,7 +3,6 @@
 using IceRpc.Configure;
 using IceRpc.Slice;
 using IceRpc.Transports;
-using IceRpc.Transports.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
@@ -200,6 +199,14 @@ public class ConnectionTests
 
         // Assert
         Assert.That(async () => await connection.ConnectAsync(default), Throws.TypeOf<ConnectTimeoutException>());
+    }
+
+    /// <summary>Verifies that connecting without setting RemoteEndpoint fails.</summary>
+    [Test]
+    public async Task Connect_with_no_remote_endpoint_fails()
+    {
+        await using var connection = new Connection(new ConnectionOptions());
+        Assert.That(async () => await connection.ConnectAsync(), Throws.InvalidOperationException);
     }
 
     [Test]

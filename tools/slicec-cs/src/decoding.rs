@@ -207,12 +207,10 @@ pub fn decode_dictionary(dictionary_ref: &TypeRef<Dictionary>, namespace: &str) 
         format!(
             "\
 decoder.DecodeDictionaryWithBitSequence(
-    minKeySize: {min_key_size},
     size => new {dictionary_type}(size),
     {decode_key},
     {decode_value})",
             dictionary_type = dictionary_ref.to_type_string(namespace, TypeContext::Decode, true),
-            min_key_size = key_type.min_wire_size(),
             decode_key = decode_key.indent(),
             decode_value = decode_value.indent()
         )
@@ -220,13 +218,9 @@ decoder.DecodeDictionaryWithBitSequence(
         format!(
             "\
 decoder.DecodeDictionary(
-    minKeySize: {min_key_size},
-    minValueSize: {min_value_size},
     size => new {dictionary_type}(size),
     {decode_key},
     {decode_value})",
-            min_key_size = key_type.min_wire_size(),
-            min_value_size = value_type.min_wire_size(),
             dictionary_type = dictionary_ref.to_type_string(namespace, TypeContext::Decode, true),
             decode_key = decode_key.indent(),
             decode_value = decode_value.indent()
@@ -294,10 +288,8 @@ decoder.DecodeSequenceWithBitSequence(
                         code,
                         "\
 decoder.DecodeSequence(
-    minElementSize: {min_element_size},
     sequenceFactory: (size) => new {sequence_type}(size),
     {decode_func})",
-                        min_element_size = element_type.min_wire_size(),
                         sequence_type =
                             sequence_ref.to_type_string(namespace, TypeContext::Decode, true),
                         decode_func = decode_func(element_type, namespace).indent()
@@ -365,9 +357,7 @@ decoder.DecodeSequence(
                     code,
                     "\
 decoder.DecodeSequence(
-    minElementSize: {},
     {})",
-                    element_type.min_wire_size(),
                     decode_func(element_type, namespace).indent()
                 )
             }

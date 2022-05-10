@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Transports.Tests;
 

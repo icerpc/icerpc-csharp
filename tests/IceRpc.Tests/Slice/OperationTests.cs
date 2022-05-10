@@ -261,20 +261,6 @@ public class OperationGeneratedCodeTests
         Assert.That(r2, Is.EqualTo(20));
     }
 
-    // TODO check that the operation is defined as internal, or reject cs::internal attribute for operations.
-    [Test]
-    public async Task Operation_with_cs_internal_attribute()
-    {
-        // Arrange
-        await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyOperationsA())
-            .BuildServiceProvider();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
-
-        // Act/Assert
-        Assert.That(async () => await prx.OpWithCsInternalAttributeAsync(), Throws.Nothing);
-    }
-
     class MyOperationsA : Service, IMyOperationsA
     {
         public ValueTask ContinueAsync(Dispatch dispatch, CancellationToken cancel) => default;
@@ -336,8 +322,6 @@ public class OperationGeneratedCodeTests
         public ValueTask<IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult> OpWithMultipleReturnValuesAndEncodedResultAttributeAsync(
             Dispatch dispatch,
             CancellationToken cancel) => new(new IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult(10, 20));
-
-        public ValueTask OpWithCsInternalAttributeAsync(Dispatch dispatch, CancellationToken cancel) => default;
     }
 
     class MyDerivedOperationsA : MyOperationsA { }

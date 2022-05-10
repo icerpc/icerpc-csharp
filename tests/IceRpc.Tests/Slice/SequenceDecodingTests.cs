@@ -2,6 +2,7 @@
 
 using IceRpc.Slice.Internal;
 using NUnit.Framework;
+using System.Runtime.CompilerServices;
 
 namespace IceRpc.Slice.Tests;
 
@@ -26,7 +27,7 @@ public class SequenceDecodingTests
         }
         var sut = new SliceDecoder(buffer.WrittenMemory, encoding);
 
-        int[] result = sut.DecodeSequence(minElementSize: 4, (ref SliceDecoder decoder) => decoder.DecodeInt32());
+        int[] result = sut.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeInt32());
 
         Assert.That(result, Is.EqualTo(expected));
         Assert.That(sut.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
@@ -48,7 +49,7 @@ public class SequenceDecodingTests
         }
         var sut = new SliceDecoder(buffer.WrittenMemory, encoding);
 
-        string[] decoded = sut.DecodeSequence(minElementSize: 1, (ref SliceDecoder decoder) => decoder.DecodeString());
+        string[] decoded = sut.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeString());
 
         Assert.That(decoded, Is.EqualTo(expected));
         Assert.That(sut.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
@@ -79,5 +80,46 @@ public class SequenceDecodingTests
 
         // Assert
         Assert.That(decoded, Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void Decode_sequence_with_bit_sequence_exceeds_default_max_collection_allocation()
+    {
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        long?[] seq = new long?[100];
+        encoder.EncodeSequenceWithBitSequence(
+            seq,
+            (ref SliceEncoder encoder, long? value) => encoder.EncodeInt64(value!.Value));
+
+        Assert.That(
+            () =>
+            {
+                var sut = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+                _ = sut.DecodeSequenceWithBitSequence<long?>((ref SliceDecoder decoder) => decoder.DecodeInt64());
+            },
+            Throws.InstanceOf<InvalidDataException>());
+    }
+
+    [Test]
+    public void Decode_sequence_with_bit_sequence_and_custom_max_collection_allocation()
+    {
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        long?[] seq = new long?[100];
+        encoder.EncodeSequenceWithBitSequence(
+            seq,
+            (ref SliceEncoder encoder, long? value) => encoder.EncodeInt64(value!.Value));
+
+        Assert.That(
+            () =>
+            {
+                var sut = new SliceDecoder(
+                    buffer.WrittenMemory,
+                    SliceEncoding.Slice2,
+                    maxCollectionAllocation: seq.Length * Unsafe.SizeOf<long?>());
+                _ = sut.DecodeSequenceWithBitSequence<long?>((ref SliceDecoder decoder) => decoder.DecodeInt64());
+            },
+            Throws.Nothing);
     }
 }

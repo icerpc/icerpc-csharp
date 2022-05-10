@@ -8,6 +8,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -55,11 +56,17 @@ namespace IceRpc.Slice
         // Connection used when decoding relative proxies.
         private readonly Connection? _connection;
 
+        // The number of bytes already allocated for strings, dictionaries and sequences.
+        private int _currentCollectionAllocation;
+
         // The current depth when decoding a type recursively.
         private int _currentDepth;
 
         // Invoker used when decoding proxies.
         private readonly IInvoker _invoker;
+
+        // The maximum number of bytes that can be allocated for strings, dictionaries and sequences.
+        private readonly int _maxCollectionAllocation;
 
         // The maximum depth when decoding a type recursively.
         private readonly int _maxDepth;
@@ -74,14 +81,18 @@ namespace IceRpc.Slice
         /// <param name="invoker">The invoker of proxies decoded by this decoder. Use null to get the default invoker.
         /// </param>
         /// <param name="activator">The optional activator.</param>
-        /// <param name="maxDepth">The maximum depth when decoding a type recursively. <c>-1</c> uses the default.
-        /// </param>
+        /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
+        /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
+        /// length.</param>
+        /// <param name="maxDepth">The maximum depth when decoding a type recursively. <c>-1</c> uses the default value,
+        /// <c>100</c>.</param>
         public SliceDecoder(
             ReadOnlySequence<byte> buffer,
             SliceEncoding encoding,
             Connection? connection = null,
             IInvoker? invoker = null,
             IActivator? activator = null,
+            int maxCollectionAllocation = -1,
             int maxDepth = -1)
         {
             Encoding = encoding;
@@ -89,12 +100,19 @@ namespace IceRpc.Slice
             _activator = activator ?? _defaultActivator;
             _classContext = default;
             _connection = connection;
+            _currentCollectionAllocation = 0;
             _currentDepth = 0;
             _invoker = invoker ?? Proxy.DefaultInvoker;
 
+            _maxCollectionAllocation = maxCollectionAllocation == -1 ? 8 * (int)buffer.Length :
+                (maxCollectionAllocation >= 0 ? maxCollectionAllocation :
+                    throw new ArgumentException(
+                        $"{nameof(maxCollectionAllocation)} must be greater than or equal to -1",
+                        nameof(maxCollectionAllocation)));
+
             _maxDepth = maxDepth == -1 ? 100 :
                 (maxDepth >= 1 ? maxDepth :
-                    throw new ArgumentException($"{nameof(maxDepth)} must be -1 or greater than 1", nameof(maxDepth)));
+                    throw new ArgumentException($"{nameof(maxDepth)} must be -1 or greater than 0", nameof(maxDepth)));
 
             _reader = new SequenceReader<byte>(buffer);
         }
@@ -102,9 +120,13 @@ namespace IceRpc.Slice
         /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="encoding">The Slice encoding version.</param>
-        /// <param name="connection">The connection.</param>
-        /// <param name="invoker">The invoker.</param>
-        /// <param name="activator">The activator.</param>
+        /// <param name="connection">The connection, used only when decoding relative proxies.</param>
+        /// <param name="invoker">The invoker of proxies decoded by this decoder. Use null to get the default invoker.
+        /// </param>
+        /// <param name="activator">The optional activator.</param>
+        /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
+        /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
+        /// length.</param>
         /// <param name="maxDepth">The maximum depth when decoding a type recursively. <c>-1</c> uses the default.
         /// </param>
         public SliceDecoder(
@@ -113,8 +135,16 @@ namespace IceRpc.Slice
             Connection? connection = null,
             IInvoker? invoker = null,
             IActivator? activator = null,
+            int maxCollectionAllocation = -1,
             int maxDepth = -1)
-            : this(new ReadOnlySequence<byte>(buffer), encoding, connection, invoker, activator, maxDepth)
+            : this(
+                new ReadOnlySequence<byte>(buffer),
+                encoding,
+                connection,
+                invoker,
+                activator,
+                maxCollectionAllocation,
+                maxDepth)
         {
         }
 
@@ -204,6 +234,10 @@ namespace IceRpc.Slice
                 }
 
                 _reader.Advance(size);
+
+                // We can only compute the new allocation _after_ decoding the string. For dictionaries and sequences,
+                // we perform this check before the allocation.
+                IncreaseCollectionAllocation(result.Length * Unsafe.SizeOf<char>());
                 return result;
             }
         }
@@ -459,8 +493,9 @@ namespace IceRpc.Slice
         /// end of the tagged data members. When <c>false</c>, we are decoding a parameter and the end of the buffer
         /// marks the end of the tagged parameters.</param>
         /// <returns>The decoded value of the tagged parameter or data member, or null if not found.</returns>
-        /// <remarks>When T is a value type, it should be a nullable value type such as int?.</remarks>
-        public T DecodeTagged<T>(int tag, DecodeFunc<T> decodeFunc, bool useTagEndMarker)
+        /// <remarks>We return a T? and not a T to avoid ambiguities in the generated code with nullable reference
+        /// types such as string?</remarks>
+        public T? DecodeTagged<T>(int tag, DecodeFunc<T> decodeFunc, bool useTagEndMarker)
         {
             if (Encoding == SliceEncoding.Slice1)
             {
@@ -491,7 +526,7 @@ namespace IceRpc.Slice
                     // and continue while loop
                 }
             }
-            return default!;
+            return default;
         }
 
         /// <summary>Decodes a Slice1-encoded tagged parameter or data member.</summary>
@@ -648,72 +683,48 @@ namespace IceRpc.Slice
             _reader.AdvanceToEnd();
         }
 
-        /// <summary>Decodes a dictionary size and makes sure there is enough space in the underlying buffer to decode
-        /// the dictionary. This validation is performed to make sure we do not allocate a large dictionary based on an
-        /// invalid encoded size.</summary>
-        /// <param name="minKeySize">The minimum encoded size of a key, in bytes.</param>
-        /// <param name="minValueSize">The minimum encoded size of a value, in bytes. It's 0 for values with an optional
-        /// type.</param>
-        /// <returns>The number of elements in the dictionary.</returns>
-        internal int DecodeAndCheckDictionarySize(int minKeySize, int minValueSize)
+        internal void IncreaseCollectionAllocation(int byteCount)
         {
-            if (minKeySize <= 0)
+            _currentCollectionAllocation += byteCount;
+            if (_currentCollectionAllocation > _maxCollectionAllocation)
             {
-                throw new ArgumentException($"{nameof(minKeySize)} must be greater than 0", nameof(minKeySize));
+                throw new InvalidDataException(
+                    $"decoding exceeds max collection allocation of '{_maxCollectionAllocation}'");
             }
-
-            Debug.Assert(minValueSize >= 0);
-
-            int size = DecodeSize();
-
-            if (size == 0)
-            {
-                return 0;
-            }
-
-            int minSize = (size * minKeySize) +
-                (minValueSize > 0 ? size * minValueSize : SliceEncoder.GetBitSequenceByteCount(size));
-
-            return _reader.Remaining >= minSize ? size : throw new InvalidDataException("invalid dictionary size");
-        }
-
-        /// <summary>Decodes a sequence size and makes sure there is enough space in the underlying buffer to decode the
-        /// sequence. This validation is performed to make sure we do not allocate a large container based on an
-        /// invalid encoded size.</summary>
-        /// <param name="minElementSize">The minimum encoded size of an element of the sequence, in bytes. It's 0 for an
-        /// optional type.</param>
-        /// <returns>The number of elements in the sequence.</returns>
-        internal int DecodeAndCheckSequenceSize(int minElementSize)
-        {
-            Debug.Assert(minElementSize >= 0);
-
-            int size = DecodeSize();
-
-            if (size == 0)
-            {
-                return 0;
-            }
-
-            int minSize = minElementSize > 0 ? size * minElementSize : SliceEncoder.GetBitSequenceByteCount(size);
-
-            return _reader.Remaining >= minSize ? size : throw new InvalidDataException("invalid sequence size");
         }
 
         /// <summary>Decodes non-empty field dictionary without making a copy of the field values.</summary>
         /// <returns>The fields dictionary. The field values reference memory in the underlying buffer. They are not
         /// copied.</returns>
         internal Dictionary<TKey, ReadOnlySequence<byte>> DecodeShallowFieldDictionary<TKey>(
-            int size,
+            int count,
             DecodeFunc<TKey> decodeKeyFunc) where TKey : struct
         {
-            Debug.Assert(size > 0);
+            Debug.Assert(count > 0);
 
-            var fields = new Dictionary<TKey, ReadOnlySequence<byte>>(size);
+            // We don't use the normal collection allocation check here because SizeOf<ReadOnlySequence<byte>> is quite
+            // large (24).
+            // For example, say we decode a fields dictionary with a single field with an empty value. It's encoded
+            // using 1 byte (dictionary size) + 1 byte (key) + 1 byte (value size) = 3 bytes. The decoder's default max
+            // allocation size is 3 * 8 = 24. If we simply call IncreaseCollectionAllocation(1 * (4 + 24)), we'll exceed
+            // the default collection allocation limit. (sizeof TKey is currently 4 but could/should increase to 8).
 
-            for (int i = 0; i < size; ++i)
+            // Each field consumes at least 2 bytes: 1 for the key and one for the value size.
+            if (count * 2 > _reader.Remaining)
+            {
+                throw new InvalidDataException("too many fields");
+            }
+
+            var fields = new Dictionary<TKey, ReadOnlySequence<byte>>(count);
+
+            for (int i = 0; i < count; ++i)
             {
                 TKey key = decodeKeyFunc(ref this);
                 int valueSize = DecodeSize();
+                if (valueSize > _reader.Remaining)
+                {
+                    throw new InvalidDataException($"the value of field '{key}' extends beyond the end of the buffer");
+                }
                 ReadOnlySequence<byte> value = _reader.UnreadSequence.Slice(0, valueSize);
                 _reader.Advance(valueSize);
                 fields.Add(key, value);
@@ -1086,16 +1097,14 @@ namespace IceRpc.Slice
                     $"received proxy with invalid protocolMinor value: {proxyData.ProtocolMinor}");
             }
 
-            // The min size for an Endpoint with Slice1 is: transport (short = 2 bytes) + encapsulation
-            // header (6 bytes), for a total of 8 bytes.
-            int size = DecodeAndCheckSequenceSize(8);
+            int count = DecodeSize();
 
             Endpoint? endpoint = null;
             IEnumerable<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
             var protocol = Protocol.FromByte(proxyData.ProtocolMajor);
             ImmutableDictionary<string, string> proxyParams = ImmutableDictionary<string, string>.Empty;
 
-            if (size == 0)
+            if (count == 0)
             {
                 if (DecodeString() is string adapterId && adapterId.Length > 0)
                 {
@@ -1105,10 +1114,14 @@ namespace IceRpc.Slice
             else
             {
                 endpoint = DecodeEndpoint(protocol);
-                if (size >= 2)
+                if (count >= 2)
                 {
-                    var endpointArray = new Endpoint[size - 1];
-                    for (int i = 0; i < size - 1; ++i)
+                    // A slice1 encoded endpoint consumes at least 8 bytes (2 bytes for the endpoint type and 6 bytes
+                    // for the encapsulation header). SizeOf Endpoint is large but less than 8 * 8.
+                    IncreaseCollectionAllocation(count * Unsafe.SizeOf<Endpoint>());
+
+                    var endpointArray = new Endpoint[count - 1];
+                    for (int i = 0; i < count - 1; ++i)
                     {
                         endpointArray[i] = DecodeEndpoint(protocol);
                     }

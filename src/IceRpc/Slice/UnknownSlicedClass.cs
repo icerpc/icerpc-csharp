@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Collections.Immutable;
-
 namespace IceRpc.Slice
 {
     /// <summary>UnknownSlicedClass represents a fully sliced class instance. The local IceRPC runtime does not know

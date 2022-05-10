@@ -44,7 +44,7 @@ public sealed record class IceClientOptions : IceOptions
 {
     /// <summary>Returns the default value for <see cref="ClientTransport"/>.</summary>
     public static IClientTransport<ISimpleNetworkConnection> DefaultClientTransport { get; } =
-        new CompositeSimpleClientTransport().UseTcp();
+        new TcpClientTransport();
 
     /// <summary>Gets or sets the <see cref="IClientTransport{ISimpleNetworkConnection}"/> used by this
     /// connection to create simple network connections.</summary>
@@ -56,7 +56,7 @@ public sealed record class IceServerOptions : IceOptions
 {
     /// <summary>Returns the default value for <see cref="ServerTransport"/>.</summary>
     public static IServerTransport<ISimpleNetworkConnection> DefaultServerTransport { get; } =
-        new CompositeSimpleServerTransport().UseTcp();
+        new TcpServerTransport();
 
     /// <summary>Gets or sets the <see cref="IServerTransport{ISimpleNetworkConnection}"/> used by the server
     /// to accept simple connections.</summary>

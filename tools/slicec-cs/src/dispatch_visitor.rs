@@ -85,12 +85,11 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         return "".into();
     }
 
-    let access = interface_def.access_modifier();
     let mut class_builder = ContainerBuilder::new(
-        &if bases.is_empty() {
-            format!("{} static class", access)
+        if bases.is_empty() {
+            "public static class"
         } else {
-            format!("{} static new class", access)
+            "public static new class"
         },
         "Request",
     );
@@ -111,10 +110,12 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             FunctionType::ExpressionBody
         };
 
-        // We need the async/await for proper type inference when returning tuples with nullable
-        // elements like string?.
         let mut builder = FunctionBuilder::new(
-            &format!("{} static async", access),
+            if function_type == FunctionType::BlockBody {
+                "public static async"
+            } else {
+                "public static"
+            },
             &format!(
                 "global::System.Threading.Tasks.ValueTask<{}>",
                 &parameters.to_tuple_type(namespace, TypeContext::Decode, false)
@@ -161,12 +162,11 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         return "".into();
     }
 
-    let access = interface_def.access_modifier();
     let mut class_builder = ContainerBuilder::new(
-        &if bases.is_empty() {
-            format!("{} static class", access)
+        if bases.is_empty() {
+            "public static class"
         } else {
-            format!("{} static new class", access)
+            "public static new class"
         },
         "Response",
     );
@@ -183,7 +183,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         let operation_name = &operation.escape_identifier();
 
         let mut builder = FunctionBuilder::new(
-            &format!("{} static", access),
+            "public static",
             "global::System.IO.Pipelines.PipeReader",
             operation_name,
             FunctionType::BlockBody,
@@ -273,11 +273,11 @@ return {args_and_stream};",
         writeln!(
             code,
             "\
-await request.DecodeArgsAsync(
+request.DecodeArgsAsync(
     {encoding},
     _defaultActivator,
     {decode_func},
-    cancel).ConfigureAwait(false)
+    cancel)
 ",
             encoding = encoding,
             decode_func = request_decode_func(operation).indent()
@@ -316,7 +316,7 @@ fn request_decode_func(operation: &Operation) -> CodeBlock {
 
 fn operation_declaration(operation: &Operation) -> CodeBlock {
     FunctionBuilder::new(
-        &operation.parent().unwrap().access_modifier(),
+        "public",
         &operation.return_task(true),
         &(operation.escape_identifier_with_suffix("Async")),
         FunctionType::Declaration,
