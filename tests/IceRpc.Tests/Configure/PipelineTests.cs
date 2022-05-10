@@ -16,13 +16,13 @@ public class PipelineTests
         // Arrange
         var pipeline = new Pipeline();
         pipeline.Use(next => new InlineInvoker((request, cancel) =>
-                Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc))));
+                Task.FromResult(new IncomingResponse(request, request.Connection!))));
         pipeline.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
 
         // Assert/Act
         Assert.Throws<InvalidOperationException>(
             () => pipeline.Use(next => new InlineInvoker((request, cancel) =>
-                Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc)))));
+                Task.FromResult(new IncomingResponse(request, request.Connection!)))));
     }
 
     /// <summary>Verifies that the pipeline interceptors are called in the expected order. That corresponds
@@ -54,7 +54,7 @@ public class PipelineTests
             .Use(next => new InlineInvoker((request, cancel) =>
                 {
                     calls.Add("invoker-4");
-                    return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
+                    return Task.FromResult(new IncomingResponse(request, request.Connection!));
                 }));
 
         pipeline.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
@@ -85,7 +85,7 @@ public class PipelineTests
             .Use(next => new InlineInvoker((request, cancel) =>
                 {
                     calls.Add("invoker-3");
-                    return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
+                    return Task.FromResult(new IncomingResponse(request, request.Connection!));
                 }));
 
         pipeline.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
@@ -109,7 +109,7 @@ public class PipelineTests
         pipeline.Use(next => new InlineInvoker((request, cancel) =>
         {
             feature = request.Features.Get<string>();
-            return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
+            return Task.FromResult(new IncomingResponse(request, request.Connection!));
         }));
         pipeline.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
         Assert.That(feature, Is.EqualTo(expected));
