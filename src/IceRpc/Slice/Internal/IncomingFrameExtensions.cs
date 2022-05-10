@@ -29,7 +29,10 @@ namespace IceRpc.Slice.Internal
             DecodeFunc<T> decodeFunc,
             CancellationToken cancel)
         {
-            return frame.Payload.TryReadSegment(encoding, out ReadResult readResult) ? new(DecodeSegment(readResult)) :
+            return frame.Payload.TryReadSegment(
+                encoding,
+                maxSize: 4_000_000, // TODO: configuration
+                out ReadResult readResult) ? new(DecodeSegment(readResult)) :
                 PerformDecodeAsync();
 
             // All the logic is in this local function.
@@ -55,7 +58,10 @@ namespace IceRpc.Slice.Internal
             }
 
             async ValueTask<T> PerformDecodeAsync() =>
-                DecodeSegment(await frame.Payload.ReadSegmentAsync(encoding, cancel).ConfigureAwait(false));
+                DecodeSegment(await frame.Payload.ReadSegmentAsync(
+                    encoding,
+                    maxSize: 4_000_000, // TODO: configuration
+                    cancel).ConfigureAwait(false));
         }
 
         /// <summary>Reads/decodes empty args or a void return value.</summary>
@@ -67,7 +73,7 @@ namespace IceRpc.Slice.Internal
             SliceEncoding encoding,
             CancellationToken cancel)
         {
-            if (frame.Payload.TryReadSegment(encoding, out ReadResult readResult))
+            if (frame.Payload.TryReadSegment(encoding, maxSize: 4_000_000, out ReadResult readResult))
             {
                 DecodeSegment(readResult);
                 return default;
@@ -92,7 +98,10 @@ namespace IceRpc.Slice.Internal
             }
 
             async ValueTask PerformDecodeAsync() =>
-                DecodeSegment(await frame.Payload.ReadSegmentAsync(encoding, cancel).ConfigureAwait(false));
+                DecodeSegment(await frame.Payload.ReadSegmentAsync(
+                    encoding,
+                    maxSize: 4_000_000,
+                    cancel).ConfigureAwait(false));
         }
 
         /// <summary>Creates an async enumerable over a pipe reader to decode streamed members.</summary>
@@ -164,7 +173,10 @@ namespace IceRpc.Slice.Internal
 
                     try
                     {
-                        readResult = await payload.ReadSegmentAsync(encoding, cancel).ConfigureAwait(false);
+                        readResult = await payload.ReadSegmentAsync(
+                            encoding,
+                            maxSize: 4_000_000, // TODO: configuration
+                            cancel).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
