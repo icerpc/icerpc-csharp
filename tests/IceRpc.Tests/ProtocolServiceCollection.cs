@@ -13,16 +13,15 @@ using System.Net.Security;
 namespace IceRpc.Tests;
 
 /// <summary>A helper struct to ensure the network and protocol connections are correctly disposed.</summary>
-internal struct ClientServerProtocolConnection : IAsyncDisposable
+internal struct ClientServerProtocolConnection : IDisposable
 {
     internal IProtocolConnection Client { get; }
     internal IProtocolConnection Server { get; }
 
-    public async ValueTask DisposeAsync()
+    public void  Dispose()
     {
-        ValueTask clientDisposeTask = Client.DisposeAsync();
-        await Server.DisposeAsync();
-        await clientDisposeTask;
+        Client.Dispose();
+        Server.Dispose();
     }
 
     internal ClientServerProtocolConnection(IProtocolConnection clientConnection, IProtocolConnection serverConnection)

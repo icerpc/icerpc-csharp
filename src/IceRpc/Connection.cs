@@ -69,7 +69,9 @@ namespace IceRpc
 
         private IProtocolConnection? _protocolConnection;
 
-        private CancellationTokenSource? _protocolShutdownCancellationSource;
+#pragma warning disable CA2213 // IDisposable type which is never disposed
+        private CancellationTokenSource? _protocolShutdownCancellationSource; // Disposed by Close
+#pragma warning restore CA2213
 
         private ConnectionState _state = ConnectionState.NotConnected;
 
@@ -79,7 +81,9 @@ namespace IceRpc
         // once the state update completes. It's protected with _mutex.
         private Task? _stateTask;
 
-        private Timer? _timer;
+#pragma warning disable CA2213 // IDisposable type which is never disposed
+        private Timer? _timer; // Disposed by Close
+#pragma warning restore CA2213
 
         /// <summary>Constructs a client connection.</summary>
         /// <param name="options">The connection options.</param>
@@ -101,7 +105,7 @@ namespace IceRpc
         /// <summary>Aborts the connection. This methods switches the connection state to <see
         /// cref="ConnectionState.NotConnected"/> if <see cref="ConnectionOptions.IsResumable"/> is <c>true</c>,
         /// otherwise it will be <see cref="ConnectionState.Closed"/>.</summary>
-        public void Abort() => Abort(new ConnectionAbortedException());
+        public void Abort() => Close(new ConnectionAbortedException());
 
         /// <summary>Establishes the connection.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -261,11 +265,11 @@ namespace IceRpc
             }
             catch (ConnectionLostException exception)
             {
-                // If the network connection is lost while sending the request, we abort the connection now instead of
+                // If the network connection is lost while sending the request, we close the connection now instead of
                 // waiting for AcceptRequestsAsync to throw. It's necessary to ensure that the next InvokeAsync will
                 // fail with ConnectionClosedException (it's important to ensure retries don't occur on this connection
                 // again).
-                Abort(exception);
+                Close(exception, protocolConnection);
                 throw;
             }
             catch (ConnectionClosedException exception)
@@ -340,7 +344,7 @@ namespace IceRpc
 
             if (shutdownTask == null)
             {
-                Abort(new ConnectionClosedException(message));
+                Close(new ConnectionClosedException(message));
             }
             else
             {
@@ -455,21 +459,22 @@ namespace IceRpc
                             {
                                 exception = ex;
                             }
-
-                            // TODO: support null abort exception.
-                            Abort(new ConnectionClosedException("connection shutdown"), protocolConnection);
+                            finally
+                            {
+                                Close(exception, protocolConnection);
+                            }
                         });
                 }
             }
             catch (OperationCanceledException)
             {
                 var exception = new ConnectTimeoutException();
-                Abort(exception);
+                Close(exception);
                 throw exception;
             }
             catch (Exception exception)
             {
-                Abort(exception);
+                Close(exception);
                 throw;
             }
         }
@@ -496,7 +501,7 @@ namespace IceRpc
                         // within the synchronization since it calls the "on close" callbacks so we call it from a
                         // thread poll thread.
                         IProtocolConnection protocolConnection = _protocolConnection;
-                        Task.Run(() => Abort(
+                        Task.Run(() => Close(
                             new ConnectionAbortedException("connection timed out"),
                             protocolConnection));
                     }
@@ -522,28 +527,28 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Aborts the connection. This will forcefully close the connection if the connection hasn't been
-        /// shutdown gracefully. Resources allocated for the connection are freed. If <see
+        /// <summary>Closes the connection. Resources allocated for the connection are freed. If <see
         /// cref="ConnectionOptions.IsResumable"/> is <c>true</c> the connection can be re-established once this method
         /// returns by calling <see cref="ConnectAsync"/>.</summary>
-        private void Abort(Exception exception, IProtocolConnection? protocolConnection = null)
+        private void Close(Exception? exception, IProtocolConnection? protocolConnection = null)
         {
             lock (_mutex)
             {
-                // Abort the connection if it's not already closed or if the connection wasn't resumed shortly before
-                // Abort is called.
                 if (_state == ConnectionState.NotConnected ||
                     _state == ConnectionState.Closed ||
-                    (_protocolConnection != null && _protocolConnection != protocolConnection))
+                    _protocolConnection == null ||
+                    _protocolConnection != protocolConnection)
                 {
                     return;
                 }
 
-                if (_protocolConnection != null)
+                if (exception != null)
                 {
                     _protocolConnection.Abort(exception);
-                    _protocolConnection = null;
                 }
+
+                _protocolConnection.Dispose();
+                _protocolConnection = null;
 
                 if (_timer != null)
                 {
@@ -569,7 +574,9 @@ namespace IceRpc
                 try
                 {
                     // TODO: pass a null exception instead? See issue #1100.
-                    (_onClose + _options?.OnClose)?.Invoke(this, exception);
+                    (_onClose + _options?.OnClose)?.Invoke(
+                        this,
+                        exception ?? new ConnectionClosedException());
                 }
                 catch
                 {
@@ -605,25 +612,26 @@ namespace IceRpc
             await Task.Yield();
 
             using var closeTimeoutTimer = new Timer(
-                value => Abort(new ConnectionAbortedException("shutdown timed out")),
+                value => Close(new ConnectionAbortedException("shutdown timed out")),
                 state: null,
                 dueTime: _options.CloseTimeout,
                 period: Timeout.InfiniteTimeSpan);
 
+            Exception? exception = null;
             try
             {
                 // Shutdown the connection. If the given cancellation token is canceled, pending invocations and
                 // dispatches are canceled to speed up shutdown. Otherwise, the protocol shutdown is canceled on close
                 // timeout.
                 await protocolConnection.ShutdownAsync(message, cancel).ConfigureAwait(false);
-
-                // Close the connection.
-                // TODO: support null abort exception.
-                Abort(new ConnectionClosedException(message));
             }
             catch (Exception ex)
             {
-                Abort(new ConnectionAbortedException(message, ex));
+                exception = ex;
+            }
+            finally
+            {
+                Close(exception);
             }
         }
     }

@@ -102,7 +102,7 @@ public sealed class ProtocolConnectionTests
                 })
             })
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         Connection connection = serviceProvider.GetInvalidConnection();
 
         sut.Client.PeerShutdownInitiated += (message) => sut.Client.ShutdownAsync("shutdown", default);
@@ -167,7 +167,7 @@ public sealed class ProtocolConnectionTests
 
         // Assert
         Assert.That(await result.Task, Is.True);
-        await sut!.Value.DisposeAsync();
+        sut!.Value.Dispose();
     }
 
     /// <summary>Ensures that the connection HasDispatchInProgress works.</summary>
@@ -196,7 +196,7 @@ public sealed class ProtocolConnectionTests
 
         // Assert
         Assert.That(await result.Task, Is.True);
-        await sut!.Value.DisposeAsync();
+        sut!.Value.Dispose();
     }
 
     [Test, TestCaseSource(nameof(_protocols))]
@@ -204,11 +204,11 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         await using var serviceProvider = new ProtocolServiceCollection().UseProtocol(protocol).BuildServiceProvider();
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
         // Act
-        await sut.Client.DisposeAsync();
-        await sut.Server.DisposeAsync();
+        sut.Client.Dispose();
+        sut.Server.Dispose();
     }
 
     /// <summary>Verifies that disposing the server connection kills pending invocations, peer invocations will fail
@@ -233,14 +233,14 @@ public sealed class ProtocolConnectionTests
                 })
             })
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         Connection connection = serviceProvider.GetInvalidConnection();
 
         var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
-        await sut.Server.DisposeAsync();
+        sut.Server.Dispose();
 
         // Assert
         Assert.That(async () => await invokeTask, Throws.TypeOf<ConnectionLostException>());
@@ -268,14 +268,14 @@ public sealed class ProtocolConnectionTests
                 })
             })
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         Connection connection = serviceProvider.GetInvalidConnection();
 
         var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
-        await sut.Client.DisposeAsync();
+        sut.Client.Dispose();
 
         // Assert
         Assert.That(async () => await invokeTask, Throws.TypeOf<ObjectDisposedException>());
@@ -289,7 +289,7 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         await using var serviceProvider = new ProtocolServiceCollection().UseProtocol(protocol).BuildServiceProvider();
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         Connection connection = serviceProvider.GetInvalidConnection();
 
         _ = sut.Client.ShutdownAsync("");
@@ -309,7 +309,7 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         await using var serviceProvider = new ProtocolServiceCollection().UseProtocol(protocol).BuildServiceProvider();
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         Connection connection = serviceProvider.GetInvalidConnection();
 
         var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
@@ -342,7 +342,7 @@ public sealed class ProtocolConnectionTests
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         Connection connection = serviceProvider.GetInvalidConnection();
 
         // Act
@@ -368,7 +368,7 @@ public sealed class ProtocolConnectionTests
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         Connection connection = serviceProvider.GetInvalidConnection();
 
         // Act
@@ -398,7 +398,7 @@ public sealed class ProtocolConnectionTests
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         Connection connection = serviceProvider.GetInvalidConnection();
 
         // Act
@@ -416,7 +416,7 @@ public sealed class ProtocolConnectionTests
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         Connection connection = serviceProvider.GetInvalidConnection();
 
         var request = new OutgoingRequest(new Proxy(protocol));
@@ -457,7 +457,7 @@ public sealed class ProtocolConnectionTests
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         Connection connection = serviceProvider.GetInvalidConnection();
 
         // Act
@@ -477,7 +477,7 @@ public sealed class ProtocolConnectionTests
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
         {
@@ -525,7 +525,7 @@ public sealed class ProtocolConnectionTests
             .UseProtocol(Protocol.IceRpc)
             .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
         // Act
         _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)), InvalidConnection.IceRpc);
@@ -541,7 +541,7 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         await using var serviceProvider = new ProtocolServiceCollection().UseProtocol(protocol).BuildServiceProvider();
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
         IProtocolConnection connection1 = connectionType == ConnectionType.Client ? sut.Server : sut.Client;
         IProtocolConnection connection2 = connectionType == ConnectionType.Client ? sut.Client : sut.Server;
@@ -577,7 +577,7 @@ public sealed class ProtocolConnectionTests
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         Connection connection = serviceProvider.GetInvalidConnection();
 
         var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
@@ -615,7 +615,7 @@ public sealed class ProtocolConnectionTests
                 })
             })
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         Connection connection = serviceProvider.GetInvalidConnection();
 
         sut.Client.PeerShutdownInitiated = message => _ = sut.Client.ShutdownAsync(message);

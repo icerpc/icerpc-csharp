@@ -13,6 +13,8 @@ namespace IceRpc.Transports.Internal
     {
         private readonly IMultiplexedNetworkConnection _decoratee;
 
+        public void Abort(Exception exception) => _decoratee.Abort(exception);
+
         public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel) =>
             new LogMultiplexedStreamDecorator(
                 await _decoratee.AcceptStreamAsync(cancel).ConfigureAwait(false),

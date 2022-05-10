@@ -157,19 +157,10 @@ namespace IceRpc.Internal
 
                 // Read frames until the CloseConnection frame is received.
                 await ReadFramesAsync(connection, _readCancelSource.Token).ConfigureAwait(false);
-
-                // The CloseConnection frame has been received, we can abort the connection.
-                Abort(new ConnectionClosedException("connection shutdown by peer"));
             }
             catch (ConnectionLostException) when (_isShutdown)
             {
-                // The peer closed the connection after we sent the CloseConnection frame.
-                Abort(new ConnectionClosedException("connection shutdown locally"));
-            }
-            catch (Exception exception)
-            {
-                Abort(exception);
-                throw;
+                // Ignore, the peer closed the connection after we sent the CloseConnection frame.
             }
             finally
             {
@@ -177,8 +168,9 @@ namespace IceRpc.Internal
             }
         }
 
-        public async ValueTask DisposeAsync() =>
-            await ShutdownAsync("connection disposed", new CancellationToken(canceled: true)).ConfigureAwait(false);
+        public void Dispose()
+        {
+        }
 
         public async Task<IncomingResponse> InvokeAsync(
             OutgoingRequest request,

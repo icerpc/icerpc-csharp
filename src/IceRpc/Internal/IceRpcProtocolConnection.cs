@@ -43,6 +43,7 @@ namespace IceRpc.Internal
 
         private IMultiplexedStream? _controlStream;
         private readonly HashSet<CancellationTokenSource> _cancelDispatchSources = new();
+        private readonly AsyncSemaphore _controlStreamWriteSemaphore = new(1, 1);
         private readonly IDispatcher _dispatcher;
         private readonly TaskCompletionSource _streamsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -60,26 +61,7 @@ namespace IceRpc.Internal
         private readonly TaskCompletionSource _waitForGoAwayCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public void Abort(Exception exception)
-        {
-            _networkConnection.Dispose();
-
-            _ = AbortAsync();
-
-            static Task AbortAsync()
-            {
-                // TODO: We need to add some synchronization to make sure these streams aren't used concurrently.
-                // if (_controlStream != null)
-                // {
-                //     _controlStream.Output.Complete(exception);
-                // }
-                // if (_remoteControlStream != null)
-                // {
-                //     _remoteControlStream.Input.Complete(exception);
-                // }
-                return Task.CompletedTask;
-            }
-        }
+        public void Abort(Exception exception) => _networkConnection.Abort(exception);
 
         public async Task AcceptRequestsAsync(Connection connection)
         {
@@ -387,8 +369,26 @@ namespace IceRpc.Internal
             }
         }
 
-        public async ValueTask DisposeAsync() =>
-            await ShutdownAsync("connection disposed", new CancellationToken(canceled: true)).ConfigureAwait(false);
+        public void Dispose()
+        {
+            _networkConnection.Dispose();
+
+            _ = DisposeCore();
+
+            async Task DisposeCore()
+            {
+                Debug.Assert(_controlStream != null && _remoteControlStream != null);
+
+                var exception = new ObjectDisposedException($"{typeof(IceRpcProtocolConnection)}");
+
+                // Wait for operations on control streams to complete.
+                await _controlStreamWriteSemaphore.CompleteAndWaitAsync(exception).ConfigureAwait(false);
+                await _waitForGoAwayCompleted.Task.ConfigureAwait(false);
+
+                await _controlStream.Output.CompleteAsync(exception).ConfigureAwait(false);
+                await _remoteControlStream.Input.CompleteAsync(exception).ConfigureAwait(false);
+            }
+        }
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             _networkConnection.HasCompatibleParams(remoteEndpoint);
@@ -636,19 +636,12 @@ namespace IceRpc.Internal
                 MultiplexedStreamAbortedException exception = IceRpcStreamError.ConnectionShutdown.ToException();
                 foreach (IMultiplexedStream stream in streams)
                 {
-                    // TODO: should we just abort streams for invocations here???
                     stream.Abort(exception);
                 }
 
                 // Wait again for streams to complete.
                 await _streamsCompleted.Task.ConfigureAwait(false);
             }
-
-            // Close the control stream and wait for the peer to close its control stream.
-            Debug.Assert(_controlStream != null && _remoteControlStream != null);
-            await _controlStream.Output.CompleteAsync().ConfigureAwait(false);
-            await _remoteControlStream.Input.ReadAsync(CancellationToken.None).ConfigureAwait(false);
-            await _remoteControlStream.Input.CompleteAsync().ConfigureAwait(false);
 
             // We can now shutdown the connection. This will cause the peer AcceptStreamAsync call to return.
             try
@@ -660,7 +653,6 @@ namespace IceRpc.Internal
             {
                 // Ignore, the peer already closed the connection.
             }
-
         }
 
         internal IceRpcProtocolConnection(
@@ -872,25 +864,38 @@ namespace IceRpc.Internal
             }
         }
 
-        private ValueTask<FlushResult> SendControlFrameAsync(
+        private async ValueTask<FlushResult> SendControlFrameAsync(
             IceRpcControlFrameType frameType,
             EncodeAction? encodeAction,
             CancellationToken cancel)
         {
-            PipeWriter output = _controlStream!.Output;
-            output.GetSpan()[0] = (byte)frameType;
-            output.Advance(1);
-
-            if (encodeAction != null)
+            await _controlStreamWriteSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+            try
             {
-                var encoder = new SliceEncoder(output, SliceEncoding.Slice2);
+                PipeWriter output = _controlStream!.Output;
+                output.GetSpan()[0] = (byte)frameType;
+                output.Advance(1);
+
+                if (encodeAction != null)
+                {
+                    EncodeFrame(output);
+                }
+
+                return await output.FlushAsync(cancel).ConfigureAwait(false);
+            }
+            finally
+            {
+                _controlStreamWriteSemaphore.Release();
+            }
+
+            void EncodeFrame(IBufferWriter<byte> buffer)
+            {
+                var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
                 Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2); // TODO: switch to MaxHeaderSize
                 int startPos = encoder.EncodedByteCount; // does not include the size
                 encodeAction?.Invoke(ref encoder);
                 SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
             }
-
-            return output.FlushAsync(cancel);
         }
 
         /// <summary>Sends the payload and payload stream of an outgoing frame. SendPayloadAsync completes the payload

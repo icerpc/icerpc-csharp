@@ -4,7 +4,7 @@ namespace IceRpc.Internal
 {
     /// <summary>A protocol connection enables communication over a network connection using either the ice or icerpc
     /// protocol.</summary>
-    internal interface IProtocolConnection : IAsyncDisposable
+    internal interface IProtocolConnection : IDisposable
     {
         /// <summary>Returns <c>true</c> if one or more dispatches are in progress, <c>false</c>
         /// otherwise.</summary>

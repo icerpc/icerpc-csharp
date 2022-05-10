@@ -6,6 +6,10 @@ namespace IceRpc.Transports
     /// cref="INetworkConnection.ConnectAsync"/> before calling other methods.</summary>
     public interface IMultiplexedNetworkConnection : INetworkConnection
     {
+        /// <summary>Aborts the connection. This will call <see cref="IMultiplexedStream.Abort"/> on each stream and
+        /// prevent any new streams from being created or accepted.</summary>
+        void Abort(Exception exception);
+
         /// <summary>Accepts a remote stream.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <return>The remote stream.</return>

@@ -54,6 +54,30 @@ namespace IceRpc.Transports.Internal
         private readonly ISlicFrameWriter _writer;
         private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
+        public void Abort(Exception exception)
+        {
+            lock (_mutex)
+            {
+                if (_exception != null)
+                {
+                    return;
+                }
+                _exception = exception;
+            }
+
+            // Unblock requests waiting on the semaphores.
+            _bidirectionalStreamSemaphore?.Complete(_exception);
+            _unidirectionalStreamSemaphore?.Complete(_exception);
+            _writeSemaphore.Complete(_exception);
+
+            foreach (SlicMultiplexedStream stream in _streams.Values)
+            {
+                stream.Abort(_exception);
+            }
+
+            _acceptStreamQueue.TryComplete(_exception);
+        }
+
         public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel) =>
             _acceptStreamQueue.DequeueAsync(cancel);
 
@@ -203,13 +227,12 @@ namespace IceRpc.Transports.Internal
                         // Send back a Close frame to the peer with the same error code.
                         await ShutdownAsync(errorCode, _readCancelSource.Token).ConfigureAwait(false);
 
-                        // It's time for AcceptStreamAsync to complete.
-                        _acceptStreamQueue.TryComplete(new MultiplexedNetworkConnectionClosedException(errorCode));
+                        // Notify opened streams of the connection closure.
+                        Abort(new MultiplexedNetworkConnectionClosedException(errorCode));
                     }
                     catch (Exception exception)
                     {
                         Abort(exception);
-                        _acceptStreamQueue.TryComplete(exception);
                     }
                     finally
                     {
@@ -239,14 +262,14 @@ namespace IceRpc.Transports.Internal
             _readCancelSource.Cancel();
 
             // Release remaining resources in the background.
-            _ = DisposeAsyncCore();
+            _ = DisposeCore();
 
-            async Task DisposeAsyncCore()
+            async Task DisposeCore()
             {
                 Debug.Assert(_exception != null);
 
-                // Unblock requests waiting on the semaphore and wait for the semaphore to be released to ensure we
-                // don't dispose the simple network connection writer while it's being used.
+                // Unblock requests waiting on the semaphore and wait for the semaphore to be released to ensure it's
+                // safe to dispose the simple network connection writer.
                 await _writeSemaphore.CompleteAndWaitAsync(_exception).ConfigureAwait(false);
 
                 // Wait for the receive task to complete to ensure we don't dispose the simple network connection reader
@@ -270,14 +293,22 @@ namespace IceRpc.Transports.Internal
         public async Task ShutdownAsync(ulong applicationErrorCode, CancellationToken cancel)
         {
             // Send the close frame.
-            await SendFrameAsync(
-                stream: null,
-                FrameType.Close,
-                new CloseBody(applicationErrorCode).Encode,
-                cancel).ConfigureAwait(false);
+            await _writeSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+            try
+            {
+                await _writer.WriteFrameAsync(
+                    FrameType.Close,
+                    streamId: null,
+                    new CloseBody(applicationErrorCode).Encode,
+                    cancel).ConfigureAwait(false);
 
-            // Prevent further writes.
-            _writeSemaphore.Complete(new MultiplexedNetworkConnectionClosedException(applicationErrorCode));
+                // Prevent further writes.
+                _writeSemaphore.Complete(new MultiplexedNetworkConnectionClosedException(applicationErrorCode));
+            }
+            finally
+            {
+                _writeSemaphore.Release();
+            }
 
             // Shutdown the simple network connection.
             await _simpleNetworkConnection.ShutdownAsync(cancel).ConfigureAwait(false);
@@ -522,29 +553,6 @@ namespace IceRpc.Transports.Internal
             while (!source1.IsEmpty || !source2.IsEmpty); // Loop until there's no data left to send.
 
             return new FlushResult(isCanceled: false, isCompleted: false);
-        }
-
-        private void Abort(Exception exception)
-        {
-            lock (_mutex)
-            {
-                if (_exception != null)
-                {
-                    return;
-                }
-                _exception = exception;
-            }
-
-            // Unblock requests waiting on the semaphores.
-            _bidirectionalStreamSemaphore?.Complete(_exception);
-            _unidirectionalStreamSemaphore?.Complete(_exception);
-
-            foreach (SlicMultiplexedStream stream in _streams.Values)
-            {
-                stream.Abort(_exception);
-            }
-
-            _acceptStreamQueue.TryComplete(_exception);
         }
 
         private Dictionary<int, IList<byte>> GetParameters()
