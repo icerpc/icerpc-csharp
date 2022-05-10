@@ -1,7 +1,4 @@
 {
-    "rust-analyzer.linkedProjects": [
-        "tools/slicec-cs/Cargo.toml"
-    ],
     "cSpell.words": [
         "coloc",
         "colocated",
@@ -9,5 +6,11 @@
         "icerpc",
         "Slic",
         "slicec",
+    ],
+    "rust-analyzer.linkedProjects": [
+        "tools/slicec-cs/Cargo.toml"
+    ],
+    "rust-analyzer.rustfmt.extraArgs": [
+        "+nightly"
     ],
 }
