@@ -31,6 +31,7 @@ namespace IceRpc.Transports.Internal
         private int _bidirectionalStreamCount;
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly int _bidirectionalMaxStreams;
+        private int _isDisposed;
         private Exception? _exception;
         private long _lastRemoteBidirectionalStreamId = -1;
         private long _lastRemoteUnidirectionalStreamId = -1;
@@ -185,36 +186,34 @@ namespace IceRpc.Transports.Internal
             _ = Task.Run(
                 async () =>
                 {
+                    lock (_mutex)
+                    {
+                        if (_exception != null)
+                        {
+                            return;
+                        }
+                        _readFramesTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                    }
+
                     try
                     {
-                        lock (_mutex)
-                        {
-                            if (_exception != null)
-                            {
-                                return;
-                            }
-                            _readFramesTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-                        }
+                        // Read frames. This will return when the Close frame is received.
+                        ulong errorCode = await ReadFramesAsync(_readCancelSource.Token).ConfigureAwait(false);
 
-                        try
-                        {
-                            // Read frames. This will return when the Close frame is received.
-                            ulong errorCode = await ReadFramesAsync(_readCancelSource.Token).ConfigureAwait(false);
+                        // Send back a Close frame to the peer with the same error code.
+                        await ShutdownAsync(errorCode, _readCancelSource.Token).ConfigureAwait(false);
 
-                            // Send back a Close frame to the peer with the same error code.
-                            await ShutdownAsync(errorCode, _readCancelSource.Token).ConfigureAwait(false);
-
-                            // It's time for AcceptStreamAsync to complete.
-                            _acceptStreamQueue.TryComplete(new MultiplexedNetworkConnectionClosedException(errorCode));
-                        }
-                        finally
-                        {
-                            _readFramesTaskCompletionSource.SetResult();
-                        }
+                        // It's time for AcceptStreamAsync to complete.
+                        _acceptStreamQueue.TryComplete(new MultiplexedNetworkConnectionClosedException(errorCode));
                     }
                     catch (Exception exception)
                     {
                         Abort(exception);
+                        _acceptStreamQueue.TryComplete(exception);
+                    }
+                    finally
+                    {
+                        _readFramesTaskCompletionSource.SetResult();
                     }
                 },
                 CancellationToken.None);
@@ -226,7 +225,44 @@ namespace IceRpc.Transports.Internal
             // TODO: Cache SliceMultiplexedStream
             new SlicMultiplexedStream(this, bidirectional, remote: false, _simpleNetworkConnectionReader);
 
-        public void Dispose() => Abort(new ObjectDisposedException($"{typeof(SlicNetworkConnection)}"));
+        public void Dispose()
+        {
+            if (Interlocked.CompareExchange(ref _isDisposed, 1, 0) != 0)
+            {
+                return; // Already disposed.
+            }
+
+            Abort(new ObjectDisposedException($"{typeof(SlicNetworkConnection)}"));
+
+            // Close the network connection and cancel the pending receive or shutdown.
+            _simpleNetworkConnection.Dispose();
+            _readCancelSource.Cancel();
+
+            // Release remaining resources in the background.
+            _ = DisposeAsyncCore();
+
+            async Task DisposeAsyncCore()
+            {
+                Debug.Assert(_exception != null);
+
+                // Unblock requests waiting on the semaphore and wait for the semaphore to be released to ensure we
+                // don't dispose the simple network connection writer while it's being used.
+                await _writeSemaphore.CompleteAndWaitAsync(_exception).ConfigureAwait(false);
+
+                // Wait for the receive task to complete to ensure we don't dispose the simple network connection reader
+                // while it's being used.
+                if (_readFramesTaskCompletionSource != null)
+                {
+                    await _readFramesTaskCompletionSource.Task.ConfigureAwait(false);
+                }
+
+                // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
+                _simpleNetworkConnectionReader.Dispose();
+                _simpleNetworkConnectionWriter.Dispose();
+
+                _readCancelSource.Dispose();
+            }
+        }
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             _simpleNetworkConnection.HasCompatibleParams(remoteEndpoint);
@@ -500,42 +536,15 @@ namespace IceRpc.Transports.Internal
             }
 
             // Unblock requests waiting on the semaphores.
-            _bidirectionalStreamSemaphore?.Complete(exception);
-            _unidirectionalStreamSemaphore?.Complete(exception);
+            _bidirectionalStreamSemaphore?.Complete(_exception);
+            _unidirectionalStreamSemaphore?.Complete(_exception);
 
             foreach (SlicMultiplexedStream stream in _streams.Values)
             {
-                stream.Abort(exception);
+                stream.Abort(_exception);
             }
 
             _acceptStreamQueue.TryComplete(_exception);
-
-            // Close the network connection and cancel the pending receive or shutdown.
-            _simpleNetworkConnection.Dispose();
-            _readCancelSource.Cancel();
-
-            // Release remaining resources in the background.
-            _ = AbortAsync();
-
-            async Task AbortAsync()
-            {
-                // Unblock requests waiting on the semaphore and wait for the semaphore to be released to ensure we
-                // don't dispose the simple network connection writer while it's being used.
-                await _writeSemaphore.CompleteAndWaitAsync(exception).ConfigureAwait(false);
-
-                // Wait for the receive task to complete to ensure we don't dispose the simple network connection reader
-                // while it's being used.
-                if (_readFramesTaskCompletionSource != null)
-                {
-                    await _readFramesTaskCompletionSource.Task.ConfigureAwait(false);
-                }
-
-                // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
-                _simpleNetworkConnectionReader.Dispose();
-                _simpleNetworkConnectionWriter.Dispose();
-
-                _readCancelSource.Dispose();
-            }
         }
 
         private Dictionary<int, IList<byte>> GetParameters()
