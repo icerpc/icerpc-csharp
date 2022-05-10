@@ -415,9 +415,10 @@ public class ProxyTests
         var connectionOptions = new ConnectionOptions { RemoteEndpoint = "icerpc://localhost" };
         await using var connection = new Connection(connectionOptions);
         var proxy = Proxy.FromConnection(connection, "/");
+        connectionOptions.RemoteEndpoint = "ice://localhost";
+        await using var connection2 = new Connection(connectionOptions);
 
-        Assert.That(proxy.Protocol, Is.EqualTo(connection.Endpoint!.Value.Protocol));
-        Assert.That(() => connectionOptions.RemoteEndpoint = "ice://localhost", Throws.ArgumentException);
+        Assert.That(() => proxy.Connection = connection2, Throws.ArgumentException);
     }
 
     /// <summary>Verifies that setting an endpoint that uses a protocol different than the proxy protocol throws

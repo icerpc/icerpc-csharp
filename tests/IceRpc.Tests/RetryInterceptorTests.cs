@@ -326,8 +326,8 @@ public sealed class RetryInterceptorTests
         proxy.Endpoint = connection1.Endpoint;
         proxy.AltEndpoints = new List<Endpoint>
         {
-            connection2.Endpoint!.Value,
-            connection3.Endpoint!.Value
+            connection2.Endpoint,
+            connection3.Endpoint
         }.ToImmutableList();
         var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = 3 });
 

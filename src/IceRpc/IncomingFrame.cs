@@ -16,17 +16,10 @@ namespace IceRpc
         public PipeReader Payload { get; set; } = EmptyPipeReader.Instance;
 
         /// <summary>Returns the protocol of this frame.</summary>
-        public Protocol Protocol { get; }
+        public Protocol Protocol => Connection.Endpoint.Protocol;
 
         /// <summary>Constructs an incoming frame.</summary>
         /// <param name="connection">The <see cref="Connection"/> that received the frame.</param>
-        protected IncomingFrame(Connection connection)
-        {
-            Connection = connection;
-            Protocol = connection.Endpoint?.Protocol ??
-                throw new ArgumentException(
-                    "cannot create an incoming frame from connection with a null Endpoint",
-                    nameof(connection));
-        }
+        protected IncomingFrame(Connection connection) => Connection = connection;
     }
 }
