@@ -95,11 +95,11 @@ impl<'a> Visitor for StructVisitor<'a> {
             });
             builder.add_block(main_constructor.build());
 
-            let contains_nullable_proxies = contains_nullable_proxies(&members);
+            let contains_optional_proxies = contains_optional_proxies(&members);
 
             // Decode constructor
 
-            let mut decode_body = if !contains_nullable_proxies
+            let mut decode_body = if !contains_optional_proxies
                 && struct_def.supported_encodings().supports(&Encoding::Slice1)
                 && struct_def.supported_encodings().supports(&Encoding::Slice2)
             {
@@ -114,12 +114,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                     false, // No encoding check for structs
                 );
 
-                // If the struct contains nullable proxies and it supports the Slice1 encoding or if the struct only
-                // support the Slice1 encoding add Slice1 encoding block.
-                if (contains_nullable_proxies
-                    && struct_def.supported_encodings().supports(&Encoding::Slice1))
-                    || !struct_def.supported_encodings().supports(&Encoding::Slice2)
-                {
+                if struct_def.supported_encodings().supports(&Encoding::Slice1) {
                     encode_block_builder.add_encoding_block(
                         Encoding::Slice1,
                         decode_data_members(
@@ -131,12 +126,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                     );
                 }
 
-                // If the struct contains nullable proxies and it supports the Slice2 encoding or if the struct only
-                // support the Slice2 encoding add Slice2 encoding block.
-                if (contains_nullable_proxies
-                    && struct_def.supported_encodings().supports(&Encoding::Slice2))
-                    || !struct_def.supported_encodings().supports(&Encoding::Slice1)
-                {
+                if struct_def.supported_encodings().supports(&Encoding::Slice2) {
                     encode_block_builder.add_encoding_block(
                         Encoding::Slice2,
                         decode_data_members(
@@ -173,7 +163,7 @@ impl<'a> Visitor for StructVisitor<'a> {
             );
 
             // Encode method
-            let mut encode_body = if !contains_nullable_proxies
+            let mut encode_body = if !contains_optional_proxies
                 && struct_def.supported_encodings().supports(&Encoding::Slice1)
                 && struct_def.supported_encodings().supports(&Encoding::Slice2)
             {
@@ -261,7 +251,7 @@ this.Encode(ref encoder);"#.into(),
 }
 
 // TODO move to icerpc
-fn contains_nullable_proxies(members: &[&impl Member]) -> bool {
+fn contains_optional_proxies(members: &[&impl Member]) -> bool {
     members
         .iter()
         .any(|member| match member.data_type().concrete_typeref() {
