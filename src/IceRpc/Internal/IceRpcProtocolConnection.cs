@@ -53,7 +53,6 @@ namespace IceRpc.Internal
         private long _lastRemoteBidirectionalStreamId = -1;
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
         private long _lastRemoteUnidirectionalStreamId = -1;
-        private readonly IDictionary<ConnectionFieldKey, OutgoingFieldValue> _localFields;
         private readonly int _maxLocalHeaderSize;
         private int _maxRemoteHeaderSize = Configure.IceRpcOptions.DefaultMaxHeaderSize;
         private readonly object _mutex = new();
@@ -654,41 +653,32 @@ namespace IceRpc.Internal
         {
             _dispatcher = dispatcher;
             _networkConnection = networkConnection;
-
-            _localFields = options?.Fields ?? ImmutableDictionary<ConnectionFieldKey, OutgoingFieldValue>.Empty;
             _maxLocalHeaderSize = options?.MaxHeaderSize ?? Configure.IceRpcOptions.DefaultMaxHeaderSize;
         }
 
         internal async Task InitializeAsync(CancellationToken cancel)
         {
-            // Create the control stream and send the protocol initialize frame
+            // Create the control stream and send the protocol Settings frame
             _controlStream = _networkConnection.CreateStream(false);
 
-            IDictionary<ConnectionFieldKey, OutgoingFieldValue> localFields = _localFields;
-            if (_maxLocalHeaderSize != Configure.IceRpcOptions.DefaultMaxHeaderSize)
-            {
-                localFields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>(localFields)
-                {
-                    [ConnectionFieldKey.MaxHeaderSize] = new OutgoingFieldValue(
-                        (ref SliceEncoder encoder) => encoder.EncodeVarUInt32((uint)_maxLocalHeaderSize))
-                };
-            }
+            var settings = new IceRpcSettings(
+                _maxLocalHeaderSize == Configure.IceRpcOptions.DefaultMaxHeaderSize ?
+                    ImmutableDictionary<IceRpcSettingKey, ulong>.Empty :
+                    new Dictionary<IceRpcSettingKey, ulong>
+                    {
+                        [IceRpcSettingKey.MaxHeaderSize] = (ulong)_maxLocalHeaderSize
+                    });
 
             await SendControlFrameAsync(
-                IceRpcControlFrameType.Initialize,
-                (ref SliceEncoder encoder) =>
-                    encoder.EncodeDictionary(
-                        localFields,
-                        (ref SliceEncoder encoder, ConnectionFieldKey key) => encoder.EncodeConnectionFieldKey(key),
-                        (ref SliceEncoder encoder, OutgoingFieldValue value) =>
-                            value.Encode(ref encoder, _headerSizeLength)),
+                IceRpcControlFrameType.Settings,
+                (ref SliceEncoder encoder) => settings.Encode(ref encoder),
                 cancel).ConfigureAwait(false);
 
-            // Wait for the remote control stream to be accepted and read the protocol initialize frame
+            // Wait for the remote control stream to be accepted and read the protocol Settings frame
             _remoteControlStream = await _networkConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
 
-            await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.Initialize, cancel).ConfigureAwait(false);
-            await ReceiveInitializeFrameBody(cancel).ConfigureAwait(false);
+            await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.Settings, cancel).ConfigureAwait(false);
+            await ReceiveSettingsFrameBody(cancel).ConfigureAwait(false);
 
             // Start a task to wait to receive the go away frame to initiate shutdown.
             _ = Task.Run(() => WaitForGoAwayAsync(), CancellationToken.None);
@@ -845,7 +835,7 @@ namespace IceRpc.Internal
             }
         }
 
-        private async ValueTask ReceiveInitializeFrameBody(CancellationToken cancel)
+        private async ValueTask ReceiveSettingsFrameBody(CancellationToken cancel)
         {
             // We are still in the single-threaded initialization at this point.
 
@@ -861,32 +851,20 @@ namespace IceRpc.Internal
 
             try
             {
-                Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>> fields =
-                    SliceEncoding.Slice2.DecodeBuffer(readResult.Buffer, Decode);
+                IceRpcSettings settings = SliceEncoding.Slice2.DecodeBuffer(
+                    readResult.Buffer,
+                    (ref SliceDecoder decoder) => new IceRpcSettings(ref decoder));
 
-                if (fields.ContainsKey(ConnectionFieldKey.MaxHeaderSize))
+                if (settings.Value.TryGetValue(IceRpcSettingKey.MaxHeaderSize, out ulong value))
                 {
-                    uint value = fields.DecodeValue(
-                            ConnectionFieldKey.MaxHeaderSize,
-                            (ref SliceDecoder decoder) => decoder.DecodeVarUInt32());
-
-                    fields.Remove(ConnectionFieldKey.MaxHeaderSize);
-                    _maxRemoteHeaderSize = Configure.IceRpcOptions.CheckMaxHeaderSize(value);
+                    // a varuint62 always fits in a long
+                    _maxRemoteHeaderSize = Configure.IceRpcOptions.CheckMaxHeaderSize((long)value);
                     _headerSizeLength = SliceEncoder.GetVarUInt62EncodedSize(value);
                 }
             }
             finally
             {
                 input.AdvanceTo(readResult.Buffer.End);
-            }
-
-            static Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>> Decode(ref SliceDecoder decoder)
-            {
-                int count = decoder.DecodeSize();
-                return count == 0 ? new() :
-                    decoder.DecodeShallowFieldDictionary(
-                        count,
-                        (ref SliceDecoder decoder) => decoder.DecodeConnectionFieldKey());
             }
         }
 
