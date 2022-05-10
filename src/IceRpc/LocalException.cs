@@ -78,7 +78,7 @@ namespace IceRpc
     }
 
     /// <summary>This exception reports an error in the ice or icerpc protocol, such as an attempt to send a request
-    /// or response with a header size greater that's the remote peer's max header size.</summary>
+    /// or response with a header size greater than the remote peer's max header size.</summary>
     public class ProtocolException : Exception
     {
         /// <summary>Constructs a new instance of the <see cref="ProtocolException"/> class with a specified error

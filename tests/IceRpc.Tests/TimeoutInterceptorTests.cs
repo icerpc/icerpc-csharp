@@ -53,7 +53,7 @@ public sealed class TimeoutInterceptorTests
                 byte[] buffer = new byte[256];
                 var bufferWriter = new MemoryBufferWriter(buffer);
                 var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
-                deadlineField.Encode(ref encoder, 256);
+                deadlineField.Encode(ref encoder);
                 var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
                 decoder.SkipSize();
                 deadline = DateTime.UnixEpoch + TimeSpan.FromMilliseconds(decoder.DecodeVarInt62());

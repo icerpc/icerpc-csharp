@@ -45,6 +45,8 @@ namespace IceRpc.Internal
         private readonly HashSet<CancellationTokenSource> _cancelDispatchSources = new();
         private bool _cancelPendingInvocationsAndDispatchesOnShutdown;
         private readonly IDispatcher _dispatcher;
+
+        // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
         private int _headerSizeLength = 2;
         private int _invocationCount;
         private bool _isShuttingDown;
@@ -356,7 +358,7 @@ namespace IceRpc.Internal
                         response.Fields,
                         (ref SliceEncoder encoder, ResponseFieldKey key) => encoder.EncodeResponseFieldKey(key),
                         (ref SliceEncoder encoder, OutgoingFieldValue value) =>
-                            value.Encode(ref encoder, _maxRemoteHeaderSize));
+                            value.Encode(ref encoder, _headerSizeLength));
 
                     // We're done with the header encoding, write the header size.
                     int headerSize = encoder.EncodedByteCount - headerStartPos;
@@ -575,7 +577,7 @@ namespace IceRpc.Internal
                     request.Fields,
                     (ref SliceEncoder encoder, RequestFieldKey key) => encoder.EncodeRequestFieldKey(key),
                     (ref SliceEncoder encoder, OutgoingFieldValue value) =>
-                        value.Encode(ref encoder, _maxRemoteHeaderSize));
+                        value.Encode(ref encoder, _headerSizeLength));
 
                 // We're done with the header encoding, write the header size.
                 int headerSize = encoder.EncodedByteCount - headerStartPos;
@@ -682,7 +684,7 @@ namespace IceRpc.Internal
                         localFields,
                         (ref SliceEncoder encoder, ConnectionFieldKey key) => encoder.EncodeConnectionFieldKey(key),
                         (ref SliceEncoder encoder, OutgoingFieldValue value) =>
-                            value.Encode(ref encoder, _maxRemoteHeaderSize)),
+                            value.Encode(ref encoder, _headerSizeLength)),
                 cancel).ConfigureAwait(false);
 
             // Wait for the remote control stream to be accepted and read the protocol initialize frame
