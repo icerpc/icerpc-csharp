@@ -4,3 +4,8 @@ module IceRpc::Slice::Tests;
 
 [cs::type("MyCustomType")]
 custom CustomType;
+
+compact struct StructWithCustomTypeMember
+{
+    m: CustomType
+}
