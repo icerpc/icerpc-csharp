@@ -7,7 +7,7 @@ namespace IceRpc.Slice
     public sealed class Dispatch
     {
         /// <summary>The <see cref="Connection"/> over which the request was dispatched.</summary>
-        public Connection Connection => _request.Connection;
+        public IConnection Connection => _request.Connection;
 
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
         /// caller is no longer interested in the response and discards the request. The server-side runtime does not

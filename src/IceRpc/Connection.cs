@@ -32,14 +32,16 @@ namespace IceRpc
     }
 
     /// <summary>Represents a connection used to send and receive requests and responses.</summary>
-    public sealed class Connection : IAsyncDisposable
+    public sealed class Connection : IConnection, IAsyncDisposable
     {
-        /// <summary>The network connection information or <c>null</c> if the connection is not connected.</summary>
+        /// <inheritdoc/>
+        public Endpoint Endpoint { get; }
+
+        /// <inheritdoc/>
         public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
 
-        /// <summary>The connection's endpoint. For a client connection this is the connection's remote endpoint,
-        /// for a server connection it's the server's endpoint.</summary>
-        public Endpoint Endpoint { get; }
+        /// <inheritdoc/>
+        public Protocol Protocol => Endpoint.Protocol;
 
         /// <summary>The state of the connection.</summary>
         public ConnectionState State

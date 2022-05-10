@@ -54,7 +54,7 @@ namespace IceRpc.Slice
         private ClassContext _classContext;
 
         // Connection used when decoding relative proxies.
-        private readonly Connection? _connection;
+        private readonly IConnection? _connection;
 
         // The number of bytes already allocated for strings, dictionaries and sequences.
         private int _currentCollectionAllocation;
@@ -89,7 +89,7 @@ namespace IceRpc.Slice
         public SliceDecoder(
             ReadOnlySequence<byte> buffer,
             SliceEncoding encoding,
-            Connection? connection = null,
+            IConnection? connection = null,
             IInvoker? invoker = null,
             IActivator? activator = null,
             int maxCollectionAllocation = -1,

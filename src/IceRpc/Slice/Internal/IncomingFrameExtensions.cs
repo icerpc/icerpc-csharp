@@ -120,7 +120,7 @@ namespace IceRpc.Slice.Internal
             IInvoker defaultInvoker,
             DecodeFunc<T> decodeFunc)
         {
-            Connection connection = frame.Connection;
+            IConnection connection = frame.Connection;
             var streamDecoder = new StreamDecoder<T>(DecodeBufferFunc, decodePayloadOptions.StreamDecoderOptions);
 
             PipeReader payload = frame.Payload;

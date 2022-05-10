@@ -24,7 +24,7 @@ namespace IceRpc
         /// <remarks>While <paramref name="connection"/> is usually the same as the request's
         /// <see cref="OutgoingRequest.Connection"/>, it may be a different connection since an invoker can ignore the
         /// request's connection when sending the request.</remarks>
-        public IncomingResponse(OutgoingRequest request, Connection connection)
+        public IncomingResponse(OutgoingRequest request, IConnection connection)
             : this(request, connection, ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty, null)
         {
         }
@@ -38,7 +38,7 @@ namespace IceRpc
         /// request's connection when sending the request.</remarks>
         public IncomingResponse(
             OutgoingRequest request,
-            Connection connection,
+            IConnection connection,
             IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields)
             : this(request, connection, fields, null)
         {
@@ -52,7 +52,7 @@ namespace IceRpc
         /// fields memory is not held by a pipe reader.</param>
         internal IncomingResponse(
             OutgoingRequest request,
-            Connection connection,
+            IConnection connection,
             IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields,
             PipeReader? fieldsPipeReader)
             : base(connection)

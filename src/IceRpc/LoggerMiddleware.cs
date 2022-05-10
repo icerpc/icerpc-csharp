@@ -48,7 +48,7 @@ namespace IceRpc
     {
         internal static void LogDispatchException(
             this ILogger logger,
-            Connection? connection,
+            IConnection? connection,
             string path,
             string operation,
             Exception ex)
@@ -66,7 +66,7 @@ namespace IceRpc
 
         internal static void LogReceivedRequest(
             this ILogger logger,
-            Connection? connection,
+            IConnection? connection,
             string path,
             string operation)
         {
@@ -82,7 +82,7 @@ namespace IceRpc
 
         internal static void LogSendingResponse(
             this ILogger logger,
-            Connection? connection,
+            IConnection? connection,
             string path,
             string operation,
             ResultType resultType)
