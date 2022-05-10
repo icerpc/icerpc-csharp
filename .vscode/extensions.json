@@ -1,0 +1,8 @@
+{
+    "recommendations": [
+        "EditorConfig.EditorConfig",
+        "ms-dotnettools.csharp",
+        "matklad.rust-analyzer",
+        "streetsidesoftware.code-spell-checker",
+    ]
+}
