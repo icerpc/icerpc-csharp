@@ -18,10 +18,6 @@ public record class IceRpcOptions
         set => _maxHeaderSize = CheckMaxHeaderSize(value);
     }
 
-    /// <summary>Gets or sets the connection fields to send to the peer when establishing a connection.</summary>
-    public IDictionary<ConnectionFieldKey, OutgoingFieldValue> Fields { get; set; } =
-        ImmutableDictionary<ConnectionFieldKey, OutgoingFieldValue>.Empty;
-
     /// <summary>The default value for <see cref="MaxHeaderSize"/>.</summary>
     internal const int DefaultMaxHeaderSize = 16_383;
 

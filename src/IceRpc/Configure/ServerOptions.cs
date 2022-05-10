@@ -52,10 +52,6 @@ namespace IceRpc.Configure
         /// <summary>Gets of sets the default features of the new connections.</summary>
         public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
-        /// <summary>Gets or sets the connection fields to send to the clients.</summary>
-        public IDictionary<ConnectionFieldKey, OutgoingFieldValue> Fields { get; set; } =
-            ImmutableDictionary<ConnectionFieldKey, OutgoingFieldValue>.Empty;
-
         /// <summary>Gets or sets the connection's keep alive. If a connection is kept alive, the connection
         /// monitoring will send keep alive frames to ensure the peer doesn't close the connection in the period defined
         /// by its idle timeout. How often keep alive frames are sent depends on the peer's IdleTimeout configuration.
