@@ -6,7 +6,7 @@ namespace IceRpc.Slice
     /// <see cref="Features"/> to communicate with a middleware "on the way back".</summary>
     public sealed class Dispatch
     {
-        /// <summary>The <see cref="Connection"/> over which the request was dispatched.</summary>
+        /// <summary>The <see cref="IConnection"/> over which the request was dispatched.</summary>
         public IConnection Connection => _request.Connection;
 
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
