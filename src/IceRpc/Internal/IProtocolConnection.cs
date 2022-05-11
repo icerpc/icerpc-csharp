@@ -25,7 +25,7 @@ namespace IceRpc.Internal
 
         /// <summary>Accepts requests and returns once the connection is closed or the shutdown completes.</summary>
         /// <param name="connection">The connection of incoming requests created by this method.</param>
-        Task AcceptRequestsAsync(Connection connection);
+        Task AcceptRequestsAsync(IConnection connection);
 
         /// <summary>Cancels pending invocations and dispatches if the connection is being shut down. If it's not being
         /// shut down, the pending invocations and dispatches will be canceled when the connection is
@@ -48,7 +48,7 @@ namespace IceRpc.Internal
         /// <returns>The received response.</returns>
         Task<IncomingResponse> InvokeAsync(
             OutgoingRequest request,
-            Connection connection,
+            IConnection connection,
             CancellationToken cancel = default);
 
         /// <summary>Sends a ping frame to defer the idle timeout.</summary>

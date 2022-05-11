@@ -84,7 +84,7 @@ namespace IceRpc.Internal
         private TaskCompletionSource? _readFramesTaskCompletionSource;
         private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
-        public async Task AcceptRequestsAsync(Connection connection)
+        public async Task AcceptRequestsAsync(IConnection connection)
         {
             try
             {
@@ -142,7 +142,7 @@ namespace IceRpc.Internal
 
         public async Task<IncomingResponse> InvokeAsync(
             OutgoingRequest request,
-            Connection connection,
+            IConnection connection,
             CancellationToken cancel)
         {
             bool acquiredSemaphore = false;
@@ -660,7 +660,7 @@ namespace IceRpc.Internal
         /// <param name="connection">The connection assigned to <see cref="IncomingFrame.Connection"/>.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns><c>true</c> if the connection was shutdown by the peer, <c>false</c> otherwise.</returns>
-        private async ValueTask<bool> ReadFramesAsync(Connection connection, CancellationToken cancel)
+        private async ValueTask<bool> ReadFramesAsync(IConnection connection, CancellationToken cancel)
         {
             while (true)
             {

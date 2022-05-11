@@ -47,19 +47,18 @@ public sealed class ConnectionPoolTests
             },
             preferExistingConnection: false);
 
-        Connection connection2 = await pool.GetConnectionAsync(
+        IConnection connection2 = await pool.GetConnectionAsync(
             server2.Endpoint,
             Array.Empty<Endpoint>(),
             default);
 
         // Act
-        Connection connection1 = await pool.GetConnectionAsync(
+        IConnection connection1 = await pool.GetConnectionAsync(
             server1.Endpoint,
             new Endpoint[] { server2.Endpoint },
             default);
 
         // Assert
-        Assert.That(connection1.State, Is.EqualTo(ConnectionState.Active));
         Assert.That(connection1.Endpoint, Is.EqualTo(server1.Endpoint));
         Assert.That(connection1, Is.Not.EqualTo(connection2));
         Assert.That(server1.Endpoint, Is.Not.EqualTo(server2.Endpoint));
@@ -94,13 +93,12 @@ public sealed class ConnectionPoolTests
             preferExistingConnection: true);
 
         // Act
-        Connection connection = await pool.GetConnectionAsync(
+        IConnection connection = await pool.GetConnectionAsync(
             Endpoint.FromString("icerpc://bar?transport=coloc"),
             new Endpoint[] { server.Endpoint },
             default);
 
         // Assert
-        Assert.That(connection.State, Is.EqualTo(ConnectionState.Active));
         Assert.That(connection.Endpoint, Is.EqualTo(server.Endpoint));
     }
 
@@ -142,13 +140,12 @@ public sealed class ConnectionPoolTests
             });
 
         // Act
-        Connection connection = await pool.GetConnectionAsync(
+        IConnection connection = await pool.GetConnectionAsync(
             server1.Endpoint,
             new Endpoint[] { server2.Endpoint },
             default);
 
         // Assert
-        Assert.That(connection.State, Is.EqualTo(ConnectionState.Active));
         Assert.That(connection.Endpoint, Is.EqualTo(server1.Endpoint));
     }
 
@@ -179,19 +176,18 @@ public sealed class ConnectionPoolTests
             },
             preferExistingConnection: true);
 
-        Connection connection1 = await pool.GetConnectionAsync(
+        IConnection connection1 = await pool.GetConnectionAsync(
             server.Endpoint,
             Array.Empty<Endpoint>(),
             default);
 
         // Act
-        Connection connection2 = await pool.GetConnectionAsync(
+        IConnection connection2 = await pool.GetConnectionAsync(
             server.Endpoint,
             Array.Empty<Endpoint>(),
             default);
 
         // Assert
-        Assert.That(connection2.State, Is.EqualTo(ConnectionState.Active));
         Assert.That(connection2, Is.EqualTo(connection1));
     }
 
@@ -234,19 +230,18 @@ public sealed class ConnectionPoolTests
            },
            preferExistingConnection: true);
 
-        Connection connection1 = await pool.GetConnectionAsync(
+        IConnection connection1 = await pool.GetConnectionAsync(
             server2.Endpoint,
             Array.Empty<Endpoint>(),
             default);
 
         // Act
-        Connection connection2 = await pool.GetConnectionAsync(
+        IConnection connection2 = await pool.GetConnectionAsync(
             server1.Endpoint,
             new Endpoint[] { server2.Endpoint },
             default);
 
         // Assert
-        Assert.That(connection2.State, Is.EqualTo(ConnectionState.Active));
         Assert.That(connection2.Endpoint, Is.EqualTo(server2.Endpoint));
         Assert.That(connection2, Is.EqualTo(connection1));
         Assert.That(server1.Endpoint, Is.Not.EqualTo(server2.Endpoint));

@@ -67,7 +67,7 @@ namespace IceRpc.Internal
         private readonly TaskCompletionSource _waitForGoAwayCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public async Task AcceptRequestsAsync(Connection connection)
+        public async Task AcceptRequestsAsync(IConnection connection)
         {
             while (true)
             {
@@ -412,7 +412,7 @@ namespace IceRpc.Internal
 
         public async Task<IncomingResponse> InvokeAsync(
             OutgoingRequest request,
-            Connection connection,
+            IConnection connection,
             CancellationToken cancel)
         {
             IMultiplexedStream? stream = null;

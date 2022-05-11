@@ -32,7 +32,7 @@ public class ConnectionTests
             IdleTimeout = idleOnClient ? TimeSpan.FromMilliseconds(500) : TimeSpan.FromHours(1),
         };
 
-        Connection? serverConnection = null;
+        IConnection? serverConnection = null;
         var dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
             serverConnection = request.Connection;
@@ -111,7 +111,7 @@ public class ConnectionTests
         // Arrange
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
-        Connection? serverConnection = null;
+        IConnection? serverConnection = null;
         var dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
             serverConnection = request.Connection;
@@ -132,7 +132,7 @@ public class ConnectionTests
         await start.WaitAsync(); // Wait for dispatch to start
 
         // Act
-        await serverConnection!.CloseAsync();
+        await ((Connection)serverConnection!).CloseAsync();
 
         // Assert
         Assert.That(async () => await invokeTask, Throws.TypeOf<ConnectionLostException>());
@@ -145,7 +145,7 @@ public class ConnectionTests
         [Values(true, false)] bool closeClientConnection)
     {
         // Arrange
-        Connection? serverConnection = null;
+        IConnection? serverConnection = null;
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
             serverConnection = request.Connection;
@@ -174,7 +174,7 @@ public class ConnectionTests
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
         // Act
-        await (closeClientConnection ? clientConnection : serverConnection!).CloseAsync();
+        await (closeClientConnection ? clientConnection : (Connection)serverConnection!).CloseAsync();
 
         // Assert
         Assert.That(async () => await serverConnectionClosed.Task, Throws.Nothing);
@@ -349,7 +349,7 @@ public class ConnectionTests
         // Arrange
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
-        Connection? serverConnection = null;
+        IConnection? serverConnection = null;
         var dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
             serverConnection = request.Connection;
@@ -369,7 +369,8 @@ public class ConnectionTests
         await start.WaitAsync();
 
         // Act
-        var shutdownTask = (closeClientSide ? clientConnection : serverConnection!).ShutdownAsync(CancellationToken.None);
+        var shutdownTask = (closeClientSide ? clientConnection : (Connection)serverConnection!)
+            .ShutdownAsync(CancellationToken.None);
 
         // Assert
         if (closeClientSide && protocol == "ice")
@@ -422,7 +423,7 @@ public class ConnectionTests
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
 
-        Connection? serverConnection = null;
+        IConnection? serverConnection = null;
         using var shutdownCancelationSource = new CancellationTokenSource();
         var dispatchCompletionSource = new TaskCompletionSource();
         var dispatcher = new InlineDispatcher(async (request, cancel) =>
@@ -450,7 +451,8 @@ public class ConnectionTests
         var proxy = ServicePrx.FromConnection(clientConnection, "/path");
         var pingTask = proxy.IcePingAsync();
         await start.WaitAsync();
-        var shutdownTask = (closeClientSide ? clientConnection : serverConnection!).ShutdownAsync(shutdownCancelationSource.Token);
+        var shutdownTask = (closeClientSide ? clientConnection : (Connection)serverConnection!)
+            .ShutdownAsync(shutdownCancelationSource.Token);
 
         // Act
         shutdownCancelationSource.Cancel();
@@ -488,7 +490,7 @@ public class ConnectionTests
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
 
-        Connection? serverConnection = null;
+        IConnection? serverConnection = null;
         var dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
             serverConnection = request.Connection;
@@ -518,7 +520,7 @@ public class ConnectionTests
         await start.WaitAsync();
 
         // Act
-        _ = (closeClientSide ? clientConnection : serverConnection!).ShutdownAsync(default);
+        _ = (closeClientSide ? clientConnection : (Connection)serverConnection!).ShutdownAsync(default);
 
         // Assert
         if (closeClientSide)

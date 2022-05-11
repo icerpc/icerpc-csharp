@@ -121,7 +121,7 @@ fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
 /// the server's invoker.</param>
 /// <returns>The new proxy.</returns>
 public static {prx_impl} FromConnection(
-    IceRpc.Connection connection,
+    IceRpc.IConnection connection,
     string? path = null,
     IceRpc.IInvoker? invoker = null) =>
     new(IceRpc.Proxy.FromConnection(connection, path ?? DefaultPath, invoker));

@@ -24,7 +24,7 @@ namespace IceRpc
         /// <remarks>While <paramref name="connection"/> is usually the same as the request's
         /// <see cref="OutgoingRequest.Connection"/>, it may be a different connection since an invoker can ignore the
         /// request's connection when sending the request.</remarks>
-        public IncomingResponse(OutgoingRequest request, Connection connection)
+        public IncomingResponse(OutgoingRequest request, IConnection connection)
             : this(request, connection, ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty, null)
         {
         }
@@ -38,7 +38,7 @@ namespace IceRpc
         /// request's connection when sending the request.</remarks>
         public IncomingResponse(
             OutgoingRequest request,
-            Connection connection,
+            IConnection connection,
             IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields)
             : this(request, connection, fields, null)
         {
@@ -46,13 +46,13 @@ namespace IceRpc
 
         /// <summary>Constructs an incoming response with a pipe reader holding the memory for the fields.</summary>
         /// <param name="request">The corresponding outgoing request.</param>
-        /// <param name="connection">The <see cref="Connection"/> that received the response.</param>
+        /// <param name="connection">The <see cref="IConnection"/> that received the response.</param>
         /// <param name="fields">The fields of this response.</param>
         /// <param name="fieldsPipeReader">The pipe reader that holds the memory of the fields. Use <c>null</c> when the
         /// fields memory is not held by a pipe reader.</param>
         internal IncomingResponse(
             OutgoingRequest request,
-            Connection connection,
+            IConnection connection,
             IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields,
             PipeReader? fieldsPipeReader)
             : base(connection)

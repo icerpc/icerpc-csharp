@@ -55,14 +55,14 @@ namespace IceRpc
         /// <summary>Gets or sets the connection of this proxy. Setting the connection does not affect the proxy
         /// endpoints (if any).</summary>
         /// <value>The connection for this proxy, or null if the proxy does not have a connection.</value>
-        public Connection? Connection
+        public IConnection? Connection
         {
             get => _connection;
 
             set
             {
                 CheckSupportedProtocol(nameof(Connection));
-                if (value?.Endpoint.Protocol is Protocol newProtocol && newProtocol != Protocol)
+                if (value?.Protocol is Protocol newProtocol && newProtocol != Protocol)
                 {
                     throw new ArgumentException(
                         "the new connection's protocol must match the proxy's protocol",
@@ -205,7 +205,7 @@ namespace IceRpc
         public Protocol Protocol { get; }
 
         private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
-        private volatile Connection? _connection;
+        private volatile IConnection? _connection;
         private Endpoint? _endpoint;
         private string _fragment = "";
         private IInvoker _invoker = DefaultInvoker;
@@ -217,8 +217,8 @@ namespace IceRpc
         /// <param name="path">The path of the proxy.</param>
         /// <param name="invoker">The invoker of the new proxy.</param>
         /// <returns>The new proxy.</returns>
-        public static Proxy FromConnection(Connection connection, string path, IInvoker? invoker = null) =>
-            new(connection.Endpoint.Protocol)
+        public static Proxy FromConnection(IConnection connection, string path, IInvoker? invoker = null) =>
+            new(connection.Protocol)
             {
                 Path = path,
                 Connection = connection,
