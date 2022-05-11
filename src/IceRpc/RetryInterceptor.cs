@@ -162,8 +162,7 @@ namespace IceRpc
                         }
 
                         if (request.Connection != null &&
-                            (retryPolicy == RetryPolicy.OtherReplica ||
-                             request.Connection.NetworkConnectionInformation == null))
+                            (retryPolicy == RetryPolicy.OtherReplica || !request.Connection.IsInvocable))
                         {
                             // Retry with a new connection
                             request.Connection = null;

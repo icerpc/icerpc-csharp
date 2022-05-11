@@ -38,6 +38,9 @@ namespace IceRpc
         public Endpoint Endpoint { get; }
 
         /// <inheritdoc/>
+        public bool IsInvocable => State < ConnectionState.ShuttingDown;
+
+        /// <inheritdoc/>
         public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
 
         /// <inheritdoc/>
