@@ -20,7 +20,7 @@ namespace IceRpc.Internal
 
             try
             {
-                await protocolConnection.InitializeAsync(isServer, cancel).ConfigureAwait(false);
+                await protocolConnection.ConnectAsync(isServer, cancel).ConfigureAwait(false);
             }
             catch
             {

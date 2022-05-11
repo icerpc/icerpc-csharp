@@ -656,7 +656,7 @@ namespace IceRpc.Internal
             _maxLocalHeaderSize = options?.MaxHeaderSize ?? Configure.IceRpcOptions.DefaultMaxHeaderSize;
         }
 
-        internal async Task InitializeAsync(CancellationToken cancel)
+        internal async Task ConnectAsync(CancellationToken cancel)
         {
             // Create the control stream and send the protocol Settings frame
             _controlStream = _networkConnection.CreateStream(false);
