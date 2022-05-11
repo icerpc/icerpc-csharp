@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
-using System.Buffers;
 
 namespace IceRpc.Internal;
 
@@ -14,7 +13,6 @@ internal interface IProtocolConnectionFactory<T, TOptions>
         T networkConnection,
         NetworkConnectionInformation connectionInformation,
         IDispatcher dispatcher,
-        Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect,
         bool isServer,
         TOptions? protocolOptions,
         CancellationToken cancel);

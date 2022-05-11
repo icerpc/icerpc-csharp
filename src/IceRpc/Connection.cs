@@ -413,7 +413,6 @@ namespace IceRpc
                     networkConnection,
                     NetworkConnectionInformation.Value,
                     _options.Dispatcher,
-                    _options.OnConnect == null ? null : fields => _options.OnConnect(this, fields, features),
                     _isServer,
                     protocolOptions,
                     connectTimeoutCancellationSource.Token).ConfigureAwait(false);

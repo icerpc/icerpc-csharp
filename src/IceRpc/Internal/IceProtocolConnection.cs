@@ -480,7 +480,7 @@ namespace IceRpc.Internal
             _payloadWriter = new IcePayloadPipeWriter(_networkConnectionWriter);
         }
 
-        internal async Task InitializeAsync(bool isServer, CancellationToken cancel)
+        internal async Task ConnectAsync(bool isServer, CancellationToken cancel)
         {
             if (isServer)
             {

@@ -24,7 +24,6 @@ public class ServerOptionsTests
             Assert.That(options.ConnectTimeout, Is.EqualTo(TimeSpan.FromSeconds(10)));
             Assert.That(options.Dispatcher, Is.EqualTo(ConnectionOptions.DefaultDispatcher));
             Assert.That(options.Endpoint, Is.EqualTo(new Endpoint(Protocol.IceRpc)));
-            Assert.That(options.Fields, Is.Empty);
             Assert.That(options.KeepAlive, Is.False);
             Assert.That(options.LoggerFactory, Is.EqualTo(NullLoggerFactory.Instance));
             Assert.That(options.IceServerOptions, Is.Null);
