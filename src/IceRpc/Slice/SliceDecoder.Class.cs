@@ -137,7 +137,7 @@ namespace IceRpc.Slice
 
         /// <summary>Decodes a class instance.</summary>
         /// <returns>The class instance. Can be null.</returns>
-        private AnyClass? DecodeAnyClass()
+        internal AnyClass? DecodeAnyClass()
         {
             Debug.Assert(Encoding == SliceEncoding.Slice1);
 
