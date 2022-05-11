@@ -11,13 +11,13 @@ pub fn encode_data_members(
     members: &[&DataMember],
     namespace: &str,
     field_type: FieldType,
-    encoding: Option<Encoding>,
+    encoding: Encoding,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
 
     let (required_members, tagged_members) = get_sorted_members(members);
 
-    let bit_sequence_size = if encoding == Some(Encoding::Slice1) {
+    let bit_sequence_size = if encoding == Encoding::Slice1 {
         0
     } else {
         get_bit_sequence_size(&required_members)
@@ -65,17 +65,17 @@ fn encode_type(
     namespace: &str,
     param: &str,
     encoder_param: &str,
-    encoding: Option<Encoding>,
+    encoding: Encoding,
 ) -> CodeBlock {
     match &type_ref.concrete_typeref() {
-        TypeRefs::Interface(_) if type_ref.is_optional && encoding == Some(Encoding::Slice1) => {
+        TypeRefs::Interface(_) if type_ref.is_optional && encoding == Encoding::Slice1 => {
             format!(
                 "{encoder_param}.EncodeNullableProxy({param}?.Proxy);",
                 encoder_param = encoder_param,
                 param = param)
         }
         _ if type_ref.is_class_type() => {
-            assert!(encoding == Some(Encoding::Slice1));
+            assert!(encoding == Encoding::Slice1);
             if type_ref.is_optional {
                 format!(
                     "{encoder_param}.EncodeNullableClass({param});",
@@ -176,7 +176,7 @@ fn encode_type(
             };
 
             if type_ref.is_optional {
-                assert!(encoding == Some(Encoding::Slice2));
+                assert!(encoding == Encoding::Slice2);
                 // A null T[]? or List<T>? is implicitly converted into a default aka null
                 // ReadOnlyMemory<T> or ReadOnlySpan<T>. Furthermore, the span of a default
                 // ReadOnlyMemory<T> is a default ReadOnlySpan<T>, which is distinct from
@@ -214,14 +214,13 @@ fn encode_tagged_type(
     param: &str,
     encoder_param: &str,
     type_context: TypeContext,
-    encoding: Option<Encoding>,
+    encoding: Encoding,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
     let data_type = member.data_type();
 
     assert!(data_type.is_optional);
     assert!(member.tag().is_some());
-    assert!(encoding.is_some());
 
     let tag = member.tag().unwrap();
 
@@ -246,7 +245,7 @@ fn encode_tagged_type(
     // param/member:
     let (size_parameter, count_value) = match data_type.concrete_type() {
         Types::Primitive(primitive_def) if primitive_def.is_fixed_size() => {
-            if encoding == Some(Encoding::Slice1) {
+            if encoding == Encoding::Slice1 {
                 (None, None)
             } else {
                 (Some(primitive_def.min_wire_size().to_string()), None)
@@ -334,7 +333,7 @@ fn encode_tagged_type(
     };
 
     let mut encode_tagged_args = vec![tag.to_string()];
-    if encoding == Some(Encoding::Slice1) {
+    if encoding == Encoding::Slice1 {
         let tag_format = data_type.tag_format().unwrap();
         if tag_format != TagFormat::VSize {
             encode_tagged_args.push(format!("IceRpc.Slice.TagFormat.{}", tag_format));
@@ -377,13 +376,8 @@ fn encode_sequence(
     value: &str,
     type_context: TypeContext,
     encoder_param: &str,
-    encoding: Option<Encoding>,
+    encoding: Encoding,
 ) -> CodeBlock {
-    // Encoding must be set when encoding a sequence of optional elements
-    assert!(
-        (sequence_ref.element_type.is_optional && encoding.is_some())
-            || !sequence_ref.element_type.is_optional
-    );
     let has_custom_type = sequence_ref.has_attribute("cs::generic", false);
     if sequence_ref.has_fixed_size_numeric_elements() {
         if type_context == TypeContext::Encode && !has_custom_type {
@@ -405,7 +399,7 @@ fn encode_sequence(
 {encoder_param}.EncodeSequence{with_bit_sequence}(
     {param},
     {encode_action})",
-            with_bit_sequence = if encoding != Some(Encoding::Slice1)
+            with_bit_sequence = if encoding != Encoding::Slice1
                 && sequence_ref.element_type.is_bit_sequence_encodable()
             {
                 "WithBitSequence"
@@ -431,20 +425,15 @@ fn encode_dictionary(
     namespace: &str,
     param: &str,
     encoder_param: &str,
-    encoding: Option<Encoding>,
+    encoding: Encoding,
 ) -> CodeBlock {
-    // Encoding must be set when encoding a dictionary of optional values
-    assert!(
-        (dictionary_def.value_type.is_optional && encoding.is_some())
-            || !dictionary_def.value_type.is_optional
-    );
     format!(
         "\
 {encoder_param}.{method}(
     {param},
     {encode_key},
     {encode_value})",
-        method = if encoding != Some(Encoding::Slice1)
+        method = if encoding != Encoding::Slice1
             && dictionary_def.value_type.is_bit_sequence_encodable()
         {
             "EncodeDictionaryWithBitSequence"
@@ -475,7 +464,7 @@ pub fn encode_action(
     type_ref: &TypeRef,
     type_context: TypeContext,
     namespace: &str,
-    encoding: Option<Encoding>,
+    encoding: Encoding,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
     let is_optional = type_ref.is_optional;
@@ -489,7 +478,7 @@ pub fn encode_action(
 
     match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) => {
-            if is_optional && encoding == Some(Encoding::Slice1) {
+            if is_optional && encoding == Encoding::Slice1 {
                 write!(
                     code,
                     "(ref SliceEncoder encoder, {value_type} value) => encoder.EncodeNullableProxy(value?.Proxy)",
@@ -505,7 +494,7 @@ pub fn encode_action(
             }
         }
         TypeRefs::Class(_) => {
-            assert!(encoding == Some(Encoding::Slice1));
+            assert!(encoding == Encoding::Slice1);
             if is_optional {
                 write!(
                     code,
@@ -667,7 +656,7 @@ fn encode_operation_parameters(
             namespace,
             name.as_str(),
             encoder_param,
-            Some(operation.encoding),
+            operation.encoding,
         ));
     }
 
@@ -683,7 +672,7 @@ fn encode_operation_parameters(
             name.as_str(),
             encoder_param,
             TypeContext::Encode,
-            Some(operation.encoding),
+            operation.encoding,
         ));
     }
 
