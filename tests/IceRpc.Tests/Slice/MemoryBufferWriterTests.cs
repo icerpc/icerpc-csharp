@@ -17,12 +17,10 @@ public class MemoryBufferWriterTests
     }
 
     [Test]
-    public void MemoryBufferWriter_InvalidConstructor()
-    {
+    public void MemoryBufferWriter_InvalidConstructor() =>
         Assert.That(
             () => new MemoryBufferWriter(Array.Empty<byte>()),
             Throws.Exception.TypeOf<ArgumentException>());
-    }
 
     [Test]
     public void MemoryBufferWriter_Clear()
