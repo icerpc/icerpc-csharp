@@ -170,7 +170,7 @@ namespace IceRpc.Slice
                     response.Connection,
                     decodePayloadOptions.ProxyInvoker ?? request.Proxy.Invoker,
                     activator: decodePayloadOptions.Activator ?? defaultActivator,
-                    decodePayloadOptions.MaxDepth);
+                    maxDepth: decodePayloadOptions.MaxDepth);
 
                 RemoteException remoteException = encoding == SliceEncoding.Slice1 ?
                     (resultType == SliceResultType.Failure ?

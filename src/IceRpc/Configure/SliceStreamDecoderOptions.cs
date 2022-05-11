@@ -5,9 +5,6 @@ namespace IceRpc.Configure
     /// <summary>Configures the decoding of Slice stream parameters and return values.</summary>
     public sealed class SliceStreamDecoderOptions
     {
-        /// <summary>The default instance.</summary>
-        public static SliceStreamDecoderOptions Default { get; } = new();
-
         /// <summary>When the Slice engine decodes a stream into an async enumerable, it will pause when the number of
         /// bytes decoded but not read is greater or equal to this value.</summary>
         /// <value>A value greater than 0 is the threshold in bytes; 0 means no threshold.</value>
@@ -17,6 +14,9 @@ namespace IceRpc.Configure
         /// (<see cref="PauseWriterThreshold"/>), the decoding resumes when the number of bytes decoded but not read yet
         /// falls below this threshold.</summary>
         public long ResumeWriterThreshold { get; }
+
+        /// <summary>The default instance.</summary>
+        internal static SliceStreamDecoderOptions Default { get; } = new();
 
         /// <summary>Constructs a new Slice stream decoder feature.</summary>
         /// <param name="pauseWriterThreshold">The pause writer threshold value. -1 means use the default value. 0 means
