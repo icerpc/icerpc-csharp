@@ -18,25 +18,25 @@ public record class IceOptions
             throw new ArgumentOutOfRangeException(nameof(value), "value must be 0 or greater");
     }
 
-    /// <summary>Gets or sets the maximum size of an incoming ice frame.</summary>
-    /// <value>The maximum size of an incoming ice frame, in bytes. This value must be at least 256. The default
-    /// value is 1 MB.</value>
-    public int MaxIncomingFrameSize
+    /// <summary>Gets or sets the maximum size of a frame received over the ice protocol.</summary>
+    /// <value>The maximum size of an incoming frame, in bytes. This value must be at least 256. The default value is
+    /// 1 MB.</value>
+    public int MaxFrameSize
     {
-        get => _maxIncomingFrameSize;
-        set => _maxIncomingFrameSize = value >= MinIncomingFrameSizeValue ? value :
+        get => _maxFrameSize;
+        set => _maxFrameSize = value >= MinFrameSize ? value :
             throw new ArgumentOutOfRangeException(
                 nameof(value),
-                $"{nameof(MaxIncomingFrameSize)} must be at least {MinIncomingFrameSizeValue}");
+                $"{nameof(MaxFrameSize)} must be at least {MinFrameSize}");
     }
 
     /// <summary>A shared instance that holds the default options.</summary>
     /// <remarks>It's internal to avoid accidental changes to these shared default options.</remarks>
     internal static IceOptions Default { get; } = new();
 
-    private const int MinIncomingFrameSizeValue = 256;
+    private const int MinFrameSize = 256;
     private int _maxConcurrentDispatches = 100;
-    private int _maxIncomingFrameSize = 1024 * 1024;
+    private int _maxFrameSize = 1024 * 1024;
 }
 
 /// <summary>A property bag used to configure a client connection using the ice protocol.</summary>
