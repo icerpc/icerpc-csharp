@@ -261,6 +261,133 @@ public class OperationGeneratedCodeTests
         Assert.That(r2, Is.EqualTo(20));
     }
 
+    /// <summary>Verifies that sequence of fixed size numeric values outgoing parameter is mapped to
+    /// <see cref="ReadOnlyMemory{T}"/> the mapping for the incoming parameter is not affected.</summary>
+    [Test]
+    public void Slice2_operation_encode_with_readonly_memory_param()
+    {
+        var readOnlyMemory = new ReadOnlyMemory<int>(new int[] { 1, 2, 3 });
+
+        PipeReader payload = MyOperationsAPrx.Request.OpReadOnlyMemory(readOnlyMemory);
+
+        // Assert
+        Assert.That(
+            async () => await IMyOperationsA.Request.OpReadOnlyMemoryAsync(
+                new IncomingRequest(InvalidConnection.IceRpc)
+                {
+                    Payload = payload
+                },
+                default),
+            Is.EqualTo(new int[] { 1, 2, 3 }));
+    }
+
+    /// <summary>Verifies that sequence of fixed size numeric values outgoing return value is mapped to
+    /// <see cref="ReadOnlyMemory{T}"/> the mapping for the incoming return value is not affected.</summary>
+    [Test]
+    public void Slice2_operation_encode_with_readonly_memory_return()
+    {
+        // Arrange
+        var readOnlyMemory = new ReadOnlyMemory<int>(new int[] { 1, 2, 3 });
+
+        // Act
+        PipeReader payload = IMyOperationsA.Response.OpReadOnlyMemory(readOnlyMemory);
+
+        // Assert
+        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var response = new IncomingResponse(request, InvalidConnection.IceRpc)
+        {
+            Payload = payload
+        };
+        Assert.That(
+            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryAsync(response, request, default),
+            Is.EqualTo(new int[] { 1, 2, 3}));
+    }
+
+    /// <summary>Verifies that an optional sequence of fixed size numeric values outgoing parameter is mapped to a 
+    /// <see cref="ReadOnlyMemory{T}"/> the mapping for the incoming parameter is not affected.</summary>
+    [Test]
+    public void Slice2_operation_encode_with_readonly_memory_optional_param(
+        [Values(new int[] { 1, 2, 3 }, null)] int[]? p)
+    {
+        PipeReader payload = MyOperationsAPrx.Request.OpReadOnlyMemoryOptional(new ReadOnlyMemory<int>(p));
+
+        // Assert
+        Assert.That(
+            async () => await IMyOperationsA.Request.OpReadOnlyMemoryOptionalAsync(
+                new IncomingRequest(InvalidConnection.IceRpc)
+                {
+                    Payload = payload
+                },
+                default),
+            Is.EqualTo(p));
+    }
+
+    /// <summary>Verifies that sequence of fixed size numeric values outgoing optional return value is mapped to
+    /// <see cref="ReadOnlyMemory{T}"/> the mapping for the optional incoming return value is not affected.</summary>
+    [Test]
+    public void Slice2_operation_encode_with_readonly_memory_optional_return(
+        [Values(new int[] { 1, 2, 3 }, null)] int[]? p)
+    {
+        // Arrange
+        var readOnlyMemory = new ReadOnlyMemory<int>(p);
+
+        // Act
+        PipeReader payload = IMyOperationsA.Response.OpReadOnlyMemoryOptional(readOnlyMemory);
+
+        // Assert
+        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var response = new IncomingResponse(request, InvalidConnection.IceRpc)
+        {
+            Payload = payload
+        };
+        Assert.That(
+            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryOptionalAsync(response, request, default),
+            Is.EqualTo(p));
+    }
+
+
+    /// <summary>Verifies that an optional sequence of fixed size numeric values outgoing tagged parameter is mapped to
+    /// a <see cref="ReadOnlyMemory{T}"/> the mapping for the incoming parameter is not affected.</summary>
+    [Test]
+    public void Slice2_operation_encode_with_readonly_memory_tagged_param(
+        [Values(new int[] { 1, 2, 3 }, null)] int[]? p)
+    {
+        PipeReader payload = MyOperationsAPrx.Request.OpReadOnlyMemoryTagged(new ReadOnlyMemory<int>(p));
+
+        // Assert
+        Assert.That(
+            async () => await IMyOperationsA.Request.OpReadOnlyMemoryTaggedAsync(
+                new IncomingRequest(InvalidConnection.IceRpc)
+                {
+                    Payload = payload
+                },
+                default),
+            Is.EqualTo(p));
+    }
+
+    /// <summary>Verifies that sequence of fixed size numeric values outgoing tagged return value is mapped to
+    /// <see cref="ReadOnlyMemory{T}"/> the mapping for the optional incoming return value is not affected.</summary>
+    [Test]
+    public void Slice2_operation_encode_with_readonly_memory_tagged_return(
+        [Values(new int[] { 1, 2, 3 }, null)] int[]? p)
+    {
+        // Arrange
+        var readOnlyMemory = new ReadOnlyMemory<int>(p);
+
+        // Act
+        PipeReader payload = IMyOperationsA.Response.OpReadOnlyMemoryTagged(readOnlyMemory);
+
+        // Assert
+        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var response = new IncomingResponse(request, InvalidConnection.IceRpc)
+        {
+            Payload = payload
+        };
+        Assert.That(
+            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryTaggedAsync(response, request, default),
+            Is.EqualTo(p));
+    }
+
     class MyOperationsA : Service, IMyOperationsA
     {
         public ValueTask ContinueAsync(Dispatch dispatch, CancellationToken cancel) => default;
@@ -322,6 +449,21 @@ public class OperationGeneratedCodeTests
         public ValueTask<IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult> OpWithMultipleReturnValuesAndEncodedResultAttributeAsync(
             Dispatch dispatch,
             CancellationToken cancel) => new(new IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult(10, 20));
+        
+        public ValueTask<ReadOnlyMemory<int>> OpReadOnlyMemoryAsync(
+            int[] p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new(p1);
+        
+        public ValueTask<ReadOnlyMemory<int>> OpReadOnlyMemoryOptionalAsync(
+            int[]? p1, 
+            Dispatch dispatch,
+            CancellationToken cancel) => new(p1);
+        
+        public ValueTask<ReadOnlyMemory<int>> OpReadOnlyMemoryTaggedAsync(
+            int[]? p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new(p1);
     }
 
     class MyDerivedOperationsA : MyOperationsA { }
