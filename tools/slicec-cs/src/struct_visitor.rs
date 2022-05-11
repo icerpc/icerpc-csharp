@@ -96,32 +96,29 @@ impl<'a> Visitor for StructVisitor<'a> {
             builder.add_block(main_constructor.build());
 
             // Decode constructor
-            let mut encode_block_builder = EncodingBlockBuilder::new(
+            let mut decode_body = EncodingBlockBuilder::new(
                 "decoder.Encoding",
                 &struct_def.escape_identifier(),
                 struct_def.supported_encodings(),
                 false, // No encoding check for structs
-            );
-
-            encode_block_builder.add_encoding_block(Encoding::Slice1, || {
+            )
+            .add_encoding_block(Encoding::Slice1, || {
                 decode_data_members(
                     &members,
                     &namespace,
                     FieldType::NonMangled,
                     Encoding::Slice1,
                 )
-            });
-
-            encode_block_builder.add_encoding_block(Encoding::Slice2, || {
+            })
+            .add_encoding_block(Encoding::Slice2, || {
                 decode_data_members(
                     &members,
                     &namespace,
                     FieldType::NonMangled,
                     Encoding::Slice2,
                 )
-            });
-
-            let mut decode_body = encode_block_builder.build();
+            })
+            .build();
 
             if !struct_def.is_compact {
                 writeln!(decode_body, "decoder.SkipTagged(useTagEndMarker: true);");
@@ -146,32 +143,29 @@ impl<'a> Visitor for StructVisitor<'a> {
             );
 
             // Encode method
-            let mut encode_block_builder = EncodingBlockBuilder::new(
+            let mut encode_body = EncodingBlockBuilder::new(
                 "encoder.Encoding",
                 &struct_def.escape_identifier(),
                 struct_def.supported_encodings(),
                 false, // No encoding check for structs
-            );
-
-            encode_block_builder.add_encoding_block(Encoding::Slice1, || {
+            )
+            .add_encoding_block(Encoding::Slice1, || {
                 encode_data_members(
                     &members,
                     &namespace,
                     FieldType::NonMangled,
                     Encoding::Slice1,
                 )
-            });
-
-            encode_block_builder.add_encoding_block(Encoding::Slice2, || {
+            })
+            .add_encoding_block(Encoding::Slice2, || {
                 encode_data_members(
                     &members,
                     &namespace,
                     FieldType::NonMangled,
                     Encoding::Slice2,
                 )
-            });
-
-            let mut encode_body = encode_block_builder.build();
+            })
+            .build();
 
             if !struct_def.is_compact {
                 writeln!(

@@ -188,14 +188,13 @@ fn encode_core_method(exception_def: &Exception) -> CodeBlock {
     let namespace = &exception_def.namespace();
     let has_base = exception_def.base.is_some();
 
-    let mut builder = EncodingBlockBuilder::new(
+    let body = EncodingBlockBuilder::new(
         "encoder.Encoding",
         &exception_def.escape_identifier(),
         exception_def.supported_encodings(),
         true,
-    );
-
-    builder.add_encoding_block(Encoding::Slice1, || {
+    )
+    .add_encoding_block(Encoding::Slice1, || {
         format!(
             "\
 encoder.StartSlice(SliceTypeId);
@@ -208,9 +207,8 @@ encoder.EndSlice(lastSlice: {is_last_slice});
             encode_base = if has_base { "base.EncodeCore(ref encoder);" } else { "" },
         )
         .into()
-    });
-
-    builder.add_encoding_block(Encoding::Slice2, || {
+    })
+    .add_encoding_block(Encoding::Slice2, || {
         format!(
             "\
 encoder.EncodeString(Message);
@@ -220,9 +218,8 @@ encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);",
                 &encode_data_members(members, namespace, FieldType::Exception, Encoding::Slice2),
         )
         .into()
-    });
-
-    let body = builder.build();
+    })
+    .build();
 
     FunctionBuilder::new(
         "protected override",
