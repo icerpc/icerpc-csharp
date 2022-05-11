@@ -482,7 +482,8 @@ r#"if ({encoding_variable} != {encoding})
                 let mut encoding_1 = self.encoding_blocks[&Encoding::Slice1]();
                 let mut encoding_2 = self.encoding_blocks[&Encoding::Slice2]();
 
-                if encoding_1.to_string() ==  encoding_2.to_string() {
+                // Only write one encoding block if encoding_1 and encoding_2 are the same.
+                if encoding_1.to_string() == encoding_2.to_string() {
                     return encoding_2;
                 }
 
