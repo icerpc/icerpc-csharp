@@ -19,7 +19,7 @@ public class Slice1NullableTests
             () =>
             {
                 var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
-                var decoded = new MyCompactSturctWithNonNullableProxy(ref decoder);
+                decoder.DecodeProxy();
             },
             Throws.TypeOf<InvalidDataException>());
     }
@@ -35,7 +35,7 @@ public class Slice1NullableTests
             () =>
             {
                 var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
-                var decoded = new MyCompactSturctWithNonNullableClass(ref decoder);
+                var decoded = decoder.DecodeClass<AnyClass>();
             },
             Throws.TypeOf<InvalidDataException>());
     }
