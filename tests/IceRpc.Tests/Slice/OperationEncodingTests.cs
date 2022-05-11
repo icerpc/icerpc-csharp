@@ -476,7 +476,7 @@ public class OperationEncodingTests
     }
 
     [Test]
-    public async Task Operation_encode_decode_with_tagged_return(
+    public async Task Slice2_operation_decode_with_tagged_return(
         [Values(10, null)] int? p3,
         [Values("hello world!", null)] string? p4)
     {

@@ -323,7 +323,7 @@ fn encode_tagged_type(
 
     let unwrapped_name = member.parameter_name() + "_";
     let null_check = if read_only_memory {
-        format!("{}.Span != null", param) // TODO do we need the '.Span' here?
+        format!("{}.Span != null", param)
     } else {
         format!(
             "{param} is {unwrapped_type} {unwrapped_name}",
