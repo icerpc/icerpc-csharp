@@ -17,6 +17,15 @@ public sealed record class SliceDecodePayloadOptions
     /// decoding of a request or response payload uses the activator injected by the Slice generated code.</summary>
     public IActivator? Activator { get; set; }
 
+    /// <summary>The maximum collection allocation when decoding a payload, in bytes.</summary>
+    /// <value>A value greater than or equal to 0. The default is 8 times <see cref="MaxSegmentSize"/>.</value>
+    public int MaxCollectionAllocation
+    {
+        get => _maxCollectionAllocation ?? 8 * _maxSegmentSize;
+        set => _maxCollectionAllocation = value >= 0 ? value :
+            throw new ArgumentException("value must greater than or equal to 0", nameof(value));
+    }
+
     /// <summary>The maximum depth when decoding a type recursively.</summary>
     /// <value>A value greater than 0. The default is <see cref="DefaultMaxDepth"/>.</value>
     public int MaxDepth
@@ -41,13 +50,12 @@ public sealed record class SliceDecodePayloadOptions
     /// proxy that created the request.</summary>
     public IInvoker? ProxyInvoker { get; set; }
 
-    /// <summary>The stream decoder options.</summary>
+    /// <summary>The options for decoding a Slice stream.</summary>
     public SliceStreamDecoderOptions StreamDecoderOptions { get; set; } = SliceStreamDecoderOptions.Default;
 
     internal static SliceDecodePayloadOptions Default { get; } = new();
 
-    /// <summary>The options for decoding a Slice stream.</summary>
-
+    private int? _maxCollectionAllocation;
     private int _maxDepth = DefaultMaxDepth;
     private int _maxSegmentSize = DefaultMaxSegmentSize;
 }

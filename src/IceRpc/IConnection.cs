@@ -12,6 +12,9 @@ public interface IConnection
     // TODO: can we/should we eliminate this property?
     Endpoint Endpoint { get; }
 
+    /// <summary>Gets the features of this connection.</summary>
+    public FeatureCollection Features { get; }
+
     /// <summary>Checks whether a call to <see cref="InvokeAsync"/> can succeed.</summary>
     /// <value><c>true</c> when a call to <see cref="InvokeAsync"/> can succeed. <c>false</c> when a call to
     /// <see cref="InvokeAsync"/> is guaranteed to fail, for example because the connection is closed or shutting down.

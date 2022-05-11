@@ -49,6 +49,7 @@ namespace IceRpc.Slice.Internal
                     frame.Connection,
                     decodePayloadOptions.ProxyInvoker ?? defaultInvoker,
                     decodePayloadOptions.Activator ?? defaultActivator,
+                    maxCollectionAllocation: decodePayloadOptions.MaxCollectionAllocation,
                     maxDepth: decodePayloadOptions.MaxDepth);
                 T value = decodeFunc(ref decoder);
                 decoder.CheckEndOfBuffer(skipTaggedParams: true);
@@ -96,6 +97,8 @@ namespace IceRpc.Slice.Internal
 
                 if (!readResult.Buffer.IsEmpty)
                 {
+                    // no need to pass maxCollectionAllocation and other args since the only thing this decoding can
+                    // do is skip unknown tags
                     var decoder = new SliceDecoder(readResult.Buffer, encoding);
                     decoder.CheckEndOfBuffer(skipTaggedParams: true);
                 }
@@ -153,6 +156,7 @@ namespace IceRpc.Slice.Internal
                     connection,
                     decodePayloadOptions.ProxyInvoker ?? defaultInvoker,
                     decodePayloadOptions.Activator ?? defaultActivator,
+                    maxCollectionAllocation: decodePayloadOptions.MaxCollectionAllocation,
                     maxDepth: decodePayloadOptions.MaxDepth);
 
                 var items = new List<T>();
