@@ -313,7 +313,7 @@ fn request_decode_func(operation: &Operation) -> CodeBlock {
 
     if use_default_decode_func {
         let param = parameters.first().unwrap();
-        decode_func(param.data_type(), namespace, Some(operation.encoding))
+        decode_func(param.data_type(), namespace, operation.encoding)
     } else {
         format!(
             "(ref SliceDecoder decoder) =>
@@ -566,7 +566,7 @@ fn payload_stream(operation: &Operation, encoding: &str) -> CodeBlock {
                         stream_type,
                         TypeContext::Encode,
                         namespace,
-                        Some(operation.encoding)
+                        operation.encoding
                     )
                     .indent(),
                 )
