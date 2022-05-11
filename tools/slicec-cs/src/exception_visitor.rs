@@ -86,13 +86,6 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
             );
         }
 
-        let mut decode_body_slice2 =
-            decode_data_members(&members, namespace, FieldType::Exception, Encoding::Slice2);
-        writeln!(
-            decode_body_slice2,
-            "decoder.SkipTagged(useTagEndMarker: true);"
-        );
-
         exception_class_builder.add_block(
             FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody)
                 .add_parameter("ref SliceDecoder", "decoder", None, None)
@@ -107,7 +100,20 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
                     .add_encoding_block(Encoding::Slice1, || {
                         initialize_non_nullable_fields(&members, FieldType::Exception)
                     })
-                    .add_encoding_block(Encoding::Slice2, || decode_body_slice2.clone())
+                    .add_encoding_block(Encoding::Slice2, || {
+                        format!(
+                            "\
+{}
+decoder.SkipTagged(useTagEndMarker: true);",
+                            decode_data_members(
+                                &members,
+                                namespace,
+                                FieldType::Exception,
+                                Encoding::Slice2,
+                            )
+                        )
+                        .into()
+                    })
                     .build(),
                 )
                 .add_never_editor_browsable_attribute()

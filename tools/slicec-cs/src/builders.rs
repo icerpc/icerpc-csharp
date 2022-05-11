@@ -487,9 +487,7 @@ r#"if ({encoding_variable} != {encoding})
                     return encoding_2;
                 }
 
-                if encoding_1.is_empty() && encoding_2.is_empty() {
-                    "".into()
-                } else if encoding_1.is_empty() && !encoding_2.is_empty() {
+                if encoding_1.is_empty() && !encoding_2.is_empty() {
                     format!(
                         "\
 if ({encoding_variable} != SliceEncoding.Slice1) // Slice2 only
