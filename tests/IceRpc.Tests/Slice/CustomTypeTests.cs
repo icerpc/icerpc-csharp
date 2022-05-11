@@ -17,6 +17,7 @@ public class CustomTypeTests
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
         var value = new StructWithCustomTypeMember(ref decoder);
+
         Assert.That(value.M, Is.EqualTo(expected));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
@@ -31,7 +32,6 @@ public class CustomTypeTests
         expected.Encode(ref encoder);
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
-
         var value = decoder.DecodeCustomType();
         Assert.That(expected.M, Is.EqualTo(value));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));

@@ -103,54 +103,6 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Decode_struct_with_tagged_members(
-        [Values(10, null)] int? k,
-        [Values(20, null)] int? l,
-        [Values(30ul, null)] ulong? m)
-    {
-        var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        encoder.EncodeInt32(10);
-        encoder.EncodeInt32(20);
-        if (k != null)
-        {
-            encoder.EncodeTagged(
-                1,
-                size: 4,
-                k.Value,
-                (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
-        }
-
-        if (l != null)
-        {
-            encoder.EncodeTagged(
-                255,
-                size: 1,
-                l.Value,
-                (ref SliceEncoder encoder, int value) => encoder.EncodeVarInt32(value));
-        }
-
-        if (m != null)
-        {
-            encoder.EncodeTagged(
-                256,
-                size: 1,
-                m.Value,
-                (ref SliceEncoder encoder, ulong value) => encoder.EncodeVarUInt62(value));
-        }
-        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
-
-        var decoded = new MyStructWithTaggedMembers(ref decoder);
-        Assert.That(decoded.I, Is.EqualTo(10));
-        Assert.That(decoded.J, Is.EqualTo(20));
-        Assert.That(decoded.K, Is.EqualTo(k));
-        Assert.That(decoded.L, Is.EqualTo(l));
-        Assert.That(decoded.M, Is.EqualTo(m));
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
-    }
-
-    [Test]
     public void Decode_slice1_compact_struct_with_nullable_proxy(
         [Values("icerpc://localhost/service", null)] string? proxy)
     {
@@ -377,51 +329,6 @@ public sealed class StructTests
         else
         {
             Assert.That(bitSequenceReader.Read(), Is.False);
-        }
-        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
-        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
-    }
-
-    [Test]
-    public void Encode_struct_with_tagged_members(
-        [Values(10, null)] int? k,
-        [Values(20, null)] int? l,
-        [Values(30ul, null)] ulong? m)
-    {
-        var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        var expected = new MyStructWithTaggedMembers(10, 20, k, l, m);
-
-        expected.Encode(ref encoder);
-
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(10));
-        Assert.That(decoder.DecodeInt32(), Is.EqualTo(20));
-        if (k != null)
-        {
-            Assert.That(
-                decoder.DecodeTagged(1, (ref SliceDecoder decoder) => decoder.DecodeInt32(), useTagEndMarker: true),
-                Is.EqualTo(k));
-        }
-
-        if (l != null)
-        {
-            Assert.That(
-                decoder.DecodeTagged(
-                    255,
-                    (ref SliceDecoder decoder) => decoder.DecodeVarInt32(),
-                    useTagEndMarker: true),
-                Is.EqualTo(l));
-        }
-
-        if (m != null)
-        {
-            Assert.That(
-                decoder.DecodeTagged(
-                    256,
-                    (ref SliceDecoder decoder) => decoder.DecodeVarUInt62(),
-                    useTagEndMarker: true),
-                Is.EqualTo(m));
         }
         Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));

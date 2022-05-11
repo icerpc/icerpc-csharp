@@ -9,111 +9,80 @@ namespace IceRpc.Slice.Tests;
 public class SpanEnumeratorTests
 {
     /// <summary>Provides test case data for
-    /// <see cref="Move_to_next_span(byte[], byte[], IList<Memory<byte>>?, int, byte[])"/> test.
+    /// <see cref="Move_to_next_span(byte[], byte[], IList{Memory{byte}}?, int, byte[])"/> test.
     /// </summary>
     private static IEnumerable<TestCaseData> EnumeratorCurrentUpdatesSuccessfullySource
     {
         get
         {
-            (byte[], byte[], IList<Memory<byte>>?, int, byte[])[] testData =
-            {
-                (
-                    new byte[] { 1, 2, 3 },
-                    Array.Empty<byte>(),
-                    null,
-                    1,
-                    new byte[] { 1, 2, 3 }
-                ),
-                (
-                    new byte[] { 1, 2, 3 },
-                    new byte[] { 4, 5, 6 },
-                    null,
-                    2,
-                    new byte[] { 4, 5, 6 }
-                ),
-                (
-                    new byte[] { 1, 2, 3 },
-                    new byte[] { 4, 5, 6 },
-                    new Memory<byte>[]
-                    {
-                        new byte[] { 7, 8, 9 }
-                    },
-                    3,
+            yield return new TestCaseData(
+                new byte[] { 1, 2, 3 },
+                Array.Empty<byte>(),
+                null,
+                1,
+                new byte[] { 1, 2, 3 });
+            yield return new TestCaseData(
+                new byte[] { 1, 2, 3 },
+                new byte[] { 4, 5, 6 },
+                null,
+                2,
+                new byte[] { 4, 5, 6 });
+            yield return new TestCaseData(
+                new byte[] { 1, 2, 3 },
+                new byte[] { 4, 5, 6 },
+                new Memory<byte>[]
+                {
                     new byte[] { 7, 8, 9 }
-                ),
-                (
-                    new byte[] { 1, 2, 3 },
-                    new byte[] { 4, 5, 6 },
-                    new Memory<byte>[]
-                    {
-                        new byte[] { 7, 8, 9 },
-                        new byte[] { 10, 11, 12 }
-                    },
-                    4,
+                },
+                3,
+                new byte[] { 7, 8, 9 });
+            yield return new TestCaseData(
+                new byte[] { 1, 2, 3 },
+                new byte[] { 4, 5, 6 },
+                new Memory<byte>[]
+                {
+                    new byte[] { 7, 8, 9 },
                     new byte[] { 10, 11, 12 }
-                ),
-            };
-            foreach ((
-                byte[] firstBytes,
-                byte[] secondBytes,
-                IList<Memory<byte>>? additionalMemory,
-                int moves,
-                byte[] expected) in testData)
-            {
-                yield return new TestCaseData(firstBytes, secondBytes, additionalMemory, moves, expected);
-            }
+                },
+                4,
+                new byte[] { 10, 11, 12 });
         }
     }
 
     /// <summary>Provides test case data for
-    /// <see cref="Move_past_the_end_fails(byte[], byte[], IList<Memory<byte>>?, int)"/> test.
+    /// <see cref="Move_past_the_end_fails(byte[], byte[], IList{Memory{byte}}?, int)"/> test.
     /// </summary>
     private static IEnumerable<TestCaseData> EnumeratorNextFailsSource
     {
         get
         {
-            (byte[], byte[], IList<Memory<byte>>?, int)[] enumeratorTestArgsAndExpected =
-            {
-                (
-                    new byte[] { 1, 2, 3 },
-                    Array.Empty<byte>(),
-                    null,
-                    1
-                ),
-                (
-                    new byte[] { 1, 2, 3 },
-                    new byte[] { 4, 5, 6 },
-                    null,
-                    2
-                ),
-                (
-                    new byte[] { 1, 2, 3 },
-                    new byte[] { 4, 5, 6 },
-                    new Memory<byte>[]
-                    {
-                        new byte[] { 7, 8, 9 }
-                    },
-                    3
-                ),
-                (
-                    new byte[] { 1, 2, 3 },
-                    new byte[] { 4, 5, 6 },
-                    new Memory<byte>[]
-                    {
-                        new byte[] { 7, 8, 9 },
-                        new byte[] { 10, 11, 12 }
-                    },
-                    4
-                ),
-            };
-            foreach ((
-                byte[] firstBytes,
-                byte[] secondBytes,
-                IList<Memory<byte>>? additionalMemory,
-                int moves) in enumeratorTestArgsAndExpected)
-            {
-                yield return new TestCaseData(firstBytes, secondBytes, additionalMemory, moves);
-            }
+            yield return new TestCaseData(
+                new byte[] { 1, 2, 3 },
+                Array.Empty<byte>(),
+                null,
+                1);
+            yield return new TestCaseData(
+                new byte[] { 1, 2, 3 },
+                new byte[] { 4, 5, 6 },
+                null,
+                2);
+            yield return new TestCaseData(
+                new byte[] { 1, 2, 3 },
+                new byte[] { 4, 5, 6 },
+                new Memory<byte>[]
+                {
+                    new byte[] { 7, 8, 9 }
+                },
+                3);
+            yield return new TestCaseData(
+                new byte[] { 1, 2, 3 },
+                new byte[] { 4, 5, 6 },
+                new Memory<byte>[]
+                {
+                    new byte[] { 7, 8, 9 },
+                    new byte[] { 10, 11, 12 }
+                },
+                4);
         }
     }
 
