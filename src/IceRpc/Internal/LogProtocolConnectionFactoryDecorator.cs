@@ -2,7 +2,6 @@
 
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
-using System.Buffers;
 
 namespace IceRpc.Internal
 {

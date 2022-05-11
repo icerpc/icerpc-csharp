@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice.Internal;
-using NUnit.Framework;
 using IceRpc.Slice.Tagged.Slice1.Tests;
+using NUnit.Framework;
 
 namespace IceRpc.Slice.Tests;
 

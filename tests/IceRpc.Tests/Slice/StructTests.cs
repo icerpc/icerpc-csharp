@@ -122,7 +122,7 @@ public sealed class StructTests
 
     [Test]
     public void Decode_slice2_compact_struct_with_nullable_proxy(
-        [Values("icerpc://localhost/service", null)]string? proxy)
+        [Values("icerpc://localhost/service", null)] string? proxy)
     {
         var expected = new MyCompactStructWithNullableProxy(
             10,

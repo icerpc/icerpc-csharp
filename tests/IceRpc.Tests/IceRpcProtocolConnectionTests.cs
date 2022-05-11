@@ -5,7 +5,6 @@ using IceRpc.Internal;
 using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System.Buffers;
 
 namespace IceRpc.Tests;
 

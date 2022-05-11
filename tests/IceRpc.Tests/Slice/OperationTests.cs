@@ -300,7 +300,7 @@ public class OperationGeneratedCodeTests
         };
         Assert.That(
             async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryAsync(response, request, default),
-            Is.EqualTo(new int[] { 1, 2, 3}));
+            Is.EqualTo(new int[] { 1, 2, 3 }));
     }
 
     /// <summary>Verifies that an optional sequence of fixed size numeric values outgoing parameter is mapped to a 
@@ -449,17 +449,17 @@ public class OperationGeneratedCodeTests
         public ValueTask<IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult> OpWithMultipleReturnValuesAndEncodedResultAttributeAsync(
             Dispatch dispatch,
             CancellationToken cancel) => new(new IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult(10, 20));
-        
+
         public ValueTask<ReadOnlyMemory<int>> OpReadOnlyMemoryAsync(
             int[] p1,
             Dispatch dispatch,
             CancellationToken cancel) => new(p1);
-        
+
         public ValueTask<ReadOnlyMemory<int>> OpReadOnlyMemoryOptionalAsync(
-            int[]? p1, 
+            int[]? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new(p1);
-        
+
         public ValueTask<ReadOnlyMemory<int>> OpReadOnlyMemoryTaggedAsync(
             int[]? p1,
             Dispatch dispatch,

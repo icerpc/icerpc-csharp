@@ -2,7 +2,6 @@
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using System.Collections.Immutable;
 using System.Net.Security;
 
 namespace IceRpc.Configure

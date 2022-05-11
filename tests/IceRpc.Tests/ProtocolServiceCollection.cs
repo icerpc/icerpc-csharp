@@ -7,7 +7,6 @@ using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using System.Buffers;
 using System.Net.Security;
 
 namespace IceRpc.Tests;
