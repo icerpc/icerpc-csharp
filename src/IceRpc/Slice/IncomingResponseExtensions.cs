@@ -106,7 +106,11 @@ namespace IceRpc.Slice
             IActivator? defaultActivator,
             CancellationToken cancel = default)
         {
-            return response.ResultType == ResultType.Success ? response.DecodeVoidAsync(encoding, cancel) :
+            SliceDecodePayloadOptions decodePayloadOptions =
+                request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default;
+
+            return response.ResultType == ResultType.Success ?
+                response.DecodeVoidAsync(encoding, decodePayloadOptions, cancel) :
                 ThrowRemoteExceptionAsync();
 
             async ValueTask ThrowRemoteExceptionAsync()
@@ -114,7 +118,7 @@ namespace IceRpc.Slice
                 throw await response.DecodeRemoteExceptionAsync(
                     request,
                     encoding,
-                    request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
+                    decodePayloadOptions,
                     defaultActivator,
                     cancel).ConfigureAwait(false);
             }
@@ -139,7 +143,7 @@ namespace IceRpc.Slice
             {
                 ReadResult readResult = await response.Payload.ReadSegmentAsync(
                     encoding,
-                    maxSize: 4_000_000, // TODO: configuration
+                    decodePayloadOptions.MaxSegmentSize,
                     cancel).ConfigureAwait(false);
 
                 if (readResult.IsCanceled)

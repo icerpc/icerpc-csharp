@@ -10,7 +10,7 @@ public sealed record class SliceDecodePayloadOptions
     /// <summary>The default value for <see cref="MaxDepth"/> (100).</summary>
     public const int DefaultMaxDepth = 100;
 
-    /// <summary>The default value for <see cref="MaxSegmentSize"/> (1MB).</summary>
+    /// <summary>The default value for <see cref="MaxSegmentSize"/> (1 MB).</summary>
     public const int DefaultMaxSegmentSize = 1024 * 1024;
 
     /// <summary>The activator to use when decoding Slice classes, exceptions and traits. When <c>null</c>, the
@@ -26,8 +26,9 @@ public sealed record class SliceDecodePayloadOptions
             throw new ArgumentException("value must greater than 0", nameof(value));
     }
 
-    /// <summary>The maximum size of a Slice payload segment, in bytes.</summary>
-    /// <value>A value greater than 0. The default is <see cref="DefaultMaxSegmentSize"/>.</value>
+    /// <summary>The maximum size of a Slice payload segment, in bytes. This limit applies only to payloads about to be
+    /// decoded.</summary>
+    /// <value>A value greater than 0. The default is <see cref="DefaultMaxSegmentSize"/> bytes.</value>
     public int MaxSegmentSize
     {
         get => _maxSegmentSize;
@@ -40,7 +41,7 @@ public sealed record class SliceDecodePayloadOptions
     /// proxy that created the request.</summary>
     public IInvoker? ProxyInvoker { get; set; }
 
-    /// <summary>The default decode payload options.</summary>
+    /// <summary>The stream decoder options.</summary>
     public SliceStreamDecoderOptions StreamDecoderOptions { get; set; } = SliceStreamDecoderOptions.Default;
 
     internal static SliceDecodePayloadOptions Default { get; } = new();
