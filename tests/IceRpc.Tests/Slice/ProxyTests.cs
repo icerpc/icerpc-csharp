@@ -47,24 +47,7 @@ public class ProxyTests
         }
     }
 
-    /// <summary>Verifies that nullable proxies are correctly encoded with both Slice1 and Slice2 encoding.</summary>
-    /// <param name="expected">The nullable proxy to test with.</param>
-    [Test, TestCaseSource(nameof(DecodeNullableProxySource))]
-    public void Decode_slice2_nullable_proxy(Proxy? expected)
-    {
-        var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        BitSequenceWriter bitSequenceWritter = encoder.GetBitSequenceWriter(1);
-        encoder.EncodeNullableProxy(ref bitSequenceWritter, expected);
-        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
-        BitSequenceReader bitsequenceReader = decoder.GetBitSequenceReader(1);
-
-        Proxy? decoded = decoder.DecodeNullableProxy(ref bitsequenceReader);
-
-        Assert.That(decoded, Is.EqualTo(expected));
-    }
-
-    /// <summary>Verifies that nullable proxies are correctly encoded with both Slice1 and Slice2 encoding.</summary>
+    /// <summary>Verifies that nullable proxies are correctly encoded withSlice1 encoding.</summary>
     /// <param name="expected">The nullable proxy to test with.</param>
     [Test, TestCaseSource(nameof(DecodeNullableProxySource))]
     public void Decode_slice1_nullable_proxy(Proxy? expected)
