@@ -70,7 +70,7 @@ public class PipeReaderTests
         var pipe = new Pipe();
         await pipe.Writer.WriteAsync(new byte[] { 20, 1, 2, 3, 4 });
 
-        bool success = pipe.Reader.TryReadSegment(SliceEncoding.Slice2, maxSize: 100, out ReadResult readResult);
+        bool success = pipe.Reader.TryReadSegment(SliceEncoding.Slice2, maxSize: 100, out ReadResult _);
 
         Assert.That(success, Is.False);
         await pipe.Reader.CompleteAsync();

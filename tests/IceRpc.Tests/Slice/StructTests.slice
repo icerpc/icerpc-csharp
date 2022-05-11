@@ -16,15 +16,6 @@ struct MyStructWithOptionalMembers
     l: int32?
 }
 
-struct MyStructWithTaggedMembers
-{
-    i: int32,
-    j: int32,
-    k: tag(1) int32?,
-    l: tag(255) varint32?,
-    m: tag(256) varuint62?,
-}
-
 compact struct MyCompactStruct
 {
     i: int32,
