@@ -476,7 +476,7 @@ public class OperationEncodingTests
     }
 
     [Test]
-    public async Task Operation_encode_decode_with_tagged_return(
+    public async Task Slice2_operation_decode_with_tagged_return(
         [Values(10, null)] int? p3,
         [Values("hello world!", null)] string? p4)
     {
@@ -524,5 +524,96 @@ public class OperationEncodingTests
             }
             return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.WrittenMemory));
         }
+    }
+
+    [Test]
+    public void Slice2_operation_encode_with_readonly_memory_param()
+    {
+        var readOnlyMemory = new ReadOnlyMemory<int>(new int[] { 1, 2, 3 });
+
+        PipeReader payload = MyOperationsBPrx.Request.OpReadOnlyMemory(readOnlyMemory);
+
+        // Assert
+        // readResult: size + 4 bytes payload size
+        Assert.That(payload.TryRead(out var readResult));
+        Assert.That(readResult.IsCompleted, Is.True);
+        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+        Assert.That(decoder.DecodeSize(), Is.EqualTo(13));
+        Assert.That(decoder.DecodeSize(), Is.EqualTo(3));
+        Assert.That(decoder.DecodeInt32(), Is.EqualTo(1));
+        Assert.That(decoder.DecodeInt32(), Is.EqualTo(2));
+        Assert.That(decoder.DecodeInt32(), Is.EqualTo(3));
+        Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
+    }
+
+    [Test]
+    public void Slice2_operation_encode_with_readonly_memory_return()
+    {
+        var readOnlyMemory = new ReadOnlyMemory<int>(new int[] { 1, 2, 3 });
+
+        PipeReader payload = IMyOperationsB.Response.OpReadOnlyMemory(readOnlyMemory);
+
+        // Assert
+        // readResult: size + 4 bytes payload size
+        Assert.That(payload.TryRead(out var readResult));
+        Assert.That(readResult.IsCompleted, Is.True);
+        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+        Assert.That(decoder.DecodeSize(), Is.EqualTo(13));
+        Assert.That(decoder.DecodeSize(), Is.EqualTo(3));
+        Assert.That(decoder.DecodeInt32(), Is.EqualTo(1));
+        Assert.That(decoder.DecodeInt32(), Is.EqualTo(2));
+        Assert.That(decoder.DecodeInt32(), Is.EqualTo(3));
+        Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
+    }
+
+    [Test]
+    public void Slice2_operation_encode_with_readonly_memory_optional_param(
+        [Values(new int[] { 1, 2, 3}, null)] int[]? p)
+    {
+        PipeReader payload = MyOperationsBPrx.Request.OpReadOnlyMemoryOptional(new ReadOnlyMemory<int>(p));
+
+        // Assert
+        // readResult: size + 4 bytes payload size
+        Assert.That(payload.TryRead(out var readResult));
+        Assert.That(readResult.IsCompleted, Is.True);
+        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+        if (p == null)
+        {
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
+            var bitSequenceReader = decoder.GetBitSequenceReader(1);
+            Assert.That(bitSequenceReader.Read(), Is.False);
+        }
+        else
+        {
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(14));
+            var bitSequenceReader = decoder.GetBitSequenceReader(1);
+            Assert.That(bitSequenceReader.Read(), Is.True);
+            Assert.That(decoder.DecodeSize(), Is.EqualTo(3));
+            Assert.That(decoder.DecodeInt32(), Is.EqualTo(1));
+            Assert.That(decoder.DecodeInt32(), Is.EqualTo(2));
+            Assert.That(decoder.DecodeInt32(), Is.EqualTo(3));
+        }
+        Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
+    }
+
+    [Test]
+    public void Slice2_operation_encode_with_readonly_memory_tagged_param(
+        [Values(new int[] { 1, 2, 3 }, null)] int[]? p)
+    {
+        PipeReader payload = MyOperationsBPrx.Request.OpReadOnlyMemoryTagged(new ReadOnlyMemory<int>(p));
+
+        // Assert
+        // readResult: size + 4 bytes payload size
+        Assert.That(payload.TryRead(out var readResult));
+        Assert.That(readResult.IsCompleted, Is.True);
+        var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+        Assert.That(decoder.DecodeSize(), Is.EqualTo(p == null ? 0 : 15));
+        Assert.That(
+            decoder.DecodeTagged(
+                1,
+                (ref SliceDecoder decoder) => decoder.DecodeSequence<int>(),
+                useTagEndMarker: false),
+            Is.EqualTo(p));
+        Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
     }
 }

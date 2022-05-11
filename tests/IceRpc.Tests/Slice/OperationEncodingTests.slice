@@ -18,4 +18,13 @@ interface MyOperationsB
     // Tagged input parameters and return values
     opTagged(p1: int32, p2: string, p3: tag(1) int32?, p4: tag(2) string?) ->
         (r1: int32, r2: string, r3: tag(1) int32?, r4: tag(2) string?);
+
+    // ReadOnlyMemory input parameters and return values
+    opReadOnlyMemory(p1: sequence<int32>) -> (r1: sequence<int32>);
+
+    // ReadOnlyMemory optional input parameters and return values
+    opReadOnlyMemoryOptional(p1: sequence<int32>?) -> (r1: sequence<int32>?);
+
+    // ReadOnlyMemory tagged input parameters and return values
+    opReadOnlyMemoryTagged(p1: tag(1) sequence<int32>?) -> (r1: tag(1) sequence<int32>?);
 }
