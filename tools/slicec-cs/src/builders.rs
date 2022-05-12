@@ -417,15 +417,15 @@ impl CommentBuilder for FunctionBuilder {
     }
 }
 
-pub struct EncodingBlockBuilder {
-    encoding_blocks: HashMap<Encoding, CodeBlock>,
+pub struct EncodingBlockBuilder<'a> {
+    encoding_blocks: HashMap<Encoding, Box<dyn Fn() -> CodeBlock + 'a>>,
     supported_encodings: SupportedEncodings,
     encoding_variable: String,
     identifier: String,
     encoding_check: bool,
 }
 
-impl EncodingBlockBuilder {
+impl<'a> EncodingBlockBuilder<'a> {
     pub fn new(
         encoding_variable: &str,
         identifier: &str,
@@ -441,8 +441,12 @@ impl EncodingBlockBuilder {
         }
     }
 
-    pub fn add_encoding_block(&mut self, encoding: Encoding, code: CodeBlock) -> &mut Self {
-        self.encoding_blocks.insert(encoding, code);
+    pub fn add_encoding_block<F>(&mut self, encoding: Encoding, func: F) -> &mut Self
+    where
+        F: 'a,
+        F: Fn() -> CodeBlock,
+    {
+        self.encoding_blocks.insert(encoding, Box::new(func));
         self
     }
 
@@ -470,17 +474,20 @@ r#"if ({encoding_variable} != {encoding})
                         } else {
                             "".to_owned()
                         },
-                    encode_block = self.encoding_blocks[encoding].clone(),
+                    encode_block = self.encoding_blocks[encoding](),
                 )
                 .into()
             }
             _ => {
-                let mut encoding_1 = self.encoding_blocks[&Encoding::Slice1].clone();
-                let mut encoding_2 = self.encoding_blocks[&Encoding::Slice2].clone();
+                let mut encoding_1 = self.encoding_blocks[&Encoding::Slice1]();
+                let mut encoding_2 = self.encoding_blocks[&Encoding::Slice2]();
 
-                if encoding_1.is_empty() && encoding_2.is_empty() {
-                    "".into()
-                } else if encoding_1.is_empty() && !encoding_2.is_empty() {
+                // Only write one encoding block if encoding_1 and encoding_2 are the same.
+                if encoding_1.to_string() == encoding_2.to_string() {
+                    return encoding_2;
+                }
+
+                if encoding_1.is_empty() && !encoding_2.is_empty() {
                     format!(
                         "\
 if ({encoding_variable} != SliceEncoding.Slice1) // Slice2 only

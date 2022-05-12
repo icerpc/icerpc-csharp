@@ -262,7 +262,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
                     stream_type,
                     TypeContext::Encode,
                     namespace,
-                    Some(operation.encoding)
+                    operation.encoding
                 )
                 .indent()
             )),
@@ -592,7 +592,7 @@ fn response_decode_func(operation: &Operation) -> CodeBlock {
         decode_func(
             members.first().unwrap().data_type(),
             namespace,
-            Some(operation.encoding),
+            operation.encoding,
         )
     } else {
         format!(

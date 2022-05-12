@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use crate::builders::EncodingBlockBuilder;
 use crate::builders::{
-    AttributeBuilder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType,
+    AttributeBuilder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder, FunctionBuilder,
+    FunctionType,
 };
 use crate::code_block::CodeBlock;
 use crate::comments::doc_comment_message;
@@ -95,50 +95,30 @@ impl<'a> Visitor for StructVisitor<'a> {
             });
             builder.add_block(main_constructor.build());
 
-            let contains_optional_proxies = contains_optional_proxies(&members);
-
             // Decode constructor
-
-            let mut decode_body = if !contains_optional_proxies
-                && struct_def.supported_encodings().supports(&Encoding::Slice1)
-                && struct_def.supported_encodings().supports(&Encoding::Slice2)
-            {
-                // If the struct doesn't contain nullable proxies and it supports both encoding, we need a
-                // single decode code block.
-                decode_data_members(&members, &namespace, FieldType::NonMangled, None)
-            } else {
-                let mut encode_block_builder = EncodingBlockBuilder::new(
-                    "decoder.Encoding",
-                    &struct_def.escape_identifier(),
-                    struct_def.supported_encodings(),
-                    false, // No encoding check for structs
-                );
-
-                if struct_def.supported_encodings().supports(&Encoding::Slice1) {
-                    encode_block_builder.add_encoding_block(
-                        Encoding::Slice1,
-                        decode_data_members(
-                            &members,
-                            &namespace,
-                            FieldType::NonMangled,
-                            Some(Encoding::Slice1),
-                        ),
-                    );
-                }
-
-                if struct_def.supported_encodings().supports(&Encoding::Slice2) {
-                    encode_block_builder.add_encoding_block(
-                        Encoding::Slice2,
-                        decode_data_members(
-                            &members,
-                            &namespace,
-                            FieldType::NonMangled,
-                            Some(Encoding::Slice2),
-                        ),
-                    );
-                }
-                encode_block_builder.build()
-            };
+            let mut decode_body = EncodingBlockBuilder::new(
+                "decoder.Encoding",
+                &struct_def.escape_identifier(),
+                struct_def.supported_encodings(),
+                false, // No encoding check for structs
+            )
+            .add_encoding_block(Encoding::Slice1, || {
+                decode_data_members(
+                    &members,
+                    &namespace,
+                    FieldType::NonMangled,
+                    Encoding::Slice1,
+                )
+            })
+            .add_encoding_block(Encoding::Slice2, || {
+                decode_data_members(
+                    &members,
+                    &namespace,
+                    FieldType::NonMangled,
+                    Encoding::Slice2,
+                )
+            })
+            .build();
 
             if !struct_def.is_compact {
                 writeln!(decode_body, "decoder.SkipTagged(useTagEndMarker: true);");
@@ -163,46 +143,29 @@ impl<'a> Visitor for StructVisitor<'a> {
             );
 
             // Encode method
-            let mut encode_body = if !contains_optional_proxies
-                && struct_def.supported_encodings().supports(&Encoding::Slice1)
-                && struct_def.supported_encodings().supports(&Encoding::Slice2)
-            {
-                // If the struct doesn't contain nullable proxies and it supports both encoding, we need a
-                // single encode code block.
-                encode_data_members(&members, &namespace, FieldType::NonMangled, None)
-            } else {
-                let mut encode_block_builder = EncodingBlockBuilder::new(
-                    "encoder.Encoding",
-                    &struct_def.escape_identifier(),
-                    struct_def.supported_encodings(),
-                    false, // No encoding check for structs
-                );
-
-                if struct_def.supported_encodings().supports(&Encoding::Slice1) {
-                    encode_block_builder.add_encoding_block(
-                        Encoding::Slice1,
-                        encode_data_members(
-                            &members,
-                            &namespace,
-                            FieldType::NonMangled,
-                            Some(Encoding::Slice1),
-                        ),
-                    );
-                }
-
-                if struct_def.supported_encodings().supports(&Encoding::Slice2) {
-                    encode_block_builder.add_encoding_block(
-                        Encoding::Slice2,
-                        encode_data_members(
-                            &members,
-                            &namespace,
-                            FieldType::NonMangled,
-                            Some(Encoding::Slice2),
-                        ),
-                    );
-                }
-                encode_block_builder.build()
-            };
+            let mut encode_body = EncodingBlockBuilder::new(
+                "encoder.Encoding",
+                &struct_def.escape_identifier(),
+                struct_def.supported_encodings(),
+                false, // No encoding check for structs
+            )
+            .add_encoding_block(Encoding::Slice1, || {
+                encode_data_members(
+                    &members,
+                    &namespace,
+                    FieldType::NonMangled,
+                    Encoding::Slice1,
+                )
+            })
+            .add_encoding_block(Encoding::Slice2, || {
+                encode_data_members(
+                    &members,
+                    &namespace,
+                    FieldType::NonMangled,
+                    Encoding::Slice2,
+                )
+            })
+            .build();
 
             if !struct_def.is_compact {
                 writeln!(
@@ -248,26 +211,4 @@ this.Encode(ref encoder);"#.into(),
                 .insert_scoped(struct_def, builder.build().into());
         }
     }
-}
-
-// TODO move to icerpc
-fn contains_optional_proxies(members: &[&impl Member]) -> bool {
-    members
-        .iter()
-        .any(|member| match member.data_type().concrete_typeref() {
-            TypeRefs::Dictionary(dictionary_ref) => {
-                matches!(
-                    dictionary_ref.value_type.concrete_typeref(),
-                    TypeRefs::Interface(interface_def) if interface_def.is_optional
-                )
-            }
-            TypeRefs::Interface(interface_def) => interface_def.is_optional,
-            TypeRefs::Sequence(sequence_ref) => {
-                matches!(
-                    sequence_ref.element_type.concrete_typeref(),
-                    TypeRefs::Interface(interface_def) if interface_def.is_optional
-                )
-            }
-            _ => false,
-        })
 }
