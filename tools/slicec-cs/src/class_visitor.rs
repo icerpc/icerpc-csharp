@@ -221,7 +221,7 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
 
         code.writeln(
             &FunctionCallBuilder::new("encoder.StartSlice")
-                .add_argument("SliceType")
+                .add_argument("SliceTypeId")
                 .add_argument_if(class_def.compact_id.is_some(), "_compactSliceTypeId")
                 .build(),
         );
