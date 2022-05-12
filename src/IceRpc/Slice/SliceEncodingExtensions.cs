@@ -28,7 +28,7 @@ namespace IceRpc.Slice
         /// <param name="encoding">The encoding of the payload.</param>
         /// <param name="asyncEnumerable">The async enumerable to encode and stream.</param>
         /// <param name="encodeAction">The action used to encode the streamed member.</param>
-        /// <param name="fixedSizeElements">True if we are encoding a stream of fixed size elements; otherwise, false.
+        /// <param name="fixedSizeElements"><c>true</c> if we are encoding a stream of fixed size elements; otherwise, <c>false</c>.
         /// </param>
         public static PipeReader CreatePayloadStream<T>(
             this SliceEncoding encoding,

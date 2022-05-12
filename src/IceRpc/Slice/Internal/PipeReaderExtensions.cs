@@ -27,7 +27,7 @@ namespace IceRpc.Slice.Internal
             int maxSize,
             CancellationToken cancel)
         {
-            Debug.Assert(maxSize > 0);
+            Debug.Assert(maxSize is > 0 and < int.MaxValue);
 
             // This method does not attempt to read the reader synchronously. A caller that wants a sync attempt can
             // call TryReadSegment.

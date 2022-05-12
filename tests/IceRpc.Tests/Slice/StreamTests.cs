@@ -179,7 +179,6 @@ public class StreamTests
 
         async Task EncodeDataAsync(PipeWriter writer)
         {
-
             for (int i = 0; i < size; i++)
             {
                 if (yieldThreshold > 0 && i % yieldThreshold == 0)
@@ -196,7 +195,6 @@ public class StreamTests
                 var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
                 encoder.EncodeInt32(value);
             }
-
         }
     }
 

@@ -49,6 +49,7 @@ namespace IceRpc.Slice.Internal
                     frame.Connection,
                     decodePayloadOptions.ProxyInvoker ?? defaultInvoker,
                     decodePayloadOptions.Activator ?? defaultActivator,
+                    maxCollectionAllocation: decodePayloadOptions.MaxCollectionAllocation,
                     maxDepth: decodePayloadOptions.MaxDepth);
                 T value = decodeFunc(ref decoder);
                 decoder.CheckEndOfBuffer(skipTaggedParams: true);
@@ -129,7 +130,7 @@ namespace IceRpc.Slice.Internal
             DecodeFunc<T> decodeFunc,
             int elementSize)
         {
-            if(elementSize < 0 && elementSize != -1)
+            if (elementSize <= 0 && elementSize != -1)
             {
                 throw new ArgumentException($"element size must be greater than 0, or -1 for variable size elements");
             }
@@ -142,7 +143,7 @@ namespace IceRpc.Slice.Internal
             // We read the payload and fill the writer (streamDecoder) in a separate thread. We don't give the frame to
             // this thread since frames are not thread-safe.
             _ = Task.Run(
-                () =>_ = FillWriterAsync(payload, encoding, decodePayloadOptions, streamDecoder, elementSize),
+                () => _ = FillWriterAsync(payload, encoding, decodePayloadOptions, streamDecoder, elementSize),
                 CancellationToken.None);
 
             // when CancelPendingRead is called on reader, ReadSegmentAsync returns a ReadResult with IsCanceled
