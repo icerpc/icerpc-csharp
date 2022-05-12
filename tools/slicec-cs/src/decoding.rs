@@ -1,4 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
+use crate::builders::FunctionCallBuilder;
 use crate::code_block::CodeBlock;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
@@ -598,39 +599,27 @@ pub fn decode_operation_stream(
 
     let create_stream_param: CodeBlock = match param_type.concrete_type() {
         Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) => {
-            if dispatch {
-                "request.DecodeByteStream();".into()
-            } else {
-                "response.DecodeByteStream();".into()
-            }
-        }
-        _ => {
-            let mut args = vec![];
-            if !dispatch {
-                args.push("request");
-            }
-            args.push(cs_encoding);
-            args.push("_defaultActivator");
-            let decode_arg = decode_func(param_type, namespace, encoding)
-                .indent()
-                .to_string();
-            args.push(&decode_arg);
-            let element_size: String;
-            if param_type.is_fixed_size() {
-                element_size = param_type.min_wire_size().to_string();
-                args.push(&element_size)
-            }
-
-            format!(
-                "\
-{object}.DecodeStream<{param_type}>(
-    {args});",
-                object = if dispatch { "request" } else { "response" },
-                param_type = param_type_str,
-                args = CodeBlock::from(args.join(",\n")).indent()
+            FunctionCallBuilder::new_with_condition(
+                dispatch,
+                "request",
+                "response",
+                "DecodeByteStream",
             )
-            .into()
+            .build()
         }
+        _ => FunctionCallBuilder::new_with_condition(
+            dispatch,
+            "request",
+            "response",
+            &format!("DecodeStream<{}>", param_type_str),
+        )
+        .arguments_on_newline(true)
+        .add_argument_if(!dispatch, "request")
+        .add_argument(cs_encoding)
+        .add_argument("_defaultActivator")
+        .add_argument(&decode_func(param_type, namespace, encoding).indent())
+        .add_argument_if(param_type.is_fixed_size(), &param_type.min_wire_size())
+        .build(),
     };
 
     if assign_to_variable {

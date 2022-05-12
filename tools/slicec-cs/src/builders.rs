@@ -1,15 +1,14 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use std::collections::HashMap;
-
-use slice::code_gen_util::TypeContext;
-use slice::grammar::{Attributable, Class, Encoding, Entity, NamedSymbol, Operation};
-use slice::supported_encodings::SupportedEncodings;
-
 use crate::code_block::CodeBlock;
 use crate::comments::{operation_parameter_doc_comment, CommentTag};
 use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
+use slice::code_gen_util::TypeContext;
+use slice::grammar::{Attributable, Class, Encoding, Entity, NamedSymbol, Operation};
+use slice::supported_encodings::SupportedEncodings;
+use std::collections::HashMap;
+use std::fmt;
 
 trait Builder {
     fn build(&self) -> String;
@@ -384,6 +383,108 @@ impl FunctionBuilder {
         }
 
         code
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct FunctionCallBuilder {
+    callable: String,
+    arguments: Vec<String>,
+    arguments_on_newline: bool,
+    use_semi_colon: bool,
+}
+
+impl FunctionCallBuilder {
+    pub fn new(callable: &str) -> FunctionCallBuilder {
+        FunctionCallBuilder {
+            callable: callable.to_owned(),
+            arguments: vec![],
+            arguments_on_newline: false,
+            use_semi_colon: true,
+        }
+    }
+
+    pub fn new_with_condition(
+        condition: bool,
+        true_case: &str,
+        false_case: &str,
+        function: &str,
+    ) -> Self {
+        let callable = format!(
+            "{}.{}",
+            if condition { true_case } else { false_case },
+            function
+        );
+
+        FunctionCallBuilder {
+            callable,
+            arguments: vec![],
+            arguments_on_newline: false,
+            use_semi_colon: true,
+        }
+    }
+
+    pub fn arguments_on_newline(&mut self, arguments_on_newline: bool) -> &mut Self {
+        self.arguments_on_newline = arguments_on_newline;
+        self
+    }
+
+    pub fn use_semi_colon(&mut self, use_semi_colon: bool) -> &mut Self {
+        self.use_semi_colon = use_semi_colon;
+        self
+    }
+
+    pub fn add_argument<T: fmt::Display + ?Sized>(&mut self, argument: &T) -> &mut Self {
+        self.arguments.push(argument.to_string());
+        self
+    }
+
+    pub fn add_argument_if<T: fmt::Display + ?Sized>(
+        &mut self,
+        condition: bool,
+        argument: &T,
+    ) -> &mut Self {
+        if condition {
+            self.add_argument(argument);
+        }
+        self
+    }
+
+    // pub fn add_arguments<T: fmt::Display + ?Sized>(&mut self, arguments: &[&T]) -> &mut Self {
+    //     for arg in arguments {
+    //         self.arguments.push(arg.to_string());
+    //     }
+    //     self
+    // }
+
+    // pub fn add_arguments_if<T: fmt::Display + ?Sized>(
+    //     &mut self,
+    //     condition: bool,
+    //     arguments: &[&T],
+    // ) -> &mut Self {
+    //     if condition {
+    //         self.add_arguments(arguments);
+    //     }
+    //     self
+    // }
+
+    pub fn build(&mut self) -> CodeBlock {
+        let mut function_call: CodeBlock = if self.arguments_on_newline {
+            format!(
+                "{}(\n    {})",
+                self.callable,
+                self.arguments.join(",\n    ")
+            )
+            .into()
+        } else {
+            format!("{}({})", self.callable, self.arguments.join(", ")).into()
+        };
+
+        if self.use_semi_colon {
+            write!(function_call, ";");
+        }
+
+        function_call
     }
 }
 
