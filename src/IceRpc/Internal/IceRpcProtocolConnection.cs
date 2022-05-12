@@ -1064,7 +1064,8 @@ namespace IceRpc.Internal
             if (headerSize > _maxRemoteHeaderSize)
             {
                 throw new ProtocolException(
-                    @$"header size ({headerSize}) is greater than the remote peer's max header size ({_maxRemoteHeaderSize})");
+                    @$"header size ({headerSize
+                    }) is greater than the remote peer's max header size ({_maxRemoteHeaderSize})");
             }
         }
 
