@@ -32,7 +32,7 @@ namespace IceRpc.Internal
             _logger.LogProtocolConnectionAbort(_decoratee.Protocol, exception);
         }
 
-        async Task IProtocolConnection.AcceptRequestsAsync(Connection connection)
+        async Task IProtocolConnection.AcceptRequestsAsync(IConnection connection)
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             _logger.LogAcceptRequests();
@@ -51,7 +51,7 @@ namespace IceRpc.Internal
 
         async Task<IncomingResponse> IProtocolConnection.InvokeAsync(
             OutgoingRequest request,
-            Connection connection,
+            IConnection connection,
             CancellationToken cancel)
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);

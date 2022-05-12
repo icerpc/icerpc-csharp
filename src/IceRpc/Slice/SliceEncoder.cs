@@ -230,29 +230,23 @@ namespace IceRpc.Slice
 
         // Encode methods for constructed types
 
-        /// <summary>Encodes a nullable proxy.</summary>
-        /// <param name="bitSequenceWriter">The bit sequence writer.</param>
+        /// <summary>Encodes a nullable proxy (Slice1 only).</summary>
         /// <param name="proxy">The proxy to encode, or null.</param>
-        public void EncodeNullableProxy(ref BitSequenceWriter bitSequenceWriter, Proxy? proxy)
+        public void EncodeNullableProxy(Proxy? proxy)
         {
-            if (Encoding == SliceEncoding.Slice1)
+            if (Encoding != SliceEncoding.Slice1)
             {
-                if (proxy != null)
-                {
-                    EncodeProxy(proxy);
-                }
-                else
-                {
-                    Identity.Empty.Encode(ref this);
-                }
+                throw new InvalidOperationException(
+                    "encoding nullable proxies without a bit sequence is only supported with Slice1");
+            }
+
+            if (proxy != null)
+            {
+                EncodeProxy(proxy);
             }
             else
             {
-                bitSequenceWriter.Write(proxy != null);
-                if (proxy != null)
-                {
-                    EncodeProxy(proxy);
-                }
+                Identity.Empty.Encode(ref this);
             }
         }
 
@@ -491,68 +485,66 @@ namespace IceRpc.Slice
         {
             if (Encoding == SliceEncoding.Slice1)
             {
-                return default;
+                throw new InvalidOperationException("bit sequence reader cannot be used with the Slice1 encoding");
+            }
+
+            if (bitSequenceSize <= 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(bitSequenceSize),
+                    $"{nameof(bitSequenceSize)} must be greater than 0");
+            }
+
+            int remaining = GetBitSequenceByteCount(bitSequenceSize);
+
+            Span<byte> firstSpan = _bufferWriter.GetSpan();
+            Span<byte> secondSpan = default;
+
+            // We only create this additionalMemory list in the rare situation where 2 spans are not sufficient.
+            List<Memory<byte>>? additionalMemory = null;
+
+            if (firstSpan.Length >= remaining)
+            {
+                firstSpan = firstSpan[0..remaining];
+                Advance(remaining);
             }
             else
             {
-                if (bitSequenceSize <= 0)
+                Advance(firstSpan.Length);
+                remaining -= firstSpan.Length;
+
+                secondSpan = _bufferWriter.GetSpan();
+                if (secondSpan.Length >= remaining)
                 {
-                    throw new ArgumentOutOfRangeException(
-                        nameof(bitSequenceSize),
-                        $"{nameof(bitSequenceSize)} must be greater than 0");
-                }
-
-                int remaining = GetBitSequenceByteCount(bitSequenceSize);
-
-                Span<byte> firstSpan = _bufferWriter.GetSpan();
-                Span<byte> secondSpan = default;
-
-                // We only create this additionalMemory list in the rare situation where 2 spans are not sufficient.
-                List<Memory<byte>>? additionalMemory = null;
-
-                if (firstSpan.Length >= remaining)
-                {
-                    firstSpan = firstSpan[0..remaining];
+                    secondSpan = secondSpan[0..remaining];
                     Advance(remaining);
                 }
                 else
                 {
-                    Advance(firstSpan.Length);
-                    remaining -= firstSpan.Length;
+                    Advance(secondSpan.Length);
+                    remaining -= secondSpan.Length;
+                    additionalMemory = new List<Memory<byte>>();
 
-                    secondSpan = _bufferWriter.GetSpan();
-                    if (secondSpan.Length >= remaining)
+                    do
                     {
-                        secondSpan = secondSpan[0..remaining];
-                        Advance(remaining);
-                    }
-                    else
-                    {
-                        Advance(secondSpan.Length);
-                        remaining -= secondSpan.Length;
-                        additionalMemory = new List<Memory<byte>>();
-
-                        do
+                        Memory<byte> memory = _bufferWriter.GetMemory();
+                        if (memory.Length >= remaining)
                         {
-                            Memory<byte> memory = _bufferWriter.GetMemory();
-                            if (memory.Length >= remaining)
-                            {
-                                additionalMemory.Add(memory[0..remaining]);
-                                Advance(remaining);
-                                remaining = 0;
-                            }
-                            else
-                            {
-                                additionalMemory.Add(memory);
-                                Advance(memory.Length);
-                                remaining -= memory.Length;
-                            }
-                        } while (remaining > 0);
-                    }
+                            additionalMemory.Add(memory[0..remaining]);
+                            Advance(remaining);
+                            remaining = 0;
+                        }
+                        else
+                        {
+                            additionalMemory.Add(memory);
+                            Advance(memory.Length);
+                            remaining -= memory.Length;
+                        }
+                    } while (remaining > 0);
                 }
-
-                return new BitSequenceWriter(firstSpan, secondSpan, additionalMemory);
             }
+
+            return new BitSequenceWriter(firstSpan, secondSpan, additionalMemory);
         }
 
         /// <summary>Gets a placeholder to be filled-in later.</summary>

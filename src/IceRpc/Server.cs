@@ -178,8 +178,7 @@ namespace IceRpc
                     Dispatcher = _options.Dispatcher,
                     Features = _options.Features,
                     KeepAlive = _options.KeepAlive,
-                    OnClose = RemoveOnClose + _options.OnClose,
-                    OnConnect = _options.OnConnect,
+                    OnClose = RemoveOnClose + _options.OnClose
                 };
 
                 while (true)

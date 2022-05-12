@@ -42,7 +42,7 @@ namespace IceRpc
         /// <param name="endpoint">The first endpoint to try.</param>
         /// <param name="altEndpoints">The alternative endpoints.</param>
         /// <param name="cancel">The cancellation token.</param>
-        public ValueTask<Connection> GetConnectionAsync(
+        public ValueTask<IConnection> GetConnectionAsync(
             Endpoint endpoint,
             IEnumerable<Endpoint> altEndpoints,
             CancellationToken cancel)
@@ -73,7 +73,7 @@ namespace IceRpc
 
             return CreateConnectionAsync();
 
-            async ValueTask<Connection> CreateConnectionAsync()
+            async ValueTask<IConnection> CreateConnectionAsync()
             {
                 try
                 {

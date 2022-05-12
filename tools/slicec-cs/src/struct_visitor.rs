@@ -1,7 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{
-    AttributeBuilder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType,
+    AttributeBuilder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder, FunctionBuilder,
+    FunctionType,
 };
 use crate::code_block::CodeBlock;
 use crate::comments::doc_comment_message;
@@ -95,13 +96,30 @@ impl<'a> Visitor for StructVisitor<'a> {
             builder.add_block(main_constructor.build());
 
             // Decode constructor
-            let mut decode_body = decode_data_members(
-                &members,
-                &namespace,
-                false, /* tags in structs are only supported by Slice2, which never uses tag
-                        * formats */
-                FieldType::NonMangled,
-            );
+            let mut decode_body = EncodingBlockBuilder::new(
+                "decoder.Encoding",
+                &struct_def.escape_identifier(),
+                struct_def.supported_encodings(),
+                false, // No encoding check for structs
+            )
+            .add_encoding_block(Encoding::Slice1, || {
+                decode_data_members(
+                    &members,
+                    &namespace,
+                    FieldType::NonMangled,
+                    Encoding::Slice1,
+                )
+            })
+            .add_encoding_block(Encoding::Slice2, || {
+                decode_data_members(
+                    &members,
+                    &namespace,
+                    FieldType::NonMangled,
+                    Encoding::Slice2,
+                )
+            })
+            .build();
+
             if !struct_def.is_compact {
                 writeln!(decode_body, "decoder.SkipTagged(useTagEndMarker: true);");
             }
@@ -125,13 +143,30 @@ impl<'a> Visitor for StructVisitor<'a> {
             );
 
             // Encode method
-            let mut encode_body = encode_data_members(
-                &members,
-                &namespace,
-                FieldType::NonMangled,
-                false, /* tags in structs are only supported by Slice2, which never uses tag
-                        * formats */
-            );
+            let mut encode_body = EncodingBlockBuilder::new(
+                "encoder.Encoding",
+                &struct_def.escape_identifier(),
+                struct_def.supported_encodings(),
+                false, // No encoding check for structs
+            )
+            .add_encoding_block(Encoding::Slice1, || {
+                encode_data_members(
+                    &members,
+                    &namespace,
+                    FieldType::NonMangled,
+                    Encoding::Slice1,
+                )
+            })
+            .add_encoding_block(Encoding::Slice2, || {
+                encode_data_members(
+                    &members,
+                    &namespace,
+                    FieldType::NonMangled,
+                    Encoding::Slice2,
+                )
+            })
+            .build();
+
             if !struct_def.is_compact {
                 writeln!(
                     encode_body,

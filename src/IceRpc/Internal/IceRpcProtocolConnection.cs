@@ -45,25 +45,32 @@ namespace IceRpc.Internal
         private readonly HashSet<CancellationTokenSource> _cancelDispatchSources = new();
         private readonly AsyncSemaphore _controlStreamWriteSemaphore = new(1, 1);
         private readonly IDispatcher _dispatcher;
-        private readonly TaskCompletionSource _streamsCompleted =
-            new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly HashSet<IMultiplexedStream> _streams = new();
+
+        // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
+        private int _headerSizeLength = 2;
         private int _invocationCount;
         private bool _isShuttingDown;
         private long _lastRemoteBidirectionalStreamId = -1;
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
         private long _lastRemoteUnidirectionalStreamId = -1;
-        private readonly IDictionary<ConnectionFieldKey, OutgoingFieldValue> _localFields;
+        private readonly int _maxLocalHeaderSize;
+        private int _maxRemoteHeaderSize = Configure.IceRpcOptions.DefaultMaxHeaderSize;
         private readonly object _mutex = new();
         private readonly IMultiplexedNetworkConnection _networkConnection;
-        private readonly Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? _onConnect;
         private IMultiplexedStream? _remoteControlStream;
+
+        private readonly HashSet<IMultiplexedStream> _streams = new();
+
+        private readonly TaskCompletionSource _streamsCompleted =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         private readonly TaskCompletionSource _waitForGoAwayCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+
         public void Abort(Exception exception) => _networkConnection.Abort(exception);
 
-        public async Task AcceptRequestsAsync(Connection connection)
+        public async Task AcceptRequestsAsync(IConnection connection)
         {
             while (true)
             {
@@ -86,6 +93,7 @@ namespace IceRpc.Internal
                 {
                     ReadResult readResult = await stream.Input.ReadSegmentAsync(
                         SliceEncoding.Slice2,
+                        _maxLocalHeaderSize,
                         CancellationToken.None).ConfigureAwait(false);
 
                     if (readResult.Buffer.IsEmpty)
@@ -342,7 +350,7 @@ namespace IceRpc.Internal
                     var encoder = new SliceEncoder(stream.Output, SliceEncoding.Slice2);
 
                     // Write the IceRpc response header.
-                    Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
+                    Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(_headerSizeLength);
                     int headerStartPos = encoder.EncodedByteCount;
 
                     new IceRpcResponseHeader(response.ResultType).Encode(ref encoder);
@@ -350,10 +358,13 @@ namespace IceRpc.Internal
                     encoder.EncodeDictionary(
                         response.Fields,
                         (ref SliceEncoder encoder, ResponseFieldKey key) => encoder.EncodeResponseFieldKey(key),
-                        (ref SliceEncoder encoder, OutgoingFieldValue value) => value.Encode(ref encoder));
+                        (ref SliceEncoder encoder, OutgoingFieldValue value) =>
+                            value.Encode(ref encoder, _headerSizeLength));
 
                     // We're done with the header encoding, write the header size.
-                    SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - headerStartPos), sizePlaceholder);
+                    int headerSize = encoder.EncodedByteCount - headerStartPos;
+                    CheckRemoteHeaderSize(headerSize);
+                    SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
                 }
             }
 
@@ -395,7 +406,7 @@ namespace IceRpc.Internal
 
         public async Task<IncomingResponse> InvokeAsync(
             OutgoingRequest request,
-            Connection connection,
+            IConnection connection,
             CancellationToken cancel)
         {
             IMultiplexedStream? stream = null;
@@ -471,6 +482,7 @@ namespace IceRpc.Internal
             {
                 ReadResult readResult = await stream.Input.ReadSegmentAsync(
                     SliceEncoding.Slice2,
+                    _maxLocalHeaderSize,
                     cancel).ConfigureAwait(false);
 
                 // Nothing cancels the stream input pipe reader.
@@ -526,7 +538,7 @@ namespace IceRpc.Internal
                 var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
 
                 // Write the IceRpc request header.
-                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
+                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(_headerSizeLength);
                 int headerStartPos = encoder.EncodedByteCount; // does not include the size
 
                 var header = new IceRpcRequestHeader(request.Proxy.Path, request.Operation);
@@ -556,10 +568,13 @@ namespace IceRpc.Internal
                 encoder.EncodeDictionary(
                     request.Fields,
                     (ref SliceEncoder encoder, RequestFieldKey key) => encoder.EncodeRequestFieldKey(key),
-                    (ref SliceEncoder encoder, OutgoingFieldValue value) => value.Encode(ref encoder));
+                    (ref SliceEncoder encoder, OutgoingFieldValue value) =>
+                        value.Encode(ref encoder, _headerSizeLength));
 
                 // We're done with the header encoding, write the header size.
-                SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - headerStartPos), sizePlaceholder);
+                int headerSize = encoder.EncodedByteCount - headerStartPos;
+                CheckRemoteHeaderSize(headerSize);
+                SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
             }
 
             static (IceRpcResponseHeader, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>>, PipeReader?) DecodeHeader(
@@ -658,34 +673,36 @@ namespace IceRpc.Internal
         internal IceRpcProtocolConnection(
             IMultiplexedNetworkConnection networkConnection,
             IDispatcher dispatcher,
-            Configure.IceRpcOptions? options,
-            Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect)
+            Configure.IceRpcOptions? options)
         {
             _dispatcher = dispatcher;
             _networkConnection = networkConnection;
-            _localFields = options?.Fields ?? ImmutableDictionary<ConnectionFieldKey, OutgoingFieldValue>.Empty;
-            _onConnect = onConnect;
+            _maxLocalHeaderSize = options?.MaxHeaderSize ?? Configure.IceRpcOptions.DefaultMaxHeaderSize;
         }
 
-        internal async Task InitializeAsync(CancellationToken cancel)
+        internal async Task ConnectAsync(CancellationToken cancel)
         {
-            // Create the control stream and send the protocol initialize frame
+            // Create the control stream and send the protocol Settings frame
             _controlStream = _networkConnection.CreateStream(false);
 
+            var settings = new IceRpcSettings(
+                _maxLocalHeaderSize == Configure.IceRpcOptions.DefaultMaxHeaderSize ?
+                    ImmutableDictionary<IceRpcSettingKey, ulong>.Empty :
+                    new Dictionary<IceRpcSettingKey, ulong>
+                    {
+                        [IceRpcSettingKey.MaxHeaderSize] = (ulong)_maxLocalHeaderSize
+                    });
+
             await SendControlFrameAsync(
-                IceRpcControlFrameType.Initialize,
-                (ref SliceEncoder encoder) =>
-                    encoder.EncodeDictionary(
-                        _localFields,
-                        (ref SliceEncoder encoder, ConnectionFieldKey key) => encoder.EncodeConnectionFieldKey(key),
-                        (ref SliceEncoder encoder, OutgoingFieldValue value) => value.Encode(ref encoder)),
+                IceRpcControlFrameType.Settings,
+                (ref SliceEncoder encoder) => settings.Encode(ref encoder),
                 cancel).ConfigureAwait(false);
 
-            // Wait for the remote control stream to be accepted and read the protocol initialize frame
+            // Wait for the remote control stream to be accepted and read the protocol Settings frame
             _remoteControlStream = await _networkConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
 
-            await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.Initialize, cancel).ConfigureAwait(false);
-            await ReceiveInitializeFrameBody(cancel).ConfigureAwait(false);
+            await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.Settings, cancel).ConfigureAwait(false);
+            await ReceiveSettingsFrameBody(cancel).ConfigureAwait(false);
 
             // Start a task to wait to receive the go away frame to initiate shutdown.
             _ = Task.Run(() => WaitForGoAwayAsync(), CancellationToken.None);
@@ -810,10 +827,15 @@ namespace IceRpc.Internal
             }
         }
 
-        private async ValueTask ReceiveInitializeFrameBody(CancellationToken cancel)
+        private async ValueTask ReceiveSettingsFrameBody(CancellationToken cancel)
         {
+            // We are still in the single-threaded initialization at this point.
+
             PipeReader input = _remoteControlStream!.Input;
-            ReadResult readResult = await input.ReadSegmentAsync(SliceEncoding.Slice2, cancel).ConfigureAwait(false);
+            ReadResult readResult = await input.ReadSegmentAsync(
+                SliceEncoding.Slice2,
+                _maxLocalHeaderSize,
+                cancel).ConfigureAwait(false);
             if (readResult.IsCanceled)
             {
                 throw new OperationCanceledException();
@@ -821,32 +843,31 @@ namespace IceRpc.Internal
 
             try
             {
-                Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>> fields =
-                    SliceEncoding.Slice2.DecodeBuffer(readResult.Buffer, Decode);
+                IceRpcSettings settings = SliceEncoding.Slice2.DecodeBuffer(
+                    readResult.Buffer,
+                    (ref SliceDecoder decoder) => new IceRpcSettings(ref decoder));
 
-                // TODO: consume fields specific to the icerpc protocol such as MaxHeaderSize
-
-                _onConnect?.Invoke(fields);
+                if (settings.Value.TryGetValue(IceRpcSettingKey.MaxHeaderSize, out ulong value))
+                {
+                    // a varuint62 always fits in a long
+                    _maxRemoteHeaderSize = Configure.IceRpcOptions.CheckMaxHeaderSize((long)value);
+                    _headerSizeLength = SliceEncoder.GetVarUInt62EncodedSize(value);
+                }
+                // all other settings are unknown and ignored
             }
             finally
             {
                 input.AdvanceTo(readResult.Buffer.End);
-            }
-
-            static Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>> Decode(ref SliceDecoder decoder)
-            {
-                int count = decoder.DecodeSize();
-                return count == 0 ? new() :
-                    decoder.DecodeShallowFieldDictionary(
-                        count,
-                        (ref SliceDecoder decoder) => decoder.DecodeConnectionFieldKey());
             }
         }
 
         private async ValueTask<IceRpcGoAway> ReceiveGoAwayBodyAsync(CancellationToken cancel)
         {
             PipeReader input = _remoteControlStream!.Input;
-            ReadResult readResult = await input.ReadSegmentAsync(SliceEncoding.Slice2, cancel).ConfigureAwait(false);
+            ReadResult readResult = await input.ReadSegmentAsync(
+                SliceEncoding.Slice2,
+                _maxLocalHeaderSize,
+                cancel).ConfigureAwait(false);
             if (readResult.IsCanceled)
             {
                 throw new OperationCanceledException();
@@ -891,10 +912,12 @@ namespace IceRpc.Internal
             void EncodeFrame(IBufferWriter<byte> buffer)
             {
                 var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2); // TODO: switch to MaxHeaderSize
+                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(_headerSizeLength);
                 int startPos = encoder.EncodedByteCount; // does not include the size
                 encodeAction?.Invoke(ref encoder);
-                SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
+                int headerSize = encoder.EncodedByteCount - startPos;
+                CheckRemoteHeaderSize(headerSize);
+                SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
             }
         }
 
@@ -1033,6 +1056,16 @@ namespace IceRpc.Internal
                     }
                 } while (!flushResult.IsCanceled && !flushResult.IsCompleted);
                 return flushResult;
+            }
+        }
+
+        private void CheckRemoteHeaderSize(int headerSize)
+        {
+            if (headerSize > _maxRemoteHeaderSize)
+            {
+                throw new ProtocolException(
+                    @$"header size ({headerSize
+                    }) is greater than the remote peer's max header size ({_maxRemoteHeaderSize})");
             }
         }
 

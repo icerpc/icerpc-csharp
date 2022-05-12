@@ -16,24 +16,16 @@ public class BitSequenceWriterTests
     {
         get
         {
-            (byte[], byte[], IList<Memory<byte>>?)[] testData =
-            {
-                (new byte[] { 1, 2, 3 }, Array.Empty<byte>(), null),
-                (new byte[] { 1, 2, 3 }, new byte[] { 4, 5, 6 }, null),
-                (new byte[] { 1, 2, 3 }, new byte[] { 4, 5, 6 }, new Memory<byte>[] { new byte[] { 7, 8, 9 } }),
-                (
-                    new byte[] { 1, 2, 3 },
-                    new byte[] { 4, 5, 6 },
-                    new Memory<byte>[] { new byte[] { 7, 8, 9 }, new byte[] { 10, 11, 12 } }
-                ),
-            };
-            foreach ((
-                byte[] firstBytes,
-                byte[] secondBytes,
-                IList<Memory<byte>>? additionalMemory) in testData)
-            {
-                yield return new TestCaseData(firstBytes, secondBytes, additionalMemory);
-            }
+            yield return new TestCaseData(new byte[] { 1, 2, 3 }, Array.Empty<byte>(), null);
+            yield return new TestCaseData(new byte[] { 1, 2, 3 }, new byte[] { 4, 5, 6 }, null);
+            yield return new TestCaseData(
+                new byte[] { 1, 2, 3 },
+                new byte[] { 4, 5, 6 },
+                new Memory<byte>[] { new byte[] { 7, 8, 9 } });
+            yield return new TestCaseData(
+                new byte[] { 1, 2, 3 },
+                new byte[] { 4, 5, 6 },
+                new Memory<byte>[] { new byte[] { 7, 8, 9 }, new byte[] { 10, 11, 12 } });
         }
     }
 
@@ -43,26 +35,18 @@ public class BitSequenceWriterTests
     {
         get
         {
-            (byte[], byte[], IList<Memory<byte>>?, int)[] testData =
-            {
-                (new byte[] { 1, 2, 3 }, Array.Empty<byte>(), null, 0),
-                (new byte[] { 1, 2, 3 }, new byte[] { 4, 5, 6 }, null, 3),
-                (new byte[] { 1, 2, 3 }, new byte[] { 4, 5, 6 }, new Memory<byte>[] { new byte[] { 7, 8, 9 } }, 6),
-                (
-                    new byte[] { 1, 2, 3 },
-                    new byte[] { 4, 5, 6 },
-                    new Memory<byte>[] { new byte[] { 7, 8, 9 }, new byte[] { 10, 11, 12 } },
-                    9
-                ),
-            };
-            foreach ((
-                byte[] firstBytes,
-                byte[] secondBytes,
-                IList<Memory<byte>>? additionalMemory,
-                int writes) in testData)
-            {
-                yield return new TestCaseData(firstBytes, secondBytes, additionalMemory, writes);
-            }
+            yield return new TestCaseData(new byte[] { 1, 2, 3 }, Array.Empty<byte>(), null, 0);
+            yield return new TestCaseData(new byte[] { 1, 2, 3 }, new byte[] { 4, 5, 6 }, null, 3);
+            yield return new TestCaseData(
+                new byte[] { 1, 2, 3 },
+                new byte[] { 4, 5, 6 },
+                new Memory<byte>[] { new byte[] { 7, 8, 9 } },
+                6);
+            yield return new TestCaseData(
+                new byte[] { 1, 2, 3 },
+                new byte[] { 4, 5, 6 },
+                new Memory<byte>[] { new byte[] { 7, 8, 9 }, new byte[] { 10, 11, 12 } },
+                9);
         }
     }
 

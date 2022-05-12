@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
-using System.Buffers;
 
 namespace IceRpc.Internal
 {
@@ -12,7 +11,6 @@ namespace IceRpc.Internal
             ISimpleNetworkConnection networkConnection,
             NetworkConnectionInformation connectionInfo,
             IDispatcher dispatcher,
-            Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect,
             bool isServer,
             Configure.IceOptions? protocolOptions,
             CancellationToken cancel)
@@ -21,8 +19,7 @@ namespace IceRpc.Internal
 
             try
             {
-                await protocolConnection.InitializeAsync(isServer, cancel).ConfigureAwait(false);
-                onConnect?.Invoke(new Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>());
+                await protocolConnection.ConnectAsync(isServer, cancel).ConfigureAwait(false);
             }
             catch
             {

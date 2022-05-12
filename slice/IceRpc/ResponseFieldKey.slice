@@ -3,8 +3,7 @@
 module IceRpc;
 
 /// The keys of fields carried by icerpc response headers.
-// TODO: add varuint62 as underlying type
-unchecked enum ResponseFieldKey
+unchecked enum ResponseFieldKey : varuint62
 {
     /// The retry policy field.
     RetryPolicy = 0,

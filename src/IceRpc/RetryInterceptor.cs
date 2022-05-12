@@ -162,8 +162,7 @@ namespace IceRpc
                         }
 
                         if (request.Connection != null &&
-                            (retryPolicy == RetryPolicy.OtherReplica ||
-                             request.Connection.State != ConnectionState.Active))
+                            (retryPolicy == RetryPolicy.OtherReplica || !request.Connection.IsInvocable))
                         {
                             // Retry with a new connection
                             request.Connection = null;
@@ -196,7 +195,7 @@ namespace IceRpc
     {
         internal static void LogRetryRequest(
             this ILogger logger,
-            Connection? connection,
+            IConnection? connection,
             string path,
             string operation,
             RetryPolicy retryPolicy,

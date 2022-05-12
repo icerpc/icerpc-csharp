@@ -39,6 +39,15 @@ interface MyOperationsA
 
     // C# keyword as operation name
     continue();
+
+    // ReadOnlyMemory input parameters and return values
+    opReadOnlyMemory(p1: sequence<int32>) -> (r1: sequence<int32>);
+
+    // ReadOnlyMemory optional input parameters and return values
+    opReadOnlyMemoryOptional(p1: sequence<int32>?) -> (r1: sequence<int32>?);
+
+    // ReadOnlyMemory tagged input parameters and return values
+    opReadOnlyMemoryTagged(p1: tag(1) sequence<int32>?) -> (r1: tag(1) sequence<int32>?);
 }
 
 interface MyDerivedOperationsA : MyOperationsA {}

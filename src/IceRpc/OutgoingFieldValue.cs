@@ -32,17 +32,19 @@ namespace IceRpc
         }
 
         /// <summary>Encodes this field value using a Slice encoder.</summary>
-        public void Encode(ref SliceEncoder encoder)
+        /// <param name="encoder">The Slice encoder.</param>
+        /// <param name="sizeLength">The number of bytes to use to encode the size when <see cref="EncodeAction"/> is
+        /// not null.</param>
+        public void Encode(ref SliceEncoder encoder, int sizeLength = 2)
         {
             if (encoder.Encoding == SliceEncoding.Slice1)
             {
-                throw new NotSupportedException(
-                    $"cannot encode am {nameof(OutgoingFieldValue)} using the Slice1");
+                throw new NotSupportedException($"cannot encode an {nameof(OutgoingFieldValue)} using Slice1");
             }
 
             if (EncodeAction is EncodeAction encodeAction)
             {
-                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
+                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(sizeLength);
                 int startPos = encoder.EncodedByteCount;
                 encodeAction(ref encoder);
                 SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);

@@ -58,8 +58,8 @@ namespace IceRpc
         private OutgoingResponse? _response;
 
         /// <summary>Constructs an incoming request.</summary>
-        /// <param name="connection">The <see cref="Connection"/> that received the request.</param>
-        public IncomingRequest(Connection connection)
+        /// <param name="connection">The <see cref="IConnection"/> that received the request.</param>
+        public IncomingRequest(IConnection connection)
             : base(connection)
         {
         }

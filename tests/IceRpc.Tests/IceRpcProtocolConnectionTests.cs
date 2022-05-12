@@ -5,7 +5,6 @@ using IceRpc.Internal;
 using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System.Buffers;
 
 namespace IceRpc.Tests;
 
@@ -97,78 +96,6 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception!.ErrorCode, Is.EqualTo(errorCode));
     }
-
-    /// <summary>Checks that the connection fields are correctly exchanged during connection establishment.</summary>
-    [Test]
-    public async Task Exchange_fields_on_connection_establishment()
-    {
-        // Arrange
-        ConnectionFieldKey connectionFieldKeyA = (ConnectionFieldKey)100;
-        ConnectionFieldKey connectionFieldKeyB = (ConnectionFieldKey)10;
-        int clientCount = -1;
-        int? clientA = null;
-        int? clientB = null;
-        int? serverA = null;
-        int serverCount = -1;
-        int? serverB = null;
-
-        await using var serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(Protocol.IceRpc)
-            .UseServerOptions(new ServerOptions
-            {
-                IceRpcServerOptions = new()
-                {
-                    Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>()
-                    {
-                        [connectionFieldKeyA] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(56))
-                    }
-                },
-                OnConnect = (_, fields, _) =>
-                {
-                    serverCount = fields.Count;
-                    serverA = DecodeField(fields, connectionFieldKeyA);
-                    serverB = DecodeField(fields, connectionFieldKeyB);
-                }
-            })
-            .UseConnectionOptions(new ConnectionOptions()
-            {
-                IceRpcClientOptions = new()
-                {
-                    Fields = new Dictionary<ConnectionFieldKey, OutgoingFieldValue>()
-                    {
-                        [connectionFieldKeyA] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(34)),
-                        [connectionFieldKeyB] = new((ref SliceEncoder encoder) => encoder.EncodeInt32(38))
-                    }
-                },
-                OnConnect = (_, fields, _) =>
-                {
-                    clientCount = fields.Count;
-                    clientA = DecodeField(fields, connectionFieldKeyA);
-                    clientB = DecodeField(fields, connectionFieldKeyB);
-                }
-            })
-            .BuildServiceProvider();
-
-        // Act
-        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-
-        // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(clientCount, Is.EqualTo(1));
-            Assert.That(clientA, Is.EqualTo(56));
-            Assert.That(clientB, Is.Null);
-
-            Assert.That(serverCount, Is.EqualTo(2));
-            Assert.That(serverA, Is.EqualTo(34));
-            Assert.That(serverB, Is.EqualTo(38));
-        });
-    }
-
-    private static int? DecodeField(
-        IDictionary<ConnectionFieldKey, ReadOnlySequence<byte>> fields,
-        ConnectionFieldKey key) =>
-        fields.ContainsKey(key) ? fields.DecodeValue(key, (ref SliceDecoder decoder) => decoder.DecodeInt32()) : null;
 
     /// <summary>Ensures that the response payload is completed if the response fields are invalid.</summary>
     [Test]
@@ -369,11 +296,34 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     [Test]
+    public async Task Request_with_header_size_larger_than_max_header_size_fails()
+    {
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(Protocol.IceRpc)
+            .UseServerOptions(new ServerOptions
+            {
+                IceRpcServerOptions = new() { MaxHeaderSize = 100 }
+            })
+            .BuildServiceProvider();
+        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.IceRpc);
+        _ = sut.Client.AcceptRequestsAsync(InvalidConnection.IceRpc);
+        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
+        {
+            Operation = new string('x', 100)
+        };
+
+        Assert.That(
+            async () => await sut.Client.InvokeAsync(request, InvalidConnection.IceRpc),
+            Throws.InstanceOf<ProtocolException>());
+    }
+
+    [Test]
     public async Task Response_with_large_header()
     {
         // Arrange
         // This large value should be large enough to create multiple buffers for the response header.
-        string expectedValue = new('A', 4096);
+        var expectedValue = new string('A', 16_000);
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
             var response = new OutgoingResponse(request);

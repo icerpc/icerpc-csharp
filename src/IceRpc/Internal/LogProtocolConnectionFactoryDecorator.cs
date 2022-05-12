@@ -2,7 +2,6 @@
 
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
-using System.Buffers;
 
 namespace IceRpc.Internal
 {
@@ -18,7 +17,6 @@ namespace IceRpc.Internal
             T networkConnection,
             NetworkConnectionInformation connectionInformation,
             IDispatcher dispatcher,
-            Action<Dictionary<ConnectionFieldKey, ReadOnlySequence<byte>>>? onConnect,
             bool isServer,
             TOptions? protocolOptions,
             CancellationToken cancel)
@@ -29,7 +27,6 @@ namespace IceRpc.Internal
                 networkConnection,
                 connectionInformation,
                 dispatcher,
-                onConnect,
                 isServer,
                 protocolOptions,
                 cancel).ConfigureAwait(false);

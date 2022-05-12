@@ -140,7 +140,7 @@ namespace IceRpc.Internal
             }
         }
 
-        public async Task AcceptRequestsAsync(Connection connection)
+        public async Task AcceptRequestsAsync(IConnection connection)
         {
             try
             {
@@ -174,7 +174,7 @@ namespace IceRpc.Internal
 
         public async Task<IncomingResponse> InvokeAsync(
             OutgoingRequest request,
-            Connection connection,
+            IConnection connection,
             CancellationToken cancel)
         {
             bool acquiredSemaphore = false;
@@ -508,7 +508,7 @@ namespace IceRpc.Internal
             _payloadWriter = new IcePayloadPipeWriter(_networkConnectionWriter);
         }
 
-        internal async Task InitializeAsync(bool isServer, CancellationToken cancel)
+        internal async Task ConnectAsync(bool isServer, CancellationToken cancel)
         {
             if (isServer)
             {
@@ -647,8 +647,7 @@ namespace IceRpc.Internal
         /// <summary>Read incoming frames and returns on graceful connection shutdown.</summary>
         /// <param name="connection">The connection assigned to <see cref="IncomingFrame.Connection"/>.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns><c>true</c> if the connection was shutdown by the peer, <c>false</c> otherwise.</returns>
-        private async ValueTask ReadFramesAsync(Connection connection, CancellationToken cancel)
+        private async ValueTask ReadFramesAsync(IConnection connection, CancellationToken cancel)
         {
             while (true)
             {

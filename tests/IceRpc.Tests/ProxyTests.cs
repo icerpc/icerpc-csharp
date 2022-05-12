@@ -408,18 +408,17 @@ public class ProxyTests
         Assert.That(proxy.AltEndpoints, Is.Empty);
     }
 
-    /// <summary>Verifies that the proxy protocol and proxy connection protocol remain the same (currently not true due
-    /// to a bug).</summary>
+    /// <summary>Verifies that the proxy protocol and proxy connection protocol remain the same.</summary>
     [Test]
     public async Task Proxy_and_proxy_connection_have_the_same_protocol()
     {
-        var connectionOptions = new ConnectionOptions();
+        var connectionOptions = new ConnectionOptions { RemoteEndpoint = "icerpc://localhost" };
         await using var connection = new Connection(connectionOptions);
         var proxy = Proxy.FromConnection(connection, "/");
-
-        Assert.That(proxy.Protocol, Is.EqualTo(Protocol.IceRpc));
         connectionOptions.RemoteEndpoint = "ice://localhost";
-        Assert.That(proxy.Connection!.Endpoint.Protocol, Is.EqualTo(Protocol.Ice));
+        await using var connection2 = new Connection(connectionOptions);
+
+        Assert.That(() => proxy.Connection = connection2, Throws.ArgumentException);
     }
 
     /// <summary>Verifies that setting an endpoint that uses a protocol different than the proxy protocol throws

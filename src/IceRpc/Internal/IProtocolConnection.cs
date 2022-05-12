@@ -30,7 +30,7 @@ namespace IceRpc.Internal
 
         /// <summary>Accepts requests and returns once the connection is closed or the shutdown completes.</summary>
         /// <param name="connection">The connection of incoming requests created by this method.</param>
-        Task AcceptRequestsAsync(Connection connection);
+        Task AcceptRequestsAsync(IConnection connection);
 
         /// <summary>Checks if the parameters of the provided endpoint are compatible with the network connection of
         /// this protocol connection. Compatible means a client could reuse the network connection instead of
@@ -48,7 +48,7 @@ namespace IceRpc.Internal
         /// <returns>The received response.</returns>
         Task<IncomingResponse> InvokeAsync(
             OutgoingRequest request,
-            Connection connection,
+            IConnection connection,
             CancellationToken cancel = default);
 
         /// <summary>Sends a ping frame to defer the idle timeout.</summary>
