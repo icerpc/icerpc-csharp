@@ -261,6 +261,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
                         encoding,
                         stream_type.to_type_string(namespace, TypeContext::Encode, false)
                     ))
+                    .use_semi_colon(false)
                     .add_argument(&stream_parameter_name)
                     .add_argument(
                         encode_action(
