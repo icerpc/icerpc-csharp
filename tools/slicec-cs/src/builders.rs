@@ -10,8 +10,18 @@ use slice::supported_encodings::SupportedEncodings;
 use std::collections::HashMap;
 use std::fmt;
 
-trait Builder {
-    fn build(&self) -> String;
+pub trait Builder {
+    fn build(&self) -> CodeBlock;
+
+    fn build_mut(&mut self) -> CodeBlock {
+        self.build()
+    }
+}
+
+impl fmt::Display for dyn Builder {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.build())
+    }
 }
 
 pub trait AttributeBuilder {
@@ -93,8 +103,9 @@ impl ContainerBuilder {
         self.contents.push(content);
         self
     }
-
-    pub fn build(&self) -> String {
+}
+impl Builder for ContainerBuilder {
+    fn build(&self) -> CodeBlock {
         let mut code = CodeBlock::new();
 
         for comment in &self.comments {
@@ -125,7 +136,7 @@ impl ContainerBuilder {
             writeln!(code, "{{\n    {body}\n}}", body = body_content.indent());
         }
 
-        code.to_string()
+        code
     }
 }
 
@@ -320,8 +331,9 @@ impl FunctionBuilder {
 
         self
     }
-
-    pub fn build(&mut self) -> CodeBlock {
+}
+impl Builder for FunctionBuilder {
+    fn build(&self) -> CodeBlock {
         let mut code = CodeBlock::new();
 
         if self.inherit_doc {
@@ -370,14 +382,14 @@ impl FunctionBuilder {
                 if self.body.is_empty() {
                     code.writeln(" => {{}};");
                 } else {
-                    writeln!(code, " =>\n    {};", self.body.indent());
+                    writeln!(code, " =>\n    {};", self.body.clone().indent());
                 }
             }
             FunctionType::BlockBody => {
                 if self.body.is_empty() {
                     code.writeln("\n{\n}");
                 } else {
-                    writeln!(code, "\n{{\n    {}\n}}", self.body.indent());
+                    writeln!(code, "\n{{\n    {}\n}}", self.body.clone().indent());
                 }
             }
         }
@@ -467,8 +479,10 @@ impl FunctionCallBuilder {
     //     }
     //     self
     // }
+}
 
-    pub fn build(&mut self) -> CodeBlock {
+impl Builder for FunctionCallBuilder {
+    fn build(&self) -> CodeBlock {
         let mut function_call: CodeBlock = if self.arguments_on_newline {
             format!(
                 "{}(\n    {})",
@@ -550,8 +564,9 @@ impl<'a> EncodingBlockBuilder<'a> {
         self.encoding_blocks.insert(encoding, Box::new(func));
         self
     }
-
-    pub fn build(&mut self) -> CodeBlock {
+}
+impl<'a> Builder for EncodingBlockBuilder<'a> {
+    fn build(&self) -> CodeBlock {
         match &self.supported_encodings[..] {
             [] => panic!("No supported encodings"),
             [encoding] => {

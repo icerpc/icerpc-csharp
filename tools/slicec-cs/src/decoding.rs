@@ -1,5 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
-use crate::builders::FunctionCallBuilder;
+use crate::builders::{Builder, FunctionCallBuilder};
 use crate::code_block::CodeBlock;
 use crate::cs_util::*;
 use crate::slicec_ext::*;

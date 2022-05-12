@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{
-    AttributeBuilder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder, FunctionBuilder,
-    FunctionType,
+    AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder,
+    FunctionBuilder, FunctionType,
 };
 use crate::code_block::CodeBlock;
 use crate::comments::doc_comment_message;
@@ -208,7 +208,7 @@ this.Encode(ref encoder);"#.into(),
                 );
 
             self.generated_code
-                .insert_scoped(struct_def, builder.build().into());
+                .insert_scoped(struct_def, builder.build());
         }
     }
 }

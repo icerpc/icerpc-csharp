@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{
-    AttributeBuilder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionCallBuilder,
-    FunctionType,
+    AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder,
+    FunctionCallBuilder, FunctionType,
 };
 use crate::code_block::CodeBlock;
 use crate::comments::doc_comment_message;
@@ -148,7 +148,7 @@ impl<'a> Visitor for ClassVisitor<'_> {
         class_builder.add_block(encode_and_decode(class_def));
 
         self.generated_code
-            .insert_scoped(class_def, class_builder.build().into());
+            .insert_scoped(class_def, class_builder.build());
     }
 }
 

@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{
-    AttributeBuilder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionCallBuilder,
-    FunctionType,
+    AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder,
+    FunctionCallBuilder, FunctionType,
 };
 use crate::code_block::CodeBlock;
 use crate::comments::{operation_parameter_doc_comment, *};
@@ -423,7 +423,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         class_builder.add_block(builder.build());
     }
 
-    class_builder.build().into()
+    class_builder.build()
 }
 
 fn response_class(interface_def: &Interface) -> CodeBlock {
@@ -485,7 +485,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 
         class_builder.add_block(builder.build());
     }
-    class_builder.build().into()
+    class_builder.build()
 }
 
 fn response_operation_body(operation: &Operation) -> CodeBlock {
