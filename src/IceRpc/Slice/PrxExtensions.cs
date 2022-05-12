@@ -27,28 +27,6 @@ namespace IceRpc.Slice
                 ConfigureAwait(false) ?
                 new T { EncodeOptions = prx.EncodeOptions, Proxy = prx.Proxy } : null;
 
-
-        /// <summary>Creates a payload stream from an async enumerable.</summary>
-        /// <paramtype name="TPrx">The type of source Prx struct.</paramtype>
-        /// <param name="prx">The Prx struct.</param>
-        /// <param name="asyncEnumerable">The async enumerable to encode and stream.</param>
-        /// <param name="encoding">The encoding of the payload.</param>
-        /// <param name="encodeAction">The action used to encode the streamed member.</param>
-        /// <param name="useSegments"><c>true</c> if we are encoding a stream elements in segments this is the case
-        /// when the streamed elements are of variable size; otherwise, <c>false</c>.</param>
-        public static PipeReader CreatePayloadStream<TPrx, T>(
-            this TPrx prx,
-            IAsyncEnumerable<T> asyncEnumerable,
-            SliceEncoding encoding,
-            EncodeAction<T> encodeAction,
-            bool useSegments) where TPrx : struct, IPrx =>
-            new SliceEncodingExtensions.PayloadStreamPipeReader<T>(
-                encoding,
-                asyncEnumerable,
-                prx.EncodeOptions,
-                encodeAction,
-                useSegments);
-
         /// <summary>Converts this Prx struct into a string using a specific format.</summary>
         /// <paramtype name="TPrx">The type of source Prx struct.</paramtype>
         /// <param name="prx">The Prx struct.</param>

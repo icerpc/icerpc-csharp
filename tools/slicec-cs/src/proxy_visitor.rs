@@ -262,13 +262,14 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
             }
             _ => invoke_args.push(format!(
                 "\
-this.CreatePayloadStream(
+{encoding}.CreatePayloadStream(
     {stream_parameter},
-    {encoding},
+    {encode_options},
     {encode_action},
     {use_segments})",
-                stream_parameter = stream_parameter_name,
                 encoding = encoding,
+                stream_parameter = stream_parameter_name,
+                encode_options = "this.EncodeOptions",
                 encode_action = encode_action(
                     stream_type,
                     TypeContext::Encode,

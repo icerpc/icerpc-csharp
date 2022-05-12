@@ -563,13 +563,14 @@ fn payload_stream(operation: &Operation, encoding: &str) -> CodeBlock {
                 }
                 _ => format!(
                     "\
-request.CreatePayloadStream(
+{encoding}.CreatePayloadStream(
     {stream_arg},
-    {encoding},
+    {encode_options},
     {encode_action},
     {use_segments})",
-                    stream_arg = stream_arg,
                     encoding = encoding,
+                    stream_arg = stream_arg,
+                    encode_options = "request.GetSliceEncodeOptions()",
                     encode_action = encode_action(
                         stream_type,
                         TypeContext::Encode,
