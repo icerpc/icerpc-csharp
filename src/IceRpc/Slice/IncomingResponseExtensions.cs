@@ -30,6 +30,7 @@ namespace IceRpc.Slice
                     request.Features.Get<SliceDecodeOptions>() ??
                         response.Connection.Features.Get<SliceDecodeOptions>(),
                     defaultActivator,
+                    prxEncodeOptions: null, // we don't expect proxies in Failures, they are usually DispatchException
                     cancel) :
                 throw new ArgumentException(
                     $"{nameof(DecodeFailureAsync)} requires a response with a Failure result type",
@@ -54,11 +55,13 @@ namespace IceRpc.Slice
             DecodeFunc<T> decodeFunc,
             CancellationToken cancel = default)
         {
+            SliceDecodeOptions? decodeOptions = request.Features.Get<SliceDecodeOptions>() ??
+                response.Connection.Features.Get<SliceDecodeOptions>();
+
             return response.ResultType == ResultType.Success ?
                 response.DecodeValueAsync(
                     encoding,
-                    request.Features.Get<SliceDecodeOptions>() ??
-                        response.Connection.Features.Get<SliceDecodeOptions>(),
+                    decodeOptions,
                     defaultActivator,
                     defaultInvoker: request.Proxy.Invoker,
                     encodeOptions,
@@ -68,13 +71,12 @@ namespace IceRpc.Slice
 
             async ValueTask<T> ThrowRemoteExceptionAsync()
             {
-                // TODO: missing properties for Prx in exception
                 throw await response.DecodeRemoteExceptionAsync(
                     request,
                     encoding,
-                    request.Features.Get<SliceDecodeOptions>() ??
-                        response.Connection.Features.Get<SliceDecodeOptions>(),
+                    decodeOptions,
                     defaultActivator,
+                    encodeOptions,
                     cancel).ConfigureAwait(false);
             }
         }
@@ -157,6 +159,7 @@ namespace IceRpc.Slice
                     encoding,
                     decodeOptions,
                     defaultActivator,
+                    prxEncodeOptions: null,
                     cancel).ConfigureAwait(false);
             }
         }
@@ -167,6 +170,7 @@ namespace IceRpc.Slice
             SliceEncoding encoding,
             SliceDecodeOptions? decodeOptions,
             IActivator? defaultActivator,
+            SliceEncodeOptions? prxEncodeOptions,
             CancellationToken cancel)
         {
             Debug.Assert(response.ResultType != ResultType.Success);
@@ -212,6 +216,7 @@ namespace IceRpc.Slice
                     encoding,
                     response.Connection,
                     decodeOptions.ProxyInvoker ?? request.Proxy.Invoker,
+                    prxEncodeOptions,
                     activator: decodeOptions.Activator ?? defaultActivator,
                     maxCollectionAllocation: decodeOptions.MaxCollectionAllocation,
                     maxDepth: decodeOptions.MaxDepth);
