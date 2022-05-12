@@ -216,10 +216,10 @@ namespace IceRpc.Slice
                 var decoder = new SliceDecoder(
                     buffer,
                     encoding,
+                    activator: decodeOptions.Activator ?? defaultActivator,
                     response.Connection,
                     decodeOptions.ProxyInvoker ?? request.Proxy.Invoker,
                     prxEncodeOptions,
-                    activator: decodeOptions.Activator ?? defaultActivator,
                     maxCollectionAllocation: decodeOptions.MaxCollectionAllocation,
                     maxDepth: decodeOptions.MaxDepth);
 

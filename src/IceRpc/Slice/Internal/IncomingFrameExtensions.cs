@@ -50,10 +50,10 @@ namespace IceRpc.Slice.Internal
                 var decoder = new SliceDecoder(
                     readResult.Buffer,
                     encoding,
+                    decodeOptions.Activator ?? defaultActivator,
                     frame.Connection,
                     decodeOptions.ProxyInvoker ?? defaultInvoker,
                     prxEncodeOptions,
-                    decodeOptions.Activator ?? defaultActivator,
                     maxCollectionAllocation: decodeOptions.MaxCollectionAllocation,
                     maxDepth: decodeOptions.MaxDepth);
                 T value = decodeFunc(ref decoder);
@@ -163,10 +163,10 @@ namespace IceRpc.Slice.Internal
                 var decoder = new SliceDecoder(
                     buffer,
                     encoding,
+                    decodeOptions.Activator ?? defaultActivator,
                     connection,
                     decodeOptions.ProxyInvoker ?? defaultInvoker,
                     prxEncodeOptions,
-                    decodeOptions.Activator ?? defaultActivator,
                     maxCollectionAllocation: decodeOptions.MaxCollectionAllocation,
                     maxDepth: decodeOptions.MaxDepth);
 
@@ -298,10 +298,10 @@ namespace IceRpc.Slice.Internal
                 var decoder = new SliceDecoder(
                     buffer,
                     encoding,
+                    decodeOptions.Activator ?? defaultActivator,
                     connection,
                     decodeOptions.ProxyInvoker ?? defaultInvoker,
                     prxEncodeOptions,
-                    decodeOptions.Activator ?? defaultActivator,
                     maxCollectionAllocation: decodeOptions.MaxCollectionAllocation,
                     maxDepth: decodeOptions.MaxDepth);
 

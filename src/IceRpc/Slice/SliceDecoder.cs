@@ -80,12 +80,12 @@ namespace IceRpc.Slice
         /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="encoding">The Slice encoding version.</param>
-        /// <param name="connection">The connection, used only when decoding relative proxies.</param>
+        /// <param name="activator">The activator (optional).</param>
+        /// <param name="connection">The connection, used only when decoding relative proxies (optional).</param>
         /// <param name="invoker">The invoker of proxies decoded by this decoder. Use null to get the default invoker.
         /// </param>
         /// <param name="prxEncodeOptions">The Slice encode options of Prx structs decoded using this decoder
         /// (optional).</param>
-        /// <param name="activator">The activator (optional).</param>
         /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
         /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
         /// length.</param>
@@ -93,10 +93,10 @@ namespace IceRpc.Slice
         public SliceDecoder(
             ReadOnlySequence<byte> buffer,
             SliceEncoding encoding,
+            IActivator? activator = null,
             IConnection? connection = null,
             IInvoker? invoker = null,
             Configure.SliceEncodeOptions? prxEncodeOptions = null,
-            IActivator? activator = null,
             int maxCollectionAllocation = -1,
             int maxDepth = 3)
         {
@@ -125,12 +125,12 @@ namespace IceRpc.Slice
         /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="encoding">The Slice encoding version.</param>
-        /// <param name="connection">The connection, used only when decoding relative proxies.</param>
+        /// <param name="activator">The activator (optional).</param>
+        /// <param name="connection">The connection, used only when decoding relative proxies (optional).</param>
         /// <param name="invoker">The invoker of proxies decoded by this decoder. Use null to get the default invoker.
         /// </param>
         /// <param name="prxEncodeOptions">The Slice encode options of Prx structs decoded using this decoder
         /// (optional).</param>
-        /// <param name="activator">The activator (optional).</param>
         /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
         /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
         /// length.</param>
@@ -138,19 +138,19 @@ namespace IceRpc.Slice
         public SliceDecoder(
             ReadOnlyMemory<byte> buffer,
             SliceEncoding encoding,
+            IActivator? activator = null,
             IConnection? connection = null,
             IInvoker? invoker = null,
             Configure.SliceEncodeOptions? prxEncodeOptions = null,
-            IActivator? activator = null,
             int maxCollectionAllocation = -1,
             int maxDepth = 3)
             : this(
                 new ReadOnlySequence<byte>(buffer),
                 encoding,
+                activator,
                 connection,
                 invoker,
                 prxEncodeOptions,
-                activator,
                 maxCollectionAllocation,
                 maxDepth)
         {
