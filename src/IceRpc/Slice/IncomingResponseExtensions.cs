@@ -40,6 +40,7 @@ namespace IceRpc.Slice
         /// <param name="request">The outgoing request.</param>
         /// <param name="encoding">The encoding of the response payload.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
+        /// <param name="encodeOptions">The encode options of the Prx struct that sent the request.</param>
         /// <param name="decodeFunc">The decode function for the return value.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The return value.</returns>
@@ -48,6 +49,7 @@ namespace IceRpc.Slice
             OutgoingRequest request,
             SliceEncoding encoding,
             IActivator? defaultActivator,
+            SliceEncodeOptions? encodeOptions,
             DecodeFunc<T> decodeFunc,
             CancellationToken cancel = default)
         {
@@ -57,12 +59,14 @@ namespace IceRpc.Slice
                     response.GetSliceDecodeOptions(request),
                     defaultActivator,
                     defaultInvoker: request.Proxy.Invoker,
+                    encodeOptions,
                     decodeFunc,
                     cancel) :
                 ThrowRemoteExceptionAsync();
 
             async ValueTask<T> ThrowRemoteExceptionAsync()
             {
+                // TODO: missing properties for Prx in exception
                 throw await response.DecodeRemoteExceptionAsync(
                     request,
                     encoding,
@@ -78,6 +82,7 @@ namespace IceRpc.Slice
         /// <param name="request">The outgoing request.</param>
         /// <param name="encoding">The encoding of the response payload.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
+        /// <param name="encodeOptions">The encode options of the Prx struct that sent the request.</param>
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
         /// <returns>The async enumerable to decode and return the streamed members.</returns>
         public static IAsyncEnumerable<T> DecodeStream<T>(
@@ -85,12 +90,14 @@ namespace IceRpc.Slice
             OutgoingRequest request,
             SliceEncoding encoding,
             IActivator? defaultActivator,
+            SliceEncodeOptions? encodeOptions,
             DecodeFunc<T> decodeFunc) =>
             response.ToAsyncEnumerable(
                 encoding,
                 response.GetSliceDecodeOptions(request),
                 defaultActivator,
                 defaultInvoker: request.Proxy.Invoker,
+                encodeOptions,
                 decodeFunc);
 
         /// <summary>Verifies that a response payload carries no return value or only tagged return values.</summary>

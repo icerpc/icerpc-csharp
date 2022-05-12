@@ -99,6 +99,7 @@ namespace IceRpc.Slice
                 request.GetSliceDecodeOptions(),
                 defaultActivator,
                 defaultInvoker: Proxy.DefaultInvoker,
+                prxEncodeOptions: request.GetSliceEncodeOptions(),
                 decodeFunc,
                 cancel);
 
@@ -133,6 +134,7 @@ namespace IceRpc.Slice
                 request.GetSliceDecodeOptions(),
                 defaultActivator,
                 defaultInvoker: Proxy.DefaultInvoker,
+                prxEncodeOptions: request.GetSliceEncodeOptions(),
                 decodeFunc);
     }
 }

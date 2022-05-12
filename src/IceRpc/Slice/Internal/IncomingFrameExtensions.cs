@@ -17,6 +17,7 @@ namespace IceRpc.Slice.Internal
         /// <param name="decodeOptions">The decode payload options.</param>
         /// <param name="defaultActivator">The default activator.</param>
         /// <param name="defaultInvoker">The default invoker.</param>
+        /// <param name="prxEncodeOptions">The encode options of decoded prx structs.</param>
         /// <param name="decodeFunc">The decode function for the payload arguments or return value.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The decode value.</returns>
@@ -26,6 +27,7 @@ namespace IceRpc.Slice.Internal
             SliceDecodeOptions decodeOptions,
             IActivator? defaultActivator,
             IInvoker defaultInvoker,
+            Configure.SliceEncodeOptions? prxEncodeOptions,
             DecodeFunc<T> decodeFunc,
             CancellationToken cancel)
         {
@@ -48,6 +50,7 @@ namespace IceRpc.Slice.Internal
                     encoding,
                     frame.Connection,
                     decodeOptions.ProxyInvoker ?? defaultInvoker,
+                    prxEncodeOptions,
                     decodeOptions.Activator ?? defaultActivator,
                     maxCollectionAllocation: decodeOptions.MaxCollectionAllocation,
                     maxDepth: decodeOptions.MaxDepth);
@@ -118,6 +121,7 @@ namespace IceRpc.Slice.Internal
         /// <param name="decodeOptions">The decode payload options.</param>
         /// <param name="defaultInvoker">The default invoker.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
+        /// <param name="prxEncodeOptions">The encode options of decoded prx structs.</param>
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
         /// <returns>The async enumerable to decode and return the streamed members.</returns>
         internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
@@ -126,6 +130,7 @@ namespace IceRpc.Slice.Internal
             SliceDecodeOptions decodeOptions,
             IActivator? defaultActivator,
             IInvoker defaultInvoker,
+            Configure.SliceEncodeOptions? prxEncodeOptions,
             DecodeFunc<T> decodeFunc)
         {
             IConnection connection = frame.Connection;
@@ -155,6 +160,7 @@ namespace IceRpc.Slice.Internal
                     encoding,
                     connection,
                     decodeOptions.ProxyInvoker ?? defaultInvoker,
+                    prxEncodeOptions,
                     decodeOptions.Activator ?? defaultActivator,
                     maxCollectionAllocation: decodeOptions.MaxCollectionAllocation,
                     maxDepth: decodeOptions.MaxDepth);

@@ -1,4 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
+
 use crate::code_block::CodeBlock;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
@@ -76,7 +77,11 @@ fn decode_member(
 
     match &data_type.concrete_typeref() {
         TypeRefs::Interface(_) => {
-            write!(code, "new {}(decoder.DecodeProxy())", type_string);
+            write!(
+                code,
+                "new {}(decoder.DecodeProxy(), decoder.PrxEncodeOptions)",
+                type_string
+            );
         }
         TypeRefs::Class(_) => {
             assert!(!data_type.is_optional);
@@ -393,7 +398,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
                 )
             } else {
                 format!(
-                    "(ref SliceDecoder decoder) => new {}(decoder.DecodeProxy())",
+                    "(ref SliceDecoder decoder) => new {}(decoder.DecodeProxy(), decoder.PrxEncodeOptions)",
                     type_name
                 )
             }
@@ -624,6 +629,7 @@ response.DecodeStream<{param_type}>(
     request,
     {encoding},
     _defaultActivator,
+    encodeOptions,
     {decode_func});",
                     encoding = cs_encoding,
                     param_type = param_type_str,

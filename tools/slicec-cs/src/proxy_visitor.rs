@@ -77,7 +77,10 @@ public static readonly string DefaultPath = typeof({prx_impl}).GetDefaultPath();
 private static readonly IActivator _defaultActivator =
     SliceDecoder.GetActivator(typeof({prx_impl}).Assembly);
 
-/// <summary>The proxy to the remote service.</summary>
+/// <inheritdoc/>
+public IceRpc.Configure.SliceEncodeOptions? EncodeOptions {{ get; init; }}
+
+/// <inheritdoc/>
 public IceRpc.Proxy Proxy {{ get; init; }}"#,
                                interface_name = interface_def.identifier(),
                                prx_impl = prx_impl
@@ -165,7 +168,12 @@ public static bool TryParse(string s, IceRpc.IInvoker? invoker, IceRpc.IProxyFor
 
 /// <summary>Constructs an instance of <see cref="{prx_impl}"/>.</summary>
 /// <param name="proxy">The proxy to the remote service.</param>
-public {prx_impl}(IceRpc.Proxy proxy) => Proxy = proxy;
+/// <param name="encodeOptions">The Slice encode options (optional).</param>
+public {prx_impl}(IceRpc.Proxy proxy, IceRpc.Configure.SliceEncodeOptions? encodeOptions = null)
+{{
+    Proxy = proxy;
+    EncodeOptions = encodeOptions;
+}}
 
 /// <inheritdoc/>
 public override string ToString() => Proxy.ToString();"#,
@@ -296,7 +304,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
             writeln!(
                 body,
                 "\
-Proxy.InvokeAsync(
+this.InvokeAsync(
     {})",
                 CodeBlock::from(invoke_args.join(",\n")).indent()
             );
@@ -305,7 +313,7 @@ Proxy.InvokeAsync(
             writeln!(
                 body,
                 "\
-return Proxy.InvokeAsync(
+return this.InvokeAsync(
     {});",
                 CodeBlock::from(invoke_args.join(",\n")).indent()
             );
@@ -489,6 +497,12 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         builder.add_parameter("IceRpc.IncomingResponse", "response", None, None);
         builder.add_parameter("IceRpc.OutgoingRequest", "request", None, None);
         builder.add_parameter(
+            "IceRpc.Configure.SliceEncodeOptions?",
+            "encodeOptions",
+            None,
+            None,
+        );
+        builder.add_parameter(
             "global::System.Threading.CancellationToken",
             "cancel",
             None,
@@ -540,6 +554,7 @@ var {return_value} = await response.DecodeReturnValueAsync(
     request,
     {encoding},
     _defaultActivator,
+    encodeOptions,
     {response_decode_func},
     cancel).ConfigureAwait(false);
 
@@ -569,6 +584,7 @@ response.DecodeReturnValueAsync(
     request,
     {encoding},
     _defaultActivator,
+    encodeOptions,
     {response_decode_func},
     cancel)",
             encoding = encoding,

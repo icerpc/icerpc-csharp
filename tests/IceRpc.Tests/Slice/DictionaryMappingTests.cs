@@ -22,7 +22,7 @@ public class DictionaryMappingTests
         };
 
         (CustomDictionary<int, int> r1, CustomDictionary<int, int> r2) =
-            await DictionaryMappingOperationsPrx.Response.OpReturnTupleAsync(response, request, default);
+            await DictionaryMappingOperationsPrx.Response.OpReturnTupleAsync(response, request, null, default);
 
         Assert.That(r1, Is.EqualTo(new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 }));
         Assert.That(r2, Is.EqualTo(new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 }));
@@ -43,6 +43,7 @@ public class DictionaryMappingTests
         Dictionary<int, int> r = await DictionaryMappingOperationsPrx.Response.OpReturnSingleTypeAsync(
             response,
             request,
+            encodeOptions: null,
             default);
 
         Assert.That(r, Is.EqualTo(new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 }));

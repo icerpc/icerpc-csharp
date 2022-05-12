@@ -19,7 +19,7 @@ namespace IceRpc.Slice
             CancellationToken cancel = default) where T : struct, IPrx =>
             await new ServicePrx(prx.Proxy).IceIsAAsync(typeof(T).GetSliceTypeId()!, invocation, cancel).
                 ConfigureAwait(false) ?
-                new T { Proxy = prx.Proxy } : null;
+                new T { EncodeOptions = prx.EncodeOptions, Proxy = prx.Proxy } : null;
 
         /// <summary>Converts this proxy into a string using a specific format.</summary>
         /// <param name="prx">The prx to convert.</param>

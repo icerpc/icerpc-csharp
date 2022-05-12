@@ -299,11 +299,11 @@ public class OperationGeneratedCodeTests
             Payload = payload
         };
         Assert.That(
-            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryAsync(response, request, default),
+            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryAsync(response, request, null, default),
             Is.EqualTo(new int[] { 1, 2, 3 }));
     }
 
-    /// <summary>Verifies that an optional sequence of fixed size numeric values outgoing parameter is mapped to a 
+    /// <summary>Verifies that an optional sequence of fixed size numeric values outgoing parameter is mapped to a
     /// <see cref="ReadOnlyMemory{T}"/> the mapping for the incoming parameter is not affected.</summary>
     [Test]
     public void Slice2_operation_encode_with_readonly_memory_optional_param(
@@ -341,10 +341,9 @@ public class OperationGeneratedCodeTests
             Payload = payload
         };
         Assert.That(
-            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryOptionalAsync(response, request, default),
+            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryOptionalAsync(response, request, null, default),
             Is.EqualTo(p));
     }
-
 
     /// <summary>Verifies that an optional sequence of fixed size numeric values outgoing tagged parameter is mapped to
     /// a <see cref="ReadOnlyMemory{T}"/> the mapping for the incoming parameter is not affected.</summary>
@@ -384,7 +383,7 @@ public class OperationGeneratedCodeTests
             Payload = payload
         };
         Assert.That(
-            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryTaggedAsync(response, request, default),
+            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryTaggedAsync(response, request, null, default),
             Is.EqualTo(p));
     }
 

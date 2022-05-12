@@ -22,6 +22,9 @@ namespace IceRpc.Slice
         /// <summary>The Slice encoding decoded by this decoder.</summary>
         public SliceEncoding Encoding { get; }
 
+        /// <summary>The Slice encode options of Prx structs decoded using this decoder.</summary>
+        public Configure.SliceEncodeOptions? PrxEncodeOptions { get; }
+
         /// <summary>The number of bytes decoded in the underlying buffer.</summary>
         internal long Consumed => _reader.Consumed;
 
@@ -80,7 +83,9 @@ namespace IceRpc.Slice
         /// <param name="connection">The connection, used only when decoding relative proxies.</param>
         /// <param name="invoker">The invoker of proxies decoded by this decoder. Use null to get the default invoker.
         /// </param>
-        /// <param name="activator">The optional activator.</param>
+        /// <param name="prxEncodeOptions">The Slice encode options of Prx structs decoded using this decoder
+        /// (optional).</param>
+        /// <param name="activator">The activator (optional).</param>
         /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
         /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
         /// length.</param>
@@ -90,11 +95,13 @@ namespace IceRpc.Slice
             SliceEncoding encoding,
             IConnection? connection = null,
             IInvoker? invoker = null,
+            Configure.SliceEncodeOptions? prxEncodeOptions = null,
             IActivator? activator = null,
             int maxCollectionAllocation = -1,
             int maxDepth = 3)
         {
             Encoding = encoding;
+            PrxEncodeOptions = prxEncodeOptions;
 
             _activator = activator ?? _defaultActivator;
             _classContext = default;
@@ -121,7 +128,9 @@ namespace IceRpc.Slice
         /// <param name="connection">The connection, used only when decoding relative proxies.</param>
         /// <param name="invoker">The invoker of proxies decoded by this decoder. Use null to get the default invoker.
         /// </param>
-        /// <param name="activator">The optional activator.</param>
+        /// <param name="prxEncodeOptions">The Slice encode options of Prx structs decoded using this decoder
+        /// (optional).</param>
+        /// <param name="activator">The activator (optional).</param>
         /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
         /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
         /// length.</param>
@@ -131,6 +140,7 @@ namespace IceRpc.Slice
             SliceEncoding encoding,
             IConnection? connection = null,
             IInvoker? invoker = null,
+            Configure.SliceEncodeOptions? prxEncodeOptions = null,
             IActivator? activator = null,
             int maxCollectionAllocation = -1,
             int maxDepth = 3)
@@ -139,6 +149,7 @@ namespace IceRpc.Slice
                 encoding,
                 connection,
                 invoker,
+                prxEncodeOptions,
                 activator,
                 maxCollectionAllocation,
                 maxDepth)
