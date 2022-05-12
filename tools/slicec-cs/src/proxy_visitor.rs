@@ -255,24 +255,25 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
                 invocation_builder.add_argument(&stream_parameter_name);
             }
             _ => {
-                invocation_builder.add_argument(&format!(
-                    "\
-    {encoding}.CreatePayloadStream<{stream_type}>(
-        {stream_parameter},
-        {encode_action},
-        {use_segments})",
-                    stream_type = stream_type.to_type_string(namespace, TypeContext::Encode, false),
-                    stream_parameter = stream_parameter_name,
-                    encoding = encoding,
-                    encode_action = encode_action(
-                        stream_type,
-                        TypeContext::Encode,
-                        namespace,
-                        operation.encoding
+                invocation_builder.add_argument(
+                    &FunctionCallBuilder::new(&format!(
+                        "{}.CreatePayloadStream<{}>",
+                        encoding,
+                        stream_type.to_type_string(namespace, TypeContext::Encode, false)
+                    ))
+                    .add_argument(&stream_parameter_name)
+                    .add_argument(
+                        encode_action(
+                            stream_type,
+                            TypeContext::Encode,
+                            namespace,
+                            operation.encoding,
+                        )
+                        .indent(),
                     )
-                    .indent(),
-                    use_segments = !stream_type.is_fixed_size()
-                ));
+                    .add_argument(&!stream_type.is_fixed_size())
+                    .build(),
+                );
             }
         }
     } else {
