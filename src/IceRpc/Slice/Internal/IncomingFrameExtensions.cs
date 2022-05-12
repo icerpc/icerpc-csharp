@@ -303,7 +303,7 @@ namespace IceRpc.Slice.Internal
             {
                 while (true)
                 {
-                    // Each iteration decodes n values of size elementSize.
+                    // Each iteration decodes n values of fixed size elementSize.
 
                     // If the reader of the async enumerable misbehaves, we can be left "hanging" in a paused
                     // streamDecoder.WriteAsync. The fix is to fix the application code: set the cancellation token
