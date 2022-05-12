@@ -544,6 +544,7 @@ await response.DecodeVoidReturnValueAsync(
     request,
     {encoding},
     _defaultActivator,
+    encodeOptions,
     cancel).ConfigureAwait(false);
 
 return {decode_operation_stream}

@@ -203,6 +203,7 @@ namespace IceRpc.Slice
                         request,
                         encoding,
                         defaultActivator,
+                        prx.EncodeOptions,
                         cancel).ConfigureAwait(false);
                 }
                 catch (Exception ex)

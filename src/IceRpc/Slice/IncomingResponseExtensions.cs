@@ -137,12 +137,14 @@ namespace IceRpc.Slice
         /// <param name="request">The outgoing request.</param>
         /// <param name="encoding">The encoding of the response payload.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
+        /// <param name="encodeOptions">The encode options of the Prx struct that sent the request.</param>
         /// <param name="cancel">The cancellation token.</param>
         public static ValueTask DecodeVoidReturnValueAsync(
             this IncomingResponse response,
             OutgoingRequest request,
             SliceEncoding encoding,
             IActivator? defaultActivator,
+            SliceEncodeOptions? encodeOptions,
             CancellationToken cancel = default)
         {
             SliceDecodeOptions? decodeOptions = request.Features.Get<SliceDecodeOptions>() ??
@@ -159,7 +161,7 @@ namespace IceRpc.Slice
                     encoding,
                     decodeOptions,
                     defaultActivator,
-                    prxEncodeOptions: null,
+                    encodeOptions,
                     cancel).ConfigureAwait(false);
             }
         }
