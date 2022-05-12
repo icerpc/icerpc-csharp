@@ -264,7 +264,8 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
                 "\
 {encoding}.CreatePayloadStream<{stream_type}>(
     {stream_parameter},
-    {encode_action})",
+    {encode_action},
+    {use_segments})",
                 stream_type = stream_type.to_type_string(namespace, TypeContext::Encode, false),
                 stream_parameter = stream_parameter_name,
                 encoding = encoding,
@@ -274,7 +275,8 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
                     namespace,
                     operation.encoding
                 )
-                .indent()
+                .indent(),
+                use_segments = !stream_type.is_fixed_size()
             )),
         }
     } else {

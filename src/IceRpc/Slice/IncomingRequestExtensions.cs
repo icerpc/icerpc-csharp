@@ -18,8 +18,7 @@ namespace IceRpc.Slice
             if (request.Fields.ContainsKey(RequestFieldKey.Idempotent))
             {
                 throw new InvalidDataException(
-                    $@"idempotent mismatch for operation '{request.Operation
-                    }': received request marked idempotent for a non-idempotent operation");
+                    $@"idempotent mismatch for operation '{request.Operation}': received request marked idempotent for a non-idempotent operation");
             }
         }
 
@@ -117,8 +116,31 @@ namespace IceRpc.Slice
                 request.GetSliceDecodeOptions(),
                 cancel);
 
-        /// <summary>Creates an async enumerable over the payload reader of an incoming request to decode streamed
-        /// members.</summary>
+        /// <summary>Creates an async enumerable over the payload reader of an incoming request to decode fixed size
+        /// streamed elements.</summary>
+        /// <param name="request">The incoming request.</param>
+        /// <param name="encoding">The encoding of the request payload.</param>
+        /// <param name="defaultActivator">The optional default activator.</param>
+        /// <param name="decodeFunc">The function used to decode the streamed member.</param>
+        /// <param name="elementSize">The size in bytes of the streamed elements.</param>
+        /// <returns>The async enumerable to decode and return the streamed members.</returns>
+        public static IAsyncEnumerable<T> DecodeStream<T>(
+            this IncomingRequest request,
+            SliceEncoding encoding,
+            IActivator? defaultActivator,
+            DecodeFunc<T> decodeFunc,
+            int elementSize) =>
+            request.ToAsyncEnumerable(
+                encoding,
+                request.GetSliceDecodeOptions(),
+                defaultActivator,
+                defaultInvoker: Proxy.DefaultInvoker,
+                prxEncodeOptions: request.GetSliceEncodeOptions(),
+                decodeFunc,
+                elementSize);
+
+        /// <summary>Creates an async enumerable over the payload reader of an incoming request to decode variable size
+        /// streamed elements.</summary>
         /// <param name="request">The incoming request.</param>
         /// <param name="encoding">The encoding of the request payload.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
