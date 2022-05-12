@@ -140,7 +140,7 @@ namespace IceRpc.Slice
             IActivator? defaultActivator,
             CancellationToken cancel = default)
         {
-            SliceDecodeOptions decodeOptions = response.GetSliceDecodeOptions(request);
+            SliceDecodeOptions? decodeOptions = response.GetSliceDecodeOptions(request);
 
             return response.ResultType == ResultType.Success ?
                 response.DecodeVoidAsync(encoding, decodeOptions, cancel) :
@@ -161,7 +161,7 @@ namespace IceRpc.Slice
             this IncomingResponse response,
             OutgoingRequest request,
             SliceEncoding encoding,
-            SliceDecodeOptions decodeOptions,
+            SliceDecodeOptions? decodeOptions,
             IActivator? defaultActivator,
             CancellationToken cancel)
         {
@@ -176,7 +176,7 @@ namespace IceRpc.Slice
             {
                 ReadResult readResult = await response.Payload.ReadSegmentAsync(
                     encoding,
-                    decodeOptions.MaxSegmentSize,
+                    decodeOptions?.MaxSegmentSize ?? SliceDecodeOptions.Default.MaxSegmentSize,
                     cancel).ConfigureAwait(false);
 
                 if (readResult.IsCanceled)
@@ -201,6 +201,8 @@ namespace IceRpc.Slice
 
             RemoteException Decode(ReadOnlySequence<byte> buffer)
             {
+                decodeOptions ??= SliceDecodeOptions.Default;
+
                 var decoder = new SliceDecoder(
                     buffer,
                     encoding,

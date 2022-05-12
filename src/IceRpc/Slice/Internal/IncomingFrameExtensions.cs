@@ -24,13 +24,15 @@ namespace IceRpc.Slice.Internal
         internal static ValueTask<T> DecodeValueAsync<T>(
             this IncomingFrame frame,
             SliceEncoding encoding,
-            SliceDecodeOptions decodeOptions,
+            SliceDecodeOptions? decodeOptions,
             IActivator? defaultActivator,
             IInvoker defaultInvoker,
-            Configure.SliceEncodeOptions? prxEncodeOptions,
+            SliceEncodeOptions? prxEncodeOptions,
             DecodeFunc<T> decodeFunc,
             CancellationToken cancel)
         {
+            decodeOptions ??= SliceDecodeOptions.Default;
+
             return frame.Payload.TryReadSegment(
                 encoding,
                 decodeOptions.MaxSegmentSize,
@@ -76,9 +78,11 @@ namespace IceRpc.Slice.Internal
         internal static ValueTask DecodeVoidAsync(
             this IncomingFrame frame,
             SliceEncoding encoding,
-            SliceDecodeOptions decodeOptions,
+            SliceDecodeOptions? decodeOptions,
             CancellationToken cancel)
         {
+            decodeOptions ??= SliceDecodeOptions.Default;
+
             if (frame.Payload.TryReadSegment(
                     encoding,
                     decodeOptions.MaxSegmentSize,
@@ -127,13 +131,14 @@ namespace IceRpc.Slice.Internal
         internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this IncomingFrame frame,
             SliceEncoding encoding,
-            SliceDecodeOptions decodeOptions,
+            SliceDecodeOptions? decodeOptions,
             IActivator? defaultActivator,
             IInvoker defaultInvoker,
             SliceEncodeOptions? prxEncodeOptions,
             DecodeFunc<T> decodeFunc)
         {
             IConnection connection = frame.Connection;
+            decodeOptions ??= SliceDecodeOptions.Default;
             var streamDecoder = new StreamDecoder<T>(DecodeBufferFunc, decodeOptions.StreamDecoderOptions);
 
             PipeReader payload = frame.Payload;
@@ -258,7 +263,7 @@ namespace IceRpc.Slice.Internal
         internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this IncomingFrame frame,
             SliceEncoding encoding,
-            SliceDecodeOptions decodeOptions,
+            SliceDecodeOptions? decodeOptions,
             IActivator? defaultActivator,
             IInvoker defaultInvoker,
             SliceEncodeOptions? prxEncodeOptions,
@@ -269,6 +274,9 @@ namespace IceRpc.Slice.Internal
             {
                 throw new ArgumentException("element size must be greater than 0");
             }
+
+            decodeOptions ??= SliceDecodeOptions.Default;
+
             IConnection connection = frame.Connection;
             var streamDecoder = new StreamDecoder<T>(DecodeBufferFunc, decodeOptions.StreamDecoderOptions);
 
