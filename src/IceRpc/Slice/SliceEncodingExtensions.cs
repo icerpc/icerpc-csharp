@@ -176,7 +176,6 @@ namespace IceRpc.Slice
                     throw new NotSupportedException("streaming is not supported with Slice1");
                 }
 
-                // TODO: pipe options, pipe pooling
                 _pipe = new Pipe(new PipeOptions(
                     pool: encodeOptions?.MemoryPool ?? MemoryPool<byte>.Shared,
                     minimumSegmentSize: -1,
