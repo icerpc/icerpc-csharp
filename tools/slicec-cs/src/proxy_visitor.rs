@@ -231,8 +231,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
     if operation.parameters.is_empty() {
         invocation_builder.add_argument("payload: null");
     } else if parameters.is_empty() {
-        let arg = format!("{}.CreateSizeZeroPayload()", encoding);
-        invocation_builder.add_argument(&arg);
+        invocation_builder.add_argument(&format!("{}.CreateSizeZeroPayload()", encoding));
     } else {
         invocation_builder.add_argument(&format!(
             "Request.{}({})",
