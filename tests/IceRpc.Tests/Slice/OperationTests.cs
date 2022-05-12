@@ -160,6 +160,40 @@ public class OperationGeneratedCodeTests
     }
 
     [Test]
+    public async Task Operation_with_string_stream_argument_and_return()
+    {
+        // Arrange
+        await using var provider = new SliceTestServiceCollection()
+            .UseDispatcher(new MyOperationsA())
+            .BuildServiceProvider();
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
+
+        // Act
+        var r = await prx.OpWithStringStreamArgumentAndReturnAsync(GetDataAsync());
+
+        // Assert
+        var enumerator = r.GetAsyncEnumerator();
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.EqualTo("hello world 1"));
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.EqualTo("hello world 2"));
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.EqualTo("hello world 3"));
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.False);
+
+        static async IAsyncEnumerable<string> GetDataAsync()
+        {
+            await Task.Yield();
+            yield return "hello world 1";
+            yield return "hello world 2";
+            yield return "hello world 3";
+        }
+    }
+
+    [Test]
     public async Task Operation_with_both_regular_and_stream_parameter_and_return()
     {
         // Arrange
@@ -417,6 +451,11 @@ public class OperationGeneratedCodeTests
 
         public ValueTask<IAsyncEnumerable<int>> OpWithIntStreamArgumentAndReturnAsync(
             IAsyncEnumerable<int> p,
+            Dispatch dispatch,
+            CancellationToken cancel) => new(p);
+
+        public ValueTask<IAsyncEnumerable<string>> OpWithStringStreamArgumentAndReturnAsync(
+            IAsyncEnumerable<string> p,
             Dispatch dispatch,
             CancellationToken cancel) => new(p);
 

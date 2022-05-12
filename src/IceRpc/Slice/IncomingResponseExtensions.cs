@@ -72,8 +72,32 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Creates an async enumerable over the payload reader of an incoming response to decode streamed
-        /// members.</summary>
+        /// <summary>Creates an async enumerable over the payload reader of an incoming response to decode fixed size
+        /// streamed elements.</summary>
+        /// <param name="response">The incoming response.</param>
+        /// <param name="request">The outgoing request.</param>
+        /// <param name="encoding">The encoding of the response payload.</param>
+        /// <param name="defaultActivator">The optional default activator.</param>
+        /// <param name="decodeFunc">The function used to decode the streamed member.</param>
+        /// <param name="elementSize">The size in bytes of the streamed elements.</param>
+        /// <returns>The async enumerable to decode and return the streamed members.</returns>
+        public static IAsyncEnumerable<T> DecodeStream<T>(
+            this IncomingResponse response,
+            OutgoingRequest request,
+            SliceEncoding encoding,
+            IActivator? defaultActivator,
+            DecodeFunc<T> decodeFunc,
+            int elementSize) =>
+            response.ToAsyncEnumerable(
+                encoding,
+                response.GetDecodePayloadOptions(request),
+                defaultActivator,
+                defaultInvoker: request.Proxy.Invoker,
+                decodeFunc,
+                elementSize);
+
+        /// <summary>Creates an async enumerable over the payload reader of an incoming response to decode variable
+        /// size streamed elements.</summary>
         /// <param name="response">The incoming response.</param>
         /// <param name="request">The outgoing request.</param>
         /// <param name="encoding">The encoding of the response payload.</param>
