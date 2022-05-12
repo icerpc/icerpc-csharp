@@ -563,11 +563,11 @@ fn payload_stream(operation: &Operation, encoding: &str) -> CodeBlock {
                 }
                 _ => format!(
                     "\
-{encoding}.CreatePayloadStream<{stream_type}>(
+request.CreatePayloadStream(
     {stream_arg},
+    {encoding},
     {encode_action},
     {use_segments})",
-                    stream_type = stream_type.to_type_string(namespace, TypeContext::Encode, false),
                     stream_arg = stream_arg,
                     encoding = encoding,
                     encode_action = encode_action(

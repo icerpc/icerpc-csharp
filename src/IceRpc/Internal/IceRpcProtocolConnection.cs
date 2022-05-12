@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Features.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
@@ -257,13 +258,14 @@ namespace IceRpc.Internal
                     PipeReader responsePayload;
                     try
                     {
-                        responsePayload = CreateExceptionPayload(remoteException);
+                        responsePayload = CreateExceptionPayload(request, remoteException);
                     }
                     catch (Exception encodeException)
                     {
                         // This should be extremely rare. For example, a middleware throwing a Slice1-only remote
                         // exception.
                         responsePayload = CreateExceptionPayload(
+                            request,
                             new DispatchException(
                                 message: null,
                                 DispatchErrorCode.UnhandledException,
@@ -284,9 +286,12 @@ namespace IceRpc.Internal
                             (ref SliceEncoder encoder) => retryPolicy.Encode(ref encoder));
                     }
 
-                    static PipeReader CreateExceptionPayload(RemoteException exception)
+                    static PipeReader CreateExceptionPayload(IncomingRequest request, RemoteException exception)
                     {
-                        var pipe = new Pipe(); // TODO: pipe options
+                        SliceEncodeOptions? encodeOptions = request.GetSliceEncodeOptions();
+
+                        var pipe = new Pipe(encodeOptions == null ? PipeOptions.Default :
+                            new PipeOptions(pool: encodeOptions.MemoryPool));
 
                         var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
                         Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
@@ -1059,8 +1064,7 @@ namespace IceRpc.Internal
             if (headerSize > _maxRemoteHeaderSize)
             {
                 throw new ProtocolException(
-                    @$"header size ({headerSize
-                    }) is greater than the remote peer's max header size ({_maxRemoteHeaderSize})");
+                    @$"header size ({headerSize}) is greater than the remote peer's max header size ({_maxRemoteHeaderSize})");
             }
         }
 

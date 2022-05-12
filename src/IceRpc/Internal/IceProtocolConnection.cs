@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
@@ -506,8 +507,7 @@ namespace IceRpc.Internal
                 }
                 if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
                 {
-                    throw new InvalidDataException(@$"expected '{nameof(IceFrameType.ValidateConnection)
-                        }' frame but received frame type '{validateConnectionFrame.FrameType}'");
+                    throw new InvalidDataException(@$"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'");
                 }
             }
 
@@ -941,7 +941,10 @@ namespace IceRpc.Internal
                             DispatchException dispatchException,
                             IncomingRequest request)
                         {
-                            var pipe = new Pipe(); // TODO: pipe options
+                            SliceEncodeOptions? encodeOptions = request.GetSliceEncodeOptions();
+
+                            var pipe = new Pipe(encodeOptions == null ? PipeOptions.Default :
+                                new PipeOptions(pool: encodeOptions.MemoryPool));
 
                             var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice1);
                             encoder.EncodeSystemException(
@@ -1115,15 +1118,13 @@ namespace IceRpc.Internal
                         requestHeader.EncapsulationHeader.PayloadEncodingMinor != 1)
                     {
                         throw new InvalidDataException(
-                            @$"unsupported payload encoding '{requestHeader.EncapsulationHeader.PayloadEncodingMajor
-                            }.{requestHeader.EncapsulationHeader.PayloadEncodingMinor}'");
+                            @$"unsupported payload encoding '{requestHeader.EncapsulationHeader.PayloadEncodingMajor}.{requestHeader.EncapsulationHeader.PayloadEncodingMinor}'");
                     }
 
                     int payloadSize = requestHeader.EncapsulationHeader.EncapsulationSize - 6;
                     if (payloadSize != (buffer.Length - decoder.Consumed))
                     {
-                        throw new InvalidDataException(@$"request payload size mismatch: expected {payloadSize
-                            } bytes, read {buffer.Length - decoder.Consumed} bytes");
+                        throw new InvalidDataException(@$"request payload size mismatch: expected {payloadSize} bytes, read {buffer.Length - decoder.Consumed} bytes");
                     }
 
                     return (requestId, requestHeader, (int)decoder.Consumed);

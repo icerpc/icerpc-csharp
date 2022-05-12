@@ -22,6 +22,26 @@ namespace IceRpc.Slice
             }
         }
 
+        /// <summary>Creates a payload stream from an async enumerable.</summary>
+        /// <param name="request">The incoming request.</param>
+        /// <param name="asyncEnumerable">The async enumerable to encode and stream.</param>
+        /// <param name="encoding">The encoding of the payload.</param>
+        /// <param name="encodeAction">The action used to encode the streamed member.</param>
+        /// <param name="useSegments"><c>true</c> if we are encoding a stream elements in segments this is the case
+        /// when the streamed elements are of variable size; otherwise, <c>false</c>.</param>
+        public static PipeReader CreatePayloadStream<T>(
+            this IncomingRequest request,
+            IAsyncEnumerable<T> asyncEnumerable,
+            SliceEncoding encoding,
+            EncodeAction<T> encodeAction,
+            bool useSegments) =>
+            new SliceEncodingExtensions.PayloadStreamPipeReader<T>(
+                encoding,
+                asyncEnumerable,
+                request.GetSliceEncodeOptions(),
+                encodeAction,
+                useSegments);
+
         /// <summary>Creates an outgoing response with a <see cref="SliceResultType.ServiceFailure"/> result type.
         /// </summary>
         /// <param name="request">The incoming request.</param>
@@ -58,7 +78,11 @@ namespace IceRpc.Slice
 
             PipeReader CreateExceptionPayload()
             {
-                var pipe = new Pipe(); // TODO: pipe options
+                SliceEncodeOptions? encodeOptions = request.GetSliceEncodeOptions();
+
+                var pipe = new Pipe(encodeOptions == null ? PipeOptions.Default :
+                    new PipeOptions(pool: encodeOptions.MemoryPool));
+
                 var encoder = new SliceEncoder(pipe.Writer, encoding);
 
                 // Encode resp. EncodeTrait can throw if the exception does not support encoding.
