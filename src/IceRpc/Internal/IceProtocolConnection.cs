@@ -64,7 +64,7 @@ namespace IceRpc.Internal
 #pragma warning disable CA2213 // IDisposable type which is never disposed
         private readonly SemaphoreSlim? _dispatchSemaphore; // Disposed by Abort()
 #pragma warning restore CA2213
-
+        private int _disposed;
         private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
         private bool _isAborted;
         private bool _isShutdown;
@@ -108,36 +108,11 @@ namespace IceRpc.Internal
             CancelInvocations(exception);
             CancelDispatches();
 
-            _dispatchSemaphore?.Dispose();
-
             // Unblock ShutdownAsync which might be waiting for the connection to be disposed.
             _pendingClose.SetResult();
 
             // Unblock ShutdownAsync if it's waiting for invocations and dispatches to complete.
             _dispatchesAndInvocationsCompleted.TrySetException(exception);
-
-            // Release remaining resources in the background.
-            _ = AbortAsync();
-
-            async Task AbortAsync()
-            {
-                // Unblock requests waiting on the semaphore and wait for the semaphore to be released to ensure we
-                // don't dispose the simple network connection writer while it's being used.
-                await _writeSemaphore.CompleteAndWaitAsync(exception).ConfigureAwait(false);
-
-                // Wait for the receive task to complete to ensure we don't dispose the simple network connection reader
-                // while it's being used.
-                if (_readFramesTaskCompletionSource != null)
-                {
-                    await _readFramesTaskCompletionSource.Task.ConfigureAwait(false);
-                }
-
-                // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
-                _networkConnectionReader.Dispose();
-                _networkConnectionWriter.Dispose();
-
-                _readCancelSource.Dispose();
-            }
         }
 
         public async Task AcceptRequestsAsync(IConnection connection)
@@ -170,6 +145,39 @@ namespace IceRpc.Internal
 
         public void Dispose()
         {
+            if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 1)
+            {
+                return;
+            }
+
+            var exception = new ObjectDisposedException($"{typeof(IceProtocolConnection)}");
+
+            Abort(exception);
+
+            _dispatchSemaphore?.Dispose();
+
+            // Release remaining resources in the background.
+            _ = DisposeCore();
+
+            async Task DisposeCore()
+            {
+                // Unblock requests waiting on the semaphore and wait for the semaphore to be released to ensure we
+                // don't dispose the simple network connection writer while it's being used.
+                await _writeSemaphore.CompleteAndWaitAsync(exception).ConfigureAwait(false);
+
+                // Wait for the receive task to complete to ensure we don't dispose the simple network connection reader
+                // while it's being used.
+                if (_readFramesTaskCompletionSource != null)
+                {
+                    await _readFramesTaskCompletionSource.Task.ConfigureAwait(false);
+                }
+
+                // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
+                _networkConnectionReader.Dispose();
+                _networkConnectionWriter.Dispose();
+
+                _readCancelSource.Dispose();
+            }
         }
 
         public async Task<IncomingResponse> InvokeAsync(

@@ -21,18 +21,7 @@ public sealed class ProtocolConnectionTests
         Server
     }
 
-    private static readonly List<Protocol> _protocols = new() { Protocol.Ice, Protocol.IceRpc };
-
-    private static IEnumerable<TestCaseData> Payload_completed_on_request
-    {
-        get
-        {
-            foreach (Protocol protocol in _protocols)
-            {
-                yield return new TestCaseData(protocol);
-            }
-        }
-    }
+    private static readonly List<Protocol> _protocols = new() { Protocol.IceRpc };
 
     private static IEnumerable<TestCaseData> Payload_completed_on_twoway_and_oneway_request
     {
@@ -141,45 +130,6 @@ public sealed class ProtocolConnectionTests
                 throw dispatchException;
             }
         }
-    }
-
-    /// <summary>Verifies that shutdown cancellation cancels shutdown even if a dispatch hangs.</summary>
-    [Test, TestCaseSource(nameof(_protocols))]
-    public async Task Shutdown_completes_on_cancellation_and_dispatch_hang(Protocol protocol)
-    {
-        // Arrange
-        using var start = new SemaphoreSlim(0);
-        using var hold = new SemaphoreSlim(0);
-        // var dispatchCanceled = new TaskCompletionSource();
-
-        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(protocol)
-            .UseServerOptions(new ServerOptions
-            {
-                Dispatcher = new InlineDispatcher(async (request, cancel) =>
-                {
-                    start.Release();
-                    await hold.WaitAsync(CancellationToken.None);
-                    return new OutgoingResponse(request);
-                })
-            })
-            .BuildServiceProvider();
-
-        IConnection connection = serviceProvider.GetInvalidConnection();
-
-        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Client.AcceptRequestsAsync(connection);
-        _ = sut.Server.AcceptRequestsAsync(connection);
-        var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
-        await start.WaitAsync(); // Wait for the dispatch to start
-        using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(10));
-
-        // Act
-        Task shutdownTask = sut.Server.ShutdownAsync("", cancel: cancellationTokenSource.Token);
-
-        // Assert
-        Assert.CatchAsync<OperationCanceledException>(() => shutdownTask);
-        hold.Release();
     }
 
     /// <summary>Ensures that the connection HasInvocationInProgress works.</summary>
@@ -441,7 +391,6 @@ public sealed class ProtocolConnectionTests
             .BuildServiceProvider();
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         IConnection connection = serviceProvider.GetInvalidConnection();
-        _ = sut.Server.AcceptRequestsAsync(connection);
 
         // Act
         _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
@@ -460,7 +409,6 @@ public sealed class ProtocolConnectionTests
             .BuildServiceProvider();
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         IConnection connection = serviceProvider.GetInvalidConnection();
-        _ = sut.Server.AcceptRequestsAsync(connection);
 
         var request = new OutgoingRequest(new Proxy(protocol));
         var payloadWriterSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
@@ -502,80 +450,12 @@ public sealed class ProtocolConnectionTests
             .BuildServiceProvider();
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         IConnection connection = serviceProvider.GetInvalidConnection();
-        _ = sut.Server.AcceptRequestsAsync(connection);
 
         // Act
         _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.Null);
-    }
-
-    /// <summary>Ensures that the request payload writer is completed on an invalid request.</summary>
-    /// <remarks>This test only works with the icerpc protocol since it relies on reading the payload after the payload
-    /// writer is created.</remarks>
-    [Test]
-    public async Task PayloadWriter_completed_with_invalid_request()
-    {
-        // Arrange
-        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(Protocol.IceRpc)
-            .BuildServiceProvider();
-        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
-        {
-            Payload = InvalidPipeReader.Instance
-        };
-        var payloadWriterSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
-        request.Use(writer =>
-            {
-                var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);
-                payloadWriterSource.SetResult(payloadWriterDecorator);
-                return payloadWriterDecorator;
-            });
-
-        // Act
-        _ = sut.Client.InvokeAsync(request, InvalidConnection.IceRpc);
-
-        // Assert
-        Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
-    }
-
-    /// <summary>Ensures that the request payload writer is completed on an invalid response.</summary>
-    /// <remarks>This test only works with the icerpc protocol since it relies on reading the payload after the payload
-    /// writer is created.</remarks>
-    [Test]
-    public async Task PayloadWriter_completed_with_invalid_response()
-    {
-        // Arrange
-        var payloadWriterSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
-        var dispatcher = new InlineDispatcher((request, cancel) =>
-        {
-            var response = new OutgoingResponse(request)
-            {
-                Payload = InvalidPipeReader.Instance
-            };
-            response.Use(writer =>
-                {
-                    var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);
-                    payloadWriterSource.SetResult(payloadWriterDecorator);
-                    return payloadWriterDecorator;
-                });
-            return new(response);
-        });
-
-        await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(Protocol.IceRpc)
-            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
-            .BuildServiceProvider();
-        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-
-        // Act
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)), InvalidConnection.IceRpc);
-
-        // Assert
-        Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
     }
 
     /// <summary>Ensures that the PeerShutdownInitiated callback is called when the peer initiates the
@@ -629,8 +509,6 @@ public sealed class ProtocolConnectionTests
         IConnection connection = serviceProvider.GetInvalidConnection();
 
         var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Client.AcceptRequestsAsync(connection);
-        _ = sut.Server.AcceptRequestsAsync(connection);
 
         // Act
         var response = await sut.Client.InvokeAsync(
@@ -702,8 +580,6 @@ public sealed class ProtocolConnectionTests
         IConnection connection = serviceProvider.GetInvalidConnection();
 
         var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Client.AcceptRequestsAsync(connection);
-        _ = sut.Server.AcceptRequestsAsync(connection);
 
         // Act
         await sut.Client.InvokeAsync(

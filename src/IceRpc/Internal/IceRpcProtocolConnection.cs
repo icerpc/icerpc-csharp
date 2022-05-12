@@ -45,6 +45,7 @@ namespace IceRpc.Internal
         private readonly HashSet<CancellationTokenSource> _cancelDispatchSources = new();
         private readonly AsyncSemaphore _controlStreamWriteSemaphore = new(1, 1);
         private readonly IDispatcher _dispatcher;
+        private int _disposed;
 
         // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
         private int _headerSizeLength = 2;
@@ -381,6 +382,11 @@ namespace IceRpc.Internal
 
         public void Dispose()
         {
+            if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 1)
+            {
+                return;
+            }
+
             _networkConnection.Dispose();
 
             _ = DisposeCore();
@@ -646,11 +652,14 @@ namespace IceRpc.Internal
                     }
                 }
 
-                // Abort streams.
+                // Abort streams for invocations.
                 MultiplexedStreamAbortedException exception = IceRpcStreamError.ConnectionShutdown.ToException();
                 foreach (IMultiplexedStream stream in streams)
                 {
-                    stream.Abort(exception);
+                    if (!stream.IsRemote)
+                    {
+                        stream.Abort(exception);
+                    }
                 }
 
                 // Wait again for streams to complete.

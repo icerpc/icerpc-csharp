@@ -305,9 +305,8 @@ public sealed class IceRpcProtocolConnectionTests
                 IceRpcServerOptions = new() { MaxHeaderSize = 100 }
             })
             .BuildServiceProvider();
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.IceRpc);
-        _ = sut.Client.AcceptRequestsAsync(InvalidConnection.IceRpc);
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
         {
             Operation = new string('x', 100)
@@ -374,8 +373,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
-        sut.Server.PeerShutdownInitiated = message =>
-            _ = sut.Server.ShutdownAsync(message);
+        sut.Server.PeerShutdownInitiated = message => _ = sut.Server.ShutdownAsync(message);
 
         var invokeTask = sut.Client.InvokeAsync(
             new OutgoingRequest(new Proxy(Protocol.IceRpc)),

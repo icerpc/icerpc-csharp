@@ -415,7 +415,7 @@ namespace IceRpc
                 var features = new FeatureCollection(_options.Features);
 
                 // Create the protocol connection.
-                _protocolConnection = await protocolConnectionFactory.CreateProtocolConnectionAsync(
+                IProtocolConnection protocolConnection = await protocolConnectionFactory.CreateProtocolConnectionAsync(
                     networkConnection,
                     NetworkConnectionInformation.Value,
                     _options.Dispatcher,
@@ -428,11 +428,13 @@ namespace IceRpc
                     if (_state >= ConnectionState.Closing)
                     {
                         // This can occur if the connection is closed while the connection is being connected.
+                        protocolConnection.Dispose();
                         throw new ConnectionClosedException();
                     }
 
                     _state = ConnectionState.Active;
                     _stateTask = null;
+                    _protocolConnection = protocolConnection;
                     Features = features;
 
                     _onClose = onClose;
@@ -455,9 +457,8 @@ namespace IceRpc
                             idleTimeout / 2);
                     }
 
-                    // Start accepting requests. _protocolConnection might be updated before the task is ran so we
-                    // capture the protocol connection to ensure we accept requests on this new connection.
-                    IProtocolConnection protocolConnection = _protocolConnection;
+                    // Start accepting requests. _protocolConnection might be updated before the task is ran so it's
+                    // important to use protocolConnection here.
                     _ = Task.Run(async () =>
                         {
                             Exception? exception = null;
@@ -511,9 +512,7 @@ namespace IceRpc
                         // within the synchronization since it calls the "on close" callbacks so we call it from a
                         // thread poll thread.
                         IProtocolConnection protocolConnection = _protocolConnection;
-                        Task.Run(() => Close(
-                            new ConnectionAbortedException("connection timed out"),
-                            protocolConnection));
+                        Task.Run(() => Close(new ConnectionAbortedException("connection timed out"), protocolConnection));
                     }
                     else
                     {
@@ -546,19 +545,21 @@ namespace IceRpc
             {
                 if (_state == ConnectionState.NotConnected ||
                     _state == ConnectionState.Closed ||
-                    _protocolConnection == null ||
-                    _protocolConnection != protocolConnection)
+                    (protocolConnection != null && _protocolConnection != protocolConnection))
                 {
                     return;
                 }
 
-                if (exception != null)
+                if (_protocolConnection != null)
                 {
-                    _protocolConnection.Abort(exception);
-                }
+                    if (exception != null)
+                    {
+                        _protocolConnection.Abort(exception);
+                    }
 
-                _protocolConnection.Dispose();
-                _protocolConnection = null;
+                    _protocolConnection.Dispose();
+                    _protocolConnection = null;
+                }
 
                 if (_timer != null)
                 {

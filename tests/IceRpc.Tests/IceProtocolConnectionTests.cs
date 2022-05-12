@@ -259,8 +259,9 @@ public sealed class IceProtocolConnectionTests
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
     }
 
-    /// <summary>With ice protocol the connection shutdown triggers the cancellation of invocations. This is different
-    /// with IceRpc see <see cref="IceRpcProtocolConnectionTests.Shutdown_waits_for_pending_invocations_to_finish"/>.
+    /// <summary>With the ice protocol, the connection shutdown triggers the cancellation of invocations. This is
+    /// different with IceRpc see <see
+    /// cref="IceRpcProtocolConnectionTests.Shutdown_waits_for_pending_invocations_to_finish"/>.
     /// </summary>
     [Test]
     public async Task Shutdown_cancels_invocations()

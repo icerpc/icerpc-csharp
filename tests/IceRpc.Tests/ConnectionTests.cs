@@ -533,7 +533,7 @@ public class ConnectionTests
             }
             else
             {
-                Assert.ThrowsAsync<ObjectDisposedException>(async () => await pingTask);
+                Assert.ThrowsAsync<ConnectionAbortedException>(async () => await pingTask);
             }
         }
         else
