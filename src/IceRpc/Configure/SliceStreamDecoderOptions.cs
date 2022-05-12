@@ -18,7 +18,7 @@ namespace IceRpc.Configure
         /// <summary>The default instance.</summary>
         internal static SliceStreamDecoderOptions Default { get; } = new();
 
-        /// <summary>Constructs a new Slice stream decoder feature.</summary>
+        /// <summary>Constructs a new Slice stream decoder options.</summary>
         /// <param name="pauseWriterThreshold">The pause writer threshold value. -1 means use the default value. 0 means
         /// never pause.</param>
         /// <param name="resumeWriterThreshold">The resume writer threshold value. -1 means use half of
