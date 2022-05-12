@@ -95,6 +95,8 @@ namespace IceRpc
                     $"{nameof(ConnectionOptions.RemoteEndpoint)} is not set",
                     nameof(options));
 
+            Features = new FeatureCollection(options.Features);
+
             // At this point, we consider options to be read-only.
             // TODO: replace _options by "splatted" properties.
             _options = options;
@@ -383,6 +385,9 @@ namespace IceRpc
         {
             _isServer = true;
             Endpoint = endpoint;
+            Features = new FeatureCollection(options.Features);
+
+            // TODO: "splat" _options
             _options = options;
             _state = ConnectionState.Connecting;
         }
@@ -410,8 +415,6 @@ namespace IceRpc
                 NetworkConnectionInformation = await networkConnection.ConnectAsync(
                     connectTimeoutCancellationSource.Token).ConfigureAwait(false);
 
-                var features = new FeatureCollection(_options.Features);
-
                 // Create the protocol connection.
                 _protocolConnection = await protocolConnectionFactory.CreateProtocolConnectionAsync(
                     networkConnection,
@@ -431,7 +434,6 @@ namespace IceRpc
 
                     _state = ConnectionState.Active;
                     _stateTask = null;
-                    Features = features;
 
                     _onClose = onClose;
 
