@@ -242,7 +242,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
         ));
     } else {
         invoke_args.push(format!(
-            "Request.{}({})",
+            "Request.{}({}, sliceEncodeOptions: EncodeOptions)",
             operation_name,
             parameters
                 .iter()
@@ -436,6 +436,13 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             );
         }
 
+        builder.add_parameter(
+            "IceRpc.Configure.SliceEncodeOptions?",
+            "sliceEncodeOptions",
+            Some("null"),
+            Some("The Slice encode options."),
+        );
+
         builder.add_comment(
             "returns",
             &format!(
@@ -503,7 +510,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         builder.add_parameter(
             "IceRpc.Configure.SliceEncodeOptions?",
             "encodeOptions",
-            None,
+            None, // TODO: switch to null
             None,
         );
         builder.add_parameter(

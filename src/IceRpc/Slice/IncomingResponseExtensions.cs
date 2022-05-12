@@ -157,6 +157,12 @@ namespace IceRpc.Slice
             }
         }
 
+        /// <summary>Returns the <see cref="SliceDecodeOptions"/> carried by this incoming request, or null.</summary>
+        public static SliceDecodeOptions? GetSliceDecodeOptions(
+            this IncomingResponse response,
+            OutgoingRequest request) =>
+            request.Features.Get<SliceDecodeOptions>() ?? response.Connection.Features.Get<SliceDecodeOptions>();
+
         private static async ValueTask<RemoteException> DecodeRemoteExceptionAsync(
             this IncomingResponse response,
             OutgoingRequest request,

@@ -158,5 +158,14 @@ namespace IceRpc.Slice
                 defaultInvoker: Proxy.DefaultInvoker,
                 prxEncodeOptions: request.GetSliceEncodeOptions(),
                 decodeFunc);
+
+
+        /// <summary>Returns the <see cref="SliceDecodeOptions"/> carried by this incoming request, or null.</summary>
+        public static SliceDecodeOptions? GetSliceDecodeOptions(this IncomingRequest request) =>
+            request.Features.Get<SliceDecodeOptions>() ?? request.Connection.Features.Get<SliceDecodeOptions>();
+
+        /// <summary>Returns the <see cref="SliceEncodeOptions"/> carried by this incoming request, or null.</summary>
+        public static SliceEncodeOptions? GetSliceEncodeOptions(this IncomingRequest request) =>
+            request.Features.Get<SliceEncodeOptions>() ?? request.Connection.Features.Get<SliceEncodeOptions>();
     }
 }
