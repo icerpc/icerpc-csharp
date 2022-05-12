@@ -67,7 +67,6 @@ namespace IceRpc.Internal
         private readonly TaskCompletionSource _waitForGoAwayCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-
         public void Abort(Exception exception) => _networkConnection.Abort(exception);
 
         public async Task AcceptRequestsAsync(IConnection connection)

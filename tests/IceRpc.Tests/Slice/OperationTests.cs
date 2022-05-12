@@ -303,7 +303,7 @@ public class OperationGeneratedCodeTests
             Is.EqualTo(new int[] { 1, 2, 3 }));
     }
 
-    /// <summary>Verifies that an optional sequence of fixed size numeric values outgoing parameter is mapped to a 
+    /// <summary>Verifies that an optional sequence of fixed size numeric values outgoing parameter is mapped to a
     /// <see cref="ReadOnlyMemory{T}"/> the mapping for the incoming parameter is not affected.</summary>
     [Test]
     public void Slice2_operation_encode_with_readonly_memory_optional_param(
@@ -344,7 +344,6 @@ public class OperationGeneratedCodeTests
             async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryOptionalAsync(response, request, default),
             Is.EqualTo(p));
     }
-
 
     /// <summary>Verifies that an optional sequence of fixed size numeric values outgoing tagged parameter is mapped to
     /// a <see cref="ReadOnlyMemory{T}"/> the mapping for the incoming parameter is not affected.</summary>

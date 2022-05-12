@@ -303,7 +303,6 @@ public class TaggedTests
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
-
     [Test, TestCaseSource(nameof(EncodeSlice1TagggedMembersSource))]
     public void Encode_slice1_tagged_members(ClassWithTaggedMembers c)
     {
@@ -385,7 +384,6 @@ public class TaggedTests
                 (ref SliceDecoder decoder) => new VarLengthStruct(ref decoder) as VarLengthStruct?,
                 useTagEndMarker: false),
             Is.EqualTo(c.F));
-
 
         Assert.That(
             decoder.DecodeTagged(
