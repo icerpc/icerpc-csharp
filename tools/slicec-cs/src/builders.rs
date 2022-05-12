@@ -12,16 +12,6 @@ use std::fmt;
 
 pub trait Builder {
     fn build(&self) -> CodeBlock;
-
-    fn build_mut(&mut self) -> CodeBlock {
-        self.build()
-    }
-}
-
-impl fmt::Display for dyn Builder {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.build())
-    }
 }
 
 pub trait AttributeBuilder {
@@ -332,6 +322,7 @@ impl FunctionBuilder {
         self
     }
 }
+
 impl Builder for FunctionBuilder {
     fn build(&self) -> CodeBlock {
         let mut code = CodeBlock::new();
