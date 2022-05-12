@@ -34,7 +34,7 @@ public class SlicingTests
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1, activator: slicingActivator);
 
         // Act
-        AnyClass? anyClass = decoder.DecodeAnyClass();
+        AnyClass? anyClass = decoder.DecodeClass<AnyClass> ();
 
         // Assert
         Assert.That(anyClass, Is.Not.Null);
@@ -64,9 +64,9 @@ public class SlicingTests
             slicedTypeIds: ImmutableList.Create(MyPreservedDerivedClass1.SliceTypeId));
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1, activator: slicingActivator);
-        AnyClass? r1 = decoder.DecodeAnyClass();
+        AnyClass? r1 = decoder.DecodeClass<AnyClass>();
 
-        // Marshal the sliced class
+        // Encode the sliced class
         buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
         encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
 
@@ -76,7 +76,7 @@ public class SlicingTests
         // Assert
         Assert.That(r1, Is.TypeOf<MyPreservedClass>());
         Assert.That(r1.UnknownSlices, Is.Not.Empty);
-        // unmarshal again using the default factory, the unmarshaled class should contain the preserved Slices.
+        // Encode again using the default factory, the decoded class should contain the preserved Slices.
         decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
