@@ -690,10 +690,10 @@ namespace IceRpc.Internal
                 _networkConnectionReader.AdvanceTo(prologueBuffer.End);
 
                 IceDefinitions.CheckPrologue(prologue);
-                if (prologue.FrameSize > _options.MaxIncomingFrameSize)
+                if (prologue.FrameSize > _options.MaxFrameSize)
                 {
                     throw new InvalidDataException(
-                        $"incoming frame size ({prologue.FrameSize}) is greater than max incoming frame size");
+                        $"received frame with size ({prologue.FrameSize}) greater than max frame size");
                 }
 
                 if (prologue.CompressionStatus == 2)

@@ -19,9 +19,6 @@ namespace IceRpc
         /// <summary>Received an icerpc go away frame.</summary>
         ReceivedGoAwayFrame,
 
-        /// <summary>Received an icerpc initialize frame.</summary>
-        ReceivedInitializeFrame,
-
         /// <summary>An ice validate connection frame was sent.</summary>
         SentIceValidateConnectionFrame,
 
@@ -30,8 +27,5 @@ namespace IceRpc
 
         /// <summary>An icerpc go away frame was sent.</summary>
         SentGoAwayFrame,
-
-        /// <summary>An icerpc initialize frame was sent.</summary>
-        SentInitializeFrame,
     }
 }
