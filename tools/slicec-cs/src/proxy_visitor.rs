@@ -91,7 +91,7 @@ public IceRpc.Proxy Proxy {{ get; init; }}"#,
                 format!(
                     r#"
 /// <summary>Implicit conversion to <see cref="{base_impl}"/>.</summary>
-public static implicit operator {base_impl}({prx_impl} prx) => new(prx.Proxy);"#,
+public static implicit operator {base_impl}({prx_impl} prx) => new(prx.Proxy, prx.EncodeOptions);"#,
                     base_impl = base_impl,
                     prx_impl = prx_impl
                 )
@@ -127,7 +127,9 @@ public static {prx_impl} FromConnection(
     IceRpc.IConnection connection,
     string? path = null,
     IceRpc.IInvoker? invoker = null) =>
-    new(IceRpc.Proxy.FromConnection(connection, path ?? DefaultPath, invoker));
+    new(
+        IceRpc.Proxy.FromConnection(connection, path ?? DefaultPath, invoker),
+        connection.Features.Get<IceRpc.Configure.SliceEncodeOptions>());
 
 /// <summary>Creates a new relative proxy with the given path.</summary>
 /// <param name="path">The path.</param>
@@ -166,7 +168,7 @@ public static bool TryParse(string s, IceRpc.IInvoker? invoker, IceRpc.IProxyFor
     }}
 }}
 
-/// <summary>Constructs an instance of <see cref="{prx_impl}"/>.</summary>
+/// <summary>Constructs an instance of <see cref="{prx_impl}"/> from a proxy.</summary>
 /// <param name="proxy">The proxy to the remote service.</param>
 /// <param name="encodeOptions">The Slice encode options (optional).</param>
 public {prx_impl}(IceRpc.Proxy proxy, IceRpc.Configure.SliceEncodeOptions? encodeOptions = null)
