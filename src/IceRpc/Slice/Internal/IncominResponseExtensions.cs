@@ -6,10 +6,10 @@ namespace IceRpc.Slice.Internal;
 /// <summary>Extension methods for <see cref="IncomingResponse"/>.</summary>
 internal static class IncomingResponseExtensions
 {
-    internal static SliceDecodePayloadOptions GetDecodePayloadOptions(
+    internal static SliceDecodeOptions GetSliceDecodeOptions(
         this IncomingResponse response,
         OutgoingRequest request) =>
-        request.Features.Get<SliceDecodePayloadOptions>() ??
-        response.Connection.Features.Get<SliceDecodePayloadOptions>() ??
-        SliceDecodePayloadOptions.Default;
+        request.Features.Get<SliceDecodeOptions>() ??
+        response.Connection.Features.Get<SliceDecodeOptions>() ??
+        SliceDecodeOptions.Default;
 }

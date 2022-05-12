@@ -96,7 +96,7 @@ namespace IceRpc.Slice
             CancellationToken cancel = default) =>
             request.DecodeValueAsync(
                 encoding,
-                request.GetDecodePayloadOptions(),
+                request.GetSliceDecodeOptions(),
                 defaultActivator,
                 defaultInvoker: Proxy.DefaultInvoker,
                 decodeFunc,
@@ -113,7 +113,7 @@ namespace IceRpc.Slice
             CancellationToken cancel = default) =>
             request.DecodeVoidAsync(
                 encoding,
-                request.GetDecodePayloadOptions(),
+                request.GetSliceDecodeOptions(),
                 cancel);
 
         /// <summary>Creates an async enumerable over the payload reader of an incoming request to decode streamed
@@ -130,7 +130,7 @@ namespace IceRpc.Slice
             DecodeFunc<T> decodeFunc) =>
             request.ToAsyncEnumerable(
                 encoding,
-                request.GetDecodePayloadOptions(),
+                request.GetSliceDecodeOptions(),
                 defaultActivator,
                 defaultInvoker: Proxy.DefaultInvoker,
                 decodeFunc);
