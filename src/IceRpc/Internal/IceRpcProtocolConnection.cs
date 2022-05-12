@@ -288,7 +288,7 @@ namespace IceRpc.Internal
 
                     static PipeReader CreateExceptionPayload(IncomingRequest request, RemoteException exception)
                     {
-                        SliceEncodeOptions? encodeOptions = request.GetSliceEncodeOptions();
+                        SliceEncodeOptions? encodeOptions = request.GetFeature<SliceEncodeOptions>();
 
                         var pipe = new Pipe(encodeOptions == null ? PipeOptions.Default :
                             new PipeOptions(pool: encodeOptions.MemoryPool));

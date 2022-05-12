@@ -58,7 +58,7 @@ namespace IceRpc.Slice
 
             PipeReader CreateExceptionPayload()
             {
-                SliceEncodeOptions? encodeOptions = request.GetSliceEncodeOptions();
+                SliceEncodeOptions? encodeOptions = request.GetFeature<SliceEncodeOptions>();
 
                 var pipe = new Pipe(encodeOptions == null ? PipeOptions.Default :
                     new PipeOptions(pool: encodeOptions.MemoryPool));
@@ -99,10 +99,10 @@ namespace IceRpc.Slice
             CancellationToken cancel = default) =>
             request.DecodeValueAsync(
                 encoding,
-                request.GetSliceDecodeOptions(),
+                request.GetFeature<SliceDecodeOptions>(),
                 defaultActivator,
                 defaultInvoker: Proxy.DefaultInvoker,
-                prxEncodeOptions: request.GetSliceEncodeOptions(),
+                prxEncodeOptions: request.GetFeature<SliceEncodeOptions>(),
                 decodeFunc,
                 cancel);
 
@@ -117,7 +117,7 @@ namespace IceRpc.Slice
             CancellationToken cancel = default) =>
             request.DecodeVoidAsync(
                 encoding,
-                request.GetSliceDecodeOptions(),
+                request.GetFeature<SliceDecodeOptions>(),
                 cancel);
 
         /// <summary>Creates an async enumerable over the payload reader of an incoming request to decode fixed size
@@ -136,10 +136,10 @@ namespace IceRpc.Slice
             int elementSize) =>
             request.ToAsyncEnumerable(
                 encoding,
-                request.GetSliceDecodeOptions(),
+                request.GetFeature<SliceDecodeOptions>(),
                 defaultActivator,
                 defaultInvoker: Proxy.DefaultInvoker,
-                prxEncodeOptions: request.GetSliceEncodeOptions(),
+                prxEncodeOptions: request.GetFeature<SliceEncodeOptions>(),
                 decodeFunc,
                 elementSize);
 
@@ -157,19 +157,15 @@ namespace IceRpc.Slice
             DecodeFunc<T> decodeFunc) =>
             request.ToAsyncEnumerable(
                 encoding,
-                request.GetSliceDecodeOptions(),
+                request.GetFeature<SliceDecodeOptions>(),
                 defaultActivator,
                 defaultInvoker: Proxy.DefaultInvoker,
-                prxEncodeOptions: request.GetSliceEncodeOptions(),
+                prxEncodeOptions: request.GetFeature<SliceEncodeOptions>(),
                 decodeFunc);
 
 
-        /// <summary>Returns the <see cref="SliceDecodeOptions"/> carried by this incoming request, or null.</summary>
-        public static SliceDecodeOptions? GetSliceDecodeOptions(this IncomingRequest request) =>
-            request.Features.Get<SliceDecodeOptions>() ?? request.Connection.Features.Get<SliceDecodeOptions>();
-
-        /// <summary>Returns the <see cref="SliceEncodeOptions"/> carried by this incoming request, or null.</summary>
-        public static SliceEncodeOptions? GetSliceEncodeOptions(this IncomingRequest request) =>
-            request.Features.Get<SliceEncodeOptions>() ?? request.Connection.Features.Get<SliceEncodeOptions>();
+        /// <summary>Returns the feature carried by this incoming request, or this request's connection.</summary>
+        public static T? GetFeature<T>(this IncomingRequest request) =>
+            request.Features.Get<T>() ?? request.Connection.Features.Get<T>();
     }
 }
