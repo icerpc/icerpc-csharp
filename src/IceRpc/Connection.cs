@@ -59,7 +59,7 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public FeatureCollection Features { get; private set; } = FeatureCollection.Empty;
+        public FeatureCollection Features { get; }
 
         // True once DisposeAsync is called. Once disposed the connection can't be resumed.
         private bool _disposed;
