@@ -34,7 +34,7 @@ public class SlicingTests
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1, activator: slicingActivator);
 
         // Act
-        AnyClass? anyClass = decoder.DecodeClass<AnyClass> ();
+        AnyClass? anyClass = decoder.DecodeClass<AnyClass>();
 
         // Assert
         Assert.That(anyClass, Is.Not.Null);
@@ -76,7 +76,7 @@ public class SlicingTests
         // Assert
         Assert.That(r1, Is.TypeOf<MyPreservedClass>());
         Assert.That(r1.UnknownSlices, Is.Not.Empty);
-        // Encode again using the default factory, the decoded class should contain the preserved Slices.
+        // Encode again using an activator that knows all the type IDs, the decoded class should contain the preserved Slices.
         decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
