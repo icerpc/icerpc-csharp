@@ -162,7 +162,7 @@ public class StreamTests
             defaultActivator: null,
             defaultInvoker: Proxy.DefaultInvoker,
             (ref SliceDecoder decoder) => decoder.DecodeInt32(),
-            fixedSizeElements: true);
+            elementSize: 4);
 
         // Assert
         Assert.That(async () => await ToArrayAsync(decoded), Is.EqualTo(expected));
@@ -225,7 +225,7 @@ public class StreamTests
             defaultActivator: null,
             defaultInvoker: Proxy.DefaultInvoker,
             (ref SliceDecoder decoder) => decoder.DecodeString(),
-            fixedSizeElements: true);
+            elementSize: -1);
 
         // Assert
         Assert.That(async () => await ToArrayAsync(decoded), Is.EqualTo(expected));
@@ -242,24 +242,34 @@ public class StreamTests
 
         async Task EncodeDataAsync(PipeWriter writer)
         {
-
+            int encodedByteCount = 0;
+            Memory<byte> sizePlaceHolder = writer.GetMemory(4)[0..4];
+            writer.Advance(4);
             for (int i = 0; i < size; i++)
             {
-                if (yieldThreshold > 0 && i % yieldThreshold == 0)
+                if (encodedByteCount > 0 && yieldThreshold > 0 && i % yieldThreshold == 0)
                 {
+                    SliceEncoder.EncodeVarUInt62((ulong)encodedByteCount, sizePlaceHolder.Span);
+                    encodedByteCount = 0;
                     await writer.FlushAsync();
                     await Task.Yield();
+                    sizePlaceHolder = writer.GetMemory(4)[0..4];
+                    writer.Advance(4);
                 }
-                EncodeElement($"hello-{i}");
+                encodedByteCount += EncodeElement($"hello-{i}");
+            }
+            if (encodedByteCount > 0)
+            {
+                SliceEncoder.EncodeVarUInt62((ulong)encodedByteCount, sizePlaceHolder.Span);
             }
             await writer.CompleteAsync();
 
-            void EncodeElement(string value)
+            int EncodeElement(string value)
             {
                 var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
                 encoder.EncodeString(value);
+                return encoder.EncodedByteCount;
             }
-
         }
     }
 }

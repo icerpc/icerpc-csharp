@@ -612,11 +612,15 @@ request.DecodeStream<{param_type}>(
     {encoding},
     _defaultActivator,
     {decode_func},
-    {fixed_size_elements});",
+    {element_size});",
                     encoding = cs_encoding,
                     param_type = param_type_str,
                     decode_func = decode_func(param_type, namespace, encoding).indent(),
-                    fixed_size_elements = param_type.is_fixed_size()
+                    element_size = if param_type.is_fixed_size() {
+                        param_type.min_wire_size().to_string()
+                    } else {
+                        "-1".to_owned()
+                    }
                 )
                 .into()
             } else {
@@ -627,11 +631,15 @@ response.DecodeStream<{param_type}>(
     {encoding},
     _defaultActivator,
     {decode_func},
-    {fixed_size_elements});",
+    {element_size});",
                     encoding = cs_encoding,
                     param_type = param_type_str,
                     decode_func = decode_func(param_type, namespace, encoding).indent(),
-                    fixed_size_elements = param_type.is_fixed_size()
+                    element_size = if param_type.is_fixed_size() {
+                        param_type.min_wire_size().to_string()
+                    } else {
+                        "-1".to_owned()
+                    }
                 )
                 .into()
             }

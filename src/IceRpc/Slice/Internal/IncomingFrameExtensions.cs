@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using IceRpc.Internal;
 using System.Buffers;
+using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Slice.Internal
@@ -111,7 +112,7 @@ namespace IceRpc.Slice.Internal
         /// <param name="defaultInvoker">The default invoker.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
-        /// <param name="fixedSizeElements">True if we are decoding a stream of fixed size elements; otherwise, false.</param>
+        /// <param name="elementSize">The size in bytes of the streamed elements, or -1 for variable size elements.</param>
         /// <returns>The async enumerable to decode and return the streamed members.</returns>
         internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this IncomingFrame frame,
@@ -120,8 +121,12 @@ namespace IceRpc.Slice.Internal
             IActivator? defaultActivator,
             IInvoker defaultInvoker,
             DecodeFunc<T> decodeFunc,
-            bool fixedSizeElements)
+            int elementSize)
         {
+            if(elementSize < 0 && elementSize != -1)
+            {
+                throw new ArgumentException($"element size must be greater than 0, or -1 for variable size elements");
+            }
             IConnection connection = frame.Connection;
             var streamDecoder = new StreamDecoder<T>(DecodeBufferFunc, decodePayloadOptions.StreamDecoderOptions);
 
@@ -131,7 +136,7 @@ namespace IceRpc.Slice.Internal
             // We read the payload and fill the writer (streamDecoder) in a separate thread. We don't give the frame to
             // this thread since frames are not thread-safe.
             _ = Task.Run(
-                () => FillWriterAsync(payload, encoding, streamDecoder, fixedSizeElements),
+                () =>_ = FillWriterAsync(payload, encoding, streamDecoder, elementSize),
                 CancellationToken.None);
 
             // when CancelPendingRead is called on reader, ReadSegmentAsync returns a ReadResult with IsCanceled
@@ -162,7 +167,7 @@ namespace IceRpc.Slice.Internal
                 PipeReader payload,
                 SliceEncoding encoding,
                 StreamDecoder<T> streamDecoder,
-                bool fixedSizeElements)
+                int elementSize)
             {
                 while (true)
                 {
@@ -175,55 +180,94 @@ namespace IceRpc.Slice.Internal
                     CancellationToken cancel = CancellationToken.None;
 
                     ReadResult readResult;
-
-                    try
-                    {
-                        if (fixedSizeElements)
-                        {
-                            readResult = await payload.ReadAsync(cancel).ConfigureAwait(false);
-                        }
-                        else
-                        {
-                            readResult = await payload.ReadSegmentAsync(
-                                encoding,
-                                maxSize: 4_000_000, // TODO: configuration
-                                cancel).ConfigureAwait(false);
-                        }
-
-                    }
-                    catch (Exception ex)
-                    {
-                        streamDecoder.CompleteWriter();
-                        await payload.CompleteAsync(ex).ConfigureAwait(false);
-                        break; // done
-                    }
-
-                    if (readResult.IsCanceled)
-                    {
-                        streamDecoder.CompleteWriter();
-
-                        var ex = new OperationCanceledException();
-                        await payload.CompleteAsync(ex).ConfigureAwait(false);
-                        break; // done
-                    }
-
                     bool streamReaderCompleted = false;
-
-                    if (!readResult.Buffer.IsEmpty)
+                    if (elementSize > 0)
                     {
                         try
                         {
-                            streamReaderCompleted = await streamDecoder.WriteAsync(
-                                readResult.Buffer,
-                                cancel).ConfigureAwait(false);
+                            readResult = await payload.ReadAsync(cancel).ConfigureAwait(false);
 
-                            payload.AdvanceTo(readResult.Buffer.End);
                         }
                         catch (Exception ex)
                         {
                             streamDecoder.CompleteWriter();
                             await payload.CompleteAsync(ex).ConfigureAwait(false);
-                            break;
+                            break; // done
+                        }
+
+                        if (readResult.IsCanceled)
+                        {
+                            streamDecoder.CompleteWriter();
+
+                            var ex = new OperationCanceledException();
+                            await payload.CompleteAsync(ex).ConfigureAwait(false);
+                            break; // done
+                        }
+
+                        if (readResult.Buffer.Length < elementSize)
+                        {
+                            payload.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                        }
+                        else
+                        {
+                            try
+                            {
+                                long remaining = readResult.Buffer.Length % elementSize;
+                                var buffer = readResult.Buffer.Slice(0, readResult.Buffer.Length - remaining);
+                                streamReaderCompleted =
+                                    await streamDecoder.WriteAsync(buffer, cancel).ConfigureAwait(false);
+                                payload.AdvanceTo(buffer.End);
+                            }
+                            catch (Exception ex)
+                            {
+                                streamDecoder.CompleteWriter();
+                                await payload.CompleteAsync(ex).ConfigureAwait(false);
+                                break;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        try
+                        {
+                            readResult = await payload.ReadSegmentAsync(
+                                encoding,
+                                maxSize: 4_000_000, // TODO: configuration
+                                cancel).ConfigureAwait(false);
+
+                        }
+                        catch (Exception ex)
+                        {
+                            streamDecoder.CompleteWriter();
+                            await payload.CompleteAsync(ex).ConfigureAwait(false);
+                            break; // done
+                        }
+
+                        if (readResult.IsCanceled)
+                        {
+                            streamDecoder.CompleteWriter();
+
+                            var ex = new OperationCanceledException();
+                            await payload.CompleteAsync(ex).ConfigureAwait(false);
+                            break; // done
+                        }
+
+                        if (!readResult.Buffer.IsEmpty)
+                        {
+                            try
+                            {
+                                streamReaderCompleted = await streamDecoder.WriteAsync(
+                                    readResult.Buffer,
+                                    cancel).ConfigureAwait(false);
+
+                                payload.AdvanceTo(readResult.Buffer.End);
+                            }
+                            catch (Exception ex)
+                            {
+                                streamDecoder.CompleteWriter();
+                                await payload.CompleteAsync(ex).ConfigureAwait(false);
+                                break;
+                            }
                         }
                     }
 
