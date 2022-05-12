@@ -27,7 +27,7 @@ namespace IceRpc.Slice
                 response.DecodeRemoteExceptionAsync(
                     request,
                     response.Protocol.SliceEncoding,
-                    request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
+                    response.GetDecodePayloadOptions(request),
                     defaultActivator,
                     cancel) :
                 throw new ArgumentException(
@@ -54,7 +54,7 @@ namespace IceRpc.Slice
             return response.ResultType == ResultType.Success ?
                 response.DecodeValueAsync(
                     encoding,
-                    request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
+                    response.GetDecodePayloadOptions(request),
                     defaultActivator,
                     defaultInvoker: request.Proxy.Invoker,
                     decodeFunc,
@@ -66,7 +66,7 @@ namespace IceRpc.Slice
                 throw await response.DecodeRemoteExceptionAsync(
                     request,
                     encoding,
-                    request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
+                    response.GetDecodePayloadOptions(request),
                     defaultActivator,
                     cancel).ConfigureAwait(false);
             }
@@ -90,7 +90,7 @@ namespace IceRpc.Slice
             int elementSize) =>
             response.ToAsyncEnumerable(
                 encoding,
-                request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
+                response.GetDecodePayloadOptions(request),
                 defaultActivator,
                 defaultInvoker: request.Proxy.Invoker,
                 decodeFunc,
@@ -109,7 +109,10 @@ namespace IceRpc.Slice
             IActivator? defaultActivator,
             CancellationToken cancel = default)
         {
-            return response.ResultType == ResultType.Success ? response.DecodeVoidAsync(encoding, cancel) :
+            SliceDecodePayloadOptions decodePayloadOptions = response.GetDecodePayloadOptions(request);
+
+            return response.ResultType == ResultType.Success ?
+                response.DecodeVoidAsync(encoding, decodePayloadOptions, cancel) :
                 ThrowRemoteExceptionAsync();
 
             async ValueTask ThrowRemoteExceptionAsync()
@@ -117,7 +120,7 @@ namespace IceRpc.Slice
                 throw await response.DecodeRemoteExceptionAsync(
                     request,
                     encoding,
-                    request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
+                    decodePayloadOptions,
                     defaultActivator,
                     cancel).ConfigureAwait(false);
             }
@@ -142,7 +145,7 @@ namespace IceRpc.Slice
             {
                 ReadResult readResult = await response.Payload.ReadSegmentAsync(
                     encoding,
-                    maxSize: 4_000_000, // TODO: configuration
+                    decodePayloadOptions.MaxSegmentSize,
                     cancel).ConfigureAwait(false);
 
                 if (readResult.IsCanceled)
@@ -173,7 +176,8 @@ namespace IceRpc.Slice
                     response.Connection,
                     decodePayloadOptions.ProxyInvoker ?? request.Proxy.Invoker,
                     activator: decodePayloadOptions.Activator ?? defaultActivator,
-                    decodePayloadOptions.MaxDepth);
+                    maxCollectionAllocation: decodePayloadOptions.MaxCollectionAllocation,
+                    maxDepth: decodePayloadOptions.MaxDepth);
 
                 RemoteException remoteException = encoding == SliceEncoding.Slice1 ?
                     (resultType == SliceResultType.Failure ?

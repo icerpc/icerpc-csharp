@@ -84,8 +84,7 @@ namespace IceRpc.Slice
         /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
         /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
         /// length.</param>
-        /// <param name="maxDepth">The maximum depth when decoding a type recursively. <c>-1</c> uses the default value,
-        /// <c>100</c>.</param>
+        /// <param name="maxDepth">The maximum depth when decoding a type recursively. The default is <c>3</c>.</param>
         public SliceDecoder(
             ReadOnlySequence<byte> buffer,
             SliceEncoding encoding,
@@ -93,7 +92,7 @@ namespace IceRpc.Slice
             IInvoker? invoker = null,
             IActivator? activator = null,
             int maxCollectionAllocation = -1,
-            int maxDepth = -1)
+            int maxDepth = 3)
         {
             Encoding = encoding;
 
@@ -110,9 +109,8 @@ namespace IceRpc.Slice
                         $"{nameof(maxCollectionAllocation)} must be greater than or equal to -1",
                         nameof(maxCollectionAllocation)));
 
-            _maxDepth = maxDepth == -1 ? 100 :
-                (maxDepth >= 1 ? maxDepth :
-                    throw new ArgumentException($"{nameof(maxDepth)} must be -1 or greater than 0", nameof(maxDepth)));
+            _maxDepth = maxDepth >= 1 ? maxDepth :
+                    throw new ArgumentException($"{nameof(maxDepth)} must be greater than 0", nameof(maxDepth));
 
             _reader = new SequenceReader<byte>(buffer);
         }
@@ -127,8 +125,7 @@ namespace IceRpc.Slice
         /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
         /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
         /// length.</param>
-        /// <param name="maxDepth">The maximum depth when decoding a type recursively. <c>-1</c> uses the default.
-        /// </param>
+        /// <param name="maxDepth">The maximum depth when decoding a type recursively. The default is <c>3</c>.</param>
         public SliceDecoder(
             ReadOnlyMemory<byte> buffer,
             SliceEncoding encoding,
@@ -136,7 +133,7 @@ namespace IceRpc.Slice
             IInvoker? invoker = null,
             IActivator? activator = null,
             int maxCollectionAllocation = -1,
-            int maxDepth = -1)
+            int maxDepth = 3)
             : this(
                 new ReadOnlySequence<byte>(buffer),
                 encoding,

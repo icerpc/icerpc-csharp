@@ -58,8 +58,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Gets the features of this connection. These features are empty until the connection is connected.
-        /// </summary>
+        /// <inheritdoc/>
         public FeatureCollection Features { get; private set; } = FeatureCollection.Empty;
 
         // True once DisposeAsync is called. Once disposed the connection can't be resumed.
