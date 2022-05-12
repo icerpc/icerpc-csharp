@@ -1,7 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{
-    AttributeBuilder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType,
+    AttributeBuilder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionCallBuilder,
+    FunctionType,
 };
 use crate::code_block::CodeBlock;
 use crate::comments::doc_comment_message;
@@ -218,13 +219,12 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
     .set_body({
         let mut code = CodeBlock::new();
 
-        let mut start_slice_args = vec!["SliceTypeId"];
-
-        if class_def.compact_id.is_some() {
-            start_slice_args.push("_compactSliceTypeId");
-        }
-
-        writeln!(code, "encoder.StartSlice({});", start_slice_args.join(", "));
+        code.writeln(
+            &FunctionCallBuilder::new("encoder.StartSlice")
+                .add_argument("SliceType")
+                .add_argument_if(class_def.compact_id.is_some(), "_compactSliceTypeId")
+                .build(),
+        );
 
         code.writeln(&encode_data_members(
             &members,

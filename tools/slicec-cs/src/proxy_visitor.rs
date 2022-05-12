@@ -294,8 +294,8 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
     let invocation = invocation_builder.build();
 
     match body_type {
-        FunctionType::ExpressionBody => write!(body, "{}", invocation),
-        FunctionType::BlockBody => write!(body, "return {};", invocation),
+        FunctionType::ExpressionBody => body.writeln(&invocation),
+        FunctionType::BlockBody => writeln!(body, "return {};", invocation),
         _ => panic!("unexpected function type"),
     }
 
