@@ -7,7 +7,8 @@ namespace IceRpc.Slice;
 /// requests to a remote IceRPC service.</summary>
 public interface IPrx
 {
-    /// <summary>Gets the Slice encode options of this proxy, or set these options during initialization.</summary>
+    /// <summary>Gets the encode options to use when encoding the payload of a request created from this Prx, or set
+    /// these options during initialization.</summary>
     SliceEncodeOptions? EncodeOptions { get; init; }
 
     /// <summary>Gets the proxy object, or sets this proxy object during initialization.</summary>

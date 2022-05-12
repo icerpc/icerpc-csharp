@@ -4,7 +4,7 @@ using IceRpc.Slice;
 
 namespace IceRpc.Configure;
 
-/// <summary>An option class to customize the decoding of a Slice-encoded request or response payloads.</summary>
+/// <summary>An option class to customize the decoding of a request and response payloads.</summary>
 public sealed record class SliceDecodeOptions
 {
     /// <summary>The default value for <see cref="MaxDepth"/> (100).</summary>

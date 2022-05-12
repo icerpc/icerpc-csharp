@@ -4,7 +4,7 @@ using System.Buffers;
 
 namespace IceRpc.Configure;
 
-/// <summary>An option class to customize the encoding of a Slice-encoded request or response payloads.</summary>
+/// <summary>An option class to customize the encoding of a request and response payloads.</summary>
 public sealed record class SliceEncodeOptions
 {
     /// <summary>Gets or sets the memory pool to use when encoding payloads.</summary>
