@@ -111,6 +111,7 @@ namespace IceRpc.Slice.Internal
         /// <param name="defaultInvoker">The default invoker.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
+        /// <param name="fixedSizeElements">True if we are decoding a stream of fixed size elements; otherwise, false.</param>
         /// <returns>The async enumerable to decode and return the streamed members.</returns>
         internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this IncomingFrame frame,
@@ -118,17 +119,20 @@ namespace IceRpc.Slice.Internal
             SliceDecodePayloadOptions decodePayloadOptions,
             IActivator? defaultActivator,
             IInvoker defaultInvoker,
-            DecodeFunc<T> decodeFunc)
+            DecodeFunc<T> decodeFunc,
+            bool fixedSizeElements)
         {
             IConnection connection = frame.Connection;
             var streamDecoder = new StreamDecoder<T>(DecodeBufferFunc, decodePayloadOptions.StreamDecoderOptions);
 
             PipeReader payload = frame.Payload;
-            frame.Payload = InvalidPipeReader.Instance; // payload is now our responsability
+            frame.Payload = InvalidPipeReader.Instance; // payload is now our responsibility
 
             // We read the payload and fill the writer (streamDecoder) in a separate thread. We don't give the frame to
             // this thread since frames are not thread-safe.
-            _ = Task.Run(() => FillWriterAsync(payload, encoding, streamDecoder), CancellationToken.None);
+            _ = Task.Run(
+                () => FillWriterAsync(payload, encoding, streamDecoder, fixedSizeElements),
+                CancellationToken.None);
 
             // when CancelPendingRead is called on reader, ReadSegmentAsync returns a ReadResult with IsCanceled
             // set to true.
@@ -157,7 +161,8 @@ namespace IceRpc.Slice.Internal
             async static Task FillWriterAsync(
                 PipeReader payload,
                 SliceEncoding encoding,
-                StreamDecoder<T> streamDecoder)
+                StreamDecoder<T> streamDecoder,
+                bool fixedSizeElements)
             {
                 while (true)
                 {
@@ -173,10 +178,18 @@ namespace IceRpc.Slice.Internal
 
                     try
                     {
-                        readResult = await payload.ReadSegmentAsync(
-                            encoding,
-                            maxSize: 4_000_000, // TODO: configuration
-                            cancel).ConfigureAwait(false);
+                        if (fixedSizeElements)
+                        {
+                            readResult = await payload.ReadAsync(cancel).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            readResult = await payload.ReadSegmentAsync(
+                                encoding,
+                                maxSize: 4_000_000, // TODO: configuration
+                                cancel).ConfigureAwait(false);
+                        }
+
                     }
                     catch (Exception ex)
                     {

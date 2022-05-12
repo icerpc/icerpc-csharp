@@ -558,7 +558,8 @@ fn payload_stream(operation: &Operation, encoding: &str) -> CodeBlock {
                     "\
 {encoding}.CreatePayloadStream<{stream_type}>(
     {stream_arg},
-    {encode_action})",
+    {encode_action},
+    {fixed_size_elements})",
                     stream_type = stream_type.to_type_string(namespace, TypeContext::Encode, false),
                     stream_arg = stream_arg,
                     encoding = encoding,
@@ -569,6 +570,7 @@ fn payload_stream(operation: &Operation, encoding: &str) -> CodeBlock {
                         operation.encoding
                     )
                     .indent(),
+                    fixed_size_elements = stream_type.is_fixed_size()
                 )
                 .into(),
             }

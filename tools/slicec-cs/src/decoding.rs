@@ -611,10 +611,12 @@ pub fn decode_operation_stream(
 request.DecodeStream<{param_type}>(
     {encoding},
     _defaultActivator,
-    {decode_func});",
+    {decode_func},
+    {fixed_size_elements});",
                     encoding = cs_encoding,
                     param_type = param_type_str,
-                    decode_func = decode_func(param_type, namespace, encoding).indent()
+                    decode_func = decode_func(param_type, namespace, encoding).indent(),
+                    fixed_size_elements = param_type.is_fixed_size()
                 )
                 .into()
             } else {
@@ -624,10 +626,12 @@ response.DecodeStream<{param_type}>(
     request,
     {encoding},
     _defaultActivator,
-    {decode_func});",
+    {decode_func},
+    {fixed_size_elements});",
                     encoding = cs_encoding,
                     param_type = param_type_str,
-                    decode_func = decode_func(param_type, namespace, encoding).indent()
+                    decode_func = decode_func(param_type, namespace, encoding).indent(),
+                    fixed_size_elements = param_type.is_fixed_size()
                 )
                 .into()
             }
@@ -639,7 +643,7 @@ response.DecodeStream<{param_type}>(
             "{stream_param_type} {param_name} = {create_stream_param}",
             stream_param_type = stream_type_str,
             param_name = stream_member.parameter_name_with_prefix("sliceP_"),
-            create_stream_param = create_stream_param
+            create_stream_param = create_stream_param,
         )
         .into()
     } else {
