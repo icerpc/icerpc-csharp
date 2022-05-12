@@ -28,19 +28,19 @@ namespace IceRpc.Slice
         /// <param name="encoding">The encoding of the payload.</param>
         /// <param name="asyncEnumerable">The async enumerable to encode and stream.</param>
         /// <param name="encodeAction">The action used to encode the streamed member.</param>
-        /// <param name="fixedSizeElements"><c>true</c> if we are encoding a stream of fixed size elements; otherwise, <c>false</c>.
-        /// </param>
+        /// <param name="useSegments"><c>true</c> if we are encoding a stream elements in segments this is the case
+        /// when the streamed elements are of variable size; otherwise, <c>false</c>.</param>
         public static PipeReader CreatePayloadStream<T>(
             this SliceEncoding encoding,
             IAsyncEnumerable<T> asyncEnumerable,
             EncodeAction<T> encodeAction,
-            bool fixedSizeElements)
+            bool useSegments)
         {
             if (encoding == SliceEncoding.Slice1)
             {
                 throw new NotSupportedException("streaming is not supported with Slice1");
             }
-            return new PayloadStreamPipeReader<T>(encoding, asyncEnumerable, encodeAction, fixedSizeElements);
+            return new PayloadStreamPipeReader<T>(encoding, asyncEnumerable, encodeAction, useSegments);
         }
 
         private class PayloadStreamPipeReader<T> : PipeReader
@@ -49,7 +49,7 @@ namespace IceRpc.Slice
             private readonly CancellationTokenSource _cancellationSource = new();
             private readonly EncodeAction<T> _encodeAction;
             private readonly SliceEncoding _encoding;
-            private readonly bool _fixedSizeElements;
+            private readonly bool _useSegments;
             private readonly int _segmentSizeFlushThreshold;
             private Task<bool>? _moveNext;
             private readonly Pipe _pipe;
@@ -96,7 +96,7 @@ namespace IceRpc.Slice
                     if (hasNext)
                     {
                         Memory<byte> sizePlaceholder = null;
-                        if (!_fixedSizeElements)
+                        if (_useSegments)
                         {
                             sizePlaceholder = _pipe.Writer.GetMemory(4)[0..4];
                             _pipe.Writer.Advance(4);
@@ -128,7 +128,7 @@ namespace IceRpc.Slice
                             hasNext = moveNext.Result;
                         }
 
-                        if (!_fixedSizeElements)
+                        if (_useSegments)
                         {
                             SliceEncoder.EncodeVarUInt62((ulong)size, sizePlaceholder.Span);
                         }
@@ -166,7 +166,7 @@ namespace IceRpc.Slice
                 SliceEncoding encoding,
                 IAsyncEnumerable<T> asyncEnumerable,
                 EncodeAction<T> encodeAction,
-                bool fixedSizeElements)
+                bool useSegments)
             {
                 // TODO: pipe options, pipe pooling
                 _pipe = new Pipe(new PipeOptions(
@@ -179,7 +179,7 @@ namespace IceRpc.Slice
                 _segmentSizeFlushThreshold = 32 * 1024;
                 _encodeAction = encodeAction;
                 _encoding = encoding;
-                _fixedSizeElements = fixedSizeElements;
+                _useSegments = useSegments;
                 _asyncEnumerator = asyncEnumerable.GetAsyncEnumerator(_cancellationSource.Token);
             }
         }

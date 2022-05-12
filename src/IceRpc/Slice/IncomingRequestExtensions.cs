@@ -116,13 +116,13 @@ namespace IceRpc.Slice
                 request.GetDecodePayloadOptions(),
                 cancel);
 
-        /// <summary>Creates an async enumerable over the payload reader of an incoming request to decode streamed
-        /// members.</summary>
+        /// <summary>Creates an async enumerable over the payload reader of an incoming request to decode fixed size
+        /// streamed elements.</summary>
         /// <param name="request">The incoming request.</param>
         /// <param name="encoding">The encoding of the request payload.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
-        /// <param name="elementSize">The size in bytes of the streamed elements, or -1 for variable size elements.</param>
+        /// <param name="elementSize">The size in bytes of the streamed elements.</param>
         /// <returns>The async enumerable to decode and return the streamed members.</returns>
         public static IAsyncEnumerable<T> DecodeStream<T>(
             this IncomingRequest request,
@@ -137,5 +137,24 @@ namespace IceRpc.Slice
                 defaultInvoker: Proxy.DefaultInvoker,
                 decodeFunc,
                 elementSize);
+
+        /// <summary>Creates an async enumerable over the payload reader of an incoming request to decode variable size
+        /// streamed elements.</summary>
+        /// <param name="request">The incoming request.</param>
+        /// <param name="encoding">The encoding of the request payload.</param>
+        /// <param name="defaultActivator">The optional default activator.</param>
+        /// <param name="decodeFunc">The function used to decode the streamed member.</param>
+        /// <returns>The async enumerable to decode and return the streamed members.</returns>
+        public static IAsyncEnumerable<T> DecodeStream<T>(
+            this IncomingRequest request,
+            SliceEncoding encoding,
+            IActivator? defaultActivator,
+            DecodeFunc<T> decodeFunc) =>
+            request.ToAsyncEnumerable(
+                encoding,
+                request.GetDecodePayloadOptions(),
+                defaultActivator,
+                defaultInvoker: Proxy.DefaultInvoker,
+                decodeFunc);
     }
 }

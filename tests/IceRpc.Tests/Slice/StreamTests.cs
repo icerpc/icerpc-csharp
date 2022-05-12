@@ -28,7 +28,7 @@ public class StreamTests
         PipeReader payload = SliceEncoding.Slice2.CreatePayloadStream(
             GetDataAsync(size),
             (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value),
-            true);
+            useSegments: false);
 
         // Assert
         Assert.That(async () => await DecodeDataAsync(payload), Is.EqualTo(expected));
@@ -91,7 +91,7 @@ public class StreamTests
         PipeReader payload = SliceEncoding.Slice2.CreatePayloadStream(
             GetDataAsync(size),
             (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
-            false);
+            useSegments: true);
 
         // Assert
         Assert.That(async () => await DecodeDataAsync(payload), Is.EqualTo(expected));
@@ -114,7 +114,7 @@ public class StreamTests
             ReadResult readResult;
             do
             {
-                readResult = await payload.ReadSegmentAsync(SliceEncoding.Slice2, int.MaxValue, default);
+                readResult = await payload.ReadSegmentAsync(SliceEncoding.Slice2, int.MaxValue - 1, default);
                 data.AddRange(DecodeStringStream(readResult.Buffer));
                 payload.AdvanceTo(readResult.Buffer.End);
             }
@@ -222,8 +222,7 @@ public class StreamTests
             SliceDecodePayloadOptions.Default,
             defaultActivator: null,
             defaultInvoker: Proxy.DefaultInvoker,
-            (ref SliceDecoder decoder) => decoder.DecodeString(),
-            elementSize: -1);
+            (ref SliceDecoder decoder) => decoder.DecodeString());
 
         // Assert
         Assert.That(async () => await ToArrayAsync(decoded), Is.EqualTo(expected));

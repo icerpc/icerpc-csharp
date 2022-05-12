@@ -119,7 +119,130 @@ namespace IceRpc.Slice.Internal
         /// <param name="defaultInvoker">The default invoker.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
-        /// <param name="elementSize">The size in bytes of the streamed elements, or -1 for variable size elements.</param>
+        /// <returns>The async enumerable to decode and return the streamed members.</returns>
+        internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
+            this IncomingFrame frame,
+            SliceEncoding encoding,
+            SliceDecodePayloadOptions decodePayloadOptions,
+            IActivator? defaultActivator,
+            IInvoker defaultInvoker,
+            DecodeFunc<T> decodeFunc)
+        {
+            IConnection connection = frame.Connection;
+            var streamDecoder = new StreamDecoder<T>(DecodeBufferFunc, decodePayloadOptions.StreamDecoderOptions);
+
+            PipeReader payload = frame.Payload;
+            frame.Payload = InvalidPipeReader.Instance; // payload is now our responsibility
+
+            // We read the payload and fill the writer (streamDecoder) in a separate thread. We don't give the frame to
+            // this thread since frames are not thread-safe.
+            _ = Task.Run(
+                () => _ = FillWriterAsync(payload, encoding, decodePayloadOptions, streamDecoder),
+                CancellationToken.None);
+
+            // when CancelPendingRead is called on reader, ReadSegmentAsync returns a ReadResult with IsCanceled
+            // set to true.
+            return streamDecoder.ReadAsync(() => payload.CancelPendingRead());
+
+            IEnumerable<T> DecodeBufferFunc(ReadOnlySequence<byte> buffer)
+            {
+                var decoder = new SliceDecoder(
+                    buffer,
+                    encoding,
+                    connection,
+                    decodePayloadOptions.ProxyInvoker ?? defaultInvoker,
+                    decodePayloadOptions.Activator ?? defaultActivator,
+                    maxCollectionAllocation: decodePayloadOptions.MaxCollectionAllocation,
+                    maxDepth: decodePayloadOptions.MaxDepth);
+
+                var items = new List<T>();
+                do
+                {
+                    items.Add(decodeFunc(ref decoder));
+                }
+                while (decoder.Consumed < buffer.Length);
+
+                return items;
+            }
+
+            async static Task FillWriterAsync(
+                PipeReader payload,
+                SliceEncoding encoding,
+                SliceDecodePayloadOptions decodePayloadOptions,
+                StreamDecoder<T> streamDecoder)
+            {
+                while (true)
+                {
+                    // Each iteration decodes a segment with n values.
+
+                    // If the reader of the async enumerable misbehaves, we can be left "hanging" in a paused
+                    // streamDecoder.WriteAsync. The fix is to fix the application code: set the cancellation token
+                    // with WithCancellation and cancel when the async enumerable reader is done and the iteration is
+                    // not over (= streamDecoder writer is not completed).
+                    CancellationToken cancel = CancellationToken.None;
+
+                    ReadResult readResult;
+                    bool streamReaderCompleted = false;
+                    try
+                    {
+                        readResult = await payload.ReadSegmentAsync(
+                            encoding,
+                            decodePayloadOptions.MaxSegmentSize,
+                            cancel).ConfigureAwait(false);
+
+                    }
+                    catch (Exception ex)
+                    {
+                        streamDecoder.CompleteWriter();
+                        await payload.CompleteAsync(ex).ConfigureAwait(false);
+                        break; // done
+                    }
+
+                    if (readResult.IsCanceled)
+                    {
+                        streamDecoder.CompleteWriter();
+
+                        var ex = new OperationCanceledException();
+                        await payload.CompleteAsync(ex).ConfigureAwait(false);
+                        break; // done
+                    }
+
+                    if (!readResult.Buffer.IsEmpty)
+                    {
+                        try
+                        {
+                            streamReaderCompleted = await streamDecoder.WriteAsync(
+                                readResult.Buffer,
+                                cancel).ConfigureAwait(false);
+
+                            payload.AdvanceTo(readResult.Buffer.End);
+                        }
+                        catch (Exception ex)
+                        {
+                            streamDecoder.CompleteWriter();
+                            await payload.CompleteAsync(ex).ConfigureAwait(false);
+                            break;
+                        }
+                    }
+
+                    if (streamReaderCompleted || readResult.IsCompleted)
+                    {
+                        streamDecoder.CompleteWriter();
+                        await payload.CompleteAsync().ConfigureAwait(false);
+                        break;
+                    }
+                }
+            }
+        }
+
+        /// <summary>Creates an async enumerable over a pipe reader to decode streamed members.</summary>
+        /// <param name="frame">The incoming frame.</param>
+        /// <param name="encoding">The Slice encoding version.</param>
+        /// <param name="decodePayloadOptions">The decode payload options.</param>
+        /// <param name="defaultInvoker">The default invoker.</param>
+        /// <param name="defaultActivator">The optional default activator.</param>
+        /// <param name="decodeFunc">The function used to decode the streamed member.</param>
+        /// <param name="elementSize">The size in bytes of the streamed elements.</param>
         /// <returns>The async enumerable to decode and return the streamed members.</returns>
         internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this IncomingFrame frame,
@@ -130,9 +253,9 @@ namespace IceRpc.Slice.Internal
             DecodeFunc<T> decodeFunc,
             int elementSize)
         {
-            if (elementSize <= 0 && elementSize != -1)
+            if (elementSize <= 0)
             {
-                throw new ArgumentException($"element size must be greater than 0, or -1 for variable size elements");
+                throw new ArgumentException("element size must be greater than 0");
             }
             IConnection connection = frame.Connection;
             var streamDecoder = new StreamDecoder<T>(DecodeBufferFunc, decodePayloadOptions.StreamDecoderOptions);
@@ -180,7 +303,7 @@ namespace IceRpc.Slice.Internal
             {
                 while (true)
                 {
-                    // Each iteration decodes a segment with n values.
+                    // Each iteration decodes n values of size elementSize.
 
                     // If the reader of the async enumerable misbehaves, we can be left "hanging" in a paused
                     // streamDecoder.WriteAsync. The fix is to fix the application code: set the cancellation token
@@ -190,93 +313,47 @@ namespace IceRpc.Slice.Internal
 
                     ReadResult readResult;
                     bool streamReaderCompleted = false;
-                    if (elementSize > 0)
+
+                    try
                     {
-                        try
-                        {
-                            readResult = await payload.ReadAsync(cancel).ConfigureAwait(false);
+                        readResult = await payload.ReadAsync(cancel).ConfigureAwait(false);
 
-                        }
-                        catch (Exception ex)
-                        {
-                            streamDecoder.CompleteWriter();
-                            await payload.CompleteAsync(ex).ConfigureAwait(false);
-                            break; // done
-                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        streamDecoder.CompleteWriter();
+                        await payload.CompleteAsync(ex).ConfigureAwait(false);
+                        break; // done
+                    }
 
-                        if (readResult.IsCanceled)
-                        {
-                            streamDecoder.CompleteWriter();
+                    if (readResult.IsCanceled)
+                    {
+                        streamDecoder.CompleteWriter();
 
-                            var ex = new OperationCanceledException();
-                            await payload.CompleteAsync(ex).ConfigureAwait(false);
-                            break; // done
-                        }
+                        var ex = new OperationCanceledException();
+                        await payload.CompleteAsync(ex).ConfigureAwait(false);
+                        break; // done
+                    }
 
-                        if (readResult.Buffer.Length < elementSize)
-                        {
-                            payload.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                        }
-                        else
-                        {
-                            try
-                            {
-                                long remaining = readResult.Buffer.Length % elementSize;
-                                var buffer = readResult.Buffer.Slice(0, readResult.Buffer.Length - remaining);
-                                streamReaderCompleted =
-                                    await streamDecoder.WriteAsync(buffer, cancel).ConfigureAwait(false);
-                                payload.AdvanceTo(buffer.End);
-                            }
-                            catch (Exception ex)
-                            {
-                                streamDecoder.CompleteWriter();
-                                await payload.CompleteAsync(ex).ConfigureAwait(false);
-                                break;
-                            }
-                        }
+                    if (readResult.Buffer.Length < elementSize)
+                    {
+                        payload.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
                     }
                     else
                     {
                         try
                         {
-                            readResult = await payload.ReadSegmentAsync(
-                                encoding,
-                                decodePayloadOptions.MaxSegmentSize,
-                                cancel).ConfigureAwait(false);
-
+                            long remaining = readResult.Buffer.Length % elementSize;
+                            var buffer = readResult.Buffer.Slice(0, readResult.Buffer.Length - remaining);
+                            streamReaderCompleted =
+                                await streamDecoder.WriteAsync(buffer, cancel).ConfigureAwait(false);
+                            payload.AdvanceTo(buffer.End);
                         }
                         catch (Exception ex)
                         {
                             streamDecoder.CompleteWriter();
                             await payload.CompleteAsync(ex).ConfigureAwait(false);
-                            break; // done
-                        }
-
-                        if (readResult.IsCanceled)
-                        {
-                            streamDecoder.CompleteWriter();
-
-                            var ex = new OperationCanceledException();
-                            await payload.CompleteAsync(ex).ConfigureAwait(false);
-                            break; // done
-                        }
-
-                        if (!readResult.Buffer.IsEmpty)
-                        {
-                            try
-                            {
-                                streamReaderCompleted = await streamDecoder.WriteAsync(
-                                    readResult.Buffer,
-                                    cancel).ConfigureAwait(false);
-
-                                payload.AdvanceTo(readResult.Buffer.End);
-                            }
-                            catch (Exception ex)
-                            {
-                                streamDecoder.CompleteWriter();
-                                await payload.CompleteAsync(ex).ConfigureAwait(false);
-                                break;
-                            }
+                            break;
                         }
                     }
 
