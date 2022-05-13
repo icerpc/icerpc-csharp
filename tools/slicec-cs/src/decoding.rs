@@ -77,7 +77,11 @@ fn decode_member(
 
     match &data_type.concrete_typeref() {
         TypeRefs::Interface(_) => {
-            write!(code, "new {}(decoder.DecodeProxy())", type_string);
+            write!(
+                code,
+                "new {}(decoder.DecodeProxy(), decoder.PrxEncodeOptions)",
+                type_string
+            );
         }
         TypeRefs::Class(_) => {
             assert!(!data_type.is_optional);
@@ -394,7 +398,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
                 )
             } else {
                 format!(
-                    "(ref SliceDecoder decoder) => new {}(decoder.DecodeProxy())",
+                    "(ref SliceDecoder decoder) => new {}(decoder.DecodeProxy(), decoder.PrxEncodeOptions)",
                     type_name
                 )
             }
@@ -617,6 +621,7 @@ pub fn decode_operation_stream(
         .add_argument_unless(dispatch, "request")
         .add_argument(cs_encoding)
         .add_argument("_defaultActivator")
+        .add_argument_unless(dispatch, "encodeOptions")
         .add_argument(&decode_func(param_type, namespace, encoding).indent())
         .add_argument_if(param_type.is_fixed_size(), &param_type.min_wire_size())
         .build(),

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using System.Buffers;
 using System.IO.Pipelines;
 
@@ -27,21 +28,22 @@ namespace IceRpc.Slice
         /// <summary>Creates a payload stream from an async enumerable.</summary>
         /// <param name="encoding">The encoding of the payload.</param>
         /// <param name="asyncEnumerable">The async enumerable to encode and stream.</param>
+        /// <param name="encodeOptions">The Slice encode options.</param>
         /// <param name="encodeAction">The action used to encode the streamed member.</param>
         /// <param name="useSegments"><c>true</c> if we are encoding a stream elements in segments this is the case
         /// when the streamed elements are of variable size; otherwise, <c>false</c>.</param>
         public static PipeReader CreatePayloadStream<T>(
             this SliceEncoding encoding,
             IAsyncEnumerable<T> asyncEnumerable,
+            SliceEncodeOptions? encodeOptions,
             EncodeAction<T> encodeAction,
-            bool useSegments)
-        {
-            if (encoding == SliceEncoding.Slice1)
-            {
-                throw new NotSupportedException("streaming is not supported with Slice1");
-            }
-            return new PayloadStreamPipeReader<T>(encoding, asyncEnumerable, encodeAction, useSegments);
-        }
+            bool useSegments) =>
+            new PayloadStreamPipeReader<T>(
+                encoding,
+                asyncEnumerable,
+                encodeOptions,
+                encodeAction,
+                useSegments);
 
         private class PayloadStreamPipeReader<T> : PipeReader
         {
@@ -165,12 +167,17 @@ namespace IceRpc.Slice
             internal PayloadStreamPipeReader(
                 SliceEncoding encoding,
                 IAsyncEnumerable<T> asyncEnumerable,
+                SliceEncodeOptions? encodeOptions,
                 EncodeAction<T> encodeAction,
                 bool useSegments)
             {
-                // TODO: pipe options, pipe pooling
+                if (encoding == SliceEncoding.Slice1)
+                {
+                    throw new NotSupportedException("streaming is not supported with Slice1");
+                }
+
                 _pipe = new Pipe(new PipeOptions(
-                    pool: MemoryPool<byte>.Shared,
+                    pool: encodeOptions?.MemoryPool ?? MemoryPool<byte>.Shared,
                     minimumSegmentSize: -1,
                     pauseWriterThreshold: 0,
                     writerScheduler: PipeScheduler.Inline));

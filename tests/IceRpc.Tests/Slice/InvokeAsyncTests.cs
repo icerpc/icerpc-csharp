@@ -16,16 +16,16 @@ public class InvokeAsyncTests
     {
         var responsePayload = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
 
-        var proxy = new Proxy(Protocol.IceRpc)
+        var sut = new ServicePrx(new Proxy(Protocol.IceRpc)
         {
             Invoker = new InlineInvoker((request, cancel) =>
                 Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc) { Payload = responsePayload }))
-        };
+        });
 
         var requestPayload = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
 
         // Act
-        await proxy.InvokeAsync(
+        await sut.InvokeAsync(
             "",
             SliceEncoding.Slice2,
             payload: requestPayload,
@@ -48,10 +48,10 @@ public class InvokeAsyncTests
     [Test]
     public void InvokeAsync_completes_all_payloads_on_outgoing_exception()
     {
-        var proxy = new Proxy(Protocol.IceRpc)
+        var sut = new ServicePrx(new Proxy(Protocol.IceRpc)
         {
             Invoker = new InlineInvoker((request, cancel) => throw new InvalidDataException("error"))
-        };
+        });
 
         var requestPayload = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var requestPayloadStream = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
@@ -60,7 +60,7 @@ public class InvokeAsyncTests
         Assert.Multiple(async () =>
         {
             Assert.That(
-                async () => await proxy.InvokeAsync(
+                async () => await sut.InvokeAsync(
                     "",
                     SliceEncoding.Slice2,
                     payload: requestPayload,

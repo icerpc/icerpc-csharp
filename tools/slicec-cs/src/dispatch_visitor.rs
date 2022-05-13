@@ -220,6 +220,13 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             }
         }
 
+        builder.add_parameter(
+            "IceRpc.Configure.SliceEncodeOptions?",
+            "sliceEncodeOptions",
+            Some("null"),
+            Some("The Slice encode options."),
+        );
+
         builder.set_body(encode_operation(operation, true, "return"));
 
         class_builder.add_block(builder.build());
@@ -525,7 +532,7 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
     match non_streamed_return_values.len() {
         0 => format!("{encoding}.CreateSizeZeroPayload()", encoding = encoding),
         _ => format!(
-            "Response.{operation_name}({args})",
+            "Response.{operation_name}({args}, request.GetFeature<IceRpc.Configure.SliceEncodeOptions>())",
             operation_name = operation.escape_identifier(),
             args = returns.join(", ")
         ),
@@ -556,13 +563,14 @@ fn payload_stream(operation: &Operation, encoding: &str) -> CodeBlock {
                 }
                 _ => format!(
                     "\
-{encoding}.CreatePayloadStream<{stream_type}>(
+{encoding}.CreatePayloadStream(
     {stream_arg},
+    {encode_options},
     {encode_action},
     {use_segments})",
-                    stream_type = stream_type.to_type_string(namespace, TypeContext::Encode, false),
-                    stream_arg = stream_arg,
                     encoding = encoding,
+                    stream_arg = stream_arg,
+                    encode_options = "request.GetFeature<IceRpc.Configure.SliceEncodeOptions>()",
                     encode_action = encode_action(
                         stream_type,
                         TypeContext::Encode,

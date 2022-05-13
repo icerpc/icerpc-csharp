@@ -22,7 +22,7 @@ public class SequenceMappingTests
         };
 
         (CustomSequence<int> r1, CustomSequence<int> r2) =
-            await SequenceMappingOperationsPrx.Response.OpReturnTupleAsync(response, request, default);
+            await SequenceMappingOperationsPrx.Response.OpReturnTupleAsync(response, request, null, default);
 
         Assert.That(r1, Is.EqualTo(new CustomSequence<int>(new int[] { 1, 2, 3 })));
         Assert.That(r2, Is.EqualTo(new CustomSequence<int>(new int[] { 1, 2, 3 })));
@@ -40,7 +40,7 @@ public class SequenceMappingTests
 
         // TODO bogus mapping this should return CustomSequence<int>
         int[] r =
-            await SequenceMappingOperationsPrx.Response.OpReturnSingleTypeAsync(response, request, default);
+            await SequenceMappingOperationsPrx.Response.OpReturnSingleTypeAsync(response, request, null, default);
 
         Assert.That(r, Is.EqualTo(new int[] { 1, 2, 3 }));
     }
