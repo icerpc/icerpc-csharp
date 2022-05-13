@@ -58,9 +58,8 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Gets the features of this connection. These features are empty until the connection is connected.
-        /// </summary>
-        public FeatureCollection Features { get; private set; } = FeatureCollection.Empty;
+        /// <inheritdoc/>
+        public FeatureCollection Features { get; }
 
         // True once DisposeAsync is called. Once disposed the connection can't be resumed.
         private bool _disposed;
@@ -99,6 +98,8 @@ namespace IceRpc
                 throw new ArgumentException(
                     $"{nameof(ConnectionOptions.RemoteEndpoint)} is not set",
                     nameof(options));
+
+            Features = new FeatureCollection(options.Features);
 
             // At this point, we consider options to be read-only.
             // TODO: replace _options by "splatted" properties.
@@ -379,6 +380,9 @@ namespace IceRpc
         {
             _isServer = true;
             Endpoint = endpoint;
+            Features = new FeatureCollection(options.Features);
+
+            // TODO: "splat" _options
             _options = options;
             _state = ConnectionState.Connecting;
         }
@@ -406,8 +410,6 @@ namespace IceRpc
                 NetworkConnectionInformation = await networkConnection.ConnectAsync(
                     connectTimeoutCancellationSource.Token).ConfigureAwait(false);
 
-                var features = new FeatureCollection(_options.Features);
-
                 // Create the protocol connection.
                 IProtocolConnection protocolConnection = await protocolConnectionFactory.CreateProtocolConnectionAsync(
                     networkConnection,
@@ -429,7 +431,6 @@ namespace IceRpc
                     _state = ConnectionState.Active;
                     _stateTask = null;
                     _protocolConnection = protocolConnection;
-                    Features = features;
 
                     _onClose = onClose;
 

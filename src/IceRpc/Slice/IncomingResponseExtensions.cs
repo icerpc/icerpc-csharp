@@ -27,7 +27,7 @@ namespace IceRpc.Slice
                 response.DecodeRemoteExceptionAsync(
                     request,
                     response.Protocol.SliceEncoding,
-                    request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
+                    response.GetDecodePayloadOptions(request),
                     defaultActivator,
                     cancel) :
                 throw new ArgumentException(
@@ -54,7 +54,7 @@ namespace IceRpc.Slice
             return response.ResultType == ResultType.Success ?
                 response.DecodeValueAsync(
                     encoding,
-                    request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
+                    response.GetDecodePayloadOptions(request),
                     defaultActivator,
                     defaultInvoker: request.Proxy.Invoker,
                     decodeFunc,
@@ -66,14 +66,38 @@ namespace IceRpc.Slice
                 throw await response.DecodeRemoteExceptionAsync(
                     request,
                     encoding,
-                    request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
+                    response.GetDecodePayloadOptions(request),
                     defaultActivator,
                     cancel).ConfigureAwait(false);
             }
         }
 
-        /// <summary>Creates an async enumerable over the payload reader of an incoming response to decode streamed
-        /// members.</summary>
+        /// <summary>Creates an async enumerable over the payload reader of an incoming response to decode fixed size
+        /// streamed elements.</summary>
+        /// <param name="response">The incoming response.</param>
+        /// <param name="request">The outgoing request.</param>
+        /// <param name="encoding">The encoding of the response payload.</param>
+        /// <param name="defaultActivator">The optional default activator.</param>
+        /// <param name="decodeFunc">The function used to decode the streamed member.</param>
+        /// <param name="elementSize">The size in bytes of the streamed elements.</param>
+        /// <returns>The async enumerable to decode and return the streamed members.</returns>
+        public static IAsyncEnumerable<T> DecodeStream<T>(
+            this IncomingResponse response,
+            OutgoingRequest request,
+            SliceEncoding encoding,
+            IActivator? defaultActivator,
+            DecodeFunc<T> decodeFunc,
+            int elementSize) =>
+            response.ToAsyncEnumerable(
+                encoding,
+                response.GetDecodePayloadOptions(request),
+                defaultActivator,
+                defaultInvoker: request.Proxy.Invoker,
+                decodeFunc,
+                elementSize);
+
+        /// <summary>Creates an async enumerable over the payload reader of an incoming response to decode variable
+        /// size streamed elements.</summary>
         /// <param name="response">The incoming response.</param>
         /// <param name="request">The outgoing request.</param>
         /// <param name="encoding">The encoding of the response payload.</param>
@@ -88,7 +112,7 @@ namespace IceRpc.Slice
             DecodeFunc<T> decodeFunc) =>
             response.ToAsyncEnumerable(
                 encoding,
-                request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
+                response.GetDecodePayloadOptions(request),
                 defaultActivator,
                 defaultInvoker: request.Proxy.Invoker,
                 decodeFunc);
@@ -106,7 +130,10 @@ namespace IceRpc.Slice
             IActivator? defaultActivator,
             CancellationToken cancel = default)
         {
-            return response.ResultType == ResultType.Success ? response.DecodeVoidAsync(encoding, cancel) :
+            SliceDecodePayloadOptions decodePayloadOptions = response.GetDecodePayloadOptions(request);
+
+            return response.ResultType == ResultType.Success ?
+                response.DecodeVoidAsync(encoding, decodePayloadOptions, cancel) :
                 ThrowRemoteExceptionAsync();
 
             async ValueTask ThrowRemoteExceptionAsync()
@@ -114,7 +141,7 @@ namespace IceRpc.Slice
                 throw await response.DecodeRemoteExceptionAsync(
                     request,
                     encoding,
-                    request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
+                    decodePayloadOptions,
                     defaultActivator,
                     cancel).ConfigureAwait(false);
             }
@@ -139,7 +166,7 @@ namespace IceRpc.Slice
             {
                 ReadResult readResult = await response.Payload.ReadSegmentAsync(
                     encoding,
-                    maxSize: 4_000_000, // TODO: configuration
+                    decodePayloadOptions.MaxSegmentSize,
                     cancel).ConfigureAwait(false);
 
                 if (readResult.IsCanceled)
@@ -170,7 +197,8 @@ namespace IceRpc.Slice
                     response.Connection,
                     decodePayloadOptions.ProxyInvoker ?? request.Proxy.Invoker,
                     activator: decodePayloadOptions.Activator ?? defaultActivator,
-                    decodePayloadOptions.MaxDepth);
+                    maxCollectionAllocation: decodePayloadOptions.MaxCollectionAllocation,
+                    maxDepth: decodePayloadOptions.MaxDepth);
 
                 RemoteException remoteException = encoding == SliceEncoding.Slice1 ?
                     (resultType == SliceResultType.Failure ?

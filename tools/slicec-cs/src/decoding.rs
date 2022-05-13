@@ -605,32 +605,31 @@ pub fn decode_operation_stream(
             }
         }
         _ => {
-            if dispatch {
-                format!(
-                    "\
-request.DecodeStream<{param_type}>(
-    {encoding},
-    _defaultActivator,
-    {decode_func});",
-                    encoding = cs_encoding,
-                    param_type = param_type_str,
-                    decode_func = decode_func(param_type, namespace, encoding).indent()
-                )
-                .into()
-            } else {
-                format!(
-                    "\
-response.DecodeStream<{param_type}>(
-    request,
-    {encoding},
-    _defaultActivator,
-    {decode_func});",
-                    encoding = cs_encoding,
-                    param_type = param_type_str,
-                    decode_func = decode_func(param_type, namespace, encoding).indent()
-                )
-                .into()
+            let mut args = vec![];
+            if !dispatch {
+                args.push("request");
             }
+            args.push(cs_encoding);
+            args.push("_defaultActivator");
+            let decode_arg = decode_func(param_type, namespace, encoding)
+                .indent()
+                .to_string();
+            args.push(&decode_arg);
+            let element_size: String;
+            if param_type.is_fixed_size() {
+                element_size = param_type.min_wire_size().to_string();
+                args.push(&element_size)
+            }
+
+            format!(
+                "\
+{object}.DecodeStream<{param_type}>(
+    {args});",
+                object = if dispatch { "request" } else { "response" },
+                param_type = param_type_str,
+                args = CodeBlock::from(args.join(",\n")).indent()
+            )
+            .into()
         }
     };
 
@@ -639,7 +638,7 @@ response.DecodeStream<{param_type}>(
             "{stream_param_type} {param_name} = {create_stream_param}",
             stream_param_type = stream_type_str,
             param_name = stream_member.parameter_name_with_prefix("sliceP_"),
-            create_stream_param = create_stream_param
+            create_stream_param = create_stream_param,
         )
         .into()
     } else {

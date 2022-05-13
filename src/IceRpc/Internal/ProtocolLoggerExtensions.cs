@@ -42,13 +42,6 @@ namespace IceRpc.Internal
         internal static partial void LogReceivedIceValidateConnectionFrame(this ILogger logger);
 
         [LoggerMessage(
-            EventId = (int)ProtocolEventIds.ReceivedInitializeFrame,
-            EventName = nameof(ProtocolEventIds.ReceivedInitializeFrame),
-            Level = LogLevel.Debug,
-            Message = "received initialize frame (MaxIncomingFrameSize={maxIncomingFrameSize})")]
-        internal static partial void LogReceivedInitializeFrame(this ILogger logger, int maxIncomingFrameSize);
-
-        [LoggerMessage(
             EventId = (int)ProtocolEventIds.SentGoAwayFrame,
             EventName = nameof(ProtocolEventIds.SentGoAwayFrame),
             Level = LogLevel.Debug,
@@ -73,12 +66,5 @@ namespace IceRpc.Internal
             Level = LogLevel.Debug,
             Message = "sent validate connection frame")]
         internal static partial void LogSentIceValidateConnectionFrame(this ILogger logger);
-
-        [LoggerMessage(
-            EventId = (int)ProtocolEventIds.SentInitializeFrame,
-            EventName = nameof(ProtocolEventIds.SentInitializeFrame),
-            Level = LogLevel.Debug,
-            Message = "sent initialize frame (MaxIncomingFrameSize={MaxIncomingFrameSize})")]
-        internal static partial void LogSentInitializeFrame(this ILogger logger, int MaxIncomingFrameSize);
     }
 }
