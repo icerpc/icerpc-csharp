@@ -36,6 +36,6 @@ namespace IceRpc
         SendRequest,
 
         /// <summary>A response was sent successfully.</summary>
-        SendResponse,
+        SendResponse
     }
 }

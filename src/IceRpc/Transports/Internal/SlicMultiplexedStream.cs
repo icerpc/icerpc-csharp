@@ -68,9 +68,6 @@ namespace IceRpc.Transports.Internal
 
         public void Abort(Exception exception)
         {
-            // TODO: Should abort also abort reads/writes immediately rather than waiting for the application to
-            // complete the SlicPipeReader and SlicPipeWriter?
-
             _inputPipeReader.Abort(exception);
             _outputPipeWriter.Abort(exception);
         }

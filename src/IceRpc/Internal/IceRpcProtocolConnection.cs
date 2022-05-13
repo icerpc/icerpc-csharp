@@ -605,7 +605,7 @@ namespace IceRpc.Internal
         {
             if (_waitForGoAwayFrame == null)
             {
-                throw new InvalidOperationException($"can't call {nameof(ShutdownAsync)} before {nameof(ConnectAsync)}");
+                throw new InvalidOperationException($"{nameof(ConnectAsync)} must be called first");
             }
 
             IceRpcGoAway? goAwayFrame = null;

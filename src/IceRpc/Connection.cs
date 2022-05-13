@@ -76,9 +76,7 @@ namespace IceRpc
 
         private IProtocolConnection? _protocolConnection;
 
-#pragma warning disable CA2213 // IDisposable type which is never disposed
-        private CancellationTokenSource? _protocolShutdownCancellationSource; // Disposed by Close
-#pragma warning restore CA2213
+        private CancellationTokenSource? _protocolShutdownCancellationSource;
 
         private ConnectionState _state = ConnectionState.NotConnected;
 
@@ -86,9 +84,7 @@ namespace IceRpc
         // once the state update completes. It's protected with _mutex.
         private Task? _stateTask;
 
-#pragma warning disable CA2213 // IDisposable type which is never disposed
-        private Timer? _timer; // Disposed by Close
-#pragma warning restore CA2213
+        private Timer? _timer;
 
         /// <summary>Constructs a client connection.</summary>
         /// <param name="options">The connection options.</param>
@@ -161,7 +157,7 @@ namespace IceRpc
                     }
                     else
                     {
-                        throw new ConnectionClosedException($"{typeof(Connection)}");
+                        throw new ConnectionClosedException();
                     }
 
                     Debug.Assert(_stateTask != null);
@@ -274,8 +270,7 @@ namespace IceRpc
             {
                 // If the network connection is lost while sending the request, we close the connection now instead of
                 // waiting for AcceptRequestsAsync to throw. It's necessary to ensure that the next InvokeAsync will
-                // fail with ConnectionClosedException (it's important to ensure retries don't occur on this connection
-                // again).
+                // fail with ConnectionClosedException and won't be retried on this connection.
                 Close(exception, protocolConnection);
                 throw;
             }
@@ -283,8 +278,8 @@ namespace IceRpc
             {
                 // Ensure that the shutdown is initiated if the invocations fails with ConnectionClosedException. It's
                 // possible that the connection didn't receive yet the GoAway message. Initiating the shutdown now
-                // ensures that the next InvokeAsync will fail with ConnectionClosedException (it's important to
-                // ensure retries don't occur on this connection again).
+                // ensures that the next InvokeAsync will fail with ConnectionClosedException and won't be retried on
+                // this connection.
                 InitiateShutdown(exception.Message);
                 throw;
             }
@@ -502,8 +497,8 @@ namespace IceRpc
                 {
                     if (_protocolConnection.HasInvocationsInProgress)
                     {
-                        // Abort the connection if we didn't receive a heartbeat and the connection is idle. The server
-                        // is supposed to send heartbeats when dispatches are in progress. Abort can't be called from
+                        // Close the connection if we didn't receive a heartbeat and the connection is idle. The server
+                        // is supposed to send heartbeats when dispatches are in progress. Close can't be called from
                         // within the synchronization since it calls the "on close" callbacks so we call it from a
                         // thread poll thread.
                         IProtocolConnection protocolConnection = _protocolConnection;

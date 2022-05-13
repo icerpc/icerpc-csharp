@@ -31,7 +31,7 @@ namespace IceRpc.Transports.Internal
         private int _bidirectionalStreamCount;
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly int _bidirectionalMaxStreams;
-        private int _isDisposed;
+        private int _disposed;
         private Exception? _exception;
         private long _lastRemoteBidirectionalStreamId = -1;
         private long _lastRemoteUnidirectionalStreamId = -1;
@@ -250,7 +250,7 @@ namespace IceRpc.Transports.Internal
 
         public void Dispose()
         {
-            if (Interlocked.CompareExchange(ref _isDisposed, 1, 0) != 0)
+            if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
             {
                 return; // Already disposed.
             }

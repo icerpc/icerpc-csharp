@@ -21,7 +21,7 @@ namespace IceRpc.Transports.Internal
         // The MaxDataSize of the SSL implementation.
         private const int MaxSslDataSize = 16 * 1024;
 
-        protected int IsDisposed;
+        protected int Disposed;
 
         private long _lastActivity = Environment.TickCount64;
         private readonly List<ArraySegment<byte>> _segments = new();
@@ -30,7 +30,7 @@ namespace IceRpc.Transports.Internal
 
         public void Dispose()
         {
-            if (Interlocked.Exchange(ref IsDisposed, 1) == 1)
+            if (Interlocked.Exchange(ref Disposed, 1) == 1)
             {
                 return; // Aready disposed.
             }
@@ -64,7 +64,7 @@ namespace IceRpc.Transports.Internal
                     received = await Socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
                 }
             }
-            catch when (IsDisposed == 1)
+            catch when (Disposed == 1)
             {
                 throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
             }
@@ -187,7 +187,7 @@ namespace IceRpc.Transports.Internal
                 // TODO: should we update _lastActivity when an exception is thrown?
                 Interlocked.Exchange(ref _lastActivity, Environment.TickCount64);
             }
-            catch when (IsDisposed == 1)
+            catch when (Disposed == 1)
             {
                 throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
             }
@@ -243,7 +243,7 @@ namespace IceRpc.Transports.Internal
                     _idleTimeout,
                     _sslStream?.RemoteCertificate);
             }
-            catch when (IsDisposed == 1)
+            catch when (Disposed == 1)
             {
                 throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
             }
@@ -346,7 +346,7 @@ namespace IceRpc.Transports.Internal
                     _idleTimeout,
                     _sslStream?.RemoteCertificate);
             }
-            catch when (IsDisposed == 1)
+            catch when (Disposed == 1)
             {
                 throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
             }
