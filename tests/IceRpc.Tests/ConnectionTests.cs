@@ -460,7 +460,7 @@ public class ConnectionTests
         // Assert
         if (closeClientSide)
         {
-            await shutdownTask;
+            Assert.That(async() => await shutdownTask, Throws.Nothing);
 
             Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
             Assert.That(async () => await dispatchCompletionSource.Task, Throws.Nothing);

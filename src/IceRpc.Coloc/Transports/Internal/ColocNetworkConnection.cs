@@ -107,7 +107,8 @@ namespace IceRpc.Transports.Internal
             {
                 if (_state.HasFlag(State.Disposed))
                 {
-                    await _reader.CompleteAsync(new ConnectionLostException()).ConfigureAwait(false);
+                    await _reader.CompleteAsync(
+                        new ObjectDisposedException($"{typeof(ColocNetworkConnection)}")).ConfigureAwait(false);
                 }
                 _state.ClearFlag(State.Reading);
             }

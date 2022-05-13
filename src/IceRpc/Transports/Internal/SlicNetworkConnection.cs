@@ -255,7 +255,7 @@ namespace IceRpc.Transports.Internal
                 return; // Already disposed.
             }
 
-            Abort(new ObjectDisposedException($"{typeof(SlicNetworkConnection)}"));
+            Abort(new ConnectionAbortedException());
 
             // Close the network connection and cancel the pending receive or shutdown.
             _simpleNetworkConnection.Dispose();

@@ -617,7 +617,8 @@ namespace IceRpc.Internal
                 (ref SliceEncoder encoder) => goAwayFrame.Encode(ref encoder),
                 CancellationToken.None).ConfigureAwait(false);
 
-            // Ensure WaitForGoAway completes before continuing.
+            // If the shutdown is initiated locally, we Waitfor the peer to send back a GoAway frame. The task should
+            // already be completed if the shutdown is initiated by the peer.
             await _waitForGoAwayCompleted.Task.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 
             // Wait for streams to complete.
@@ -664,6 +665,9 @@ namespace IceRpc.Internal
                 // Wait again for streams to complete.
                 await _streamsCompleted.Task.ConfigureAwait(false);
             }
+
+            await _controlStream!.Output.CompleteAsync().ConfigureAwait(false);
+            _ = await _remoteControlStream!.Input.ReadAsync(CancellationToken.None).ConfigureAwait(false);
 
             // We can now shutdown the connection. This will cause the peer AcceptStreamAsync call to return.
             try
@@ -1081,7 +1085,6 @@ namespace IceRpc.Internal
             try
             {
                 // Receive and decode GoAway frame
-
                 await ReceiveControlFrameHeaderAsync(
                     IceRpcControlFrameType.GoAway,
                     CancellationToken.None).ConfigureAwait(false);
@@ -1112,11 +1115,6 @@ namespace IceRpc.Internal
                 {
                     stream.Abort(exception);
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                // Expected if shutdown is initiated on the connection.
-                throw;
             }
             finally
             {
