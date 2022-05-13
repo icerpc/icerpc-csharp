@@ -614,7 +614,7 @@ pub fn decode_operation_stream(
             &format!("DecodeStream<{}>", param_type_str),
         )
         .arguments_on_newline(true)
-        .add_argument_if(!dispatch, "request")
+        .add_argument_unless(dispatch, "request")
         .add_argument(cs_encoding)
         .add_argument("_defaultActivator")
         .add_argument(&decode_func(param_type, namespace, encoding).indent())

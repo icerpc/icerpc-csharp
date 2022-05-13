@@ -281,7 +281,8 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
     }
 
     invocation_builder.add_argument_if(void_return && stream_return.is_none(), "_defaultActivator");
-    invocation_builder.add_argument_if(!void_return, &format!("Response.{}", async_operation_name));
+    invocation_builder
+        .add_argument_unless(void_return, &format!("Response.{}", async_operation_name));
 
     invocation_builder.add_argument(&invocation_parameter);
 

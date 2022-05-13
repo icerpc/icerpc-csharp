@@ -453,6 +453,16 @@ impl FunctionCallBuilder {
         self
     }
 
+    pub fn add_argument_unless<T: fmt::Display + ?Sized>(
+        &mut self,
+        condition: bool,
+        argument: &T,
+    ) -> &mut Self {
+        self.add_argument_if(!condition, argument);
+        self
+    }
+
+    // NOTE: These methods are commented out because they are not yet used.
     // pub fn add_arguments<T: fmt::Display + ?Sized>(&mut self, arguments: &[&T]) -> &mut Self {
     //     for arg in arguments {
     //         self.arguments.push(arg.to_string());
