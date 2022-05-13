@@ -52,7 +52,7 @@ namespace IceRpc.Slice
             private readonly EncodeAction<T> _encodeAction;
             private readonly SliceEncoding _encoding;
             private readonly bool _useSegments;
-            private readonly int _segmentSizeFlushThreshold;
+            private readonly int _streamFlushTreshold;
             private Task<bool>? _moveNext;
             private readonly Pipe _pipe;
 
@@ -110,9 +110,8 @@ namespace IceRpc.Slice
                         {
                             size += EncodeElement(_asyncEnumerator.Current);
 
-                            // If we reached the segment size threshold, it's time to flush the segment.
-                            // TODO: allow to configure the size limit?
-                            if (size > _segmentSizeFlushThreshold)
+                            // If we reached the stream flush threshold, it's time to flush.
+                            if (size >= _streamFlushTreshold)
                             {
                                 break;
                             }
@@ -176,14 +175,10 @@ namespace IceRpc.Slice
                     throw new NotSupportedException("streaming is not supported with Slice1");
                 }
 
-                _pipe = new Pipe(new PipeOptions(
-                    pool: encodeOptions?.MemoryPool ?? MemoryPool<byte>.Shared,
-                    minimumSegmentSize: -1,
-                    pauseWriterThreshold: 0,
-                    writerScheduler: PipeScheduler.Inline));
+                encodeOptions ??= SliceEncodeOptions.Default;
 
-                // TODO: configure
-                _segmentSizeFlushThreshold = 32 * 1024;
+                _pipe = new Pipe(encodeOptions.PipeOptions);
+                _streamFlushTreshold = encodeOptions.StreamFlushThreshold;
                 _encodeAction = encodeAction;
                 _encoding = encoding;
                 _useSegments = useSegments;

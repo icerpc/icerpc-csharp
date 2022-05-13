@@ -61,8 +61,8 @@ namespace IceRpc.Slice
             {
                 SliceEncodeOptions? encodeOptions = request.GetFeature<SliceEncodeOptions>();
 
-                var pipe = new Pipe(encodeOptions == null ? PipeOptions.Default :
-                    new PipeOptions(pool: encodeOptions.MemoryPool));
+                var pipe = new Pipe(
+                    request.GetFeature<SliceEncodeOptions>()?.PipeOptions ?? SliceEncodeOptions.DefaultPipeOptions);
 
                 var encoder = new SliceEncoder(pipe.Writer, encoding);
 
