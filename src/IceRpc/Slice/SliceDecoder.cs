@@ -23,9 +23,6 @@ namespace IceRpc.Slice
         /// <summary>The Slice encoding decoded by this decoder.</summary>
         public SliceEncoding Encoding { get; }
 
-        /// <summary>The Slice encode options of Prx structs decoded using this decoder.</summary>
-        public SliceEncodeOptions? PrxEncodeOptions { get; }
-
         /// <summary>The number of bytes decoded in the underlying buffer.</summary>
         internal long Consumed => _reader.Consumed;
 
@@ -75,6 +72,9 @@ namespace IceRpc.Slice
         // The maximum depth when decoding a type recursively.
         private readonly int _maxDepth;
 
+        // The Slice encode options of Prx structs decoded using this decoder.
+        private readonly SliceEncodeOptions? _prxEncodeOptions;
+
         // The sequence reader.
         private SequenceReader<byte> _reader;
 
@@ -102,14 +102,16 @@ namespace IceRpc.Slice
             int maxDepth = 3)
         {
             Encoding = encoding;
-            PrxEncodeOptions = prxEncodeOptions;
 
             _activator = activator ?? _defaultActivator;
             _classContext = default;
-            _connection = connection;
+
             _currentCollectionAllocation = 0;
             _currentDepth = 0;
+
+            _connection = connection;
             _invoker = invoker ?? Proxy.DefaultInvoker;
+            _prxEncodeOptions = prxEncodeOptions;
 
             _maxCollectionAllocation = maxCollectionAllocation == -1 ? 8 * (int)buffer.Length :
                 (maxCollectionAllocation >= 0 ? maxCollectionAllocation :
@@ -350,9 +352,10 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Decodes a nullable proxy (Slice1 only).</summary>
-        /// <returns>The decoded proxy, or null.</returns>
-        public Proxy? DecodeNullableProxy()
+        /// <summary>Decodes a nullable Prx struct (Slice1 only).</summary>
+        /// <paramtype name="TPrx">The type of the Prx struct to decode.</paramtype>
+        /// <returns>The decoded Prx, or null.</returns>
+        public TPrx? DecodeNullablePrx<TPrx>() where TPrx : struct, IPrx
         {
             if (Encoding != SliceEncoding.Slice1)
             {
@@ -360,17 +363,18 @@ namespace IceRpc.Slice
                     "decoding nullable proxies without a bit sequence is only supported with Slice1 encoding");
             }
             string path = this.DecodeIdentityPath();
-            return path != "/" ? DecodeProxy(path) : null;
+            return path != "/" ? new TPrx { Proxy = DecodeProxy(path), EncodeOptions = _prxEncodeOptions } : null;
         }
 
-        /// <summary>Decodes a proxy.</summary>
-        /// <returns>The decoded proxy</returns>
-        public Proxy DecodeProxy()
+        /// <summary>Decodes a Prx struct.</summary>
+        /// <paramtype name="TPrx">The type of the Prx struct to decode.</paramtype>
+        /// <returns>The decoded Prx struct.</returns>
+        public TPrx DecodePrx<TPrx>() where TPrx : struct, IPrx
         {
             if (Encoding == SliceEncoding.Slice1)
             {
                 string path = this.DecodeIdentityPath();
-                return path != "/" ? DecodeProxy(path) :
+                return path != "/" ? new TPrx { Proxy = DecodeProxy(path), EncodeOptions = _prxEncodeOptions } :
                     throw new InvalidDataException("decoded null for a non-nullable proxy");
             }
             else
@@ -385,7 +389,11 @@ namespace IceRpc.Slice
                             throw new InvalidOperationException(
                                 "cannot decode a relative proxy from an decoder with a null Connection");
                         }
-                        return Proxy.FromConnection(_connection, proxyString, _invoker);
+                        return new TPrx
+                        {
+                            Proxy = Proxy.FromConnection(_connection, proxyString, _invoker),
+                            EncodeOptions = _prxEncodeOptions
+                        };
                     }
                     else
                     {
@@ -394,7 +402,11 @@ namespace IceRpc.Slice
                         {
                             proxy.Invoker = _invoker;
                         }
-                        return proxy;
+                        return new TPrx
+                        {
+                            Proxy = proxy,
+                            EncodeOptions = _prxEncodeOptions
+                        };
                     }
                 }
                 catch (Exception ex)
