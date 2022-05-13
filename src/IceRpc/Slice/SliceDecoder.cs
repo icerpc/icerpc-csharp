@@ -359,8 +359,7 @@ namespace IceRpc.Slice
         {
             if (Encoding != SliceEncoding.Slice1)
             {
-                throw new InvalidOperationException(
-                    "decoding nullable proxies without a bit sequence is only supported with Slice1 encoding");
+                throw new InvalidOperationException($"decoding a nullable Prx with {Encoding} requires a bit sequence");
             }
             string path = this.DecodeIdentityPath();
             return path != "/" ? new TPrx { Proxy = DecodeProxy(path), EncodeOptions = _prxEncodeOptions } : null;
