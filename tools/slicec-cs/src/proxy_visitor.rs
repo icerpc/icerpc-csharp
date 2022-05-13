@@ -77,7 +77,10 @@ public static readonly string DefaultPath = typeof({prx_impl}).GetDefaultPath();
 private static readonly IActivator _defaultActivator =
     SliceDecoder.GetActivator(typeof({prx_impl}).Assembly);
 
-/// <summary>The proxy to the remote service.</summary>
+/// <inheritdoc/>
+public IceRpc.Configure.SliceEncodeOptions? EncodeOptions {{ get; init; }}
+
+/// <inheritdoc/>
 public IceRpc.Proxy Proxy {{ get; init; }}"#,
                                interface_name = interface_def.identifier(),
                                prx_impl = prx_impl
@@ -88,7 +91,7 @@ public IceRpc.Proxy Proxy {{ get; init; }}"#,
                 format!(
                     r#"
 /// <summary>Implicit conversion to <see cref="{base_impl}"/>.</summary>
-public static implicit operator {base_impl}({prx_impl} prx) => new(prx.Proxy);"#,
+public static implicit operator {base_impl}({prx_impl} prx) => new(prx.Proxy, prx.EncodeOptions);"#,
                     base_impl = base_impl,
                     prx_impl = prx_impl
                 )
@@ -124,7 +127,9 @@ public static {prx_impl} FromConnection(
     IceRpc.IConnection connection,
     string? path = null,
     IceRpc.IInvoker? invoker = null) =>
-    new(IceRpc.Proxy.FromConnection(connection, path ?? DefaultPath, invoker));
+    new(
+        IceRpc.Proxy.FromConnection(connection, path ?? DefaultPath, invoker),
+        connection.Features.Get<IceRpc.Configure.SliceEncodeOptions>());
 
 /// <summary>Creates a new relative proxy with the given path.</summary>
 /// <param name="path">The path.</param>
@@ -163,9 +168,14 @@ public static bool TryParse(string s, IceRpc.IInvoker? invoker, IceRpc.IProxyFor
     }}
 }}
 
-/// <summary>Constructs an instance of <see cref="{prx_impl}"/>.</summary>
+/// <summary>Constructs an instance of <see cref="{prx_impl}"/> from a proxy.</summary>
 /// <param name="proxy">The proxy to the remote service.</param>
-public {prx_impl}(IceRpc.Proxy proxy) => Proxy = proxy;
+/// <param name="encodeOptions">The Slice encode options (optional).</param>
+public {prx_impl}(IceRpc.Proxy proxy, IceRpc.Configure.SliceEncodeOptions? encodeOptions = null)
+{{
+    Proxy = proxy;
+    EncodeOptions = encodeOptions;
+}}
 
 /// <inheritdoc/>
 public override string ToString() => Proxy.ToString();"#,
@@ -232,7 +242,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
         ));
     } else {
         invoke_args.push(format!(
-            "Request.{}({})",
+            "Request.{}({}, sliceEncodeOptions: EncodeOptions)",
             operation_name,
             parameters
                 .iter()
@@ -252,13 +262,14 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
             }
             _ => invoke_args.push(format!(
                 "\
-{encoding}.CreatePayloadStream<{stream_type}>(
+{encoding}.CreatePayloadStream(
     {stream_parameter},
+    {encode_options},
     {encode_action},
     {use_segments})",
-                stream_type = stream_type.to_type_string(namespace, TypeContext::Encode, false),
-                stream_parameter = stream_parameter_name,
                 encoding = encoding,
+                stream_parameter = stream_parameter_name,
+                encode_options = "this.EncodeOptions",
                 encode_action = encode_action(
                     stream_type,
                     TypeContext::Encode,
@@ -298,7 +309,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
             writeln!(
                 body,
                 "\
-Proxy.InvokeAsync(
+this.InvokeAsync(
     {})",
                 CodeBlock::from(invoke_args.join(",\n")).indent()
             );
@@ -307,7 +318,7 @@ Proxy.InvokeAsync(
             writeln!(
                 body,
                 "\
-return Proxy.InvokeAsync(
+return this.InvokeAsync(
     {});",
                 CodeBlock::from(invoke_args.join(",\n")).indent()
             );
@@ -426,6 +437,13 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             );
         }
 
+        builder.add_parameter(
+            "IceRpc.Configure.SliceEncodeOptions?",
+            "sliceEncodeOptions",
+            Some("null"),
+            Some("The Slice encode options."),
+        );
+
         builder.add_comment(
             "returns",
             &format!(
@@ -491,6 +509,12 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         builder.add_parameter("IceRpc.IncomingResponse", "response", None, None);
         builder.add_parameter("IceRpc.OutgoingRequest", "request", None, None);
         builder.add_parameter(
+            "IceRpc.Configure.SliceEncodeOptions?",
+            "encodeOptions",
+            None, // TODO: switch to null
+            None,
+        );
+        builder.add_parameter(
             "global::System.Threading.CancellationToken",
             "cancel",
             None,
@@ -520,6 +544,7 @@ await response.DecodeVoidReturnValueAsync(
     request,
     {encoding},
     _defaultActivator,
+    encodeOptions,
     cancel).ConfigureAwait(false);
 
 return {decode_operation_stream}
@@ -542,6 +567,7 @@ var {return_value} = await response.DecodeReturnValueAsync(
     request,
     {encoding},
     _defaultActivator,
+    encodeOptions,
     {response_decode_func},
     cancel).ConfigureAwait(false);
 
@@ -571,6 +597,7 @@ response.DecodeReturnValueAsync(
     request,
     {encoding},
     _defaultActivator,
+    encodeOptions,
     {response_decode_func},
     cancel)",
             encoding = encoding,

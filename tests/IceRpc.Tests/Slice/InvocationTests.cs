@@ -21,17 +21,17 @@ public class InvocationTests
         };
 
         IDictionary<string, string>? context = null;
-        var proxy = new Proxy(Protocol.IceRpc)
+        var sut = new ServicePrx(new Proxy(Protocol.IceRpc)
         {
             Invoker = new InlineInvoker((request, cancel) =>
             {
                 context = request.Features.GetContext();
                 return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
             }),
-        };
+        });
 
         // Act
-        await proxy.InvokeAsync(
+        await sut.InvokeAsync(
             "",
             SliceEncoding.Slice2,
             payload: null,
@@ -57,7 +57,7 @@ public class InvocationTests
         });
 
         using var cancellationSource = new CancellationTokenSource();
-        var sut = new Proxy(Protocol.IceRpc) { Invoker = invoker };
+        var sut = new ServicePrx(new Proxy(Protocol.IceRpc) { Invoker = invoker });
         DateTime expectedDeadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(50);
         var invocation = new Invocation() { Deadline = expectedDeadline };
 
@@ -83,7 +83,7 @@ public class InvocationTests
         // Arrange
         CancellationToken? cancellationToken = null;
         bool hasDeadline = false;
-        var sut = new Proxy(Protocol.IceRpc)
+        var sut = new ServicePrx(new Proxy(Protocol.IceRpc)
         {
             Invoker = new InlineInvoker(async (request, cancel) =>
             {
@@ -92,7 +92,7 @@ public class InvocationTests
                 await Task.Delay(TimeSpan.FromMilliseconds(100), cancel);
                 return new IncomingResponse(request, InvalidConnection.IceRpc);
             }),
-        };
+        });
 
         // Act
         Assert.That(
@@ -128,7 +128,7 @@ public class InvocationTests
             return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
         });
         var timeoutInterceptor = new TimeoutInterceptor(invoker, TimeSpan.FromSeconds(120));
-        var sut = new Proxy(Protocol.IceRpc) { Invoker = timeoutInterceptor };
+        var sut = new ServicePrx(new Proxy(Protocol.IceRpc) { Invoker = timeoutInterceptor });
 
         // Act
         await sut.InvokeAsync(
@@ -151,7 +151,7 @@ public class InvocationTests
         // Arrange
         CancellationToken? cancellationToken = null;
         bool hasDeadline = false;
-        var sut = new Proxy(Protocol.IceRpc)
+        var sut = new ServicePrx(new Proxy(Protocol.IceRpc)
         {
             Invoker = new InlineInvoker((request, cancel) =>
             {
@@ -159,7 +159,7 @@ public class InvocationTests
                 hasDeadline = request.Fields.ContainsKey(RequestFieldKey.Deadline);
                 return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
             }),
-        };
+        });
 
         // Act
         await sut.InvokeAsync(
@@ -182,7 +182,7 @@ public class InvocationTests
     public void Setting_the_invocation_deadline_requires_a_cancelable_cancellation_token()
     {
         // Arrange
-        var sut = new Proxy(Protocol.IceRpc);
+        var sut = new ServicePrx(new Proxy(Protocol.IceRpc));
 
         // Act/Assert
         Assert.ThrowsAsync<ArgumentException>(

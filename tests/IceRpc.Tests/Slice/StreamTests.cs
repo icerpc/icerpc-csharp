@@ -27,6 +27,7 @@ public class StreamTests
         // Act
         PipeReader payload = SliceEncoding.Slice2.CreatePayloadStream(
             GetDataAsync(size),
+            encodeOptions: null,
             (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value),
             useSegments: false);
 
@@ -90,6 +91,7 @@ public class StreamTests
         // Act
         PipeReader payload = SliceEncoding.Slice2.CreatePayloadStream(
             GetDataAsync(size),
+            encodeOptions: null,
             (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
             useSegments: true);
 
@@ -158,9 +160,10 @@ public class StreamTests
         // Act
         IAsyncEnumerable<int> decoded = request.ToAsyncEnumerable(
             SliceEncoding.Slice2,
-            SliceDecodePayloadOptions.Default,
+            SliceDecodeOptions.Default,
             defaultActivator: null,
             defaultInvoker: Proxy.DefaultInvoker,
+            prxEncodeOptions: null,
             (ref SliceDecoder decoder) => decoder.DecodeInt32(),
             elementSize: 4);
 
@@ -170,7 +173,7 @@ public class StreamTests
         async Task<int[]> ToArrayAsync(IAsyncEnumerable<int> enumerable)
         {
             var data = new List<int>();
-            await foreach(int i in enumerable)
+            await foreach (int i in enumerable)
             {
                 data.Add(i);
             }
@@ -219,9 +222,10 @@ public class StreamTests
         // Act
         IAsyncEnumerable<string> decoded = request.ToAsyncEnumerable(
             SliceEncoding.Slice2,
-            SliceDecodePayloadOptions.Default,
+            SliceDecodeOptions.Default,
             defaultActivator: null,
             defaultInvoker: Proxy.DefaultInvoker,
+            prxEncodeOptions: null,
             (ref SliceDecoder decoder) => decoder.DecodeString());
 
         // Assert
