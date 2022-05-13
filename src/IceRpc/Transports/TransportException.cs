@@ -98,19 +98,6 @@ namespace IceRpc.Transports
         }
     }
 
-    /// <summary>This exception is thrown when a multiplexed network connection is closed.</summary>
-    public class MultiplexedNetworkConnectionClosedException : TransportException
-    {
-        /// <summary>The application error code.</summary>
-        public ulong ApplicationErrorCode { get; }
-
-        /// <summary>Constructs a new exception.</summary>
-        /// <param name="applicationErrorCode">The application error code.</param>
-        public MultiplexedNetworkConnectionClosedException(ulong applicationErrorCode)
-            : base($"connection aborted with application error code '{applicationErrorCode}'") =>
-            ApplicationErrorCode = applicationErrorCode;
-    }
-
     /// <summary>This exception is thrown when a multiplexed stream is aborted.</summary>
     public class MultiplexedStreamAbortedException : TransportException
     {

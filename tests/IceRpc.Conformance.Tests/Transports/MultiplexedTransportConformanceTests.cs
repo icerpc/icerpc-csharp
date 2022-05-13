@@ -47,10 +47,7 @@ public abstract class MultiplexedTransportConformanceTests
         await clientConnection.ShutdownAsync(56, CancellationToken.None);
 
         // Assert
-        MultiplexedNetworkConnectionClosedException? exception =
-            Assert.ThrowsAsync<MultiplexedNetworkConnectionClosedException>(async () => await acceptStreams);
-        Assert.That(exception, Is.Not.Null);
-        Assert.That(exception!.ApplicationErrorCode, Is.EqualTo(56));
+        Assert.ThrowsAsync<ConnectionClosedException>(async () => await acceptStreams);
     }
 
     /// <summary>Verifies that the stream ID is not assigned until the stream is started.</summary>
@@ -148,21 +145,17 @@ public abstract class MultiplexedTransportConformanceTests
         IMultiplexedNetworkConnection shutdownConnection = shutdownServerConnection ? serverConnection : clientConnection;
         IMultiplexedNetworkConnection peerConnection = shutdownServerConnection ? clientConnection : serverConnection;
 
-        await shutdownConnection.ShutdownAsync(4, CancellationToken.None);
+        await shutdownConnection.ShutdownAsync(0, CancellationToken.None);
 
         // Act
         IMultiplexedStream peerStream = peerConnection.CreateStream(true);
 
         // Assert
-        MultiplexedNetworkConnectionClosedException? ex;
-
-        ex = Assert.ThrowsAsync<MultiplexedNetworkConnectionClosedException>(() =>
+        Assert.ThrowsAsync<ConnectionClosedException>(() =>
             peerConnection.AcceptStreamAsync(CancellationToken.None).AsTask());
-        Assert.That(ex!.ApplicationErrorCode, Is.EqualTo(4));
 
-        ex = Assert.ThrowsAsync<MultiplexedNetworkConnectionClosedException>(() =>
+        Assert.ThrowsAsync<ConnectionClosedException>(() =>
             peerStream.Output.WriteAsync(_oneBytePayload).AsTask());
-        Assert.That(ex!.ApplicationErrorCode, Is.EqualTo(4));
     }
 
     /// <summary>Verify streams cannot be created after disposing the connection.</summary>

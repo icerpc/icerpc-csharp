@@ -228,7 +228,7 @@ namespace IceRpc.Transports.Internal
                         await ShutdownAsync(errorCode, _readCancelSource.Token).ConfigureAwait(false);
 
                         // Notify opened streams of the connection closure.
-                        Abort(new MultiplexedNetworkConnectionClosedException(errorCode));
+                        Abort(new ConnectionClosedException());
                     }
                     catch (Exception exception)
                     {
@@ -303,7 +303,7 @@ namespace IceRpc.Transports.Internal
                     cancel).ConfigureAwait(false);
 
                 // Prevent further writes.
-                _writeSemaphore.Complete(new MultiplexedNetworkConnectionClosedException(applicationErrorCode));
+                _writeSemaphore.Complete(new ConnectionClosedException());
             }
             finally
             {
