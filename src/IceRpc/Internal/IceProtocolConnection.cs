@@ -60,13 +60,9 @@ namespace IceRpc.Internal
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly HashSet<CancellationTokenSource> _dispatches = new();
-
-#pragma warning disable CA2213 // IDisposable type which is never disposed
-        private readonly SemaphoreSlim? _dispatchSemaphore; // Disposed by Abort()
-#pragma warning restore CA2213
+        private readonly AsyncSemaphore? _dispatchSemaphore;
         private int _disposed;
         private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
-        private bool _isAborted;
         private bool _isShutdown;
         private bool _isShuttingDown;
         private readonly MemoryPool<byte> _memoryPool;
@@ -74,33 +70,18 @@ namespace IceRpc.Internal
 
         private readonly object _mutex = new();
         private readonly ISimpleNetworkConnection _networkConnection;
-
-#pragma warning disable CA2213 // IDisposable type which is never disposed
-        private readonly SimpleNetworkConnectionReader _networkConnectionReader; // Disposed by Abort()
-        private readonly SimpleNetworkConnectionWriter _networkConnectionWriter; // Disposed by Abort()
-#pragma warning restore CA2213
-
+        private readonly SimpleNetworkConnectionReader _networkConnectionReader;
+        private readonly SimpleNetworkConnectionWriter _networkConnectionWriter;
         private int _nextRequestId;
         private readonly Configure.IceOptions _options;
         private readonly IcePayloadPipeWriter _payloadWriter;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
-#pragma warning disable CA2213 // IDisposable type which is never disposed
         private readonly CancellationTokenSource _readCancelSource = new(); // Disposed by Abort()
-#pragma warning restore CA2213
         private TaskCompletionSource? _readFramesTaskCompletionSource;
         private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
         public void Abort(Exception exception)
         {
-            lock (_mutex)
-            {
-                if (_isAborted)
-                {
-                    return;
-                }
-                _isAborted = true;
-            }
-
             // Close the network connection and cancel the pending receive.
             _networkConnection.Dispose();
             _readCancelSource.Cancel();
@@ -109,7 +90,7 @@ namespace IceRpc.Internal
             CancelDispatches();
 
             // Unblock ShutdownAsync which might be waiting for the connection to be disposed.
-            _pendingClose.SetResult();
+            _pendingClose.TrySetResult();
 
             // Unblock ShutdownAsync if it's waiting for invocations and dispatches to complete.
             _dispatchesAndInvocationsCompleted.TrySetException(exception);
@@ -119,16 +100,7 @@ namespace IceRpc.Internal
         {
             try
             {
-                lock (_mutex)
-                {
-                    if (_isAborted)
-                    {
-                        // The connection can only be aborted here if it has been disposed.
-                        throw new ObjectDisposedException($"{typeof(IceProtocolConnection)}");
-                    }
-
-                    _readFramesTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-                }
+                _readFramesTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
                 // Read frames until the CloseConnection frame is received.
                 await ReadFramesAsync(connection, _readCancelSource.Token).ConfigureAwait(false);
@@ -150,11 +122,11 @@ namespace IceRpc.Internal
                 return;
             }
 
-            var exception = new ObjectDisposedException($"{typeof(IceProtocolConnection)}");
+            var exception = new ConnectionClosedException();
 
             Abort(exception);
 
-            _dispatchSemaphore?.Dispose();
+            _dispatchSemaphore?.Complete(exception);
 
             // Release remaining resources in the background.
             _ = DisposeCore();
@@ -490,7 +462,7 @@ namespace IceRpc.Internal
 
             if (_options.MaxConcurrentDispatches > 0)
             {
-                _dispatchSemaphore = new SemaphoreSlim(
+                _dispatchSemaphore = new AsyncSemaphore(
                     initialCount: _options.MaxConcurrentDispatches,
                     maxCount: _options.MaxConcurrentDispatches);
             }
@@ -867,10 +839,18 @@ namespace IceRpc.Internal
                 }
                 else
                 {
-                    if (_dispatchSemaphore is SemaphoreSlim dispatchSemaphore)
+                    if (_dispatchSemaphore is AsyncSemaphore dispatchSemaphore)
                     {
                         // This prevents us from receiving any frame until WaitAsync returns.
-                        await dispatchSemaphore.WaitAsync(cancel).ConfigureAwait(false);
+                        try
+                        {
+                            await dispatchSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+                        }
+                        catch (Exception exception)
+                        {
+                            await request.Payload.CompleteAsync(exception).ConfigureAwait(false);
+                            throw;
+                        }
                     }
 
                     Debug.Assert(cancelDispatchSource != null);

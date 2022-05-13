@@ -57,11 +57,11 @@ namespace IceRpc
 
     /// <summary>This exception indicates that a previous established connection was closed gracefully. It is safe to
     /// retry a request that failed with this exception.</summary>
-    public class ConnectionClosedException : Exception
+    public class ConnectionClosedException : ObjectDisposedException
     {
         /// <summary>Constructs a new instance of the <see cref="ConnectionClosedException"/> class.</summary>
         public ConnectionClosedException()
-            : base("cannot access closed connection")
+            : base($"{typeof(Connection)}", "cannot access closed connection")
         {
         }
 
@@ -69,7 +69,7 @@ namespace IceRpc
         /// error message.</summary>
         /// <param name="message">The message that describes the error.</param>
         public ConnectionClosedException(string message)
-            : base(message)
+            : base($"{typeof(Connection)}", message)
         {
         }
 

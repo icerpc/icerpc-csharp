@@ -158,13 +158,9 @@ namespace IceRpc
                     {
                         return;
                     }
-                    else if (_disposed)
+                    else
                     {
-                        throw new ObjectDisposedException($"{typeof(Connection)}");
-                    }
-                    else if( _state == ConnectionState.Closed)
-                    {
-                        throw new ConnectionClosedException();
+                        throw new ConnectionClosedException($"{typeof(Connection)}");
                     }
 
                     Debug.Assert(_stateTask != null);
@@ -302,9 +298,7 @@ namespace IceRpc
                     }
                     else if (_state > ConnectionState.Active && !_options.IsResumable)
                     {
-                        throw _disposed ?
-                            new ObjectDisposedException($"{typeof(Connection)}") :
-                            new ConnectionClosedException();
+                        throw new ConnectionClosedException();
                     }
                     else
                     {
@@ -512,7 +506,9 @@ namespace IceRpc
                         // within the synchronization since it calls the "on close" callbacks so we call it from a
                         // thread poll thread.
                         IProtocolConnection protocolConnection = _protocolConnection;
-                        Task.Run(() => Close(new ConnectionAbortedException("connection timed out"), protocolConnection));
+                        Task.Run(() => Close(
+                            new ConnectionAbortedException("connection timed out"),
+                            protocolConnection));
                     }
                     else
                     {

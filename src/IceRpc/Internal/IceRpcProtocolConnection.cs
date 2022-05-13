@@ -395,7 +395,7 @@ namespace IceRpc.Internal
             {
                 Debug.Assert(_controlStream != null && _remoteControlStream != null);
 
-                var exception = new ObjectDisposedException($"{typeof(IceRpcProtocolConnection)}");
+                var exception = new ConnectionClosedException();
 
                 // Wait for operations on control streams to complete.
                 await _controlStreamWriteSemaphore.CompleteAndWaitAsync(exception).ConfigureAwait(false);
