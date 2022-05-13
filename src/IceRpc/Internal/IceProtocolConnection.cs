@@ -944,9 +944,10 @@ namespace IceRpc.Internal
                             DispatchException dispatchException,
                             IncomingRequest request)
                         {
-                            var pipe = new Pipe(
-                                request.GetFeature<SliceEncodeOptions>()?.PipeOptions ??
-                                    SliceEncodeOptions.DefaultPipeOptions);
+                            SliceEncodeOptions encodeOptions = request.GetFeature<SliceEncodeOptions>() ??
+                                SliceEncodeOptions.Default;
+
+                            var pipe = new Pipe(encodeOptions.PipeOptions);
 
                             var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice1);
                             encoder.EncodeSystemException(

@@ -59,10 +59,10 @@ namespace IceRpc.Slice
 
             PipeReader CreateExceptionPayload()
             {
-                SliceEncodeOptions? encodeOptions = request.GetFeature<SliceEncodeOptions>();
+                SliceEncodeOptions encodeOptions = request.GetFeature<SliceEncodeOptions>() ??
+                    SliceEncodeOptions.Default;
 
-                var pipe = new Pipe(
-                    request.GetFeature<SliceEncodeOptions>()?.PipeOptions ?? SliceEncodeOptions.DefaultPipeOptions);
+                var pipe = new Pipe(encodeOptions.PipeOptions);
 
                 var encoder = new SliceEncoder(pipe.Writer, encoding);
 
