@@ -76,7 +76,7 @@ namespace IceRpc.Internal
         private readonly Configure.IceOptions _options;
         private readonly IcePayloadPipeWriter _payloadWriter;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly CancellationTokenSource _readCancelSource = new(); // Disposed by Abort()
+        private readonly CancellationTokenSource _readCancelSource = new();
         private TaskCompletionSource? _readFramesTaskCompletionSource;
         private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
@@ -88,6 +88,9 @@ namespace IceRpc.Internal
 
             CancelInvocations(exception);
             CancelDispatches();
+
+            // Unblock dispatches waiting to execute.
+            _dispatchSemaphore?.Complete(exception);
 
             // Unblock ShutdownAsync which might be waiting for the connection to be disposed.
             _pendingClose.TrySetResult();
@@ -126,12 +129,12 @@ namespace IceRpc.Internal
 
             Abort(exception);
 
-            _dispatchSemaphore?.Complete(exception);
+            _readCancelSource.Dispose();
 
             // Release remaining resources in the background.
-            _ = DisposeCore();
+            _ = DisposeCoreAsync();
 
-            async Task DisposeCore()
+            async Task DisposeCoreAsync()
             {
                 // Unblock requests waiting on the semaphore and wait for the semaphore to be released to ensure we
                 // don't dispose the simple network connection writer while it's being used.
@@ -147,8 +150,6 @@ namespace IceRpc.Internal
                 // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
                 _networkConnectionReader.Dispose();
                 _networkConnectionWriter.Dispose();
-
-                _readCancelSource.Dispose();
             }
         }
 
@@ -415,7 +416,7 @@ namespace IceRpc.Internal
 
             if (!alreadyShuttingDown)
             {
-                // Cancel pending invocations immediately. Wait for dispatches to complete however.
+                // Cancel pending invocations immediately.
                 CancelInvocations(new OperationCanceledException(message));
 
                 // Wait for dispatches and invocations to complete.

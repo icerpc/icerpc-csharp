@@ -262,9 +262,9 @@ namespace IceRpc.Transports.Internal
             _readCancelSource.Cancel();
 
             // Release remaining resources in the background.
-            _ = DisposeCore();
+            _ = DisposeCoreAsync();
 
-            async Task DisposeCore()
+            async Task DisposeCoreAsync()
             {
                 Debug.Assert(_exception != null);
 
