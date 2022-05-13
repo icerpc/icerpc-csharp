@@ -1,7 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{
-    AttributeBuilder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType,
+    AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder,
+    FunctionCallBuilder, FunctionType,
 };
 use crate::code_block::CodeBlock;
 use crate::comments::{operation_parameter_doc_comment, *};
@@ -226,22 +227,23 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
         ));
     }
 
-    let mut invoke_args = vec![format!(r#""{}""#, operation.identifier())];
+    let mut invocation_builder = FunctionCallBuilder::new("this.InvokeAsync");
+    invocation_builder.use_semi_colon(false);
+    invocation_builder.arguments_on_newline(true);
 
-    if void_return {
-        invoke_args.push(encoding.to_owned());
-    }
+    // The operation to call
+    invocation_builder.add_argument(&format!(r#""{}""#, operation.identifier()));
+
+    // The encoding if operation is void
+    invocation_builder.add_argument_if(void_return, &encoding);
 
     // The payload argument
     if operation.parameters.is_empty() {
-        invoke_args.push("payload: null".to_owned());
+        invocation_builder.add_argument("payload: null");
     } else if parameters.is_empty() {
-        invoke_args.push(format!(
-            "{encoding}.CreateSizeZeroPayload()",
-            encoding = encoding,
-        ));
+        invocation_builder.add_argument(&format!("{}.CreateSizeZeroPayload()", encoding));
     } else {
-        invoke_args.push(format!(
+        invocation_builder.add_argument(&format!(
             "Request.{}({}, sliceEncodeOptions: EncodeOptions)",
             operation_name,
             parameters
@@ -256,74 +258,57 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
     if let Some(stream_parameter) = operation.streamed_parameter() {
         let stream_parameter_name = stream_parameter.parameter_name();
         let stream_type = stream_parameter.data_type();
+
         match stream_type.concrete_type() {
             Types::Primitive(b) if matches!(b, Primitive::UInt8) => {
-                invoke_args.push(stream_parameter_name)
+                invocation_builder.add_argument(&stream_parameter_name);
             }
-            _ => invoke_args.push(format!(
-                "\
-{encoding}.CreatePayloadStream(
-    {stream_parameter},
-    {encode_options},
-    {encode_action},
-    {use_segments})",
-                encoding = encoding,
-                stream_parameter = stream_parameter_name,
-                encode_options = "this.EncodeOptions",
-                encode_action = encode_action(
-                    stream_type,
-                    TypeContext::Encode,
-                    namespace,
-                    operation.encoding
-                )
-                .indent(),
-                use_segments = !stream_type.is_fixed_size()
-            )),
+            _ => {
+                invocation_builder.add_argument(
+                    &FunctionCallBuilder::new(&format!(
+                        "{}.CreatePayloadStream<{}>",
+                        encoding,
+                        stream_type.to_type_string(namespace, TypeContext::Encode, false)
+                    ))
+                    .use_semi_colon(false)
+                    .add_argument(&stream_parameter_name)
+                    .add_argument("this.EncodeOptions")
+                    .add_argument(
+                        encode_action(
+                            stream_type,
+                            TypeContext::Encode,
+                            namespace,
+                            operation.encoding,
+                        )
+                        .indent(),
+                    )
+                    .add_argument(&!stream_type.is_fixed_size())
+                    .build(),
+                );
+            }
         }
     } else {
-        invoke_args.push("payloadStream: null".to_owned());
+        invocation_builder.add_argument("payloadStream: null");
     }
 
-    if void_return && stream_return.is_none() {
-        invoke_args.push("_defaultActivator".to_owned());
-    }
+    invocation_builder.add_argument_if(void_return && stream_return.is_none(), "_defaultActivator");
+    invocation_builder
+        .add_argument_unless(void_return, &format!("Response.{}", async_operation_name));
 
-    if !void_return {
-        invoke_args.push("Response.".to_owned() + &async_operation_name);
-    }
+    invocation_builder.add_argument(&invocation_parameter);
 
-    invoke_args.push(invocation_parameter);
+    invocation_builder.add_argument_if(operation.is_idempotent, "idempotent: true");
 
-    if operation.is_idempotent {
-        invoke_args.push("idempotent: true".to_owned());
-    }
+    invocation_builder.add_argument_if(void_return && operation.is_oneway(), "oneway: true");
 
-    if void_return && operation.is_oneway() {
-        invoke_args.push("oneway: true".to_owned());
-    }
+    invocation_builder.add_argument(&format!("cancel: {}", cancel_parameter));
 
-    invoke_args.push(format!("cancel: {}", cancel_parameter));
+    let invocation = invocation_builder.build();
 
     match body_type {
-        FunctionType::ExpressionBody => {
-            writeln!(
-                body,
-                "\
-this.InvokeAsync(
-    {})",
-                CodeBlock::from(invoke_args.join(",\n")).indent()
-            );
-        }
-        FunctionType::BlockBody => {
-            writeln!(
-                body,
-                "\
-return this.InvokeAsync(
-    {});",
-                CodeBlock::from(invoke_args.join(",\n")).indent()
-            );
-        }
-        _ => panic!("unsupported function type"),
+        FunctionType::ExpressionBody => body.writeln(&invocation),
+        FunctionType::BlockBody => writeln!(body, "return {};", invocation),
+        _ => panic!("unexpected function type"),
     }
 
     builder.set_body(body);
@@ -457,7 +442,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         class_builder.add_block(builder.build());
     }
 
-    class_builder.build().into()
+    class_builder.build()
 }
 
 fn response_class(interface_def: &Interface) -> CodeBlock {
@@ -525,7 +510,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 
         class_builder.add_block(builder.build());
     }
-    class_builder.build().into()
+    class_builder.build()
 }
 
 fn response_operation_body(operation: &Operation) -> CodeBlock {

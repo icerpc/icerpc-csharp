@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{
-    AttributeBuilder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType,
+    AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType,
 };
 use crate::code_block::CodeBlock;
 use crate::comments::{doc_comment_message, CommentTag};
@@ -38,7 +38,6 @@ fn enum_declaration(enum_def: &Enum) -> CodeBlock {
     .add_base(enum_def.underlying_type().cs_keyword().to_owned())
     .add_block(enum_values(enum_def))
     .build()
-    .into()
 }
 
 fn enum_values(enum_def: &Enum) -> CodeBlock {
@@ -169,7 +168,7 @@ enumerator."#,
 
     builder.add_block(as_enum_block.build());
 
-    builder.build().into()
+    builder.build()
 }
 
 fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
@@ -213,7 +212,7 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
         .into(),
     );
 
-    builder.build().into()
+    builder.build()
 }
 
 fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
@@ -263,5 +262,5 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
         .into(),
     );
 
-    builder.build().into()
+    builder.build()
 }

@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{
-    AttributeBuilder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType,
+    AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType,
 };
 use crate::code_block::CodeBlock;
 use crate::comments::{doc_comment_message, operation_parameter_doc_comment};
@@ -68,7 +68,7 @@ private static readonly IActivator _defaultActivator =
         }
 
         self.generated_code
-            .insert_scoped(interface_def, interface_builder.build().into());
+            .insert_scoped(interface_def, interface_builder.build());
     }
 }
 
@@ -145,7 +145,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         class_builder.add_block(builder.build());
     }
 
-    class_builder.build().into()
+    class_builder.build()
 }
 
 fn response_class(interface_def: &Interface) -> CodeBlock {
@@ -232,7 +232,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         class_builder.add_block(builder.build());
     }
 
-    class_builder.build().into()
+    class_builder.build()
 }
 
 fn request_decode_body(operation: &Operation) -> CodeBlock {

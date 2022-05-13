@@ -3,7 +3,7 @@
 use slice::code_gen_util::TypeContext;
 use slice::grammar::*;
 
-use crate::builders::{CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
+use crate::builders::{Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
 use crate::code_block::CodeBlock;
 use crate::slicec_ext::*;
 
@@ -95,5 +95,5 @@ immediately encodes the return value of operation {operation_name}."#,
     }
 
     container_builder.add_block(constructor_builder.build());
-    container_builder.build().into()
+    container_builder.build()
 }

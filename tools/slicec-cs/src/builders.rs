@@ -1,18 +1,17 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use std::collections::HashMap;
-
-use slice::code_gen_util::TypeContext;
-use slice::grammar::{Attributable, Class, Encoding, Entity, NamedSymbol, Operation};
-use slice::supported_encodings::SupportedEncodings;
-
 use crate::code_block::CodeBlock;
 use crate::comments::{operation_parameter_doc_comment, CommentTag};
 use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
+use slice::code_gen_util::TypeContext;
+use slice::grammar::{Attributable, Class, Encoding, Entity, NamedSymbol, Operation};
+use slice::supported_encodings::SupportedEncodings;
+use std::collections::HashMap;
+use std::fmt;
 
-trait Builder {
-    fn build(&self) -> String;
+pub trait Builder {
+    fn build(&self) -> CodeBlock;
 }
 
 pub trait AttributeBuilder {
@@ -94,8 +93,9 @@ impl ContainerBuilder {
         self.contents.push(content);
         self
     }
-
-    pub fn build(&self) -> String {
+}
+impl Builder for ContainerBuilder {
+    fn build(&self) -> CodeBlock {
         let mut code = CodeBlock::new();
 
         for comment in &self.comments {
@@ -126,7 +126,7 @@ impl ContainerBuilder {
             writeln!(code, "{{\n    {body}\n}}", body = body_content.indent());
         }
 
-        code.to_string()
+        code
     }
 }
 
@@ -321,8 +321,10 @@ impl FunctionBuilder {
 
         self
     }
+}
 
-    pub fn build(&mut self) -> CodeBlock {
+impl Builder for FunctionBuilder {
+    fn build(&self) -> CodeBlock {
         let mut code = CodeBlock::new();
 
         if self.inherit_doc {
@@ -371,19 +373,133 @@ impl FunctionBuilder {
                 if self.body.is_empty() {
                     code.writeln(" => {{}};");
                 } else {
-                    writeln!(code, " =>\n    {};", self.body.indent());
+                    writeln!(code, " =>\n    {};", self.body.clone().indent());
                 }
             }
             FunctionType::BlockBody => {
                 if self.body.is_empty() {
                     code.writeln("\n{\n}");
                 } else {
-                    writeln!(code, "\n{{\n    {}\n}}", self.body.indent());
+                    writeln!(code, "\n{{\n    {}\n}}", self.body.clone().indent());
                 }
             }
         }
 
         code
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct FunctionCallBuilder {
+    callable: String,
+    arguments: Vec<String>,
+    arguments_on_newline: bool,
+    use_semi_colon: bool,
+}
+
+impl FunctionCallBuilder {
+    pub fn new(callable: &str) -> FunctionCallBuilder {
+        FunctionCallBuilder {
+            callable: callable.to_owned(),
+            arguments: vec![],
+            arguments_on_newline: false,
+            use_semi_colon: true,
+        }
+    }
+
+    pub fn new_with_condition(
+        condition: bool,
+        true_case: &str,
+        false_case: &str,
+        function: &str,
+    ) -> Self {
+        let callable = format!(
+            "{}.{}",
+            if condition { true_case } else { false_case },
+            function
+        );
+
+        FunctionCallBuilder {
+            callable,
+            arguments: vec![],
+            arguments_on_newline: false,
+            use_semi_colon: true,
+        }
+    }
+
+    pub fn arguments_on_newline(&mut self, arguments_on_newline: bool) -> &mut Self {
+        self.arguments_on_newline = arguments_on_newline;
+        self
+    }
+
+    pub fn use_semi_colon(&mut self, use_semi_colon: bool) -> &mut Self {
+        self.use_semi_colon = use_semi_colon;
+        self
+    }
+
+    pub fn add_argument<T: fmt::Display + ?Sized>(&mut self, argument: &T) -> &mut Self {
+        self.arguments.push(argument.to_string());
+        self
+    }
+
+    pub fn add_argument_if<T: fmt::Display + ?Sized>(
+        &mut self,
+        condition: bool,
+        argument: &T,
+    ) -> &mut Self {
+        if condition {
+            self.add_argument(argument);
+        }
+        self
+    }
+
+    pub fn add_argument_unless<T: fmt::Display + ?Sized>(
+        &mut self,
+        condition: bool,
+        argument: &T,
+    ) -> &mut Self {
+        self.add_argument_if(!condition, argument);
+        self
+    }
+
+    // NOTE: These methods are commented out because they are not yet used.
+    // pub fn add_arguments<T: fmt::Display + ?Sized>(&mut self, arguments: &[&T]) -> &mut Self {
+    //     for arg in arguments {
+    //         self.arguments.push(arg.to_string());
+    //     }
+    //     self
+    // }
+
+    // pub fn add_arguments_if<T: fmt::Display + ?Sized>(
+    //     &mut self,
+    //     condition: bool,
+    //     arguments: &[&T],
+    // ) -> &mut Self {
+    //     if condition {
+    //         self.add_arguments(arguments);
+    //     }
+    //     self
+    // }
+}
+
+impl Builder for FunctionCallBuilder {
+    fn build(&self) -> CodeBlock {
+        let mut function_call: CodeBlock = if self.arguments_on_newline {
+            format!(
+                "{}(\n    {})",
+                self.callable,
+                self.arguments.join(",\n    ")
+            )
+            .into()
+        } else {
+            format!("{}({})", self.callable, self.arguments.join(", ")).into()
+        };
+
+        if self.use_semi_colon {
+            write!(function_call, ";");
+        }
+
+        function_call
     }
 }
 
@@ -449,8 +565,9 @@ impl<'a> EncodingBlockBuilder<'a> {
         self.encoding_blocks.insert(encoding, Box::new(func));
         self
     }
-
-    pub fn build(&mut self) -> CodeBlock {
+}
+impl<'a> Builder for EncodingBlockBuilder<'a> {
+    fn build(&self) -> CodeBlock {
         match &self.supported_encodings[..] {
             [] => panic!("No supported encodings"),
             [encoding] => {
