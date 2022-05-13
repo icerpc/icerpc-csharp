@@ -27,8 +27,7 @@ namespace IceRpc.Slice
                 response.DecodeRemoteExceptionAsync(
                     request,
                     response.Protocol.SliceEncoding,
-                    request.Features.Get<SliceDecodeOptions>() ??
-                        response.Connection.Features.Get<SliceDecodeOptions>(),
+                    request.Features.Get<SliceDecodeOptions>(fallback: response.Connection.Features),
                     defaultActivator,
                     prxEncodeOptions: null, // we don't expect proxies in Failures, they are usually DispatchException
                     cancel) :
@@ -55,8 +54,8 @@ namespace IceRpc.Slice
             DecodeFunc<T> decodeFunc,
             CancellationToken cancel = default)
         {
-            SliceDecodeOptions? decodeOptions = request.Features.Get<SliceDecodeOptions>() ??
-                response.Connection.Features.Get<SliceDecodeOptions>();
+            SliceDecodeOptions? decodeOptions =
+                request.Features.Get<SliceDecodeOptions>(fallback: response.Connection.Features);
 
             return response.ResultType == ResultType.Success ?
                 response.DecodeValueAsync(
@@ -101,7 +100,7 @@ namespace IceRpc.Slice
             int elementSize) =>
             response.ToAsyncEnumerable(
                 encoding,
-                request.Features.Get<SliceDecodeOptions>() ?? response.Connection.Features.Get<SliceDecodeOptions>(),
+                request.Features.Get<SliceDecodeOptions>(fallback: response.Connection.Features),
                 defaultActivator,
                 defaultInvoker: request.Proxy.Invoker,
                 encodeOptions,
@@ -126,7 +125,7 @@ namespace IceRpc.Slice
             DecodeFunc<T> decodeFunc) =>
             response.ToAsyncEnumerable(
                 encoding,
-                request.Features.Get<SliceDecodeOptions>() ?? response.Connection.Features.Get<SliceDecodeOptions>(),
+                request.Features.Get<SliceDecodeOptions>(fallback: response.Connection.Features),
                 defaultActivator,
                 defaultInvoker: request.Proxy.Invoker,
                 encodeOptions,
@@ -147,8 +146,8 @@ namespace IceRpc.Slice
             SliceEncodeOptions? encodeOptions,
             CancellationToken cancel = default)
         {
-            SliceDecodeOptions? decodeOptions = request.Features.Get<SliceDecodeOptions>() ??
-                response.Connection.Features.Get<SliceDecodeOptions>();
+            SliceDecodeOptions? decodeOptions =
+                request.Features.Get<SliceDecodeOptions>(fallback: response.Connection.Features);
 
             return response.ResultType == ResultType.Success ?
                 response.DecodeVoidAsync(encoding, decodeOptions, cancel) :

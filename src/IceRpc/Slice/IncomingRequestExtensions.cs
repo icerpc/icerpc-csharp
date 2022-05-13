@@ -18,7 +18,8 @@ namespace IceRpc.Slice
             if (request.Fields.ContainsKey(RequestFieldKey.Idempotent))
             {
                 throw new InvalidDataException(
-                    $@"idempotent mismatch for operation '{request.Operation}': received request marked idempotent for a non-idempotent operation");
+                    $@"idempotent mismatch for operation '{request.Operation
+                    }': received request marked idempotent for a non-idempotent operation");
             }
         }
 
@@ -163,9 +164,8 @@ namespace IceRpc.Slice
                 prxEncodeOptions: request.GetFeature<SliceEncodeOptions>(),
                 decodeFunc);
 
-
         /// <summary>Returns the feature carried by this incoming request, or this request's connection.</summary>
         public static T? GetFeature<T>(this IncomingRequest request) =>
-            request.Features.Get<T>() ?? request.Connection.Features.Get<T>();
+            request.Features.Get<T>(request.Connection.Features);
     }
 }

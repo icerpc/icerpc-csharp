@@ -14,7 +14,7 @@ namespace IceRpc.Slice.Internal
         /// <summary>Decodes arguments or a response value from a pipe reader.</summary>
         /// <param name="frame">The incoming frame.</param>
         /// <param name="encoding">The Slice encoding version.</param>
-        /// <param name="decodeOptions">The decode payload options.</param>
+        /// <param name="decodeOptions">The decode options.</param>
         /// <param name="defaultActivator">The default activator.</param>
         /// <param name="defaultInvoker">The default invoker.</param>
         /// <param name="prxEncodeOptions">The encode options of decoded prx structs.</param>
@@ -73,7 +73,7 @@ namespace IceRpc.Slice.Internal
         /// <summary>Reads/decodes empty args or a void return value.</summary>
         /// <param name="frame">The incoming frame.</param>
         /// <param name="encoding">The Slice encoding version.</param>
-        /// <param name="decodeOptions">The decode payload options.</param>
+        /// <param name="decodeOptions">The decode options.</param>
         /// <param name="cancel">The cancellation token.</param>
         internal static ValueTask DecodeVoidAsync(
             this IncomingFrame frame,
@@ -122,7 +122,7 @@ namespace IceRpc.Slice.Internal
         /// <summary>Creates an async enumerable over a pipe reader to decode streamed members.</summary>
         /// <param name="frame">The incoming frame.</param>
         /// <param name="encoding">The Slice encoding version.</param>
-        /// <param name="decodeOptions">The decode payload options.</param>
+        /// <param name="decodeOptions">The decode options.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
         /// <param name="defaultInvoker">The default invoker.</param>
         /// <param name="prxEncodeOptions">The encode options of decoded prx structs.</param>

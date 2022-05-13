@@ -8,6 +8,15 @@ namespace IceRpc
     /// <summary>Provides extension methods for <see cref="FeatureCollection"/>.</summary>
     public static class FeatureCollectionExtensions
     {
+        /// <summary>Gets the requested feature. If the feature is not set, tries to find it in the fallback feature
+        /// collection.</summary>
+        /// <typeparam name="TFeature">The feature key.</typeparam>
+        /// <param name="features">The main feature collection.</param>
+        /// <param name="fallback">The fallback feature collection.</param>
+        /// <returns>The requested feature.</returns>
+        public static TFeature? Get<TFeature>(this FeatureCollection features, FeatureCollection fallback) =>
+            features.Get<TFeature>() ?? fallback.Get<TFeature>();
+
         /// <summary>Returns the value of <see cref="Context"/> in this feature collection.</summary>
         /// <param name="features">This feature collection.</param>
         /// <returns>The value of Context if found; otherwise, an empty dictionary.</returns>

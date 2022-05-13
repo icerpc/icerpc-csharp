@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports.Internal;
@@ -23,7 +24,7 @@ namespace IceRpc.Slice
         public SliceEncoding Encoding { get; }
 
         /// <summary>The Slice encode options of Prx structs decoded using this decoder.</summary>
-        public Configure.SliceEncodeOptions? PrxEncodeOptions { get; }
+        public SliceEncodeOptions? PrxEncodeOptions { get; }
 
         /// <summary>The number of bytes decoded in the underlying buffer.</summary>
         internal long Consumed => _reader.Consumed;
@@ -96,7 +97,7 @@ namespace IceRpc.Slice
             IActivator? activator = null,
             IConnection? connection = null,
             IInvoker? invoker = null,
-            Configure.SliceEncodeOptions? prxEncodeOptions = null,
+            SliceEncodeOptions? prxEncodeOptions = null,
             int maxCollectionAllocation = -1,
             int maxDepth = 3)
         {
@@ -141,7 +142,7 @@ namespace IceRpc.Slice
             IActivator? activator = null,
             IConnection? connection = null,
             IInvoker? invoker = null,
-            Configure.SliceEncodeOptions? prxEncodeOptions = null,
+            SliceEncodeOptions? prxEncodeOptions = null,
             int maxCollectionAllocation = -1,
             int maxDepth = 3)
             : this(
