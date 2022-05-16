@@ -905,10 +905,10 @@ namespace IceRpc.Internal
                             DispatchException dispatchException,
                             IncomingRequest request)
                         {
-                            SliceEncodeOptions? encodeOptions = request.GetFeature<SliceEncodeOptions>();
+                            SliceEncodeOptions encodeOptions = request.GetFeature<SliceEncodeOptions>() ??
+                                SliceEncodeOptions.Default;
 
-                            var pipe = new Pipe(encodeOptions == null ? PipeOptions.Default :
-                                new PipeOptions(pool: encodeOptions.MemoryPool));
+                            var pipe = new Pipe(encodeOptions.PipeOptions);
 
                             var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice1);
                             encoder.EncodeSystemException(
