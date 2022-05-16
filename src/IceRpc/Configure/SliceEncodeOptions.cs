@@ -8,18 +8,19 @@ namespace IceRpc.Configure;
 public sealed record class SliceEncodeOptions
 {
     /// <summary>Returns the default value for <see cref="PipeOptions"/>.</summary>
-    public static PipeOptions DefaultPipeOptions { get; } = new(useSynchronizationContext: false);
+    public static PipeOptions DefaultPipeOptions { get; } = new(
+        readerScheduler: PipeScheduler.Inline,
+        pauseWriterThreshold: 0,
+        useSynchronizationContext: false);
 
     /// <summary>Gets or sets the pipe options that the Slice engine uses when creating pipes. The Slice engine creates
-    /// a pipe when encoding a request or response payload, and when encoding an async enumerable into
+    /// a pipe when encoding a request or response payload, and when encoding an async enumerable into a
     /// <see cref="PipeReader"/>. We suggest you set these pipe options as follows:
     /// - pool: the memory pool of your choice, or keep the default
-    /// - readerScheduler: keep the default (PipeScheduler.ThreadPool)
+    /// - readerScheduler: PipeScheduler.Inline
     /// - writerScheduler: keep the default (PipeScheduler.ThreadPool)
-    /// - pauseWriterThreshold: customize for your needs or keep the default (has no effect on pipes used for payload
-    ///   encoding)
-    /// - resumeWriterThreshold: customize for your needs or keep the default (has no effect on pipes used for payload
-    ///   encoding)
+    /// - pauseWriterThreshold: 0
+    /// - resumeWriterThreshold: keep the default
     /// - minimumSegmentSize: keep the default or customize together with the memory pool
     /// - useSynchronizationContext: false
     /// </summary>
