@@ -10,14 +10,14 @@ namespace IceRpc.Slice
     /// <typeparam name="T">The type of the return value to read.</typeparam>
     /// <param name="response">The incoming response.</param>
     /// <param name="request">The outgoing request.</param>
-    /// <param name="encodeOptions">The encode options of the Prx struct that sent the request.</param>
+    /// <param name="encodeFeature">The encode feature of the Prx struct that sent the request.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>A value task that contains the return value or a <see cref="RemoteException"/> when the response
     /// carries a failure.</returns>
     public delegate ValueTask<T> ResponseDecodeFunc<T>(
         IncomingResponse response,
         OutgoingRequest request,
-        Configure.SliceEncodeOptions? encodeOptions,
+        ISliceEncodeFeature? encodeFeature,
         CancellationToken cancel);
 
     /// <summary>Provides extension methods for generated Prx structs.</summary>
@@ -108,7 +108,7 @@ namespace IceRpc.Slice
                     {
                         invocation.Features = request.Features;
                     }
-                    return await responseDecodeFunc(response, request, prx.EncodeOptions, cancel).ConfigureAwait(false);
+                    return await responseDecodeFunc(response, request, prx.EncodeFeature, cancel).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -203,7 +203,7 @@ namespace IceRpc.Slice
                         request,
                         encoding,
                         defaultActivator,
-                        prx.EncodeOptions,
+                        prx.EncodeFeature,
                         cancel).ConfigureAwait(false);
                 }
                 catch (Exception ex)

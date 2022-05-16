@@ -43,7 +43,7 @@ public class DictionaryMappingTests
         Dictionary<int, int> r = await DictionaryMappingOperationsPrx.Response.OpReturnSingleTypeAsync(
             response,
             request,
-            encodeOptions: null,
+            encodeFeature: null,
             default);
 
         Assert.That(r, Is.EqualTo(new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 }));
