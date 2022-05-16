@@ -7,12 +7,12 @@ namespace IceRpc.Slice;
 /// <summary>A feature to customize the encoding of request and response payloads.</summary>
 public interface ISliceEncodeFeature
 {
-    /// <summary>Returns the pipe options that the Slice engine uses when creating pipes. The Slice engine creates
-    /// a pipe when encoding a request or response payload, and when encoding an async enumerable into a
+    /// <summary>Gets the pipe options that the Slice engine uses when creating pipes. The Slice engine creates a pipe
+    /// when encoding a request or response payload, and when encoding an async enumerable into a
     /// <see cref="PipeReader"/>.</summary>
     PipeOptions PipeOptions { get; }
 
-    /// <summary>Returns the stream flush threshold. When encoding a Slice stream (async enumerable), the Slice engine
+    /// <summary>Gets the stream flush threshold. When encoding a Slice stream (async enumerable), the Slice engine
     /// encodes the values provided by the source async enumerable into a pipe writer and only flushes when no new value
     /// is available synchronously or it has written some number of bytes to this pipe writer.</summary>
     int StreamFlushThreshold { get; }
