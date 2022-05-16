@@ -31,14 +31,14 @@ public static class Program
                 // Bind the connection options to the "appsettings.json" configuration "Connection" section, and add a
                 // Configure callback to configure its authentication options.
                 services
-                    .AddOptions<ConnectionOptions>()
-                    .Bind(hostContext.Configuration.GetSection("Connection"))
-                    .Configure(connectionOptions =>
+                    .AddOptions<ClientHostedServiceOptions>()
+                    .Bind(hostContext.Configuration.GetSection("Client"))
+                    .Configure(options =>
                     {
                         // Configure the authentication options
-                        var rootCA =
-                            new X509Certificate2(hostContext.Configuration.GetValue<string>("CertificateAuthoritiesFile"));
-                        connectionOptions.AuthenticationOptions = new SslClientAuthenticationOptions()
+                        var rootCA = new X509Certificate2(
+                            hostContext.Configuration.GetValue<string>("CertificateAuthoritiesFile"));
+                        options.AuthenticationOptions = new SslClientAuthenticationOptions()
                         {
                             // A certificate validation callback that uses the configured certificate authorities file
                             // to validate the peer certificates.
@@ -66,24 +66,41 @@ public static class Program
                     });
             });
 
-    /// <summary>The client hosted service is ran and managed by the .NET Generic Host</summary>
+    /// <summary>The options class for <see cref="ClientHostedService"/>.</summary>
+    public class ClientHostedServiceOptions
+    {
+        public SslClientAuthenticationOptions? AuthenticationOptions { get; set; }
+        public TimeSpan ConnectTimeout { get; set; }
+        public Endpoint RemoteEndpoint { get; set; }
+    }
+
+    /// <summary>The hosted client service is ran and managed by the .NET Generic Host</summary>
     private class ClientHostedService : BackgroundService
     {
         // The host application lifetime is used to stop the .NET Generic Host.
         private readonly IHostApplicationLifetime _applicationLifetime;
+
         // The IceRPC connection to communicate with the IceRPC server.
         private readonly Connection _connection;
+
         // The IceRPC proxy to perform invocations on the Hello service from the IceRPC server.
         private readonly HelloPrx _proxy;
 
         public ClientHostedService(
-            IOptions<ConnectionOptions> connectionOptions,
             IInvoker invoker,
-            IHostApplicationLifetime applicationLifetime)
+            IHostApplicationLifetime applicationLifetime,
+            IOptions<ClientHostedServiceOptions> options)
         {
             _applicationLifetime = applicationLifetime;
 
-            _connection = new Connection(connectionOptions.Value);
+            var connectionOptions = new ConnectionOptions
+            {
+                AuthenticationOptions = options.Value.AuthenticationOptions,
+                ConnectTimeout = options.Value.ConnectTimeout,
+                RemoteEndpoint = options.Value.RemoteEndpoint,
+            };
+
+            _connection = new Connection(connectionOptions);
 
             _proxy = HelloPrx.FromConnection(_connection, invoker: invoker);
         }
