@@ -67,7 +67,40 @@ namespace IceRpc.Internal
 
         private TaskCompletionSource<IceRpcGoAway>? _waitForGoAwayFrame;
 
-        public void Abort(Exception exception) => _networkConnection.Abort(exception);
+        public void Abort(Exception exception)
+        {
+            lock (_mutex)
+            {
+                if (_isDisposed)
+                {
+                    return;
+                }
+                _isDisposed = true;
+            }
+
+            _networkConnection.Abort(exception);
+
+            _ = AbortCoreAsync();
+
+            async Task AbortCoreAsync()
+            {
+                Debug.Assert(_controlStream != null && _remoteControlStream != null);
+
+                var exception = new ConnectionClosedException();
+
+                // Wait for operations on the control stream to complete to make sure it's safe to complete the control
+                // stream output.
+                await _controlStreamSemaphore.CompleteAndWaitAsync(exception).ConfigureAwait(false);
+
+                await _controlStream.Output.CompleteAsync(exception).ConfigureAwait(false);
+                await _remoteControlStream.Input.CompleteAsync(exception).ConfigureAwait(false);
+
+                if (_waitForGoAwayFrame != null)
+                {
+                    await _waitForGoAwayFrame.Task.ConfigureAwait(false);
+                }
+            }
+        }
 
         public async Task AcceptRequestsAsync(IConnection connection)
         {
@@ -378,40 +411,7 @@ namespace IceRpc.Internal
             }
         }
 
-        public void Dispose()
-        {
-            lock (_mutex)
-            {
-                if (_isDisposed)
-                {
-                    return;
-                }
-                _isDisposed = true;
-            }
-
-            _networkConnection.Dispose();
-
-            _ = DisposeCoreAsync();
-
-            async Task DisposeCoreAsync()
-            {
-                Debug.Assert(_controlStream != null && _remoteControlStream != null);
-
-                var exception = new ConnectionClosedException();
-
-                // Wait for operations on the control stream to complete to make sure it's safe to complete the control
-                // stream output.
-                await _controlStreamSemaphore.CompleteAndWaitAsync(exception).ConfigureAwait(false);
-
-                await _controlStream.Output.CompleteAsync(exception).ConfigureAwait(false);
-                await _remoteControlStream.Input.CompleteAsync(exception).ConfigureAwait(false);
-
-                if (_waitForGoAwayFrame != null)
-                {
-                    await _waitForGoAwayFrame.Task.ConfigureAwait(false);
-                }
-            }
-        }
+        public void Dispose() => Abort(new ConnectionClosedException());
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             _networkConnection.HasCompatibleParams(remoteEndpoint);

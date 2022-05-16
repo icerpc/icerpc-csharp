@@ -31,7 +31,6 @@ namespace IceRpc.Transports.Internal
         private int _bidirectionalStreamCount;
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly int _bidirectionalMaxStreams;
-        private int _disposed;
         private Exception? _exception;
         private long _lastRemoteBidirectionalStreamId = -1;
         private long _lastRemoteUnidirectionalStreamId = -1;
@@ -65,6 +64,10 @@ namespace IceRpc.Transports.Internal
                 _exception = exception;
             }
 
+            // Close the network connection and cancel the pending receive or shutdown.
+            _simpleNetworkConnection.Dispose();
+            _readCancelSource.Cancel();
+
             // Unblock requests waiting on the semaphores.
             _bidirectionalStreamSemaphore?.Complete(_exception);
             _unidirectionalStreamSemaphore?.Complete(_exception);
@@ -76,6 +79,31 @@ namespace IceRpc.Transports.Internal
             }
 
             _acceptStreamQueue.TryComplete(_exception);
+
+            // Release remaining resources in the background.
+            _ = AbortCoreAsync();
+
+            async Task AbortCoreAsync()
+            {
+                Debug.Assert(_exception != null);
+
+                // Unblock requests waiting on the semaphore and wait for the semaphore to be released to ensure it's
+                // safe to dispose the simple network connection writer.
+                await _writeSemaphore.CompleteAndWaitAsync(_exception).ConfigureAwait(false);
+
+                // Wait for the receive task to complete to ensure we don't dispose the simple network connection reader
+                // while it's being used.
+                if (_readFramesTaskCompletionSource != null)
+                {
+                    await _readFramesTaskCompletionSource.Task.ConfigureAwait(false);
+                }
+
+                // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
+                _simpleNetworkConnectionReader.Dispose();
+                _simpleNetworkConnectionWriter.Dispose();
+
+                _readCancelSource.Dispose();
+            }
         }
 
         public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel) =>
@@ -249,44 +277,7 @@ namespace IceRpc.Transports.Internal
             // TODO: Cache SliceMultiplexedStream
             new SlicMultiplexedStream(this, bidirectional, remote: false, _simpleNetworkConnectionReader);
 
-        public void Dispose()
-        {
-            if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
-            {
-                return; // Already disposed.
-            }
-
-            Abort(new ConnectionAbortedException());
-
-            // Close the network connection and cancel the pending receive or shutdown.
-            _simpleNetworkConnection.Dispose();
-            _readCancelSource.Cancel();
-
-            // Release remaining resources in the background.
-            _ = DisposeCoreAsync();
-
-            async Task DisposeCoreAsync()
-            {
-                Debug.Assert(_exception != null);
-
-                // Unblock requests waiting on the semaphore and wait for the semaphore to be released to ensure it's
-                // safe to dispose the simple network connection writer.
-                await _writeSemaphore.CompleteAndWaitAsync(_exception).ConfigureAwait(false);
-
-                // Wait for the receive task to complete to ensure we don't dispose the simple network connection reader
-                // while it's being used.
-                if (_readFramesTaskCompletionSource != null)
-                {
-                    await _readFramesTaskCompletionSource.Task.ConfigureAwait(false);
-                }
-
-                // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
-                _simpleNetworkConnectionReader.Dispose();
-                _simpleNetworkConnectionWriter.Dispose();
-
-                _readCancelSource.Dispose();
-            }
-        }
+        public void Dispose() => Abort(new ConnectionClosedException());
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             _simpleNetworkConnection.HasCompatibleParams(remoteEndpoint);

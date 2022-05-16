@@ -269,7 +269,7 @@ public sealed class ProtocolConnectionTests
         sut.Client.Dispose();
 
         // Assert
-        Assert.That(async () => await invokeTask, Throws.TypeOf<ConnectionAbortedException>());
+        Assert.That(async () => await invokeTask, Throws.TypeOf<ConnectionClosedException>());
 
         hold.Release();
     }
