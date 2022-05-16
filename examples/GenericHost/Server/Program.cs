@@ -41,8 +41,8 @@ public static class Program
                         return router;
                     });
 
-                // Bind the server options to the "appsettings.json" configuration "Server" section, and add a
-                // Configure callback to configure its authentication options.
+                // Bind the server hosted service options to the "appsettings.json" configuration "Server" section, and
+                // add a Configure callback to configure its authentication options.
                 services
                     .AddOptions<ServerHostedServiceOptions>()
                     .Bind(hostContext.Configuration.GetSection("Server"))
