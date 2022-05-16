@@ -79,7 +79,7 @@ private static readonly IActivator _defaultActivator =
     SliceDecoder.GetActivator(typeof({prx_impl}).Assembly);
 
 /// <inheritdoc/>
-public IceRpc.Slice.ISliceEncodeFeature? EncodeFeature {{ get; init; }}
+public ISliceEncodeFeature? EncodeFeature {{ get; init; }}
 
 /// <inheritdoc/>
 public IceRpc.Proxy Proxy {{ get; init; }}"#,
@@ -130,7 +130,7 @@ public static {prx_impl} FromConnection(
     IceRpc.IInvoker? invoker = null) =>
     new(
         IceRpc.Proxy.FromConnection(connection, path ?? DefaultPath, invoker),
-        connection.Features.Get<IceRpc.Slice.ISliceEncodeFeature>());
+        connection.Features.Get<ISliceEncodeFeature>());
 
 /// <summary>Creates a new relative proxy with the given path.</summary>
 /// <param name="path">The path.</param>
@@ -172,7 +172,7 @@ public static bool TryParse(string s, IceRpc.IInvoker? invoker, IceRpc.IProxyFor
 /// <summary>Constructs an instance of <see cref="{prx_impl}"/> from a proxy.</summary>
 /// <param name="proxy">The proxy to the remote service.</param>
 /// <param name="encodeFeature">The Slice encode featire (optional).</param>
-public {prx_impl}(IceRpc.Proxy proxy, IceRpc.Slice.ISliceEncodeFeature? encodeFeature = null)
+public {prx_impl}(IceRpc.Proxy proxy, ISliceEncodeFeature? encodeFeature = null)
 {{
     Proxy = proxy;
     EncodeFeature = encodeFeature;
@@ -494,7 +494,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         builder.add_parameter("IceRpc.IncomingResponse", "response", None, None);
         builder.add_parameter("IceRpc.OutgoingRequest", "request", None, None);
         builder.add_parameter(
-            "IceRpc.Slice.ISliceEncodeFeature?",
+            "ISliceEncodeFeature?",
             "encodeFeature",
             None, // TODO: switch to null
             None,
