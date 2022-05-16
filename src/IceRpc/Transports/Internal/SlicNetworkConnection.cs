@@ -534,8 +534,11 @@ namespace IceRpc.Transports.Internal
                     // The simple network connection can only be disposed if this connection is aborted either because
                     // it was disposed or because the connection was lost. We throw the abort exception to ensure that
                     // the cause of the connection abortion (connection disposed or lost) is correctly reported.
-                    Debug.Assert(_exception != null);
-                    throw ExceptionUtil.Throw(_exception);
+                    lock (_mutex)
+                    {
+                        Debug.Assert(_exception != null);
+                        throw ExceptionUtil.Throw(_exception);
+                    }
                 }
                 finally
                 {
