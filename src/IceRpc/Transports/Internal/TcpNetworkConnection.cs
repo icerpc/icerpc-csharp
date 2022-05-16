@@ -90,6 +90,8 @@ namespace IceRpc.Transports.Internal
                     await sslStream.ShutdownAsync().ConfigureAwait(false);
                 }
 
+                // Shutdown the socket send side to send a TCP FIN packet. We don't close the read side because we want
+                // to be notified when the peer shuts down it's side of the socket (through the ReceiveAsync call).
                 Socket.Shutdown(SocketShutdown.Send);
             }
             catch

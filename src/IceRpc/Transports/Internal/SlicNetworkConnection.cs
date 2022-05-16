@@ -216,7 +216,8 @@ namespace IceRpc.Transports.Internal
                         {
                             return;
                         }
-                        _readFramesTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                        _readFramesTaskCompletionSource = new TaskCompletionSource(
+                            TaskCreationOptions.RunContinuationsAsynchronously);
                     }
 
                     try

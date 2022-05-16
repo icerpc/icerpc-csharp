@@ -344,13 +344,16 @@ namespace IceRpc
 
             if (shutdownTask == null)
             {
+                // If the connection is not active or not shutting down, we can just close it. If it's connecting
+                // this will interrupt the connection establishment.
                 Close(new ConnectionClosedException(message));
             }
             else
             {
                 Debug.Assert(cancellationTokenSource != null);
 
-                // If the application cancels ShutdownAsync, cancel the protocol ShutdownAsync call.
+                // If the application cancels ShutdownAsync, cancel the protocol ShutdownAsync call to speed up
+                // shutdown.
                 using CancellationTokenRegistration _ = cancel.Register(() =>
                     {
                         try
@@ -500,7 +503,7 @@ namespace IceRpc
                         // Close the connection if we didn't receive a heartbeat and the connection is idle. The server
                         // is supposed to send heartbeats when dispatches are in progress. Close can't be called from
                         // within the synchronization since it calls the "on close" callbacks so we call it from a
-                        // thread poll thread.
+                        // thread pool thread.
                         IProtocolConnection protocolConnection = _protocolConnection;
                         Task.Run(() => Close(
                             new ConnectionAbortedException("connection timed out"),

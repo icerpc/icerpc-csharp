@@ -334,28 +334,44 @@ public abstract class SimpleTransportConformanceTests
     }
 
     [Test]
-    public async Task Write_data_before_shutdown()
+    public async Task Shutdow_does_not_discard_buffered_data()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
         using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
 
-        await sut.ClientConnection.WriteAsync(new List<ReadOnlyMemory<byte>> { new byte[10] }, CancellationToken.None);
-        await sut.ClientConnection.ShutdownAsync(CancellationToken.None);
+        byte[] buffer = new byte[64 * 1024];
+        var sendData = new List<ReadOnlyMemory<byte>> { buffer };
+        Task<int> receiveTask = ReceiveAsync();
+
+        int sendSize = 0;
+        Task sendTask;
+        do
+        {
+            sendTask = sut.ClientConnection.WriteAsync(sendData, CancellationToken.None).AsTask();
+            sendSize += buffer.Length;
+        } while (sendTask.IsCompletedSuccessfully);
+        await sendTask;
 
         // Act
-        int total = 0;
-        while (true)
-        {
-            int read = await sut.ServerConnection.ReadAsync(new byte[2], CancellationToken.None);
-            if (read == 0)
-            {
-                break;
-            }
-            total += read;
-        }
+        await sut.ClientConnection.ShutdownAsync(CancellationToken.None);
 
         // Assert
-        Assert.That(total, Is.EqualTo(10));
+        Assert.That(await receiveTask, Is.EqualTo(sendSize));
+
+        async Task<int> ReceiveAsync()
+        {
+            int recvSize = 0;
+            while (true)
+            {
+                int read = await sut.ServerConnection.ReadAsync(buffer, CancellationToken.None);
+                if (read == 0)
+                {
+                    break;
+                }
+                recvSize += read;
+            }
+            return recvSize;
+        }
     }
 
     /// <summary>Verifies that we can write and read using server and client connections.</summary>

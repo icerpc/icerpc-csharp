@@ -24,8 +24,8 @@ namespace IceRpc.Internal
         Protocol Protocol { get; }
 
         /// <summary>Aborts the connection.</summary>
-        /// <param name="exception">The exception that caused the abort. Pending invocations will raise this
-        /// exception.</param>
+        /// <param name="exception">The exception that caused the abort. Pending invocations will throw this exception.
+        /// </param>
         void Abort(Exception exception);
 
         /// <summary>Accepts requests and returns once the connection is closed or the shutdown completes.</summary>

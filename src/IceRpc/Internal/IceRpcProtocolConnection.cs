@@ -635,7 +635,7 @@ namespace IceRpc.Internal
 
             // If the shutdown is initiated locally, we wait for the peer to send back a GoAway frame. The task should
             // already be completed if the shutdown has been initiated by the peer.
-            IceRpcGoAway peerGoAwayFrame = await _waitForGoAwayFrame!.Task.ConfigureAwait(false);
+            IceRpcGoAway peerGoAwayFrame = await _waitForGoAwayFrame.Task.ConfigureAwait(false);
 
             IEnumerable<IMultiplexedStream> invocations;
             lock (_mutex)
@@ -969,7 +969,7 @@ namespace IceRpc.Internal
                 var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
                 Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(_headerSizeLength);
                 int startPos = encoder.EncodedByteCount; // does not include the size
-                encodeAction?.Invoke(ref encoder);
+                encodeAction.Invoke(ref encoder);
                 int headerSize = encoder.EncodedByteCount - startPos;
                 CheckRemoteHeaderSize(headerSize);
                 SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
