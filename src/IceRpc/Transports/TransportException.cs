@@ -82,6 +82,13 @@ namespace IceRpc.Transports
         {
         }
 
+        /// <summary>Constructs a new instance of the <see cref="ConnectionLostException"/> class.</summary>
+        /// <param name="message">The message that describes the error.</param>
+        public ConnectionLostException(string message)
+            : base(message)
+        {
+        }
+
         /// <summary>Constructs a new instance of the <see cref="ConnectionLostException"/> class with a reference to
         /// the inner exception that is the cause of this exception.</summary>
         /// <param name="innerException">The exception that is the cause of the current exception.</param>
@@ -89,19 +96,6 @@ namespace IceRpc.Transports
             : base("connection lost", innerException)
         {
         }
-    }
-
-    /// <summary>This exception is thrown when a multiplexed network connection is closed.</summary>
-    public class MultiplexedNetworkConnectionClosedException : TransportException
-    {
-        /// <summary>The application error code.</summary>
-        public long ApplicationErrorCode { get; }
-
-        /// <summary>Constructs a new exception.</summary>
-        /// <param name="applicationErrorCode">The application error code.</param>
-        public MultiplexedNetworkConnectionClosedException(long applicationErrorCode)
-            : base($"connection aborted with application error code '{applicationErrorCode}'") =>
-            ApplicationErrorCode = applicationErrorCode;
     }
 
     /// <summary>This exception is thrown when a multiplexed stream is aborted.</summary>
@@ -123,11 +117,11 @@ namespace IceRpc.Transports
             ErrorCode = errorCode;
         }
 
-        internal MultiplexedStreamAbortedException(long error) :
-            this((MultiplexedStreamErrorKind)(error >> 32), (int)(error & (long)int.MaxValue))
+        internal MultiplexedStreamAbortedException(ulong error) :
+            this((MultiplexedStreamErrorKind)(error >> 32), (int)(error & int.MaxValue))
         {
         }
 
-        internal long ToError() => ((long)ErrorKind << 32) | (long)ErrorCode;
+        internal ulong ToError() => ((ulong)ErrorKind << 32) | (uint)ErrorCode;
     }
 }

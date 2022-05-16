@@ -15,6 +15,12 @@ namespace IceRpc.Transports.Internal
             return received;
         }
 
+        public async Task ShutdownAsync(CancellationToken cancel)
+        {
+            await ShutdownAsync(cancel).ConfigureAwait(false);
+            Logger.LogSimpleNetworkConnectionShutdown();
+        }
+
         public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
             await _decoratee.WriteAsync(buffers, cancel).ConfigureAwait(false);

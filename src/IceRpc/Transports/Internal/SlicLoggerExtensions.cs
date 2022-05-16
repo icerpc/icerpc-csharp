@@ -15,7 +15,7 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogReceivedSlicCloseFrame(
             this ILogger logger,
             int frameSize,
-            long errorCode);
+            ulong errorCode);
 
         [LoggerMessage(
             EventId = (int)SlicEventIds.ReceivedStreamResetFrame,
@@ -25,7 +25,7 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogReceivedSlicResetFrame(
             this ILogger logger,
             int frameSize,
-            long errorCode);
+            ulong errorCode);
 
         [LoggerMessage(
             EventId = (int)SlicEventIds.ReceivedStreamStopSendingFrame,
@@ -35,7 +35,7 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogReceivedSlicStopSendingFrame(
             this ILogger logger,
             int frameSize,
-            long errorCode);
+            ulong errorCode);
 
         [LoggerMessage(
             EventId = (int)SlicEventIds.ReceivedStreamConsumedFrame,
@@ -120,7 +120,7 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogSentSlicCloseFrame(
             this ILogger logger,
             int frameSize,
-            long errorCode);
+            ulong errorCode);
 
         [LoggerMessage(
             EventId = (int)SlicEventIds.SendFailure,
@@ -193,7 +193,7 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogSentSlicResetFrame(
             this ILogger logger,
             int frameSize,
-            long errorCode);
+            ulong errorCode);
 
         [LoggerMessage(
             EventId = (int)SlicEventIds.SentStreamStopSendingFrame,
@@ -203,7 +203,7 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogSentSlicStopSendingFrame(
             this ILogger logger,
             int frameSize,
-            long errorCode);
+            ulong errorCode);
 
         internal static void LogSentSlicVersionFrame(
             this ILogger logger,

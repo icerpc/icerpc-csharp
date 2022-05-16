@@ -14,11 +14,11 @@ namespace IceRpc.Transports
         /// <summary>The listener is disposed and no longer accepts connections.</summary>
         ListenerDisposed,
 
-        /// <summary>A multiplexed network connection was closed.</summary>
-        MultiplexedNetworkConnectionClose,
-
         /// <summary>Successfully read data from a multiplexed stream.</summary>
         MultiplexedStreamRead,
+
+        /// <summary>A multiplexed network connection was shutdown.</summary>
+        MultiplexedNetworkConnectionShutdown,
 
         /// <summary>Wrote data to a multiplexed stream.</summary>
         MultiplexedStreamWrite,
@@ -34,6 +34,9 @@ namespace IceRpc.Transports
 
         /// <summary>Successfully read data from a simple network connection.</summary>
         SimpleNetworkConnectionRead,
+
+        /// <summary>Simple network connection shutdown.</summary>
+        SimpleNetworkConnectionShutdown,
 
         /// <summary>Wrote data to a simple network connection.</summary>
         SimpleNetworkConnectionWrite,

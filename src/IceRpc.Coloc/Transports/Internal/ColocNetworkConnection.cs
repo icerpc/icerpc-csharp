@@ -27,7 +27,7 @@ namespace IceRpc.Transports.Internal
                 null));
         }
 
-        public async ValueTask DisposeAsync()
+        public void Dispose()
         {
             if (_state.TrySetFlag(State.Disposed))
             {
@@ -37,7 +37,7 @@ namespace IceRpc.Transports.Internal
                 }
                 else
                 {
-                    await _reader.CompleteAsync(new ConnectionLostException()).ConfigureAwait(false);
+                    _reader.Complete(new ConnectionLostException());
                 }
 
                 if (_state.HasFlag(State.Writing))
@@ -46,7 +46,7 @@ namespace IceRpc.Transports.Internal
                 }
                 else
                 {
-                    await _writer.CompleteAsync(new ConnectionLostException()).ConfigureAwait(false);
+                    _writer.Complete(new ConnectionLostException());
                 }
             }
         }
@@ -69,13 +69,17 @@ namespace IceRpc.Transports.Internal
                 }
 
                 ReadResult readResult = await _reader.ReadAsync(cancel).ConfigureAwait(false);
+                if (readResult.IsCompleted && readResult.Buffer.IsEmpty)
+                {
+                    return 0;
+                }
 
                 if (_state.HasFlag(State.Disposed))
                 {
                     throw new ObjectDisposedException($"{typeof(ColocNetworkConnection)}");
                 }
 
-                Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled);
+                Debug.Assert(!readResult.IsCanceled);
 
                 // We could eventually add a CopyTo(this ReadOnlySequence<byte> src, Memory<byte> dest) extension method
                 // if we need this in other places.
@@ -103,7 +107,8 @@ namespace IceRpc.Transports.Internal
             {
                 if (_state.HasFlag(State.Disposed))
                 {
-                    await _reader.CompleteAsync(new ConnectionLostException()).ConfigureAwait(false);
+                    await _reader.CompleteAsync(
+                        new ObjectDisposedException($"{typeof(ColocNetworkConnection)}")).ConfigureAwait(false);
                 }
                 _state.ClearFlag(State.Reading);
             }
@@ -123,6 +128,22 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        public async Task ShutdownAsync(CancellationToken cancel)
+        {
+            if (_state.TrySetFlag(State.ShuttingDown))
+            {
+                if (_state.TrySetFlag(State.Writing))
+                {
+                    await _writer.CompleteAsync().ConfigureAwait(false);
+                    _state.ClearFlag(State.Writing);
+                }
+                else
+                {
+                    // WriteAsync will take care of completing the writer once it's done writing.
+                }
+            }
+        }
+
         public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
             if (!_state.TrySetFlag(State.Writing))
@@ -138,6 +159,11 @@ namespace IceRpc.Transports.Internal
                     {
                         throw new ObjectDisposedException($"{typeof(ColocNetworkConnection)}");
                     }
+                    else if (_state.HasFlag(State.ShuttingDown))
+                    {
+                        throw new TransportException("connection is shutdown");
+                    }
+
                     _ = await _writer.WriteAsync(buffer, cancel).ConfigureAwait(false);
                 }
             }
@@ -146,6 +172,10 @@ namespace IceRpc.Transports.Internal
                 if (_state.HasFlag(State.Disposed))
                 {
                     await _writer.CompleteAsync(new ConnectionLostException()).ConfigureAwait(false);
+                }
+                else if (_state.HasFlag(State.ShuttingDown))
+                {
+                    await _writer.CompleteAsync().ConfigureAwait(false);
                 }
                 _state.ClearFlag(State.Writing);
             }
@@ -162,8 +192,9 @@ namespace IceRpc.Transports.Internal
         private enum State : int
         {
             Disposed = 1,
-            Writing = 2,
-            Reading = 4
+            Reading = 2,
+            ShuttingDown = 4,
+            Writing = 8,
         }
     }
 }

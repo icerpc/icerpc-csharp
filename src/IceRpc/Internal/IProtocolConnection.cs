@@ -4,7 +4,7 @@ namespace IceRpc.Internal
 {
     /// <summary>A protocol connection enables communication over a network connection using either the ice or icerpc
     /// protocol.</summary>
-    internal interface IProtocolConnection : IAsyncDisposable
+    internal interface IProtocolConnection : IDisposable
     {
         /// <summary>Returns <c>true</c> if one or more dispatches are in progress, <c>false</c>
         /// otherwise.</summary>
@@ -23,14 +23,14 @@ namespace IceRpc.Internal
         /// <summary>Returns the protocol implemented by this protocol connection.</summary>
         Protocol Protocol { get; }
 
+        /// <summary>Aborts the connection.</summary>
+        /// <param name="exception">The exception that caused the abort. Pending invocations will throw this exception.
+        /// </param>
+        void Abort(Exception exception);
+
         /// <summary>Accepts requests and returns once the connection is closed or the shutdown completes.</summary>
         /// <param name="connection">The connection of incoming requests created by this method.</param>
         Task AcceptRequestsAsync(IConnection connection);
-
-        /// <summary>Cancels pending invocations and dispatches if the connection is being shut down. If it's not being
-        /// shut down, the pending invocations and dispatches will be canceled when the connection is
-        /// shut down.</summary>
-        public void CancelPendingInvocationsAndDispatchesOnShutdown();
 
         /// <summary>Checks if the parameters of the provided endpoint are compatible with the network connection of
         /// this protocol connection. Compatible means a client could reuse the network connection instead of

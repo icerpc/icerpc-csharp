@@ -12,27 +12,19 @@ using System.Net.Security;
 namespace IceRpc.Tests;
 
 /// <summary>A helper struct to ensure the network and protocol connections are correctly disposed.</summary>
-internal struct ClientServerProtocolConnection : IAsyncDisposable
+internal struct ClientServerProtocolConnection : IDisposable
 {
     internal IProtocolConnection Client { get; }
-    internal INetworkConnection ClientNetworkConnection { get; }
     internal IProtocolConnection Server { get; }
-    internal INetworkConnection ServerNetworkConnection { get; }
 
-    public async ValueTask DisposeAsync()
+    public void  Dispose()
     {
-        await Client.DisposeAsync();
-        await Server.DisposeAsync();
+        Client.Dispose();
+        Server.Dispose();
     }
 
-    internal ClientServerProtocolConnection(
-        INetworkConnection clientNetworkConnection,
-        INetworkConnection serverNetworkConnection,
-        IProtocolConnection clientConnection,
-        IProtocolConnection serverConnection)
+    internal ClientServerProtocolConnection(IProtocolConnection clientConnection, IProtocolConnection serverConnection)
     {
-        ClientNetworkConnection = clientNetworkConnection;
-        ServerNetworkConnection = serverNetworkConnection;
         Client = clientConnection;
         Server = serverConnection;
     }
@@ -85,26 +77,27 @@ internal static class ProtocolServiceCollectionExtensions
         collection.AddSingleton(protocol);
 
     internal static async Task<ClientServerProtocolConnection> GetClientServerProtocolConnectionAsync(
-        this IServiceProvider serviceProvider)
+        this IServiceProvider serviceProvider,
+        bool acceptRequests = true)
     {
-        Task<(INetworkConnection, IProtocolConnection)> serverTask =
-            serviceProvider.GetServerProtocolConnectionAsync();
-        (INetworkConnection clientNetworkConnection, IProtocolConnection clientProtocolConnection) =
-            await serviceProvider.GetClientProtocolConnectionAsync();
-        (INetworkConnection serverNetworkConnection, IProtocolConnection serverProtocolConnection) =
-            await serverTask;
-        return new ClientServerProtocolConnection(
-            clientNetworkConnection,
-            serverNetworkConnection,
-            clientProtocolConnection,
-            serverProtocolConnection);
+        Task<IProtocolConnection> serverTask = serviceProvider.GetServerProtocolConnectionAsync();
+        IProtocolConnection clientProtocolConnection = await serviceProvider.GetClientProtocolConnectionAsync();
+        IProtocolConnection serverProtocolConnection = await serverTask;
+
+        if (acceptRequests)
+        {
+            _ = clientProtocolConnection.AcceptRequestsAsync(serviceProvider.GetInvalidConnection());
+            _ = serverProtocolConnection.AcceptRequestsAsync(serviceProvider.GetInvalidConnection());
+        }
+
+        return new ClientServerProtocolConnection(clientProtocolConnection, serverProtocolConnection);
     }
 
     internal static IConnection GetInvalidConnection(this IServiceProvider serviceProvider) =>
         serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ? InvalidConnection.Ice :
             InvalidConnection.IceRpc;
 
-    private static Task<(INetworkConnection, IProtocolConnection)> GetClientProtocolConnectionAsync(
+    private static Task<IProtocolConnection> GetClientProtocolConnectionAsync(
         this IServiceProvider serviceProvider)
     {
         ConnectionOptions connectionOptions = serviceProvider.GetService<ConnectionOptions>() ?? new();
@@ -124,7 +117,7 @@ internal static class ProtocolServiceCollectionExtensions
                 serviceProvider.GetMultiplexedClientConnectionAsync);
     }
 
-    private static async Task<(INetworkConnection, IProtocolConnection)> GetProtocolConnectionAsync<T, TOptions>(
+    private static async Task<IProtocolConnection> GetProtocolConnectionAsync<T, TOptions>(
         IServiceProvider serviceProvider,
         IDispatcher dispatcher,
         bool isServer,
@@ -143,10 +136,10 @@ internal static class ProtocolServiceCollectionExtensions
                 isServer,
                 protocolOptions,
                 CancellationToken.None);
-        return (networkConnection, protocolConnection);
+        return protocolConnection;
     }
 
-    private static Task<(INetworkConnection, IProtocolConnection)> GetServerProtocolConnectionAsync(
+    private static Task<IProtocolConnection> GetServerProtocolConnectionAsync(
         this IServiceProvider serviceProvider)
     {
         ServerOptions serverOptions = serviceProvider.GetService<ServerOptions>() ?? new();

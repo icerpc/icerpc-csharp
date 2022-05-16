@@ -44,9 +44,9 @@ namespace IceRpc.Transports.Internal
             return Information.Value;
         }
 
-        public async ValueTask DisposeAsync()
+        public void Dispose()
         {
-            await _decoratee.DisposeAsync().ConfigureAwait(false);
+            _decoratee.Dispose();
 
             if (Information is NetworkConnectionInformation connectionInformation)
             {

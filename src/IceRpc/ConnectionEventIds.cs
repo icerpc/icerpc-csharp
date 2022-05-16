@@ -17,6 +17,9 @@ namespace IceRpc
         /// <summary>Sent a ping.</summary>
         Ping,
 
+        /// <summary>The protocol connection was aborted.</summary>
+        ProtocolConnectionAbort,
+
         /// <summary>The protocol connection was disposed.</summary>
         ProtocolConnectionDispose,
 
