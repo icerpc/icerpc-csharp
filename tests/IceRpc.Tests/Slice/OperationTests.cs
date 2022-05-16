@@ -333,7 +333,7 @@ public class OperationGeneratedCodeTests
             Payload = payload
         };
         Assert.That(
-            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryAsync(response, request, default),
+            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryAsync(response, request, null, default),
             Is.EqualTo(new int[] { 1, 2, 3 }));
     }
 
@@ -375,7 +375,7 @@ public class OperationGeneratedCodeTests
             Payload = payload
         };
         Assert.That(
-            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryOptionalAsync(response, request, default),
+            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryOptionalAsync(response, request, null, default),
             Is.EqualTo(p));
     }
 
@@ -417,7 +417,7 @@ public class OperationGeneratedCodeTests
             Payload = payload
         };
         Assert.That(
-            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryTaggedAsync(response, request, default),
+            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryTaggedAsync(response, request, null, default),
             Is.EqualTo(p));
     }
 
@@ -482,11 +482,11 @@ public class OperationGeneratedCodeTests
 
         public ValueTask<IMyOperationsA.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult> OpWithSingleReturnValueAndEncodedResultAttributeAsync(
             Dispatch dispatch,
-            CancellationToken cancel) => new(new IMyOperationsA.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult(10));
+            CancellationToken cancel) => new(new IMyOperationsA.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult(10, dispatch));
 
         public ValueTask<IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult> OpWithMultipleReturnValuesAndEncodedResultAttributeAsync(
             Dispatch dispatch,
-            CancellationToken cancel) => new(new IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult(10, 20));
+            CancellationToken cancel) => new(new IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult(10, 20, dispatch));
 
         public ValueTask<ReadOnlyMemory<int>> OpReadOnlyMemoryAsync(
             int[] p1,

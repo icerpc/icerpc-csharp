@@ -1,7 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{
-    AttributeBuilder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType,
+    AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder,
+    FunctionCallBuilder, FunctionType,
 };
 use crate::code_block::CodeBlock;
 use crate::comments::doc_comment_message;
@@ -147,7 +148,7 @@ impl<'a> Visitor for ClassVisitor<'_> {
         class_builder.add_block(encode_and_decode(class_def));
 
         self.generated_code
-            .insert_scoped(class_def, class_builder.build().into());
+            .insert_scoped(class_def, class_builder.build());
     }
 }
 
@@ -218,13 +219,12 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
     .set_body({
         let mut code = CodeBlock::new();
 
-        let mut start_slice_args = vec!["SliceTypeId"];
-
-        if class_def.compact_id.is_some() {
-            start_slice_args.push("_compactSliceTypeId");
-        }
-
-        writeln!(code, "encoder.StartSlice({});", start_slice_args.join(", "));
+        code.writeln(
+            &FunctionCallBuilder::new("encoder.StartSlice")
+                .add_argument("SliceTypeId")
+                .add_argument_if(class_def.compact_id.is_some(), "_compactSliceTypeId")
+                .build(),
+        );
 
         code.writeln(&encode_data_members(
             &members,

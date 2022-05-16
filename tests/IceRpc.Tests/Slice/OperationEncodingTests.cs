@@ -75,7 +75,7 @@ public class OperationEncodingTests
             Payload = Encode(10)
         };
 
-        int value = await MyOperationsBPrx.Response.OpInt32Async(response, request, default);
+        int value = await MyOperationsBPrx.Response.OpInt32Async(response, request, null, default);
 
         Assert.That(value, Is.EqualTo(10));
 
@@ -156,7 +156,7 @@ public class OperationEncodingTests
             Payload = Encode(10, "hello world!")
         };
 
-        (int r1, string r2) = await MyOperationsBPrx.Response.OpInt32AndStringAsync(response, request, default);
+        (int r1, string r2) = await MyOperationsBPrx.Response.OpInt32AndStringAsync(response, request, null, default);
 
         Assert.That(r1, Is.EqualTo(10));
         Assert.That(r2, Is.EqualTo("hello world!"));
@@ -318,7 +318,7 @@ public class OperationEncodingTests
             Payload = Encode(p1, p2, p3, p4)
         };
 
-        var value = await MyOperationsBPrx.Response.OpOptionalAsync(response, request, default);
+        var value = await MyOperationsBPrx.Response.OpOptionalAsync(response, request, null, default);
 
         Assert.That(value.R1, Is.EqualTo(p1));
         Assert.That(value.R2, Is.EqualTo(p2));
@@ -488,7 +488,7 @@ public class OperationEncodingTests
             Payload = Encode(p1, p2, p3, p4)
         };
 
-        var value = await MyOperationsBPrx.Response.OpTaggedAsync(response, request, default);
+        var value = await MyOperationsBPrx.Response.OpTaggedAsync(response, request, null, default);
 
         Assert.That(value.R1, Is.EqualTo(p1));
         Assert.That(value.R2, Is.EqualTo(p2));

@@ -10,15 +10,18 @@ namespace IceRpc.Slice
     /// <typeparam name="T">The type of the return value to read.</typeparam>
     /// <param name="response">The incoming response.</param>
     /// <param name="request">The outgoing request.</param>
+    /// <param name="encodeOptions">The encode options of the Prx struct that sent the request.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>A value task that contains the return value or a <see cref="RemoteException"/> when the response
     /// carries a failure.</returns>
     public delegate ValueTask<T> ResponseDecodeFunc<T>(
         IncomingResponse response,
         OutgoingRequest request,
+        Configure.SliceEncodeOptions? encodeOptions,
         CancellationToken cancel);
 
-    /// <summary>Provides extension methods for class Proxy.</summary>
+    /// <summary>Provides extension methods for generated Prx structs.</summary>
+    // TODO: move to PrxExtensions (not done yet for ease of review)
     public static class ProxyExtensions
     {
         private static readonly IDictionary<RequestFieldKey, OutgoingFieldValue> _idempotentFields =
@@ -28,7 +31,7 @@ namespace IceRpc.Slice
             }.ToImmutableDictionary();
 
         /// <summary>Sends a request to a service and decodes the response.</summary>
-        /// <param name="proxy">A proxy for the remote service.</param>
+        /// <param name="prx">A proxy to the remote service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="payload">The payload of the request. <c>null</c> is equivalent to an empty payload.</param>
         /// <param name="payloadStream">The optional payload stream of the request.</param>
@@ -41,15 +44,15 @@ namespace IceRpc.Slice
         /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
         /// <remarks>This method stores the response features into the invocation's response features when
         /// invocation is not null.</remarks>
-        public static Task<T> InvokeAsync<T>(
-            this Proxy proxy,
+        public static Task<T> InvokeAsync<TPrx, T>(
+            this TPrx prx,
             string operation,
             PipeReader? payload,
             PipeReader? payloadStream,
             ResponseDecodeFunc<T> responseDecodeFunc,
             Invocation? invocation,
             bool idempotent = false,
-            CancellationToken cancel = default)
+            CancellationToken cancel = default) where TPrx : struct, IPrx
         {
             if (invocation?.IsOneway == true)
             {
@@ -65,7 +68,7 @@ namespace IceRpc.Slice
                     $"when {nameof(payloadStream)} is not null, {nameof(payload)} cannot be null");
             }
 
-            var request = new OutgoingRequest(proxy)
+            var request = new OutgoingRequest(prx.Proxy)
             {
                 Features = invocation?.Features ?? FeatureCollection.Empty,
                 Fields = idempotent ?
@@ -75,7 +78,7 @@ namespace IceRpc.Slice
                 PayloadStream = payloadStream
             };
 
-            IInvoker invoker = proxy.Invoker;
+            IInvoker invoker = prx.Proxy.Invoker;
             if (invocation != null)
             {
                 CheckCancellationToken(invocation, cancel);
@@ -105,7 +108,7 @@ namespace IceRpc.Slice
                     {
                         invocation.Features = request.Features;
                     }
-                    return await responseDecodeFunc(response, request, cancel).ConfigureAwait(false);
+                    return await responseDecodeFunc(response, request, prx.EncodeOptions, cancel).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -120,7 +123,7 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Sends a request to a service and decodes the "void" response.</summary>
-        /// <param name="proxy">A proxy for the remote service.</param>
+        /// <param name="prx">A proxy for the remote service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="encoding">The encoding of the request payload.</param>
         /// <param name="payload">The payload of the request. <c>null</c> is equivalent to an empty payload.</param>
@@ -135,8 +138,8 @@ namespace IceRpc.Slice
         /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
         /// <remarks>This method stores the response features into the invocation's response features when invocation is
         /// not null.</remarks>
-        public static Task InvokeAsync(
-            this Proxy proxy,
+        public static Task InvokeAsync<TPrx>(
+            this TPrx prx,
             string operation,
             SliceEncoding encoding,
             PipeReader? payload,
@@ -145,7 +148,7 @@ namespace IceRpc.Slice
             Invocation? invocation,
             bool idempotent = false,
             bool oneway = false,
-            CancellationToken cancel = default)
+            CancellationToken cancel = default) where TPrx : struct, IPrx
         {
             if (payload == null && payloadStream != null)
             {
@@ -154,7 +157,7 @@ namespace IceRpc.Slice
                     $"when {nameof(payloadStream)} is not null, {nameof(payload)} cannot be null");
             }
 
-            var request = new OutgoingRequest(proxy)
+            var request = new OutgoingRequest(prx.Proxy)
             {
                 Features = invocation?.Features ?? FeatureCollection.Empty,
                 Fields = idempotent ?
@@ -165,7 +168,7 @@ namespace IceRpc.Slice
                 PayloadStream = payloadStream
             };
 
-            IInvoker invoker = proxy.Invoker;
+            IInvoker invoker = prx.Proxy.Invoker;
             if (invocation != null)
             {
                 CheckCancellationToken(invocation, cancel);
@@ -200,6 +203,7 @@ namespace IceRpc.Slice
                         request,
                         encoding,
                         defaultActivator,
+                        prx.EncodeOptions,
                         cancel).ConfigureAwait(false);
                 }
                 catch (Exception ex)

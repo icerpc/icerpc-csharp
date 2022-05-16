@@ -3,7 +3,7 @@
 use slice::code_gen_util::TypeContext;
 use slice::grammar::*;
 
-use crate::builders::{CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
+use crate::builders::{Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
 use crate::code_block::CodeBlock;
 use crate::slicec_ext::*;
 
@@ -58,9 +58,11 @@ immediately encodes the return value of operation {operation_name}."#,
                 None,
             );
 
+            constructor_builder.add_parameter("IceRpc.Slice.Dispatch", "dispatch", None, None);
+
             constructor_builder.set_body(
                 format!(
-                    "Payload = Response.{operation_name}(returnValue)",
+                    "Payload = Response.{operation_name}(returnValue, dispatch.EncodeOptions)",
                     operation_name = operation_name
                 )
                 .into(),
@@ -75,9 +77,11 @@ immediately encodes the return value of operation {operation_name}."#,
                 constructor_builder.add_parameter(&parameter_type, &parameter_name, None, None);
             }
 
+            constructor_builder.add_parameter("IceRpc.Slice.Dispatch", "dispatch", None, None);
+
             constructor_builder.set_body(
                 format!(
-                    "Payload = Response.{operation_name}({args})",
+                    "Payload = Response.{operation_name}({args}, dispatch.EncodeOptions)",
                     operation_name = operation_name,
                     args = parameters
                         .iter()
@@ -91,5 +95,5 @@ immediately encodes the return value of operation {operation_name}."#,
     }
 
     container_builder.add_block(constructor_builder.build());
-    container_builder.build().into()
+    container_builder.build()
 }

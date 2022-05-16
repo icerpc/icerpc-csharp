@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{
-    AttributeBuilder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder, FunctionBuilder,
-    FunctionType,
+    AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder,
+    FunctionBuilder, FunctionType,
 };
 use crate::code_block::CodeBlock;
 use crate::comments::doc_comment_message;
@@ -162,7 +162,7 @@ decoder.SkipTagged(useTagEndMarker: true);",
         exception_class_builder.add_block(encode_core_method(exception_def));
 
         self.generated_code
-            .insert_scoped(exception_def, exception_class_builder.build().into());
+            .insert_scoped(exception_def, exception_class_builder.build());
     }
 }
 

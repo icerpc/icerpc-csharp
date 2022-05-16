@@ -57,9 +57,9 @@ public class ProxyTests
         encoder.EncodeNullableProxy(expected);
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
-        Proxy? decoded = decoder.DecodeNullableProxy();
+        ServicePrx? decoded = decoder.DecodeNullablePrx<ServicePrx>();
 
-        Assert.That(decoded, Is.EqualTo(expected));
+        Assert.That(decoded?.Proxy, Is.EqualTo(expected));
     }
 
     /// <summary>Verifies that calling <see cref="SliceDecoder.DecodeProxy"/> correctly decodes a proxy.</summary>
@@ -74,9 +74,9 @@ public class ProxyTests
         encoder.EncodeProxy(value);
         var sut = new SliceDecoder(bufferWriter.WrittenMemory, encoding: encoding);
 
-        Proxy decoded = sut.DecodeProxy();
+        ServicePrx decoded = sut.DecodePrx<ServicePrx>();
 
-        Assert.That(decoded, Is.EqualTo(expected));
+        Assert.That(decoded.Proxy, Is.EqualTo(expected));
     }
 
     /// <summary>Verifies that a relative proxy gets the decoder connection.</summary>
@@ -89,9 +89,12 @@ public class ProxyTests
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
             encoder.EncodeProxy(Proxy.FromPath("/foo"));
-            var decoder = new SliceDecoder(bufferWriter.WrittenMemory, encoding: SliceEncoding.Slice2, connection);
+            var decoder = new SliceDecoder(
+                bufferWriter.WrittenMemory,
+                encoding: SliceEncoding.Slice2,
+                connection: connection);
 
-            return decoder.DecodeProxy().Connection;
+            return decoder.DecodePrx<ServicePrx>().Proxy.Connection;
         },
         Is.EqualTo(connection));
     }

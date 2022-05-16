@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::builders::{
-    AttributeBuilder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType,
+    AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType,
 };
 use crate::code_block::CodeBlock;
 use crate::comments::{doc_comment_message, operation_parameter_doc_comment};
@@ -68,7 +68,7 @@ private static readonly IActivator _defaultActivator =
         }
 
         self.generated_code
-            .insert_scoped(interface_def, interface_builder.build().into());
+            .insert_scoped(interface_def, interface_builder.build());
     }
 }
 
@@ -145,7 +145,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         class_builder.add_block(builder.build());
     }
 
-    class_builder.build().into()
+    class_builder.build()
 }
 
 fn response_class(interface_def: &Interface) -> CodeBlock {
@@ -220,12 +220,19 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             }
         }
 
+        builder.add_parameter(
+            "IceRpc.Configure.SliceEncodeOptions?",
+            "sliceEncodeOptions",
+            Some("null"),
+            Some("The Slice encode options."),
+        );
+
         builder.set_body(encode_operation(operation, true, "return"));
 
         class_builder.add_block(builder.build());
     }
 
-    class_builder.build().into()
+    class_builder.build()
 }
 
 fn request_decode_body(operation: &Operation) -> CodeBlock {
@@ -525,7 +532,7 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
     match non_streamed_return_values.len() {
         0 => format!("{encoding}.CreateSizeZeroPayload()", encoding = encoding),
         _ => format!(
-            "Response.{operation_name}({args})",
+            "Response.{operation_name}({args}, request.GetFeature<IceRpc.Configure.SliceEncodeOptions>())",
             operation_name = operation.escape_identifier(),
             args = returns.join(", ")
         ),
@@ -556,13 +563,14 @@ fn payload_stream(operation: &Operation, encoding: &str) -> CodeBlock {
                 }
                 _ => format!(
                     "\
-{encoding}.CreatePayloadStream<{stream_type}>(
+{encoding}.CreatePayloadStream(
     {stream_arg},
+    {encode_options},
     {encode_action},
     {use_segments})",
-                    stream_type = stream_type.to_type_string(namespace, TypeContext::Encode, false),
-                    stream_arg = stream_arg,
                     encoding = encoding,
+                    stream_arg = stream_arg,
+                    encode_options = "request.GetFeature<IceRpc.Configure.SliceEncodeOptions>()",
                     encode_action = encode_action(
                         stream_type,
                         TypeContext::Encode,

@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use crate::builders::ContainerBuilder;
+use crate::builders::{Builder, ContainerBuilder};
 use crate::code_block::CodeBlock;
 use crate::generated_code::GeneratedCode;
 use slice::grammar::*;
@@ -69,7 +69,7 @@ impl ModuleVisitor<'_> {
             }
 
             builder.add_block(submodules_code);
-            builder.build().into()
+            builder.build()
         } else {
             submodules_code
         }

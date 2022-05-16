@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
@@ -279,7 +280,8 @@ namespace IceRpc.Internal
                         if (payloadSize != readResult.Buffer.Length - headerSize)
                         {
                             throw new InvalidDataException(
-                                @$"response payload size/frame size mismatch: payload size is {payloadSize} bytes but frame has {readResult.Buffer.Length - headerSize} bytes left");
+                                @$"response payload size/frame size mismatch: payload size is {payloadSize
+                                } bytes but frame has {readResult.Buffer.Length - headerSize} bytes left");
                         }
 
                         // TODO: check encoding is Slice1. See github proposal.
@@ -514,7 +516,8 @@ namespace IceRpc.Internal
                 }
                 if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
                 {
-                    throw new InvalidDataException(@$"expected '{nameof(IceFrameType.ValidateConnection)
+                    throw new InvalidDataException(
+                        @$"expected '{nameof(IceFrameType.ValidateConnection)
                         }' frame but received frame type '{validateConnectionFrame.FrameType}'");
                 }
             }
@@ -902,7 +905,10 @@ namespace IceRpc.Internal
                             DispatchException dispatchException,
                             IncomingRequest request)
                         {
-                            var pipe = new Pipe(); // TODO: pipe options
+                            SliceEncodeOptions? encodeOptions = request.GetFeature<SliceEncodeOptions>();
+
+                            var pipe = new Pipe(encodeOptions == null ? PipeOptions.Default :
+                                new PipeOptions(pool: encodeOptions.MemoryPool));
 
                             var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice1);
                             encoder.EncodeSystemException(
@@ -1083,7 +1089,8 @@ namespace IceRpc.Internal
                     int payloadSize = requestHeader.EncapsulationHeader.EncapsulationSize - 6;
                     if (payloadSize != (buffer.Length - decoder.Consumed))
                     {
-                        throw new InvalidDataException(@$"request payload size mismatch: expected {payloadSize
+                        throw new InvalidDataException(
+                            @$"request payload size mismatch: expected {payloadSize
                             } bytes, read {buffer.Length - decoder.Consumed} bytes");
                     }
 
