@@ -171,22 +171,18 @@ pub fn decode_tagged(
     assert!(data_type.is_optional);
     assert!(member.tag().is_some());
 
-    let mut decode_tagged_args = vec![member.tag().unwrap().to_string()];
-    if encoding == Encoding::Slice1 {
-        decode_tagged_args.push(format!(
-            "IceRpc.Slice.TagFormat.{}",
-            data_type.tag_format().unwrap()
-        ));
-    }
-    decode_tagged_args.push(decode_func(data_type, namespace, encoding).to_string());
-    decode_tagged_args.push(format!("useTagEndMarker: {}", use_tag_end_marker));
+    let decode = FunctionCallBuilder::new("decoder.DecodeTagged")
+        .add_argument(&member.tag().unwrap().to_string())
+        .add_optional_argument_if(
+            encoding == Encoding::Slice1,
+            data_type.tag_format(),
+            |format| Some(format!("IceRpc.Slice.TagFormat.{}", format)),
+        )
+        .add_argument(&decode_func(data_type, namespace, encoding))
+        .add_argument(&format!("useTagEndMarker: {}", use_tag_end_marker))
+        .build();
 
-    format!(
-        "{param} = decoder.DecodeTagged({args});",
-        param = param,
-        args = decode_tagged_args.join(", ")
-    )
-    .into()
+    format!("{} = {};", param, decode).into()
 }
 
 pub fn decode_dictionary(

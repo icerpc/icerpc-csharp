@@ -13,7 +13,6 @@ use std::fmt;
 pub trait Builder {
     fn build(&self) -> CodeBlock;
 }
-
 pub trait AttributeBuilder {
     fn add_attribute(&mut self, attributes: &str) -> &mut Self;
 
@@ -453,6 +452,15 @@ impl FunctionCallBuilder {
         self
     }
 
+    pub fn add_argument_if_else<T: fmt::Display + ?Sized>(
+        &mut self,
+        condition: bool,
+        true_case: &T,
+        false_case: &T,
+    ) -> &mut Self {
+        self.add_argument(if condition { true_case } else { false_case })
+    }
+
     pub fn add_argument_unless<T: fmt::Display + ?Sized>(
         &mut self,
         condition: bool,
@@ -462,24 +470,44 @@ impl FunctionCallBuilder {
         self
     }
 
-    // NOTE: These methods are commented out because they are not yet used.
-    // pub fn add_arguments<T: fmt::Display + ?Sized>(&mut self, arguments: &[&T]) -> &mut Self {
-    //     for arg in arguments {
-    //         self.arguments.push(arg.to_string());
-    //     }
-    //     self
-    // }
+    pub fn add_optional_argument<T, O, F>(&mut self, argument: Option<O>, func: F) -> &mut Self
+    where
+        O: Sized,
+        T: fmt::Display + Sized,
+        F: Fn(&O) -> Option<T>,
+    {
+        if let Some(argument) = argument {
+            if let Some(argument) = func(&argument) {
+                self.add_argument(&argument);
+            }
+        }
+        self
+    }
 
-    // pub fn add_arguments_if<T: fmt::Display + ?Sized>(
-    //     &mut self,
-    //     condition: bool,
-    //     arguments: &[&T],
-    // ) -> &mut Self {
-    //     if condition {
-    //         self.add_arguments(arguments);
-    //     }
-    //     self
-    // }
+    pub fn add_optional_argument_if<T, O, F>(
+        &mut self,
+        condition: bool,
+        option: Option<O>,
+        func: F,
+    ) -> &mut Self
+    where
+        O: Sized,
+        T: fmt::Display + Sized,
+        F: Fn(&O) -> Option<T>,
+    {
+        match option {
+            Some(value) if condition => {
+                if let Some(v) = &func(&value) {
+                    self.add_argument(v);
+                }
+                self
+            }
+            None if condition => {
+                panic!("optional argument to be some if condition is true")
+            }
+            _ => self,
+        }
+    }
 }
 
 impl Builder for FunctionCallBuilder {

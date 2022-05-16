@@ -3,6 +3,7 @@
 use slice::code_gen_util::*;
 use slice::grammar::*;
 
+use crate::builders::{Builder, FunctionCallBuilder};
 use crate::code_block::CodeBlock;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
@@ -332,39 +333,45 @@ fn encode_tagged_type(
         )
     };
 
-    let mut encode_tagged_args = vec![tag.to_string()];
-    if encoding == Encoding::Slice1 {
-        let tag_format = data_type.tag_format().unwrap();
-        if tag_format != TagFormat::VSize {
-            encode_tagged_args.push(format!("IceRpc.Slice.TagFormat.{}", tag_format));
-        }
-    }
-    if let Some(size) = size_parameter {
-        encode_tagged_args.push(format!("size: {}", size));
-    }
-    encode_tagged_args.push(if read_only_memory { value } else { unwrapped_name });
-    encode_tagged_args.push(
-        encode_action(
+    let encode_tagged_call = FunctionCallBuilder::new(&format!("{}.EncodeTagged", encoder_param))
+        .add_argument(&tag)
+        .add_optional_argument_if(
+            encoding == Encoding::Slice1,
+            data_type.tag_format(),
+            |tag_format| {
+                if *tag_format != TagFormat::VSize {
+                    Some(format!("IceRpc.Slice.TagFormat.{}", tag_format))
+                } else {
+                    None
+                }
+            },
+        )
+        .add_optional_argument(size_parameter, |size| Some(format!("size: {}", size)))
+        .add_argument_if_else(read_only_memory, &value, &unwrapped_name)
+        .add_argument(&encode_action(
             &clone_as_non_optional(data_type),
             type_context,
             namespace,
             encoding,
-        )
-        .to_string(),
-    );
+        ))
+        .build();
 
     writeln!(
         code,
         "\
 if ({null_check})
-{{{count_variable}
-    {encoder_param}.EncodeTagged({args});
+{{
+    {encode_tagged}
 }}",
         null_check = null_check,
-        count_variable =
-            count_value.map_or("".to_owned(), |v| format!("\nint count_ = {}.Count();", v),),
-        encoder_param = encoder_param,
-        args = encode_tagged_args.join(", ")
+        encode_tagged = {
+            let mut code = CodeBlock::new();
+            if let Some(count) = count_value {
+                code.writeln(&format!("int count_ = {}.Count();", count));
+            }
+            code.writeln(&encode_tagged_call);
+            code
+        }
     );
 
     code
