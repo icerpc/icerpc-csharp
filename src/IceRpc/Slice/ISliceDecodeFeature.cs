@@ -22,15 +22,15 @@ public interface ISliceDecodeFeature
     /// <summary>Returns the invoker assigned to decoded proxies. When null, a proxy decoded from an incoming request
     /// gets <see cref="Proxy.DefaultInvoker"/> while a proxy decoded from an incoming response gets the invoker of the
     /// proxy that created the request.</summary>
-    public IInvoker? ProxyInvoker { get; }
+    IInvoker? ProxyInvoker { get; }
 
     /// <summary>Returns the the stream pause writer threshold. When the Slice engine decodes a stream into an async
     /// enumerable, it will pause when the number of bytes decoded but not read is greater or equal to this value.
     /// </summary>
-    public int StreamPauseWriterThreshold { get; }
+    int StreamPauseWriterThreshold { get; }
 
     /// <summary>Returns the stream resume writer threshold. When the decoding of a stream into an async enumerable is
     /// paused (<see cref="StreamPauseWriterThreshold"/>), the decoding resumes when the number of bytes decoded but not
     /// read yet falls below this threshold.</summary>
-    public int StreamResumeWriterThreshold { get; }
+    int StreamResumeWriterThreshold { get; }
 }
