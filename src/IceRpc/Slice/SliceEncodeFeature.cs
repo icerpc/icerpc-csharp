@@ -17,7 +17,7 @@ public sealed class SliceEncodeFeature : ISliceEncodeFeature
     /// <inheritdoc/>
     public int StreamFlushThreshold { get; }
 
-    /// <summary>Constructs a <see cref="ISliceEncodeFeature"/>.</summary>
+    /// <summary>Constructs a <see cref="SliceEncodeFeature"/>.</summary>
     /// <param name="pool">The pool parameter for the constructor of <see cref="System.IO.Pipelines.PipeOptions"/>.
     /// </param>
     /// <param name="minimumSegmentSize">The minimum segment size for the constructor of

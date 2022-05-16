@@ -72,7 +72,7 @@ namespace IceRpc.Slice
         // The maximum depth when decoding a type recursively.
         private readonly int _maxDepth;
 
-        // The Slice encode options of Prx structs decoded using this decoder.
+        // The Slice encode feature of Prx structs decoded using this decoder.
         private readonly ISliceEncodeFeature? _prxEncodeFeature;
 
         // The sequence reader.
@@ -85,7 +85,7 @@ namespace IceRpc.Slice
         /// <param name="connection">The connection, used only when decoding relative proxies (optional).</param>
         /// <param name="invoker">The invoker of proxies decoded by this decoder. Use null to get the default invoker.
         /// </param>
-        /// <param name="prxEncodeFeature">The Slice encode options of Prx structs decoded using this decoder
+        /// <param name="prxEncodeFeature">The Slice encode feature of Prx structs decoded using this decoder
         /// (optional).</param>
         /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
         /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
@@ -132,7 +132,7 @@ namespace IceRpc.Slice
         /// <param name="connection">The connection, used only when decoding relative proxies (optional).</param>
         /// <param name="invoker">The invoker of proxies decoded by this decoder. Use null to get the default invoker.
         /// </param>
-        /// <param name="prxEncodeFeature">The Slice encode options of Prx structs decoded using this decoder
+        /// <param name="prxEncodeFeature">The Slice encode feature of Prx structs decoded using this decoder
         /// (optional).</param>
         /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
         /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer

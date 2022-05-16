@@ -28,7 +28,7 @@ namespace IceRpc.Slice
         /// <summary>Creates a payload stream from an async enumerable.</summary>
         /// <param name="encoding">The encoding of the payload.</param>
         /// <param name="asyncEnumerable">The async enumerable to encode and stream.</param>
-        /// <param name="encodeFeature">The Slice encode options.</param>
+        /// <param name="encodeFeature">The Slice encode feature.</param>
         /// <param name="encodeAction">The action used to encode the streamed member.</param>
         /// <param name="useSegments"><c>true</c> if we are encoding a stream elements in segments this is the case
         /// when the streamed elements are of variable size; otherwise, <c>false</c>.</param>
