@@ -61,9 +61,6 @@ namespace IceRpc
         /// <inheritdoc/>
         public FeatureCollection Features { get; }
 
-        // True once DisposeAsync is called. Once disposed the connection can't be resumed.
-        private bool _disposed;
-
         private readonly bool _isServer;
 
         // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
@@ -116,9 +113,8 @@ namespace IceRpc
         }
 
         /// <summary>Aborts the connection. This methods switches the connection state to <see
-        /// cref="ConnectionState.NotConnected"/> if <see cref="ConnectionOptions.IsResumable"/> is <c>true</c>,
-        /// otherwise it will be <see cref="ConnectionState.Closed"/>.</summary>
-        public void Abort() => Close(new ConnectionAbortedException());
+        /// cref="ConnectionState.Closed"/>.</summary>
+        public void Abort() => Close(new ConnectionAbortedException(), isResumable: false);
 
         /// <summary>Establishes the connection.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -211,29 +207,9 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public async ValueTask DisposeAsync()
-        {
-            Task? waitTask;
-            lock (_mutex)
-            {
-                if (_disposed)
-                {
-                    waitTask = _stateTask;
-                }
-                else
-                {
-                    _disposed = true;
-
-                    // Perform a speedy graceful shutdown by canceling invocations and dispatches in progress.
-                    waitTask = ShutdownAsync("connection disposed", new CancellationToken(canceled: true));
-                }
-            }
-
-            if (waitTask != null)
-            {
-                await waitTask.ConfigureAwait(false);
-            }
-        }
+        public ValueTask DisposeAsync() =>
+            // Perform a speedy graceful shutdown by canceling invocations and dispatches in progress.
+            new(ShutdownAsync("connection disposed", new CancellationToken(canceled: true)));
 
         /// <summary>Checks if the parameters of the provided endpoint are compatible with this connection. Compatible
         /// means a client could reuse this connection instead of establishing a new connection.</summary>
@@ -271,7 +247,7 @@ namespace IceRpc
                 // If the network connection is lost while sending the request, we close the connection now instead of
                 // waiting for AcceptRequestsAsync to throw. It's necessary to ensure that the next InvokeAsync will
                 // fail with ConnectionClosedException and won't be retried on this connection.
-                Close(exception, protocolConnection);
+                Close(exception, isResumable: true, protocolConnection);
                 throw;
             }
             catch (ConnectionClosedException exception)
@@ -331,6 +307,7 @@ namespace IceRpc
                     _stateTask = ShutdownAsyncCore(
                         _protocolConnection!,
                         message,
+                        isResumable: false,
                         _protocolShutdownCancellationSource.Token);
                     shutdownTask = _stateTask;
                     cancellationTokenSource = _protocolShutdownCancellationSource;
@@ -346,7 +323,7 @@ namespace IceRpc
             {
                 // If the connection is not active or not shutting down, we can just close it. If it's connecting
                 // this will interrupt the connection establishment.
-                Close(new ConnectionClosedException(message));
+                Close(new ConnectionClosedException(message), isResumable: false);
             }
             else
             {
@@ -465,7 +442,7 @@ namespace IceRpc
                             }
                             finally
                             {
-                                Close(exception, protocolConnection);
+                                Close(exception, isResumable: true, protocolConnection);
                             }
                         });
                 }
@@ -473,12 +450,12 @@ namespace IceRpc
             catch (OperationCanceledException)
             {
                 var exception = new ConnectTimeoutException();
-                Close(exception);
+                Close(exception, isResumable: true);
                 throw exception;
             }
             catch (Exception exception)
             {
-                Close(exception);
+                Close(exception, isResumable: true);
                 throw;
             }
         }
@@ -507,12 +484,13 @@ namespace IceRpc
                         IProtocolConnection protocolConnection = _protocolConnection;
                         Task.Run(() => Close(
                             new ConnectionAbortedException("connection timed out"),
+                            isResumable: true,
                             protocolConnection));
                     }
                     else
                     {
                         // The connection is idle, gracefully shut it down.
-                        _ = ShutdownAsync("connection idle", CancellationToken.None);
+                        _ = ShutdownAsync("connection idle", isResumable: true, CancellationToken.None);
                     }
                 }
                 else if (idleTime > NetworkConnectionInformation.Value.IdleTimeout / 4 &&
@@ -531,10 +509,8 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Closes the connection. Resources allocated for the connection are freed. If <see
-        /// cref="ConnectionOptions.IsResumable"/> is <c>true</c> the connection can be re-established once this method
-        /// returns by calling <see cref="ConnectAsync"/>.</summary>
-        private void Close(Exception? exception, IProtocolConnection? protocolConnection = null)
+        /// <summary>Closes the connection. Resources allocated for the connection are freed.</summary>
+        private void Close(Exception? exception, bool isResumable, IProtocolConnection? protocolConnection = null)
         {
             lock (_mutex)
             {
@@ -568,9 +544,9 @@ namespace IceRpc
                     _protocolShutdownCancellationSource = null;
                 }
 
-                // A connection can be resumed if it hasn't been disposed and it's configured to be resumable.
-                _state = (_options?.IsResumable ?? false) && !_disposed ?
-                    ConnectionState.NotConnected : ConnectionState.Closed;
+                // A connection can be resumed if it's configured to be resumable and the operation that closed the
+                // connection allows it (explicit shutdown or abort don't allow the connection to be resumed).
+                _state = _options.IsResumable && isResumable ? ConnectionState.NotConnected : ConnectionState.Closed;
                 _stateTask = null;
             }
 
@@ -603,14 +579,69 @@ namespace IceRpc
                     _stateTask = ShutdownAsyncCore(
                         _protocolConnection!,
                         message,
+                        isResumable: true,
                         _protocolShutdownCancellationSource.Token);
                 }
+            }
+        }
+
+        private async Task ShutdownAsync(string message, bool isResumable, CancellationToken cancel)
+        {
+            Task? shutdownTask = null;
+            CancellationTokenSource? cancellationTokenSource = null;
+            lock (_mutex)
+            {
+                if (_state == ConnectionState.Active)
+                {
+                    _state = ConnectionState.ShuttingDown;
+                    _protocolShutdownCancellationSource = new();
+                    _stateTask = ShutdownAsyncCore(
+                        _protocolConnection!,
+                        message,
+                        isResumable,
+                        _protocolShutdownCancellationSource.Token);
+                    shutdownTask = _stateTask;
+                    cancellationTokenSource = _protocolShutdownCancellationSource;
+                }
+                else if (_state == ConnectionState.ShuttingDown)
+                {
+                    shutdownTask = _stateTask;
+                    cancellationTokenSource = _protocolShutdownCancellationSource;
+                }
+            }
+
+            if (shutdownTask == null)
+            {
+                // If the connection is not active or not shutting down, we can just close it. If it's connecting
+                // this will interrupt the connection establishment.
+                Close(new ConnectionClosedException(message), isResumable);
+            }
+            else
+            {
+                Debug.Assert(cancellationTokenSource != null);
+
+                // If the application cancels ShutdownAsync, cancel the protocol ShutdownAsync call to speed up
+                // shutdown.
+                using CancellationTokenRegistration _ = cancel.Register(() =>
+                    {
+                        try
+                        {
+                            cancellationTokenSource.Cancel();
+                        }
+                        catch (ObjectDisposedException)
+                        {
+                        }
+                    });
+
+                // Wait for the shutdown to complete.
+                await shutdownTask.ConfigureAwait(false);
             }
         }
 
         private async Task ShutdownAsyncCore(
             IProtocolConnection protocolConnection,
             string message,
+            bool isResumable,
             CancellationToken cancel)
         {
             // Yield before continuing to ensure the code below isn't executed with the mutex locked and that _stateTask
@@ -618,7 +649,7 @@ namespace IceRpc
             await Task.Yield();
 
             using var closeTimeoutTimer = new Timer(
-                value => Close(new ConnectionAbortedException("shutdown timed out")),
+                value => Close(new ConnectionAbortedException("shutdown timed out"), isResumable),
                 state: null,
                 dueTime: _options.CloseTimeout,
                 period: Timeout.InfiniteTimeSpan);
@@ -637,7 +668,7 @@ namespace IceRpc
             }
             finally
             {
-                Close(exception);
+                Close(exception, isResumable);
             }
         }
     }

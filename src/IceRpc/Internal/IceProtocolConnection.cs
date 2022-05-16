@@ -61,8 +61,8 @@ namespace IceRpc.Internal
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly HashSet<CancellationTokenSource> _dispatches = new();
         private readonly AsyncSemaphore? _dispatchSemaphore;
-        private int _disposed;
         private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
+        private bool _isDisposed;
         private bool _isShutdown;
         private bool _isShuttingDown;
         private readonly MemoryPool<byte> _memoryPool;
@@ -120,9 +120,13 @@ namespace IceRpc.Internal
 
         public void Dispose()
         {
-            if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 1)
+            lock (_mutex)
             {
-                return;
+                if (_isDisposed)
+                {
+                    return;
+                }
+                _isDisposed = true;
             }
 
             var exception = new ConnectionClosedException();

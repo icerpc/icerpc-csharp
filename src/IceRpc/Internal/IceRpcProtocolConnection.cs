@@ -45,11 +45,11 @@ namespace IceRpc.Internal
         private readonly HashSet<CancellationTokenSource> _cancelDispatchSources = new();
         private readonly AsyncSemaphore _controlStreamSemaphore = new(1, 1);
         private readonly IDispatcher _dispatcher;
-        private int _disposed;
 
         // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
         private int _headerSizeLength = 2;
         private int _invocationCount;
+        private bool _isDisposed;
         private bool _isShuttingDown;
         private long _lastRemoteBidirectionalStreamId = -1;
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
@@ -380,9 +380,13 @@ namespace IceRpc.Internal
 
         public void Dispose()
         {
-            if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 1)
+            lock (_mutex)
             {
-                return;
+                if (_isDisposed)
+                {
+                    return;
+                }
+                _isDisposed = true;
             }
 
             _networkConnection.Dispose();

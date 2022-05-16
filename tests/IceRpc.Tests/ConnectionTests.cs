@@ -204,8 +204,19 @@ public class ConnectionTests
     [Test]
     public async Task Non_resumable_connection_cannot_reconnect([Values("ice", "icerpc")] string protocol)
     {
+        var tcpServerTransportOptions = new TcpServerTransportOptions
+        {
+            IdleTimeout = TimeSpan.FromMilliseconds(500),
+        };
+
+        var tcpClientTransportOptions = new TcpClientTransportOptions
+        {
+            IdleTimeout = TimeSpan.FromMilliseconds(500),
+        };
+
         // Arrange
         await using var provider = new ConnectionServiceCollection(protocol)
+            .UseTcp(tcpServerTransportOptions, tcpClientTransportOptions)
             .UseDispatcher(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))))
             .BuildServiceProvider();
         var server = provider.GetRequiredService<Server>();
@@ -214,7 +225,10 @@ public class ConnectionTests
         var proxy = Proxy.FromConnection(connection, "/foo");
 
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
-        await connection.ShutdownAsync(default);
+        while (connection.State != ConnectionState.Closed)
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
+        }
 
         // Act/Assert
         Assert.That(
@@ -223,10 +237,21 @@ public class ConnectionTests
     }
 
     [Test]
-    public async Task Resumable_connection_can_reconnect([Values("ice", "icerpc")] string protocol)
+    public async Task Resumable_connection_can_reconnect_after_being_idle([Values("ice", "icerpc")] string protocol)
     {
+        var tcpServerTransportOptions = new TcpServerTransportOptions
+        {
+            IdleTimeout = TimeSpan.FromMilliseconds(500),
+        };
+
+        var tcpClientTransportOptions = new TcpClientTransportOptions
+        {
+            IdleTimeout = TimeSpan.FromMilliseconds(500),
+        };
+
         // Arrange
         await using var provider = new ConnectionServiceCollection(protocol)
+            .UseTcp(tcpServerTransportOptions, tcpClientTransportOptions)
             .UseDispatcher(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))))
             .UseConnectionOptions(new ConnectionOptions { IsResumable = true })
             .BuildServiceProvider();
@@ -236,13 +261,72 @@ public class ConnectionTests
         var proxy = Proxy.FromConnection(connection, "/foo");
 
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
-        await connection.ShutdownAsync(default);
+
+        // Act/Assert
+        while (connection.State != ConnectionState.NotConnected)
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
+        }
+    }
+
+    [Test]
+    public async Task Resumable_connection_can_reconnect_after_gracefull_peer_shutdown(
+        [Values("ice", "icerpc")] string protocol)
+    {
+        // Arrange
+        Connection? serverConnection = null;
+        await using var provider = new ConnectionServiceCollection(protocol)
+            .UseDispatcher(new InlineDispatcher((request, cancel) =>
+                {
+                    serverConnection = (Connection)request.Connection;
+                    return new(new OutgoingResponse(request));
+                }))
+            .UseConnectionOptions(new ConnectionOptions { IsResumable = true })
+            .BuildServiceProvider();
+        var server = provider.GetRequiredService<Server>();
+        var connection = provider.GetRequiredService<Connection>();
+
+        var proxy = Proxy.FromConnection(connection, "/foo");
+        await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
         // Act
-        var response = await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
+        await serverConnection!.ShutdownAsync();
 
         // Assert
-        Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
+        while (connection.State != ConnectionState.NotConnected)
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
+        }
+    }
+
+    [Test]
+    public async Task Resumable_connection_can_reconnect_after_peer_abort(
+        [Values("ice", "icerpc")] string protocol)
+    {
+        // Arrange
+        Connection? serverConnection = null;
+        await using var provider = new ConnectionServiceCollection(protocol)
+            .UseDispatcher(new InlineDispatcher((request, cancel) =>
+                {
+                    serverConnection = (Connection)request.Connection;
+                    return new(new OutgoingResponse(request));
+                }))
+            .UseConnectionOptions(new ConnectionOptions { IsResumable = true })
+            .BuildServiceProvider();
+        var server = provider.GetRequiredService<Server>();
+        var connection = provider.GetRequiredService<Connection>();
+
+        var proxy = Proxy.FromConnection(connection, "/foo");
+        await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
+
+        // Act
+        serverConnection!.Abort();
+
+        // Assert
+        while (connection.State != ConnectionState.NotConnected)
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
+        }
     }
 
     [Test]
