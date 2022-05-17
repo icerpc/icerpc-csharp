@@ -7,7 +7,7 @@ namespace IceRpc.Configure;
 
 /// <summary>This class provide extension methods to add deflate interceptor to a <see cref="Pipeline"/>.
 /// </summary>
-public static class PipelineExtensions
+public static class DeflatePipelineExtensions
 {
     /// <summary>Adds a <see cref="DeflateInterceptor"/> to the pipeline.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>

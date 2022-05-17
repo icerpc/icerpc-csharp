@@ -7,7 +7,7 @@ namespace IceRpc.Configure;
 
 /// <summary>This class provide extension methods to add logger middleware to a <see cref="Router"/>.
 /// </summary>
-public static class RouterExtensions
+public static class LoggerRouterExtensions
 {
     /// <summary>Adds a <see cref="LoggerMiddleware"/> to the router.</summary>
     /// <param name="router">The router being configured.</param>

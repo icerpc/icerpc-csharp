@@ -7,7 +7,7 @@ namespace IceRpc.Configure;
 
 /// <summary>This class provide extension methods to add deflate middleware to a <see cref="Router"/>.
 /// </summary>
-public static class RouterExtensions
+public static class DeflateRouterExtensions
 {
     /// <summary>Adds a <see cref="DeflateMiddleware"/> to the router.</summary>
     /// <param name="router">The router being configured.</param>

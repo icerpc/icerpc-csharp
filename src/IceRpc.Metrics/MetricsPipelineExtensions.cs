@@ -6,7 +6,7 @@ namespace IceRpc.Configure;
 
 /// <summary>This class provide extension methods to add metrics interceptor to a <see cref="Pipeline"/>
 /// </summary>
-public static class PipelineExtensions
+public static class MetricsPipelineExtensions
 {
     /// <summary>Adds a <see cref="MetricsInterceptor"/> to the pipeline.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>

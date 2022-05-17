@@ -6,7 +6,7 @@ namespace IceRpc.Configure;
 
 /// <summary>This class provide extension methods to add deflate interceptor to a <see cref="Pipeline"/>
 /// </summary>
-public static class PipelineExtensions
+public static class BinderPipelineExtensions
 {
     /// <summary>Adds a <see cref="BinderInterceptor"/> to the pipeline.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>

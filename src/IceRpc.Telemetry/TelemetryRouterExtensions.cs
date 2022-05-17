@@ -6,7 +6,7 @@ namespace IceRpc.Configure;
 
 /// <summary>This class provide extension methods to add metrics middleware to a <see cref="Router"/>
 /// </summary>
-public static class RouterExtensions
+public static class TelemetryRouterExtensions
 {
     /// <summary>Adds a <see cref="TelemetryMiddleware"/> that uses the default <see cref="TelemetryOptions"/> to
     /// the router.</summary>

@@ -6,7 +6,7 @@ namespace IceRpc.Configure;
 
 /// <summary>This class provide extension methods to add metrics interceptors to a <see cref="Pipeline"/>.
 /// </summary>
-public static class PipelineExtensions
+public static class RetryPipelineExtensions
 {
     /// <summary>Adds a <see cref="RetryInterceptor"/> that use the default <see cref="RetryOptions"/> to the
     /// pipeline.</summary>
