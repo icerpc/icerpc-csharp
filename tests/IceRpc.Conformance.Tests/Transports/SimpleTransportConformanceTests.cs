@@ -259,7 +259,7 @@ public abstract class SimpleTransportConformanceTests
         using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
 
         // Act
-       sut.ServerConnection.Dispose();
+        sut.ServerConnection.Dispose();
 
         // Assert
         var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1] };

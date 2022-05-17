@@ -17,4 +17,4 @@ using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("IceRpc.Retry.Tests")] // For EmptyPipeReader
 [assembly: InternalsVisibleTo("IceRpc.Telemetry.Tests")] // For EmptyPipeReader
-[assembly: InternalsVisibleTo("IceRpc.Deflate.Tests")] 
+[assembly: InternalsVisibleTo("IceRpc.Deflate.Tests")]

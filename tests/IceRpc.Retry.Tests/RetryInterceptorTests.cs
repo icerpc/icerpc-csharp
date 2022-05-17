@@ -3,7 +3,6 @@
 using IceRpc.Configure;
 using IceRpc.Features;
 using IceRpc.Internal;
-using IceRpc.Retry.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Tests;

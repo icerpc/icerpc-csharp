@@ -17,7 +17,7 @@ internal struct ClientServerProtocolConnection : IDisposable
     internal IProtocolConnection Client { get; }
     internal IProtocolConnection Server { get; }
 
-    public void  Dispose()
+    public void Dispose()
     {
         Client.Dispose();
         Server.Dispose();

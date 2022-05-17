@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Tests;
 using NUnit.Framework;
-using IceRpc.Tests; 
 
 namespace IceRpc.Logger.Tests;
 

@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Tests;
 using NUnit.Framework;
 using System.Diagnostics.Tracing;
-using IceRpc.Tests;
 
 namespace IceRpc.Metrics.Tests;
 

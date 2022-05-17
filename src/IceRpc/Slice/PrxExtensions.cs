@@ -1,8 +1,4 @@
-
 // Copyright (c) ZeroC, Inc. All rights reserved.
-
-using IceRpc.Configure;
-using System.IO.Pipelines;
 
 namespace IceRpc.Slice
 {
