@@ -27,9 +27,9 @@ namespace IceRpc.Slice
                 response.DecodeRemoteExceptionAsync(
                     request,
                     response.Protocol.SliceEncoding,
-                    request.Features.Get<SliceDecodeOptions>(fallback: response.Connection.Features),
+                    request.Features.Get<ISliceDecodeFeature>(fallback: response.Connection.Features),
                     defaultActivator,
-                    prxEncodeOptions: null, // we don't expect proxies in Failures, they are usually DispatchException
+                    prxEncodeFeature: null, // we don't expect proxies in Failures, they are usually DispatchException
                     cancel) :
                 throw new ArgumentException(
                     $"{nameof(DecodeFailureAsync)} requires a response with a Failure result type",
@@ -41,7 +41,7 @@ namespace IceRpc.Slice
         /// <param name="request">The outgoing request.</param>
         /// <param name="encoding">The encoding of the response payload.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
-        /// <param name="encodeOptions">The encode options of the Prx struct that sent the request.</param>
+        /// <param name="encodeFeature">The encode feature of the Prx struct that sent the request.</param>
         /// <param name="decodeFunc">The decode function for the return value.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The return value.</returns>
@@ -50,20 +50,20 @@ namespace IceRpc.Slice
             OutgoingRequest request,
             SliceEncoding encoding,
             IActivator? defaultActivator,
-            SliceEncodeOptions? encodeOptions,
+            ISliceEncodeFeature? encodeFeature,
             DecodeFunc<T> decodeFunc,
             CancellationToken cancel = default)
         {
-            SliceDecodeOptions? decodeOptions =
-                request.Features.Get<SliceDecodeOptions>(fallback: response.Connection.Features);
+            ISliceDecodeFeature? decodeFeature =
+                request.Features.Get<ISliceDecodeFeature>(fallback: response.Connection.Features);
 
             return response.ResultType == ResultType.Success ?
                 response.DecodeValueAsync(
                     encoding,
-                    decodeOptions,
+                    decodeFeature,
                     defaultActivator,
                     defaultInvoker: request.Proxy.Invoker,
-                    encodeOptions,
+                    encodeFeature,
                     decodeFunc,
                     cancel) :
                 ThrowRemoteExceptionAsync();
@@ -73,9 +73,9 @@ namespace IceRpc.Slice
                 throw await response.DecodeRemoteExceptionAsync(
                     request,
                     encoding,
-                    decodeOptions,
+                    decodeFeature,
                     defaultActivator,
-                    encodeOptions,
+                    encodeFeature,
                     cancel).ConfigureAwait(false);
             }
         }
@@ -86,7 +86,7 @@ namespace IceRpc.Slice
         /// <param name="request">The outgoing request.</param>
         /// <param name="encoding">The encoding of the response payload.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
-        /// <param name="encodeOptions">The encode options of the Prx struct that sent the request.</param>
+        /// <param name="encodeFeature">The encode feature of the Prx struct that sent the request.</param>
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
         /// <param name="elementSize">The size in bytes of the streamed elements.</param>
         /// <returns>The async enumerable to decode and return the streamed members.</returns>
@@ -95,15 +95,15 @@ namespace IceRpc.Slice
             OutgoingRequest request,
             SliceEncoding encoding,
             IActivator? defaultActivator,
-            SliceEncodeOptions? encodeOptions,
+            ISliceEncodeFeature? encodeFeature,
             DecodeFunc<T> decodeFunc,
             int elementSize) =>
             response.ToAsyncEnumerable(
                 encoding,
-                request.Features.Get<SliceDecodeOptions>(fallback: response.Connection.Features),
+                request.Features.Get<ISliceDecodeFeature>(fallback: response.Connection.Features),
                 defaultActivator,
                 defaultInvoker: request.Proxy.Invoker,
-                encodeOptions,
+                encodeFeature,
                 decodeFunc,
                 elementSize);
 
@@ -113,7 +113,7 @@ namespace IceRpc.Slice
         /// <param name="request">The outgoing request.</param>
         /// <param name="encoding">The encoding of the response payload.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
-        /// <param name="encodeOptions">The encode options of the Prx struct that sent the request.</param>
+        /// <param name="encodeFeature">The encode feature of the Prx struct that sent the request.</param>
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
         /// <returns>The async enumerable to decode and return the streamed members.</returns>
         public static IAsyncEnumerable<T> DecodeStream<T>(
@@ -121,14 +121,14 @@ namespace IceRpc.Slice
             OutgoingRequest request,
             SliceEncoding encoding,
             IActivator? defaultActivator,
-            SliceEncodeOptions? encodeOptions,
+            ISliceEncodeFeature? encodeFeature,
             DecodeFunc<T> decodeFunc) =>
             response.ToAsyncEnumerable(
                 encoding,
-                request.Features.Get<SliceDecodeOptions>(fallback: response.Connection.Features),
+                request.Features.Get<ISliceDecodeFeature>(fallback: response.Connection.Features),
                 defaultActivator,
                 defaultInvoker: request.Proxy.Invoker,
-                encodeOptions,
+                encodeFeature,
                 decodeFunc);
 
         /// <summary>Verifies that a response payload carries no return value or only tagged return values.</summary>
@@ -136,21 +136,21 @@ namespace IceRpc.Slice
         /// <param name="request">The outgoing request.</param>
         /// <param name="encoding">The encoding of the response payload.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
-        /// <param name="encodeOptions">The encode options of the Prx struct that sent the request.</param>
+        /// <param name="encodeFeature">The encode feature of the Prx struct that sent the request.</param>
         /// <param name="cancel">The cancellation token.</param>
         public static ValueTask DecodeVoidReturnValueAsync(
             this IncomingResponse response,
             OutgoingRequest request,
             SliceEncoding encoding,
             IActivator? defaultActivator,
-            SliceEncodeOptions? encodeOptions,
+            ISliceEncodeFeature? encodeFeature,
             CancellationToken cancel = default)
         {
-            SliceDecodeOptions? decodeOptions =
-                request.Features.Get<SliceDecodeOptions>(fallback: response.Connection.Features);
+            ISliceDecodeFeature? decodeFeature =
+                request.Features.Get<ISliceDecodeFeature>(fallback: response.Connection.Features);
 
             return response.ResultType == ResultType.Success ?
-                response.DecodeVoidAsync(encoding, decodeOptions, cancel) :
+                response.DecodeVoidAsync(encoding, decodeFeature, cancel) :
                 ThrowRemoteExceptionAsync();
 
             async ValueTask ThrowRemoteExceptionAsync()
@@ -158,9 +158,9 @@ namespace IceRpc.Slice
                 throw await response.DecodeRemoteExceptionAsync(
                     request,
                     encoding,
-                    decodeOptions,
+                    decodeFeature,
                     defaultActivator,
-                    encodeOptions,
+                    encodeFeature,
                     cancel).ConfigureAwait(false);
             }
         }
@@ -169,9 +169,9 @@ namespace IceRpc.Slice
             this IncomingResponse response,
             OutgoingRequest request,
             SliceEncoding encoding,
-            SliceDecodeOptions? decodeOptions,
+            ISliceDecodeFeature? decodeFeature,
             IActivator? defaultActivator,
-            SliceEncodeOptions? prxEncodeOptions,
+            ISliceEncodeFeature? prxEncodeFeature,
             CancellationToken cancel)
         {
             Debug.Assert(response.ResultType != ResultType.Success);
@@ -185,7 +185,7 @@ namespace IceRpc.Slice
             {
                 ReadResult readResult = await response.Payload.ReadSegmentAsync(
                     encoding,
-                    decodeOptions?.MaxSegmentSize ?? SliceDecodeOptions.Default.MaxSegmentSize,
+                    decodeFeature?.MaxSegmentSize ?? SliceDecodeFeature.Default.MaxSegmentSize,
                     cancel).ConfigureAwait(false);
 
                 if (readResult.IsCanceled)
@@ -210,17 +210,17 @@ namespace IceRpc.Slice
 
             RemoteException Decode(ReadOnlySequence<byte> buffer)
             {
-                decodeOptions ??= SliceDecodeOptions.Default;
+                decodeFeature ??= SliceDecodeFeature.Default;
 
                 var decoder = new SliceDecoder(
                     buffer,
                     encoding,
-                    activator: decodeOptions.Activator ?? defaultActivator,
+                    activator: decodeFeature.Activator ?? defaultActivator,
                     response.Connection,
-                    decodeOptions.ProxyInvoker ?? request.Proxy.Invoker,
-                    prxEncodeOptions,
-                    maxCollectionAllocation: decodeOptions.MaxCollectionAllocation,
-                    maxDepth: decodeOptions.MaxDepth);
+                    decodeFeature.ProxyInvoker ?? request.Proxy.Invoker,
+                    prxEncodeFeature,
+                    maxCollectionAllocation: decodeFeature.MaxCollectionAllocation,
+                    maxDepth: decodeFeature.MaxDepth);
 
                 RemoteException remoteException = encoding == SliceEncoding.Slice1 ?
                     (resultType == SliceResultType.Failure ?

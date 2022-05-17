@@ -25,7 +25,7 @@ namespace IceRpc.Slice
                 where T : struct, IPrx =>
             await new ServicePrx(prx.Proxy).IceIsAAsync(typeof(T).GetSliceTypeId()!, invocation, cancel).
                 ConfigureAwait(false) ?
-                new T { EncodeOptions = prx.EncodeOptions, Proxy = prx.Proxy } : null;
+                new T { EncodeFeature = prx.EncodeFeature, Proxy = prx.Proxy } : null;
 
         /// <summary>Converts this Prx struct into a string using a specific format.</summary>
         /// <paramtype name="TPrx">The type of source Prx struct.</paramtype>

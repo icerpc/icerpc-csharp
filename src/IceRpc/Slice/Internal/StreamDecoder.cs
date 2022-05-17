@@ -22,7 +22,7 @@ namespace IceRpc.Slice.Internal
         private readonly Queue<(IEnumerable<T> Items, long ByteCount)> _queue = new();
         private readonly object _mutex = new();
 
-        private readonly long _pauseWriterThreshold;
+        private readonly int _pauseWriterThreshold;
 
         private readonly SemaphoreSlim _readerSemaphore = new(initialCount: 0, maxCount: 1);
 
@@ -30,7 +30,7 @@ namespace IceRpc.Slice.Internal
 
         private bool _readerStarted;
 
-        private readonly long _resumeWriterThreshold;
+        private readonly int _resumeWriterThreshold;
 
         private readonly SemaphoreSlim _writerSemaphore = new(initialCount: 0, maxCount: 1);
 
@@ -38,21 +38,16 @@ namespace IceRpc.Slice.Internal
 
         /// <summary>Constructs a stream decoder.</summary>
         /// <param name="decodeBufferFunc">The function that decodes a buffer into an enumerable of T.</param>
-        /// <param name="options">The options to configure flow control.</param>
+        /// <param name="pauseWriterThreshold">The pause writer threshold.</param>
+        /// <param name="resumeWriterThreshold">The resume writer threshold.</param>
         internal StreamDecoder(
             Func<ReadOnlySequence<byte>, IEnumerable<T>> decodeBufferFunc,
-            SliceStreamDecoderOptions options)
+            int pauseWriterThreshold,
+            int resumeWriterThreshold = -1)
         {
             _decodeBufferFunc = decodeBufferFunc;
-            _pauseWriterThreshold = options.PauseWriterThreshold;
-            _resumeWriterThreshold = options.ResumeWriterThreshold;
-        }
-
-        /// <summary>Constructs a stream decoder with the default options.</summary>
-        /// <param name="decodeBufferFunc">The function that decodes a buffer into an enumerable of T.</param>
-        internal StreamDecoder(Func<ReadOnlySequence<byte>, IEnumerable<T>> decodeBufferFunc)
-            : this(decodeBufferFunc, SliceStreamDecoderOptions.Default)
-        {
+            _pauseWriterThreshold = pauseWriterThreshold;
+            _resumeWriterThreshold = resumeWriterThreshold == -1 ? pauseWriterThreshold / 2 : resumeWriterThreshold;
         }
 
         /// <summary>Marks the writer as completed. This tells the reader no additional element will be decoded.

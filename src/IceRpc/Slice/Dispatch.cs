@@ -34,8 +34,8 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>The options to use when encoding the payload of the response.</summary>
-        public SliceEncodeOptions? EncodeOptions => _request.GetFeature<SliceEncodeOptions>();
+        /// <summary>The feature to use when encoding the payload of the response.</summary>
+        public ISliceEncodeFeature? EncodeFeature => _request.GetFeature<ISliceEncodeFeature>();
 
         /// <summary>The features associated with the request.</summary>
         public FeatureCollection Features
