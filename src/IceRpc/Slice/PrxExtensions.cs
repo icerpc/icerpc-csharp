@@ -26,10 +26,10 @@ public delegate ValueTask<T> ResponseDecodeFunc<T>(
 public static class PrxExtensions
 {
     private static readonly IDictionary<RequestFieldKey, OutgoingFieldValue> _idempotentFields =
-           new Dictionary<RequestFieldKey, OutgoingFieldValue>
-           {
-               [RequestFieldKey.Idempotent] = default
-           }.ToImmutableDictionary();
+        new Dictionary<RequestFieldKey, OutgoingFieldValue>
+        {
+            [RequestFieldKey.Idempotent] = default
+        }.ToImmutableDictionary();
 
     /// <summary>Tests whether the target service implements the interface implemented by the TPrx typed proxy. This
     /// method is a wrapper for <see cref="IServicePrx.IceIsAAsync"/>.</summary>

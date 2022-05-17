@@ -41,25 +41,30 @@ public static class Program
                         return router;
                     });
 
-                // Bind the server options to the "appsettings.json" configuration "Server" section, and add a
-                // Configure callback to configure its authentication options.
+                // Bind the server hosted service options to the "appsettings.json" configuration "Server" section, and
+                // add a Configure callback to configure its authentication options.
                 services
-                    .AddOptions<ServerOptions>()
+                    .AddOptions<ServerHostedServiceOptions>()
                     .Bind(hostContext.Configuration.GetSection("Server"))
                     // Configure the authentication options
-                    .Configure(serverOptions =>
+                    .Configure(options =>
+                        options.AuthenticationOptions = new SslServerAuthenticationOptions()
                         {
-                            serverOptions.AuthenticationOptions = new SslServerAuthenticationOptions()
-                            {
-                                ServerCertificate = new X509Certificate2(
-                                    hostContext.Configuration.GetValue<string>("Certificate:File"),
-                                    hostContext.Configuration.GetValue<string>("Certificate:Password"))
-                            };
-                        })
-                    // Configure the dispatcher
-                    .Configure((ServerOptions serverOptions, IDispatcher dispatcher) =>
-                        serverOptions.Dispatcher = dispatcher);
+                            ServerCertificate = new X509Certificate2(
+                                hostContext.Configuration.GetValue<string>("Certificate:File"),
+                                hostContext.Configuration.GetValue<string>("Certificate:Password"))
+                        });
             });
+
+    /// <summary>The options class for <see cref="ClientHostedService"/>.</summary>
+    public class ServerHostedServiceOptions
+    {
+        public SslServerAuthenticationOptions? AuthenticationOptions { get; set; }
+
+        public TimeSpan CloseTimeout { get; set; }
+
+        public Endpoint Endpoint { get; set; }
+    }
 
     /// <summary>The server hosted service is ran and managed by the .NET Generic Host</summary>
     private class ServerHostedService : IHostedService, IAsyncDisposable
@@ -67,8 +72,20 @@ public static class Program
         // The IceRPC server to accept connections from IceRPC clients.
         private readonly Server _server;
 
-        public ServerHostedService(IOptions<ServerOptions> options) =>
-            _server = new Server(options.Value);
+        public ServerHostedService(
+            IDispatcher dispatcher,
+            IOptions<ServerHostedServiceOptions> options)
+        {
+            var serverOptions = new ServerOptions
+            {
+                AuthenticationOptions = options.Value.AuthenticationOptions,
+                CloseTimeout = options.Value.CloseTimeout,
+                Dispatcher = dispatcher,
+                Endpoint = options.Value.Endpoint,
+            };
+
+            _server = new Server(serverOptions);
+        }
 
         public ValueTask DisposeAsync() => _server.DisposeAsync();
 
