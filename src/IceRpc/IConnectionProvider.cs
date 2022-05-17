@@ -4,7 +4,7 @@ using IceRpc.Transports;
 
 namespace IceRpc
 {
-    /// <summary>Provides connections to the <see cref="BinderInterceptor"/> interceptor.</summary>
+    /// <summary>Provides connection based on the given endpoints.</summary>
     public interface IConnectionProvider
     {
         /// <summary>Retrieves or creates a connection.</summary>

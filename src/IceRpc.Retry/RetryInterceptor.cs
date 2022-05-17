@@ -11,7 +11,7 @@ using System.Diagnostics;
 namespace IceRpc.Retry;
 
 /// <summary>The retry interceptor is responsible for retrying requests when there is a retryable failure, it is
-/// typically configured before the <see cref="BinderInterceptor"/>.</summary>
+/// typically configured before the binder interceptor.</summary>
 public class RetryInterceptor : IInvoker
 {
     private readonly ILogger _logger;
