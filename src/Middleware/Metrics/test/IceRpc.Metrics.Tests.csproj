@@ -23,9 +23,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\IceRpc\IceRpc.csproj" />
-    <ProjectReference Include="..\..\..\src\Middleware\Metrics\src\IceRpc.Metrics.csproj" />
-    <ProjectReference Include="..\..\IceRpc.Tests.Common\IceRpc.Tests.Common.csproj" />
+    <ProjectReference Include="..\..\..\IceRpc\IceRpc.csproj" />
+    <ProjectReference Include="..\src\IceRpc.Metrics.csproj" />
+    <ProjectReference Include="..\..\..\..\tests\IceRpc.Tests.Common\IceRpc.Tests.Common.csproj" />
   </ItemGroup>
 
 </Project>
