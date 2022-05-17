@@ -5,7 +5,7 @@ namespace IceRpc.Slice;
 /// <summary>A feature to customize the decoding of request and response payloads.</summary>
 public interface ISliceDecodeFeature
 {
-    /// <summary>Gets the activator to use when decoding Slice classes, exceptions and traits. When <c>null</c>, the
+    /// <summary>Gets the activator to use when decoding Slice classes, exceptions, and traits. When <c>null</c>, the
     /// decoding of a request or response payload uses the activator injected by the Slice generated code.</summary>
     IActivator? Activator { get; }
 
