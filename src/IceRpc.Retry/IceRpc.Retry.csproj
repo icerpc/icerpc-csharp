@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <Title>IceRpc Retry Interceptor</Title>
+        <AssemblyName>IceRpc.Retry</AssemblyName>
+        <Title>IceRpc Retry</Title>
         <TargetFramework>net6.0</TargetFramework>
         <AnalysisMode>AllEnabledByDefault</AnalysisMode>
         <PackageVersion>$(IceRpcVersion)</PackageVersion>
         <Authors>ZeroC</Authors>
-        <PackageId>icerpc.retry.interceptor</PackageId>
+        <PackageId>icerpc.retry</PackageId>
         <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/zeroc-ice/icerpc-csharp</PackageProjectUrl>
         <Copyright>Copyright (c) ZeroC, Inc. All rights reserved</Copyright>
-        <Description>IceRPC retry interceptor.</Description>
+        <Description>IceRPC Retry.</Description>
         <PackageReleaseNotes>TODO</PackageReleaseNotes>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
         <PackageTags>IceRPC</PackageTags>

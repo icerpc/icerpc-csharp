@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <Title>IceRpc Metrics Interceptor</Title>
+        <AssemblyName>IceRpc.Logger</AssemblyName>
+        <Title>IceRpc Metrics</Title>
         <TargetFramework>net6.0</TargetFramework>
         <AnalysisMode>AllEnabledByDefault</AnalysisMode>
         <PackageVersion>$(IceRpcVersion)</PackageVersion>
         <Authors>ZeroC</Authors>
-        <PackageId>icerpc.metrics.interceptor</PackageId>
+        <PackageId>icerpc.metrics</PackageId>
         <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/zeroc-ice/icerpc-csharp</PackageProjectUrl>
         <Copyright>Copyright (c) ZeroC, Inc. All rights reserved</Copyright>
