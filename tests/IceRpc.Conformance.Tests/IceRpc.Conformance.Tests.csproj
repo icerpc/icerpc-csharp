@@ -5,7 +5,6 @@
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>
     <TargetFramework>net6.0</TargetFramework>
     <IsPackable>true</IsPackable>
-    <RunSettingsFilePath>$(MSBuildThisFileDirectory)..\test.runsettings</RunSettingsFilePath>
     <ThreadPoolMinThreads>50</ThreadPoolMinThreads>
   </PropertyGroup>
 
