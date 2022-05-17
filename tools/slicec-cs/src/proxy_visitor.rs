@@ -79,7 +79,7 @@ private static readonly IActivator _defaultActivator =
     SliceDecoder.GetActivator(typeof({prx_impl}).Assembly);
 
 /// <inheritdoc/>
-public IceRpc.Configure.SliceEncodeOptions? EncodeOptions {{ get; init; }}
+public ISliceEncodeFeature? EncodeFeature {{ get; init; }}
 
 /// <inheritdoc/>
 public IceRpc.Proxy Proxy {{ get; init; }}"#,
@@ -92,7 +92,7 @@ public IceRpc.Proxy Proxy {{ get; init; }}"#,
                 format!(
                     r#"
 /// <summary>Implicit conversion to <see cref="{base_impl}"/>.</summary>
-public static implicit operator {base_impl}({prx_impl} prx) => new(prx.Proxy, prx.EncodeOptions);"#,
+public static implicit operator {base_impl}({prx_impl} prx) => new(prx.Proxy, prx.EncodeFeature);"#,
                     base_impl = base_impl,
                     prx_impl = prx_impl
                 )
@@ -130,7 +130,7 @@ public static {prx_impl} FromConnection(
     IceRpc.IInvoker? invoker = null) =>
     new(
         IceRpc.Proxy.FromConnection(connection, path ?? DefaultPath, invoker),
-        connection.Features.Get<IceRpc.Configure.SliceEncodeOptions>());
+        connection.Features.Get<ISliceEncodeFeature>());
 
 /// <summary>Creates a new relative proxy with the given path.</summary>
 /// <param name="path">The path.</param>
@@ -171,11 +171,11 @@ public static bool TryParse(string s, IceRpc.IInvoker? invoker, IceRpc.IProxyFor
 
 /// <summary>Constructs an instance of <see cref="{prx_impl}"/> from a proxy.</summary>
 /// <param name="proxy">The proxy to the remote service.</param>
-/// <param name="encodeOptions">The Slice encode options (optional).</param>
-public {prx_impl}(IceRpc.Proxy proxy, IceRpc.Configure.SliceEncodeOptions? encodeOptions = null)
+/// <param name="encodeFeature">The Slice encode featire (optional).</param>
+public {prx_impl}(IceRpc.Proxy proxy, ISliceEncodeFeature? encodeFeature = null)
 {{
     Proxy = proxy;
-    EncodeOptions = encodeOptions;
+    EncodeFeature = encodeFeature;
 }}
 
 /// <inheritdoc/>
@@ -244,7 +244,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
         invocation_builder.add_argument(&format!("{}.CreateSizeZeroPayload()", encoding));
     } else {
         invocation_builder.add_argument(&format!(
-            "Request.{}({}, sliceEncodeOptions: EncodeOptions)",
+            "Request.{}({}, sliceEncodeFeature: EncodeFeature)",
             operation_name,
             parameters
                 .iter()
@@ -272,7 +272,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
                     ))
                     .use_semi_colon(false)
                     .add_argument(&stream_parameter_name)
-                    .add_argument("this.EncodeOptions")
+                    .add_argument("this.EncodeFeature")
                     .add_argument(
                         encode_action(
                             stream_type,
@@ -423,10 +423,10 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         }
 
         builder.add_parameter(
-            "IceRpc.Configure.SliceEncodeOptions?",
-            "sliceEncodeOptions",
+            "ISliceEncodeFeature?",
+            "sliceEncodeFeature",
             Some("null"),
-            Some("The Slice encode options."),
+            Some("The Slice encode feature."),
         );
 
         builder.add_comment(
@@ -494,8 +494,8 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         builder.add_parameter("IceRpc.IncomingResponse", "response", None, None);
         builder.add_parameter("IceRpc.OutgoingRequest", "request", None, None);
         builder.add_parameter(
-            "IceRpc.Configure.SliceEncodeOptions?",
-            "encodeOptions",
+            "ISliceEncodeFeature?",
+            "encodeFeature",
             None, // TODO: switch to null
             None,
         );
@@ -529,7 +529,7 @@ await response.DecodeVoidReturnValueAsync(
     request,
     {encoding},
     _defaultActivator,
-    encodeOptions,
+    encodeFeature,
     cancel).ConfigureAwait(false);
 
 return {decode_operation_stream}
@@ -552,7 +552,7 @@ var {return_value} = await response.DecodeReturnValueAsync(
     request,
     {encoding},
     _defaultActivator,
-    encodeOptions,
+    encodeFeature,
     {response_decode_func},
     cancel).ConfigureAwait(false);
 
@@ -582,7 +582,7 @@ response.DecodeReturnValueAsync(
     request,
     {encoding},
     _defaultActivator,
-    encodeOptions,
+    encodeFeature,
     {response_decode_func},
     cancel)",
             encoding = encoding,

@@ -72,8 +72,8 @@ namespace IceRpc.Slice
         // The maximum depth when decoding a type recursively.
         private readonly int _maxDepth;
 
-        // The Slice encode options of Prx structs decoded using this decoder.
-        private readonly SliceEncodeOptions? _prxEncodeOptions;
+        // The Slice encode feature of Prx structs decoded using this decoder.
+        private readonly ISliceEncodeFeature? _prxEncodeFeature;
 
         // The sequence reader.
         private SequenceReader<byte> _reader;
@@ -85,7 +85,7 @@ namespace IceRpc.Slice
         /// <param name="connection">The connection, used only when decoding relative proxies (optional).</param>
         /// <param name="invoker">The invoker of proxies decoded by this decoder. Use null to get the default invoker.
         /// </param>
-        /// <param name="prxEncodeOptions">The Slice encode options of Prx structs decoded using this decoder
+        /// <param name="prxEncodeFeature">The Slice encode feature of Prx structs decoded using this decoder
         /// (optional).</param>
         /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
         /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
@@ -97,7 +97,7 @@ namespace IceRpc.Slice
             IActivator? activator = null,
             IConnection? connection = null,
             IInvoker? invoker = null,
-            SliceEncodeOptions? prxEncodeOptions = null,
+            ISliceEncodeFeature? prxEncodeFeature = null,
             int maxCollectionAllocation = -1,
             int maxDepth = 3)
         {
@@ -111,7 +111,7 @@ namespace IceRpc.Slice
 
             _connection = connection;
             _invoker = invoker ?? Proxy.DefaultInvoker;
-            _prxEncodeOptions = prxEncodeOptions;
+            _prxEncodeFeature = prxEncodeFeature;
 
             _maxCollectionAllocation = maxCollectionAllocation == -1 ? 8 * (int)buffer.Length :
                 (maxCollectionAllocation >= 0 ? maxCollectionAllocation :
@@ -132,7 +132,7 @@ namespace IceRpc.Slice
         /// <param name="connection">The connection, used only when decoding relative proxies (optional).</param>
         /// <param name="invoker">The invoker of proxies decoded by this decoder. Use null to get the default invoker.
         /// </param>
-        /// <param name="prxEncodeOptions">The Slice encode options of Prx structs decoded using this decoder
+        /// <param name="prxEncodeFeature">The Slice encode feature of Prx structs decoded using this decoder
         /// (optional).</param>
         /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
         /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
@@ -144,7 +144,7 @@ namespace IceRpc.Slice
             IActivator? activator = null,
             IConnection? connection = null,
             IInvoker? invoker = null,
-            SliceEncodeOptions? prxEncodeOptions = null,
+            ISliceEncodeFeature? prxEncodeFeature = null,
             int maxCollectionAllocation = -1,
             int maxDepth = 3)
             : this(
@@ -153,7 +153,7 @@ namespace IceRpc.Slice
                 activator,
                 connection,
                 invoker,
-                prxEncodeOptions,
+                prxEncodeFeature,
                 maxCollectionAllocation,
                 maxDepth)
         {
@@ -362,7 +362,7 @@ namespace IceRpc.Slice
                 throw new InvalidOperationException($"decoding a nullable Prx with {Encoding} requires a bit sequence");
             }
             string path = this.DecodeIdentityPath();
-            return path != "/" ? new TPrx { Proxy = DecodeProxy(path), EncodeOptions = _prxEncodeOptions } : null;
+            return path != "/" ? new TPrx { Proxy = DecodeProxy(path), EncodeFeature = _prxEncodeFeature } : null;
         }
 
         /// <summary>Decodes a Prx struct.</summary>
@@ -373,7 +373,7 @@ namespace IceRpc.Slice
             if (Encoding == SliceEncoding.Slice1)
             {
                 string path = this.DecodeIdentityPath();
-                return path != "/" ? new TPrx { Proxy = DecodeProxy(path), EncodeOptions = _prxEncodeOptions } :
+                return path != "/" ? new TPrx { Proxy = DecodeProxy(path), EncodeFeature = _prxEncodeFeature } :
                     throw new InvalidDataException("decoded null for a non-nullable proxy");
             }
             else
@@ -391,7 +391,7 @@ namespace IceRpc.Slice
                         return new TPrx
                         {
                             Proxy = Proxy.FromConnection(_connection, proxyString, _invoker),
-                            EncodeOptions = _prxEncodeOptions
+                            EncodeFeature = _prxEncodeFeature
                         };
                     }
                     else
@@ -404,7 +404,7 @@ namespace IceRpc.Slice
                         return new TPrx
                         {
                             Proxy = proxy,
-                            EncodeOptions = _prxEncodeOptions
+                            EncodeFeature = _prxEncodeFeature
                         };
                     }
                 }

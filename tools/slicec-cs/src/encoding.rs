@@ -687,7 +687,7 @@ pub fn encode_operation(
     format!(
         "\
 var pipe_ = new global::System.IO.Pipelines.Pipe(
-    sliceEncodeOptions?.PipeOptions ?? IceRpc.Configure.SliceEncodeOptions.DefaultPipeOptions);
+    sliceEncodeFeature?.PipeOptions ?? SliceEncodeFeature.Default.PipeOptions);
 var encoder_ = new SliceEncoder(pipe_.Writer, {encoding}, {class_format});
 
 {size_placeholder_and_start_position}

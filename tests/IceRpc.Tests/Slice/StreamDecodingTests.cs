@@ -36,31 +36,10 @@ public sealed class StreamDecodingTests
     }
 
     [Test]
-    public void StreamDecoder_Options()
-    {
-        Assert.That(
-            () => new SliceStreamDecoderOptions(pauseWriterThreshold: -2),
-            Throws.TypeOf<ArgumentOutOfRangeException>());
-        Assert.That(
-            () => new SliceStreamDecoderOptions(pauseWriterThreshold: 100, resumeWriterThreshold: 200),
-            Throws.TypeOf<ArgumentOutOfRangeException>());
-        Assert.That(
-            () => new SliceStreamDecoderOptions(pauseWriterThreshold: 0, resumeWriterThreshold: 200),
-            Throws.TypeOf<ArgumentOutOfRangeException>());
-        Assert.That(
-            () => new SliceStreamDecoderOptions(pauseWriterThreshold: -1, resumeWriterThreshold: 200),
-            Throws.Nothing);
-        Assert.That(
-            () => new SliceStreamDecoderOptions(pauseWriterThreshold: 0, resumeWriterThreshold: 0),
-            Throws.Nothing);
-    }
-
-    [Test]
     public async Task StreamDecoder_SlowReader()
     {
-        var streamDecoder = new StreamDecoder<int>(
-            DecodeBufferIntoInts,
-            new SliceStreamDecoderOptions(pauseWriterThreshold: 500)); // 500 bytes, 125 ints
+        // 500 bytes, 125 ints
+        var streamDecoder = new StreamDecoder<int>(DecodeBufferIntoInts, pauseWriterThreshold: 500);
 
         var buffer = CreateBuffer(value: 123, count: 100);
         Assert.That(await streamDecoder.WriteAsync(buffer, default), Is.False); // 100 ints, 400 bytes
@@ -107,7 +86,7 @@ public sealed class StreamDecodingTests
     {
         // The reader pauses because the queue if often empty.
 
-        var streamDecoder = new StreamDecoder<int>(DecodeBufferIntoInts);
+        var streamDecoder = new StreamDecoder<int>(DecodeBufferIntoInts, pauseWriterThreshold: 1024);
 
         IAsyncEnumerable<int> asyncEnumerable = streamDecoder.ReadAsync();
         IAsyncEnumerator<int> asyncEnumerator = asyncEnumerable.GetAsyncEnumerator();
@@ -143,9 +122,7 @@ public sealed class StreamDecodingTests
     [Test]
     public async Task StreamDecoder_WriterNoPause()
     {
-        var streamDecoder = new StreamDecoder<int>(
-            DecodeBufferIntoInts,
-            new SliceStreamDecoderOptions(pauseWriterThreshold: 0)); // no pause threshold
+        var streamDecoder = new StreamDecoder<int>(DecodeBufferIntoInts, pauseWriterThreshold: 0);
 
         // Write 20,000 ints (20,000 * 4 > 64K)
 
@@ -171,7 +148,7 @@ public sealed class StreamDecodingTests
     [TestCase(false)]
     public async Task StreamDecoder_CancelRead(bool callCancel)
     {
-        var streamDecoder = new StreamDecoder<int>(DecodeBufferIntoInts);
+        var streamDecoder = new StreamDecoder<int>(DecodeBufferIntoInts, pauseWriterThreshold: 0);
 
         Task readerTask = Task.Run(async () =>
         {

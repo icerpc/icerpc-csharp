@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Configure;
 using IceRpc.Internal;
 using System.Buffers;
 using System.IO.Pipelines;
@@ -14,28 +13,28 @@ namespace IceRpc.Slice.Internal
         /// <summary>Decodes arguments or a response value from a pipe reader.</summary>
         /// <param name="frame">The incoming frame.</param>
         /// <param name="encoding">The Slice encoding version.</param>
-        /// <param name="decodeOptions">The decode options.</param>
+        /// <param name="decodeFeature">The decode feature.</param>
         /// <param name="defaultActivator">The default activator.</param>
         /// <param name="defaultInvoker">The default invoker.</param>
-        /// <param name="prxEncodeOptions">The encode options of decoded prx structs.</param>
+        /// <param name="prxEncodeFeature">The encode feature of decoded prx structs.</param>
         /// <param name="decodeFunc">The decode function for the payload arguments or return value.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The decode value.</returns>
         internal static ValueTask<T> DecodeValueAsync<T>(
             this IncomingFrame frame,
             SliceEncoding encoding,
-            SliceDecodeOptions? decodeOptions,
+            ISliceDecodeFeature? decodeFeature,
             IActivator? defaultActivator,
             IInvoker defaultInvoker,
-            SliceEncodeOptions? prxEncodeOptions,
+            ISliceEncodeFeature? prxEncodeFeature,
             DecodeFunc<T> decodeFunc,
             CancellationToken cancel)
         {
-            decodeOptions ??= SliceDecodeOptions.Default;
+            decodeFeature ??= SliceDecodeFeature.Default;
 
             return frame.Payload.TryReadSegment(
                 encoding,
-                decodeOptions.MaxSegmentSize,
+                decodeFeature.MaxSegmentSize,
                 out ReadResult readResult) ? new(DecodeSegment(readResult)) :
                 PerformDecodeAsync();
 
@@ -50,12 +49,12 @@ namespace IceRpc.Slice.Internal
                 var decoder = new SliceDecoder(
                     readResult.Buffer,
                     encoding,
-                    decodeOptions.Activator ?? defaultActivator,
+                    decodeFeature.Activator ?? defaultActivator,
                     frame.Connection,
-                    decodeOptions.ProxyInvoker ?? defaultInvoker,
-                    prxEncodeOptions,
-                    maxCollectionAllocation: decodeOptions.MaxCollectionAllocation,
-                    maxDepth: decodeOptions.MaxDepth);
+                    decodeFeature.ProxyInvoker ?? defaultInvoker,
+                    prxEncodeFeature,
+                    maxCollectionAllocation: decodeFeature.MaxCollectionAllocation,
+                    maxDepth: decodeFeature.MaxDepth);
                 T value = decodeFunc(ref decoder);
                 decoder.CheckEndOfBuffer(skipTaggedParams: true);
 
@@ -66,26 +65,26 @@ namespace IceRpc.Slice.Internal
             async ValueTask<T> PerformDecodeAsync() =>
                 DecodeSegment(await frame.Payload.ReadSegmentAsync(
                     encoding,
-                    decodeOptions.MaxSegmentSize,
+                    decodeFeature.MaxSegmentSize,
                     cancel).ConfigureAwait(false));
         }
 
         /// <summary>Reads/decodes empty args or a void return value.</summary>
         /// <param name="frame">The incoming frame.</param>
         /// <param name="encoding">The Slice encoding version.</param>
-        /// <param name="decodeOptions">The decode options.</param>
+        /// <param name="decodeFeature">The decode feature.</param>
         /// <param name="cancel">The cancellation token.</param>
         internal static ValueTask DecodeVoidAsync(
             this IncomingFrame frame,
             SliceEncoding encoding,
-            SliceDecodeOptions? decodeOptions,
+            ISliceDecodeFeature? decodeFeature,
             CancellationToken cancel)
         {
-            decodeOptions ??= SliceDecodeOptions.Default;
+            decodeFeature ??= SliceDecodeFeature.Default;
 
             if (frame.Payload.TryReadSegment(
                     encoding,
-                    decodeOptions.MaxSegmentSize,
+                    decodeFeature.MaxSegmentSize,
                     out ReadResult readResult))
             {
                 DecodeSegment(readResult);
@@ -115,31 +114,34 @@ namespace IceRpc.Slice.Internal
             async ValueTask PerformDecodeAsync() =>
                 DecodeSegment(await frame.Payload.ReadSegmentAsync(
                     encoding,
-                    decodeOptions.MaxSegmentSize,
+                    decodeFeature.MaxSegmentSize,
                     cancel).ConfigureAwait(false));
         }
 
         /// <summary>Creates an async enumerable over a pipe reader to decode streamed members.</summary>
         /// <param name="frame">The incoming frame.</param>
         /// <param name="encoding">The Slice encoding version.</param>
-        /// <param name="decodeOptions">The decode options.</param>
+        /// <param name="decodeFeature">The decode feature.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
         /// <param name="defaultInvoker">The default invoker.</param>
-        /// <param name="prxEncodeOptions">The encode options of decoded prx structs.</param>
+        /// <param name="prxEncodeFeature">The encode feature of decoded prx structs.</param>
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
         /// <returns>The async enumerable to decode and return the streamed members.</returns>
         internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this IncomingFrame frame,
             SliceEncoding encoding,
-            SliceDecodeOptions? decodeOptions,
+            ISliceDecodeFeature? decodeFeature,
             IActivator? defaultActivator,
             IInvoker defaultInvoker,
-            SliceEncodeOptions? prxEncodeOptions,
+            ISliceEncodeFeature? prxEncodeFeature,
             DecodeFunc<T> decodeFunc)
         {
             IConnection connection = frame.Connection;
-            decodeOptions ??= SliceDecodeOptions.Default;
-            var streamDecoder = new StreamDecoder<T>(DecodeBufferFunc, decodeOptions.StreamDecoderOptions);
+            decodeFeature ??= SliceDecodeFeature.Default;
+            var streamDecoder = new StreamDecoder<T>(
+                DecodeBufferFunc,
+                decodeFeature.StreamPauseWriterThreshold,
+                decodeFeature.StreamPauseWriterThreshold);
 
             PipeReader payload = frame.Payload;
             frame.Payload = InvalidPipeReader.Instance; // payload is now our responsibility
@@ -150,7 +152,7 @@ namespace IceRpc.Slice.Internal
                 () => FillWriterAsync(
                     payload,
                     encoding,
-                    decodeOptions,
+                    decodeFeature,
                     streamDecoder),
                 CancellationToken.None);
 
@@ -163,12 +165,12 @@ namespace IceRpc.Slice.Internal
                 var decoder = new SliceDecoder(
                     buffer,
                     encoding,
-                    decodeOptions.Activator ?? defaultActivator,
+                    decodeFeature.Activator ?? defaultActivator,
                     connection,
-                    decodeOptions.ProxyInvoker ?? defaultInvoker,
-                    prxEncodeOptions,
-                    maxCollectionAllocation: decodeOptions.MaxCollectionAllocation,
-                    maxDepth: decodeOptions.MaxDepth);
+                    decodeFeature.ProxyInvoker ?? defaultInvoker,
+                    prxEncodeFeature,
+                    maxCollectionAllocation: decodeFeature.MaxCollectionAllocation,
+                    maxDepth: decodeFeature.MaxDepth);
 
                 var items = new List<T>();
                 do
@@ -183,7 +185,7 @@ namespace IceRpc.Slice.Internal
             async static Task FillWriterAsync(
                 PipeReader payload,
                 SliceEncoding encoding,
-                SliceDecodeOptions decodeOptions,
+                ISliceDecodeFeature decodeFeature,
                 StreamDecoder<T> streamDecoder)
             {
                 while (true)
@@ -202,7 +204,7 @@ namespace IceRpc.Slice.Internal
                     {
                         readResult = await payload.ReadSegmentAsync(
                             encoding,
-                            decodeOptions.MaxSegmentSize,
+                            decodeFeature.MaxSegmentSize,
                             cancel).ConfigureAwait(false);
 
                     }
@@ -253,20 +255,20 @@ namespace IceRpc.Slice.Internal
         /// <summary>Creates an async enumerable over a pipe reader to decode streamed members.</summary>
         /// <param name="frame">The incoming frame.</param>
         /// <param name="encoding">The Slice encoding version.</param>
-        /// <param name="decodeOptions">The decode options.</param>
+        /// <param name="decodeFeature">The decode feature.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
         /// <param name="defaultInvoker">The default invoker.</param>
-        /// <param name="prxEncodeOptions">The encode options of decoded prx structs.</param>
+        /// <param name="prxEncodeFeature">The encode feature of decoded prx structs.</param>
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
         /// <param name="elementSize">The size in bytes of the streamed elements.</param>
         /// <returns>The async enumerable to decode and return the streamed members.</returns>
         internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this IncomingFrame frame,
             SliceEncoding encoding,
-            SliceDecodeOptions? decodeOptions,
+            ISliceDecodeFeature? decodeFeature,
             IActivator? defaultActivator,
             IInvoker defaultInvoker,
-            SliceEncodeOptions? prxEncodeOptions,
+            ISliceEncodeFeature? prxEncodeFeature,
             DecodeFunc<T> decodeFunc,
             int elementSize)
         {
@@ -275,10 +277,13 @@ namespace IceRpc.Slice.Internal
                 throw new ArgumentException("element size must be greater than 0");
             }
 
-            decodeOptions ??= SliceDecodeOptions.Default;
+            decodeFeature ??= SliceDecodeFeature.Default;
 
             IConnection connection = frame.Connection;
-            var streamDecoder = new StreamDecoder<T>(DecodeBufferFunc, decodeOptions.StreamDecoderOptions);
+            var streamDecoder = new StreamDecoder<T>(
+                DecodeBufferFunc,
+                decodeFeature.StreamPauseWriterThreshold,
+                decodeFeature.StreamResumeWriterThreshold);
 
             PipeReader payload = frame.Payload;
             frame.Payload = InvalidPipeReader.Instance; // payload is now our responsibility
@@ -286,7 +291,7 @@ namespace IceRpc.Slice.Internal
             // We read the payload and fill the writer (streamDecoder) in a separate thread. We don't give the frame to
             // this thread since frames are not thread-safe.
             _ = Task.Run(
-                () => _ = FillWriterAsync(payload, encoding, decodeOptions, streamDecoder, elementSize),
+                () => _ = FillWriterAsync(payload, encoding, decodeFeature, streamDecoder, elementSize),
                 CancellationToken.None);
 
             // when CancelPendingRead is called on reader, ReadSegmentAsync returns a ReadResult with IsCanceled
@@ -298,12 +303,12 @@ namespace IceRpc.Slice.Internal
                 var decoder = new SliceDecoder(
                     buffer,
                     encoding,
-                    decodeOptions.Activator ?? defaultActivator,
+                    decodeFeature.Activator ?? defaultActivator,
                     connection,
-                    decodeOptions.ProxyInvoker ?? defaultInvoker,
-                    prxEncodeOptions,
-                    maxCollectionAllocation: decodeOptions.MaxCollectionAllocation,
-                    maxDepth: decodeOptions.MaxDepth);
+                    decodeFeature.ProxyInvoker ?? defaultInvoker,
+                    prxEncodeFeature,
+                    maxCollectionAllocation: decodeFeature.MaxCollectionAllocation,
+                    maxDepth: decodeFeature.MaxDepth);
 
                 var items = new List<T>();
                 do
@@ -318,7 +323,7 @@ namespace IceRpc.Slice.Internal
             async static Task FillWriterAsync(
                 PipeReader payload,
                 SliceEncoding encoding,
-                SliceDecodeOptions decodeOptions,
+                ISliceDecodeFeature decodeFeature,
                 StreamDecoder<T> streamDecoder,
                 int elementSize)
             {

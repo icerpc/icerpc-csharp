@@ -617,7 +617,7 @@ pub fn decode_operation_stream(
         .add_argument_unless(dispatch, "request")
         .add_argument(cs_encoding)
         .add_argument("_defaultActivator")
-        .add_argument_unless(dispatch, "encodeOptions")
+        .add_argument_unless(dispatch, "encodeFeature")
         .add_argument(&decode_func(param_type, namespace, encoding).indent())
         .add_argument_if(param_type.is_fixed_size(), &param_type.min_wire_size())
         .build(),

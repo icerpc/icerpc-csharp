@@ -62,7 +62,7 @@ immediately encodes the return value of operation {operation_name}."#,
 
             constructor_builder.set_body(
                 format!(
-                    "Payload = Response.{operation_name}(returnValue, dispatch.EncodeOptions)",
+                    "Payload = Response.{operation_name}(returnValue, dispatch.EncodeFeature)",
                     operation_name = operation_name
                 )
                 .into(),
@@ -81,7 +81,7 @@ immediately encodes the return value of operation {operation_name}."#,
 
             constructor_builder.set_body(
                 format!(
-                    "Payload = Response.{operation_name}({args}, dispatch.EncodeOptions)",
+                    "Payload = Response.{operation_name}({args}, dispatch.EncodeFeature)",
                     operation_name = operation_name,
                     args = parameters
                         .iter()
