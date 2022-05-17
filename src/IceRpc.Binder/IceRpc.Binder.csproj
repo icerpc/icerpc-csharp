@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <AssemblyName>IceRpc.Binder</AssemblyName>
+        <Title>IceRpc Binder</Title>
+        <TargetFramework>net6.0</TargetFramework>
+        <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+        <PackageVersion>$(IceRpcVersion)</PackageVersion>
+        <Authors>ZeroC</Authors>
+        <PackageId>icerpc.binder</PackageId>
+        <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/zeroc-ice/icerpc-csharp</PackageProjectUrl>
+        <Copyright>Copyright (c) ZeroC, Inc. All rights reserved</Copyright>
+        <Description>IceRPC Binder.</Description>
+        <PackageReleaseNotes>TODO</PackageReleaseNotes>
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+        <PackageTags>IceRPC</PackageTags>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\IceRpc\IceRpc.csproj" />
+    </ItemGroup>
+</Project>

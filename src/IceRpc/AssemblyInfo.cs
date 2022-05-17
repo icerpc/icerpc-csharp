@@ -6,12 +6,15 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("IceRpc.Coloc")] // necessary to use IceRpc.Transports.Internal.AsyncQueue
 [assembly: InternalsVisibleTo("IceRpc.Interop")]
 
+[assembly: InternalsVisibleTo("IceRpc.Logger")] // For IceRpc.Internal.BaseEventIds
+[assembly: InternalsVisibleTo("IceRpc.Retry")] // For IceRpc.Internal.BaseEventIds
+
 // Make internals visible to the tests assembly, to allow writing unit tests for the internal classes
 [assembly: InternalsVisibleTo("IceRpc.Tests")]
 [assembly: InternalsVisibleTo("IceRpc.Interop.Tests")]
 [assembly: InternalsVisibleTo("IceRpc.Conformance.Tests")]
 [assembly: InternalsVisibleTo("IceRpc.Tests.Common")]
 
-// TODO: remove the attributes below after finish restructuring the tests
-[assembly: InternalsVisibleTo("IceRpc.Tests.Internal")]
-[assembly: InternalsVisibleTo("IceRpc.Tests.SliceInternal")]
+[assembly: InternalsVisibleTo("IceRpc.Retry.Tests")] // For EmptyPipeReader
+[assembly: InternalsVisibleTo("IceRpc.Telemetry.Tests")] // For EmptyPipeReader
+[assembly: InternalsVisibleTo("IceRpc.Deflate.Tests")]

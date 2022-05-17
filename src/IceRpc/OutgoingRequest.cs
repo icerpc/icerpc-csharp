@@ -8,8 +8,7 @@ namespace IceRpc
     public sealed class OutgoingRequest : OutgoingFrame
     {
         /// <summary>Gets or sets the connection associated with this request. This connection is used by the
-        /// <see cref="Proxy.DefaultInvoker"/> to send the request and by interceptors such as the
-        /// <see cref="BinderInterceptor"/> to agree on which connection to use. While this connection is usually the
+        /// <see cref="Proxy.DefaultInvoker"/> to send the request. While this connection is usually the
         /// connection used to send this request and receive the corresponding response, an invoker can use a different
         /// connection without setting this property.</summary>
         /// <value>The connection associated with this request. Its initial value is <see cref="Proxy.Connection"/>.

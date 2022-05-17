@@ -1,0 +1,10 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc::Slice::Tests;
+
+// Used for testing the generated code corresponding to proxy and dispatch visitors.
+interface MyOperationsA
+{
+    // Compress attribute
+    [compress(Args, Return)] opWithCompressArgsAndReturnAttribute(p: int32) -> int32;
+}
