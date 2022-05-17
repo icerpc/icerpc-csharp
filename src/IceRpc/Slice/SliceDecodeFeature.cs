@@ -5,7 +5,7 @@ namespace IceRpc.Slice;
 /// <summary>The default implementation for <see cref="ISliceDecodeFeature"/>.</summary>
 public sealed class SliceDecodeFeature : ISliceDecodeFeature
 {
-    /// <summary>Returns the default instance of <see cref="SliceDecodeFeature"/>.</summary>
+    /// <summary>Gets the default instance of <see cref="SliceDecodeFeature"/>.</summary>
     public static SliceDecodeFeature Default { get; } = new();
 
     /// <inheritdoc/>
@@ -23,8 +23,9 @@ public sealed class SliceDecodeFeature : ISliceDecodeFeature
     /// <value>The default value is 100.</value>
     public int MaxDepth { get; init; } = 100;
 
-    /// <summary>Gets or initializes the maximum size of a Slice payload segment, in bytes. This limit applies only to
-    /// payloads about to be decoded.</summary>
+    /// <summary>Gets or initializes the maximum size of a Slice payload segment, in bytes. A Slice payload segment
+    /// corresponds to the encoded arguments of an operation, the encoded return values of an operation, or a portion
+    /// of a stream of variable-size elements.</summary>
     /// <value>The default value is 1 MB.</value>
     public int MaxSegmentSize { get; init; } = 1024 * 1024;
 

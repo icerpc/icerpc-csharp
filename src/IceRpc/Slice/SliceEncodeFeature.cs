@@ -8,7 +8,7 @@ namespace IceRpc.Slice;
 /// <summary>The default implementation for <see cref="ISliceEncodeFeature"/>.</summary>
 public sealed class SliceEncodeFeature : ISliceEncodeFeature
 {
-    /// <summary>Returns the default instance of <see cref="ISliceEncodeFeature"/>.</summary>
+    /// <summary>Get the default instance of <see cref="ISliceEncodeFeature"/>.</summary>
     public static SliceEncodeFeature Default { get; } = new();
 
     /// <inheritdoc/>
