@@ -36,13 +36,6 @@ namespace IceRpc.Configure
         public static Router UseLogger(this Router router, ILoggerFactory loggerFactory) =>
             router.Use(next => new LoggerMiddleware(next, loggerFactory));
 
-        /// <summary>Adds a <see cref="MetricsMiddleware"/> to the router.</summary>
-        /// <param name="router">The router being configured.</param>
-        /// <param name="eventSource">The dispatch event source used to publish the metrics events.</param>
-        /// <returns>The router being configured.</returns>
-        public static Router UseMetrics(this Router router, DispatchEventSource eventSource) =>
-            router.Use(next => new MetricsMiddleware(next, eventSource));
-
         /// <summary>Adds a <see cref="TelemetryMiddleware"/> that uses the default <see cref="TelemetryOptions"/> to
         /// the router.</summary>
         /// <param name="router">The router being configured.</param>

@@ -2,8 +2,9 @@
 
 using NUnit.Framework;
 using System.Diagnostics.Tracing;
+using IceRpc.Tests;
 
-namespace IceRpc.Tests;
+namespace IceRpc.Metrics.Tests;
 
 public sealed class DispatchEventSourceTests
 {

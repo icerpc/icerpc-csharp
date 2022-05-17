@@ -3,7 +3,7 @@
 using NUnit.Framework;
 using System.Diagnostics.Tracing;
 
-namespace IceRpc.Tests;
+namespace IceRpc.Metrics.Tests;
 
 public sealed class InvocationEventSourceTests
 {

@@ -1,8 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using NUnit.Framework;
+using IceRpc.Tests;
 
-namespace IceRpc.Tests;
+namespace IceRpc.Metrics.Tests;
 
 [Timeout(5000)]
 public sealed class MetricsMiddlewareTests
