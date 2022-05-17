@@ -13,7 +13,8 @@ public interface ISliceEncodeFeature
     PipeOptions PipeOptions { get; }
 
     /// <summary>Gets the stream flush threshold. When encoding a Slice stream (async enumerable), the Slice engine
-    /// encodes the values provided by the source async enumerable into a pipe writer and only flushes when no new value
-    /// is available synchronously, or it has written some number of bytes to this pipe writer.</summary>
+    /// encodes the values provided by the source async enumerable into a pipe writer. The Slice engine flushes this
+    /// pipe writer when no new value is available synchronously, or when it has written StreamFlushThreshold bytes to
+    /// this pipe writer.</summary>
     int StreamFlushThreshold { get; }
 }
