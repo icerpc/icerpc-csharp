@@ -37,18 +37,6 @@ public class PrxTests
         Assert.That(derived, Is.Null);
     }
 
-    [Test]
-    public void Convert_prx_with_to_prx()
-    {
-        MyBaseInterfacePrx prx = MyBaseInterfacePrx.FromPath(MyBaseInterfacePrx.DefaultPath);
-
-        Assert.That(() =>
-        {
-            MyDerivedInterfacePrx derived = prx.ToPrx<MyDerivedInterfacePrx>();
-        },
-        Throws.Nothing);
-    }
-
     private class MyBaseInterface : Service, IMyBaseInterface
     {
     }
