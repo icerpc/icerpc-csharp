@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+    <AssemblyName>IceRpc.Metrics.Interceptor.Tests</AssemblyName>
     <TargetFramework>net6.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <ThreadPoolMinThreads>50</ThreadPoolMinThreads>

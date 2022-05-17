@@ -3,4 +3,4 @@
 using System.Runtime.CompilerServices;
 
 // Make internals visible to the tests assembly, to allow writing unit tests for the internal classes
-[assembly: InternalsVisibleTo("IceRpc.Metrics.Tests")]
+[assembly: InternalsVisibleTo("IceRpc.Metrics.Interceptor.Tests")]
