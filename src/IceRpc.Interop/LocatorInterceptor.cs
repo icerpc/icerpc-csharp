@@ -9,7 +9,7 @@ namespace IceRpc
 {
     /// <summary>A locator interceptor intercepts ice requests that have no connection and have either no endpoint, and
     /// attempts to assign a usable endpoint (and alt-endpoints) to such requests. This interceptor is typically installed
-    /// between retry and binder interceptors.</summary>
+    /// between the retry and binder interceptors.</summary>
     public class LocatorInterceptor : IInvoker
     {
         private readonly IInvoker _next;
