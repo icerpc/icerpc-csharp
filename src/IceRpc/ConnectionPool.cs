@@ -6,8 +6,7 @@ using IceRpc.Transports;
 
 namespace IceRpc
 {
-    /// <summary>A connection pool manages a pool of client connections and is a connection provider for the
-    /// <see cref="BinderInterceptor"/> interceptor.</summary>
+    /// <summary>A connection pool manages a pool of client connections and is a connection provider.</summary>
     public sealed partial class ConnectionPool : IConnectionProvider, IAsyncDisposable
     {
         private readonly ConnectionOptions _connectionOptions;
