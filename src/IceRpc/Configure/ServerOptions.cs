@@ -69,7 +69,7 @@ namespace IceRpc.Configure
 
         /// <summary>Gets or sets the logger factory used to create loggers to log connection-related activities.
         /// </summary>
-        public ILoggerFactory LoggerFactory { get; set; } = NullLoggerFactory.Instance;
+        public ILoggerFactory? LoggerFactory { get; set; }
 
         /// <summary>Gets or set an action that executes when the connection is closed.</summary>
         public Action<Connection, Exception>? OnClose { get; set; }

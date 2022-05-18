@@ -35,6 +35,7 @@
     <PackageReference Include="icerpc" Version="$(IceRpcVersion)" />
     <PackageReference Include="icerpc.logger" Version="$(IceRpcVersion)" />
     <PackageReference Include="icerpc.telemetry" Version="$(IceRpcVersion)" />
+    <PackageReference Include="icerpc.extensions.dependencyinjection" Version="$(IceRpcVersion)" />
     <Compile Update="generated\Hello.cs">
       <SliceCompileSource>../Hello.slice</SliceCompileSource>
     </Compile>

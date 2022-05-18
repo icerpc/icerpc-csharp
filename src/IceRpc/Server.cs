@@ -5,6 +5,7 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Net.Security;
 
 namespace IceRpc
@@ -132,7 +133,7 @@ namespace IceRpc
             {
                 // This is the composition root of Server, where we install log decorators when logging is enabled.
 
-                ILogger logger = _options.LoggerFactory.CreateLogger("IceRpc.Server");
+                ILogger logger = (_options.LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc.Server");
 
                 IListener<T> listener = serverTransport.Listen(Endpoint, _options.AuthenticationOptions, logger);
                 _listener = listener;

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <AssemblyName>IceRpc.Logger</AssemblyName>
+        <AssemblyName>IceRpc.Metrics</AssemblyName>
         <Title>IceRpc Metrics</Title>
         <TargetFramework>net6.0</TargetFramework>
         <AnalysisMode>AllEnabledByDefault</AnalysisMode>
