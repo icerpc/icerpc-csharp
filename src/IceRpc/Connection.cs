@@ -506,7 +506,7 @@ namespace IceRpc
                     _protocolConnection.Dispose();
                     _protocolConnection = null;
                 }
-u
+
                 if (_timer != null)
                 {
                     _timer.Dispose();
