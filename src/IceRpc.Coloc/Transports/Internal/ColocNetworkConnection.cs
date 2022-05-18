@@ -12,6 +12,9 @@ namespace IceRpc.Transports.Internal
         TimeSpan INetworkConnection.LastActivity => TimeSpan.Zero;
 
         private readonly Endpoint _endpoint;
+        // Remember the failure that caused the connection failure to raise the same exception from WriteAsync or
+        // ReadAsync
+        private Exception? _exception;
         private readonly bool _isServer;
         private readonly PipeReader _reader;
         private int _state;
@@ -31,6 +34,8 @@ namespace IceRpc.Transports.Internal
         {
             if (_state.TrySetFlag(State.Disposed))
             {
+                _exception ??= new ObjectDisposedException($"{typeof(ColocNetworkConnection)}");
+
                 if (_state.HasFlag(State.Reading))
                 {
                     _reader.CancelPendingRead();
@@ -65,7 +70,7 @@ namespace IceRpc.Transports.Internal
             {
                 if (_state.HasFlag(State.Disposed))
                 {
-                    throw new ObjectDisposedException($"{typeof(ColocNetworkConnection)}");
+                    throw _exception!;
                 }
 
                 ReadResult readResult = await _reader.ReadAsync(cancel).ConfigureAwait(false);
@@ -76,7 +81,7 @@ namespace IceRpc.Transports.Internal
 
                 if (_state.HasFlag(State.Disposed))
                 {
-                    throw new ObjectDisposedException($"{typeof(ColocNetworkConnection)}");
+                    throw _exception!;
                 }
 
                 Debug.Assert(!readResult.IsCanceled);
@@ -103,12 +108,16 @@ namespace IceRpc.Transports.Internal
                 _reader.AdvanceTo(readResult.Buffer.GetPosition(read));
                 return read;
             }
+            catch (Exception exception)
+            {
+                _exception ??= exception;
+                throw;
+            }
             finally
             {
                 if (_state.HasFlag(State.Disposed))
                 {
-                    await _reader.CompleteAsync(
-                        new ObjectDisposedException($"{typeof(ColocNetworkConnection)}")).ConfigureAwait(false);
+                    await _reader.CompleteAsync(new ConnectionLostException()).ConfigureAwait(false);
                 }
                 _state.ClearFlag(State.Reading);
             }
@@ -157,7 +166,7 @@ namespace IceRpc.Transports.Internal
                 {
                     if (_state.HasFlag(State.Disposed))
                     {
-                        throw new ObjectDisposedException($"{typeof(ColocNetworkConnection)}");
+                        throw _exception!;
                     }
                     else if (_state.HasFlag(State.ShuttingDown))
                     {
@@ -166,6 +175,11 @@ namespace IceRpc.Transports.Internal
 
                     _ = await _writer.WriteAsync(buffer, cancel).ConfigureAwait(false);
                 }
+            }
+            catch (Exception exception)
+            {
+                _exception ??= exception;
+                throw;
             }
             finally
             {
