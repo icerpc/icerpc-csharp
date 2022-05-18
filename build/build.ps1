@@ -15,6 +15,7 @@ $packages = @(
   'icerpc.coloc'
   'icerpc.deflate'
   'icerpc.interop'
+  'icerpc.locator'
   'icerpc.logger'
   'icerpc.metrics'
   'icerpc.retry'

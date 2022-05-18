@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <AssemblyName>IceRpc.Metrics</AssemblyName>
-        <Title>IceRpc Metrics</Title>
+        <AssemblyName>IceRpc.Locator</AssemblyName>
+        <Title>IceRpc Locator</Title>
         <TargetFramework>net6.0</TargetFramework>
         <AnalysisMode>AllEnabledByDefault</AnalysisMode>
         <PackageVersion>$(IceRpcVersion)</PackageVersion>
@@ -18,5 +18,8 @@
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\IceRpc\IceRpc.csproj" />
+        <ProjectReference Include="..\IceRpc.Interop\IceRpc.Interop.csproj" />
+        <SliceCompile Include="../../slice/Ice/Locator.slice" OutputDir="$(MSBuildProjectDirectory)/generated" />
+        <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview4" PrivateAssets="All" />
     </ItemGroup>
 </Project>
