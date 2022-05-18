@@ -77,11 +77,7 @@ fn decode_member(
 
     match &data_type.concrete_typeref() {
         TypeRefs::Interface(_) => {
-            write!(
-                code,
-                "new {}(decoder.DecodeProxy(), decoder.PrxEncodeOptions)",
-                type_string
-            );
+            write!(code, "decoder.DecodePrx<{}>()", type_string);
         }
         TypeRefs::Class(_) => {
             assert!(!data_type.is_optional);
@@ -387,12 +383,12 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
         TypeRefs::Interface(_) => {
             if encoding == Encoding::Slice1 && type_ref.is_optional {
                 format!(
-                    "(ref SliceDecoder decoder) => decoder.DecodeNullableProxy() is IceRpc.Proxy value ? new {}(value) : null",
+                    "(ref SliceDecoder decoder) => decoder.DecodeNullablePrx<{}>()",
                     type_name
                 )
             } else {
                 format!(
-                    "(ref SliceDecoder decoder) => new {}(decoder.DecodeProxy(), decoder.PrxEncodeOptions)",
+                    "(ref SliceDecoder decoder) => decoder.DecodePrx<{}>()",
                     type_name
                 )
             }
@@ -413,7 +409,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
             }
         }
         TypeRefs::Primitive(primitive_ref) => {
-            // Primitive::AnyClass is handled above by is_clas_type branch
+            // Primitive::AnyClass is handled above by is_class_type branch
             format!(
                 "(ref SliceDecoder decoder) => decoder.Decode{}()",
                 primitive_ref.type_suffix()
@@ -615,12 +611,9 @@ pub fn decode_operation_stream(
         .add_argument_unless(dispatch, "request")
         .add_argument(cs_encoding)
         .add_argument("_defaultActivator")
-        .add_argument_unless(dispatch, "encodeOptions")
+        .add_argument_unless(dispatch, "encodeFeature")
         .add_argument(decode_func(param_type, namespace, encoding).indent())
-        .add_argument_if(
-            param_type.is_fixed_size(),
-            param_type.min_wire_size().to_string(),
-        )
+        .add_argument_if(param_type.is_fixed_size(), param_type.min_wire_size())
         .build(),
     };
 

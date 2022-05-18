@@ -115,7 +115,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal void AbortRead(long errorCode)
+        internal void AbortRead(ulong errorCode)
         {
             if (!IsStarted || _connection.IsAborted)
             {
@@ -158,7 +158,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal void AbortWrite(long errorCode)
+        internal void AbortWrite(ulong errorCode)
         {
             if (!IsStarted || _connection.IsAborted)
             {
@@ -242,7 +242,7 @@ namespace IceRpc.Transports.Internal
         internal ValueTask<int> ReceivedStreamFrameAsync(int size, bool endStream, CancellationToken cancel) =>
             ReadsCompleted ? new(0) : _inputPipeReader.ReceivedStreamFrameAsync(size, endStream, cancel);
 
-        internal void ReceivedResetFrame(long error)
+        internal void ReceivedResetFrame(ulong error)
         {
             if (!IsBidirectional && !IsRemote)
             {
@@ -259,7 +259,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal void ReceivedStopSendingFrame(long error)
+        internal void ReceivedStopSendingFrame(ulong error)
         {
             if (!IsBidirectional && IsRemote)
             {

@@ -9,6 +9,25 @@ param (
     [switch]$help
 )
 
+$packages = @(
+  'icerpc'
+  'icerpc.binder'
+  'icerpc.coloc'
+  'icerpc.deflate'
+  'icerpc.interop'
+  'icerpc.locator'
+  'icerpc.logger'
+  'icerpc.metrics'
+  'icerpc.retry'
+  'icerpc.telemetry'
+)
+
+$exampleProjects = @(
+  'Bidir'
+  'Hello'
+  'GenericHost'
+)
+
 $version = "0.1.0-preview1"
 
 function BuildCompiler($config) {
@@ -34,9 +53,10 @@ function BuildIceRpc($config) {
 
 function BuildIceRpcExamples($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
-    RunCommand "dotnet" @('build', '--configuration', $dotnetConfiguration, "examples\Bidir\Bidir.sln")
-    RunCommand "dotnet" @('build', '--configuration', $dotnetConfiguration, "examples\Hello\Hello.sln")
-    RunCommand "dotnet" @('build', '--configuration', $dotnetConfiguration, "examples\GenericHost\GenericHost.sln")
+    foreach ($example in $exampleProjects)
+    {
+        RunCommand "dotnet" @('build', '--configuration', $dotnetConfiguration, "examples\$example\$example.sln")
+    }
 }
 
 function CleanIceRpc($config) {
@@ -46,9 +66,10 @@ function CleanIceRpc($config) {
 
 function CleanIceRpcExamples($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
-    RunCommand "dotnet" @('clean', '--configuration', $dotnetConfiguration, "examples\Bidir\Bidir.sln")
-    RunCommand "dotnet" @('clean', '--configuration', $dotnetConfiguration, "examples\Hello\Hello.sln")
-    RunCommand "dotnet" @('clean', '--configuration', $dotnetConfiguration, "examples\GenericHost\GenericHost.sln")
+    foreach ($example in $exampleProjects)
+    {
+        RunCommand "dotnet" @('clean', '--configuration', $dotnetConfiguration, "examples\$example\$example.sln")
+    }
 }
 
 function Build($config, $examples, $srcdist) {
@@ -69,9 +90,10 @@ function Install($config) {
     Pack $config
     $global_packages = dotnet nuget locals -l global-packages
     $global_packages = $global_packages.replace("global-packages: ", "")
-    Remove-Item $global_packages"\icerpc\$version" -Recurse -Force -ErrorAction Ignore
-    Remove-Item $global_packages"\icerpc.coloc\$version" -Recurse -Force -ErrorAction Ignore
-    Remove-Item $global_packages"\icerpc.interop\$version" -Recurse -Force -ErrorAction Ignore
+    foreach ($package in $packages)
+    {
+        Remove-Item $global_packages"\$package\$version" -Recurse -Force -ErrorAction Ignore
+    }
     RunCommand "dotnet" @('nuget', 'push', "src\**\$dotnetConfiguration\*.nupkg", '--source', $global_packages)
 }
 

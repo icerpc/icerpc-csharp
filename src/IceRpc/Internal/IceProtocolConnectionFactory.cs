@@ -23,7 +23,7 @@ namespace IceRpc.Internal
             }
             catch
             {
-                await protocolConnection.DisposeAsync().ConfigureAwait(false);
+                protocolConnection.Dispose();
                 throw;
             }
             return protocolConnection;

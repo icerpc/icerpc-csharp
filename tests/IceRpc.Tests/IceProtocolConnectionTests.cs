@@ -100,9 +100,7 @@ public sealed class IceProtocolConnectionTests
             .UseServerOptions(serverOptions)
             .BuildServiceProvider();
 
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.Ice);
-        _ = sut.Client.AcceptRequestsAsync(InvalidConnection.Ice);
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
         var request = new OutgoingRequest(new Proxy(Protocol.Ice));
         var responseTasks = new List<Task<IncomingResponse>>();
@@ -157,9 +155,7 @@ public sealed class IceProtocolConnectionTests
             .UseServerOptions(serverOptions)
             .BuildServiceProvider();
 
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.Ice);
-        _ = sut.Client.AcceptRequestsAsync(InvalidConnection.Ice);
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
         // Perform two invocations. The first blocks so the second won't be dispatched. It will block on the dispatch
         // semaphore.
@@ -170,7 +166,7 @@ public sealed class IceProtocolConnectionTests
         await Task.Delay(200);
 
         // Act
-        await sut.Server.DisposeAsync();
+        sut.Server.Dispose();
 
         // Assert
         Assert.That(dispatchCount, Is.EqualTo(1));
@@ -194,9 +190,7 @@ public sealed class IceProtocolConnectionTests
             .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
 
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.Ice);
-        _ = sut.Client.AcceptRequestsAsync(InvalidConnection.Ice);
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         var request = new OutgoingRequest(proxy);
 
         // Act
@@ -224,9 +218,7 @@ public sealed class IceProtocolConnectionTests
             .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
 
-        await using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.Ice);
-        _ = sut.Client.AcceptRequestsAsync(InvalidConnection.Ice);
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         var request = new OutgoingRequest(new Proxy(Protocol.Ice));
 
         // Act
@@ -256,8 +248,7 @@ public sealed class IceProtocolConnectionTests
             .UseProtocol(Protocol.Ice)
             .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
             .BuildServiceProvider();
-        await using var clientServerProtocolConnection = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        _ = clientServerProtocolConnection.Server.AcceptRequestsAsync(InvalidConnection.Ice);
+        using var clientServerProtocolConnection = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
         // Act
         _ = clientServerProtocolConnection.Client.InvokeAsync(
@@ -268,8 +259,9 @@ public sealed class IceProtocolConnectionTests
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
     }
 
-    /// <summary>With ice protocol the connection shutdown triggers the cancellation of invocations. This is different
-    /// with IceRpc see <see cref="IceRpcProtocolConnectionTests.Shutdown_waits_for_pending_invocations_to_finish"/>.
+    /// <summary>With the ice protocol, the connection shutdown triggers the cancellation of invocations. This is
+    /// different with IceRpc see <see
+    /// cref="IceRpcProtocolConnectionTests.Shutdown_waits_for_pending_invocations_to_finish"/>.
     /// </summary>
     [Test]
     public async Task Shutdown_cancels_invocations()
@@ -291,14 +283,15 @@ public sealed class IceProtocolConnectionTests
             })
             .BuildServiceProvider();
 
-        var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
-        var clientAcceptTask = sut.Client.AcceptRequestsAsync(InvalidConnection.Ice);
-        _ = sut.Server.AcceptRequestsAsync(InvalidConnection.Ice);
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+
         sut.Server.PeerShutdownInitiated = message =>
             sut.Server.ShutdownAsync("");
+
         var invokeTask = sut.Client.InvokeAsync(
             new OutgoingRequest(new Proxy(Protocol.Ice)),
             InvalidConnection.Ice);
+
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act

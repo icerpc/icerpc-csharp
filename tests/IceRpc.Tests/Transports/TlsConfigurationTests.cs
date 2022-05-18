@@ -32,7 +32,7 @@ public class TlsConfigurationTests
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
             });
 
-        await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(
+        using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(
             listener.Endpoint,
             authenticationOptions: new SslClientAuthenticationOptions
             {
@@ -46,7 +46,7 @@ public class TlsConfigurationTests
         // Start the TLS handshake by calling connect on the client and server connections and wait for the
         // connection establishment.
         _ = clientConnection.ConnectAsync(default);
-        await using ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
+        using ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
 
         // Act/Assert
         Assert.That(
@@ -79,7 +79,7 @@ public class TlsConfigurationTests
                 }
             });
 
-        await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(
+        using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(
             listener.Endpoint,
             authenticationOptions: new SslClientAuthenticationOptions
             {
@@ -96,7 +96,7 @@ public class TlsConfigurationTests
         // Perform the TLS handshake by calling connect on the client and server connections and wait for the
         // connection establishment.
         Task<NetworkConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        await using ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
+        using ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
         await serverConnection.ConnectAsync(default);
         await clientConnectTask;
 
@@ -130,7 +130,7 @@ public class TlsConfigurationTests
                 }
             });
 
-        await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(
+        using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(
             listener.Endpoint,
             authenticationOptions: new SslClientAuthenticationOptions
             {
@@ -150,7 +150,7 @@ public class TlsConfigurationTests
         // Perform the TLS handshake by calling connect on the client and server connections and wait for the
         // connection establishment.
         Task<NetworkConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        await using ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
+        using ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
         await serverConnection.ConnectAsync(default);
         await clientConnectTask;
 
@@ -171,7 +171,7 @@ public class TlsConfigurationTests
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
             });
 
-        await using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(
+        using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(
             listener.Endpoint,
             authenticationOptions: new SslClientAuthenticationOptions
             {
@@ -181,7 +181,7 @@ public class TlsConfigurationTests
         // Start the TLS handshake by calling connect on the client and server connections and wait for the
         // connection establishment.
         Task<NetworkConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        await using ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
+        using ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
         await serverConnection.ConnectAsync(default);
 
         // Act/Assert

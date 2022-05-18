@@ -37,15 +37,6 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogListenerDispose(this ILogger logger, Endpoint endpoint);
 
         [LoggerMessage(
-            EventId = (int)TransportEventIds.MultiplexedNetworkConnectionClose,
-            EventName = nameof(TransportEventIds.MultiplexedNetworkConnectionClose),
-            Level = LogLevel.Trace,
-            Message = "connection closed ({ErrorCode})")]
-        internal static partial void LogMultiplexedNetworkConnectionClose(
-            this ILogger logger,
-            long errorCode);
-
-        [LoggerMessage(
             EventId = (int)TransportEventIds.MultiplexedStreamRead,
             EventName = nameof(TransportEventIds.MultiplexedStreamRead),
             Level = LogLevel.Trace,
@@ -54,6 +45,15 @@ namespace IceRpc.Transports.Internal
             this ILogger logger,
             int size,
             string data);
+
+        [LoggerMessage(
+            EventId = (int)TransportEventIds.MultiplexedNetworkConnectionShutdown,
+            EventName = nameof(TransportEventIds.MultiplexedNetworkConnectionShutdown),
+            Level = LogLevel.Trace,
+            Message = "connection shutdown ({ErrorCode})")]
+        internal static partial void LogMultiplexedNetworkConnectionShutdown(
+            this ILogger logger,
+            ulong errorCode);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.MultiplexedStreamWrite,
@@ -95,6 +95,13 @@ namespace IceRpc.Transports.Internal
             Level = LogLevel.Trace,
             Message = "read {Size} bytes from simple network connection ({Data})")]
         internal static partial void LogSimpleNetworkConnectionRead(this ILogger logger, int size, string data);
+
+        [LoggerMessage(
+            EventId = (int)TransportEventIds.SimpleNetworkConnectionShutdown,
+            EventName = nameof(TransportEventIds.SimpleNetworkConnectionShutdown),
+            Level = LogLevel.Trace,
+            Message = "simple network connection shutdown")]
+        internal static partial void LogSimpleNetworkConnectionShutdown(this ILogger logger);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.SimpleNetworkConnectionWrite,

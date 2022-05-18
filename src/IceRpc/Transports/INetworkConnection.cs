@@ -5,7 +5,7 @@ using System.Security.Authentication;
 namespace IceRpc.Transports
 {
     /// <summary>A network connection represents a transport-level connection used to exchange data as bytes.</summary>
-    public interface INetworkConnection : IAsyncDisposable
+    public interface INetworkConnection : IDisposable
     {
         /// <summary>The time elapsed since the last activity of the connection.</summary>
         TimeSpan LastActivity { get; }

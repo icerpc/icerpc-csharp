@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Configure;
 using IceRpc.Slice.Internal;
 using IceRpc.Tests;
 using NUnit.Framework;
@@ -27,7 +26,7 @@ public class StreamTests
         // Act
         PipeReader payload = SliceEncoding.Slice2.CreatePayloadStream(
             GetDataAsync(size),
-            encodeOptions: null,
+            encodeFeature: null,
             (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value),
             useSegments: false);
 
@@ -91,7 +90,7 @@ public class StreamTests
         // Act
         PipeReader payload = SliceEncoding.Slice2.CreatePayloadStream(
             GetDataAsync(size),
-            encodeOptions: null,
+            encodeFeature: null,
             (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
             useSegments: true);
 
@@ -160,10 +159,10 @@ public class StreamTests
         // Act
         IAsyncEnumerable<int> decoded = request.ToAsyncEnumerable(
             SliceEncoding.Slice2,
-            SliceDecodeOptions.Default,
+            decodeFeature: null,
             defaultActivator: null,
             defaultInvoker: Proxy.DefaultInvoker,
-            prxEncodeOptions: null,
+            prxEncodeFeature: null,
             (ref SliceDecoder decoder) => decoder.DecodeInt32(),
             elementSize: 4);
 
@@ -222,10 +221,10 @@ public class StreamTests
         // Act
         IAsyncEnumerable<string> decoded = request.ToAsyncEnumerable(
             SliceEncoding.Slice2,
-            SliceDecodeOptions.Default,
+            decodeFeature: null,
             defaultActivator: null,
             defaultInvoker: Proxy.DefaultInvoker,
-            prxEncodeOptions: null,
+            prxEncodeFeature: null,
             (ref SliceDecoder decoder) => decoder.DecodeString());
 
         // Assert

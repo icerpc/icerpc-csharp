@@ -86,7 +86,7 @@ compact struct VersionBody
 compact struct CloseBody
 {
     /// The application protocol error code indicating the reason of the closure.
-    applicationProtocolErrorCode: varint62,
+    applicationProtocolErrorCode: varuint62,
 }
 
 /// The body of the Stream reset frame. This frame is sent to notify the peer that sender is no longer interested in
@@ -95,7 +95,7 @@ compact struct CloseBody
 compact struct StreamResetBody
 {
     /// The application protocol error code indicating the reason of the reset.
-    applicationProtocolErrorCode: varint62,
+    applicationProtocolErrorCode: varuint62,
 }
 
 /// The body of the Stream consumed frame. This frame is sent to increase the peer's send credit.
@@ -112,5 +112,5 @@ compact struct StreamConsumedBody
 compact struct StreamStopSendingBody
 {
     /// The application protocol error code indicating the reason why the peer no longer needs to receive data.
-    applicationProtocolErrorCode: varint62,
+    applicationProtocolErrorCode: varuint62,
 }

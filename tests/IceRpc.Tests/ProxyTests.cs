@@ -338,7 +338,7 @@ public class ProxyTests
         Assert.That(proxy.AltEndpoints, Is.EqualTo(altEndpoints));
     }
 
-    /// <summary>Verifies that the proxy invoker of the <see cref="SliceDecodeOptions"/> is used for proxies
+    /// <summary>Verifies that the proxy invoker of the <see cref="ISliceDecodeFeature"/> is used for proxies
     /// received over an incoming connection.</summary>
     [Test]
     public async Task Proxy_invoker_is_set_to_the_slice_decode_options_feature_proxy_invoker()
@@ -347,7 +347,7 @@ public class ProxyTests
         var pipeline = new Pipeline();
         var router = new Router();
         router.Map<ISendProxyTest>(service);
-        router.UseFeature(new SliceDecodeOptions { ProxyInvoker = pipeline });
+        router.UseFeature<ISliceDecodeFeature>(new SliceDecodeFeature { ProxyInvoker = pipeline });
         await using ServiceProvider serviceProvider = new ConnectionServiceCollection()
             .UseDispatcher(router)
             .BuildServiceProvider();

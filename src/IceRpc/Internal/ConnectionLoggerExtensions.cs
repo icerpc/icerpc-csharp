@@ -69,6 +69,16 @@ namespace IceRpc.Internal
         internal static partial void LogPing(this ILogger logger);
 
         [LoggerMessage(
+            EventId = (int)ConnectionEventIds.ProtocolConnectionAbort,
+            EventName = nameof(ConnectionEventIds.ProtocolConnectionAbort),
+            Level = LogLevel.Information,
+            Message = "{Protocol} connection aborted")]
+        internal static partial void LogProtocolConnectionAbort(
+            this ILogger logger,
+            Protocol protocol,
+            Exception exception);
+
+        [LoggerMessage(
             EventId = (int)ConnectionEventIds.ProtocolConnectionDispose,
             EventName = nameof(ConnectionEventIds.ProtocolConnectionDispose),
             Level = LogLevel.Information,

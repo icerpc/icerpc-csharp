@@ -25,6 +25,13 @@ namespace IceRpc.Internal
         private readonly bool _isServer;
         private readonly ILogger _logger;
 
+        public void Abort(Exception exception)
+        {
+            using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
+            _decoratee.Abort(exception);
+            _logger.LogProtocolConnectionAbort(_decoratee.Protocol, exception);
+        }
+
         async Task IProtocolConnection.AcceptRequestsAsync(IConnection connection)
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
@@ -32,13 +39,10 @@ namespace IceRpc.Internal
             await _decoratee.AcceptRequestsAsync(connection).ConfigureAwait(false);
         }
 
-        void IProtocolConnection.CancelPendingInvocationsAndDispatchesOnShutdown() =>
-            _decoratee.CancelPendingInvocationsAndDispatchesOnShutdown();
-
-        async ValueTask IAsyncDisposable.DisposeAsync()
+        void IDisposable.Dispose()
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
-            await _decoratee.DisposeAsync().ConfigureAwait(false);
+            _decoratee.Dispose();
             _logger.LogProtocolConnectionDispose(_decoratee.Protocol);
         }
 
