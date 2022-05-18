@@ -19,19 +19,6 @@ internal interface IEndpointCache
 /// <summary>The main implementation for IEndpointCache.</summary>
 internal sealed class EndpointCache : IEndpointCache
 {
-    // Used for testing
-    internal int Count
-    {
-        get
-        {
-            lock (_mutex)
-            {
-                Debug.Assert(_cache.Count == _cacheKeys.Count);
-                return _cache.Count;
-            }
-        }
-    }
-
     private readonly ConcurrentDictionary<Location, (TimeSpan InsertionTime, Proxy Proxy, LinkedListNode<Location> Node)> _cache;
 
     // The keys in _cache. The first entries correspond to the most recently added cache entries.
