@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Configure;
-
 namespace IceRpc.Slice
 {
     /// <summary>Holds properties that describe the request being dispatched. You can also set entries in

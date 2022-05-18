@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice.Internal;
 using IceRpc.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
