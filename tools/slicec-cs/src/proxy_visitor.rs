@@ -232,18 +232,18 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
     invocation_builder.arguments_on_newline(true);
 
     // The operation to call
-    invocation_builder.add_argument(&format!(r#""{}""#, operation.identifier()));
+    invocation_builder.add_argument(format!(r#""{}""#, operation.identifier()));
 
     // The encoding if operation is void
-    invocation_builder.add_argument_if(void_return, &encoding);
+    invocation_builder.add_argument_if(void_return, encoding);
 
     // The payload argument
     if operation.parameters.is_empty() {
         invocation_builder.add_argument("payload: null");
     } else if parameters.is_empty() {
-        invocation_builder.add_argument(&format!("{}.CreateSizeZeroPayload()", encoding));
+        invocation_builder.add_argument(format!("{}.CreateSizeZeroPayload()", encoding));
     } else {
-        invocation_builder.add_argument(&format!(
+        invocation_builder.add_argument(format!(
             "Request.{}({}, sliceEncodeOptions: EncodeOptions)",
             operation_name,
             parameters
@@ -261,7 +261,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
 
         match stream_type.concrete_type() {
             Types::Primitive(b) if matches!(b, Primitive::UInt8) => {
-                invocation_builder.add_argument(&stream_parameter_name);
+                invocation_builder.add_argument(stream_parameter_name);
             }
             _ => {
                 invocation_builder.add_argument(
@@ -271,7 +271,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
                         stream_type.to_type_string(namespace, TypeContext::Encode, false)
                     ))
                     .use_semi_colon(false)
-                    .add_argument(&stream_parameter_name)
+                    .add_argument(stream_parameter_name)
                     .add_argument("this.EncodeOptions")
                     .add_argument(
                         encode_action(
@@ -282,7 +282,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
                         )
                         .indent(),
                     )
-                    .add_argument(&!stream_type.is_fixed_size())
+                    .add_argument((!stream_type.is_fixed_size()).to_string())
                     .build(),
                 );
             }
@@ -293,15 +293,15 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
 
     invocation_builder.add_argument_if(void_return && stream_return.is_none(), "_defaultActivator");
     invocation_builder
-        .add_argument_unless(void_return, &format!("Response.{}", async_operation_name));
+        .add_argument_unless(void_return, format!("Response.{}", async_operation_name));
 
-    invocation_builder.add_argument(&invocation_parameter);
+    invocation_builder.add_argument(invocation_parameter);
 
     invocation_builder.add_argument_if(operation.is_idempotent, "idempotent: true");
 
     invocation_builder.add_argument_if(void_return && operation.is_oneway(), "oneway: true");
 
-    invocation_builder.add_argument(&format!("cancel: {}", cancel_parameter));
+    invocation_builder.add_argument(format!("cancel: {}", cancel_parameter));
 
     let invocation = invocation_builder.build();
 

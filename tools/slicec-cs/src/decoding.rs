@@ -172,14 +172,12 @@ pub fn decode_tagged(
     assert!(member.tag().is_some());
 
     let decode = FunctionCallBuilder::new("decoder.DecodeTagged")
-        .add_argument(&member.tag().unwrap().to_string())
-        .add_optional_argument_if(
-            encoding == Encoding::Slice1,
-            data_type.tag_format(),
-            |format| Some(format!("IceRpc.Slice.TagFormat.{}", format)),
-        )
-        .add_argument(&decode_func(data_type, namespace, encoding))
-        .add_argument(&format!("useTagEndMarker: {}", use_tag_end_marker))
+        .add_argument(member.tag().unwrap())
+        .add_argument_if(encoding == Encoding::Slice1, || {
+            format!("IceRpc.Slice.TagFormat.{}", data_type.tag_format().unwrap())
+        })
+        .add_argument(decode_func(data_type, namespace, encoding))
+        .add_argument(format!("useTagEndMarker: {}", use_tag_end_marker))
         .build();
 
     format!("{} = {};", param, decode).into()
@@ -618,8 +616,11 @@ pub fn decode_operation_stream(
         .add_argument(cs_encoding)
         .add_argument("_defaultActivator")
         .add_argument_unless(dispatch, "encodeOptions")
-        .add_argument(&decode_func(param_type, namespace, encoding).indent())
-        .add_argument_if(param_type.is_fixed_size(), &param_type.min_wire_size())
+        .add_argument(decode_func(param_type, namespace, encoding).indent())
+        .add_argument_if(
+            param_type.is_fixed_size(),
+            param_type.min_wire_size().to_string(),
+        )
         .build(),
     };
 

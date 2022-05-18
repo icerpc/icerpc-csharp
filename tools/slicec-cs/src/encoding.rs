@@ -334,21 +334,16 @@ fn encode_tagged_type(
     };
 
     let encode_tagged_call = FunctionCallBuilder::new(&format!("{}.EncodeTagged", encoder_param))
-        .add_argument(&tag)
-        .add_optional_argument_if(
-            encoding == Encoding::Slice1,
-            data_type.tag_format(),
-            |tag_format| {
-                if *tag_format != TagFormat::VSize {
-                    Some(format!("IceRpc.Slice.TagFormat.{}", tag_format))
-                } else {
-                    None
-                }
-            },
+        .add_argument(tag.to_string())
+        .add_argument_if(
+            encoding == Encoding::Slice1 && data_type.tag_format() != Some(TagFormat::VSize),
+            || format!("IceRpc.Slice.TagFormat.{}", data_type.tag_format().unwrap()),
         )
-        .add_optional_argument(size_parameter, |size| Some(format!("size: {}", size)))
-        .add_argument_if_else(read_only_memory, &value, &unwrapped_name)
-        .add_argument(&encode_action(
+        .add_argument_if(size_parameter.is_some(), || {
+            format!("size: {}", size_parameter.unwrap())
+        })
+        .add_argument_if_else(read_only_memory, value, unwrapped_name)
+        .add_argument(encode_action(
             &clone_as_non_optional(data_type),
             type_context,
             namespace,

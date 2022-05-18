@@ -8,11 +8,56 @@ use slice::code_gen_util::TypeContext;
 use slice::grammar::{Attributable, Class, Encoding, Entity, NamedSymbol, Operation};
 use slice::supported_encodings::SupportedEncodings;
 use std::collections::HashMap;
-use std::fmt;
 
 pub trait Builder {
     fn build(&self) -> CodeBlock;
 }
+
+pub trait ParamDisplay {
+    fn param_display(self) -> String;
+}
+
+impl<T: FnOnce() -> String> ParamDisplay for T {
+    fn param_display(self) -> String {
+        self()
+    }
+}
+
+impl ParamDisplay for &str {
+    fn param_display(self) -> String {
+        self.to_owned()
+    }
+}
+impl ParamDisplay for String {
+    fn param_display(self) -> String {
+        self
+    }
+}
+
+impl ParamDisplay for CodeBlock {
+    fn param_display(self) -> String {
+        self.to_string()
+    }
+}
+
+impl ParamDisplay for &mut CodeBlock {
+    fn param_display(self) -> String {
+        self.to_string()
+    }
+}
+
+impl ParamDisplay for &CodeBlock {
+    fn param_display(self) -> String {
+        self.to_string()
+    }
+}
+
+impl ParamDisplay for u32 {
+    fn param_display(self) -> String {
+        self.to_string()
+    }
+}
+
 pub trait AttributeBuilder {
     fn add_attribute(&mut self, attributes: &str) -> &mut Self;
 
@@ -436,77 +481,42 @@ impl FunctionCallBuilder {
         self
     }
 
-    pub fn add_argument<T: fmt::Display + ?Sized>(&mut self, argument: &T) -> &mut Self {
-        self.arguments.push(argument.to_string());
+    pub fn add_argument<T>(&mut self, argument: T) -> &mut Self
+    where
+        T: ParamDisplay,
+    {
+        self.arguments.push(argument.param_display());
         self
     }
 
-    pub fn add_argument_if<T: fmt::Display + ?Sized>(
-        &mut self,
-        condition: bool,
-        argument: &T,
-    ) -> &mut Self {
+    pub fn add_argument_if<T>(&mut self, condition: bool, argument: T) -> &mut Self
+    where
+        T: ParamDisplay,
+    {
         if condition {
             self.add_argument(argument);
         }
         self
     }
 
-    pub fn add_argument_if_else<T: fmt::Display + ?Sized>(
+    pub fn add_argument_if_else<T>(
         &mut self,
         condition: bool,
-        true_case: &T,
-        false_case: &T,
-    ) -> &mut Self {
+        true_case: T,
+        false_case: T,
+    ) -> &mut Self
+    where
+        T: ParamDisplay,
+    {
         self.add_argument(if condition { true_case } else { false_case })
     }
 
-    pub fn add_argument_unless<T: fmt::Display + ?Sized>(
-        &mut self,
-        condition: bool,
-        argument: &T,
-    ) -> &mut Self {
+    pub fn add_argument_unless<T>(&mut self, condition: bool, argument: T) -> &mut Self
+    where
+        T: ParamDisplay,
+    {
         self.add_argument_if(!condition, argument);
         self
-    }
-
-    pub fn add_optional_argument<T, O, F>(&mut self, argument: Option<O>, func: F) -> &mut Self
-    where
-        O: Sized,
-        T: fmt::Display + Sized,
-        F: Fn(&O) -> Option<T>,
-    {
-        if let Some(argument) = argument {
-            if let Some(argument) = func(&argument) {
-                self.add_argument(&argument);
-            }
-        }
-        self
-    }
-
-    pub fn add_optional_argument_if<T, O, F>(
-        &mut self,
-        condition: bool,
-        option: Option<O>,
-        func: F,
-    ) -> &mut Self
-    where
-        O: Sized,
-        T: fmt::Display + Sized,
-        F: Fn(&O) -> Option<T>,
-    {
-        match option {
-            Some(value) if condition => {
-                if let Some(v) = &func(&value) {
-                    self.add_argument(v);
-                }
-                self
-            }
-            None if condition => {
-                panic!("optional argument to be some if condition is true")
-            }
-            _ => self,
-        }
     }
 }
 
