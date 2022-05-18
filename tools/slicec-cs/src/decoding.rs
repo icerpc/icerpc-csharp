@@ -167,22 +167,16 @@ pub fn decode_tagged(
     assert!(data_type.is_optional);
     assert!(member.tag().is_some());
 
-    let mut decode_tagged_args = vec![member.tag().unwrap().to_string()];
-    if encoding == Encoding::Slice1 {
-        decode_tagged_args.push(format!(
-            "IceRpc.Slice.TagFormat.{}",
-            data_type.tag_format().unwrap()
-        ));
-    }
-    decode_tagged_args.push(decode_func(data_type, namespace, encoding).to_string());
-    decode_tagged_args.push(format!("useTagEndMarker: {}", use_tag_end_marker));
+    let decode = FunctionCallBuilder::new("decoder.DecodeTagged")
+        .add_argument(member.tag().unwrap())
+        .add_argument_if(encoding == Encoding::Slice1, || {
+            format!("IceRpc.Slice.TagFormat.{}", data_type.tag_format().unwrap())
+        })
+        .add_argument(decode_func(data_type, namespace, encoding))
+        .add_argument(format!("useTagEndMarker: {}", use_tag_end_marker))
+        .build();
 
-    format!(
-        "{param} = decoder.DecodeTagged({args});",
-        param = param,
-        args = decode_tagged_args.join(", ")
-    )
-    .into()
+    format!("{} = {};", param, decode).into()
 }
 
 pub fn decode_dictionary(
@@ -618,8 +612,8 @@ pub fn decode_operation_stream(
         .add_argument(cs_encoding)
         .add_argument("_defaultActivator")
         .add_argument_unless(dispatch, "encodeFeature")
-        .add_argument(&decode_func(param_type, namespace, encoding).indent())
-        .add_argument_if(param_type.is_fixed_size(), &param_type.min_wire_size())
+        .add_argument(decode_func(param_type, namespace, encoding).indent())
+        .add_argument_if(param_type.is_fixed_size(), param_type.min_wire_size())
         .build(),
     };
 
