@@ -37,16 +37,16 @@ internal sealed class EndpointCache : IEndpointCache
     // The keys in _cache. The first entries correspond to the most recently added cache entries.
     private readonly LinkedList<Location> _cacheKeys = new();
 
-    private readonly int _cacheMaxSize;
+    private readonly int _maxCacheSize;
 
     // _mutex protects _cacheKeys and updates to _cache
     private readonly object _mutex = new();
 
-    internal EndpointCache(int cacheMaxSize)
+    internal EndpointCache(int maxCacheSize)
     {
-        Debug.Assert(cacheMaxSize > 0);
-        _cacheMaxSize = cacheMaxSize;
-        _cache = new(concurrencyLevel: 1, capacity: _cacheMaxSize + 1);
+        Debug.Assert(maxCacheSize > 0);
+        _maxCacheSize = maxCacheSize;
+        _cache = new(concurrencyLevel: 1, capacity: _maxCacheSize + 1);
     }
 
     void IEndpointCache.Remove(Location location) => Remove(location);
@@ -60,12 +60,12 @@ internal sealed class EndpointCache : IEndpointCache
             _cache[location] =
                 (TimeSpan.FromMilliseconds(Environment.TickCount64), proxy, _cacheKeys.AddFirst(location));
 
-            if (_cacheKeys.Count == _cacheMaxSize + 1)
+            if (_cacheKeys.Count == _maxCacheSize + 1)
             {
                 // drop last (oldest) entry
                 Remove(_cacheKeys.Last!.Value);
 
-                Debug.Assert(_cacheKeys.Count == _cacheMaxSize); // removed the last entry
+                Debug.Assert(_cacheKeys.Count == _maxCacheSize); // removed the last entry
             }
         }
     }
@@ -74,8 +74,9 @@ internal sealed class EndpointCache : IEndpointCache
     {
         // no mutex lock: _cache is a concurrent dictionary and it's ok if it's updated while we read it
 
-        if (_cache.TryGetValue(location,
-                               out (TimeSpan InsertionTime, Proxy Proxy, LinkedListNode<Location> Node) entry))
+        if (_cache.TryGetValue(
+            location,
+            out (TimeSpan InsertionTime, Proxy Proxy, LinkedListNode<Location> Node) entry))
         {
             value.InsertionTime = entry.InsertionTime;
             value.Proxy = entry.Proxy;
@@ -92,8 +93,9 @@ internal sealed class EndpointCache : IEndpointCache
     {
         lock (_mutex)
         {
-            if (_cache.TryRemove(location,
-                                 out (TimeSpan InsertionTime, Proxy Proxy, LinkedListNode<Location> Node) entry))
+            if (_cache.TryRemove(
+                location,
+                out (TimeSpan InsertionTime, Proxy Proxy, LinkedListNode<Location> Node) entry))
             {
                 _cacheKeys.Remove(entry.Node);
             }
