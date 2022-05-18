@@ -33,7 +33,7 @@ public class LocatorInterceptorTests
     {
         var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request, request.Connection!)));
 
-        var locationResolver = new LocatorLocationResolver(new Configure.LocatorOptions());
+        var locationResolver = new LocatorLocationResolver(new LocatorOptions());
         var sut = new LocatorInterceptor(invoker, locationResolver);
         var request = new OutgoingRequest(new Proxy(Protocol.Ice));
 

@@ -160,7 +160,7 @@ public class LocatorLocationResolver : ILocationResolver
 
     /// <summary>Constructs a locator location resolver.</summary>
     /// <param name="options">The locator options.</param>
-    public LocatorLocationResolver(Configure.LocatorOptions options)
+    public LocatorLocationResolver(LocatorOptions options)
     {
         _locationResolver = new(() =>
         {

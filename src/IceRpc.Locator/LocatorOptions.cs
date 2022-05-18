@@ -1,13 +1,11 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Locator;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace IceRpc.Configure;
+namespace IceRpc.Locator;
 
 /// <summary>An options class for configuring a <see cref="LocatorLocationResolver"/>.</summary>
-/// <seealso cref="LocatorPipelineExtensions.UseLocator(Pipeline, LocatorOptions)"/>
 public sealed record class LocatorOptions
 {
     /// <summary>Gets or sets the background configuration.</summary>
