@@ -28,6 +28,7 @@ impl ParamDisplay for &str {
         self.to_owned()
     }
 }
+
 impl ParamDisplay for String {
     fn param_display(self) -> String {
         self
@@ -46,13 +47,13 @@ impl ParamDisplay for &mut CodeBlock {
     }
 }
 
-impl ParamDisplay for &CodeBlock {
+impl ParamDisplay for u32 {
     fn param_display(self) -> String {
         self.to_string()
     }
 }
 
-impl ParamDisplay for u32 {
+impl ParamDisplay for bool {
     fn param_display(self) -> String {
         self.to_string()
     }

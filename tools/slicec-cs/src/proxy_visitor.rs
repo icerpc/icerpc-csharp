@@ -265,7 +265,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
             }
             _ => {
                 invocation_builder.add_argument(
-                    &FunctionCallBuilder::new(&format!(
+                    FunctionCallBuilder::new(&format!(
                         "{}.CreatePayloadStream<{}>",
                         encoding,
                         stream_type.to_type_string(namespace, TypeContext::Encode, false)
@@ -282,7 +282,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
                         )
                         .indent(),
                     )
-                    .add_argument((!stream_type.is_fixed_size()).to_string())
+                    .add_argument(!stream_type.is_fixed_size())
                     .build(),
                 );
             }
