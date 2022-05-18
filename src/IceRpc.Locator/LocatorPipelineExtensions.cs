@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IceRpc.Configure;
 
-/// <summary>This class provides extension methods to add interop interceptors to a <see cref="Pipeline"/>.
+/// <summary>This class provides extension methods to install the locator interceptor in a <see cref="Pipeline"/>.
 /// </summary>
 public static class LocatorPipelineExtensions
 {

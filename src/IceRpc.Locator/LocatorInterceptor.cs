@@ -162,10 +162,7 @@ public class LocatorLocationResolver : ILocationResolver
     /// <param name="locator">The locator proxy.</param>
     /// <param name="loggerFactory">The logger factory.</param>
     /// <param name="options">The locator options.</param>
-    public LocatorLocationResolver(
-        ILocatorPrx locator,
-        ILoggerFactory loggerFactory,
-        LocatorOptions options)
+    public LocatorLocationResolver(ILocatorPrx locator, ILoggerFactory loggerFactory, LocatorOptions options)
     {
         // This is the composition root of this locator location resolver.
 
@@ -176,30 +173,41 @@ public class LocatorLocationResolver : ILocationResolver
         }
 
         ILogger logger = loggerFactory.CreateLogger("IceRpc");
+        bool installLogDecorator = logger.IsEnabled(LogLevel.Information);
 
         // Create and decorate endpoint cache (if caching enabled):
-        IEndpointCache? endpointCache = options.Ttl != TimeSpan.Zero && options.CacheMaxSize > 0 ?
-            new LogEndpointCacheDecorator(new EndpointCache(options.CacheMaxSize), logger) : null;
+        IEndpointCache? endpointCache = options.Ttl != TimeSpan.Zero && options.MaxCacheSize > 0 ?
+            new EndpointCache(options.MaxCacheSize) : null;
 
-        // Create an decorate endpoint finder:
+        if (endpointCache != null && installLogDecorator)
+        {
+            endpointCache = new LogEndpointCacheDecorator(endpointCache, logger);
+        }
+
+        // Create and decorate endpoint finder:
         IEndpointFinder endpointFinder = new LocatorEndpointFinder(locator);
-        endpointFinder = new LogEndpointFinderDecorator(endpointFinder, logger);
+        if (installLogDecorator)
+        {
+            endpointFinder = new LogEndpointFinderDecorator(endpointFinder, logger);
+        }
         if (endpointCache != null)
         {
             endpointFinder = new CacheUpdateEndpointFinderDecorator(endpointFinder, endpointCache);
         }
         endpointFinder = new CoalesceEndpointFinderDecorator(endpointFinder);
 
-        // Create and decorate location resolver:
-        _locationResolver = new LogLocationResolverDecorator(
-            endpointCache == null ? new CacheLessLocationResolver(endpointFinder) :
+        _locationResolver = endpointCache == null ? new CacheLessLocationResolver(endpointFinder) :
                 new LocationResolver(
                     endpointFinder,
                     endpointCache,
                     options.Background,
                     options.RefreshThreshold,
-                    options.Ttl),
-            logger);
+                    options.Ttl);
+
+        if (installLogDecorator)
+        {
+            _locationResolver = new LogLocationResolverDecorator(_locationResolver, logger);
+        }
     }
 
     ValueTask<(Proxy? Proxy, bool FromCache)> ILocationResolver.ResolveAsync(
