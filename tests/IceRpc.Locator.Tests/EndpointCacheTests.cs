@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
+using IceRpc.Locator.Internal;
 using NUnit.Framework;
 
-namespace IceRpc.Tests;
+namespace IceRpc.Locator.Tests;
 
 [Parallelizable(ParallelScope.All)]
 public class EndpointCacheTests

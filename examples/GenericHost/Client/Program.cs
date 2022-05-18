@@ -28,48 +28,69 @@ public static class Program
                 // Add the ClientHostedService to the hosted services of the .NET Generic Host.
                 services.AddHostedService<ClientHostedService>();
 
-                // Bind the client hosted service options to the "appsettings.json" configuration "Connection" section,
+                // Bind the client hosted service options to the "appsettings.json" configuration "Client" section,
                 // and add a Configure callback to configure its authentication options.
                 services
                     .AddOptions<ClientHostedServiceOptions>()
-                    .Bind(hostContext.Configuration.GetSection("Client"))
+                    .Bind(hostContext.Configuration.GetSection("Client"));
+
+                services
+                    .AddOptions<SslClientAuthenticationOptions>()
                     .Configure(options =>
                     {
                         // Configure the authentication options
                         var rootCA = new X509Certificate2(
                             hostContext.Configuration.GetValue<string>("CertificateAuthoritiesFile"));
-                        options.AuthenticationOptions = new SslClientAuthenticationOptions()
+
+                        // A certificate validation callback that uses the configured certificate authorities file
+                        // to validate the peer certificates.
+                        options.RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
                         {
-                            // A certificate validation callback that uses the configured certificate authorities file
-                            // to validate the peer certificates.
-                            RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
-                            {
-                                using var customChain = new X509Chain();
-                                customChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-                                customChain.ChainPolicy.DisableCertificateDownloads = true;
-                                customChain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
-                                customChain.ChainPolicy.CustomTrustStore.Add(rootCA);
-                                return customChain.Build((X509Certificate2)certificate!);
-                            }
+                            using var customChain = new X509Chain();
+                            customChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+                            customChain.ChainPolicy.DisableCertificateDownloads = true;
+                            customChain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
+                            customChain.ChainPolicy.CustomTrustStore.Add(rootCA);
+                            return customChain.Build((X509Certificate2)certificate!);
                         };
                     });
 
-                // Add an IInvoker singleton service.
-                services.AddSingleton<IInvoker>(serviceProvider =>
+                // Add an IInvoker service.
+                services.AddScoped<IInvoker>(serviceProvider =>
+                {
+                    // The invoker is a pipeline configured with the logger and telemetry interceptors. The
+                    // interceptors use the logger factory provided by the .NET Generic Host.
+                    ILoggerFactory loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+                    return new Pipeline()
+                        .UseLogger(loggerFactory)
+                        .UseTelemetry(new TelemetryOptions { LoggerFactory = loggerFactory });
+                });
+
+                services.AddScoped<IConnection, Connection>(serviceProvider =>
+                {
+                    IOptions<ClientHostedServiceOptions> options =
+                        serviceProvider.GetRequiredService<IOptions<ClientHostedServiceOptions>>();
+
+                    var connectionOptions = new ConnectionOptions
                     {
-                        // The invoker is a pipeline configured with the logger and telemetry interceptors. The
-                        // interceptors use the logger factory provided by the .NET Generic Host.
-                        ILoggerFactory loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
-                        return new Pipeline()
-                            .UseLogger(loggerFactory)
-                            .UseTelemetry(new TelemetryOptions { LoggerFactory = loggerFactory });
-                    });
+                        AuthenticationOptions =
+                            serviceProvider.GetRequiredService<IOptions<SslClientAuthenticationOptions>>().Value,
+                        ConnectTimeout = options.Value.ConnectTimeout,
+                        RemoteEndpoint = options.Value.RemoteEndpoint,
+                    };
+
+                    return new Connection(connectionOptions);
+                });
+
+                services.AddScoped<IHelloPrx>(serviceProvider =>
+                    HelloPrx.FromConnection(
+                        serviceProvider.GetRequiredService<IConnection>(),
+                        invoker: serviceProvider.GetRequiredService<IInvoker>()));
             });
 
     /// <summary>The options class for <see cref="ClientHostedService"/>.</summary>
     public class ClientHostedServiceOptions
     {
-        public SslClientAuthenticationOptions? AuthenticationOptions { get; set; }
         public TimeSpan ConnectTimeout { get; set; }
         public Endpoint RemoteEndpoint { get; set; }
     }
@@ -80,29 +101,13 @@ public static class Program
         // The host application lifetime is used to stop the .NET Generic Host.
         private readonly IHostApplicationLifetime _applicationLifetime;
 
-        // The IceRPC connection to communicate with the IceRPC server.
-        private readonly Connection _connection;
+        // A proxy to the remote Hello service.
+        private readonly IHelloPrx _hello;
 
-        // The IceRPC proxy to perform invocations on the Hello service from the IceRPC server.
-        private readonly HelloPrx _proxy;
-
-        public ClientHostedService(
-            IInvoker invoker,
-            IHostApplicationLifetime applicationLifetime,
-            IOptions<ClientHostedServiceOptions> options)
+        public ClientHostedService(IHelloPrx hello, IHostApplicationLifetime applicationLifetime)
         {
             _applicationLifetime = applicationLifetime;
-
-            var connectionOptions = new ConnectionOptions
-            {
-                AuthenticationOptions = options.Value.AuthenticationOptions,
-                ConnectTimeout = options.Value.ConnectTimeout,
-                RemoteEndpoint = options.Value.RemoteEndpoint,
-            };
-
-            _connection = new Connection(connectionOptions);
-
-            _proxy = HelloPrx.FromConnection(_connection, invoker: invoker);
+            _hello = hello;
         }
 
         protected override async Task ExecuteAsync(CancellationToken cancellationToken)
@@ -112,7 +117,7 @@ public static class Program
                 Console.Write("To say hello to the server, type your name: ");
                 if (Console.ReadLine() is string name)
                 {
-                    Console.WriteLine(await _proxy.SayHelloAsync(name, cancel: cancellationToken));
+                    Console.WriteLine(await _hello.SayHelloAsync(name, cancel: cancellationToken));
                 }
             }
             catch (Exception exception)
@@ -122,14 +127,6 @@ public static class Program
 
             // Stop the generic host once the invocation is done.
             _applicationLifetime.StopApplication();
-        }
-
-        public override async Task StopAsync(CancellationToken cancellationToken)
-        {
-            await base.StopAsync(cancellationToken);
-
-            // Shutdown the connection when the hosted service is stopped.
-            await _connection.ShutdownAsync(cancellationToken);
         }
     }
 }

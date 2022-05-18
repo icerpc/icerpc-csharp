@@ -16,6 +16,7 @@ $packages = @(
   'icerpc.deflate'
   'icerpc.extensions.dependencyinjection'
   'icerpc.interop'
+  'icerpc.locator'
   'icerpc.logger'
   'icerpc.metrics'
   'icerpc.retry'

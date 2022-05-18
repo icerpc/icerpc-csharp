@@ -4,7 +4,7 @@ using IceRpc.Features;
 using NUnit.Framework;
 using System.Collections.Immutable;
 
-namespace IceRpc.Interop.Tests;
+namespace IceRpc.Locator.Tests;
 
 public class LocatorInterceptorTests
 {
