@@ -190,7 +190,7 @@ public class ConnectionTests
         var tcpServerTransport = new TcpServerTransport();
         var slicServerTransport = new SlicServerTransport(tcpServerTransport);
 
-        var listener = slicServerTransport.Listen($"{protocol}://127.0.0.1:0", null, NullLogger.Instance);
+        await using var listener = slicServerTransport.Listen($"{protocol}://127.0.0.1:0", null, NullLogger.Instance);
         await using var connection = new Connection(new ConnectionOptions
         {
             RemoteEndpoint = listener.Endpoint,
@@ -563,6 +563,37 @@ public class ConnectionTests
                 Assert.That(async () => await pingTask, Throws.TypeOf<OperationCanceledException>());
             }
         }
+    }
+
+    [Test]
+    public async Task Shutdown_wait_for_connection_establishment()
+    {
+        // Arrange
+        var tcpServerTransport = new TcpServerTransport();
+        var slicServerTransport = new SlicServerTransport(tcpServerTransport);
+
+        await using var listener = slicServerTransport.Listen($"icerpc://127.0.0.1:0", null, NullLogger.Instance);
+        await using var connection = new Connection(new ConnectionOptions
+        {
+            RemoteEndpoint = listener.Endpoint,
+        });
+        Task connectTask = connection.ConnectAsync();
+
+        // Act
+        Task shutdownTask = connection.ShutdownAsync();
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(connectTask.IsCompleted, Is.False);
+            Assert.That(shutdownTask.IsCompleted, Is.False);
+        });
+        connection.Abort();
+        Assert.Multiple(() =>
+        {
+            Assert.That(async () => await connectTask, Throws.TypeOf<ConnectionClosedException>());
+            Assert.That(async () => await shutdownTask, Throws.Nothing);
+        });
     }
 
     [Test]
