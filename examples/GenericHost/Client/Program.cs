@@ -38,6 +38,7 @@ public static class Program
                     .AddOptions<SslClientAuthenticationOptions>()
                     .Configure(options =>
                     {
+                        Console.WriteLine("configure SslClientAuthenticationOptions");
                         // Configure the authentication options
                         var rootCA = new X509Certificate2(
                             hostContext.Configuration.GetValue<string>("CertificateAuthoritiesFile"));
