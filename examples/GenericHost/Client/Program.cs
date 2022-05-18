@@ -56,7 +56,7 @@ public static class Program
                     });
 
                 // Add an IInvoker service.
-                services.AddSingleton<IInvoker>(serviceProvider =>
+                services.AddScoped<IInvoker>(serviceProvider =>
                 {
                     // The invoker is a pipeline configured with the logger and telemetry interceptors. The
                     // interceptors use the logger factory provided by the .NET Generic Host.
@@ -66,7 +66,7 @@ public static class Program
                         .UseTelemetry(new TelemetryOptions { LoggerFactory = loggerFactory });
                 });
 
-                services.AddSingleton<IConnection, Connection>(serviceProvider =>
+                services.AddScoped<IConnection, Connection>(serviceProvider =>
                 {
                     IOptions<ClientHostedServiceOptions> options =
                         serviceProvider.GetRequiredService<IOptions<ClientHostedServiceOptions>>();
@@ -82,7 +82,7 @@ public static class Program
                     return new Connection(connectionOptions);
                 });
 
-                services.AddSingleton<IHelloPrx>(serviceProvider =>
+                services.AddScoped<IHelloPrx>(serviceProvider =>
                     HelloPrx.FromConnection(
                         serviceProvider.GetRequiredService<IConnection>(),
                         invoker: serviceProvider.GetRequiredService<IInvoker>()));
