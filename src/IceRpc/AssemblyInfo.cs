@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("IceRpc.Coloc")] // necessary to use IceRpc.Transports.Internal.AsyncQueue
 [assembly: InternalsVisibleTo("IceRpc.Interop")]
 
+[assembly: InternalsVisibleTo("IceRpc.Locator")] // For IceRpc.Internal.BaseEventIds
 [assembly: InternalsVisibleTo("IceRpc.Logger")] // For IceRpc.Internal.BaseEventIds
 [assembly: InternalsVisibleTo("IceRpc.Retry")] // For IceRpc.Internal.BaseEventIds
 
