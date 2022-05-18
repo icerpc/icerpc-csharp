@@ -22,9 +22,8 @@ namespace IceRpc
         /// <summary>The connection is active and can send and receive messages.</summary>
         Active,
         /// <summary>The connection is being gracefully shutdown. If the connection is resumable and the shutdown is
-        /// initiated by the peer, the connection will switch to the <see cref="ConnectionState.NotConnected"/> state
-        /// once the graceful shutdown completes. It will switch to the <see cref="ConnectionState.Closed"/> state
-        /// otherwise.</summary>
+        /// initiated by the peer, the connection will switch to the <see cref="NotConnected"/> state once the graceful
+        /// shutdown completes. It will switch to the <see cref="Closed"/> state otherwise.</summary>
         ShuttingDown,
         /// <summary>The connection is closed and it can't be resumed.</summary>
         Closed
@@ -60,9 +59,7 @@ namespace IceRpc
         /// <inheritdoc/>
         public FeatureCollection Features { get; }
 
-#pragma warning disable CA2213 // field that is of IDisposable type, but it is never disposed
-        private readonly CancellationTokenSource _connectCancellationSource = new(); // Disposed by Close
-#pragma warning restore CA2213
+        private readonly CancellationTokenSource _connectCancellationSource = new();
 
         private readonly bool _isServer;
 
@@ -76,19 +73,16 @@ namespace IceRpc
 
         private IProtocolConnection? _protocolConnection;
 
-#pragma warning disable CA2213 // field that is of IDisposable type, but it is never disposed
-        private readonly CancellationTokenSource _shutdownCancellationSource = new(); // Disposed by Close
-#pragma warning restore CA2213
+        private readonly CancellationTokenSource _shutdownCancellationSource = new();
 
         private ConnectionState _state = ConnectionState.NotConnected;
+
         // The state task is assigned when the state is updated to Connecting or ShuttingDown. It's completed once the
         // state update completes. It's protected with _mutex.
         private Task? _stateTask;
 
-#pragma warning disable CA2213 // field that is of IDisposable type, but it is never disposed
         // TODO: move to the protocol implementation (#906)
-        private Timer? _timer; // Disposed by Close
-#pragma warning restore CA2213
+        private Timer? _timer;
 
         /// <summary>Constructs a client connection.</summary>
         /// <param name="options">The connection options.</param>
@@ -420,9 +414,8 @@ namespace IceRpc
             }
             catch (OperationCanceledException) when (_connectCancellationSource.IsCancellationRequested)
             {
-                // This occurs when connect is canceled by Abort. We just throw ConnectionClosedException here because
-                // the connection is already closed and disposed.
-                Debug.Assert(State == ConnectionState.Closed);
+                // This occurs when connection establishment is canceled by Close. We just throw ConnectionClosedException here
+                // because the connection is already closed and disposed.
                 throw new ConnectionClosedException("connection aborted");
             }
             catch (Exception exception)
@@ -482,8 +475,28 @@ namespace IceRpc
         }
 
         /// <summary>Closes the connection. Resources allocated for the connection are freed.</summary>
+        /// <param name="exception">The optional exception responsible for the connection closure. A <c>null</c>
+        /// exception indicates a gracefull connection closure.</param>
+        /// <param name="isResumable">If <c>true</c> and the connection is resumable, the connection state will be
+        /// <see cref="ConnectionState.NotConnected"/> once this operation returns. Otherwise, it will the
+        /// <see cref="ConnectionState.Closed"/> terminal state.</param>
+        /// <param name="protocolConnection">If not <c>null</c>, the connection closure will only be performed if the
+        /// protocol connection matches.</param>
         private void Close(Exception? exception, bool isResumable, IProtocolConnection? protocolConnection = null)
         {
+            if (!isResumable)
+            {
+                // If the closure is triggered by an non-resumable operation, make sure connection establishment is
+                // canceled.
+                try
+                {
+                    _connectCancellationSource.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+            }
+
             lock (_mutex)
             {
                 if (_state == ConnectionState.NotConnected ||
@@ -492,9 +505,6 @@ namespace IceRpc
                 {
                     return;
                 }
-
-                // Cancel ConnectAsync if it's pending.
-                _connectCancellationSource.Cancel();
 
                 if (_protocolConnection != null)
                 {

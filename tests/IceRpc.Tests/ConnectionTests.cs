@@ -566,7 +566,7 @@ public class ConnectionTests
     }
 
     [Test]
-    public async Task Shutdown_wait_for_connection_establishment()
+    public async Task Shutdown_waits_for_connection_establishment()
     {
         // Arrange
         var tcpServerTransport = new TcpServerTransport();
