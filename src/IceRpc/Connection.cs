@@ -61,7 +61,7 @@ namespace IceRpc
         public FeatureCollection Features { get; }
 
 #pragma warning disable CA2213 // field that is of IDisposable type, but it is never disposed
-        private readonly CancellationTokenSource _connectCancellationSource = new();
+        private readonly CancellationTokenSource _connectCancellationSource = new(); // Disposed by Close
 #pragma warning restore CA2213
 
         private readonly bool _isServer;
@@ -358,9 +358,9 @@ namespace IceRpc
                     }
                     else if (_state == ConnectionState.Closed)
                     {
-                        // This can occur if the connection is aborted while the connection is being connected.
+                        // This can occur if the connection is aborted shortly after the connection establishment.
                         protocolConnection.Dispose();
-                        throw new ConnectionClosedException();
+                        throw new ConnectionClosedException("connection aborted");
                     }
                     else
                     {
@@ -506,24 +506,24 @@ namespace IceRpc
                     _protocolConnection.Dispose();
                     _protocolConnection = null;
                 }
-
+u
                 if (_timer != null)
                 {
                     _timer.Dispose();
                     _timer = null;
                 }
 
-                if (!_options.IsResumable || !isResumable)
-                {
-                    _shutdownCancellationSource.Dispose();
-                }
-
-                _connectCancellationSource.Dispose();
-
                 // A connection can be resumed if it's configured to be resumable and the operation that closed the
                 // connection allows it (explicit shutdown or abort don't allow the connection to be resumed).
                 _state = _options.IsResumable && isResumable ? ConnectionState.NotConnected : ConnectionState.Closed;
                 _stateTask = null;
+
+                if (_state == ConnectionState.Closed)
+                {
+                    // Time to get rid of disposable resources if the connection is in the closed state.
+                    _shutdownCancellationSource.Dispose();
+                    _connectCancellationSource.Dispose();
+                }
             }
 
             // Raise the Closed event, this will call user code so we shouldn't hold the mutex.
