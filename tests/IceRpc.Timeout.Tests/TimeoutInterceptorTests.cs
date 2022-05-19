@@ -4,7 +4,7 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using NUnit.Framework;
 
-namespace IceRpc.Tests;
+namespace IceRpc.Timeout.Tests;
 
 public sealed class TimeoutInterceptorTests
 {
