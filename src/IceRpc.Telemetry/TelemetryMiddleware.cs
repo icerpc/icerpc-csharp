@@ -16,21 +16,20 @@ public class TelemetryMiddleware : IDispatcher
 {
     private readonly ILogger _logger;
     private readonly IDispatcher _next;
-    private readonly ActivitySource? _activitySource;
+    private readonly ActivitySource _activitySource;
 
     /// <summary>Constructs a telemetry middleware.</summary>
     /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
-    /// <param name="activitySource">If set to a non null object the <see cref="ActivitySource"/> is used to start the
-    /// request and response activities.</param>
+    /// <param name="activitySource">The <see cref="ActivitySource"/> is used to start the request activity.</param>
     /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
     public TelemetryMiddleware(
         IDispatcher next,
-        ActivitySource? activitySource = null,
-        ILoggerFactory? loggerFactory = null)
+        ActivitySource activitySource,
+        ILoggerFactory loggerFactory)
     {
         _next = next;
         _activitySource = activitySource;
-        _logger = loggerFactory?.CreateLogger("IceRpc") ?? NullLogger.Instance;
+        _logger = loggerFactory.CreateLogger("IceRpc");
     }
 
     /// <inheritdoc/>
@@ -38,37 +37,20 @@ public class TelemetryMiddleware : IDispatcher
     {
         if (request.Protocol.HasFields)
         {
-            Activity? activity = _activitySource?.CreateActivity(
-                $"{request.Path}/{request.Operation}",
-                ActivityKind.Server);
-            if (activity == null && (_logger.IsEnabled(LogLevel.Critical) || Activity.Current != null))
-            {
-                activity = new Activity($"{request.Path}/{request.Operation}");
-            }
+            string name = $"{request.Path}/{request.Operation}";
+            using Activity activity = _activitySource.CreateActivity(name, ActivityKind.Server) ?? new Activity(name);
 
-            if (activity != null)
+            activity.AddTag("rpc.system", "icerpc");
+            activity.AddTag("rpc.service", request.Path);
+            activity.AddTag("rpc.method", request.Operation);
+            // TODO add additional attributes
+            // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md#common-remote-procedure-call-conventions
+            if (request.Fields.TryGetValue(RequestFieldKey.TraceContext, out ReadOnlySequence<byte> buffer))
             {
-                activity.AddTag("rpc.system", "icerpc");
-                activity.AddTag("rpc.service", request.Path);
-                activity.AddTag("rpc.method", request.Operation);
-                // TODO add additional attributes
-                // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md#common-remote-procedure-call-conventions
-                if (request.Fields.TryGetValue(RequestFieldKey.TraceContext, out ReadOnlySequence<byte> buffer))
-                {
-                    RestoreActivityContext(buffer, activity);
-                }
-                activity.Start();
+                RestoreActivityContext(buffer, activity);
             }
-
-            try
-            {
-                return await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
-            }
-            finally
-            {
-                activity?.Stop();
-                activity?.Dispose();
-            }
+            activity.Start();
+            return await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
         }
         else
         {

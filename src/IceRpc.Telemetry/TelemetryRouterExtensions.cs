@@ -2,6 +2,7 @@
 
 using IceRpc.Telemetry;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Diagnostics;
 
 namespace IceRpc.Configure;
@@ -18,7 +19,7 @@ public static class TelemetryRouterExtensions
     /// <returns>The router being configured.</returns>
     public static Router UseTelemetry(
         this Router router,
-        ActivitySource? activitySource = null,
+        ActivitySource activitySource,
         ILoggerFactory? loggerFactory = null) =>
-        router.Use(next => new TelemetryMiddleware(next, activitySource, loggerFactory));
+        router.Use(next => new TelemetryMiddleware(next, activitySource, NullLoggerFactory.Instance));
 }
