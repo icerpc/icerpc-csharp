@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features.Internal;
-using IceRpc.Internal;
 using System.Collections.Immutable;
 
 namespace IceRpc.Features;
@@ -14,8 +13,7 @@ public static class FeatureCollectionExtensions
     /// <returns>A new read-only decorator over this feature collection, or the feature collection itself if it's
     /// already read-only.</returns>
     public static IFeatureCollection AsReadOnly(this IFeatureCollection features) =>
-        features.IsReadOnly ? features :
-            (features.Any() ? new ReadOnlyFeatureCollectionDecorator(features) : FeatureCollection.Empty);
+        features.IsReadOnly ? features : new ReadOnlyFeatureCollectionDecorator(features);
 
     /// <summary>Gets the requested feature. If the feature is not set, tries to find it in the fallback feature
     /// collection.</summary>

@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Features.Internal;
 using System.Collections;
 
 namespace IceRpc.Features;
@@ -9,7 +8,7 @@ namespace IceRpc.Features;
 public class FeatureCollection : IFeatureCollection
 {
     /// <summary>Gets a shared empty read-only instance.</summary>
-    public static IFeatureCollection Empty { get; } = new ReadOnlyFeatureCollectionDecorator(new FeatureCollection());
+    public static IFeatureCollection Empty { get; } = new FeatureCollection().AsReadOnly();
 
     /// <inheritdoc/>
     public bool IsReadOnly => false;
