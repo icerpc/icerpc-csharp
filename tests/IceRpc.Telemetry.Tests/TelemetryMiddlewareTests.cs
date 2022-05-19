@@ -26,12 +26,9 @@ public sealed class TelemetryMiddlewareTests
         });
 
         // Add a mock activity listener that allows the activity source to create the dispatch activity.
-        var activitySource = new ActivitySource("Test Activity Source");
+        using var activitySource = new ActivitySource("Test Activity Source");
         using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
-        var sut = new TelemetryMiddleware(dispatcher, new Configure.TelemetryOptions()
-        {
-            ActivitySource = activitySource
-        });
+        var sut = new TelemetryMiddleware(dispatcher, activitySource);
 
         var request = new IncomingRequest(InvalidConnection.IceRpc)
         {
@@ -69,7 +66,7 @@ public sealed class TelemetryMiddlewareTests
             return new(new OutgoingResponse(request));
         });
 
-        var sut = new TelemetryMiddleware(dispatcher, new Configure.TelemetryOptions());
+        var sut = new TelemetryMiddleware(dispatcher);
         var request = new IncomingRequest(InvalidConnection.IceRpc)
         {
             Operation = "Op",
@@ -111,11 +108,8 @@ public sealed class TelemetryMiddlewareTests
         });
 
         // A mock logger factory to trigger the creation of the dispatch activity
-        var loggerFactory = new MockLoggerFactory();
-        var sut = new TelemetryMiddleware(dispatcher, new Configure.TelemetryOptions()
-        {
-            LoggerFactory = loggerFactory
-        });
+        using var loggerFactory = new MockLoggerFactory();
+        var sut = new TelemetryMiddleware(dispatcher, loggerFactory: loggerFactory);
 
         var request = new IncomingRequest(InvalidConnection.IceRpc)
         {
@@ -176,12 +170,9 @@ public sealed class TelemetryMiddlewareTests
         }
 
         // Add a mock activity listener that allows the activity source to create the dispatch activity.
-        var activitySource = new ActivitySource("Test Activity Source");
+        using var activitySource = new ActivitySource("Test Activity Source");
         using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
-        var sut = new TelemetryMiddleware(dispatcher, new Configure.TelemetryOptions()
-        {
-            ActivitySource = activitySource
-        });
+        var sut = new TelemetryMiddleware(dispatcher, activitySource);
 
         // Create an incoming request that carries the encoded trace context
         var request = new IncomingRequest(InvalidConnection.IceRpc)
@@ -223,12 +214,9 @@ public sealed class TelemetryMiddlewareTests
         });
 
         // Add a mock activity listener that allows the activity source to create the dispatch activity.
-        var activitySource = new ActivitySource("Test Activity Source");
+        using var activitySource = new ActivitySource("Test Activity Source");
         using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
-        var sut = new TelemetryMiddleware(dispatcher, new Configure.TelemetryOptions()
-        {
-            ActivitySource = activitySource
-        });
+        var sut = new TelemetryMiddleware(dispatcher, activitySource);
 
         // Create an incoming request that carries an empty trace context field
         var request = new IncomingRequest(InvalidConnection.IceRpc)

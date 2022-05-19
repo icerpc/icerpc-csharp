@@ -25,13 +25,10 @@ public sealed class TelemetryInterceptorTests
         });
 
         // Add a mock activity listener that allows the activity source to create the invocation activity.
-        var activitySource = new ActivitySource("Test Activity Source");
+        using var activitySource = new ActivitySource("Test Activity Source");
         using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
 
-        var sut = new TelemetryInterceptor(invoker, new Configure.TelemetryOptions()
-        {
-            ActivitySource = activitySource
-        });
+        var sut = new TelemetryInterceptor(invoker, activitySource);
 
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc) { Path = "/path" })
         {
@@ -69,7 +66,7 @@ public sealed class TelemetryInterceptorTests
             return Task.FromResult(new IncomingResponse(request, request.Connection!));
         });
 
-        var sut = new TelemetryInterceptor(invoker, new Configure.TelemetryOptions());
+        var sut = new TelemetryInterceptor(invoker);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc) { Path = "/path" })
         {
             Operation = "Op"
@@ -111,11 +108,8 @@ public sealed class TelemetryInterceptorTests
         });
 
         // A mock logger factory to trigger the creation of the invocation activity
-        var loggerFactory = new MockLoggerFactory();
-        var sut = new TelemetryInterceptor(invoker, new Configure.TelemetryOptions()
-        {
-            LoggerFactory = loggerFactory
-        });
+        using var loggerFactory = new MockLoggerFactory();
+        var sut = new TelemetryInterceptor(invoker, loggerFactory: loggerFactory);
 
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc) { Path = "/path" })
         {
@@ -159,7 +153,7 @@ public sealed class TelemetryInterceptorTests
             return Task.FromResult(new IncomingResponse(request, request.Connection!));
         });
 
-        var sut = new TelemetryInterceptor(invoker, new Configure.TelemetryOptions());
+        var sut = new TelemetryInterceptor(invoker);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc) { Path = "/" })
         {
             Operation = "op"
@@ -198,7 +192,7 @@ public sealed class TelemetryInterceptorTests
             return Task.FromResult(new IncomingResponse(request, request.Connection!));
         });
 
-        var sut = new TelemetryInterceptor(invoker, new Configure.TelemetryOptions());
+        var sut = new TelemetryInterceptor(invoker);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc) { Path = "/" })
         {
             Operation = "op"
