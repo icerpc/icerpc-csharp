@@ -44,9 +44,9 @@ public class LocatorInterceptorTests
 
         await sut.InvokeAsync(request, default);
 
-        EndpointSelection? endpointSelection = request.Features.Get<EndpointSelection>();
-        Assert.That(endpointSelection, Is.Not.Null);
-        Assert.That(endpointSelection.Endpoint, Is.EqualTo(expected.Endpoint));
+        IEndpointFeature? endpointFeature = request.Features.Get<IEndpointFeature>();
+        Assert.That(endpointFeature, Is.Not.Null);
+        Assert.That(endpointFeature.Endpoint, Is.EqualTo(expected.Endpoint));
     }
 
     /// <summary>Verifies that the locator interceptor correctly resolves a well-known proxy using the given
@@ -63,9 +63,9 @@ public class LocatorInterceptorTests
 
         await sut.InvokeAsync(request, default);
 
-        EndpointSelection? endpointSelection = request.Features.Get<EndpointSelection>();
-        Assert.That(endpointSelection, Is.Not.Null);
-        Assert.That(endpointSelection.Endpoint, Is.EqualTo(expected.Endpoint));
+        IEndpointFeature? endpointFeature = request.Features.Get<IEndpointFeature>();
+        Assert.That(endpointFeature, Is.Not.Null);
+        Assert.That(endpointFeature.Endpoint, Is.EqualTo(expected.Endpoint));
     }
 
     /// <summary>Verifies that the locator interceptor set the refresh cache parameter on the second attempt to resolve

@@ -29,9 +29,9 @@ public class BinderInterceptor : IInvoker
     {
         if (request.Connection == null)
         {
-            if (request.Features.Get<EndpointSelection>() is EndpointSelection endpointSelection)
+            if (request.Features.Get<IEndpointFeature>() is IEndpointFeature endpointFeature)
             {
-                return PerformBindAsync(endpointSelection.Endpoint, endpointSelection.AltEndpoints);
+                return PerformBindAsync(endpointFeature.Endpoint, endpointFeature.AltEndpoints);
             }
             else
             {
