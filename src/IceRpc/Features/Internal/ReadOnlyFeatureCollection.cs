@@ -4,7 +4,7 @@ using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics;
 
-namespace IceRpc.Internal;
+namespace IceRpc.Features.Internal;
 
 /// <summary>A feature collection decorator that does not allow updates to the underlying feature collection.</summary>
 internal class ReadOnlyFeatureCollectionDecorator : IFeatureCollection

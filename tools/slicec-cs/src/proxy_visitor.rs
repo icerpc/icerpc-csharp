@@ -220,7 +220,8 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
 if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
 {{
     {invocation} ??= new IceRpc.Slice.Invocation();
-    {invocation}.Features = {invocation}.Features.With(IceRpc.Features.CompressPayload.Yes);
+    {invocation}.Features = new IceRpc.Features.FeatureCollection();
+    {invocation}.Features.Set(IceRpc.Features.CompressPayload.Yes);
 }}
 ",
             invocation = invocation_parameter

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Tests;
 using NUnit.Framework;
 using System.Buffers;

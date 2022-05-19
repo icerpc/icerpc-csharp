@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
+
 namespace IceRpc.Slice
 {
     /// <summary>Holds properties to customize a request and to get back information from the corresponding response.

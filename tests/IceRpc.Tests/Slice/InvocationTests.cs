@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Slice.Internal;
 using IceRpc.Tests;
 using NUnit.Framework;
@@ -43,7 +44,7 @@ public class InvocationTests
         Assert.That(context, Is.EqualTo(invocation.Features.GetContext()));
     }
 
-    
+
 
     /// <summary>Verifies that setting an invocation deadline requires providing a cancelable cancellation token.
     /// </summary>

@@ -1,5 +1,7 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
+
 namespace IceRpc.Configure
 {
     /// <summary>This class provide extension methods to add built-in interceptors to a <see cref="Pipeline"/>

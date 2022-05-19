@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Tests;
 using IceRpc.Transports;

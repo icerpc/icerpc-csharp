@@ -382,8 +382,14 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
 
     if operation.compress_return() {
         check_and_decode.writeln(
-            "request.Features = request.Features.With(IceRpc.Features.CompressPayload.Yes);",
-        );
+            "\
+if (request.Features.IsReadOnly)
+{
+    request.Features = new IceRpc.Features.FeatureCollection(request.Features);
+}
+request.Features.Set(IceRpc.Features.CompressPayload.Yes);
+            ",
+        )
     }
 
     let encoding = operation.encoding.to_cs_encoding();

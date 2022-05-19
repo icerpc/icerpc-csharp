@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
+using IceRpc.Features.Internal;
 using System.Collections;
 
-namespace IceRpc;
+namespace IceRpc.Features;
 
 /// <summary>The default read-write implementation of <see cref="IFeatureCollection"/>.</summary>
 public class FeatureCollection : IFeatureCollection

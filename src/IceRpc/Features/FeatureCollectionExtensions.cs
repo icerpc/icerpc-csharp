@@ -4,7 +4,7 @@ using IceRpc.Features.Internal;
 using IceRpc.Internal;
 using System.Collections.Immutable;
 
-namespace IceRpc;
+namespace IceRpc.Features;
 
 /// <summary>Provides extension methods for <see cref="IFeatureCollection"/>.</summary>
 public static class FeatureCollectionExtensions
