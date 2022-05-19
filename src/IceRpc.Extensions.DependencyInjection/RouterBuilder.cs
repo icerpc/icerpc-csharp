@@ -1,13 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Deflate;
 using IceRpc.Logger;
 using IceRpc.Metrics;
 using IceRpc.Telemetry;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using System.Diagnostics;
 using System.IO.Compression;
 
 namespace IceRpc.Extensions.DependencyInjection;
@@ -37,20 +35,19 @@ public class RouterBuilder
     /// <returns>the builder.</returns>
     public RouterBuilder UseDeflate(CompressionLevel compressionLevel)
     {
-        _router.UseDeflate(compressionLevel);
+        _router.Use(next => ActivatorUtilities.CreateInstance<DeflateMiddleware>(
+            ServiceProvider,
+            new object[] { next, compressionLevel }));
         return this;
     }
 
-    /// <summary>Adds the metrics middleware with the default dispatch event source to this router.</summary>
-    /// <returns>the builder.</returns>
-    public RouterBuilder UseMetrics() => UseMetrics(DispatchEventSource.Log);
-
     /// <summary>Adds the metrics middleware to this router.</summary>
-    /// <param name="dispatchEventSource">The dispatch event source used by the metrics middleware.</param>
     /// <returns>the builder.</returns>
-    public RouterBuilder UseMetrics(DispatchEventSource dispatchEventSource)
+    public RouterBuilder UseMetrics()
     {
-        _router.UseMetrics(dispatchEventSource);
+        _router.Use(next => ActivatorUtilities.CreateInstance<MetricsMiddleware>(
+            ServiceProvider,
+            new object[] { next }));
         return this;
     }
 
@@ -68,16 +65,9 @@ public class RouterBuilder
     /// <returns>the builder.</returns>
     public RouterBuilder UseTelemetry()
     {
-        _router.UseTelemetry();
-        return this;
-    }
-
-    /// <summary>Adds the telemetry middleware to this router.</summary>
-    /// <param name="activitySource">The activity source used by the telemetry middleware.</param>
-    /// <returns>the builder.</returns>
-    public RouterBuilder UseTelemetry(ActivitySource activitySource)
-    {
-        _router.Use(next => ActivatorUtilities.CreateInstance<TelemetryMiddleware>(ServiceProvider));
+        _router.Use(next => ActivatorUtilities.CreateInstance<TelemetryMiddleware>(
+            ServiceProvider,
+            new object[] { next }));
         return this;
     }
 
@@ -91,56 +81,5 @@ public class RouterBuilder
 
     /// <summary>Build the router.</summary>
     /// <returns>The router.</returns>
-    public Router Build()
-    {
-        if (ServiceProvider.GetService<IOptions<DeflateOptions>>() is IOptions<DeflateOptions> deflateOptions)
-        {
-            _router.UseDeflate(deflateOptions.Value.CompressionLevel);
-        }
-
-        if (ServiceProvider.GetService<IOptions<LoggerOptions>>() is IOptions<LoggerOptions> loggerOptions &&
-            loggerOptions.Value.LoggerFactory != null)
-        {
-            _router.UseLogger(loggerOptions.Value.LoggerFactory);
-        }
-
-        if (ServiceProvider.GetService<IOptions<MetricsOptions>>() is IOptions<MetricsOptions> metricsOptions &&
-            metricsOptions.Value.DispatchEventSource != null)
-        {
-            _router.UseMetrics(metricsOptions.Value.DispatchEventSource);
-        }
-
-        if (ServiceProvider.GetService<IOptions<TelemetryOptions>>() is IOptions<TelemetryOptions> telemetryOptions)
-        {
-            _router.UseTelemetry(
-                new Configure.TelemetryOptions
-                {
-                    ActivitySource = telemetryOptions.Value.ActivitySource,
-                    LoggerFactory = ServiceProvider.GetService<ILoggerFactory>()
-                });
-        }
-        return _router;
-    }
-
-#pragma warning disable CA1812
-    internal class DeflateOptions
-    {
-        public CompressionLevel CompressionLevel { get; set; }
-    }
-
-    internal class LoggerOptions
-    {
-        public ILoggerFactory? LoggerFactory { get; set; }
-    }
-
-    internal class MetricsOptions
-    {
-        public DispatchEventSource? DispatchEventSource { get; set; }
-    }
-
-    internal class TelemetryOptions
-    {
-        public ActivitySource? ActivitySource { get; set; }
-    }
-#pragma warning restore
+    public Router Build() => _router;
 }

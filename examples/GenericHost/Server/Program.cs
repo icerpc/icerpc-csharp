@@ -1,10 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc;
+using IceRpc.Configure;
 using IceRpc.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
 namespace Demo;
@@ -25,40 +27,29 @@ public static class Program
                 // Add the ServerHostedService to the hosted services of the .NET Generic Host.
                 services.AddHostedService<ServerHostedService>();
 
-<<<<<<< HEAD
-                services.AddServer(serverBuilder =>
+                services.AddOptions<ServerOptions>().Configure(options =>
                 {
-                    Console.WriteLine("endpoint: " + hostContext.Configuration.GetValue<string>("Server:Endpoint"));
-                    Console.WriteLine("certificate: " + hostContext.Configuration.GetValue<string>("Certificate:File"));
-=======
-                // Add an IDispatcher singleton service.
-                services.AddSingleton<IDispatcher>(serviceProvider =>
+                    Console.WriteLine("Configure server options:");
+                    // TODO temporary until we refactor server options
+                    options.Endpoint = hostContext.Configuration.GetValue<string>("Server:Endpoint");
+                    options.CloseTimeout = hostContext.Configuration.GetValue<TimeSpan>("Server:CloseTimeout");
+                    options.AuthenticationOptions = new SslServerAuthenticationOptions()
                     {
-                        // The dispatcher is a router configured with the logger and telemetry middlewares and the
-                        // IHello service. The middlewares use the logger factory provided by the .NET Generic Host.
-                        ILoggerFactory loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
-                        var router = new Router();
-                        router.UseLogger(loggerFactory);
-                        router.UseTelemetry(loggerFactory: loggerFactory);
-                        router.Map<IHello>(new Hello());
-                        return router;
-                    });
->>>>>>> telemetry-options
-
-                    serverBuilder
-                        .UseEndpoint(hostContext.Configuration.GetValue<string>("Server:Endpoint"))
-                        .UseCloseTimeout(hostContext.Configuration.GetValue<TimeSpan>("Server:CloseTimeout"))
-                        .UseServerCertificate(
-                            new X509Certificate2(
-                                hostContext.Configuration.GetValue<string>("Certificate:File"),
-                                hostContext.Configuration.GetValue<string>("Certificate:Password")))
-                        .UseRouter(routerBuilder =>
-                        {
-                            routerBuilder.UseTelemetry();
-                            routerBuilder.UseLogger();
-                            routerBuilder.Map<IHello>(new Hello());
-                        });
+                        ServerCertificate = new X509Certificate2(
+                            hostContext.Configuration.GetValue<string>("Certificate:File"),
+                            hostContext.Configuration.GetValue<string>("Certificate:Password"))
+                    };
                 });
+
+                services
+                    .AddIceRpcServer()
+                    .AddRouter(routerBuilder =>
+                    {
+                        Console.WriteLine("configure router");
+                        routerBuilder.UseTelemetry();
+                        routerBuilder.UseLogger();
+                        routerBuilder.Map<IHello>(new Hello());
+                    });
             });
 
 

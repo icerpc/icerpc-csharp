@@ -9,16 +9,41 @@ public static class ServerBuilderExtensions
 {
     /// <summary>Creates a server builder that uses the given service collection.</summary>
     /// <param name="services">The service collection.</param>
+    /// <returns>The service collection.</returns>
+    public static IServiceCollection AddIceRpcServer(this IServiceCollection services)
+    {
+        services.AddSingleton(provider => new ServerBuilder(provider).Build());
+        return services;
+    }
+
+    /// <summary>Creates a server builder that uses the given service collection.</summary>
+    /// <param name="services">The service collection.</param>
     /// <param name="configure">The action to configure the server.</param>
-    /// <returns>The server builder</returns>
-    public static IServiceCollection AddServer(
+    /// <returns>The service collection.</returns>
+    public static IServiceCollection AddIceRpcServer(
         this IServiceCollection services,
         Action<ServerBuilder> configure)
     {
-        services.AddOptions();
         services.AddSingleton(provider =>
         {
-            var builder = new ServerBuilder(services, provider);
+            var builder = new ServerBuilder(provider);
+            configure(builder);
+            return builder.Build();
+        });
+        return services;
+    }
+
+    /// <summary>Creates a router builder that uses the given service collection.</summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configure">The action to configure the router.</param>
+    /// <returns>The service collection.</returns>
+    public static IServiceCollection AddRouter(
+        this IServiceCollection services,
+        Action<RouterBuilder> configure)
+    {
+        services.AddSingleton<IDispatcher>(provider =>
+        {
+            var builder = new RouterBuilder(provider);
             configure(builder);
             return builder.Build();
         });
