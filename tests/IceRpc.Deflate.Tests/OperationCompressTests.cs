@@ -1,6 +1,7 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Features;
 using IceRpc.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -21,7 +22,8 @@ public class OperationGeneratedCodeTests
         pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
         {
             var response = await next.InvokeAsync(request, cancel);
-            compressRequestFeature = request.Features.Get<Features.CompressPayload>() == Features.CompressPayload.Yes;
+            compressRequestFeature =
+                request.Features.Get<ICompressFeature>() is ICompressFeature compress && compress.Value;
             return response;
         }));
 
@@ -30,7 +32,8 @@ public class OperationGeneratedCodeTests
         router.Use(next => new InlineDispatcher(async (request, cancel) =>
         {
             var response = await next.DispatchAsync(request, cancel);
-            compressResponseFeature = request.Features.Get<Features.CompressPayload>() == Features.CompressPayload.Yes;
+            compressResponseFeature =
+                request.Features.Get<ICompressFeature>() is ICompressFeature compress && compress.Value;
             return response;
         }));
         router.Map("/", new MyOperationsA());

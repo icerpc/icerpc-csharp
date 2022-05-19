@@ -387,7 +387,7 @@ if (request.Features.IsReadOnly)
 {
     request.Features = new IceRpc.Features.FeatureCollection(request.Features);
 }
-request.Features.Set(IceRpc.Features.CompressPayload.Yes);
+request.Features.Set<IceRpc.Features.ICompressFeature>(IceRpc.Features.CompressFeature.Compress);
             ",
         )
     }

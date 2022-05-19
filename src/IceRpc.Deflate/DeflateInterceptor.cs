@@ -1,5 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Slice;
 using System.Buffers;
 using System.IO.Compression;
@@ -7,8 +8,8 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Deflate;
 
-/// <summary>An interceptor that applies the deflate compression algorithm to the Slice2 encoded payload of a
-/// request, when <see cref="Features.CompressPayload.Yes"/> is present in the request features.</summary>
+/// <summary>An interceptor that applies the deflate compression algorithm to the payload of a request depending on
+/// the <see cref="ICompressFeature"/> feature.</summary>
 public class DeflateInterceptor : IInvoker
 {
     private static readonly ReadOnlySequence<byte> _encodedCompressionFormatValue =
@@ -32,7 +33,8 @@ public class DeflateInterceptor : IInvoker
         // The CompressPayload feature is typically set through the Slice compress attribute.
 
         if (request.Protocol.HasFields &&
-            request.Features.Get<Features.CompressPayload>() == Features.CompressPayload.Yes &&
+            request.Features.Get<ICompressFeature>() is ICompressFeature compress &&
+            compress.Value &&
             !request.Fields.ContainsKey(RequestFieldKey.CompressionFormat))
         {
             request.Use(next => PipeWriter.Create(new DeflateStream(next.AsStream(), _compressionLevel)));
