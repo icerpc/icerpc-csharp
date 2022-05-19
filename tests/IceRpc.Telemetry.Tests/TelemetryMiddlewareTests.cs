@@ -4,6 +4,7 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Tests;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.Buffers;
 using System.Diagnostics;
@@ -26,12 +27,9 @@ public sealed class TelemetryMiddlewareTests
         });
 
         // Add a mock activity listener that allows the activity source to create the dispatch activity.
-        var activitySource = new ActivitySource("Test Activity Source");
+        using var activitySource = new ActivitySource("Test Activity Source");
         using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
-        var sut = new TelemetryMiddleware(dispatcher, new Configure.TelemetryOptions()
-        {
-            ActivitySource = activitySource
-        });
+        var sut = new TelemetryMiddleware(dispatcher, activitySource, NullLoggerFactory.Instance);
 
         var request = new IncomingRequest(InvalidConnection.IceRpc)
         {
@@ -48,89 +46,6 @@ public sealed class TelemetryMiddlewareTests
         Assert.That(dispatchActivity.OperationName, Is.EqualTo($"{request.Path}/{request.Operation}"));
         Assert.That(dispatchActivity.Tags, Is.Not.Null);
         var tags = dispatchActivity.Tags.ToDictionary(entry => entry.Key, entry => entry.Value);
-        Assert.That(tags.ContainsKey("rpc.system"), Is.True);
-        Assert.That(tags["rpc.system"], Is.EqualTo("icerpc"));
-        Assert.That(tags.ContainsKey("rpc.service"), Is.True);
-        Assert.That(tags["rpc.service"], Is.EqualTo(request.Path));
-        Assert.That(tags.ContainsKey("rpc.method"), Is.True);
-        Assert.That(tags["rpc.method"], Is.EqualTo(request.Operation));
-    }
-
-    /// <summary>Verifies that the dispatch activity is created as a child of the current activity, if the current
-    /// activity is not null.</summary>
-    [Test]
-    public async Task Dispatch_activity_created_if_current_activity_is_not_null()
-    {
-        // Arrange
-        Activity? dispatchActivity = null;
-        var dispatcher = new InlineDispatcher((request, cancel) =>
-        {
-            dispatchActivity = Activity.Current;
-            return new(new OutgoingResponse(request));
-        });
-
-        var sut = new TelemetryMiddleware(dispatcher, new Configure.TelemetryOptions());
-        var request = new IncomingRequest(InvalidConnection.IceRpc)
-        {
-            Operation = "Op",
-            Path = "/"
-        };
-
-        // Start an activity to make it the current activity.
-        using var testActivity = new Activity("TestActivity");
-        testActivity.Start();
-
-        // Act
-        await sut.DispatchAsync(request, default);
-
-        // Assert
-        Assert.That(dispatchActivity, Is.Not.Null);
-        Assert.That(dispatchActivity.ParentId, Is.EqualTo(testActivity.Id));
-        Assert.That(dispatchActivity.OperationName, Is.EqualTo($"{request.Path}/{request.Operation}"));
-        Assert.That(dispatchActivity.Tags, Is.Not.Null);
-        var tags = dispatchActivity.Tags.ToDictionary(entry => entry.Key, entry => entry.Value);
-        Assert.That(tags.ContainsKey("rpc.system"), Is.True);
-        Assert.That(tags["rpc.system"], Is.EqualTo("icerpc"));
-        Assert.That(tags.ContainsKey("rpc.service"), Is.True);
-        Assert.That(tags["rpc.service"], Is.EqualTo(request.Path));
-        Assert.That(tags.ContainsKey("rpc.method"), Is.True);
-        Assert.That(tags["rpc.method"], Is.EqualTo(request.Operation));
-    }
-
-    /// <summary>Verifies that the dispatch activity is created if the logger is enabled. This way the activity context
-    /// can enrich the logger scopes.</summary>
-    [Test]
-    public async Task Dispatch_activity_created_if_logger_is_enabled()
-    {
-        // Arrange
-        Activity? dispatchActivity = null;
-        var dispatcher = new InlineDispatcher((request, cancel) =>
-        {
-            dispatchActivity = Activity.Current;
-            return new(new OutgoingResponse(request));
-        });
-
-        // A mock logger factory to trigger the creation of the dispatch activity
-        var loggerFactory = new MockLoggerFactory();
-        var sut = new TelemetryMiddleware(dispatcher, new Configure.TelemetryOptions()
-        {
-            LoggerFactory = loggerFactory
-        });
-
-        var request = new IncomingRequest(InvalidConnection.IceRpc)
-        {
-            Operation = "Op",
-            Path = "/"
-        };
-
-        // Act
-        await sut.DispatchAsync(request, default);
-
-        // Assert
-        Assert.That(dispatchActivity, Is.Not.Null);
-        Assert.That(dispatchActivity.OperationName, Is.EqualTo($"{request.Path}/{request.Operation}"));
-        Assert.That(dispatchActivity.Tags, Is.Not.Null);
-        var tags = dispatchActivity.Tags.ToDictionary(x => x.Key, x => x.Value);
         Assert.That(tags.ContainsKey("rpc.system"), Is.True);
         Assert.That(tags["rpc.system"], Is.EqualTo("icerpc"));
         Assert.That(tags.ContainsKey("rpc.service"), Is.True);
@@ -176,12 +91,9 @@ public sealed class TelemetryMiddlewareTests
         }
 
         // Add a mock activity listener that allows the activity source to create the dispatch activity.
-        var activitySource = new ActivitySource("Test Activity Source");
+        using var activitySource = new ActivitySource("Test Activity Source");
         using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
-        var sut = new TelemetryMiddleware(dispatcher, new Configure.TelemetryOptions()
-        {
-            ActivitySource = activitySource
-        });
+        var sut = new TelemetryMiddleware(dispatcher, activitySource, NullLoggerFactory.Instance);
 
         // Create an incoming request that carries the encoded trace context
         var request = new IncomingRequest(InvalidConnection.IceRpc)
@@ -223,12 +135,9 @@ public sealed class TelemetryMiddlewareTests
         });
 
         // Add a mock activity listener that allows the activity source to create the dispatch activity.
-        var activitySource = new ActivitySource("Test Activity Source");
+        using var activitySource = new ActivitySource("Test Activity Source");
         using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
-        var sut = new TelemetryMiddleware(dispatcher, new Configure.TelemetryOptions()
-        {
-            ActivitySource = activitySource
-        });
+        var sut = new TelemetryMiddleware(dispatcher, activitySource, NullLoggerFactory.Instance);
 
         // Create an incoming request that carries an empty trace context field
         var request = new IncomingRequest(InvalidConnection.IceRpc)
@@ -257,27 +166,5 @@ public sealed class TelemetryMiddlewareTests
             (ref ActivityCreationOptions<string> activityOptions) => ActivitySamplingResult.AllData;
         ActivitySource.AddActivityListener(mockActivityListener);
         return mockActivityListener;
-    }
-
-    class MockLogger : ILogger
-    {
-        public IDisposable BeginScope<TState>(TState state) => null!;
-        public bool IsEnabled(LogLevel logLevel) => true;
-        public void Log<TState>(
-            LogLevel logLevel,
-            EventId eventId,
-            TState state,
-            Exception? exception,
-            Func<TState, Exception?,
-            string> formatter)
-        {
-        }
-    }
-
-    class MockLoggerFactory : ILoggerFactory
-    {
-        public void AddProvider(ILoggerProvider provider) { }
-        public ILogger CreateLogger(string categoryName) => new MockLogger();
-        public void Dispose() { }
     }
 }

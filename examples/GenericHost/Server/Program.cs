@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Diagnostics;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
@@ -36,10 +37,11 @@ public static class Program
                         ILoggerFactory loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
                         var router = new Router();
                         router.UseLogger(loggerFactory);
-                        router.UseTelemetry(new TelemetryOptions { LoggerFactory = loggerFactory });
+                        router.UseTelemetry(serviceProvider.GetRequiredService<ActivitySource>(), loggerFactory);
                         router.Map<IHello>(new Hello());
                         return router;
                     });
+                services.AddSingleton(sp => new ActivitySource("IceRpc"));
 
                 // Bind the server hosted service options to the "appsettings.json" configuration "Server" section, and
                 // add a Configure callback to configure its authentication options.
