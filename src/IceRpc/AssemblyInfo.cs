@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("IceRpc.Locator")] // For IceRpc.Internal.BaseEventIds
 [assembly: InternalsVisibleTo("IceRpc.Logger")] // For IceRpc.Internal.BaseEventIds
 [assembly: InternalsVisibleTo("IceRpc.Retry")] // For IceRpc.Internal.BaseEventIds
-[assembly: InternalsVisibleTo("IceRpc.Retry")]
+
 // Make internals visible to the tests assembly, to allow writing unit tests for the internal classes
 [assembly: InternalsVisibleTo("IceRpc.Tests")]
 [assembly: InternalsVisibleTo("IceRpc.Interop.Tests")]
