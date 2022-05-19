@@ -25,10 +25,25 @@ public static class Program
                 // Add the ServerHostedService to the hosted services of the .NET Generic Host.
                 services.AddHostedService<ServerHostedService>();
 
+<<<<<<< HEAD
                 services.AddServer(serverBuilder =>
                 {
                     Console.WriteLine("endpoint: " + hostContext.Configuration.GetValue<string>("Server:Endpoint"));
                     Console.WriteLine("certificate: " + hostContext.Configuration.GetValue<string>("Certificate:File"));
+=======
+                // Add an IDispatcher singleton service.
+                services.AddSingleton<IDispatcher>(serviceProvider =>
+                    {
+                        // The dispatcher is a router configured with the logger and telemetry middlewares and the
+                        // IHello service. The middlewares use the logger factory provided by the .NET Generic Host.
+                        ILoggerFactory loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+                        var router = new Router();
+                        router.UseLogger(loggerFactory);
+                        router.UseTelemetry(loggerFactory: loggerFactory);
+                        router.Map<IHello>(new Hello());
+                        return router;
+                    });
+>>>>>>> telemetry-options
 
                     serverBuilder
                         .UseEndpoint(hostContext.Configuration.GetValue<string>("Server:Endpoint"))

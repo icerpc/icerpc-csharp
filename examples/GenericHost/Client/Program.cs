@@ -64,7 +64,7 @@ public static class Program
                     ILoggerFactory loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
                     return new Pipeline()
                         .UseLogger(loggerFactory)
-                        .UseTelemetry(new TelemetryOptions { LoggerFactory = loggerFactory });
+                        .UseTelemetry(loggerFactory: loggerFactory);
                 });
 
                 services.AddScoped<IConnection, Connection>(serviceProvider =>

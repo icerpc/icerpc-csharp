@@ -16,16 +16,21 @@ public class TelemetryMiddleware : IDispatcher
 {
     private readonly ILogger _logger;
     private readonly IDispatcher _next;
-    private readonly Configure.TelemetryOptions _options;
+    private readonly ActivitySource? _activitySource;
 
     /// <summary>Constructs a telemetry middleware.</summary>
     /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
-    /// <param name="options">The options to configure the telemetry middleware.</param>
-    public TelemetryMiddleware(IDispatcher next, Configure.TelemetryOptions options)
+    /// <param name="activitySource">If set to a non null object the <see cref="ActivitySource"/> is used to start the
+    /// request and response activities.</param>
+    /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
+    public TelemetryMiddleware(
+        IDispatcher next,
+        ActivitySource? activitySource = null,
+        ILoggerFactory? loggerFactory = null)
     {
         _next = next;
-        _options = options;
-        _logger = options.LoggerFactory?.CreateLogger("IceRpc") ?? NullLogger.Instance;
+        _activitySource = activitySource;
+        _logger = loggerFactory?.CreateLogger("IceRpc") ?? NullLogger.Instance;
     }
 
     /// <inheritdoc/>
@@ -33,7 +38,7 @@ public class TelemetryMiddleware : IDispatcher
     {
         if (request.Protocol.HasFields)
         {
-            Activity? activity = _options.ActivitySource?.CreateActivity(
+            Activity? activity = _activitySource?.CreateActivity(
                 $"{request.Path}/{request.Operation}",
                 ActivityKind.Server);
             if (activity == null && (_logger.IsEnabled(LogLevel.Critical) || Activity.Current != null))
