@@ -54,7 +54,7 @@ public class InvocationTests
         var sut = new ServicePrx(new Proxy(Protocol.IceRpc));
 
         // Act/Assert
-        Assert.ThrowsAsync<ArgumentException>(
+        Assert.That(
             () => sut.InvokeAsync(
                 "",
                 SliceEncoding.Slice2,
@@ -62,7 +62,8 @@ public class InvocationTests
                 payloadStream: null,
                 defaultActivator: null,
                 new Invocation { Deadline = DateTime.Now + TimeSpan.FromSeconds(60) },
-                cancel: CancellationToken.None));
+                cancel: CancellationToken.None),
+            Throws.TypeOf<ArgumentException>());
     }
 
     /// <summary>Verifies that the encoded deadline has the expected value when <see cref="Invocation.Deadline"/> is
