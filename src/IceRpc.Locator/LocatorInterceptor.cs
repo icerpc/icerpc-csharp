@@ -156,58 +156,62 @@ public interface ILocationResolver
 /// <summary>Implements <see cref="ILocationResolver"/> using a locator proxy.</summary>
 public class LocatorLocationResolver : ILocationResolver
 {
-    private readonly Lazy<ILocationResolver> _locationResolver;
+    private readonly ILocationResolver _locationResolver;
 
     /// <summary>Constructs a locator location resolver.</summary>
+    /// <param name="locator">The locator proxy.</param>
+    /// <param name="loggerFactory">The logger factory.</param>
     /// <param name="options">The locator options.</param>
-    public LocatorLocationResolver(Configure.LocatorOptions options)
+    public LocatorLocationResolver(ILocatorPrx locator, ILoggerFactory loggerFactory, LocatorOptions options)
     {
-        _locationResolver = new(() =>
+        // This is the composition root of this locator location resolver.
+
+        if (options.Ttl != Timeout.InfiniteTimeSpan && options.RefreshThreshold >= options.Ttl)
         {
-            // This is the composition root of this locator location resolver. We execute it lazily to allow the
-            // application to change (configure) options after construction.
+            throw new InvalidOperationException(
+                $"{nameof(options.RefreshThreshold)} must be smaller than {nameof(options.Ttl)}");
+        }
 
-            if (options.Locator is not ILocatorPrx locator)
-            {
-                throw new InvalidOperationException($"{nameof(options.Locator)} is null");
-            }
+        ILogger logger = loggerFactory.CreateLogger("IceRpc");
+        bool installLogDecorator = logger.IsEnabled(LogLevel.Information);
 
-            if (options.Ttl != Timeout.InfiniteTimeSpan && options.RefreshThreshold >= options.Ttl)
-            {
-                throw new InvalidOperationException(
-                    $"{nameof(options.RefreshThreshold)} must be smaller than {nameof(options.Ttl)}");
-            }
+        // Create and decorate endpoint cache (if caching enabled):
+        IEndpointCache? endpointCache = options.Ttl != TimeSpan.Zero && options.MaxCacheSize > 0 ?
+            new EndpointCache(options.MaxCacheSize) : null;
 
-            ILogger logger = options.LoggerFactory.CreateLogger("IceRpc");
+        if (endpointCache != null && installLogDecorator)
+        {
+            endpointCache = new LogEndpointCacheDecorator(endpointCache, logger);
+        }
 
-            // Create and decorate endpoint cache (if caching enabled):
-            IEndpointCache? endpointCache = options.Ttl != TimeSpan.Zero && options.CacheMaxSize > 0 ?
-                new LogEndpointCacheDecorator(new EndpointCache(options.CacheMaxSize), logger) : null;
-
-            // Create an decorate endpoint finder:
-            IEndpointFinder endpointFinder = new LocatorEndpointFinder(locator);
+        // Create and decorate endpoint finder:
+        IEndpointFinder endpointFinder = new LocatorEndpointFinder(locator);
+        if (installLogDecorator)
+        {
             endpointFinder = new LogEndpointFinderDecorator(endpointFinder, logger);
-            if (endpointCache != null)
-            {
-                endpointFinder = new CacheUpdateEndpointFinderDecorator(endpointFinder, endpointCache);
-            }
-            endpointFinder = new CoalesceEndpointFinderDecorator(endpointFinder);
+        }
+        if (endpointCache != null)
+        {
+            endpointFinder = new CacheUpdateEndpointFinderDecorator(endpointFinder, endpointCache);
+        }
+        endpointFinder = new CoalesceEndpointFinderDecorator(endpointFinder);
 
-            // Create and decorate location resolver:
-            return new LogLocationResolverDecorator(
-                endpointCache == null ? new CacheLessLocationResolver(endpointFinder) :
-                    new LocationResolver(
-                        endpointFinder,
-                        endpointCache,
-                        options.Background,
-                        options.RefreshThreshold,
-                        options.Ttl),
-                logger);
-        });
+        _locationResolver = endpointCache == null ? new CacheLessLocationResolver(endpointFinder) :
+                new LocationResolver(
+                    endpointFinder,
+                    endpointCache,
+                    options.Background,
+                    options.RefreshThreshold,
+                    options.Ttl);
+
+        if (installLogDecorator)
+        {
+            _locationResolver = new LogLocationResolverDecorator(_locationResolver, logger);
+        }
     }
 
     ValueTask<(Proxy? Proxy, bool FromCache)> ILocationResolver.ResolveAsync(
         Location location,
         bool refreshCache,
-        CancellationToken cancel) => _locationResolver.Value.ResolveAsync(location, refreshCache, cancel);
+        CancellationToken cancel) => _locationResolver.ResolveAsync(location, refreshCache, cancel);
 }

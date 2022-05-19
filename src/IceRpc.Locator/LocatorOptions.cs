@@ -1,13 +1,8 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Locator;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-
-namespace IceRpc.Configure;
+namespace IceRpc.Locator;
 
 /// <summary>An options class for configuring a <see cref="LocatorLocationResolver"/>.</summary>
-/// <seealso cref="LocatorPipelineExtensions.UseLocator(Pipeline, LocatorOptions)"/>
 public sealed record class LocatorOptions
 {
     /// <summary>Gets or sets the background configuration.</summary>
@@ -18,18 +13,7 @@ public sealed record class LocatorOptions
 
     /// <summary>Gets or sets the maximum size of the cache.</summary>
     /// <value>The maximum size of the cache. 0 means no cache. The default is 100.</value>
-    public int CacheMaxSize
-    {
-        get => _cacheMaxSize;
-        set => _cacheMaxSize = value >= 0 ? value :
-            throw new ArgumentException($"{nameof(CacheMaxSize)} must be positive", nameof(value));
-    }
-
-    /// <summary>Gets or sets the locator proxy.</summary>
-    public ILocatorPrx? Locator { get; set; }
-
-    /// <summary>Gets or sets the logger factory used to create the IceRpc logger.</summary>
-    public ILoggerFactory LoggerFactory { get; set; } = NullLoggerFactory.Instance;
+    public int MaxCacheSize { get; set; } = 100;
 
     /// <summary>Gets or sets the refresh threshold. When the age of a cache entry is less than or equal to this
     /// value, it's considered up to date and won't be updated even when the caller requests a refresh.</summary>
@@ -41,6 +25,4 @@ public sealed record class LocatorOptions
     /// <value>The time to live. The default is InfiniteTimeSpan, meaning the cache entries never become stale.
     /// </value>
     public TimeSpan Ttl { get; set; } = Timeout.InfiniteTimeSpan;
-
-    private int _cacheMaxSize = 100;
 }
