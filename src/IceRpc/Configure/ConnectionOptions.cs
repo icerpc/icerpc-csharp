@@ -44,7 +44,7 @@ namespace IceRpc.Configure
         public IDispatcher Dispatcher { get; set; } = DefaultDispatcher;
 
         /// <summary>Gets of sets the default features of the new connection.</summary>
-        public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
+        public IFeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
         /// <summary>Gets or sets the client options for the ice protocol.</summary>
         /// <value>The client options for the ice protocol.</value>

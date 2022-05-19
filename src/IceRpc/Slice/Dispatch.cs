@@ -36,7 +36,7 @@ namespace IceRpc.Slice
         public ISliceEncodeFeature? EncodeFeature => _request.GetFeature<ISliceEncodeFeature>();
 
         /// <summary>The features associated with the request.</summary>
-        public FeatureCollection Features
+        public IFeatureCollection Features
         {
             get => _request.Features;
             set => _request.Features = value;

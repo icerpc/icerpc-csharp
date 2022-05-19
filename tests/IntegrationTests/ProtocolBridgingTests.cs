@@ -138,7 +138,7 @@ public sealed class ProtocolBridgingTests
             Protocol targetProtocol = _target.Protocol;
 
             // Context forwarding
-            FeatureCollection features = FeatureCollection.Empty;
+            IFeatureCollection features = FeatureCollection.Empty;
             if (incomingRequest.Protocol == Protocol.Ice || targetProtocol == Protocol.Ice)
             {
                 // When Protocol or targetProtocol is ice, we put the request context in the initial features of the

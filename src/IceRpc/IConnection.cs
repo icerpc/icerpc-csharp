@@ -13,7 +13,7 @@ public interface IConnection
     Endpoint Endpoint { get; }
 
     /// <summary>Gets the features of this connection.</summary>
-    FeatureCollection Features { get; }
+    IFeatureCollection Features { get; }
 
     /// <summary>Checks whether a call to <see cref="InvokeAsync"/> can succeed.</summary>
     /// <value><c>true</c> when a call to <see cref="InvokeAsync"/> can succeed. <c>false</c> when a call to

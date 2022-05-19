@@ -57,7 +57,7 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public FeatureCollection Features { get; }
+        public IFeatureCollection Features { get; }
 
         private readonly CancellationTokenSource _connectCancellationSource = new();
 
@@ -93,7 +93,7 @@ namespace IceRpc
                     $"{nameof(ConnectionOptions.RemoteEndpoint)} is not set",
                     nameof(options));
 
-            Features = new FeatureCollection(options.Features);
+            Features = options.Features.AsReadOnly();
 
             // At this point, we consider options to be read-only.
             // TODO: replace _options by "splatted" properties.
@@ -301,7 +301,8 @@ namespace IceRpc
         {
             _isServer = true;
             Endpoint = endpoint;
-            Features = new FeatureCollection(options.Features);
+            // TODO: no need to create a new decorator for each server connection
+            Features = options.Features.AsReadOnly();
 
             // TODO: "splat" _options
             _options = options;

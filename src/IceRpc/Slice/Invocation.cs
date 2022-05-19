@@ -13,7 +13,7 @@ namespace IceRpc.Slice
 
         /// <summary>Gets or sets the features carried by the request.</summary>
         /// <remarks>These features are updated (set) when the response is received.</remarks>
-        public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
+        public IFeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
         /// <summary>Gets or sets whether a void-returning request is oneway. This property has no effect for operations
         /// defined in Slice that return a value.</summary>

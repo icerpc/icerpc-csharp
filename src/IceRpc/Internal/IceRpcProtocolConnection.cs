@@ -173,7 +173,7 @@ namespace IceRpc.Internal
                             DecodeHeader(readResult.Buffer);
                         stream.Input.AdvanceTo(readResult.Buffer.End);
 
-                        FeatureCollection features = FeatureCollection.Empty;
+                        IFeatureCollection features = FeatureCollection.Empty;
 
                         // Decode Context from Fields and set corresponding feature.
                         if (fields.DecodeValue(
