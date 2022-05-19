@@ -36,7 +36,7 @@ public static class Program
                         ILoggerFactory loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
                         var router = new Router();
                         router.UseLogger(loggerFactory);
-                        router.UseTelemetry(new TelemetryOptions { LoggerFactory = loggerFactory });
+                        router.UseTelemetry(loggerFactory: loggerFactory);
                         router.Map<IHello>(new Hello());
                         return router;
                     });
