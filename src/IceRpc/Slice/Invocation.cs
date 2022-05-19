@@ -29,7 +29,7 @@ namespace IceRpc.Slice
         {
             get => _timeout;
             set => _timeout = value > TimeSpan.Zero || value == System.Threading.Timeout.InfiniteTimeSpan ? value :
-                throw new ArgumentException($"{nameof(Timeout)} must be greater than 0", nameof(Timeout));
+                throw new ArgumentException($"{nameof(Timeout)} must be greater than 0", nameof(value));
         }
 
         private TimeSpan _timeout = System.Threading.Timeout.InfiniteTimeSpan;
