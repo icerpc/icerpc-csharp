@@ -16,12 +16,5 @@ namespace IceRpc.Configure
                 request.Features = request.Features.With(feature);
                 return next.InvokeAsync(request, cancel);
             }));
-
-        /// <summary>Adds a <see cref="TimeoutInterceptor"/> to the pipeline.</summary>
-        /// <param name="pipeline">The pipeline being configured.</param>
-        /// <param name="timeout">The timeout for the invocation.</param>
-        /// <returns>The pipeline being configured.</returns>
-        public static Pipeline UseTimeout(this Pipeline pipeline, TimeSpan timeout) =>
-            pipeline.Use(next => new TimeoutInterceptor(next, timeout));
     }
 }

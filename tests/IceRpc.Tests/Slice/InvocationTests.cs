@@ -43,6 +43,28 @@ public class InvocationTests
         Assert.That(context, Is.EqualTo(invocation.Features.GetContext()));
     }
 
+    
+
+    /// <summary>Verifies that setting an invocation deadline requires providing a cancelable cancellation token.
+    /// </summary>
+    [Test]
+    public void Setting_the_invocation_deadline_requires_a_cancelable_cancellation_token()
+    {
+        // Arrange
+        var sut = new ServicePrx(new Proxy(Protocol.IceRpc));
+
+        // Act/Assert
+        Assert.ThrowsAsync<ArgumentException>(
+            () => sut.InvokeAsync(
+                "",
+                SliceEncoding.Slice2,
+                payload: null,
+                payloadStream: null,
+                defaultActivator: null,
+                new Invocation { Deadline = DateTime.Now + TimeSpan.FromSeconds(60) },
+                cancel: CancellationToken.None));
+    }
+
     /// <summary>Verifies that the encoded deadline has the expected value when <see cref="Invocation.Deadline"/> is
     /// set.</summary>
     [Test]
@@ -73,127 +95,6 @@ public class InvocationTests
 
         // Assert
         Assert.That(Math.Abs((deadline - expectedDeadline).TotalMilliseconds), Is.LessThanOrEqualTo(1));
-    }
-
-    /// <summary>Verifies that the invocation is canceled after the <see cref="Invocation.Timeout"/> expires.</summary>
-    [Test]
-    [NonParallelizable]
-    public void Invocation_is_canceled_after_the_timeout_expires()
-    {
-        // Arrange
-        CancellationToken? cancellationToken = null;
-        bool hasDeadline = false;
-        var sut = new ServicePrx(new Proxy(Protocol.IceRpc)
-        {
-            Invoker = new InlineInvoker(async (request, cancel) =>
-            {
-                hasDeadline = request.Fields.ContainsKey(RequestFieldKey.Deadline);
-                cancellationToken = cancel;
-                await Task.Delay(TimeSpan.FromMilliseconds(100), cancel);
-                return new IncomingResponse(request, InvalidConnection.IceRpc);
-            }),
-        });
-
-        // Act
-        Assert.That(
-            () => sut.InvokeAsync(
-                "",
-                SliceEncoding.Slice2,
-                payload: null,
-                payloadStream: null,
-                defaultActivator: null,
-                new Invocation { Timeout = TimeSpan.FromMilliseconds(20) }),
-            Throws.TypeOf<TaskCanceledException>());
-
-        // Assert
-        Assert.That(cancellationToken, Is.Not.Null);
-        Assert.That(cancellationToken.Value.CanBeCanceled, Is.True);
-        Assert.That(cancellationToken.Value.IsCancellationRequested, Is.True);
-        Assert.That(hasDeadline, Is.True);
-    }
-
-    /// <summary>Verifies that the invocation timeout value set in the <see cref="Invocation.Timeout"/> prevails over
-    /// the invocation timeout value previously set with the <see cref="TimeoutInterceptor"/>.</summary>
-    [Test]
-    [NonParallelizable]
-    public async Task Invocation_timeout_value_prevails_over_invoker_timeout_interceptor()
-    {
-        // Arrange
-        var invocationTimeout = TimeSpan.FromSeconds(30);
-        DateTime deadline = DateTime.MaxValue;
-        DateTime expectedDeadline = DateTime.UtcNow + invocationTimeout;
-        var invoker = new InlineInvoker((request, cancel) =>
-        {
-            deadline = DecodeDeadlineField(request.Fields);
-            return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
-        });
-        var timeoutInterceptor = new TimeoutInterceptor(invoker, TimeSpan.FromSeconds(120));
-        var sut = new ServicePrx(new Proxy(Protocol.IceRpc) { Invoker = timeoutInterceptor });
-
-        // Act
-        await sut.InvokeAsync(
-            "",
-            SliceEncoding.Slice2,
-            payload: null,
-            payloadStream: null,
-            defaultActivator: null,
-            new Invocation() { Timeout = invocationTimeout });
-
-        // Assert
-        Assert.That(Math.Abs((deadline - expectedDeadline).TotalMilliseconds), Is.LessThanOrEqualTo(10));
-    }
-
-    /// <summary>Verifies that when using an infinite invocation timeout the cancellation token passed to the invoker
-    /// is not cancelable.</summary>
-    [Test]
-    public async Task Invocation_with_an_infinite_timeout_uses_the_default_cancellation_token()
-    {
-        // Arrange
-        CancellationToken? cancellationToken = null;
-        bool hasDeadline = false;
-        var sut = new ServicePrx(new Proxy(Protocol.IceRpc)
-        {
-            Invoker = new InlineInvoker((request, cancel) =>
-            {
-                cancellationToken = cancel;
-                hasDeadline = request.Fields.ContainsKey(RequestFieldKey.Deadline);
-                return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
-            }),
-        });
-
-        // Act
-        await sut.InvokeAsync(
-            "",
-            SliceEncoding.Slice2,
-            payload: null,
-            payloadStream: null,
-            defaultActivator: null,
-            new Invocation { Timeout = Timeout.InfiniteTimeSpan });
-
-        // Assert
-        Assert.That(cancellationToken, Is.Not.Null);
-        Assert.That(cancellationToken.Value.CanBeCanceled, Is.False);
-        Assert.That(hasDeadline, Is.False);
-    }
-
-    /// <summary>Verifies that setting an invocation deadline requires providing a cancelable cancellation token.
-    /// </summary>
-    [Test]
-    public void Setting_the_invocation_deadline_requires_a_cancelable_cancellation_token()
-    {
-        // Arrange
-        var sut = new ServicePrx(new Proxy(Protocol.IceRpc));
-
-        // Act/Assert
-        Assert.ThrowsAsync<ArgumentException>(
-            () => sut.InvokeAsync(
-                "",
-                SliceEncoding.Slice2,
-                payload: null,
-                payloadStream: null,
-                defaultActivator: null,
-                new Invocation { Deadline = DateTime.Now + TimeSpan.FromSeconds(60) },
-                cancel: CancellationToken.None));
     }
 
     private static DateTime DecodeDeadlineField(IDictionary<RequestFieldKey, OutgoingFieldValue> fields)

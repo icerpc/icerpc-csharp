@@ -20,18 +20,5 @@ namespace IceRpc.Slice
         /// <value>When <c>true</c>, the request is sent as a oneway request. When <c>false</c>, the request is sent as
         /// a twoway request unless the operation is marked oneway in its Slice definition.</value>
         public bool IsOneway { get; set; }
-
-        /// <summary>Gets or sets the timeout of this invocation.</summary>
-        /// <value>The timeout of this invocation. The default value is
-        /// <see cref="System.Threading.Timeout.InfiniteTimeSpan"/> and means no timeout.</value>
-        /// <seealso cref="TimeoutInterceptor"/>
-        public TimeSpan Timeout
-        {
-            get => _timeout;
-            set => _timeout = value > TimeSpan.Zero || value == System.Threading.Timeout.InfiniteTimeSpan ? value :
-                throw new ArgumentException($"{nameof(Timeout)} must be greater than 0", nameof(Timeout));
-        }
-
-        private TimeSpan _timeout = System.Threading.Timeout.InfiniteTimeSpan;
     }
 }

@@ -97,7 +97,7 @@ public static class PrxExtensions
         if (invocation != null)
         {
             CheckCancellationToken(invocation, cancel);
-            ConfigureTimeout(ref invoker, invocation, request);
+            ConfigureDeadline(invocation, request);
         }
 
         try
@@ -187,7 +187,7 @@ public static class PrxExtensions
         if (invocation != null)
         {
             CheckCancellationToken(invocation, cancel);
-            ConfigureTimeout(ref invoker, invocation, request);
+            ConfigureDeadline(invocation, request);
         }
 
         try
@@ -247,19 +247,10 @@ public static class PrxExtensions
     public static string ToString<TPrx>(this TPrx prx, IProxyFormat format) where TPrx : struct, IPrx =>
         format.ToString(prx.Proxy);
 
-    /// <summary>When <paramref name="invocation"/> does not carry a deadline but sets a timeout, adds the
-    /// <see cref="TimeoutInterceptor"/> to <paramref name="invoker"/> with the invocation's timeout. Otherwise
-    /// if the request carries a deadline add it to the request fields.</summary>
-    private static void ConfigureTimeout(ref IInvoker invoker, Invocation invocation, OutgoingRequest request)
+    /// <summary>When the request carries a deadline add it to the request fields.</summary>
+    private static void ConfigureDeadline(Invocation invocation, OutgoingRequest request)
     {
-        if (invocation.Deadline == DateTime.MaxValue)
-        {
-            if (invocation.Timeout != Timeout.InfiniteTimeSpan)
-            {
-                invoker = new TimeoutInterceptor(invoker, invocation.Timeout);
-            }
-        }
-        else
+        if (invocation.Deadline != DateTime.MaxValue)
         {
             long deadline = (long)(invocation.Deadline - DateTime.UnixEpoch).TotalMilliseconds;
             request.Fields = request.Fields.With(
