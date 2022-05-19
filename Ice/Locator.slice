@@ -2,7 +2,7 @@
 
 encoding = 1;
 
-[cs::namespace("IceRpc.Locator")]
+[cs::namespace("IceRpc")]
 module Ice;
 
 /// This exception is thrown when a server tries to register endpoints for an object adapter that is already active.
