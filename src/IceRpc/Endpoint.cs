@@ -24,7 +24,7 @@ namespace IceRpc
             {
                 if (Uri.CheckHostName(value) == UriHostNameType.Unknown)
                 {
-                    throw new ArgumentException($"cannot set {nameof(Host)} to '{value}'", nameof(Host));
+                    throw new ArgumentException($"cannot set {nameof(Host)} to '{value}'", nameof(value));
                 }
                 _host = value;
                 OriginalUri = null; // new host invalidates OriginalUri
