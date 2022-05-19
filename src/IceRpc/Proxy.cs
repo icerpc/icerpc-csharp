@@ -41,8 +41,8 @@ namespace IceRpc
                     if (value.Any(e => e.Protocol != Protocol))
                     {
                         throw new ArgumentException(
-                            $"the protocol of all alt endpoints must be {Protocol}",
-                            nameof(AltEndpoints));
+                            $"the {nameof(AltEndpoints)} endpoints must use the proxy's protocol {Protocol}",
+                            nameof(value));
                     }
                 }
                 // else, no need to check anything, an empty list is always fine.
@@ -65,8 +65,8 @@ namespace IceRpc
                 if (value?.Protocol is Protocol newProtocol && newProtocol != Protocol)
                 {
                     throw new ArgumentException(
-                        "the new connection's protocol must match the proxy's protocol",
-                        nameof(Connection));
+                        $"the {nameof(Connection)} protocol must match the proxy's protocol '{Protocol}'",
+                        nameof(value));
                 }
                 _connection = value;
             }
@@ -83,7 +83,9 @@ namespace IceRpc
                 CheckSupportedProtocol(nameof(Endpoint));
                 if (value?.Protocol is Protocol newProtocol && newProtocol != Protocol)
                 {
-                    throw new ArgumentException("cannot change the protocol of a proxy", nameof(Endpoint));
+                    throw new ArgumentException(
+                        $"the {nameof(Endpoint)} must use the proxy's protocol: '{Protocol}'",
+                        nameof(value));
                 }
 
                 if (value != null)
