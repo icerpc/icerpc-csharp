@@ -1,7 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Logger;
 using IceRpc.Metrics;
+using IceRpc.Telemetry;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -13,20 +15,15 @@ namespace IceRpc.Extensions.DependencyInjection;
 /// <summary>A builder for configuring IceRpc servers.</summary>
 public class RouterBuilder
 {
-    /// <summary>The service collection used by this builder.</summary>
-    public IServiceCollection ServiceCollection { get; }
-
     /// <summary>The service provider used by this builder.</summary>
     public IServiceProvider ServiceProvider { get; }
 
     private readonly Router _router;
 
     /// <summary>Constructs a router builder.</summary>
-    /// <param name="serviceCollection">The service collection.</param>
     /// <param name="serviceProvider">The service provider.</param>
-    public RouterBuilder(IServiceCollection serviceCollection, IServiceProvider serviceProvider)
+    public RouterBuilder(IServiceProvider serviceProvider)
     {
-        ServiceCollection = serviceCollection;
         ServiceProvider = serviceProvider;
         _router = new Router();
     }
@@ -40,9 +37,7 @@ public class RouterBuilder
     /// <returns>the builder.</returns>
     public RouterBuilder UseDeflate(CompressionLevel compressionLevel)
     {
-        ServiceCollection.AddOptions<DeflateOptions>().Configure(
-            options => options.CompressionLevel = compressionLevel);
-        ServiceCollection.AddSingleton(typeof(CompressionLevel), compressionLevel);
+        _router.UseDeflate(compressionLevel);
         return this;
     }
 
@@ -55,7 +50,7 @@ public class RouterBuilder
     /// <returns>the builder.</returns>
     public RouterBuilder UseMetrics(DispatchEventSource dispatchEventSource)
     {
-        ServiceCollection.AddSingleton(_ => dispatchEventSource);
+        _router.UseMetrics(dispatchEventSource);
         return this;
     }
 
@@ -63,8 +58,9 @@ public class RouterBuilder
     /// <returns>the builder.</returns>
     public RouterBuilder UseLogger()
     {
-        ServiceCollection.AddOptions<LoggerOptions>().Configure(
-            options => options.LoggerFactory = ServiceProvider.GetService<ILoggerFactory>());
+        _router.Use(next => ActivatorUtilities.CreateInstance<LoggerMiddleware>(
+            ServiceProvider, 
+            new object[] { next }));
         return this;
     }
 
@@ -72,7 +68,7 @@ public class RouterBuilder
     /// <returns>the builder.</returns>
     public RouterBuilder UseTelemetry()
     {
-        ServiceCollection.AddOptions<TelemetryOptions>();
+        _router.UseTelemetry();
         return this;
     }
 
@@ -81,8 +77,7 @@ public class RouterBuilder
     /// <returns>the builder.</returns>
     public RouterBuilder UseTelemetry(ActivitySource activitySource)
     {
-        ServiceCollection.AddOptions<TelemetryOptions>().Configure(
-            options => options.ActivitySource = activitySource);
+        _router.Use(next => ActivatorUtilities.CreateInstance<TelemetryMiddleware>(ServiceProvider));
         return this;
     }
 

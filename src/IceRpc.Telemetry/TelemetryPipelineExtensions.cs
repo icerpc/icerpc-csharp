@@ -10,12 +10,6 @@ public static class TelemetryPipelineExtensions
 {
     /// <summary>Adds the <see cref="TelemetryInterceptor"/> to the pipeline.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>
-    /// <returns>The pipeline being configured.</returns>
-    public static Pipeline UseTelemetry(this Pipeline pipeline) =>
-        pipeline.UseTelemetry(new TelemetryOptions());
-
-    /// <summary>Adds the <see cref="TelemetryInterceptor"/> to the pipeline.</summary>
-    /// <param name="pipeline">The pipeline being configured.</param>
     /// <param name="options">The options to configure the <see cref="TelemetryInterceptor"/>.</param>
     /// <returns>The pipeline being configured.</returns>
     public static Pipeline UseTelemetry(this Pipeline pipeline, TelemetryOptions options) =>
