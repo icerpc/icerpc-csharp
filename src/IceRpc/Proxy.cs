@@ -84,7 +84,7 @@ namespace IceRpc
                 if (value?.Protocol is Protocol newProtocol && newProtocol != Protocol)
                 {
                     throw new ArgumentException(
-                        $"the {nameof(Endpoint)} must use the proxy's protocol {Protocol}",
+                        $"the {nameof(Endpoint)} must use the proxy's protocol: '{Protocol}'",
                         nameof(value));
                 }
 
