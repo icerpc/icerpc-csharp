@@ -40,11 +40,11 @@ public sealed class TimeoutInterceptorTests
         Assert.That(cancellationToken.Value.IsCancellationRequested, Is.True);
     }
 
-    /// <summary>Verifies that the invocation timeout value set in the <see cref="ITimeoutFeature"/> prevails over
-    /// the invocation timeout value previously set with the <see cref="TimeoutInterceptor"/>.</summary>
+    /// <summary>Verifies that the timeout value set in the <see cref="ITimeoutFeature"/> prevails over
+    /// the timeout value configured when installing the <see cref="TimeoutInterceptor"/>.</summary>
     [Test]
     [NonParallelizable]
-    public async Task Invocation_timeout_value_prevails_over_invoker_timeout_interceptor()
+    public async Task Timeout_feature_value_prevails_over_timeout_interceptor()
     {
         // Arrange
         var invocationTimeout = TimeSpan.FromSeconds(30);
