@@ -534,7 +534,7 @@ public sealed class ProtocolConnectionTests
         IDictionary<string, string>? context = null;
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
-            context = request.Features.GetContext();
+            context = request.Features.Get<IContextFeature>()?.Value;
             return new(new OutgoingResponse(request));
         });
         await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
@@ -547,7 +547,11 @@ public sealed class ProtocolConnectionTests
         var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var request = new OutgoingRequest(new Proxy(protocol))
         {
-            Features = new FeatureCollection().WithContext(new Dictionary<string, string> { ["foo"] = expectedValue })
+            Features = new FeatureCollection().With<IContextFeature>(
+                new ContextFeature
+                {
+                    Value = new Dictionary<string, string> { ["foo"] = expectedValue }
+                })
         };
 
         // Act

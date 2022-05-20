@@ -18,7 +18,11 @@ public class InvocationTests
         // Arrange
         var invocation = new Invocation
         {
-            Features = new FeatureCollection().WithContext(new Dictionary<string, string> { ["foo"] = "bar" })
+            Features = new FeatureCollection().With<IContextFeature>(
+                new ContextFeature
+                {
+                    Value = new Dictionary<string, string> { ["foo"] = "bar" }
+                })
         };
 
         IDictionary<string, string>? context = null;
@@ -26,7 +30,7 @@ public class InvocationTests
         {
             Invoker = new InlineInvoker((request, cancel) =>
             {
-                context = request.Features.GetContext();
+                context = request.Features.Get<IContextFeature>()?.Value;
                 return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
             }),
         });
@@ -41,10 +45,8 @@ public class InvocationTests
             invocation);
 
         // Assert
-        Assert.That(context, Is.EqualTo(invocation.Features.GetContext()));
+        Assert.That(context, Is.EqualTo(invocation.Features.Get<IContextFeature>()?.Value));
     }
-
-
 
     /// <summary>Verifies that setting an invocation deadline requires providing a cancelable cancellation token.
     /// </summary>

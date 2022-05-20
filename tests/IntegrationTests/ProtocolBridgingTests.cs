@@ -72,11 +72,14 @@ public sealed class ProtocolBridgingTests
 
             var invocation = new Invocation
             {
-                Features = new FeatureCollection().WithContext(
-                    new Dictionary<string, string> { ["MyCtx"] = "hello" })
+                Features = new FeatureCollection().With<IContextFeature>(
+                    new ContextFeature
+                    {
+                        Value = new Dictionary<string, string> { ["MyCtx"] = "hello" }
+                    })
             };
             await prx.OpContextAsync(invocation);
-            Assert.That(invocation.Features.GetContext(), Is.EqualTo(targetService.Context));
+            Assert.That(invocation.Features.Get<IContextFeature>()?.Value, Is.EqualTo(targetService.Context));
             targetService.Context = ImmutableDictionary<string, string>.Empty;
 
             await prx.OpVoidAsync();
@@ -105,7 +108,8 @@ public sealed class ProtocolBridgingTests
 
         public ValueTask OpContextAsync(Dispatch dispatch, CancellationToken cancel)
         {
-            Context = dispatch.Features.GetContext().ToImmutableDictionary();
+            Context = dispatch.Features.Get<IContextFeature>()?.Value?.ToImmutableDictionary() ??
+                ImmutableDictionary<string, string>.Empty;
             return default;
         }
         public ValueTask OpExceptionAsync(Dispatch dispatch, CancellationToken cancel) =>
@@ -144,7 +148,10 @@ public sealed class ProtocolBridgingTests
             {
                 // When Protocol or targetProtocol is ice, we put the request context in the initial features of the
                 // new outgoing request to ensure it gets forwarded.
-                features = features.WithContext(incomingRequest.Features.GetContext());
+                if (incomingRequest.Features.Get<IContextFeature>() is IContextFeature contextFeature)
+                {
+                    features = features.With(contextFeature);
+                }
             }
 
             var outgoingRequest = new OutgoingRequest(_target)
