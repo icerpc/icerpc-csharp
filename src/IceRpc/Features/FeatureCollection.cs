@@ -46,8 +46,9 @@ public class FeatureCollection : IFeatureCollection
     /// <summary>Constructs an empty read-write feature collection with defaults.</summary>
     /// <param name="defaults">The feature collection that provide default values.</param>
     public FeatureCollection(IFeatureCollection defaults) =>
-        // no need to query an empty read-only collection for defaults
-        _defaults = !defaults.IsReadOnly || defaults.Any() ? defaults : null;
+        // no need to query the empty read-only collection for defaults; any other feature collection (even empty and
+        // read-only) can change over time
+        _defaults = defaults == Empty ? null : defaults;
 
     /// <inheritdoc />
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
