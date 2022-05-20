@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Collections.Immutable;
-
 namespace IceRpc.Features;
 
 /// <summary>The default implementation of <see cref="IEndpointFeature"/>.</summary>
@@ -12,9 +10,6 @@ public sealed class EndpointFeature : IEndpointFeature
 
     /// <inheritdoc/>
     public Endpoint? Endpoint { get; set; }
-
-    /// <summary>Constructs en endpoint feature without initial endpoints.</summary>
-    public EndpointFeature() => AltEndpoints = ImmutableList<Endpoint>.Empty;
 
     /// <summary>Constructs an endpoint feature that uses a proxy's endpoints.</summary>
     /// <param name="proxy">The proxy to copy the endpoints from.</param>
