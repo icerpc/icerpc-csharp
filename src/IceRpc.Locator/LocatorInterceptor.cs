@@ -33,16 +33,16 @@ public class LocatorInterceptor : IInvoker
             Location location = default;
             bool refreshCache = false;
 
-            EndpointSelection? endpointSelection = request.Features.Get<EndpointSelection>();
-            if (endpointSelection == null)
+            IEndpointFeature? endpointFeature = request.Features.Get<IEndpointFeature>();
+            if (endpointFeature == null)
             {
-                endpointSelection = new EndpointSelection(request.Proxy);
-                request.Features = request.Features.With(endpointSelection);
+                endpointFeature = new EndpointFeature(request.Proxy);
+                request.Features = request.Features.With(endpointFeature);
             }
 
             // We detect retries and don't use cached values for retries by setting refreshCache to true.
 
-            if (request.Features.Get<CachedResolutionFeature>() is CachedResolutionFeature cachedResolution)
+            if (request.Features.Get<ICachedResolutionFeature>() is ICachedResolutionFeature cachedResolution)
             {
                 // This is the second (or greater) attempt, and we provided a cached resolution with the
                 // first attempt and all subsequent attempts.
@@ -50,7 +50,7 @@ public class LocatorInterceptor : IInvoker
                 location = cachedResolution.Location;
                 refreshCache = true;
             }
-            else if (endpointSelection.Endpoint == null)
+            else if (endpointFeature.Endpoint == null)
             {
                 if (request.Proxy.Params.TryGetValue("adapter-id", out string? adapterId))
                 {
@@ -78,21 +78,22 @@ public class LocatorInterceptor : IInvoker
                         if (!fromCache && !request.Features.IsReadOnly)
                         {
                             // No need to resolve this location again since we are not returning a cached value.
-                            request.Features.Set<CachedResolutionFeature>(null);
+                            request.Features.Set<ICachedResolutionFeature>(null);
                         }
                     }
                     else if (fromCache)
                     {
                         // Make sure the next attempt re-resolves location and sets refreshCache to true.
-                        request.Features = request.Features.With(new CachedResolutionFeature(location));
+                        request.Features = request.Features.With<ICachedResolutionFeature>(
+                            new CachedResolutionFeature(location));
                     }
 
                     if (proxy != null)
                     {
                         // A well behaved location resolver should never return a non-null proxy with a null endpoint.
                         Debug.Assert(proxy.Endpoint != null);
-                        endpointSelection.Endpoint = proxy.Endpoint;
-                        endpointSelection.AltEndpoints = proxy.AltEndpoints;
+                        endpointFeature.Endpoint = proxy.Endpoint;
+                        endpointFeature.AltEndpoints = proxy.AltEndpoints;
                     }
                     // else, resolution failed and we don't update anything
                 }
@@ -111,9 +112,14 @@ public class LocatorInterceptor : IInvoker
         return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
     }
 
-    private class CachedResolutionFeature
+    private interface ICachedResolutionFeature
     {
-        internal Location Location { get; }
+        Location Location { get; }
+    }
+
+    private class CachedResolutionFeature : ICachedResolutionFeature
+    {
+        public Location Location { get; }
 
         internal CachedResolutionFeature(Location location) => Location = location;
     }

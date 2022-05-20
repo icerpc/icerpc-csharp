@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using NUnit.Framework;
 
 namespace IceRpc.Tests;
@@ -11,9 +12,9 @@ public class FeatureCollectionTests
     [Test]
     public void Getting_a_feature_from_defaults()
     {
-        var features = new FeatureCollection();
+        IFeatureCollection features = new FeatureCollection();
         features.Set("foo");
-        var features2 = new FeatureCollection(features);
+        IFeatureCollection features2 = new FeatureCollection(features);
 
         string? feature = features2.Get<string>();
 
@@ -24,7 +25,7 @@ public class FeatureCollectionTests
     [Test]
     public void Getting_an_unset_feature_returns_the_default()
     {
-        var features = new FeatureCollection();
+        IFeatureCollection features = new FeatureCollection();
 
         int feature = features.Get<int>();
 
@@ -35,7 +36,7 @@ public class FeatureCollectionTests
     [Test]
     public void Setting_a_feature()
     {
-        var features = new FeatureCollection();
+        IFeatureCollection features = new FeatureCollection();
 
         features.Set("foo");
 
@@ -46,9 +47,9 @@ public class FeatureCollectionTests
     [Test]
     public void Setting_a_feature_overwrites_the_default_value()
     {
-        var features = new FeatureCollection();
+        IFeatureCollection features = new FeatureCollection();
         features.Set("foo");
-        var features2 = new FeatureCollection(features);
+        IFeatureCollection features2 = new FeatureCollection(features);
 
         features2.Set("bar");
 
@@ -60,7 +61,7 @@ public class FeatureCollectionTests
     [Test]
     public void Setting_a_feature_to_null_removes_the_feature()
     {
-        var features = new FeatureCollection();
+        IFeatureCollection features = new FeatureCollection();
         features.Set("foo");
 
         features.Set<string>(null);
@@ -72,7 +73,7 @@ public class FeatureCollectionTests
     [Test]
     public void Setting_a_feature_using_index_operator()
     {
-        var features = new FeatureCollection();
+        IFeatureCollection features = new FeatureCollection();
 
         features[typeof(int)] = 42;
 

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Features.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
@@ -173,7 +174,7 @@ namespace IceRpc.Internal
                             DecodeHeader(readResult.Buffer);
                         stream.Input.AdvanceTo(readResult.Buffer.End);
 
-                        FeatureCollection features = FeatureCollection.Empty;
+                        IFeatureCollection features = FeatureCollection.Empty;
 
                         // Decode Context from Fields and set corresponding feature.
                         if (fields.DecodeValue(
@@ -184,7 +185,7 @@ namespace IceRpc.Internal
                                 valueDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString()))
                                     is Dictionary<string, string> context && context.Count > 0)
                         {
-                            features = features.WithContext(context);
+                            features = features.With<IContextFeature>(new ContextFeature { Value = context });
                         }
 
                         var request = new IncomingRequest(connection)
@@ -561,9 +562,7 @@ namespace IceRpc.Internal
 
                 header.Encode(ref encoder);
 
-                // We cannot use request.Features.GetContext here because it doesn't distinguish between empty and not
-                // set context.
-                if (request.Features.Get<Context>()?.Value is IDictionary<string, string> context)
+                if (request.Features.Get<IContextFeature>()?.Value is IDictionary<string, string> context)
                 {
                     if (context.Count == 0)
                     {

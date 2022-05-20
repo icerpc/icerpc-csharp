@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using System.Collections.Immutable;
 
 namespace IceRpc
@@ -16,7 +17,7 @@ namespace IceRpc
         public IConnection? Connection { get; set; }
 
         /// <summary>Gets or sets the features of this request.</summary>
-        public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
+        public IFeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
         /// <summary>Gets or sets the fields of this request.</summary>
         public IDictionary<RequestFieldKey, OutgoingFieldValue> Fields { get; set; } =

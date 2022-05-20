@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using NUnit.Framework;
 using System.Buffers;
 using System.Collections.Immutable;
@@ -28,7 +29,7 @@ public class DeflateInterceptorTests
         var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request, request.Connection!)));
         var sut = new DeflateInterceptor(invoker);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
-        request.Features = request.Features.With(Features.CompressPayload.Yes);
+        request.Features = request.Features.With<ICompressFeature>(CompressFeature.Compress);
         var outStream = new MemoryStream();
         var output = PipeWriter.Create(outStream);
 
@@ -73,7 +74,7 @@ public class DeflateInterceptorTests
         var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request, request.Connection!)));
         var sut = new DeflateInterceptor(invoker);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
-        request.Features = request.Features.With(Features.CompressPayload.Yes);
+        request.Features = request.Features.With<ICompressFeature>(CompressFeature.Compress);
         request.Fields = request.Fields.With(
             RequestFieldKey.CompressionFormat,
             _deflateEncodedCompressionFormatValue);

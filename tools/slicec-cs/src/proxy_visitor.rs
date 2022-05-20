@@ -217,10 +217,12 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
     if operation.compress_arguments() {
         body.writeln(&format!(
             "\
-if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
+if ({invocation}?.Features.Get<IceRpc.Features.ICompressFeature>() is null)
 {{
     {invocation} ??= new IceRpc.Slice.Invocation();
-    {invocation}.Features = {invocation}.Features.With(IceRpc.Features.CompressPayload.Yes);
+    {invocation}.Features = IceRpc.Features.FeatureCollectionExtensions.With<IceRpc.Features.ICompressFeature>(
+        {invocation}.Features,
+        IceRpc.Features.CompressFeature.Compress);
 }}
 ",
             invocation = invocation_parameter

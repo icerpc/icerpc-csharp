@@ -32,11 +32,11 @@ public class RetryInterceptor : IInvoker
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        EndpointSelection? endpointSelection = request.Features.Get<EndpointSelection>();
-        if (endpointSelection == null)
+        IEndpointFeature? endpointFeature = request.Features.Get<IEndpointFeature>();
+        if (endpointFeature == null)
         {
-            endpointSelection = new EndpointSelection(request.Proxy);
-            request.Features = request.Features.With(endpointSelection);
+            endpointFeature = new EndpointFeature(request.Proxy);
+            request.Features = request.Features.With(endpointFeature);
         }
 
         // If the request size is greater than _requestMaxSize or the size of the request would increase the
@@ -131,17 +131,17 @@ public class RetryInterceptor : IInvoker
                     if (request.Connection != null && retryPolicy == RetryPolicy.OtherReplica)
                     {
                         // Filter-out the remote endpoint
-                        if (endpointSelection.Endpoint == request.Connection.Endpoint)
+                        if (endpointFeature.Endpoint == request.Connection.Endpoint)
                         {
-                            endpointSelection.Endpoint = null;
+                            endpointFeature.Endpoint = null;
                         }
-                        endpointSelection.AltEndpoints = endpointSelection.AltEndpoints.Where(
+                        endpointFeature.AltEndpoints = endpointFeature.AltEndpoints.Where(
                             e => e != request.Connection.Endpoint).ToList();
 
-                        if (endpointSelection.Endpoint == null && endpointSelection.AltEndpoints.Any())
+                        if (endpointFeature.Endpoint == null && endpointFeature.AltEndpoints.Any())
                         {
-                            endpointSelection.Endpoint = endpointSelection.AltEndpoints.First();
-                            endpointSelection.AltEndpoints = endpointSelection.AltEndpoints.Skip(1);
+                            endpointFeature.Endpoint = endpointFeature.AltEndpoints.First();
+                            endpointFeature.AltEndpoints = endpointFeature.AltEndpoints.Skip(1);
                         }
                     }
 

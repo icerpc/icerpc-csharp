@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Slice.Internal;
 using IceRpc.Tests;
 using IceRpc.Timeout;
@@ -31,7 +32,7 @@ public class InvocationTests
             }),
             System.Threading.Timeout.InfiniteTimeSpan),
         });
-        FeatureCollection features = new FeatureCollection().With<ITimeoutFeature>(
+        IFeatureCollection features = new FeatureCollection().With<ITimeoutFeature>(
             new TimeoutFeature { Timeout = TimeSpan.FromMilliseconds(20) });
 
         // Act
@@ -60,12 +61,13 @@ public class InvocationTests
     {
         // Arrange
         var invocationTimeout = TimeSpan.FromSeconds(30);
-        FeatureCollection features = new FeatureCollection().With<ITimeoutFeature>(
-            new TimeoutFeature { Timeout = invocationTimeout });
+
+        IFeatureCollection features = new FeatureCollection();
+        features.Set<ITimeoutFeature>(new TimeoutFeature { Timeout = invocationTimeout });
         DateTime deadline = DateTime.MaxValue;
         DateTime expectedDeadline = DateTime.UtcNow + invocationTimeout;
         var sut = new ServicePrx(new Proxy(Protocol.IceRpc)
-        { 
+        {
             Invoker = new TimeoutInterceptor(
                 new InlineInvoker((request, cancel) =>
                 {
@@ -95,8 +97,8 @@ public class InvocationTests
     {
         // Arrange
         CancellationToken? cancellationToken = null;
-        FeatureCollection features = new FeatureCollection().With<ITimeoutFeature>(
-            new TimeoutFeature { Timeout = System.Threading.Timeout.InfiniteTimeSpan });
+        IFeatureCollection features = new FeatureCollection();
+        features.Set<ITimeoutFeature>(new TimeoutFeature { Timeout = System.Threading.Timeout.InfiniteTimeSpan });
         bool hasDeadline = false;
         var sut = new ServicePrx(new Proxy(Protocol.IceRpc)
         {

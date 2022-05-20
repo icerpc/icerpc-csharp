@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
+
 namespace IceRpc.Slice
 {
     /// <summary>Holds properties that describe the request being dispatched. You can also set entries in
@@ -36,7 +38,7 @@ namespace IceRpc.Slice
         public ISliceEncodeFeature? EncodeFeature => _request.GetFeature<ISliceEncodeFeature>();
 
         /// <summary>The features associated with the request.</summary>
-        public FeatureCollection Features
+        public IFeatureCollection Features
         {
             get => _request.Features;
             set => _request.Features = value;

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
@@ -360,7 +361,7 @@ namespace IceRpc.Internal
                     request.Operation,
                     request.Fields.ContainsKey(RequestFieldKey.Idempotent) ?
                         OperationMode.Idempotent : OperationMode.Normal,
-                    request.Features.GetContext(),
+                    request.Features.Get<IContextFeature>()?.Value ?? ImmutableDictionary<string, string>.Empty,
                     new EncapsulationHeader(encapsulationSize: payloadSize + 6, encodingMajor, encodingMinor));
                 requestHeader.Encode(ref encoder);
 
@@ -815,7 +816,11 @@ namespace IceRpc.Internal
 
                 if (requestHeader.Context.Count > 0)
                 {
-                    request.Features = request.Features.WithContext(requestHeader.Context);
+                    request.Features = request.Features.With<IContextFeature>(
+                        new ContextFeature
+                        {
+                            Value = requestHeader.Context
+                        });
                 }
 
                 CancellationTokenSource? cancelDispatchSource = null;

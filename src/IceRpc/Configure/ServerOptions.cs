@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Net.Security;
@@ -49,7 +50,7 @@ namespace IceRpc.Configure
         }
 
         /// <summary>Gets of sets the default features of the new connections.</summary>
-        public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
+        public IFeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
         /// <summary>Gets or sets the connection's keep alive. If a connection is kept alive, the connection
         /// monitoring will send keep alive frames to ensure the peer doesn't close the connection in the period defined

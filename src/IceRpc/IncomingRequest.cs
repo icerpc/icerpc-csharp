@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using System.Buffers;
 using System.Collections.Immutable;
 
@@ -9,7 +10,7 @@ namespace IceRpc
     public sealed class IncomingRequest : IncomingFrame
     {
         /// <summary>Gets or sets the features of this request.</summary>
-        public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
+        public IFeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
         /// <summary>Gets or sets the fields of this incoming request.</summary>
         public IDictionary<RequestFieldKey, ReadOnlySequence<byte>> Fields { get; set; } =
