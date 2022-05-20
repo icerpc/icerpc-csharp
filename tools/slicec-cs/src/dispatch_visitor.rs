@@ -383,11 +383,9 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
     if operation.compress_return() {
         check_and_decode.writeln(
             "\
-if (request.Features.IsReadOnly)
-{
-    request.Features = new IceRpc.Features.FeatureCollection(request.Features);
-}
-request.Features.Set<IceRpc.Features.ICompressFeature>(IceRpc.Features.CompressFeature.Compress);
+request.Features = IceRpc.Features.FeatureCollectionExtensions.With<IceRpc.Features.ICompressFeature>(
+    request.Features,
+    IceRpc.Features.CompressFeature.Compress);
             ",
         )
     }
