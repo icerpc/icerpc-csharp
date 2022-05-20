@@ -95,11 +95,6 @@ public static class PrxExtensions
         };
 
         IInvoker invoker = prx.Proxy.Invoker;
-        if (invocation != null)
-        {
-            CheckCancellationToken(invocation, cancel);
-            ConfigureDeadline(invocation, request);
-        }
 
         try
         {
@@ -185,11 +180,6 @@ public static class PrxExtensions
         };
 
         IInvoker invoker = prx.Proxy.Invoker;
-        if (invocation != null)
-        {
-            CheckCancellationToken(invocation, cancel);
-            ConfigureDeadline(invocation, request);
-        }
 
         try
         {
@@ -247,30 +237,4 @@ public static class PrxExtensions
     /// <param name="format">The proxy format.</param>
     public static string ToString<TPrx>(this TPrx prx, IProxyFormat format) where TPrx : struct, IPrx =>
         format.ToString(prx.Proxy);
-
-    /// <summary>When the request carries a deadline add it to the request fields.</summary>
-    private static void ConfigureDeadline(Invocation invocation, OutgoingRequest request)
-    {
-        if (invocation.Deadline != DateTime.MaxValue)
-        {
-            long deadline = (long)(invocation.Deadline - DateTime.UnixEpoch).TotalMilliseconds;
-            request.Fields = request.Fields.With(
-                RequestFieldKey.Deadline,
-                (ref SliceEncoder encoder) => encoder.EncodeVarInt62(deadline));
-        }
-    }
-
-    /// <summary>Verifies that when <paramref name="invocation"/> carries a deadline, <paramref name="cancel"/> is
-    /// cancelable.</summary>
-    /// <exception cref="ArgumentException">Thrown when the invocation carries a deadline but
-    /// <paramref name="cancel"/> is not cancelable.</exception>
-    private static void CheckCancellationToken(Invocation invocation, CancellationToken cancel)
-    {
-        if (invocation.Deadline != DateTime.MaxValue && !cancel.CanBeCanceled)
-        {
-            throw new ArgumentException(
-                $"{nameof(cancel)} must be cancelable when the invocation deadline is set",
-                nameof(cancel));
-        }
-    }
 }
