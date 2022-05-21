@@ -43,30 +43,26 @@ public static class Program
                     });
                 services.AddSingleton(sp => new ActivitySource("IceRpc"));
 
-                // Bind the server hosted service options to the "appsettings.json" configuration "Server" section, and
-                // add a Configure callback to configure its authentication options.
+                // Bind the server options to the "appsettings.json" configuration "Server" section, and add a Configure
+                // callback to configure its authentication options and dispatcher.
                 services
-                    .AddOptions<ServerHostedServiceOptions>()
+                    .AddOptions<ServerOptions>()
                     .Bind(hostContext.Configuration.GetSection("Server"))
-                    // Configure the authentication options
-                    .Configure(options =>
+                    .Configure<IDispatcher>((options, dispatcher) =>
+                    {
                         options.AuthenticationOptions = new SslServerAuthenticationOptions()
                         {
                             ServerCertificate = new X509Certificate2(
                                 hostContext.Configuration.GetValue<string>("Certificate:File"),
                                 hostContext.Configuration.GetValue<string>("Certificate:Password"))
-                        });
+                        };
+
+                        options.Dispatcher = dispatcher;
+                    });
+
+                services.AddSingleton<Server>(serviceProvider =>
+                    new Server(serviceProvider.GetRequiredService<IOptions<ServerOptions>>().Value));
             });
-
-    /// <summary>The options class for <see cref="ClientHostedService"/>.</summary>
-    public class ServerHostedServiceOptions
-    {
-        public SslServerAuthenticationOptions? AuthenticationOptions { get; set; }
-
-        public TimeSpan CloseTimeout { get; set; }
-
-        public Endpoint Endpoint { get; set; }
-    }
 
     /// <summary>The server hosted service is ran and managed by the .NET Generic Host</summary>
     private class ServerHostedService : IHostedService, IAsyncDisposable
@@ -74,20 +70,7 @@ public static class Program
         // The IceRPC server to accept connections from IceRPC clients.
         private readonly Server _server;
 
-        public ServerHostedService(
-            IDispatcher dispatcher,
-            IOptions<ServerHostedServiceOptions> options)
-        {
-            var serverOptions = new ServerOptions
-            {
-                AuthenticationOptions = options.Value.AuthenticationOptions,
-                CloseTimeout = options.Value.CloseTimeout,
-                Dispatcher = dispatcher,
-                Endpoint = options.Value.Endpoint,
-            };
-
-            _server = new Server(serverOptions);
-        }
+        public ServerHostedService(Server server) => _server = server;
 
         public ValueTask DisposeAsync() => _server.DisposeAsync();
 
