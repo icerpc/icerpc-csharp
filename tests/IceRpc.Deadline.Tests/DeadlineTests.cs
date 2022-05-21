@@ -3,8 +3,9 @@
 using IceRpc.Configure;
 using IceRpc.Deadline;
 using IceRpc.Features;
-using IceRpc.Transports;
+using IceRpc.Tests;
 using NUnit.Framework;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace IceRpc.Deadline.Tests;
 
@@ -35,8 +36,6 @@ public sealed class DeadlineTests
     public async Task Deadline_decoded_by_middleware_has_expected_value()
     {
         // Arrange
-        var coloc = new ColocTransport();
-
         DateTime deadline = DateTime.MaxValue;
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
@@ -46,23 +45,14 @@ public sealed class DeadlineTests
 
         var sut = new DeadlineMiddleware(dispatcher);
 
-        await using var server = new Server(
-            new ServerOptions
-            {
-                Dispatcher = sut,
-                IceRpcServerOptions = new() { ServerTransport = new SlicServerTransport(coloc.ServerTransport) }
-            });
+        await using ServiceProvider provider = new SliceTestServiceCollection()
+            .UseDispatcher(sut)
+            .BuildServiceProvider();
 
-        server.Listen();
-
-        await using var connection = new Connection(
-            new ConnectionOptions
-            {
-                RemoteEndpoint = server.Endpoint,
-                IceRpcClientOptions = new() { ClientTransport = new SlicClientTransport(coloc.ClientTransport) }
-            });
-
-        Proxy proxy = Proxy.FromConnection(connection, "/", invoker: new Pipeline().UseDeadline());
+        Proxy proxy = Proxy.FromConnection(
+            provider.GetRequiredService<Connection>(),
+            "/",
+            invoker: new Pipeline().UseDeadline());
 
         DateTime expectedDeadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(100);
         var request = new OutgoingRequest(proxy)
