@@ -29,7 +29,7 @@ public static class Program
                 // Add the ClientHostedService to the hosted services of the .NET Generic Host.
                 services.AddHostedService<ClientHostedService>();
 
-                // Bind the client hosted service options to the "appsettings.json" configuration "Client" section,
+                // Bind the client connection options to the "appsettings.json" configuration "Client" section,
                 // and add a Configure callback to configure its authentication options.
                 services
                     .AddOptions<ConnectionOptions>()
