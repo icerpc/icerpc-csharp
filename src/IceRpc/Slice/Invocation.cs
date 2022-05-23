@@ -8,11 +8,6 @@ namespace IceRpc.Slice
     /// </summary>
     public sealed class Invocation
     {
-        /// <summary>Gets or sets the deadline of this invocation.</summary>
-        /// <value>The deadline of this invocation. The default value is <see cref="DateTime.MaxValue"/> and means no
-        /// deadline.</value>
-        public DateTime Deadline { get; set; } = DateTime.MaxValue;
-
         /// <summary>Gets or sets the features carried by the request.</summary>
         /// <remarks>These features are updated (set) when the response is received.</remarks>
         public IFeatureCollection Features { get; set; } = FeatureCollection.Empty;

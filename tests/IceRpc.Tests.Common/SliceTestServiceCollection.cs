@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IceRpc.Tests;
 
+// TODO: rename TestServiceCollection. There is nothing Slice-specific here.
 public class SliceTestServiceCollection : ServiceCollection
 {
     public SliceTestServiceCollection()
