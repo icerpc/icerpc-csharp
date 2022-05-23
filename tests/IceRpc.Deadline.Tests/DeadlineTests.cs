@@ -50,7 +50,7 @@ public sealed class DeadlineTests
             .BuildServiceProvider();
 
         Proxy proxy = Proxy.FromConnection(
-            provider.GetRequiredService<Connection>(),
+            provider.GetRequiredService<ClientConnection>(),
             "/",
             invoker: new Pipeline().UseDeadline());
 
