@@ -6,5 +6,5 @@ namespace IceRpc.Timeout;
 public interface ITimeoutFeature
 {
     /// <summary>Gets the timeout for the invocation.</summary>
-    TimeSpan Timeout { get; }
+    TimeSpan Value { get; }
 }

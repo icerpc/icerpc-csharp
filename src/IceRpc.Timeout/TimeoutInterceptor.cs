@@ -1,5 +1,7 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Deadline;
+using IceRpc.Features;
 using IceRpc.Slice;
 using System.Diagnostics;
 
@@ -29,37 +31,42 @@ public class TimeoutInterceptor : IInvoker
     }
 
     /// <inheritdoc/>
-    public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        // If the deadline field is already set, we don't do anything
-        if (request.Fields.ContainsKey(RequestFieldKey.Deadline))
+        // If the deadline feature is set, we don't do anything
+        if (request.Features.Get<IDeadlineFeature>() is IDeadlineFeature deadlineFeature &&
+            deadlineFeature.Value != DateTime.MaxValue)
         {
-            return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
+            return _next.InvokeAsync(request, cancel);
         }
         else
         {
-            TimeSpan timeout = request.Features.Get<ITimeoutFeature>()?.Timeout ?? _timeout;
+            TimeSpan timeout = request.Features.Get<ITimeoutFeature>()?.Value ?? _timeout;
             if (timeout == System.Threading.Timeout.InfiniteTimeSpan)
             {
-                return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
+                return _next.InvokeAsync(request, cancel);
             }
             else
             {
-                using var timeoutTokenSource = new CancellationTokenSource(timeout);
-                using CancellationTokenSource linkedTokenSource = cancel.CanBeCanceled ?
-                    CancellationTokenSource.CreateLinkedTokenSource(cancel, timeoutTokenSource.Token) :
-                    timeoutTokenSource;
-
-                // We compute the deadline immediately
-                long deadline = (long)(DateTime.UtcNow + timeout - DateTime.UnixEpoch).TotalMilliseconds;
-                Debug.Assert(deadline > 0);
-
-                request.Fields = request.Fields.With(
-                    RequestFieldKey.Deadline,
-                    (ref SliceEncoder encoder) => encoder.EncodeVarInt62(deadline));
-
-                return await _next.InvokeAsync(request, linkedTokenSource.Token).ConfigureAwait(false);
+                return PerformInvokeAsync(timeout);
             }
+        }
+
+        async Task<IncomingResponse> PerformInvokeAsync(TimeSpan timeout)
+        {
+            using var timeoutTokenSource = new CancellationTokenSource(timeout);
+            using CancellationTokenSource linkedTokenSource = cancel.CanBeCanceled ?
+                CancellationTokenSource.CreateLinkedTokenSource(cancel, timeoutTokenSource.Token) :
+                timeoutTokenSource;
+
+            // We compute the deadline immediately
+            request.Features = request.Features.With<IDeadlineFeature>(
+                new DeadlineFeature
+                {
+                    Value = DateTime.UtcNow + timeout
+                });
+
+            return await _next.InvokeAsync(request, linkedTokenSource.Token).ConfigureAwait(false);
         }
     }
 }

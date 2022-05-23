@@ -6,5 +6,5 @@ namespace IceRpc.Timeout;
 public sealed class TimeoutFeature : ITimeoutFeature
 {
     /// <inheritdoc/>
-    public TimeSpan Timeout { get; init; }
+    public TimeSpan Value { get; init; }
 }
