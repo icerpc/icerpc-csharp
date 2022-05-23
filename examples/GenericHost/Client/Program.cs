@@ -29,11 +29,13 @@ public static class Program
                 // Add the ClientHostedService to the hosted services of the .NET Generic Host.
                 services.AddHostedService<ClientHostedService>();
 
-                // Bind the client hosted service options to the "appsettings.json" configuration "Client" section,
+                // Bind the client connection options to the "appsettings.json" configuration "Client" section,
                 // and add a Configure callback to configure its authentication options.
                 services
-                    .AddOptions<ClientHostedServiceOptions>()
-                    .Bind(hostContext.Configuration.GetSection("Client"));
+                    .AddOptions<ConnectionOptions>()
+                    .Bind(hostContext.Configuration.GetSection("Client"))
+                    .Configure<IOptions<SslClientAuthenticationOptions>>((options, clientAuthenticationOptions) =>
+                        options.AuthenticationOptions = clientAuthenticationOptions.Value);
 
                 services
                     .AddOptions<SslClientAuthenticationOptions>()
@@ -58,7 +60,7 @@ public static class Program
                 services.AddSingleton(sp => new ActivitySource("IceRpc"));
 
                 // Add an IInvoker service.
-                services.AddScoped<IInvoker>(serviceProvider =>
+                services.AddSingleton<IInvoker>(serviceProvider =>
                 {
                     // The invoker is a pipeline configured with the logger and telemetry interceptors. The
                     // interceptors use the logger factory provided by the .NET Generic Host.
@@ -68,34 +70,14 @@ public static class Program
                         .UseTelemetry(serviceProvider.GetRequiredService<ActivitySource>(), loggerFactory);
                 });
 
-                services.AddScoped<IConnection, Connection>(serviceProvider =>
-                {
-                    IOptions<ClientHostedServiceOptions> options =
-                        serviceProvider.GetRequiredService<IOptions<ClientHostedServiceOptions>>();
+                services.AddSingleton<IConnection, Connection>(serviceProvider =>
+                    new Connection(serviceProvider.GetRequiredService<IOptions<ConnectionOptions>>().Value));
 
-                    var connectionOptions = new ConnectionOptions
-                    {
-                        AuthenticationOptions =
-                            serviceProvider.GetRequiredService<IOptions<SslClientAuthenticationOptions>>().Value,
-                        ConnectTimeout = options.Value.ConnectTimeout,
-                        RemoteEndpoint = options.Value.RemoteEndpoint,
-                    };
-
-                    return new Connection(connectionOptions);
-                });
-
-                services.AddScoped<IHelloPrx>(serviceProvider =>
+                services.AddSingleton<IHelloPrx>(serviceProvider =>
                     HelloPrx.FromConnection(
                         serviceProvider.GetRequiredService<IConnection>(),
                         invoker: serviceProvider.GetRequiredService<IInvoker>()));
             });
-
-    /// <summary>The options class for <see cref="ClientHostedService"/>.</summary>
-    public class ClientHostedServiceOptions
-    {
-        public TimeSpan ConnectTimeout { get; set; }
-        public Endpoint RemoteEndpoint { get; set; }
-    }
 
     /// <summary>The hosted client service is ran and managed by the .NET Generic Host</summary>
     private class ClientHostedService : BackgroundService
