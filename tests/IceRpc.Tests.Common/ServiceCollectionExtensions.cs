@@ -5,12 +5,109 @@ using IceRpc.Transports;
 using IceRpc.Transports.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using System.Net.Security;
 
 namespace IceRpc.Tests;
 
 public static class ServiceCollectionExtensions
 {
+    /// <summary>Installs coloc as the default client and server transports for both ice and icerpc.</summary>
+    public static IServiceCollection AddColoc(this IServiceCollection services)
+    {
+        services.AddSingleton<ColocTransport>();
+        services.AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ClientTransport);
+        services.AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ServerTransport);
+
+        services.AddSlic();
+        return services;
+    }
+
+    /// <summary>Installs coloc client-server test.</summary>
+    public static IServiceCollection AddColocTest(this IServiceCollection services, Protocol protocol)
+    {
+        services.AddColoc();
+
+        Endpoint endpoint = protocol == Protocol.Ice ? "ice://colochost" : "icerpc://colochost";
+
+        services
+            .AddOptions<ServerOptions>()
+            .Configure<IDispatcher, IServerTransport<IMultiplexedNetworkConnection>, IServerTransport<ISimpleNetworkConnection>>(
+                (options, dispatcher, multiplexedServerTransport, simpleServerTransport) =>
+                {
+                    options.Dispatcher = dispatcher;
+                    options.Endpoint = endpoint;
+                    options.IceServerOptions = new() { ServerTransport = simpleServerTransport };
+                    options.IceRpcServerOptions = new() { ServerTransport = multiplexedServerTransport };
+                });
+
+        services.AddSingleton(provider => new Server(provider.GetRequiredService<IOptions<ServerOptions>>().Value));
+
+        services
+            .AddOptions<ConnectionOptions>() // ClientConnectionOptions
+            .Configure<IClientTransport<IMultiplexedNetworkConnection>, IClientTransport<ISimpleNetworkConnection>>(
+                (options, multiplexedClientTransport, simpleClientTransport) =>
+                {
+                    options.RemoteEndpoint = endpoint;
+                    options.IceClientOptions = new() { ClientTransport = simpleClientTransport };
+                    options.IceRpcClientOptions = new() { ClientTransport = multiplexedClientTransport };
+                });
+
+        services.AddSingleton(provider =>
+            new Connection(provider.GetRequiredService<IOptions<ConnectionOptions>>().Value));
+
+        return services;
+    }
+
+    public static IServiceCollection AddColocTest(this IServiceCollection services) =>
+        services.AddColocTest(Protocol.IceRpc);
+
+    /// <summary>Installs the Slic multiplexed transports over the registered simple transports.</summary>
+    public static IServiceCollection AddSlic(this IServiceCollection services)
+    {
+        services
+            .AddOptions<SlicServerTransportOptions>()
+            .Configure<IServerTransport<ISimpleNetworkConnection>, IOptions<MultiplexedTransportOptions>>(
+                (options, simpleServerTransport, multiplexedOptions) =>
+                {
+                    options.SimpleServerTransport = simpleServerTransport;
+
+                    // TODO: do we really need this extra MultiplexedTransportOptions?
+                    // and if we do, why does it have nullable properties?
+
+                    options.BidirectionalStreamMaxCount =
+                        multiplexedOptions.Value.BidirectionalStreamMaxCount ?? options.BidirectionalStreamMaxCount;
+
+                    options.UnidirectionalStreamMaxCount =
+                        multiplexedOptions.Value.UnidirectionalStreamMaxCount ?? options.UnidirectionalStreamMaxCount;
+                });
+
+        services.AddSingleton<IServerTransport<IMultiplexedNetworkConnection>>(provider =>
+            new SlicServerTransport(provider.GetRequiredService<IOptions<SlicServerTransportOptions>>().Value));
+
+        services
+            .AddOptions<SlicClientTransportOptions>()
+            .Configure<IClientTransport<ISimpleNetworkConnection>, IOptions<MultiplexedTransportOptions>>(
+                (options, simpleClientTransport, multiplexedOptions) =>
+                {
+                    options.SimpleClientTransport = simpleClientTransport;
+
+                    // TODO: do we really need this extra MultiplexedTransportOptions?
+                    // and if we do, why does it have nullable properties?
+
+                    options.BidirectionalStreamMaxCount =
+                        multiplexedOptions.Value.BidirectionalStreamMaxCount ?? options.BidirectionalStreamMaxCount;
+
+                    options.UnidirectionalStreamMaxCount =
+                        multiplexedOptions.Value.UnidirectionalStreamMaxCount ?? options.UnidirectionalStreamMaxCount;
+                });
+
+        services.AddSingleton<IClientTransport<IMultiplexedNetworkConnection>>(provider =>
+            new SlicClientTransport(provider.GetRequiredService<IOptions<SlicClientTransportOptions>>().Value));
+
+        return services;
+    }
+
     public static IServiceCollection UseColoc(this IServiceCollection collection) =>
         collection.UseColoc(new ColocTransport());
 

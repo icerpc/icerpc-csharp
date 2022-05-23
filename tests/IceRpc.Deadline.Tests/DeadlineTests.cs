@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
-using IceRpc.Deadline;
 using IceRpc.Features;
 using IceRpc.Tests;
 using NUnit.Framework;
@@ -45,11 +44,14 @@ public sealed class DeadlineTests
 
         var sut = new DeadlineMiddleware(dispatcher);
 
-        await using ServiceProvider provider = new SliceTestServiceCollection()
-            .UseDispatcher(sut)
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest()
+            .AddSingleton<IDispatcher>(sut)
             .BuildServiceProvider();
 
-        Proxy proxy = Proxy.FromConnection(
+        provider.GetRequiredService<Server>().Listen();
+
+        var proxy = Proxy.FromConnection(
             provider.GetRequiredService<Connection>(),
             "/",
             invoker: new Pipeline().UseDeadline());
@@ -63,7 +65,7 @@ public sealed class DeadlineTests
         using var cancellationTokenSource = new CancellationTokenSource();
 
         // Act
-        await proxy.Invoker.InvokeAsync(request, cancellationTokenSource.Token);
+        _ = await proxy.Invoker.InvokeAsync(request, cancellationTokenSource.Token);
 
         // Assert
         Assert.That(Math.Abs((deadline - expectedDeadline).TotalMilliseconds), Is.LessThanOrEqualTo(1));
