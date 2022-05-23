@@ -94,7 +94,7 @@ public sealed class IceProtocolConnectionTests
                     }
                 }),
 
-                IceMaxConcurrentDispatches = maxConcurrentDispatches
+                MaxIceConcurrentDispatches = maxConcurrentDispatches
             }
         };
 
@@ -152,7 +152,7 @@ public sealed class IceProtocolConnectionTests
                     await semaphore.WaitAsync(CancellationToken.None);
                     return new OutgoingResponse(request);
                 }),
-                IceMaxConcurrentDispatches = 1
+                MaxIceConcurrentDispatches = 1
             }
         };
 

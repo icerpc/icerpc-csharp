@@ -84,7 +84,7 @@ public class CustomTransportTests
                     Dispatcher = new MyService()
                 }
             },
-            multiplexedTransport: new CustomServerTransport());
+            multiplexedServerTransport: new CustomServerTransport());
 
         server.Listen();
 
@@ -93,7 +93,7 @@ public class CustomTransportTests
             {
                 RemoteEndpoint = server.Endpoint
             },
-            multiplexedTransport: new CustomClientTransport());
+            multiplexedClientTransport: new CustomClientTransport());
 
         var prx = ServicePrx.FromConnection(connection);
         await prx.IcePingAsync();
@@ -113,7 +113,7 @@ public class CustomTransportTests
                         Dispatcher = new MyService()
                     }
                 },
-                multiplexedTransport: new SlicServerTransport(new TcpServerTransport()));
+                multiplexedServerTransport: new SlicServerTransport(new TcpServerTransport()));
             Assert.Throws<FormatException>(() => server.Listen());
         }
 
@@ -127,7 +127,7 @@ public class CustomTransportTests
                         Dispatcher = new MyService()
                     }
                 },
-                multiplexedTransport: new CustomServerTransport());
+                multiplexedServerTransport: new CustomServerTransport());
             server.Listen();
 
             await using var connection1 = new ClientConnection(
@@ -140,7 +140,7 @@ public class CustomTransportTests
                         Params = server.Endpoint.Params.Add("custom-p", "bar")
                     }
                 },
-                multiplexedTransport: new CustomClientTransport());
+                multiplexedClientTransport: new CustomClientTransport());
 
             var prx = ServicePrx.FromConnection(connection1);
             await prx.IcePingAsync();
@@ -155,7 +155,7 @@ public class CustomTransportTests
                         Params = server.Endpoint.Params.Add("custom-p", "bar")
                     }
                 },
-                multiplexedTransport: new SlicClientTransport(new TcpClientTransport()));
+                multiplexedClientTransport: new SlicClientTransport(new TcpClientTransport()));
 
             prx = ServicePrx.FromConnection(connection2);
             Assert.ThrowsAsync<FormatException>(async () => await prx.IcePingAsync());

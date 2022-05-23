@@ -43,32 +43,32 @@ namespace IceRpc.Configure
         /// </summary>
         /// <value>The maximum number of requests that an ice connection can dispatch concurrently. 0 means no maximum.
         /// The default value is 100 requests.</value>
-        public int IceMaxConcurrentDispatches
+        public int MaxIceConcurrentDispatches
         {
-            get => _iceMaxConcurrentDispatches;
-            set => _iceMaxConcurrentDispatches = value >= 0 ? value :
+            get => _iceConcurrentDispatches;
+            set => _iceConcurrentDispatches = value >= 0 ? value :
                 throw new ArgumentOutOfRangeException(nameof(value), "value must be 0 or greater");
         }
 
         /// <summary>Gets or sets the maximum size of a frame received over the ice protocol.</summary>
         /// <value>The maximum size of an incoming frame, in bytes. This value must be at least 256. The default value is
         /// 1 MB.</value>
-        public int IceMaxFrameSize
+        public int MaxIceFrameSize
         {
-            get => _iceMaxFrameSize;
-            set => _iceMaxFrameSize = value >= IceMinFrameSize ? value :
+            get => _maxIceFrameSize;
+            set => _maxIceFrameSize = value >= IceMinFrameSize ? value :
                 throw new ArgumentOutOfRangeException(
                     nameof(value),
-                    $"{nameof(IceMaxFrameSize)} must be at least {IceMinFrameSize}");
+                    $"{nameof(MaxIceFrameSize)} must be at least {IceMinFrameSize}");
         }
 
         /// <summary>Gets or sets the maximum size of icerpc protocol header.</summary>
         /// <value>The maximum size of the header of an incoming request, response or control frame, in bytes. The default
         /// value is 16,383, and the range of this value is 63 to 1,048,575.</value>
-        public int IceRpcMaxHeaderSize
+        public int MaxIceRpcHeaderSize
         {
-            get => _iceRpcMaxHeaderSize;
-            set => _iceRpcMaxHeaderSize = IceRpcCheckMaxHeaderSize(value);
+            get => _maxIceRpcHeaderSize;
+            set => _maxIceRpcHeaderSize = IceRpcCheckMaxHeaderSize(value);
         }
 
         /// <summary>Gets or sets the connection's keep alive. If a connection is kept alive, the connection
@@ -84,16 +84,16 @@ namespace IceRpc.Configure
 
 
         private const int IceMinFrameSize = 256;
-        /// <summary>The default value for <see cref="IceRpcMaxHeaderSize"/>.</summary>
-        internal const int IceRpcDefaultMaxHeaderSize = 16_383;
+        /// <summary>The default value for <see cref="MaxIceRpcHeaderSize"/>.</summary>
+        internal const int DefaultMaxIceRpcHeaderSize = 16_383;
 
         private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
         private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
 
-        private int _iceMaxConcurrentDispatches = 100;
-        private int _iceMaxFrameSize = 1024 * 1024;
+        private int _iceConcurrentDispatches = 100;
+        private int _maxIceFrameSize = 1024 * 1024;
 
-        private int _iceRpcMaxHeaderSize = IceRpcDefaultMaxHeaderSize;
+        private int _maxIceRpcHeaderSize = DefaultMaxIceRpcHeaderSize;
 
         internal static int IceRpcCheckMaxHeaderSize(long value) => value is >= 63 and <= 1_048_575 ? (int)value :
             throw new ArgumentOutOfRangeException(nameof(value), "value must be between 63 and 1,048,575");

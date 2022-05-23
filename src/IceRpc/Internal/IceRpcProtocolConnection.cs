@@ -56,7 +56,7 @@ namespace IceRpc.Internal
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
         private long _lastRemoteUnidirectionalStreamId = -1;
         private readonly int _maxLocalHeaderSize;
-        private int _maxRemoteHeaderSize = Configure.ConnectionOptions.IceRpcDefaultMaxHeaderSize;
+        private int _maxRemoteHeaderSize = Configure.ConnectionOptions.DefaultMaxIceRpcHeaderSize;
         private readonly object _mutex = new();
         private readonly IMultiplexedNetworkConnection _networkConnection;
         private IMultiplexedStream? _remoteControlStream;
@@ -736,7 +736,7 @@ namespace IceRpc.Internal
         {
             _dispatcher = dispatcher;
             _networkConnection = networkConnection;
-            _maxLocalHeaderSize = options.IceRpcMaxHeaderSize;
+            _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
         }
 
         internal async Task ConnectAsync(CancellationToken cancel)
@@ -745,7 +745,7 @@ namespace IceRpc.Internal
             _controlStream = _networkConnection.CreateStream(false);
 
             var settings = new IceRpcSettings(
-                _maxLocalHeaderSize == Configure.ConnectionOptions.IceRpcDefaultMaxHeaderSize ?
+                _maxLocalHeaderSize == Configure.ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
                     ImmutableDictionary<IceRpcSettingKey, ulong>.Empty :
                     new Dictionary<IceRpcSettingKey, ulong>
                     {

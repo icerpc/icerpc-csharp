@@ -16,11 +16,11 @@ namespace IceRpc
     public sealed class Server : IAsyncDisposable
     {
         /// <summary>The default server transport for icerpc protocol connections.</summary>
-        public static IServerTransport<IMultiplexedNetworkConnection> DefaultMultiplexedTransport { get; } =
+        public static IServerTransport<IMultiplexedNetworkConnection> DefaultMultiplexedServerTransport { get; } =
             new SlicServerTransport(new TcpServerTransport());
 
         /// <summary>The default server transport for ice protocol connections.</summary>
-        public static IServerTransport<ISimpleNetworkConnection> DefaultSimpleTransport { get; } =
+        public static IServerTransport<ISimpleNetworkConnection> DefaultSimpleServerTransport { get; } =
             new TcpServerTransport();
 
         /// <summary>Returns the endpoint of this server.</summary>
@@ -39,8 +39,8 @@ namespace IceRpc
         private bool _listening;
 
         private readonly ILoggerFactory _loggerFactory;
-        private readonly IServerTransport<IMultiplexedNetworkConnection> _multiplexedTransport;
-        private readonly IServerTransport<ISimpleNetworkConnection> _simpleTransport;
+        private readonly IServerTransport<IMultiplexedNetworkConnection> _multiplexedServerTransport;
+        private readonly IServerTransport<ISimpleNetworkConnection> _simpleServerTransport;
 
         // protects _shutdownTask
         private readonly object _mutex = new();
@@ -57,19 +57,19 @@ namespace IceRpc
         /// <summary>Constructs a server.</summary>
         /// <param name="options">The server options.</param>
         /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
-        /// <param name="multiplexedTransport">The transport used to create icerpc protocol connections.</param>
-        /// <param name="simpleTransport">The transport used to create ice protocol connections.</param>
+        /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections.</param>
+        /// <param name="simpleServerTransport">The transport used to create ice protocol connections.</param>
         public Server(
             ServerOptions options,
             ILoggerFactory? loggerFactory = null,
-            IServerTransport<IMultiplexedNetworkConnection>? multiplexedTransport = null,
-            IServerTransport<ISimpleNetworkConnection>? simpleTransport = null)
+            IServerTransport<IMultiplexedNetworkConnection>? multiplexedServerTransport = null,
+            IServerTransport<ISimpleNetworkConnection>? simpleServerTransport = null)
         {
             Endpoint = options.Endpoint;
             _options = options;
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
-            _multiplexedTransport = multiplexedTransport ?? DefaultMultiplexedTransport;
-            _simpleTransport = simpleTransport ?? DefaultSimpleTransport;
+            _multiplexedServerTransport = multiplexedServerTransport ?? DefaultMultiplexedServerTransport;
+            _simpleServerTransport = simpleServerTransport ?? DefaultSimpleServerTransport;
         }
 
         /// <summary>Constructs a server with the specified dispatcher and authentication options. All other properties
@@ -79,7 +79,7 @@ namespace IceRpc
         public Server(IDispatcher dispatcher, SslServerAuthenticationOptions? authenticationOptions = null)
             : this(new ServerOptions
             {
-                AuthenticationOptions = authenticationOptions,
+                ServerAuthenticationOptions = authenticationOptions,
                 ConnectionOptions = new()
                 {
                     Dispatcher = dispatcher,
@@ -99,7 +99,7 @@ namespace IceRpc
             SslServerAuthenticationOptions? authenticationOptions = null)
             : this(new ServerOptions
             {
-                AuthenticationOptions = authenticationOptions,
+                ServerAuthenticationOptions = authenticationOptions,
                 ConnectionOptions = new()
                 {
                     Dispatcher = dispatcher,
@@ -134,14 +134,14 @@ namespace IceRpc
                 if (_options.Endpoint.Protocol == Protocol.Ice)
                 {
                     PerformListen(
-                        _simpleTransport,
+                        _simpleServerTransport,
                         IceProtocol.Instance.ProtocolConnectionFactory,
                         LogSimpleNetworkConnectionDecorator.Decorate);
                 }
                 else
                 {
                     PerformListen(
-                        _multiplexedTransport,
+                        _multiplexedServerTransport,
                         IceRpcProtocol.Instance.ProtocolConnectionFactory,
                         LogMultiplexedNetworkConnectionDecorator.Decorate);
                 }
@@ -159,7 +159,7 @@ namespace IceRpc
 
                 ILogger logger = _loggerFactory.CreateLogger("IceRpc.Server");
 
-                IListener<T> listener = serverTransport.Listen(Endpoint, _options.AuthenticationOptions, logger);
+                IListener<T> listener = serverTransport.Listen(Endpoint, _options.ServerAuthenticationOptions, logger);
                 _listener = listener;
                 Endpoint = listener.Endpoint;
 
@@ -194,17 +194,9 @@ namespace IceRpc
                     where T : INetworkConnection
             {
                 // The common connection options, set through ServerOptions.
-                var connectionOptions = new ConnectionOptions
-                {
-                    CloseTimeout = _options.ConnectionOptions.CloseTimeout,
-                    ConnectTimeout = _options.ConnectionOptions.ConnectTimeout,
-                    Dispatcher = _options.ConnectionOptions.Dispatcher,
-                    Features = _options.ConnectionOptions.Features,
-                    KeepAlive = _options.ConnectionOptions.KeepAlive,
-                    IceMaxConcurrentDispatches = _options.ConnectionOptions.IceMaxConcurrentDispatches,
-                    IceMaxFrameSize = _options.ConnectionOptions.IceMaxFrameSize,
-                    IceRpcMaxHeaderSize = _options.ConnectionOptions.IceRpcMaxHeaderSize,
-                    OnClose = RemoveOnClose + _options.ConnectionOptions.OnClose
+                var connectionOptions = _options.ConnectionOptions with 
+                { 
+                    OnClose = RemoveOnClose + _options.ConnectionOptions.OnClose 
                 };
 
                 while (true)

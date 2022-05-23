@@ -320,7 +320,7 @@ public sealed class IceRpcProtocolConnectionTests
             .UseProtocol(Protocol.IceRpc)
             .UseServerOptions(new ServerOptions
             {
-                ConnectionOptions = new ConnectionOptions { IceRpcMaxHeaderSize = 100 }
+                ConnectionOptions = new ConnectionOptions { MaxIceRpcHeaderSize = 100 }
             })
             .BuildServiceProvider();
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();

@@ -11,7 +11,7 @@ namespace IceRpc.Configure
         /// <value>The SSL client authentication options. When not null,
         /// <see cref="Connection.ConnectAsync(CancellationToken)"/> will either establish a secure connection or fail.
         /// </value>
-        public SslClientAuthenticationOptions? AuthenticationOptions { get; set; }
+        public SslClientAuthenticationOptions? ClientAuthenticationOptions { get; set; }
 
         /// <summary>Specifies if the connection can be resumed after being closed.</summary>
         /// <value>When <c>true</c>, the connection will be re-established by the next call to

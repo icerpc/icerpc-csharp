@@ -5,8 +5,9 @@ namespace IceRpc.Configure
     /// <summary>A property bag used to configure a <see cref="ConnectionPool"/>.</summary>
     public record class ConnectionPoolOptions
     {
-        /// <summary>Gets or sets the connection options used for connections created by the connection pool.</summary>
-        public ClientConnectionOptions ConnectionOptions { get; set; } = new();
+        /// <summary>Gets or sets the client connection options used for connections created by the connection pool.
+        /// </summary>
+        public ClientConnectionOptions ClientConnectionOptions { get; set; } = new();
 
         /// <summary>Gets or sets whether or not the pool prefers an existing connection over creating a new one.
         /// </summary>

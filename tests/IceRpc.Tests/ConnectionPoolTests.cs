@@ -17,12 +17,12 @@ public sealed class ConnectionPoolTests
         var colocTransport = new ColocTransport();
         await using var server1 = new Server(
             new ServerOptions { Endpoint = "icerpc://foo" },
-            multiplexedTransport: new SlicServerTransport(colocTransport.ServerTransport));
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server1.Listen();
 
         await using var server2 = new Server(
             new ServerOptions { Endpoint = "icerpc://bar" },
-            multiplexedTransport: new SlicServerTransport(colocTransport.ServerTransport));
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server2.Listen();
 
         await using var pool = new ConnectionPool(
@@ -55,7 +55,7 @@ public sealed class ConnectionPoolTests
         var colocTransport = new ColocTransport();
         await using var server = new Server(
             new ServerOptions { Endpoint = "icerpc://foo" },
-            multiplexedTransport: new SlicServerTransport(colocTransport.ServerTransport));
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server.Listen();
 
         await using var pool = new ConnectionPool(
@@ -80,12 +80,12 @@ public sealed class ConnectionPoolTests
         var colocTransport = new ColocTransport();
         await using var server1 = new Server(
             new ServerOptions { Endpoint = "icerpc://foo" },
-            multiplexedTransport: new SlicServerTransport(colocTransport.ServerTransport));
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server1.Listen();
 
         await using var server2 = new Server(
             new ServerOptions { Endpoint = "icerpc://bar" },
-            multiplexedTransport: new SlicServerTransport(colocTransport.ServerTransport));
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server2.Listen();
 
         await using var pool = new ConnectionPool(
@@ -110,7 +110,7 @@ public sealed class ConnectionPoolTests
         var colocTransport = new ColocTransport();
         await using var server = new Server(
             new ServerOptions { Endpoint = "icerpc://foo", },
-            multiplexedTransport: new SlicServerTransport(colocTransport.ServerTransport));
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server.Listen();
 
         await using var pool = new ConnectionPool(
@@ -141,12 +141,12 @@ public sealed class ConnectionPoolTests
         var colocTransport = new ColocTransport();
         await using var server1 = new Server(
             new ServerOptions { Endpoint = "icerpc://foo" },
-            multiplexedTransport: new SlicServerTransport(colocTransport.ServerTransport));
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server1.Listen();
 
         await using var server2 = new Server(
             new ServerOptions() { Endpoint = "icerpc://bar" },
-            multiplexedTransport: new SlicServerTransport(colocTransport.ServerTransport));
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server2.Listen();
 
         await using var pool = new ConnectionPool(

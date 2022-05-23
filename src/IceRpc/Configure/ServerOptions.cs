@@ -10,9 +10,9 @@ namespace IceRpc.Configure
         /// <summary>Gets or sets the SSL server authentication options.</summary>
         /// <value>The SSL server authentication options. When not null, the server will accept only secure connections.
         /// </value>
-        public SslServerAuthenticationOptions? AuthenticationOptions { get; set; }
+        public SslServerAuthenticationOptions? ServerAuthenticationOptions { get; set; }
 
-        /// <summary>Gets or set the options for server connections.</summary>
+        /// <summary>Gets or set the connection options for server connections.</summary>
         public ConnectionOptions ConnectionOptions { get; set; } = new ();
         
         /// <summary>Gets or sets the server's endpoint. The endpoint's host is usually an IP address, and it

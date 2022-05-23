@@ -462,11 +462,11 @@ namespace IceRpc.Internal
             _dispatcher = dispatcher;
             _options = options;
 
-            if (_options.IceMaxConcurrentDispatches > 0)
+            if (_options.MaxIceConcurrentDispatches > 0)
             {
                 _dispatchSemaphore = new AsyncSemaphore(
-                    initialCount: _options.IceMaxConcurrentDispatches,
-                    maxCount: _options.IceMaxConcurrentDispatches);
+                    initialCount: _options.MaxIceConcurrentDispatches,
+                    maxCount: _options.MaxIceConcurrentDispatches);
             }
 
             // TODO: get the pool and minimum segment size from an option class, but which one? The Slic connection gets
@@ -649,7 +649,7 @@ namespace IceRpc.Internal
                 _networkConnectionReader.AdvanceTo(prologueBuffer.End);
 
                 IceDefinitions.CheckPrologue(prologue);
-                if (prologue.FrameSize > _options.IceMaxFrameSize)
+                if (prologue.FrameSize > _options.MaxIceFrameSize)
                 {
                     throw new InvalidDataException(
                         $"received frame with size ({prologue.FrameSize}) greater than max frame size");

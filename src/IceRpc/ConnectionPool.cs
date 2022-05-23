@@ -41,6 +41,13 @@ namespace IceRpc
             _simpleClientTransport = simpleClientTransport;
         }
 
+        /// <summary>Constructs a connection pool.</summary>
+        /// <param name="clientConnectionOptions">The client connection options for connections created by this pool.</param>
+        public ConnectionPool(ClientConnectionOptions clientConnectionOptions)
+            : this(new ConnectionPoolOptions { ClientConnectionOptions = clientConnectionOptions })
+        { 
+        }
+
         /// <summary>An alias for <see cref="ShutdownAsync"/>, except this method returns a <see cref="ValueTask"/>.
         /// </summary>
         /// <returns>A value task constructed using the task returned by ShutdownAsync.</returns>
@@ -207,9 +214,9 @@ namespace IceRpc
                 {
                     // Connections from the connection pool are not resumable.
                     connection = new ClientConnection(
-                        _connectionPoolOptions.ConnectionOptions with
+                        _connectionPoolOptions.ClientConnectionOptions with
                         {
-                            OnClose = RemoveOnClose + _connectionPoolOptions.ConnectionOptions.OnClose,
+                            OnClose = RemoveOnClose + _connectionPoolOptions.ClientConnectionOptions.OnClose,
                             RemoteEndpoint = endpoint
                         },
                         _loggerFactory,

@@ -11,29 +11,29 @@ namespace IceRpc
     public sealed class ClientConnection : Connection
     {
         /// <summary>The default client transport for icerpc protocol connections.</summary>
-        public static IClientTransport<IMultiplexedNetworkConnection> DefaultMultiplexedTransport { get; } = 
+        public static IClientTransport<IMultiplexedNetworkConnection> DefaultMultiplexedClientTransport { get; } =
             new SlicClientTransport(new TcpClientTransport());
 
         /// <summary>The default client transport for ice protocol connections.</summary>
-        public static IClientTransport<ISimpleNetworkConnection> DefaultSimpleTransport { get; } =
+        public static IClientTransport<ISimpleNetworkConnection> DefaultSimpleClientTransport { get; } =
             new TcpClientTransport();
 
         private readonly ClientConnectionOptions _options;
-        private readonly IClientTransport<IMultiplexedNetworkConnection> _multiplexedTransport;
-        private readonly IClientTransport<ISimpleNetworkConnection> _simpleTransport;
+        private readonly IClientTransport<IMultiplexedNetworkConnection> _multiplexedClientTransport;
+        private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
 
         /// <summary>Constructs a client connection.</summary>
         /// <param name="options">The connection options.</param>
         /// <param name="loggerFactory">The logger factory used to create loggers to log connection-related activities.
         /// </param>
-        /// <param name="multiplexedTransport">The multiplexed transport used to create icerpc protocol connections.
+        /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol connections.
         /// </param>
-        /// <param name="simpleTransport">The simple transport used to create ice protocol connections.</param>
+        /// <param name="simpleClientTransport">The simple transport used to create ice protocol connections.</param>
         public ClientConnection(
             ClientConnectionOptions options,
             ILoggerFactory? loggerFactory = null,
-            IClientTransport<IMultiplexedNetworkConnection>? multiplexedTransport = null,
-            IClientTransport<ISimpleNetworkConnection>? simpleTransport = null) :
+            IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
+            IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null) :
             base(
                 options,
                 options.IsResumable,
@@ -45,8 +45,8 @@ namespace IceRpc
             // At this point, we consider options to be read-only.
             // TODO: replace _options by "splatted" properties.
             _options = options;
-            _multiplexedTransport = multiplexedTransport ?? DefaultMultiplexedTransport;
-            _simpleTransport = simpleTransport ?? DefaultSimpleTransport;
+            _multiplexedClientTransport = multiplexedClientTransport ?? DefaultMultiplexedClientTransport;
+            _simpleClientTransport = simpleClientTransport ?? DefaultSimpleClientTransport;
         }
 
         /// <summary>Constructs a client connection with the specified remote endpoint and  authentication options.
@@ -56,7 +56,7 @@ namespace IceRpc
         public ClientConnection(Endpoint endpoint, SslClientAuthenticationOptions? authenticationOptions = null)
             : this(new ClientConnectionOptions
             {
-                AuthenticationOptions = authenticationOptions,
+                ClientAuthenticationOptions = authenticationOptions,
                 RemoteEndpoint = endpoint
             })
         {
@@ -64,6 +64,6 @@ namespace IceRpc
 
         /// <inheritdoc/>
         public override Task ConnectAsync(CancellationToken cancel = default) =>
-            ConnectAsync(_multiplexedTransport, _simpleTransport, _options.AuthenticationOptions, cancel);
+            ConnectAsync(_multiplexedClientTransport, _simpleClientTransport, _options.ClientAuthenticationOptions, cancel);
     }
 }
