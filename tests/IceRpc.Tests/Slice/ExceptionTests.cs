@@ -429,7 +429,8 @@ public sealed class ExceptionTests
         DispatchErrorCode errorCode)
     {
         var coloc = new ColocTransport();
-        await using var server = new Server(new Configure.ServerOptions
+        await using var server = new Server(
+            new Configure.ServerOptions
             {
                 ConnectionOptions = new Configure.ConnectionOptions()
                 {
@@ -440,7 +441,8 @@ public sealed class ExceptionTests
             multiplexedTransport: new SlicServerTransport(coloc.ServerTransport));
         server.Listen();
 
-        await using var connection = new ClientConnection(new Configure.ClientConnectionOptions
+        await using var connection = new ClientConnection(
+            new Configure.ClientConnectionOptions
             {
                 RemoteEndpoint = server.Endpoint,
             },
@@ -459,7 +461,8 @@ public sealed class ExceptionTests
         DispatchErrorCode errorCode)
     {
         var coloc = new ColocTransport();
-        await using var server = new Server(new Configure.ServerOptions
+        await using var server = new Server(
+            new Configure.ServerOptions
             {
                 ConnectionOptions = new Configure.ConnectionOptions
                 {
@@ -470,7 +473,8 @@ public sealed class ExceptionTests
             multiplexedTransport: new SlicServerTransport(coloc.ServerTransport));
         server.Listen();
 
-        await using var connection = new ClientConnection(new Configure.ClientConnectionOptions
+        await using var connection = new ClientConnection(
+            new Configure.ClientConnectionOptions
             {
                 RemoteEndpoint = server.Endpoint,
             },

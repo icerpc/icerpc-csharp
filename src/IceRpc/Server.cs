@@ -15,10 +15,12 @@ namespace IceRpc
     /// <see cref="Listen"/> and finally shut down with <see cref="ShutdownAsync"/>.</summary>
     public sealed class Server : IAsyncDisposable
     {
-        private static readonly IServerTransport<IMultiplexedNetworkConnection> _defaultMultiplexedTransport =
+        /// <summary>The default server transport for icerpc protocol connections.</summary>
+        public static IServerTransport<IMultiplexedNetworkConnection> DefaultMultiplexedTransport { get; } =
             new SlicServerTransport(new TcpServerTransport());
 
-        private static readonly IServerTransport<ISimpleNetworkConnection> _defaultSimleTransport =
+        /// <summary>The default server transport for ice protocol connections.</summary>
+        public static IServerTransport<ISimpleNetworkConnection> DefaultSimpleTransport { get; } =
             new TcpServerTransport();
 
         /// <summary>Returns the endpoint of this server.</summary>
@@ -66,8 +68,8 @@ namespace IceRpc
             Endpoint = options.Endpoint;
             _options = options;
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
-            _multiplexedTransport = multiplexedTransport ?? _defaultMultiplexedTransport;
-            _simpleTransport = simpleTransport ?? _defaultSimleTransport;
+            _multiplexedTransport = multiplexedTransport ?? DefaultMultiplexedTransport;
+            _simpleTransport = simpleTransport ?? DefaultSimpleTransport;
         }
 
         /// <summary>Constructs a server with the specified dispatcher and authentication options. All other properties

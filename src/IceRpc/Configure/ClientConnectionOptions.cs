@@ -4,7 +4,7 @@ using System.Net.Security;
 
 namespace IceRpc.Configure
 {
-    /// <summary>A property bag used to configure a client <see cref="Connection"/>.</summary>
+    /// <summary>A property bag used to configure a <see cref="ClientConnection"/>.</summary>
     public sealed record class ClientConnectionOptions : ConnectionOptions
     {
         /// <summary>Gets or sets the SSL client authentication options.</summary>
