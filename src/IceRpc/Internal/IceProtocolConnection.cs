@@ -74,7 +74,7 @@ namespace IceRpc.Internal
         private readonly SimpleNetworkConnectionReader _networkConnectionReader;
         private readonly SimpleNetworkConnectionWriter _networkConnectionWriter;
         private int _nextRequestId;
-        private readonly Configure.IceOptions _options;
+        private readonly Configure.ConnectionOptions _options;
         private readonly IcePayloadPipeWriter _payloadWriter;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly CancellationTokenSource _readCancelSource = new();
@@ -457,16 +457,16 @@ namespace IceRpc.Internal
         internal IceProtocolConnection(
             ISimpleNetworkConnection simpleNetworkConnection,
             IDispatcher dispatcher,
-            Configure.IceOptions? options)
+            Configure.ConnectionOptions options)
         {
             _dispatcher = dispatcher;
-            _options = options ?? Configure.IceOptions.Default;
+            _options = options;
 
-            if (_options.MaxConcurrentDispatches > 0)
+            if (_options.IceMaxConcurrentDispatches > 0)
             {
                 _dispatchSemaphore = new AsyncSemaphore(
-                    initialCount: _options.MaxConcurrentDispatches,
-                    maxCount: _options.MaxConcurrentDispatches);
+                    initialCount: _options.IceMaxConcurrentDispatches,
+                    maxCount: _options.IceMaxConcurrentDispatches);
             }
 
             // TODO: get the pool and minimum segment size from an option class, but which one? The Slic connection gets
@@ -649,7 +649,7 @@ namespace IceRpc.Internal
                 _networkConnectionReader.AdvanceTo(prologueBuffer.End);
 
                 IceDefinitions.CheckPrologue(prologue);
-                if (prologue.FrameSize > _options.MaxFrameSize)
+                if (prologue.FrameSize > _options.IceMaxFrameSize)
                 {
                     throw new InvalidDataException(
                         $"received frame with size ({prologue.FrameSize}) greater than max frame size");

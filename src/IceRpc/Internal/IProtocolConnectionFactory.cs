@@ -4,9 +4,8 @@ using IceRpc.Transports;
 
 namespace IceRpc.Internal;
 
-internal interface IProtocolConnectionFactory<T, TOptions>
+internal interface IProtocolConnectionFactory<T>
     where T : INetworkConnection
-    where TOptions : class
 {
     /// <summary>Creates a protocol connection over a connected network connection.</summary>
     Task<IProtocolConnection> CreateProtocolConnectionAsync(
@@ -14,6 +13,6 @@ internal interface IProtocolConnectionFactory<T, TOptions>
         NetworkConnectionInformation connectionInformation,
         IDispatcher dispatcher,
         bool isServer,
-        TOptions? protocolOptions,
+        Configure.ConnectionOptions connectionOptions,
         CancellationToken cancel);
 }

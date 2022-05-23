@@ -34,4 +34,15 @@ public interface IConnection
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>The corresponding <see cref="IncomingResponse"/>.</returns>
     Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel);
+
+    /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
+    /// canceled. Shutdown cancellation can lead to a speedier shutdown if dispatch are cancelable.</summary>
+    /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    public Task ShutdownAsync(CancellationToken cancel = default);
+
+    /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
+    /// canceled. Shutdown cancellation can lead to a speedier shutdown if dispatch are cancelable.</summary>
+    /// <param name="message">The message transmitted to the peer (when using the IceRPC protocol).</param>
+    /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    public Task ShutdownAsync(string message, CancellationToken cancel = default);
 }

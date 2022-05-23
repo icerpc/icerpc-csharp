@@ -17,42 +17,38 @@ public class IntegrationTestServiceCollection : ServiceCollection
 
         this.UseSlic();
 
-        this.AddScoped(provider => new ConnectionOptions
+        this.AddScoped(provider => new ClientConnectionOptions
         {
-            IceClientOptions = new()
-            {
-                ClientTransport = provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()
-            },
-            IceRpcClientOptions = new()
-            {
-                ClientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>()
-            },
             Dispatcher = provider.GetService<IDispatcher>() ?? ConnectionOptions.DefaultDispatcher,
             RemoteEndpoint = provider.GetService<Server>()?.Endpoint,
-            LoggerFactory = provider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance,
         });
 
-        this.AddScoped(provider => new ConnectionPool(provider.GetRequiredService<ConnectionOptions>()));
+        this.AddScoped(
+            provider => new ConnectionPool(
+                provider.GetService<ConnectionPoolOptions>() ?? new ConnectionPoolOptions(),
+                provider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance,
+                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
+                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()));
 
         this.AddScoped(provider =>
         {
             var serverOptions = provider.GetService<ServerOptions>() ?? new ServerOptions();
-            serverOptions.IceServerOptions = new()
-            {
-                ServerTransport = provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()
-            };
-            serverOptions.IceRpcServerOptions = new()
-            {
-                ServerTransport = provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>()
-            };
-            serverOptions.Dispatcher = provider.GetRequiredService<IDispatcher>();
+            serverOptions.ConnectionOptions.Dispatcher = provider.GetRequiredService<IDispatcher>();
             serverOptions.Endpoint = provider.GetRequiredService<Endpoint>();
-            serverOptions.LoggerFactory = provider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;
-            var server = new Server(serverOptions);
+
+            var server = new Server(
+                serverOptions,
+                provider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance,
+                provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>(),
+                provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>());
             server.Listen();
             return server;
         });
 
-        this.AddScoped(provider => new Connection(provider.GetRequiredService<ConnectionOptions>()));
+        this.AddScoped(provider => new ClientConnection(
+            provider.GetRequiredService<ClientConnectionOptions>(),
+            provider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance,
+            provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
+            provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()));
     }
 }

@@ -430,18 +430,21 @@ public sealed class ExceptionTests
     {
         var coloc = new ColocTransport();
         await using var server = new Server(new Configure.ServerOptions
-        {
-            Dispatcher = new Slice2ExceptionOperations(throwException),
-            IceRpcServerOptions = new() { ServerTransport = new SlicServerTransport(coloc.ServerTransport) },
-            Endpoint = $"icerpc://{Guid.NewGuid()}/"
-        });
+            {
+                ConnectionOptions = new Configure.ConnectionOptions()
+                {
+                    Dispatcher = new Slice2ExceptionOperations(throwException),
+                },
+                Endpoint = $"icerpc://{Guid.NewGuid()}/"
+            },
+            multiplexedTransport: new SlicServerTransport(coloc.ServerTransport));
         server.Listen();
 
-        await using var connection = new Connection(new Configure.ConnectionOptions
-        {
-            RemoteEndpoint = server.Endpoint,
-            IceRpcClientOptions = new() { ClientTransport = new SlicClientTransport(coloc.ClientTransport) },
-        });
+        await using var connection = new ClientConnection(new Configure.ClientConnectionOptions
+            {
+                RemoteEndpoint = server.Endpoint,
+            },
+            multiplexedTransport: new SlicClientTransport(coloc.ClientTransport));
         var prx = Slice2ExceptionOperationsPrx.FromConnection(connection);
 
         DispatchException? exception = Assert.CatchAsync<DispatchException>(() => prx.OpThrowsAsync());
@@ -457,18 +460,21 @@ public sealed class ExceptionTests
     {
         var coloc = new ColocTransport();
         await using var server = new Server(new Configure.ServerOptions
-        {
-            Dispatcher = new Slice1ExceptionOperations(throwException),
-            IceRpcServerOptions = new() { ServerTransport = new SlicServerTransport(coloc.ServerTransport) },
-            Endpoint = $"icerpc://{Guid.NewGuid()}/"
-        });
+            {
+                ConnectionOptions = new Configure.ConnectionOptions
+                {
+                    Dispatcher = new Slice1ExceptionOperations(throwException),
+                },
+                Endpoint = $"icerpc://{Guid.NewGuid()}/"
+            },
+            multiplexedTransport: new SlicServerTransport(coloc.ServerTransport));
         server.Listen();
 
-        await using var connection = new Connection(new Configure.ConnectionOptions
-        {
-            RemoteEndpoint = server.Endpoint,
-            IceRpcClientOptions = new() { ClientTransport = new SlicClientTransport(coloc.ClientTransport) },
-        });
+        await using var connection = new ClientConnection(new Configure.ClientConnectionOptions
+            {
+                RemoteEndpoint = server.Endpoint,
+            },
+            multiplexedTransport: new SlicClientTransport(coloc.ClientTransport));
         var prx = Slice1ExceptionOperationsPrx.FromConnection(connection);
 
         DispatchException? catchException = Assert.CatchAsync<DispatchException>(() => prx.OpThrowsAsync());

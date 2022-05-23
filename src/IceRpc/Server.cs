@@ -5,6 +5,7 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Net.Security;
 
 namespace IceRpc
@@ -14,6 +15,12 @@ namespace IceRpc
     /// <see cref="Listen"/> and finally shut down with <see cref="ShutdownAsync"/>.</summary>
     public sealed class Server : IAsyncDisposable
     {
+        private static readonly IServerTransport<IMultiplexedNetworkConnection> _defaultMultiplexedTransport =
+            new SlicServerTransport(new TcpServerTransport());
+
+        private static readonly IServerTransport<ISimpleNetworkConnection> _defaultSimleTransport =
+            new TcpServerTransport();
+
         /// <summary>Returns the endpoint of this server.</summary>
         /// <value>The endpoint of this server. Once <see cref="Listen"/> is called, the endpoint's value is the
         /// listening endpoint returned by the transport.</value>
@@ -29,6 +36,10 @@ namespace IceRpc
 
         private bool _listening;
 
+        private readonly ILoggerFactory _loggerFactory;
+        private readonly IServerTransport<IMultiplexedNetworkConnection> _multiplexedTransport;
+        private readonly IServerTransport<ISimpleNetworkConnection> _simpleTransport;
+
         // protects _shutdownTask
         private readonly object _mutex = new();
 
@@ -43,10 +54,20 @@ namespace IceRpc
 
         /// <summary>Constructs a server.</summary>
         /// <param name="options">The server options.</param>
-        public Server(ServerOptions options)
+        /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
+        /// <param name="multiplexedTransport">The transport used to create icerpc protocol connections.</param>
+        /// <param name="simpleTransport">The transport used to create ice protocol connections.</param>
+        public Server(
+            ServerOptions options,
+            ILoggerFactory? loggerFactory = null,
+            IServerTransport<IMultiplexedNetworkConnection>? multiplexedTransport = null,
+            IServerTransport<ISimpleNetworkConnection>? simpleTransport = null)
         {
             Endpoint = options.Endpoint;
             _options = options;
+            _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
+            _multiplexedTransport = multiplexedTransport ?? _defaultMultiplexedTransport;
+            _simpleTransport = simpleTransport ?? _defaultSimleTransport;
         }
 
         /// <summary>Constructs a server with the specified dispatcher and authentication options. All other properties
@@ -57,7 +78,10 @@ namespace IceRpc
             : this(new ServerOptions
             {
                 AuthenticationOptions = authenticationOptions,
-                Dispatcher = dispatcher
+                ConnectionOptions = new()
+                {
+                    Dispatcher = dispatcher,
+                }
             })
         {
         }
@@ -74,7 +98,10 @@ namespace IceRpc
             : this(new ServerOptions
             {
                 AuthenticationOptions = authenticationOptions,
-                Dispatcher = dispatcher,
+                ConnectionOptions = new()
+                {
+                    Dispatcher = dispatcher,
+                },
                 Endpoint = endpoint
             })
         {
@@ -105,16 +132,14 @@ namespace IceRpc
                 if (_options.Endpoint.Protocol == Protocol.Ice)
                 {
                     PerformListen(
-                        _options.IceServerOptions?.ServerTransport ?? IceServerOptions.DefaultServerTransport,
-                        _options.IceServerOptions,
+                        _simpleTransport,
                         IceProtocol.Instance.ProtocolConnectionFactory,
                         LogSimpleNetworkConnectionDecorator.Decorate);
                 }
                 else
                 {
                     PerformListen(
-                        _options.IceRpcServerOptions?.ServerTransport ?? IceRpcServerOptions.DefaultServerTransport,
-                        _options.IceRpcServerOptions,
+                        _multiplexedTransport,
                         IceRpcProtocol.Instance.ProtocolConnectionFactory,
                         LogMultiplexedNetworkConnectionDecorator.Decorate);
                 }
@@ -122,17 +147,15 @@ namespace IceRpc
                 _listening = true;
             }
 
-            void PerformListen<T, TOptions>(
+            void PerformListen<T>(
                 IServerTransport<T> serverTransport,
-                TOptions? protocolOptions,
-                IProtocolConnectionFactory<T, TOptions> protocolConnectionFactory,
+                IProtocolConnectionFactory<T> protocolConnectionFactory,
                 LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory)
                     where T : INetworkConnection
-                    where TOptions : class
             {
                 // This is the composition root of Server, where we install log decorators when logging is enabled.
 
-                ILogger logger = _options.LoggerFactory.CreateLogger("IceRpc.Server");
+                ILogger logger = _loggerFactory.CreateLogger("IceRpc.Server");
 
                 IListener<T> listener = serverTransport.Listen(Endpoint, _options.AuthenticationOptions, logger);
                 _listener = listener;
@@ -146,7 +169,7 @@ namespace IceRpc
                     _listener = listener;
 
                     protocolConnectionFactory =
-                        new LogProtocolConnectionFactoryDecorator<T, TOptions>(protocolConnectionFactory, logger);
+                        new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, logger);
 
                     onClose = (connection, exception) =>
                     {
@@ -159,26 +182,27 @@ namespace IceRpc
                 }
 
                 // Run task to start accepting new connections.
-                _ = Task.Run(() => AcceptAsync(listener, protocolOptions, protocolConnectionFactory, onClose));
+                _ = Task.Run(() => AcceptAsync(listener, protocolConnectionFactory, onClose));
             }
 
-            async Task AcceptAsync<T, TOptions>(
+            async Task AcceptAsync<T>(
                 IListener<T> listener,
-                TOptions? protocolOptions,
-                IProtocolConnectionFactory<T, TOptions> protocolConnectionFactory,
+                IProtocolConnectionFactory<T> protocolConnectionFactory,
                 Action<Connection, Exception>? onClose)
                     where T : INetworkConnection
-                    where TOptions : class
             {
                 // The common connection options, set through ServerOptions.
                 var connectionOptions = new ConnectionOptions
                 {
-                    CloseTimeout = _options.CloseTimeout,
-                    ConnectTimeout = _options.ConnectTimeout,
-                    Dispatcher = _options.Dispatcher,
-                    Features = _options.Features,
-                    KeepAlive = _options.KeepAlive,
-                    OnClose = RemoveOnClose + _options.OnClose
+                    CloseTimeout = _options.ConnectionOptions.CloseTimeout,
+                    ConnectTimeout = _options.ConnectionOptions.ConnectTimeout,
+                    Dispatcher = _options.ConnectionOptions.Dispatcher,
+                    Features = _options.ConnectionOptions.Features,
+                    KeepAlive = _options.ConnectionOptions.KeepAlive,
+                    IceMaxConcurrentDispatches = _options.ConnectionOptions.IceMaxConcurrentDispatches,
+                    IceMaxFrameSize = _options.ConnectionOptions.IceMaxFrameSize,
+                    IceRpcMaxHeaderSize = _options.ConnectionOptions.IceRpcMaxHeaderSize,
+                    OnClose = RemoveOnClose + _options.ConnectionOptions.OnClose
                 };
 
                 while (true)
@@ -206,7 +230,7 @@ namespace IceRpc
 
                     // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                    var connection = new Connection(Endpoint, connectionOptions);
+                    var connection = new ServerConnection(Endpoint, connectionOptions, _loggerFactory);
 #pragma warning restore CA2000
 
                     lock (_mutex)
@@ -224,7 +248,7 @@ namespace IceRpc
                     // such as TLS based transports where the handshake requires few round trips between the client
                     // and server. Waiting could also cause a security issue if the client doesn't respond to the
                     // connection initialization as we wouldn't be able to accept new connections in the meantime.
-                    _ = connection.ConnectAsync(networkConnection, protocolOptions, protocolConnectionFactory, onClose);
+                    _ = connection.ConnectAsync(networkConnection, protocolConnectionFactory, onClose);
                 }
             }
 
