@@ -13,24 +13,12 @@ namespace IceRpc.Tests;
 
 public static class ServiceCollectionExtensions
 {
-    /// <summary>Installs coloc as the default client and server transports for both ice and icerpc.</summary>
-    public static IServiceCollection AddColoc(this IServiceCollection services)
+    /// <summary>Adds a Server and ClientConnection singletons, with the server listening on the specified endpoint and
+    /// the client connection connecting to the server's endpoint.</summary>
+    /// <remarks>When the endpoint's port is 0 and transport is not coloc, you need to create the server and call Listen
+    ///  on it before creating the client connection.</remarks>
+    public static IServiceCollection AddClientServerTest(this IServiceCollection services, Endpoint endpoint)
     {
-        services.AddSingleton<ColocTransport>();
-        services.AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ClientTransport);
-        services.AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ServerTransport);
-
-        services.AddSlic();
-        return services;
-    }
-
-    /// <summary>Installs coloc client-server test.</summary>
-    public static IServiceCollection AddColocTest(this IServiceCollection services, Protocol protocol)
-    {
-        services.AddColoc();
-
-        var endpoint = new Endpoint(protocol) { Host = "colochost" };
-
         services
             .AddOptions<ServerOptions>()
             .Configure<IDispatcher>(
@@ -45,22 +33,42 @@ public static class ServiceCollectionExtensions
             new Server(
                 provider.GetRequiredService<IOptions<ServerOptions>>().Value,
                 loggerFactory: provider.GetService<ILoggerFactory>(),
-                multiplexedServerTransport: provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>(),
-                simpleServerTransport: provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()));
+                multiplexedServerTransport: provider.GetService<IServerTransport<IMultiplexedNetworkConnection>>(),
+                simpleServerTransport: provider.GetService<IServerTransport<ISimpleNetworkConnection>>()));
 
         services
             .AddOptions<ClientConnectionOptions>()
-            .Configure(options => options.RemoteEndpoint = endpoint);
+            .Configure<Server>((options, server) => options.RemoteEndpoint = server.Endpoint);
 
         services.AddSingleton(provider =>
             new ClientConnection(
                 provider.GetRequiredService<IOptions<ClientConnectionOptions>>().Value,
                 loggerFactory: provider.GetService<ILoggerFactory>(),
-                multiplexedClientTransport: provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                simpleClientTransport: provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()));
+                multiplexedClientTransport: provider.GetService<IClientTransport<IMultiplexedNetworkConnection>>(),
+                simpleClientTransport: provider.GetService<IClientTransport<ISimpleNetworkConnection>>()));
 
         return services;
     }
+
+    /// <summary>Installs coloc as the default client and server transports for both ice and icerpc.</summary>
+    public static IServiceCollection AddColoc(this IServiceCollection services, Protocol protocol)
+    {
+        services.AddSingleton<ColocTransport>();
+        services.AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ClientTransport);
+        services.AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ServerTransport);
+
+        if (protocol == Protocol.IceRpc)
+        {
+            services.AddSlic();
+        }
+        return services;
+    }
+
+    /// <summary>Installs coloc client-server test.</summary>
+    public static IServiceCollection AddColocTest(this IServiceCollection services, Protocol protocol) =>
+        services
+            .AddColoc(protocol)
+            .AddClientServerTest(new Endpoint(protocol) { Host = "colochost" });
 
     public static IServiceCollection AddColocTest(this IServiceCollection services) =>
         services.AddColocTest(Protocol.IceRpc);
@@ -110,6 +118,34 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
+
+    public static IServiceCollection AddTcp(
+        this IServiceCollection services,
+        Protocol protocol,
+        TcpServerTransportOptions tcpServerTransportOptions,
+        TcpClientTransportOptions tcpClientTransportOptions)
+    {
+        services.AddSingleton<IServerTransport<ISimpleNetworkConnection>>(
+            _ => new TcpServerTransport(tcpServerTransportOptions));
+
+        services.AddSingleton<IClientTransport<ISimpleNetworkConnection>>(
+            _ => new TcpClientTransport(tcpClientTransportOptions));
+
+        if (protocol == Protocol.IceRpc)
+        {
+            services.AddSlic();
+        }
+        return services;
+    }
+
+    public static IServiceCollection AddTcpTest(
+        this IServiceCollection services,
+        Protocol protocol,
+        TcpServerTransportOptions tcpServerTransportOptions,
+        TcpClientTransportOptions tcpClientTransportOptions) =>
+        services
+            .AddTcp(protocol, tcpServerTransportOptions, tcpClientTransportOptions)
+            .AddClientServerTest(new Endpoint(protocol) { Host = "127.0.0.1", Port = 0 });
 
     public static IServiceCollection UseColoc(this IServiceCollection collection) =>
         collection.UseColoc(new ColocTransport());

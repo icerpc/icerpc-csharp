@@ -45,23 +45,22 @@ public class ConnectionTests
         var serverConnectionClosed = new TaskCompletionSource();
         var clientConnectionClosed = new TaskCompletionSource();
 
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseTcp(tcpServerTransportOptions, tcpClientTransportOptions)
-            .UseConnectionOptions(new ClientConnectionOptions
-            {
-                OnClose = (_, _) => clientConnectionClosed.SetResult()
-            })
-            .UseServerOptions(new ServerOptions
-            {
-                ConnectionOptions = new ConnectionOptions
-                {
-                    OnClose = (_, _) => serverConnectionClosed.SetResult()
-                }
-            })
-            .UseDispatcher(dispatcher)
-            .BuildServiceProvider();
+        IServiceCollection services = new ServiceCollection()
+            .AddTcpTest(Protocol.FromString(protocol), tcpServerTransportOptions, tcpClientTransportOptions)
+            .AddSingleton<IDispatcher>(dispatcher);
+
+        services
+            .AddOptions<ClientConnectionOptions>()
+            .Configure(options => options.OnClose = (_, _) => clientConnectionClosed.SetResult());
+
+        services
+            .AddOptions<ServerOptions>()
+            .Configure(options => options.ConnectionOptions.OnClose = (_, _) => serverConnectionClosed.SetResult());
+
+        await using var provider = services.BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
         var proxy = Proxy.FromConnection(clientConnection, "/foo");
 
@@ -229,11 +228,13 @@ public class ConnectionTests
         };
 
         // Arrange
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseTcp(tcpServerTransportOptions, tcpClientTransportOptions)
-            .UseDispatcher(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))))
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddTcpTest(Protocol.FromString(protocol), tcpServerTransportOptions, tcpClientTransportOptions)
+            .AddSingleton<IDispatcher>(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))))
             .BuildServiceProvider();
+
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
@@ -401,16 +402,22 @@ public class ConnectionTests
             IdleTimeout = TimeSpan.FromMilliseconds(500),
         };
 
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseTcp(tcpServerTransportOptions, tcpClientTransportOptions)
-            .UseConnectionOptions(new ClientConnectionOptions { KeepAlive = keepAliveOnClient })
-            .UseServerOptions(new ServerOptions
-            {
-                ConnectionOptions = new ConnectionOptions { KeepAlive = !keepAliveOnClient }
-            })
-            .BuildServiceProvider();
+        IServiceCollection services = new ServiceCollection()
+            .AddTcpTest(Protocol.FromString(protocol), tcpServerTransportOptions, tcpClientTransportOptions)
+            .AddSingleton<IDispatcher>(ConnectionOptions.DefaultDispatcher);
+
+        services
+            .AddOptions<ClientConnectionOptions>()
+            .Configure(options => options.KeepAlive = keepAliveOnClient);
+
+        services
+            .AddOptions<ServerOptions>()
+            .Configure(options => options.ConnectionOptions.KeepAlive = !keepAliveOnClient);
+
+        await using var provider = services.BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
 
         // Act
