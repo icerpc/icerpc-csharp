@@ -15,9 +15,12 @@ public class OperationGeneratedCodeTests
     [Test]
     public async Task Operation_without_parameters_and_void_return()
     {
-        await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyOperationsA())
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest()
+            .AddSingleton<IDispatcher>(new MyOperationsA())
             .BuildServiceProvider();
+
+        provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         Assert.That(async () => await prx.OpWithoutParametersAndVoidReturnAsync(), Throws.Nothing);
@@ -26,9 +29,12 @@ public class OperationGeneratedCodeTests
     [Test]
     public async Task Operation_from_base_class()
     {
-        await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyDerivedOperationsA())
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest()
+            .AddSingleton<IDispatcher>(new MyDerivedOperationsA())
             .BuildServiceProvider();
+
+        provider.GetRequiredService<Server>().Listen();
         var prx = MyDerivedOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         Assert.That(async () => await prx.OpWithoutParametersAndVoidReturnAsync(), Throws.Nothing);
@@ -37,9 +43,12 @@ public class OperationGeneratedCodeTests
     [Test]
     public async Task Operation_with_single_parameter_and_return_value()
     {
-        await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyOperationsA())
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest()
+            .AddSingleton<IDispatcher>(new MyOperationsA())
             .BuildServiceProvider();
+
+        provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         int r = await prx.OpWithSingleParameterAndReturnValueAsync(10);
@@ -50,9 +59,12 @@ public class OperationGeneratedCodeTests
     [Test]
     public async Task Operation_with_multiple_parameters_and_return_values()
     {
-        await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyOperationsA())
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest()
+            .AddSingleton<IDispatcher>(new MyOperationsA())
             .BuildServiceProvider();
+
+        provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         (int r1, int r2) = await prx.OpWithMultipleParametersAndReturnValuesAsync(10, 20);
@@ -65,9 +77,12 @@ public class OperationGeneratedCodeTests
     public async Task Operation_with_byte_stream_argument_and_return()
     {
         // Arrange
-        await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyOperationsA())
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest()
+            .AddSingleton<IDispatcher>(new MyOperationsA())
             .BuildServiceProvider();
+
+        provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
         var data = new byte[] { 1, 2, 3 };
         var pipe = new Pipe();
@@ -89,9 +104,12 @@ public class OperationGeneratedCodeTests
     public async Task Operation_with_int_stream_argument_and_return()
     {
         // Arrange
-        await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyOperationsA())
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest()
+            .AddSingleton<IDispatcher>(new MyOperationsA())
             .BuildServiceProvider();
+
+        provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         // Act
@@ -123,9 +141,12 @@ public class OperationGeneratedCodeTests
     public async Task Operation_with_string_stream_argument_and_return()
     {
         // Arrange
-        await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyOperationsA())
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest()
+            .AddSingleton<IDispatcher>(new MyOperationsA())
             .BuildServiceProvider();
+
+        provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         // Act
@@ -157,9 +178,12 @@ public class OperationGeneratedCodeTests
     public async Task Operation_with_both_regular_and_stream_parameter_and_return()
     {
         // Arrange
-        await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyOperationsA())
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest()
+            .AddSingleton<IDispatcher>(new MyOperationsA())
             .BuildServiceProvider();
+
+        provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         // Act
@@ -194,9 +218,12 @@ public class OperationGeneratedCodeTests
     public async Task Operation_with_special_parameter_names()
     {
         // Arrange
-        await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyOperationsA())
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest()
+            .AddSingleton<IDispatcher>(new MyOperationsA())
             .BuildServiceProvider();
+
+        provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         // Act
@@ -212,9 +239,12 @@ public class OperationGeneratedCodeTests
     public async Task Operation_with_cs_attribute()
     {
         // Arrange
-        await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyOperationsA())
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest()
+            .AddSingleton<IDispatcher>(new MyOperationsA())
             .BuildServiceProvider();
+
+        provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         // Act
@@ -225,9 +255,12 @@ public class OperationGeneratedCodeTests
     public async Task Operation_with_single_return_value_and_encoded_result_attribute()
     {
         // Arrange
-        await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyOperationsA())
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest()
+            .AddSingleton<IDispatcher>(new MyOperationsA())
             .BuildServiceProvider();
+
+        provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         // Act
@@ -241,9 +274,12 @@ public class OperationGeneratedCodeTests
     public async Task Operation_with_multiple_return_value_and_encoded_result_attribute()
     {
         // Arrange
-        await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyOperationsA())
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest()
+            .AddSingleton<IDispatcher>(new MyOperationsA())
             .BuildServiceProvider();
+
+        provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         // Act

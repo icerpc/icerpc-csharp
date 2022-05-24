@@ -21,9 +21,12 @@ public class NamespaceAttributeTests
     [Test]
     public async Task Operation_with_types_using_cs_namespace_attribute()
     {
-        await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new NamespaceOperations())
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest()
+            .AddSingleton<IDispatcher>(new NamespaceOperations())
             .BuildServiceProvider();
+
+        provider.GetRequiredService<Server>().Listen();
         var prx = NamespaceOperationsPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         NamespaceAttribute.WithNamespace.N1.N2.S1 r =
