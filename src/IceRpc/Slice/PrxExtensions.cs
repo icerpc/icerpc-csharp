@@ -70,13 +70,6 @@ public static class PrxExtensions
         bool idempotent = false,
         CancellationToken cancel = default) where TPrx : struct, IPrx
     {
-        if (invocation?.IsOneway == true)
-        {
-            throw new ArgumentException(
-                "cannot send request for an operation with a return value as oneway",
-                nameof(invocation));
-        }
-
         if (payload == null && payloadStream != null)
         {
             throw new ArgumentNullException(
@@ -173,7 +166,7 @@ public static class PrxExtensions
             Features = invocation?.Features ?? FeatureCollection.Empty,
             Fields = idempotent ?
                 _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
-            IsOneway = oneway || (invocation?.IsOneway ?? false),
+            IsOneway = oneway,
             Operation = operation,
             Payload = payload ?? EmptyPipeReader.Instance,
             PayloadStream = payloadStream
