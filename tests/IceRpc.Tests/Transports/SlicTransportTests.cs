@@ -75,7 +75,7 @@ public class SlicTransportTests
         using IMultiplexedNetworkConnection serverConnection = await acceptTask;
 
         (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
-            await CreateAndAcceptStreamAsync(serverConnection, clientConnection);
+            await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
         _ = await localStream.Output.WriteAsync(payload, default);
 
         // Act
@@ -110,9 +110,9 @@ public class SlicTransportTests
         using IMultiplexedNetworkConnection serverConnection = await acceptTask;
 
         (IMultiplexedStream localStream1, IMultiplexedStream remoteStream1) =
-            await CreateAndAcceptStreamAsync(serverConnection, clientConnection);
+            await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
         (IMultiplexedStream localStream2, IMultiplexedStream remoteStream2) =
-            await CreateAndAcceptStreamAsync(serverConnection, clientConnection);
+            await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
 
         _ = await localStream1.Output.WriteAsync(payload, default);
         ValueTask<FlushResult> writeTask = localStream1.Output.WriteAsync(payload, default);
@@ -156,7 +156,7 @@ public class SlicTransportTests
         IMultiplexedStream stream = clientConnection.CreateStream(bidirectional: true);
 
         (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
-            await CreateAndAcceptStreamAsync(serverConnection, clientConnection);
+            await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
 
         ValueTask<FlushResult> writeTask = localStream.Output.WriteAsync(new byte[pauseThreshold], default);
         ReadResult readResult = await remoteStream.Input.ReadAtLeastAsync(pauseThreshold - resumeThreshold, default);
@@ -178,8 +178,8 @@ public class SlicTransportTests
     }
 
     private static async Task<(IMultiplexedStream LocalStream, IMultiplexedStream RemoteStream)> CreateAndAcceptStreamAsync(
-        IMultiplexedNetworkConnection remoteConnection,
         IMultiplexedNetworkConnection localConnection,
+        IMultiplexedNetworkConnection remoteConnection,
         bool bidirectional = true)
     {
         IMultiplexedStream localStream = localConnection.CreateStream(bidirectional);
