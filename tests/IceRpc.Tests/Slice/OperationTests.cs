@@ -202,9 +202,8 @@ public class OperationGeneratedCodeTests
         // Act
         Assert.That(
             async () => await prx.OpWithSpecialParameterNamesAsync(
-                invocation: 1,
-                cancel: 2,
-                features: 3),
+                cancel: 1,
+                features: 2),
             Throws.Nothing);
     }
 
@@ -429,7 +428,6 @@ public class OperationGeneratedCodeTests
             CancellationToken cancel) => default;
 
         public ValueTask OpWithSpecialParameterNamesAsync(
-            int invocation,
             int cancel,
             int features,
             IFeatureCollection features_,
