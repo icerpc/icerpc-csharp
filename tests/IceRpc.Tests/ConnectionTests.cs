@@ -265,12 +265,18 @@ public class ConnectionTests
         };
 
         // Arrange
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseTcp(tcpServerTransportOptions, tcpClientTransportOptions)
-            .UseDispatcher(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))))
-            .UseConnectionOptions(new ClientConnectionOptions { IsResumable = true })
-            .BuildServiceProvider();
+        IServiceCollection services = new ServiceCollection()
+            .AddTcpTest(Protocol.FromString(protocol), tcpServerTransportOptions, tcpClientTransportOptions)
+            .AddSingleton<IDispatcher>(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))));
+
+        services
+            .AddOptions<ClientConnectionOptions>()
+            .Configure(options => options.IsResumable = true);
+
+        await using ServiceProvider provider = services.BuildServiceProvider();
+
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
@@ -451,12 +457,13 @@ public class ConnectionTests
             return new OutgoingResponse(request);
         });
 
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseTcp(tcpServerTransportOptions, tcpClientTransportOptions)
-            .UseDispatcher(dispatcher)
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddTcpTest(Protocol.FromString(protocol), tcpServerTransportOptions, tcpClientTransportOptions)
+            .AddSingleton<IDispatcher>(dispatcher)
             .BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
         var proxy = ServicePrx.FromConnection(clientConnection, "/path");
         var pingTask = proxy.IcePingAsync();
