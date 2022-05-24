@@ -54,6 +54,7 @@ public sealed class ProtocolBridgingTests
         forwarderServicePrx.Proxy.Invoker = forwarderServiceProvider.GetRequiredService<IInvoker>();
 
         var targetService = new ProtocolBridgingTest();
+        router.UseDispatchInformation();
         router.Map("/target", targetService);
         router.Map("/forward", new Forwarder(targetServicePrx.Proxy));
 
@@ -117,8 +118,10 @@ public sealed class ProtocolBridgingTests
 
         public ValueTask<ProtocolBridgingTestPrx> OpNewProxyAsync(Dispatch dispatch, CancellationToken cancel)
         {
-            var proxy = new Proxy(dispatch.Protocol) { Path = dispatch.Path };
-            proxy.Endpoint = dispatch.Connection.Endpoint;
+            IDispatchInformationFeature dispatchInformation = dispatch.Features.Get<IDispatchInformationFeature>()!;
+
+            var proxy = new Proxy(dispatchInformation.Connection.Protocol) { Path = dispatchInformation.Path };
+            proxy.Endpoint = dispatchInformation.Connection.Endpoint;
             return new(new ProtocolBridgingTestPrx(proxy));
         }
 
