@@ -466,11 +466,13 @@ public class ConnectionTests
             return new OutgoingResponse(request);
         });
 
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseDispatcher(dispatcher)
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(Protocol.FromString(protocol))
+            .AddSingleton<IDispatcher>(dispatcher)
             .BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
         var proxy = ServicePrx.FromConnection(clientConnection, "/path");
         var pingTask = proxy.IcePingAsync();
@@ -550,11 +552,13 @@ public class ConnectionTests
             }
         });
 
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseDispatcher(dispatcher)
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(Protocol.FromString(protocol))
+            .AddSingleton<IDispatcher>(dispatcher)
             .BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
         var proxy = ServicePrx.FromConnection(clientConnection, "/path");
         var pingTask = proxy.IcePingAsync();
