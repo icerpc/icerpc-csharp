@@ -2,10 +2,10 @@
 
 using System.Collections.Immutable;
 
-namespace IceRpc.Features;
+namespace IceRpc.RequestContext.Features;
 
-/// <summary>The default implementation of <see cref="IContextFeature"/>.</summary>
-public sealed class ContextFeature : IContextFeature
+/// <summary>The default implementation of <see cref="IRequestContextFeature"/>.</summary>
+public sealed class RequestContextFeature : IRequestContextFeature
 {
     /// <inheritdoc/>
     public IDictionary<string, string> Value { get; set; } = ImmutableSortedDictionary<string, string>.Empty;

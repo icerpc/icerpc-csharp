@@ -355,15 +355,26 @@ namespace IceRpc.Internal
                 byte encodingMajor = 1;
                 byte encodingMinor = 1;
 
-                var requestHeader = new IceRequestHeader(
-                    request.Proxy.Path,
-                    request.Proxy.Fragment,
-                    request.Operation,
-                    request.Fields.ContainsKey(RequestFieldKey.Idempotent) ?
-                        OperationMode.Idempotent : OperationMode.Normal,
-                    request.Features.Get<IContextFeature>()?.Value ?? ImmutableDictionary<string, string>.Empty,
-                    new EncapsulationHeader(encapsulationSize: payloadSize + 6, encodingMajor, encodingMinor));
-                requestHeader.Encode(ref encoder);
+                // Request header.
+                encoder.EncodeIdentityPath(request.Proxy.Path);
+                encoder.EncodeFragment(request.Proxy.Fragment);
+                encoder.EncodeString(request.Operation);
+                encoder.EncodeOperationMode(request.Fields.ContainsKey(RequestFieldKey.Idempotent) ?
+                    OperationMode.Idempotent : OperationMode.Normal);
+                if (request.Fields.TryGetValue(RequestFieldKey.Context, out OutgoingFieldValue requestField))
+                {
+                    requestField.Encode(ref encoder);
+                }
+                else
+                {
+                    encoder.EncodeDictionary(
+                        ImmutableDictionary<string, string>.Empty,
+                        (ref SliceEncoder encoder, string key) => encoder.EncodeString(key),
+                        (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
+                }
+                new EncapsulationHeader(
+                    encapsulationSize: payloadSize + 6,
+                    encodingMajor, encodingMinor).Encode(ref encoder);
 
                 int frameSize = checked(encoder.EncodedByteCount + payloadSize);
                 SliceEncoder.EncodeInt32(frameSize, sizePlaceholder);
@@ -816,11 +827,13 @@ namespace IceRpc.Internal
 
                 if (requestHeader.Context.Count > 0)
                 {
-                    request.Features = request.Features.With<IContextFeature>(
-                        new ContextFeature
-                        {
-                            Value = requestHeader.Context
-                        });
+                    var encoder = new SliceEncoder();
+                    request.Fields = request.Fields.With(
+                        RequestFieldKey.Context,
+                        (ref SliceEncoder encoder) => encoder.EncodeDictionary(
+                            requestHeader.Context,
+                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
+                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value)));
                 }
 
                 CancellationTokenSource? cancelDispatchSource = null;
