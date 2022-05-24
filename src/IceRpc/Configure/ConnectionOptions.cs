@@ -36,9 +36,6 @@ namespace IceRpc.Configure
         /// <value>The dispatcher that dispatches requests received by this connection.</value>
         public IDispatcher Dispatcher { get; set; } = DefaultDispatcher;
 
-        /// <summary>Gets of sets the default features of the new connection.</summary>
-        public IFeatureCollection Features { get; set; } = FeatureCollection.Empty;
-
         /// <summary>Gets or sets the maximum number of requests that an ice connection can dispatch concurrently.
         /// </summary>
         /// <value>The maximum number of requests that an ice connection can dispatch concurrently. 0 means no maximum.

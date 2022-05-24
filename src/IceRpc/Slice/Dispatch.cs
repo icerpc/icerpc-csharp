@@ -8,9 +8,6 @@ namespace IceRpc.Slice
     /// <see cref="Features"/> to communicate with a middleware "on the way back".</summary>
     public sealed class Dispatch
     {
-        /// <summary>The feature to use when encoding the payload of the response.</summary>
-        public ISliceEncodeFeature? EncodeFeature => _request.GetFeature<ISliceEncodeFeature>();
-
         /// <summary>The features associated with the request.</summary>
         public IFeatureCollection Features
         {

@@ -14,15 +14,6 @@ public static class FeatureCollectionExtensions
     public static IFeatureCollection AsReadOnly(this IFeatureCollection features) =>
         features.IsReadOnly ? features : new ReadOnlyFeatureCollectionDecorator(features);
 
-    /// <summary>Gets the requested feature. If the feature is not set, tries to find it in the fallback feature
-    /// collection.</summary>
-    /// <typeparam name="TFeature">The feature key.</typeparam>
-    /// <param name="features">The main feature collection.</param>
-    /// <param name="fallback">The fallback feature collection.</param>
-    /// <returns>The requested feature.</returns>
-    public static TFeature? Get<TFeature>(this IFeatureCollection features, IFeatureCollection fallback) =>
-        features.Get<TFeature>() ?? fallback.Get<TFeature>();
-
     /// <summary>Updates this feature collection (if read-write) or creates a new feature collection (if read-only)
     /// and sets its T to the provided value.</summary>
     /// <paramtype name="T">The type of the value to set in the feature collection.</paramtype>
