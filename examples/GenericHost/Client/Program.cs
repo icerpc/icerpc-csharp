@@ -32,10 +32,10 @@ public static class Program
                 // Bind the client connection options to the "appsettings.json" configuration "Client" section,
                 // and add a Configure callback to configure its authentication options.
                 services
-                    .AddOptions<ConnectionOptions>()
+                    .AddOptions<ClientConnectionOptions>()
                     .Bind(hostContext.Configuration.GetSection("Client"))
                     .Configure<IOptions<SslClientAuthenticationOptions>>((options, clientAuthenticationOptions) =>
-                        options.AuthenticationOptions = clientAuthenticationOptions.Value);
+                        options.ClientAuthenticationOptions = clientAuthenticationOptions.Value);
 
                 services
                     .AddOptions<SslClientAuthenticationOptions>()
@@ -70,8 +70,8 @@ public static class Program
                         .UseTelemetry(serviceProvider.GetRequiredService<ActivitySource>(), loggerFactory);
                 });
 
-                services.AddSingleton<IConnection, Connection>(serviceProvider =>
-                    new Connection(serviceProvider.GetRequiredService<IOptions<ConnectionOptions>>().Value));
+                services.AddSingleton<IConnection>(serviceProvider =>
+                    new ClientConnection(serviceProvider.GetRequiredService<IOptions<ClientConnectionOptions>>().Value));
 
                 services.AddSingleton<IHelloPrx>(serviceProvider =>
                     HelloPrx.FromConnection(

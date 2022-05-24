@@ -4,13 +4,13 @@ using Demo;
 using IceRpc;
 using IceRpc.Configure;
 
-var options = new ConnectionOptions
+var options = new ClientConnectionOptions
 {
     Dispatcher = new AlertObserver(),
     RemoteEndpoint = "icerpc://127.0.0.1",
 };
 
-await using var connection = new Connection(options);
+await using var connection = new ClientConnection(options);
 
 var alertSystem = AlertSystemPrx.FromConnection(connection);
 var alertObserver = AlertObserverPrx.FromPath("/");

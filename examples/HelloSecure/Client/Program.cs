@@ -22,7 +22,7 @@ var authenticationOptions = new SslClientAuthenticationOptions()
     }
 };
 
-await using var connection = new Connection("icerpc://127.0.0.1", authenticationOptions);
+await using var connection = new ClientConnection("icerpc://127.0.0.1", authenticationOptions);
 
 IHelloPrx hello = HelloPrx.FromConnection(connection);
 
