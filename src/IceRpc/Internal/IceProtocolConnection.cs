@@ -833,7 +833,7 @@ namespace IceRpc.Internal
                 {
                     fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>()
                     {
-                        [RequestFieldKey.Context] = EncodeContextField()
+                        [RequestFieldKey.Context] = EncodeContextField(requestHeader.Context)
                     };
 
                     if (requestHeader.OperationMode == OperationMode.Idempotent)
@@ -841,12 +841,12 @@ namespace IceRpc.Internal
                         fields[RequestFieldKey.Idempotent] = default;
                     }
 
-                    ReadOnlySequence<byte> EncodeContextField()
+                    ReadOnlySequence<byte> EncodeContextField(IDictionary<string, string> context)
                     {
                         var buffer = new ArrayBufferWriter<byte>();
                         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
                         encoder.EncodeDictionary(
-                            requestHeader.Context,
+                            context,
                             (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
                             (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
                         return new ReadOnlySequence<byte>(buffer.WrittenMemory);
