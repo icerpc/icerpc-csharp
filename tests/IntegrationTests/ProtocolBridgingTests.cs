@@ -2,6 +2,7 @@
 
 using IceRpc.Configure;
 using IceRpc.Features;
+using IceRpc.RequestContext.Features;
 using IceRpc.Slice;
 using IceRpc.Tests;
 using IceRpc.Transports;
@@ -22,6 +23,7 @@ public sealed class ProtocolBridgingTests
         [Values("ice", "icerpc")] string targetProtocol)
     {
         var router = new Router();
+        router.UseRequestContext();
         var targetServiceCollection = new IntegrationTestServiceCollection();
         var forwarderServiceCollection = new IntegrationTestServiceCollection();
 
@@ -33,10 +35,14 @@ public sealed class ProtocolBridgingTests
         targetServiceCollection.UseProtocol(targetProtocol).AddTransient<IDispatcher>(_ => router);
         forwarderServiceCollection.UseProtocol(forwarderProtocol).AddTransient<IDispatcher>(_ => router);
 
-        targetServiceCollection.AddTransient<IInvoker>(serviceProvider =>
-            new Pipeline().UseBinder(serviceProvider.GetRequiredService<ConnectionPool>()));
-        forwarderServiceCollection.AddTransient<IInvoker>(serviceProvider =>
-            new Pipeline().UseBinder(serviceProvider.GetRequiredService<ConnectionPool>()));
+        targetServiceCollection.AddTransient<IInvoker>(
+            serviceProvider => new Pipeline()
+                .UseBinder(serviceProvider.GetRequiredService<ConnectionPool>())
+                .UseRequestContext());
+        forwarderServiceCollection.AddTransient<IInvoker>(
+            serviceProvider => new Pipeline()
+                .UseBinder(serviceProvider.GetRequiredService<ConnectionPool>())
+                .UseRequestContext());
 
         await using ServiceProvider targetServiceProvider = targetServiceCollection.BuildServiceProvider();
         await using ServiceProvider forwarderServiceProvider = forwarderServiceCollection.BuildServiceProvider();
@@ -72,14 +78,14 @@ public sealed class ProtocolBridgingTests
 
             var invocation = new Invocation
             {
-                Features = new FeatureCollection().With<IContextFeature>(
-                    new ContextFeature
+                Features = new FeatureCollection().With<IRequestContextFeature>(
+                    new RequestContextFeature
                     {
                         Value = new Dictionary<string, string> { ["MyCtx"] = "hello" }
                     })
             };
             await prx.OpContextAsync(invocation);
-            Assert.That(invocation.Features.Get<IContextFeature>()?.Value, Is.EqualTo(targetService.Context));
+            Assert.That(invocation.Features.Get<IRequestContextFeature>()?.Value, Is.EqualTo(targetService.Context));
             targetService.Context = ImmutableDictionary<string, string>.Empty;
 
             await prx.OpVoidAsync();
@@ -108,7 +114,7 @@ public sealed class ProtocolBridgingTests
 
         public ValueTask OpContextAsync(Dispatch dispatch, CancellationToken cancel)
         {
-            Context = dispatch.Features.Get<IContextFeature>()?.Value?.ToImmutableDictionary() ??
+            Context = dispatch.Features.Get<IRequestContextFeature>()?.Value?.ToImmutableDictionary() ??
                 ImmutableDictionary<string, string>.Empty;
             return default;
         }
@@ -142,30 +148,12 @@ public sealed class ProtocolBridgingTests
 
             Protocol targetProtocol = _target.Protocol;
 
-            // Context forwarding
-            IFeatureCollection features = FeatureCollection.Empty;
-            if (incomingRequest.Protocol == Protocol.Ice || targetProtocol == Protocol.Ice)
-            {
-                // When Protocol or targetProtocol is ice, we put the request context in the initial features of the
-                // new outgoing request to ensure it gets forwarded.
-                if (incomingRequest.Features.Get<IContextFeature>() is IContextFeature contextFeature)
-                {
-                    features = features.With(contextFeature);
-                }
-            }
-
             var outgoingRequest = new OutgoingRequest(_target)
             {
-                Features = features,
-                // mostly ignored by ice, with the exception of Idempotent
-                Fields = new Dictionary<RequestFieldKey, OutgoingFieldValue>(
-                    incomingRequest.Fields.Select(
-                        pair => new KeyValuePair<RequestFieldKey, OutgoingFieldValue>(
-                            pair.Key,
-                            new OutgoingFieldValue(pair.Value)))),
                 IsOneway = incomingRequest.IsOneway,
                 Operation = incomingRequest.Operation,
-                Payload = incomingRequest.Payload
+                Payload = incomingRequest.Payload,
+                Features = incomingRequest.Features,
             };
 
             // Then invoke

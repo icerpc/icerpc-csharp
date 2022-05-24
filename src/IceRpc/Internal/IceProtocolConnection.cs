@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
@@ -363,7 +362,17 @@ namespace IceRpc.Internal
                     OperationMode.Idempotent : OperationMode.Normal);
                 if (request.Fields.TryGetValue(RequestFieldKey.Context, out OutgoingFieldValue requestField))
                 {
-                    requestField.Encode(ref encoder);
+                    if (requestField.EncodeAction == null)
+                    {
+                        foreach (var segment in requestField.ByteSequence)
+                        {
+                            encoder.WriteByteSpan(segment.Span);
+                        }
+                    }
+                    else
+                    {
+                        requestField.EncodeAction(ref encoder);
+                    }
                 }
                 else
                 {
@@ -814,27 +823,45 @@ namespace IceRpc.Internal
                     throw;
                 }
 
+                IDictionary<RequestFieldKey, ReadOnlySequence<byte>>? fields;
+                if (requestHeader.Context.Count == 0)
+                {
+                    fields = requestHeader.OperationMode == OperationMode.Normal ?
+                        ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields;
+                }
+                else
+                {
+                    fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>()
+                    {
+                        [RequestFieldKey.Context] = EncodeContextField()
+                    };
+
+                    if (requestHeader.OperationMode == OperationMode.Idempotent)
+                    {
+                        fields[RequestFieldKey.Idempotent] = default;
+                    }
+
+                    ReadOnlySequence<byte> EncodeContextField()
+                    {
+                        var buffer = new ArrayBufferWriter<byte>();
+                        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
+                        encoder.EncodeDictionary(
+                            requestHeader.Context,
+                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
+                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
+                        return new ReadOnlySequence<byte>(buffer.WrittenMemory);
+                    }
+                }
+
                 var request = new IncomingRequest(connection)
                 {
-                    Fields = requestHeader.OperationMode == OperationMode.Normal ?
-                        ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields,
+                    Fields = fields,
                     Fragment = requestHeader.Fragment,
                     IsOneway = requestId == 0,
                     Operation = requestHeader.Operation,
                     Path = requestHeader.Path,
                     Payload = requestFrameReader,
                 };
-
-                if (requestHeader.Context.Count > 0)
-                {
-                    var encoder = new SliceEncoder();
-                    request.Fields = request.Fields.With(
-                        RequestFieldKey.Context,
-                        (ref SliceEncoder encoder) => encoder.EncodeDictionary(
-                            requestHeader.Context,
-                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
-                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value)));
-                }
 
                 CancellationTokenSource? cancelDispatchSource = null;
                 bool isShuttingDown = false;

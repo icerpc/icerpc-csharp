@@ -2,8 +2,6 @@
 
 using IceRpc.Deadline;
 using IceRpc.Features;
-using IceRpc.Slice;
-using System.Diagnostics;
 
 namespace IceRpc.Timeout;
 

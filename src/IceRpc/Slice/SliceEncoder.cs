@@ -47,6 +47,21 @@ namespace IceRpc.Slice
         {
         }
 
+        /// <summary>Constructs an Slice encoder.</summary>
+        /// <param name="bufferWriter">The buffer writer that provides the buffer to write into.</param>
+        /// <param name="encoding">The Slice encoding.</param>
+        /// <param name="classFormat">The class format (Slice1 only).</param>
+        public SliceEncoder(
+            IBufferWriter<byte> bufferWriter,
+            SliceEncoding encoding,
+            ClassFormat classFormat = default)
+            : this()
+        {
+            Encoding = encoding;
+            _bufferWriter = bufferWriter;
+            _classContext = new ClassContext(classFormat);
+        }
+
         // Encode methods for basic types
 
         /// <summary>Encodes a bool into a Slice bool.</summary>
@@ -577,18 +592,6 @@ namespace IceRpc.Slice
         internal static int GetBitSequenceByteCount(int bitCount) => (bitCount >> 3) + ((bitCount & 0x07) != 0 ? 1 : 0);
 
         internal static void EncodeInt32(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
-
-        internal SliceEncoder(
-            IBufferWriter<byte> bufferWriter,
-            SliceEncoding encoding,
-            ClassFormat classFormat = default)
-            : this()
-        {
-            Encoding = encoding;
-            _bufferWriter = bufferWriter;
-            _classContext = new ClassContext(classFormat);
-        }
-
         /// <summary>Encodes a fixed-size numeric value.</summary>
         /// <param name="v">The numeric value to encode.</param>
         internal void EncodeFixedSizeNumeric<T>(T v) where T : struct

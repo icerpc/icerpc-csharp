@@ -120,13 +120,13 @@ public class CustomTransportTests
         // Custom transport handles any params that start with custom-
         {
             await using var server = new Server(new ServerOptions
+            {
+                Endpoint = "icerpc://127.0.0.1:0?transport=custom&custom-p=bar",
+                ConnectionOptions = new ConnectionOptions()
                 {
-                    Endpoint = "icerpc://127.0.0.1:0?transport=custom&custom-p=bar",
-                    ConnectionOptions = new ConnectionOptions()
-                    {
-                        Dispatcher = new MyService()
-                    }
-                },
+                    Dispatcher = new MyService()
+                }
+            },
                 multiplexedServerTransport: new CustomServerTransport());
             server.Listen();
 

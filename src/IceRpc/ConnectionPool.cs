@@ -45,7 +45,7 @@ namespace IceRpc
         /// <param name="clientConnectionOptions">The client connection options for connections created by this pool.</param>
         public ConnectionPool(ClientConnectionOptions clientConnectionOptions)
             : this(new ConnectionPoolOptions { ClientConnectionOptions = clientConnectionOptions })
-        { 
+        {
         }
 
         /// <summary>An alias for <see cref="ShutdownAsync"/>, except this method returns a <see cref="ValueTask"/>.
