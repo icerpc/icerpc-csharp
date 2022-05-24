@@ -261,7 +261,7 @@ public class ProxyTests
     [Test]
     public async Task From_connection_with_a_client_connection()
     {
-        await using var connection = new Connection(new Endpoint(Protocol.IceRpc));
+        await using var connection = new ClientConnection(new Endpoint(Protocol.IceRpc));
 
         var proxy = Proxy.FromConnection(connection, "/");
 
@@ -278,7 +278,7 @@ public class ProxyTests
     public async Task From_connection_with_a_server_connection()
     {
         // Arrange
-        await using var serverConnection = new Connection(new Endpoint(Protocol.IceRpc), new ConnectionOptions());
+        await using var serverConnection = new Internal.ServerConnection(new Endpoint(Protocol.IceRpc), new ConnectionOptions(), null);
 
         // Act
         var proxy = Proxy.FromConnection(serverConnection, "/");
@@ -351,7 +351,7 @@ public class ProxyTests
         await using ServiceProvider serviceProvider = new ConnectionServiceCollection()
             .UseDispatcher(router)
             .BuildServiceProvider();
-        var prx = SendProxyTestPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
+        var prx = SendProxyTestPrx.FromConnection(serviceProvider.GetRequiredService<ClientConnection>());
 
         await prx.SendProxyAsync(prx);
 
@@ -367,7 +367,7 @@ public class ProxyTests
         await using ServiceProvider serviceProvider = new ConnectionServiceCollection()
             .UseDispatcher(service)
             .BuildServiceProvider();
-        var prx = SendProxyTestPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
+        var prx = SendProxyTestPrx.FromConnection(serviceProvider.GetRequiredService<ClientConnection>());
 
         await prx.SendProxyAsync(prx);
 
@@ -384,7 +384,7 @@ public class ProxyTests
             .BuildServiceProvider();
         var invoker = new Pipeline();
         var prx = ReceiveProxyTestPrx.FromConnection(
-            serviceProvider.GetRequiredService<Connection>(),
+            serviceProvider.GetRequiredService<ClientConnection>(),
             invoker: invoker);
 
         ReceiveProxyTestPrx received = await prx.ReceiveProxyAsync();
@@ -412,11 +412,11 @@ public class ProxyTests
     [Test]
     public async Task Proxy_and_proxy_connection_have_the_same_protocol()
     {
-        var connectionOptions = new ConnectionOptions { RemoteEndpoint = "icerpc://localhost" };
-        await using var connection = new Connection(connectionOptions);
+        var connectionOptions = new ClientConnectionOptions { RemoteEndpoint = "icerpc://localhost" };
+        await using var connection = new ClientConnection(connectionOptions);
         var proxy = Proxy.FromConnection(connection, "/");
         connectionOptions.RemoteEndpoint = "ice://localhost";
-        await using var connection2 = new Connection(connectionOptions);
+        await using var connection2 = new ClientConnection(connectionOptions);
 
         Assert.That(() => proxy.Connection = connection2, Throws.ArgumentException);
     }

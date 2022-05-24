@@ -16,36 +16,18 @@ public sealed class ConnectionPoolTests
         // Arrange
         var colocTransport = new ColocTransport();
         await using var server1 = new Server(
-            new ServerOptions()
-            {
-                Endpoint = "icerpc://foo",
-                IceRpcServerOptions = new()
-                {
-                    ServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
-                }
-            });
+            new ServerOptions { Endpoint = "icerpc://foo" },
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server1.Listen();
 
         await using var server2 = new Server(
-            new ServerOptions()
-            {
-                Endpoint = "icerpc://bar",
-                IceRpcServerOptions = new()
-                {
-                    ServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
-                }
-            });
+            new ServerOptions { Endpoint = "icerpc://bar" },
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server2.Listen();
 
         await using var pool = new ConnectionPool(
-            new ConnectionOptions()
-            {
-                IceRpcClientOptions = new()
-                {
-                    ClientTransport = new SlicClientTransport(colocTransport.ClientTransport)
-                }
-            },
-            preferExistingConnection: false);
+            new ConnectionPoolOptions { PreferExistingConnection = false },
+            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
         IConnection connection2 = await pool.GetConnectionAsync(
             server2.Endpoint,
@@ -72,25 +54,13 @@ public sealed class ConnectionPoolTests
         // Arrange
         var colocTransport = new ColocTransport();
         await using var server = new Server(
-            new ServerOptions()
-            {
-                Endpoint = "icerpc://foo",
-                IceRpcServerOptions = new()
-                {
-                    ServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
-                }
-            });
+            new ServerOptions { Endpoint = "icerpc://foo" },
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server.Listen();
 
         await using var pool = new ConnectionPool(
-            new ConnectionOptions()
-            {
-                IceRpcClientOptions = new()
-                {
-                    ClientTransport = new SlicClientTransport(colocTransport.ClientTransport)
-                }
-            },
-            preferExistingConnection: true);
+            new ConnectionPoolOptions() { PreferExistingConnection = true },
+            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
         // Act
         IConnection connection = await pool.GetConnectionAsync(
@@ -109,35 +79,18 @@ public sealed class ConnectionPoolTests
         // Arrange
         var colocTransport = new ColocTransport();
         await using var server1 = new Server(
-            new ServerOptions()
-            {
-                Endpoint = "icerpc://foo",
-                IceRpcServerOptions = new()
-                {
-                    ServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
-                }
-            });
+            new ServerOptions { Endpoint = "icerpc://foo" },
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server1.Listen();
 
         await using var server2 = new Server(
-            new ServerOptions()
-            {
-                Endpoint = "icerpc://bar",
-                IceRpcServerOptions = new()
-                {
-                    ServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
-                }
-            });
+            new ServerOptions { Endpoint = "icerpc://bar" },
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server2.Listen();
 
         await using var pool = new ConnectionPool(
-            new ConnectionOptions()
-            {
-                IceRpcClientOptions = new()
-                {
-                    ClientTransport = new SlicClientTransport(colocTransport.ClientTransport)
-                }
-            });
+            new ConnectionPoolOptions(),
+            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
         // Act
         IConnection connection = await pool.GetConnectionAsync(
@@ -156,25 +109,13 @@ public sealed class ConnectionPoolTests
         // Arrange
         var colocTransport = new ColocTransport();
         await using var server = new Server(
-            new ServerOptions()
-            {
-                Endpoint = "icerpc://foo",
-                IceRpcServerOptions = new()
-                {
-                    ServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
-                }
-            });
+            new ServerOptions { Endpoint = "icerpc://foo", },
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server.Listen();
 
         await using var pool = new ConnectionPool(
-            new ConnectionOptions()
-            {
-                IceRpcClientOptions = new()
-                {
-                    ClientTransport = new SlicClientTransport(colocTransport.ClientTransport)
-                }
-            },
-            preferExistingConnection: true);
+            new ConnectionPoolOptions { PreferExistingConnection = true},
+            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
         IConnection connection1 = await pool.GetConnectionAsync(
             server.Endpoint,
@@ -199,36 +140,18 @@ public sealed class ConnectionPoolTests
         // Arrange
         var colocTransport = new ColocTransport();
         await using var server1 = new Server(
-            new ServerOptions()
-            {
-                Endpoint = "icerpc://foo",
-                IceRpcServerOptions = new()
-                {
-                    ServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
-                }
-            });
+            new ServerOptions { Endpoint = "icerpc://foo" },
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server1.Listen();
 
         await using var server2 = new Server(
-            new ServerOptions()
-            {
-                Endpoint = "icerpc://bar",
-                IceRpcServerOptions = new()
-                {
-                    ServerTransport = new SlicServerTransport(colocTransport.ServerTransport)
-                }
-            });
+            new ServerOptions() { Endpoint = "icerpc://bar" },
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
         server2.Listen();
 
         await using var pool = new ConnectionPool(
-           new ConnectionOptions()
-           {
-               IceRpcClientOptions = new()
-               {
-                   ClientTransport = new SlicClientTransport(colocTransport.ClientTransport)
-               }
-           },
-           preferExistingConnection: true);
+           new ConnectionPoolOptions { PreferExistingConnection = true },
+           multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
         IConnection connection1 = await pool.GetConnectionAsync(
             server2.Endpoint,

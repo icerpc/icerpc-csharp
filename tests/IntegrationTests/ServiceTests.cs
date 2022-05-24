@@ -20,7 +20,7 @@ public class ServiceTests
             .UseProtocol(protocol)
             .BuildServiceProvider();
 
-        var service = ServicePrx.FromConnection(provider.GetRequiredService<Connection>(), "/service");
+        var service = ServicePrx.FromConnection(provider.GetRequiredService<ClientConnection>(), "/service");
 
         string[] ids = new string[]
         {

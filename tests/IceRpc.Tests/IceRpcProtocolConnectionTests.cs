@@ -36,12 +36,15 @@ public sealed class IceRpcProtocolConnectionTests
             .UseProtocol(Protocol.IceRpc)
             .UseServerOptions(new ServerOptions
             {
-                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                ConnectionOptions = new ConnectionOptions
                 {
-                    start.Release();
-                    await hold.WaitAsync(cancel);
-                    return new OutgoingResponse(request);
-                })
+                    Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                    {
+                        start.Release();
+                        await hold.WaitAsync(cancel);
+                        return new OutgoingResponse(request);
+                    })
+                }
             })
             .BuildServiceProvider();
 
@@ -81,7 +84,10 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
-            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
+            })
             .BuildServiceProvider();
 
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
@@ -117,7 +123,10 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
-            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
+            })
             .BuildServiceProvider();
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
@@ -192,7 +201,10 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
-            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
+            })
             .BuildServiceProvider();
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
@@ -217,7 +229,10 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
-            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
+            })
             .BuildServiceProvider();
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
@@ -284,7 +299,10 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
-            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
+            })
             .BuildServiceProvider();
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
@@ -302,7 +320,7 @@ public sealed class IceRpcProtocolConnectionTests
             .UseProtocol(Protocol.IceRpc)
             .UseServerOptions(new ServerOptions
             {
-                IceRpcServerOptions = new() { MaxHeaderSize = 100 }
+                ConnectionOptions = new ConnectionOptions { MaxIceRpcHeaderSize = 100 }
             })
             .BuildServiceProvider();
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
@@ -333,7 +351,10 @@ public sealed class IceRpcProtocolConnectionTests
         });
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
-            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
+            })
             .BuildServiceProvider();
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
@@ -362,12 +383,15 @@ public sealed class IceRpcProtocolConnectionTests
             .UseProtocol(Protocol.IceRpc)
             .UseServerOptions(new ServerOptions
             {
-                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                ConnectionOptions = new ConnectionOptions
                 {
-                    start.Release();
-                    await hold.WaitAsync(cancel);
-                    return new OutgoingResponse(request);
-                })
+                    Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                    {
+                        start.Release();
+                        await hold.WaitAsync(cancel);
+                        return new OutgoingResponse(request);
+                    })
+                }
             })
             .BuildServiceProvider();
 

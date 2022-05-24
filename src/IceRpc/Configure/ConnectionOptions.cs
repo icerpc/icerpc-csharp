@@ -2,23 +2,15 @@
 
 using IceRpc.Features;
 using IceRpc.Slice;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using System.Net.Security;
 
 namespace IceRpc.Configure
 {
-    /// <summary>A property bag used to configure a client <see cref="Connection"/>.</summary>
-    public sealed record class ConnectionOptions
+    /// <summary>A property bag used to configure client and server connections.</summary>
+    public record class ConnectionOptions
     {
         /// <summary>Returns the default value for <see cref="Dispatcher"/>.</summary>
         public static IDispatcher DefaultDispatcher { get; } = new InlineDispatcher((request, cancel) =>
             throw new DispatchException(DispatchErrorCode.ServiceNotFound, RetryPolicy.OtherReplica));
-
-        /// <summary>Gets or sets the SSL client authentication options.</summary>
-        /// <value>The SSL client authentication options. When not null, <see cref="Connection.ConnectAsync"/>
-        /// will either establish a secure connection or fail.</value>
-        public SslClientAuthenticationOptions? AuthenticationOptions { get; set; }
 
         /// <summary>Gets or sets the connection close timeout. This timeout is used when gracefully closing a
         /// connection to wait for the peer connection closure. If the peer doesn't close its side of the connection
@@ -47,21 +39,37 @@ namespace IceRpc.Configure
         /// <summary>Gets of sets the default features of the new connection.</summary>
         public IFeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
-        /// <summary>Gets or sets the client options for the ice protocol.</summary>
-        /// <value>The client options for the ice protocol.</value>
-        public IceClientOptions? IceClientOptions { get; set; }
+        /// <summary>Gets or sets the maximum number of requests that an ice connection can dispatch concurrently.
+        /// </summary>
+        /// <value>The maximum number of requests that an ice connection can dispatch concurrently. 0 means no maximum.
+        /// The default value is 100 requests.</value>
+        public int MaxIceConcurrentDispatches
+        {
+            get => _iceConcurrentDispatches;
+            set => _iceConcurrentDispatches = value >= 0 ? value :
+                throw new ArgumentOutOfRangeException(nameof(value), "value must be 0 or greater");
+        }
 
-        /// <summary>Gets or sets the client options for the icerpc protocol.</summary>
-        /// <value>The client options for the icerpc protocol.</value>
-        public IceRpcClientOptions? IceRpcClientOptions { get; set; }
+        /// <summary>Gets or sets the maximum size of a frame received over the ice protocol.</summary>
+        /// <value>The maximum size of an incoming frame, in bytes. This value must be at least 256. The default value is
+        /// 1 MB.</value>
+        public int MaxIceFrameSize
+        {
+            get => _maxIceFrameSize;
+            set => _maxIceFrameSize = value >= IceMinFrameSize ? value :
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    $"{nameof(MaxIceFrameSize)} must be at least {IceMinFrameSize}");
+        }
 
-        /// <summary>Specifies if the connection can be resumed after being closed.</summary>
-        /// <value>When <c>true</c>, the connection will be re-established by the next call to
-        /// <see cref="Connection.ConnectAsync"/> or the next invocation. The <see cref="Connection.State"/> is always
-        /// switched back to <see cref="ConnectionState.NotConnected"/> after the connection closure. When <c>false</c>,
-        /// the <see cref="Connection.State"/> is <see cref="ConnectionState.Closed"/> once the connection is closed and
-        /// the connection won't be resumed. The default value is <c>false</c>.</value>
-        public bool IsResumable { get; set; }
+        /// <summary>Gets or sets the maximum size of icerpc protocol header.</summary>
+        /// <value>The maximum size of the header of an incoming request, response or control frame, in bytes. The default
+        /// value is 16,383, and the range of this value is 63 to 1,048,575.</value>
+        public int MaxIceRpcHeaderSize
+        {
+            get => _maxIceRpcHeaderSize;
+            set => _maxIceRpcHeaderSize = IceRpcCheckMaxHeaderSize(value);
+        }
 
         /// <summary>Gets or sets the connection's keep alive. If a connection is kept alive, the connection
         /// monitoring will send keep alive frames to ensure the peer doesn't close the connection in the period defined
@@ -71,34 +79,23 @@ namespace IceRpc.Configure
         /// </value>
         public bool KeepAlive { get; set; }
 
-        /// <summary>Gets or sets the logger factory used to create loggers to log connection-related activities.
-        /// </summary>
-        public ILoggerFactory LoggerFactory { get; set; } = NullLoggerFactory.Instance;
-
         /// <summary>Gets or set an action that executes when the connection is closed.</summary>
         public Action<Connection, Exception>? OnClose { get; set; }
 
-        /// <summary>Gets or sets the connection's remote endpoint.</summary>
-        public Endpoint? RemoteEndpoint
-        {
-            get => _remoteEndpoint;
-            set
-            {
-                if (value is Endpoint remoteEndpoint)
-                {
-                    _remoteEndpoint = remoteEndpoint.Protocol.IsSupported ? remoteEndpoint :
-                        throw new NotSupportedException(
-                            $"cannot connect to endpoint with protocol '{remoteEndpoint.Protocol}'");
-                }
-                else
-                {
-                    _remoteEndpoint = null;
-                }
-            }
-        }
+        /// <summary>The default value for <see cref="MaxIceRpcHeaderSize"/>.</summary>
+        internal const int DefaultMaxIceRpcHeaderSize = 16_383;
+
+        private const int IceMinFrameSize = 256;
 
         private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
         private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
-        private Endpoint? _remoteEndpoint;
+
+        private int _iceConcurrentDispatches = 100;
+        private int _maxIceFrameSize = 1024 * 1024;
+
+        private int _maxIceRpcHeaderSize = DefaultMaxIceRpcHeaderSize;
+
+        internal static int IceRpcCheckMaxHeaderSize(long value) => value is >= 63 and <= 1_048_575 ? (int)value :
+            throw new ArgumentOutOfRangeException(nameof(value), "value must be between 63 and 1,048,575");
     }
 }

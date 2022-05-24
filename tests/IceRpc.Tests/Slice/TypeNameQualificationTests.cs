@@ -17,7 +17,7 @@ public class TypeNameQualificationTests
         await using var provider = new SliceTestServiceCollection()
             .UseDispatcher(new TypeNameQualification())
             .BuildServiceProvider();
-        var prx = TypeNameQualificationOperationsPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = TypeNameQualificationOperationsPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         var r = await prx.OpWithTypeNamesDefinedInMultipleModulesAsync(new Inner.S(10));
 

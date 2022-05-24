@@ -62,37 +62,40 @@ public sealed class IceProtocolConnectionTests
 
         var serverOptions = new ServerOptions
         {
-            Dispatcher = new InlineDispatcher(async (request, cancel) =>
+            ConnectionOptions = new ConnectionOptions
             {
-                // We want to make sure that no more than maxConcurrentDispatches are executing this dispatcher. So
-                // we are tracking the maximum count here (before work) and decrement this count immediately in the
-                // "work". Without the decrement, the count (and max count) could be greater than
-                // maxConcurrentDispatches.
-                IncrementCount();
-                startSemaphore.Release();
-                await workSemaphore.WaitAsync(cancel);
-                DecrementCount();
-                return new OutgoingResponse(request);
-
-                void DecrementCount()
+                Dispatcher = new InlineDispatcher(async (request, cancel) =>
                 {
-                    lock (mutex)
-                    {
-                        count--;
-                    }
-                }
+                    // We want to make sure that no more than maxConcurrentDispatches are executing this dispatcher. So
+                    // we are tracking the maximum count here (before work) and decrement this count immediately in the
+                    // "work". Without the decrement, the count (and max count) could be greater than
+                    // maxConcurrentDispatches.
+                    IncrementCount();
+                    startSemaphore.Release();
+                    await workSemaphore.WaitAsync(cancel);
+                    DecrementCount();
+                    return new OutgoingResponse(request);
 
-                void IncrementCount()
-                {
-                    lock (mutex)
+                    void DecrementCount()
                     {
-                        count++;
-                        maxCount = Math.Max(maxCount, count);
+                        lock (mutex)
+                        {
+                            count--;
+                        }
                     }
-                }
-            }),
 
-            IceServerOptions = new() { MaxConcurrentDispatches = maxConcurrentDispatches }
+                    void IncrementCount()
+                    {
+                        lock (mutex)
+                        {
+                            count++;
+                            maxCount = Math.Max(maxCount, count);
+                        }
+                    }
+                }),
+
+                MaxIceConcurrentDispatches = maxConcurrentDispatches
+            }
         };
 
         await using var serviceProvider = new ProtocolServiceCollection()
@@ -140,14 +143,17 @@ public sealed class IceProtocolConnectionTests
         int dispatchCount = 0;
         var serverOptions = new ServerOptions
         {
-            Dispatcher = new InlineDispatcher(
+            ConnectionOptions = new ConnectionOptions
+            {
+                Dispatcher = new InlineDispatcher(
                 async (request, cancel) =>
                 {
                     ++dispatchCount;
                     await semaphore.WaitAsync(CancellationToken.None);
                     return new OutgoingResponse(request);
                 }),
-            IceServerOptions = new() { MaxConcurrentDispatches = 1 }
+                MaxIceConcurrentDispatches = 1
+            }
         };
 
         await using var serviceProvider = new ProtocolServiceCollection()
@@ -187,7 +193,10 @@ public sealed class IceProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
-            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions
+                {
+                    ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
+                })
             .BuildServiceProvider();
 
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
@@ -215,7 +224,10 @@ public sealed class IceProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
-            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions
+                {
+                    ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
+                })
             .BuildServiceProvider();
 
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
@@ -246,7 +258,10 @@ public sealed class IceProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
-            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions
+                {
+                    ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
+                })
             .BuildServiceProvider();
         using var clientServerProtocolConnection = await serviceProvider.GetClientServerProtocolConnectionAsync();
 
@@ -274,12 +289,15 @@ public sealed class IceProtocolConnectionTests
             .UseProtocol(Protocol.Ice)
             .UseServerOptions(new ServerOptions
             {
-                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                ConnectionOptions = new ConnectionOptions
                 {
-                    start.Release();
-                    await hold.WaitAsync(cancel);
-                    return new OutgoingResponse(request);
-                })
+                    Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                    {
+                        start.Release();
+                        await hold.WaitAsync(cancel);
+                        return new OutgoingResponse(request);
+                    })
+                }
             })
             .BuildServiceProvider();
 

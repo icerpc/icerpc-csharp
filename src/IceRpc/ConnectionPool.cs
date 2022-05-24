@@ -3,33 +3,49 @@
 using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Transports;
+using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace IceRpc
 {
     /// <summary>A connection pool manages a pool of client connections and is a connection provider.</summary>
     public sealed partial class ConnectionPool : IConnectionProvider, IAsyncDisposable
     {
-        private readonly ConnectionOptions _connectionOptions;
-        private readonly Dictionary<Endpoint, List<Connection>> _connections = new(EndpointComparer.ParameterLess);
+        private readonly ConnectionPoolOptions _connectionPoolOptions;
+        private readonly Dictionary<Endpoint, List<ClientConnection>> _connections = new(EndpointComparer.ParameterLess);
+        private readonly ILoggerFactory? _loggerFactory;
+        private readonly IClientTransport<IMultiplexedNetworkConnection>? _multiplexedClientTransport;
+        private readonly IClientTransport<ISimpleNetworkConnection>? _simpleClientTransport;
+
         private readonly object _mutex = new();
-        private readonly bool _preferExistingConnection;
 
         private CancellationTokenSource? _shutdownCancelSource;
         private Task? _shutdownTask;
 
         /// <summary>Constructs a connection pool.</summary>
-        /// <param name="connectionOptions">The connection options. Its <see cref="ConnectionOptions.RemoteEndpoint"/>
-        /// property is ignored/replaced for each connection created by this pool.</param>
-        /// <param name="preferExistingConnection">Configures whether or not <see cref="GetConnectionAsync"/> prefers
-        /// returning an existing connection over creating a new one. When <c>true</c>, GetConnectionAsync first
-        /// iterates over all endpoints (in order) to look for an existing compatible active connection; if it cannot
-        /// find such a connection, it creates one by iterating again over the endpoints. When <c>false</c>,
-        /// GetConnectionAsync iterates over the endpoints only once to retrieve or create an active connection. The
-        /// default value is <c>true</c>.</param>
-        public ConnectionPool(ConnectionOptions? connectionOptions = null, bool preferExistingConnection = true)
+        /// <param name="connectionPoolOptions">The connection pool options.</param>
+        /// <param name="loggerFactory">The logger factory used to create loggers to log connection-related activities.
+        /// </param>
+        /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol
+        /// connections.</param>
+        /// <param name="simpleClientTransport">The simple transport used to create ice protocol connections.</param>
+        public ConnectionPool(
+            ConnectionPoolOptions connectionPoolOptions,
+            ILoggerFactory? loggerFactory = null,
+            IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
+            IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
         {
-            _connectionOptions = connectionOptions ?? new ConnectionOptions();
-            _preferExistingConnection = preferExistingConnection;
+            _connectionPoolOptions = connectionPoolOptions;
+            _loggerFactory = loggerFactory;
+            _multiplexedClientTransport = multiplexedClientTransport;
+            _simpleClientTransport = simpleClientTransport;
+        }
+
+        /// <summary>Constructs a connection pool.</summary>
+        /// <param name="clientConnectionOptions">The client connection options for connections created by this pool.</param>
+        public ConnectionPool(ClientConnectionOptions clientConnectionOptions)
+            : this(new ConnectionPoolOptions { ClientConnectionOptions = clientConnectionOptions })
+        {
         }
 
         /// <summary>An alias for <see cref="ShutdownAsync"/>, except this method returns a <see cref="ValueTask"/>.
@@ -46,7 +62,7 @@ namespace IceRpc
             IEnumerable<Endpoint> altEndpoints,
             CancellationToken cancel)
         {
-            if (_preferExistingConnection)
+            if (_connectionPoolOptions.PreferExistingConnection)
             {
                 Connection? connection = null;
                 lock (_mutex)
@@ -122,7 +138,7 @@ namespace IceRpc
             }
 
             Connection? GetCachedConnection(Endpoint endpoint) =>
-                _connections.TryGetValue(endpoint, out List<Connection>? connections) &&
+                _connections.TryGetValue(endpoint, out List<ClientConnection>? connections) &&
                 connections.FirstOrDefault(
                     connection =>
                         connection.HasCompatibleParams(endpoint) &&
@@ -179,7 +195,7 @@ namespace IceRpc
 
         private async ValueTask<Connection> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
         {
-            Connection? connection = null;
+            ClientConnection? connection = null;
             lock (_mutex)
             {
                 if (_shutdownTask != null)
@@ -189,7 +205,7 @@ namespace IceRpc
 
                 // Check if there is an active or pending connection that we can use according to the endpoint
                 // settings.
-                if (_connections.TryGetValue(endpoint, out List<Connection>? connections))
+                if (_connections.TryGetValue(endpoint, out List<ClientConnection>? connections))
                 {
                     connection = connections.FirstOrDefault(connection => connection.State <= ConnectionState.Active);
                 }
@@ -197,15 +213,19 @@ namespace IceRpc
                 if (connection == null)
                 {
                     // Connections from the connection pool are not resumable.
-                    connection = new Connection(_connectionOptions with
-                    {
-                        OnClose = RemoveOnClose + _connectionOptions.OnClose,
-                        RemoteEndpoint = endpoint
-                    });
+                    connection = new ClientConnection(
+                        _connectionPoolOptions.ClientConnectionOptions with
+                        {
+                            OnClose = RemoveOnClose + _connectionPoolOptions.ClientConnectionOptions.OnClose,
+                            RemoteEndpoint = endpoint
+                        },
+                        _loggerFactory,
+                        _multiplexedClientTransport,
+                        _simpleClientTransport);
 
                     if (!_connections.TryGetValue(endpoint, out connections))
                     {
-                        connections = new List<Connection>();
+                        connections = new List<ClientConnection>();
                         _connections[endpoint] = connections;
                     }
                     connections.Add(connection);
@@ -216,13 +236,14 @@ namespace IceRpc
 
             void RemoveOnClose(Connection connection, Exception _)
             {
+                Debug.Assert(connection is ClientConnection);
                 lock (_mutex)
                 {
                     // _connections is immutable after shutdown
                     if (_shutdownTask == null)
                     {
-                        List<Connection> list = _connections[connection.Endpoint];
-                        list.Remove(connection);
+                        List<ClientConnection> list = _connections[connection.Endpoint];
+                        list.Remove((ClientConnection)connection);
                         if (list.Count == 0)
                         {
                             _connections.Remove(connection.Endpoint);
