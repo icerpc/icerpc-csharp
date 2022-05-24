@@ -128,9 +128,7 @@ public static {prx_impl} FromConnection(
     IceRpc.IConnection connection,
     string? path = null,
     IceRpc.IInvoker? invoker = null) =>
-    new(
-        IceRpc.Proxy.FromConnection(connection, path ?? DefaultPath, invoker),
-        connection.Features.Get<ISliceEncodeFeature>());
+    new(IceRpc.Proxy.FromConnection(connection, path ?? DefaultPath, invoker));
 
 /// <summary>Creates a new relative proxy with the given path.</summary>
 /// <param name="path">The path.</param>

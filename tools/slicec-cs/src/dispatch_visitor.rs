@@ -536,7 +536,7 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
     match non_streamed_return_values.len() {
         0 => format!("{encoding}.CreateSizeZeroPayload()", encoding = encoding),
         _ => format!(
-            "Response.{operation_name}({args}, request.GetFeature<ISliceEncodeFeature>())",
+            "Response.{operation_name}({args}, request.Features.Get<ISliceEncodeFeature>())",
             operation_name = operation.escape_identifier(),
             args = returns.join(", ")
         ),
@@ -574,7 +574,7 @@ fn payload_stream(operation: &Operation, encoding: &str) -> CodeBlock {
     {use_segments})",
                     encoding = encoding,
                     stream_arg = stream_arg,
-                    encode_options = "request.GetFeature<ISliceEncodeFeature>()",
+                    encode_options = "request.Features.Get<ISliceEncodeFeature>()",
                     encode_action = encode_action(
                         stream_type,
                         TypeContext::Encode,

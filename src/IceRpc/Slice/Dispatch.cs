@@ -9,7 +9,7 @@ namespace IceRpc.Slice
     public sealed class Dispatch
     {
         /// <summary>The feature to use when encoding the payload of the response.</summary>
-        public ISliceEncodeFeature? EncodeFeature => _request.GetFeature<ISliceEncodeFeature>();
+        public ISliceEncodeFeature? EncodeFeature => _request.Features.Get<ISliceEncodeFeature>();
 
         /// <summary>The features associated with the request.</summary>
         public IFeatureCollection Features
