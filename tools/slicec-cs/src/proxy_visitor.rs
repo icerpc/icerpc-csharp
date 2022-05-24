@@ -192,7 +192,7 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
     let parameters = operation.nonstreamed_parameters();
     let stream_return = operation.streamed_return_member();
 
-    let invocation_parameter = escape_parameter_name(&operation.parameters(), "invocation");
+    let features_parameter = escape_parameter_name(&operation.parameters(), "features");
     let cancel_parameter = escape_parameter_name(&operation.parameters(), "cancel");
 
     let void_return = operation.return_type.is_empty();
@@ -215,15 +215,15 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
     if operation.compress_arguments() {
         body.writeln(&format!(
             "\
-if ({invocation}?.Features.Get<IceRpc.Features.ICompressFeature>() is null)
+if ({features}?.Get<IceRpc.Features.ICompressFeature>() is null)
 {{
-    {invocation} ??= new IceRpc.Slice.Invocation();
-    {invocation}.Features = IceRpc.Features.FeatureCollectionExtensions.With<IceRpc.Features.ICompressFeature>(
-        {invocation}.Features,
+    {features} ??= new IceRpc.Features.FeatureCollection();
+    {features} = IceRpc.Features.FeatureCollectionExtensions.With<IceRpc.Features.ICompressFeature>(
+        {features},
         IceRpc.Features.CompressFeature.Compress);
 }}
 ",
-            invocation = invocation_parameter
+            features = features_parameter
         ));
     }
 
@@ -295,7 +295,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.ICompressFeature>() is null)
     invocation_builder
         .add_argument_unless(void_return, format!("Response.{}", async_operation_name));
 
-    invocation_builder.add_argument(invocation_parameter);
+    invocation_builder.add_argument(features_parameter);
 
     invocation_builder.add_argument_if(operation.is_idempotent, "idempotent: true");
 
@@ -325,7 +325,7 @@ fn proxy_base_operation_impl(operation: &Operation) -> CodeBlock {
         .map(|p| p.parameter_name())
         .collect::<Vec<_>>();
 
-    operation_params.push(escape_parameter_name(&operation.parameters(), "invocation"));
+    operation_params.push(escape_parameter_name(&operation.parameters(), "features"));
     operation_params.push(escape_parameter_name(&operation.parameters(), "cancel"));
 
     let mut builder = FunctionBuilder::new(

@@ -58,11 +58,16 @@ immediately encodes the return value of operation {operation_name}."#,
                 None,
             );
 
-            constructor_builder.add_parameter("IceRpc.Slice.Dispatch", "dispatch", None, None);
+            constructor_builder.add_parameter(
+                "IceRpc.Features.IFeatureCollection",
+                "features",
+                None,
+                None,
+            );
 
             constructor_builder.set_body(
                 format!(
-                    "Payload = Response.{operation_name}(returnValue, dispatch.Features.Get<ISliceEncodeFeature>())",
+                    "Payload = Response.{operation_name}(returnValue, features.Get<ISliceEncodeFeature>())",
                     operation_name = operation_name
                 )
                 .into(),
@@ -77,11 +82,16 @@ immediately encodes the return value of operation {operation_name}."#,
                 constructor_builder.add_parameter(&parameter_type, &parameter_name, None, None);
             }
 
-            constructor_builder.add_parameter("IceRpc.Slice.Dispatch", "dispatch", None, None);
+            constructor_builder.add_parameter(
+                "IceRpc.Features.IFeatureCollection",
+                "features",
+                None,
+                None,
+            );
 
             constructor_builder.set_body(
                 format!(
-                    "Payload = Response.{operation_name}({args}, dispatch.Features.Get<ISliceEncodeFeature>())",
+                    "Payload = Response.{operation_name}({args}, features.Get<ISliceEncodeFeature>())",
                     operation_name = operation_name,
                     args = parameters
                         .iter()

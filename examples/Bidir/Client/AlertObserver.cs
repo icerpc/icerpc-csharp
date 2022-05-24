@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Slice;
 using System.Globalization;
 
@@ -9,7 +10,7 @@ public class AlertObserver : Service, IAlertObserver
 {
     private static readonly string[] _allowedAnswers = { "Y", "N" };
 
-    public ValueTask<bool> AlertAsync(Dispatch dispatch, CancellationToken cancel)
+    public ValueTask<bool> AlertAsync(IFeatureCollection features, CancellationToken cancel)
     {
         string answer = "";
         Console.WriteLine("Alert received...");

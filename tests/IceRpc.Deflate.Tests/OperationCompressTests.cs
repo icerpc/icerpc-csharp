@@ -57,7 +57,7 @@ public class OperationGeneratedCodeTests
     {
         public ValueTask<int> OpWithCompressArgsAndReturnAttributeAsync(
             int p,
-            Dispatch dispatch,
+            IFeatureCollection features,
             CancellationToken cancel) => new(p);
     }
 }

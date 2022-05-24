@@ -1,5 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq.Expressions;
@@ -76,15 +77,15 @@ namespace IceRpc.Slice
         }
 
         /// <inheritdoc/>
-        public ValueTask<IEnumerable<string>> IceIdsAsync(Dispatch dispatch, CancellationToken cancel) =>
+        public ValueTask<IEnumerable<string>> IceIdsAsync(IFeatureCollection features, CancellationToken cancel) =>
             new(_typeIds);
 
         /// <inheritdoc/>
-        public ValueTask<bool> IceIsAAsync(string id, Dispatch dispatch, CancellationToken cancel) =>
+        public ValueTask<bool> IceIsAAsync(string id, IFeatureCollection features, CancellationToken cancel) =>
             new(_typeIds.Contains(id));
 
         /// <inheritdoc/>
-        public ValueTask IcePingAsync(Dispatch dispatch, CancellationToken cancel) => default;
+        public ValueTask IcePingAsync(IFeatureCollection features, CancellationToken cancel) => default;
 
         /// <inheritdoc/>
         public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)

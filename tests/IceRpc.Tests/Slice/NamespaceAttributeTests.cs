@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -13,7 +14,7 @@ public class NamespaceAttributeTests
     {
         public ValueTask<NamespaceAttribute.WithNamespace.N1.N2.S1> Op1Async(
             NamespaceAttribute.M1.M2.M3.S1 p,
-            Dispatch dispatch,
+            IFeatureCollection features,
             CancellationToken cancel) => new(new NamespaceAttribute.WithNamespace.N1.N2.S1($"{p.I}"));
     }
 
