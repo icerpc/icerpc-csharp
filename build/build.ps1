@@ -28,6 +28,7 @@ $packages = @(
 $exampleProjects = @(
   'Bidir'
   'Hello'
+  'HelloSecure'
   'GenericHost'
 )
 
