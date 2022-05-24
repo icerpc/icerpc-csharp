@@ -2,7 +2,6 @@
 
 using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using System.Buffers;
 using System.Diagnostics;
 

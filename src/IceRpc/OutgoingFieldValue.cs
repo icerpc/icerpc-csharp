@@ -52,20 +52,7 @@ namespace IceRpc
             else
             {
                 encoder.EncodeSize(checked((int)ByteSequence.Length));
-                if (!ByteSequence.IsEmpty)
-                {
-                    if (ByteSequence.IsSingleSegment)
-                    {
-                        encoder.WriteByteSpan(ByteSequence.FirstSpan);
-                    }
-                    else
-                    {
-                        foreach (ReadOnlyMemory<byte> buffer in ByteSequence)
-                        {
-                            encoder.WriteByteSpan(buffer.Span);
-                        }
-                    }
-                }
+                encoder.WriteByteSequence(ByteSequence);
             }
         }
     }

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Buffers;
 using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 
@@ -140,6 +141,27 @@ namespace IceRpc.Slice
             if (!v.IsEmpty)
             {
                 encoder.WriteByteSpan(MemoryMarshal.AsBytes(v));
+            }
+        }
+
+        /// <summary>Copies a sequence of bytes to the underlying buffer writer.</summary>
+        /// <param name="encoder">The Slice encoder.</param>
+        /// <param name="v">The sequence to copy.</param>
+        public static void WriteByteSequence(this ref SliceEncoder encoder, ReadOnlySequence<byte> v)
+        {
+            if (!v.IsEmpty)
+            {
+                if (v.IsSingleSegment)
+                {
+                    encoder.WriteByteSpan(v.FirstSpan);
+                }
+                else
+                {
+                    foreach (ReadOnlyMemory<byte> buffer in v)
+                    {
+                        encoder.WriteByteSpan(buffer.Span);
+                    }
+                }
             }
         }
     }

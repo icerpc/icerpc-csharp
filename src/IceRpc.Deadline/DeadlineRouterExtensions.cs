@@ -4,7 +4,7 @@ using IceRpc.Deadline;
 
 namespace IceRpc.Configure;
 
-/// <summary>This class provide extension methods to add the deadline middleware to a <see cref="Router"/>.
+/// <summary>This class provides extension methods to add the deadline middleware to a <see cref="Router"/>.
 /// </summary>
 public static class DeadlineRouterExtensions
 {

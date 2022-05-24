@@ -2,8 +2,6 @@
 
 using IceRpc.Deadline;
 using IceRpc.Features;
-using IceRpc.Slice;
-using IceRpc.Slice.Internal;
 using NUnit.Framework;
 
 namespace IceRpc.Timeout.Tests;

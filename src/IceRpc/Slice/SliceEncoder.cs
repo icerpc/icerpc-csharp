@@ -574,10 +574,8 @@ namespace IceRpc.Slice
             EncodedByteCount += span.Length;
         }
 
-        internal static int GetBitSequenceByteCount(int bitCount) => (bitCount >> 3) + ((bitCount & 0x07) != 0 ? 1 : 0);
-
-        internal static void EncodeInt32(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
-
+        // We want to keep this constructor internal because not all IBufferWriter are safe to use with the
+        // SliceEncoder, specially not all implementations allow to rewrite bytes.
         internal SliceEncoder(
             IBufferWriter<byte> bufferWriter,
             SliceEncoding encoding,
@@ -589,6 +587,9 @@ namespace IceRpc.Slice
             _classContext = new ClassContext(classFormat);
         }
 
+        internal static int GetBitSequenceByteCount(int bitCount) => (bitCount >> 3) + ((bitCount & 0x07) != 0 ? 1 : 0);
+
+        internal static void EncodeInt32(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
         /// <summary>Encodes a fixed-size numeric value.</summary>
         /// <param name="v">The numeric value to encode.</param>
         internal void EncodeFixedSizeNumeric<T>(T v) where T : struct
