@@ -326,15 +326,23 @@ public class ConnectionTests
     {
         // Arrange
         Connection? serverConnection = null;
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseDispatcher(new InlineDispatcher((request, cancel) =>
+
+        IServiceCollection services = new ServiceCollection()
+            .AddColocTest(Protocol.FromString(protocol))
+            .AddSingleton<IDispatcher>(
+                new InlineDispatcher((request, cancel) =>
                 {
                     serverConnection = (Connection)request.Connection;
                     return new(new OutgoingResponse(request));
-                }))
-            .UseConnectionOptions(new ClientConnectionOptions { IsResumable = true })
-            .BuildServiceProvider();
-        var server = provider.GetRequiredService<Server>();
+                }));
+
+        services
+            .AddOptions<ClientConnectionOptions>()
+            .Configure(options => options.IsResumable = true);
+
+        await using ServiceProvider provider = services.BuildServiceProvider();
+
+        provider.GetRequiredService<Server>().Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
@@ -354,11 +362,18 @@ public class ConnectionTests
     public async Task Connect_sets_network_connection_information([Values("ice", "icerpc")] string protocol)
     {
         // Arrange
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseDispatcher(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))))
-            .UseConnectionOptions(new ClientConnectionOptions { IsResumable = true })
-            .BuildServiceProvider();
-        var server = provider.GetRequiredService<Server>();
+        IServiceCollection services = new ServiceCollection()
+            .AddColocTest(Protocol.FromString(protocol))
+            .AddSingleton<IDispatcher>(
+                new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))));
+
+        services
+            .AddOptions<ClientConnectionOptions>()
+            .Configure(options => options.IsResumable = true);
+
+        await using var provider = services.BuildServiceProvider();
+
+        provider.GetRequiredService<Server>().Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
         var networkConnectionInformation = connection.NetworkConnectionInformation;
 
