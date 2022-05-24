@@ -90,10 +90,13 @@ public class ConnectionTests
             return new OutgoingResponse(request);
         });
 
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseDispatcher(dispatcher)
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(Protocol.FromString(protocol))
+            .AddSingleton<IDispatcher>(dispatcher)
             .BuildServiceProvider();
+
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
@@ -124,10 +127,13 @@ public class ConnectionTests
             return new OutgoingResponse(request);
         });
 
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseDispatcher(dispatcher)
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(Protocol.FromString(protocol))
+            .AddSingleton<IDispatcher>(dispatcher)
             .BuildServiceProvider();
+
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
