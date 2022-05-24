@@ -5,7 +5,7 @@ using IceRpc.Slice;
 
 namespace IceRpc.Configure
 {
-    /// <summary>A property bag used to configure a client <see cref="Connection"/>.</summary>
+    /// <summary>A property bag used to configure client and server connections.</summary>
     public record class ConnectionOptions
     {
         /// <summary>Returns the default value for <see cref="Dispatcher"/>.</summary>
@@ -82,10 +82,10 @@ namespace IceRpc.Configure
         /// <summary>Gets or set an action that executes when the connection is closed.</summary>
         public Action<Connection, Exception>? OnClose { get; set; }
 
-
-        private const int IceMinFrameSize = 256;
         /// <summary>The default value for <see cref="MaxIceRpcHeaderSize"/>.</summary>
         internal const int DefaultMaxIceRpcHeaderSize = 16_383;
+
+        private const int IceMinFrameSize = 256;
 
         private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
         private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);

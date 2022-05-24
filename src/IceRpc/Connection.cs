@@ -210,11 +210,11 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public ValueTask DisposeAsync()
+        public async ValueTask DisposeAsync()
         {
-            GC.SuppressFinalize(this);
             // Perform a speedy graceful shutdown by canceling invocations and dispatches in progress.
-            return new(ShutdownAsync("connection disposed", new CancellationToken(canceled: true)));
+            await ShutdownAsync("connection disposed", new CancellationToken(canceled: true)).ConfigureAwait(false);
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>Checks if the parameters of the provided endpoint are compatible with this connection. Compatible
