@@ -31,7 +31,7 @@ public class InvokeAsyncTests
             payload: requestPayload,
             payloadStream: null,
             defaultActivator: null,
-            invocation: null);
+            features: null);
 
         // Assert
         Assert.Multiple(async () =>
@@ -66,7 +66,7 @@ public class InvokeAsyncTests
                     payload: requestPayload,
                     payloadStream: requestPayloadStream,
                     defaultActivator: null,
-                    invocation: null),
+                    features: null),
                 Throws.InstanceOf<InvalidDataException>());
 
             Assert.That(requestPayload.Completed.IsCompleted, Is.True);

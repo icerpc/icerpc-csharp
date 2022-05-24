@@ -941,7 +941,7 @@ namespace IceRpc.Internal
                             DispatchException dispatchException,
                             IncomingRequest request)
                         {
-                            ISliceEncodeFeature encodeFeature = request.GetFeature<ISliceEncodeFeature>() ??
+                            ISliceEncodeFeature encodeFeature = request.Features.Get<ISliceEncodeFeature>() ??
                                 SliceEncodeFeature.Default;
 
                             var pipe = new Pipe(encodeFeature.PipeOptions);
