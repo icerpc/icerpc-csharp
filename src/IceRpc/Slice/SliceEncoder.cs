@@ -47,21 +47,6 @@ namespace IceRpc.Slice
         {
         }
 
-        /// <summary>Constructs an Slice encoder.</summary>
-        /// <param name="bufferWriter">The buffer writer that provides the buffer to write into.</param>
-        /// <param name="encoding">The Slice encoding.</param>
-        /// <param name="classFormat">The class format (Slice1 only).</param>
-        public SliceEncoder(
-            IBufferWriter<byte> bufferWriter,
-            SliceEncoding encoding,
-            ClassFormat classFormat = default)
-            : this()
-        {
-            Encoding = encoding;
-            _bufferWriter = bufferWriter;
-            _classContext = new ClassContext(classFormat);
-        }
-
         // Encode methods for basic types
 
         /// <summary>Encodes a bool into a Slice bool.</summary>
@@ -587,6 +572,19 @@ namespace IceRpc.Slice
         {
             _bufferWriter.Write(span);
             EncodedByteCount += span.Length;
+        }
+
+        // We want to keep this constructor internal because not all IBufferWriter are safe to use with the
+        // SliceEncoder, specially not all implementations allow to rewrite bytes.
+        internal SliceEncoder(
+            IBufferWriter<byte> bufferWriter,
+            SliceEncoding encoding,
+            ClassFormat classFormat = default)
+            : this()
+        {
+            Encoding = encoding;
+            _bufferWriter = bufferWriter;
+            _classContext = new ClassContext(classFormat);
         }
 
         internal static int GetBitSequenceByteCount(int bitCount) => (bitCount >> 3) + ((bitCount & 0x07) != 0 ? 1 : 0);

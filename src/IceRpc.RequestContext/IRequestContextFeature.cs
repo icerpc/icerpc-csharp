@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc.RequestContext.Features;
+namespace IceRpc.RequestContext;
 
 /// <summary>A feature that represents an dictionary{string, string} that can be transmitted with both ice and icerpc
 /// requests. This feature is encoded and decoded by the IceRPC core.</summary>

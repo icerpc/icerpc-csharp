@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
-using IceRpc.RequestContext.Features;
 using IceRpc.Slice;
 using System.Buffers;
 
@@ -26,7 +25,7 @@ public class RequestContextMiddleware : IDispatcher
                 value,
                 request.Protocol == Protocol.Ice ? SliceEncoding.Slice1 : SliceEncoding.Slice2);
 
-            var context = decoder.DecodeDictionary(
+            Dictionary<string, string> context = decoder.DecodeDictionary(
                 size => new Dictionary<string, string>(size),
                 keyDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString(),
                 valueDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString());

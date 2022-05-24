@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
-using IceRpc.RequestContext.Features;
 using IceRpc.Slice;
 using NUnit.Framework;
 using System.Buffers;
+using System.IO.Pipelines;
 
 namespace IceRpc.RequestContext.Tests;
 
@@ -32,15 +32,22 @@ public sealed class RequestContextInterceptorTests
                if (request.Fields.TryGetValue(RequestFieldKey.Context, out OutgoingFieldValue value) &&
                    value.EncodeAction != null)
                {
-                   var buffer = new ArrayBufferWriter<byte>();
-                   var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+                   var pipe = new Pipe();
+                   var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
                    value.EncodeAction(ref encoder);
+#pragma warning disable CA1849 // Call async methods when in an async method
+                   pipe.Writer.Complete();
+#pragma warning restore CA1849 // Call async methods when in an async method
 
-                   var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
-                   decoded = decoder.DecodeDictionary(
-                       count => new Dictionary<string, string>(count),
-                       (ref SliceDecoder decoder) => decoder.DecodeString(),
-                       (ref SliceDecoder decoder) => decoder.DecodeString());
+                   if (pipe.Reader.TryRead(out ReadResult readResult))
+                   {
+                       var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+                       decoded = decoder.DecodeDictionary(
+                           count => new Dictionary<string, string>(count),
+                           (ref SliceDecoder decoder) => decoder.DecodeString(),
+                           (ref SliceDecoder decoder) => decoder.DecodeString());
+                       pipe.Reader.AdvanceTo(readResult.Buffer.End);
+                   }
                }
                return Task.FromResult(new IncomingResponse(request, request.Connection!));
            }));

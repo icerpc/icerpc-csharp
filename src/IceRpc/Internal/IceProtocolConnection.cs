@@ -364,10 +364,7 @@ namespace IceRpc.Internal
                 {
                     if (requestField.EncodeAction == null)
                     {
-                        foreach (var segment in requestField.ByteSequence)
-                        {
-                            encoder.WriteByteSpan(segment.Span);
-                        }
+                        encoder.WriteByteSequence(requestField.ByteSequence);
                     }
                     else
                     {
@@ -376,10 +373,7 @@ namespace IceRpc.Internal
                 }
                 else
                 {
-                    encoder.EncodeDictionary(
-                        ImmutableDictionary<string, string>.Empty,
-                        (ref SliceEncoder encoder, string key) => encoder.EncodeString(key),
-                        (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
+                    encoder.EncodeSize(0);
                 }
                 new EncapsulationHeader(
                     encapsulationSize: payloadSize + 6,
@@ -805,6 +799,7 @@ namespace IceRpc.Internal
                 // Decode its header.
                 int requestId;
                 IceRequestHeader requestHeader;
+                PipeReader? contextReader;
                 try
                 {
                     if (!requestFrameReader.TryRead(out ReadResult readResult))
@@ -814,7 +809,7 @@ namespace IceRpc.Internal
 
                     Debug.Assert(readResult.IsCompleted);
 
-                    (requestId, requestHeader, int consumed) = DecodeRequestIdAndHeader(readResult.Buffer);
+                    (requestId, requestHeader, contextReader, int consumed) = DecodeRequestIdAndHeader(readResult.Buffer);
                     requestFrameReader.AdvanceTo(readResult.Buffer.GetPosition(consumed));
                 }
                 catch
@@ -824,32 +819,22 @@ namespace IceRpc.Internal
                 }
 
                 IDictionary<RequestFieldKey, ReadOnlySequence<byte>>? fields;
-                if (requestHeader.Context.Count == 0)
+                if (contextReader == null)
                 {
                     fields = requestHeader.OperationMode == OperationMode.Normal ?
                         ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields;
                 }
                 else
                 {
+                    var result = await contextReader.ReadAsync(default).ConfigureAwait(false);
                     fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>()
                     {
-                        [RequestFieldKey.Context] = EncodeContextField(requestHeader.Context)
+                        [RequestFieldKey.Context] = result.Buffer
                     };
 
                     if (requestHeader.OperationMode == OperationMode.Idempotent)
                     {
                         fields[RequestFieldKey.Idempotent] = default;
-                    }
-
-                    ReadOnlySequence<byte> EncodeContextField(IDictionary<string, string> context)
-                    {
-                        var buffer = new ArrayBufferWriter<byte>();
-                        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
-                        encoder.EncodeDictionary(
-                            context,
-                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
-                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
-                        return new ReadOnlySequence<byte>(buffer.WrittenMemory);
                     }
                 }
 
@@ -883,6 +868,10 @@ namespace IceRpc.Internal
                     // If shutting down, ignore the incoming request.
                     // TODO: replace with payload exception and error code
                     await request.Payload.CompleteAsync(new ConnectionClosedException()).ConfigureAwait(false);
+                    if (contextReader != null)
+                    {
+                        await contextReader.CompleteAsync().ConfigureAwait(false);
+                    }
                 }
                 else
                 {
@@ -901,10 +890,13 @@ namespace IceRpc.Internal
                     }
 
                     Debug.Assert(cancelDispatchSource != null);
-                    _ = Task.Run(() => DispatchRequestAsync(request, cancelDispatchSource), cancel);
+                    _ = Task.Run(() => DispatchRequestAsync(request, contextReader, cancelDispatchSource), cancel);
                 }
 
-                async Task DispatchRequestAsync(IncomingRequest request, CancellationTokenSource cancelDispatchSource)
+                async Task DispatchRequestAsync(
+                    IncomingRequest request,
+                    PipeReader? contextReader,
+                    CancellationTokenSource cancelDispatchSource)
                 {
                     using CancellationTokenSource _ = cancelDispatchSource;
 
@@ -969,6 +961,10 @@ namespace IceRpc.Internal
                         // Even when the code above throws an exception, we catch it and write a response. So we never
                         // want to give an exception to CompleteAsync when completing the incoming payload.
                         await request.Payload.CompleteAsync().ConfigureAwait(false);
+                        if (contextReader != null)
+                        {
+                            await contextReader.CompleteAsync().ConfigureAwait(false);
+                        }
                     }
 
                     // The writing of the response can't be canceled. This would lead to invalid protocol behavior.
@@ -1114,13 +1110,42 @@ namespace IceRpc.Internal
                     }
                 }
 
-                static (int RequestId, IceRequestHeader Header, int Consumed) DecodeRequestIdAndHeader(
+                static (int RequestId, IceRequestHeader Header, PipeReader? ContextReader, int Consumed) DecodeRequestIdAndHeader(
                     ReadOnlySequence<byte> buffer)
                 {
                     var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
 
                     int requestId = decoder.DecodeInt32();
-                    var requestHeader = new IceRequestHeader(ref decoder);
+                    string path = decoder.DecodeIdentityPath();
+                    string fragment = decoder.DecodeFragment();
+                    string operation = decoder.DecodeString();
+                    OperationMode operationMode = decoder.DecodeOperationMode();
+
+
+                    Pipe? contextPipe = null;
+                    var pos = decoder.Consumed;
+                    int count = decoder.DecodeSize();
+                    if (count > 0)
+                    {
+                        for (int i = 0; i < count; ++i)
+                        {
+                            decoder.Skip(decoder.DecodeSize()); // Skip the key
+                            decoder.Skip(decoder.DecodeSize()); // Skip the value
+                        }
+                        contextPipe = new Pipe();
+                        contextPipe.Writer.Write(buffer.Slice(pos, decoder.Consumed - pos));
+                        contextPipe.Writer.Complete();
+                    }
+
+                    var encapsulationHeader = new EncapsulationHeader(ref decoder);
+
+                    var requestHeader = new IceRequestHeader(
+                        path,
+                        fragment,
+                        operation,
+                        operationMode,
+                        ImmutableDictionary<string, string>.Empty,
+                        encapsulationHeader);
 
                     if (requestHeader.EncapsulationHeader.PayloadEncodingMajor != 1 ||
                         requestHeader.EncapsulationHeader.PayloadEncodingMinor != 1)
@@ -1138,7 +1163,7 @@ namespace IceRpc.Internal
                             } bytes, read {buffer.Length - decoder.Consumed} bytes");
                     }
 
-                    return (requestId, requestHeader, (int)decoder.Consumed);
+                    return (requestId, requestHeader, contextPipe?.Reader, (int)decoder.Consumed);
                 }
             }
         }

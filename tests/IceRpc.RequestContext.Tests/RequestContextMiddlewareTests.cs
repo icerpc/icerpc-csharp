@@ -1,11 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Features;
-using IceRpc.RequestContext.Features;
 using IceRpc.Slice;
 using IceRpc.Tests;
 using NUnit.Framework;
 using System.Buffers;
+using System.IO.Pipelines;
 
 namespace IceRpc.RequestContext.Tests;
 
@@ -17,11 +16,18 @@ public sealed class RequestContextMiddlewareTests
     {
         var context = new Dictionary<string, string> { ["Foo"] = "Bar" };
         var prx = new Proxy(Protocol.IceRpc);
+
+        var pipeReader = EncodeContextField(context);
+        ReadOnlySequence<byte> encoded = default;
+        if (pipeReader.TryRead(out var readResult))
+        {
+            encoded = readResult.Buffer;
+        }
         var request = new IncomingRequest(InvalidConnection.IceRpc)
         {
             Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>()
             {
-                [RequestFieldKey.Context] = EncodeContextField(context)
+                [RequestFieldKey.Context] = encoded
             }
         };
 
@@ -35,18 +41,20 @@ public sealed class RequestContextMiddlewareTests
 
         await sut.DispatchAsync(request, default);
 
+        await pipeReader.CompleteAsync();
         Assert.That(decoded, Is.Not.Null);
         Assert.That(decoded, Is.EqualTo(context));
 
-        ReadOnlySequence<byte> EncodeContextField(Dictionary<string, string> context)
+        PipeReader EncodeContextField(Dictionary<string, string> context)
         {
-            var buffer = new ArrayBufferWriter<byte>();
-            var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+            var pipe = new Pipe();
+            var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
             encoder.EncodeDictionary(
                 context,
                 (ref SliceEncoder encoder, string key) => encoder.EncodeString(key),
                 (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
-            return new ReadOnlySequence<byte>(buffer.WrittenMemory);
+            pipe.Writer.Complete();
+            return pipe.Reader;
         }
     }
 }

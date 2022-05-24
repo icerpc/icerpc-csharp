@@ -1,11 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.RequestContext.Features;
 using IceRpc.Slice;
 
 namespace IceRpc.RequestContext;
 
-/// <summary>An interceptor that encodes the requests context into a request field.</summary>
+/// <summary>An interceptor that encodes the request context into a request field.</summary>
 public class RequestContextInterceptor : IInvoker
 {
     private readonly IInvoker _next;

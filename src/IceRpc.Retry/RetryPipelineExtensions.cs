@@ -4,7 +4,7 @@ using IceRpc.Retry;
 
 namespace IceRpc.Configure;
 
-/// <summary>This class provide extension methods to add metrics interceptors to a <see cref="Pipeline"/>.
+/// <summary>This class provides extension methods to add metrics interceptors to a <see cref="Pipeline"/>.
 /// </summary>
 public static class RetryPipelineExtensions
 {

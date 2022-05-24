@@ -2,10 +2,10 @@
 
 using IceRpc.Configure;
 using IceRpc.Features;
-using IceRpc.RequestContext.Features;
 using IceRpc.Slice;
 using IceRpc.Tests;
 using IceRpc.Transports;
+using IceRpc.RequestContext;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Collections.Immutable;

@@ -173,11 +173,8 @@ namespace IceRpc.Internal
                             DecodeHeader(readResult.Buffer);
                         stream.Input.AdvanceTo(readResult.Buffer.End);
 
-                        IFeatureCollection features = FeatureCollection.Empty;
-
                         var request = new IncomingRequest(connection)
                         {
-                            Features = features,
                             Fields = fields,
                             IsOneway = !stream.IsBidirectional,
                             Operation = header.Operation,
