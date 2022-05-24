@@ -194,9 +194,9 @@ public sealed class IceProtocolConnectionTests
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
             .UseServerOptions(new ServerOptions
-                {
-                    ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
-                })
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
+            })
             .BuildServiceProvider();
 
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
@@ -225,9 +225,9 @@ public sealed class IceProtocolConnectionTests
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
             .UseServerOptions(new ServerOptions
-                {
-                    ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
-                })
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
+            })
             .BuildServiceProvider();
 
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
@@ -259,9 +259,9 @@ public sealed class IceProtocolConnectionTests
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
             .UseServerOptions(new ServerOptions
-                {
-                    ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
-                })
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
+            })
             .BuildServiceProvider();
         using var clientServerProtocolConnection = await serviceProvider.GetClientServerProtocolConnectionAsync();
 

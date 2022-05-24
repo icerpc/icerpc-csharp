@@ -13,7 +13,7 @@ namespace IceRpc.Configure
         public SslServerAuthenticationOptions? ServerAuthenticationOptions { get; set; }
 
         /// <summary>Gets or set the connection options for server connections.</summary>
-        public ConnectionOptions ConnectionOptions { get; set; } = new ();
+        public ConnectionOptions ConnectionOptions { get; set; } = new();
 
         /// <summary>Gets or sets the server's endpoint. The endpoint's host is usually an IP address, and it
         /// cannot be a DNS name.</summary>
