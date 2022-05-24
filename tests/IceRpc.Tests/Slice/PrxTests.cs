@@ -16,7 +16,7 @@ public class PrxTests
         await using var provider = new SliceTestServiceCollection()
             .UseDispatcher(new MyDerivedInterface())
             .BuildServiceProvider();
-        var prx = MyBaseInterfacePrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyBaseInterfacePrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         MyDerivedInterfacePrx? derived = await prx.AsAsync<MyDerivedInterfacePrx>();
 
@@ -29,7 +29,7 @@ public class PrxTests
         await using var provider = new SliceTestServiceCollection()
             .UseDispatcher(new MyBaseInterface())
             .BuildServiceProvider();
-        var prx = MyBaseInterfacePrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyBaseInterfacePrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         MyDerivedInterfacePrx? derived = await prx.AsAsync<MyDerivedInterfacePrx>();
 

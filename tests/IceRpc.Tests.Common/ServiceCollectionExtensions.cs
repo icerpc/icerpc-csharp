@@ -4,6 +4,7 @@ using IceRpc.Configure;
 using IceRpc.Transports;
 using IceRpc.Transports.Tests;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using System.Net.Security;
@@ -28,33 +29,34 @@ public static class ServiceCollectionExtensions
     {
         services.AddColoc();
 
-        Endpoint endpoint = protocol == Protocol.Ice ? "ice://colochost" : "icerpc://colochost";
+        var endpoint = new Endpoint(protocol) { Host = "colochost" };
 
         services
             .AddOptions<ServerOptions>()
-            .Configure<IDispatcher, IServerTransport<IMultiplexedNetworkConnection>, IServerTransport<ISimpleNetworkConnection>>(
-                (options, dispatcher, multiplexedServerTransport, simpleServerTransport) =>
+            .Configure<IDispatcher>(
+                (options, dispatcher) =>
                 {
-                    options.Dispatcher = dispatcher;
+                    options.ConnectionOptions.Dispatcher = dispatcher;
                     options.Endpoint = endpoint;
-                    options.IceServerOptions = new() { ServerTransport = simpleServerTransport };
-                    options.IceRpcServerOptions = new() { ServerTransport = multiplexedServerTransport };
-                });
-
-        services.AddSingleton(provider => new Server(provider.GetRequiredService<IOptions<ServerOptions>>().Value));
-
-        services
-            .AddOptions<ConnectionOptions>() // ClientConnectionOptions
-            .Configure<IClientTransport<IMultiplexedNetworkConnection>, IClientTransport<ISimpleNetworkConnection>>(
-                (options, multiplexedClientTransport, simpleClientTransport) =>
-                {
-                    options.RemoteEndpoint = endpoint;
-                    options.IceClientOptions = new() { ClientTransport = simpleClientTransport };
-                    options.IceRpcClientOptions = new() { ClientTransport = multiplexedClientTransport };
                 });
 
         services.AddSingleton(provider =>
-            new Connection(provider.GetRequiredService<IOptions<ConnectionOptions>>().Value));
+            new Server(
+                provider.GetRequiredService<IOptions<ServerOptions>>().Value,
+                loggerFactory: provider.GetService<ILoggerFactory>(),
+                multiplexedServerTransport: provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>(),
+                simpleServerTransport: provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()));
+
+        services
+            .AddOptions<ClientConnectionOptions>()
+            .Configure(options => options.RemoteEndpoint = endpoint);
+
+        services.AddSingleton(provider =>
+            new ClientConnection(
+                provider.GetRequiredService<IOptions<ClientConnectionOptions>>().Value,
+                loggerFactory: provider.GetService<ILoggerFactory>(),
+                multiplexedClientTransport: provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
+                simpleClientTransport: provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()));
 
         return services;
     }
@@ -238,7 +240,7 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection UseConnectionOptions(
         this IServiceCollection collection,
-        ConnectionOptions options) =>
+        ClientConnectionOptions options) =>
         collection.AddSingleton(options);
 
     public static IServiceCollection UseServerOptions(this IServiceCollection collection, ServerOptions options) =>

@@ -13,6 +13,7 @@ $packages = @(
   'icerpc'
   'icerpc.binder'
   'icerpc.coloc'
+  'icerpc.deadline'
   'icerpc.deflate'
   'icerpc.interop'
   'icerpc.locator'
@@ -20,6 +21,7 @@ $packages = @(
   'icerpc.metrics'
   'icerpc.retry'
   'icerpc.telemetry'
+  'icerpc.timeout'
 )
 
 $exampleProjects = @(

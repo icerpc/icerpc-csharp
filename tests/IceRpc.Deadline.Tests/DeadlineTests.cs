@@ -3,8 +3,8 @@
 using IceRpc.Configure;
 using IceRpc.Features;
 using IceRpc.Tests;
-using NUnit.Framework;
 using Microsoft.Extensions.DependencyInjection;
+using NUnit.Framework;
 
 namespace IceRpc.Deadline.Tests;
 
@@ -52,7 +52,7 @@ public sealed class DeadlineTests
         provider.GetRequiredService<Server>().Listen();
 
         var proxy = Proxy.FromConnection(
-            provider.GetRequiredService<Connection>(),
+            provider.GetRequiredService<ClientConnection>(),
             "/",
             invoker: new Pipeline().UseDeadline());
 
