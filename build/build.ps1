@@ -19,6 +19,7 @@ $packages = @(
   'icerpc.locator'
   'icerpc.logger'
   'icerpc.metrics'
+  'icerpc.requestcontext'
   'icerpc.retry'
   'icerpc.telemetry'
   'icerpc.timeout'
