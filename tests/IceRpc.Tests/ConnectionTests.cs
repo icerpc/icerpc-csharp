@@ -165,21 +165,22 @@ public class ConnectionTests
         var serverConnectionClosed = new TaskCompletionSource<object?>();
         var clientConnectionClosed = new TaskCompletionSource<object?>();
 
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseDispatcher(dispatcher)
-            .UseConnectionOptions(new ClientConnectionOptions
-            {
-                OnClose = (_, _) => clientConnectionClosed.SetResult(null)
-            })
-            .UseServerOptions(new ServerOptions
-            {
-                ConnectionOptions = new ConnectionOptions
-                {
-                    OnClose = (_, _) => serverConnectionClosed.SetResult(null)
-                }
-            })
-            .BuildServiceProvider();
+        IServiceCollection services = new ServiceCollection()
+            .AddColocTest(Protocol.FromString(protocol))
+            .AddSingleton<IDispatcher>(dispatcher);
+
+        services
+            .AddOptions<ClientConnectionOptions>()
+            .Configure(options => options.OnClose = (_, _) => clientConnectionClosed.SetResult(null));
+
+        services
+            .AddOptions<ServerOptions>()
+            .Configure(options =>
+                options.ConnectionOptions.OnClose = (_, _) => serverConnectionClosed.SetResult(null));
+
+        await using ServiceProvider provider = services.BuildServiceProvider();
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
 
         var proxy = Proxy.FromConnection(clientConnection, "/foo");
@@ -288,15 +289,22 @@ public class ConnectionTests
     {
         // Arrange
         Connection? serverConnection = null;
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseDispatcher(new InlineDispatcher((request, cancel) =>
+        IServiceCollection services = new ServiceCollection()
+            .AddColocTest(Protocol.FromString(protocol))
+            .AddSingleton<IDispatcher>(
+                new InlineDispatcher((request, cancel) =>
                 {
                     serverConnection = (Connection)request.Connection;
                     return new(new OutgoingResponse(request));
-                }))
-            .UseConnectionOptions(new ClientConnectionOptions { IsResumable = true })
-            .BuildServiceProvider();
+                }));
+
+        services
+            .AddOptions<ClientConnectionOptions>()
+            .Configure(options => options.IsResumable = true);
+
+        await using var provider = services.BuildServiceProvider();
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
