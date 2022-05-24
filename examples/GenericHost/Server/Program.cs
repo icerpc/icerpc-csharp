@@ -50,14 +50,14 @@ public static class Program
                     .Bind(hostContext.Configuration.GetSection("Server"))
                     .Configure<IDispatcher>((options, dispatcher) =>
                     {
-                        options.AuthenticationOptions = new SslServerAuthenticationOptions()
+                        options.ServerAuthenticationOptions = new SslServerAuthenticationOptions()
                         {
                             ServerCertificate = new X509Certificate2(
                                 hostContext.Configuration.GetValue<string>("Certificate:File"),
                                 hostContext.Configuration.GetValue<string>("Certificate:Password"))
                         };
 
-                        options.Dispatcher = dispatcher;
+                        options.ConnectionOptions.Dispatcher = dispatcher;
                     });
 
                 services.AddSingleton<Server>(serviceProvider =>

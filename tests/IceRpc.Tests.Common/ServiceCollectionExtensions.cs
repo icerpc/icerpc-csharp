@@ -141,7 +141,7 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection UseConnectionOptions(
         this IServiceCollection collection,
-        ConnectionOptions options) =>
+        ClientConnectionOptions options) =>
         collection.AddSingleton(options);
 
     public static IServiceCollection UseServerOptions(this IServiceCollection collection, ServerOptions options) =>

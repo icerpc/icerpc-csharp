@@ -83,7 +83,7 @@ public class ProxyTests
     [Test]
     public async Task Decode_relative_proxy()
     {
-        await using var connection = new Connection("icerpc://localhost");
+        await using var connection = new ClientConnection("icerpc://localhost");
         Assert.That(() =>
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
