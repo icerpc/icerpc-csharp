@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using NUnit.Framework;
@@ -493,7 +494,7 @@ public sealed class ExceptionTests
 
         public Slice2ExceptionOperations(Exception exception) => _exception = exception;
 
-        public ValueTask OpThrowsAsync(Dispatch dispatch, CancellationToken cancel = default) =>
+        public ValueTask OpThrowsAsync(IFeatureCollection features, CancellationToken cancel = default) =>
             throw _exception;
     }
 
@@ -502,7 +503,7 @@ public sealed class ExceptionTests
         private readonly Exception _exception;
 
         public Slice1ExceptionOperations(Exception exception) => _exception = exception;
-        public ValueTask OpThrowsAsync(Dispatch dispatch, CancellationToken cancel = default) =>
+        public ValueTask OpThrowsAsync(IFeatureCollection features, CancellationToken cancel = default) =>
             throw _exception;
     }
 }

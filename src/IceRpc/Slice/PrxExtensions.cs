@@ -35,14 +35,14 @@ public static class PrxExtensions
     /// method is a wrapper for <see cref="IServicePrx.IceIsAAsync"/>.</summary>
     /// <paramtype name="TPrx">The type of the target Prx struct.</paramtype>
     /// <param name="prx">The source Prx being tested.</param>
-    /// <param name="invocation">The invocation properties.</param>
+    /// <param name="features">The invocation features.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A new TPrx instance, or null.</returns>
     public static async Task<TPrx?> AsAsync<TPrx>(
         this IPrx prx,
-        Invocation? invocation = null,
+        IFeatureCollection? features = null,
         CancellationToken cancel = default) where TPrx : struct, IPrx =>
-        await new ServicePrx(prx.Proxy).IceIsAAsync(typeof(TPrx).GetSliceTypeId()!, invocation, cancel).
+        await new ServicePrx(prx.Proxy).IceIsAAsync(typeof(TPrx).GetSliceTypeId()!, features, cancel).
             ConfigureAwait(false) ?
             new TPrx { EncodeFeature = prx.EncodeFeature, Proxy = prx.Proxy } : null;
 
@@ -53,7 +53,7 @@ public static class PrxExtensions
     /// <param name="payloadStream">The optional payload stream of the request.</param>
     /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws a
     /// <see cref="RemoteException"/> when the response payload contains a failure.</param>
-    /// <param name="invocation">The invocation properties.</param>
+    /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <c>true</c>, the request is idempotent.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>The operation's return value.</returns>
@@ -66,7 +66,7 @@ public static class PrxExtensions
         PipeReader? payload,
         PipeReader? payloadStream,
         ResponseDecodeFunc<T> responseDecodeFunc,
-        Invocation? invocation,
+        IFeatureCollection? features,
         bool idempotent = false,
         CancellationToken cancel = default) where TPrx : struct, IPrx
     {
@@ -79,7 +79,7 @@ public static class PrxExtensions
 
         var request = new OutgoingRequest(prx.Proxy)
         {
-            Features = invocation?.Features ?? FeatureCollection.Empty,
+            Features = features ?? FeatureCollection.Empty,
             Fields = idempotent ?
                 _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
             Operation = operation,
@@ -107,11 +107,6 @@ public static class PrxExtensions
             try
             {
                 IncomingResponse response = await responseTask.ConfigureAwait(false);
-
-                if (invocation != null)
-                {
-                    invocation.Features = request.Features;
-                }
                 return await responseDecodeFunc(response, request, prx.EncodeFeature, cancel).ConfigureAwait(false);
             }
             catch (Exception ex)
@@ -133,7 +128,7 @@ public static class PrxExtensions
     /// <param name="payload">The payload of the request. <c>null</c> is equivalent to an empty payload.</param>
     /// <param name="payloadStream">The payload stream of the request.</param>
     /// <param name="defaultActivator">The optional default activator.</param>
-    /// <param name="invocation">The invocation properties.</param>
+    /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When true, the request is idempotent.</param>
     /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
     /// after sending the request.</param>
@@ -149,7 +144,7 @@ public static class PrxExtensions
         PipeReader? payload,
         PipeReader? payloadStream,
         IActivator? defaultActivator,
-        Invocation? invocation,
+        IFeatureCollection? features,
         bool idempotent = false,
         bool oneway = false,
         CancellationToken cancel = default) where TPrx : struct, IPrx
@@ -163,7 +158,7 @@ public static class PrxExtensions
 
         var request = new OutgoingRequest(prx.Proxy)
         {
-            Features = invocation?.Features ?? FeatureCollection.Empty,
+            Features = features ?? FeatureCollection.Empty,
             Fields = idempotent ?
                 _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
             IsOneway = oneway,
@@ -192,11 +187,6 @@ public static class PrxExtensions
             try
             {
                 IncomingResponse response = await responseTask.ConfigureAwait(false);
-
-                if (invocation != null)
-                {
-                    invocation.Features = request.Features;
-                }
 
                 await response.DecodeVoidReturnValueAsync(
                     request,

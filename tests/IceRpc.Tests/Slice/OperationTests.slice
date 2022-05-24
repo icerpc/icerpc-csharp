@@ -28,8 +28,8 @@ interface MyOperationsA
     // idempotent operation
     idempotent idempotentOp();
 
-    // invocation, cancel and dispatch as regular parameter names
-    opWithSpecialParameterNames(invocation: int32, cancel: int32, dispatch: int32);
+    // invocation, cancel and features as regular parameter names
+    opWithSpecialParameterNames(invocation: int32, cancel: int32, features: int32);
 
     // Parameter with cs::attribute
     opWithCsAttribute(p: [cs::attribute("MyAttribute")] int32) -> int32;

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -203,7 +204,7 @@ public class OperationGeneratedCodeTests
             async () => await prx.OpWithSpecialParameterNamesAsync(
                 invocation: 1,
                 cancel: 2,
-                dispatch: 3),
+                features: 3),
             Throws.Nothing);
     }
 
@@ -382,84 +383,84 @@ public class OperationGeneratedCodeTests
 
     class MyOperationsA : Service, IMyOperationsA
     {
-        public ValueTask ContinueAsync(Dispatch dispatch, CancellationToken cancel) => default;
+        public ValueTask ContinueAsync(IFeatureCollection features, CancellationToken cancel) => default;
 
-        public ValueTask OpWithoutParametersAndVoidReturnAsync(Dispatch dispatch, CancellationToken cancel) => default;
+        public ValueTask OpWithoutParametersAndVoidReturnAsync(IFeatureCollection features, CancellationToken cancel) => default;
 
         public ValueTask<int> OpWithSingleParameterAndReturnValueAsync(
             int p,
-            Dispatch dispatch,
+            IFeatureCollection features,
             CancellationToken cancel) => new(p);
 
         public ValueTask<(int R1, int R2)> OpWithMultipleParametersAndReturnValuesAsync(
             int p1,
             int p2,
-            Dispatch dispatch,
+            IFeatureCollection features,
             CancellationToken cancel) => new((p1, p2));
 
         public ValueTask<int> OpWithCompressArgsAndReturnAttributeAsync(
             int p,
-            Dispatch dispatch,
+            IFeatureCollection features,
             CancellationToken cancel) => new(p);
 
         public ValueTask<PipeReader> OpWithByteStreamArgumentAndReturnAsync(
             PipeReader p,
-            Dispatch dispatch,
+            IFeatureCollection features,
             CancellationToken cancel) => new(p);
 
         public ValueTask<IAsyncEnumerable<int>> OpWithIntStreamArgumentAndReturnAsync(
             IAsyncEnumerable<int> p,
-            Dispatch dispatch,
+            IFeatureCollection features,
             CancellationToken cancel) => new(p);
 
         public ValueTask<IAsyncEnumerable<string>> OpWithStringStreamArgumentAndReturnAsync(
             IAsyncEnumerable<string> p,
-            Dispatch dispatch,
+            IFeatureCollection features,
             CancellationToken cancel) => new(p);
 
         public ValueTask<(int R1, IAsyncEnumerable<int> R2)> OpWithBothRegularAndStreamParameterAndReturnAsync(
             int p1,
             IAsyncEnumerable<int> p2,
-            Dispatch dispatch,
+            IFeatureCollection features,
             CancellationToken cancel) => new((p1, p2));
 
         public ValueTask IdempotentOpAsync(
-            Dispatch dispatch,
+            IFeatureCollection features,
             CancellationToken cancel) => default;
 
         public ValueTask OpWithSpecialParameterNamesAsync(
             int invocation,
             int cancel,
-            int dispatch,
-            Dispatch dispatch_,
+            int features,
+            IFeatureCollection features_,
             CancellationToken cancel_) => default;
 
         public ValueTask<int> OpWithCsAttributeAsync(
             int p,
-            Dispatch dispatch,
+            IFeatureCollection features,
             CancellationToken cancel) => default;
 
         public ValueTask<IMyOperationsA.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult> OpWithSingleReturnValueAndEncodedResultAttributeAsync(
-            Dispatch dispatch,
-            CancellationToken cancel) => new(new IMyOperationsA.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult(10, dispatch));
+            IFeatureCollection features,
+            CancellationToken cancel) => new(new IMyOperationsA.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult(10, features));
 
         public ValueTask<IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult> OpWithMultipleReturnValuesAndEncodedResultAttributeAsync(
-            Dispatch dispatch,
-            CancellationToken cancel) => new(new IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult(10, 20, dispatch));
+            IFeatureCollection features,
+            CancellationToken cancel) => new(new IMyOperationsA.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult(10, 20, features));
 
         public ValueTask<ReadOnlyMemory<int>> OpReadOnlyMemoryAsync(
             int[] p1,
-            Dispatch dispatch,
+            IFeatureCollection features,
             CancellationToken cancel) => new(p1);
 
         public ValueTask<ReadOnlyMemory<int>> OpReadOnlyMemoryOptionalAsync(
             int[]? p1,
-            Dispatch dispatch,
+            IFeatureCollection features,
             CancellationToken cancel) => new(p1);
 
         public ValueTask<ReadOnlyMemory<int>> OpReadOnlyMemoryTaggedAsync(
             int[]? p1,
-            Dispatch dispatch,
+            IFeatureCollection features,
             CancellationToken cancel) => new(p1);
     }
 

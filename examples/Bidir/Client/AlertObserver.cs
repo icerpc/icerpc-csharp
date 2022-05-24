@@ -9,7 +9,7 @@ public class AlertObserver : Service, IAlertObserver
 {
     private static readonly string[] _allowedAnswers = { "Y", "N" };
 
-    public ValueTask<bool> AlertAsync(Dispatch dispatch, CancellationToken cancel)
+    public ValueTask<bool> AlertAsync(IFeatureCollection features, CancellationToken cancel)
     {
         string answer = "";
         Console.WriteLine("Alert received...");

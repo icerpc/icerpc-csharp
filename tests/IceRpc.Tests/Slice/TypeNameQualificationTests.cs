@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -28,7 +29,7 @@ public class TypeNameQualificationTests
     {
         public ValueTask<S> OpWithTypeNamesDefinedInMultipleModulesAsync(
             Inner.S s,
-            Dispatch dispatch,
+            IFeatureCollection features,
             CancellationToken cancel) => new(new S($"{s.V}"));
     }
 }

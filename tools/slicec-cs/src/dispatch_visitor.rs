@@ -438,7 +438,7 @@ await request.DecodeEmptyArgsAsync({}, cancel).ConfigureAwait(false);",
             }
         }
 
-        args.push("new IceRpc.Slice.Dispatch(request)".to_owned());
+        args.push("request.Features".to_owned());
         args.push("cancel".to_owned());
 
         writeln!(
@@ -460,7 +460,7 @@ await request.DecodeEmptyArgsAsync({}, cancel).ConfigureAwait(false);",
                 .map(|parameter| format!("args.{}", &parameter.field_name(FieldType::NonMangled)))
                 .collect(),
         };
-        args.push("new IceRpc.Slice.Dispatch(request)".to_owned());
+        args.push("request.Features".to_owned());
         args.push("cancel".to_owned());
 
         writeln!(

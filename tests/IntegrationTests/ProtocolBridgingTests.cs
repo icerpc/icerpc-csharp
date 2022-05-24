@@ -71,16 +71,14 @@ public sealed class ProtocolBridgingTests
             Assert.That(prx.Proxy.Path, Is.EqualTo(expectedPath));
             Assert.That(await prx.OpAsync(13), Is.EqualTo(13));
 
-            var invocation = new Invocation
-            {
-                Features = new FeatureCollection().With<IContextFeature>(
-                    new ContextFeature
-                    {
-                        Value = new Dictionary<string, string> { ["MyCtx"] = "hello" }
-                    })
-            };
-            await prx.OpContextAsync(invocation);
-            Assert.That(invocation.Features.Get<IContextFeature>()?.Value, Is.EqualTo(targetService.Context));
+            IFeatureCollection features = new FeatureCollection().With<IContextFeature>(
+                new ContextFeature
+                {
+                    Value = new Dictionary<string, string> { ["MyCtx"] = "hello" }
+                });
+
+            await prx.OpContextAsync(features);
+            Assert.That(features.Get<IContextFeature>()?.Value, Is.EqualTo(targetService.Context));
             targetService.Context = ImmutableDictionary<string, string>.Empty;
 
             await prx.OpVoidAsync();
@@ -104,33 +102,33 @@ public sealed class ProtocolBridgingTests
     {
         public ImmutableDictionary<string, string> Context { get; set; } = ImmutableDictionary<string, string>.Empty;
 
-        public ValueTask<int> OpAsync(int x, Dispatch dispatch, CancellationToken cancel) =>
+        public ValueTask<int> OpAsync(int x, IFeatureCollection features, CancellationToken cancel) =>
             new(x);
 
-        public ValueTask OpContextAsync(Dispatch dispatch, CancellationToken cancel)
+        public ValueTask OpContextAsync(IFeatureCollection features, CancellationToken cancel)
         {
-            Context = dispatch.Features.Get<IContextFeature>()?.Value?.ToImmutableDictionary() ??
+            Context = features.Get<IContextFeature>()?.Value?.ToImmutableDictionary() ??
                 ImmutableDictionary<string, string>.Empty;
             return default;
         }
-        public ValueTask OpExceptionAsync(Dispatch dispatch, CancellationToken cancel) =>
+        public ValueTask OpExceptionAsync(IFeatureCollection features, CancellationToken cancel) =>
             throw new ProtocolBridgingException(42);
 
-        public ValueTask<ProtocolBridgingTestPrx> OpNewProxyAsync(Dispatch dispatch, CancellationToken cancel)
+        public ValueTask<ProtocolBridgingTestPrx> OpNewProxyAsync(IFeatureCollection features, CancellationToken cancel)
         {
-            IDispatchInformationFeature dispatchInformation = dispatch.Features.Get<IDispatchInformationFeature>()!;
+            IDispatchInformationFeature dispatchInformation = features.Get<IDispatchInformationFeature>()!;
 
             var proxy = new Proxy(dispatchInformation.Connection.Protocol) { Path = dispatchInformation.Path };
             proxy.Endpoint = dispatchInformation.Connection.Endpoint;
             return new(new ProtocolBridgingTestPrx(proxy));
         }
 
-        public ValueTask OpOnewayAsync(int x, Dispatch dispatch, CancellationToken cancel) => default;
+        public ValueTask OpOnewayAsync(int x, IFeatureCollection features, CancellationToken cancel) => default;
 
-        public ValueTask OpServiceNotFoundExceptionAsync(Dispatch dispatch, CancellationToken cancel) =>
+        public ValueTask OpServiceNotFoundExceptionAsync(IFeatureCollection features, CancellationToken cancel) =>
             throw new DispatchException(DispatchErrorCode.ServiceNotFound);
 
-        public ValueTask OpVoidAsync(Dispatch dispatch, CancellationToken cancel) => default;
+        public ValueTask OpVoidAsync(IFeatureCollection features, CancellationToken cancel) => default;
     }
 
     public sealed class Forwarder : IDispatcher
