@@ -624,24 +624,29 @@ public class ConnectionTests
             return new OutgoingResponse(request);
         });
 
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseDispatcher(dispatcher)
-            .UseConnectionOptions(
-                new ClientConnectionOptions
+        IServiceCollection services = new ServiceCollection()
+            .AddColocTest(Protocol.FromString(protocol))
+            .AddSingleton<IDispatcher>(dispatcher);
+
+        services
+            .AddOptions<ClientConnectionOptions>()
+            .Configure(
+                options => options.CloseTimeout = closeClientSide ? TimeSpan.FromSeconds(1) : TimeSpan.FromSeconds(60));
+
+        services
+            .AddOptions<ServerOptions>()
+            .Configure(
+                options =>
                 {
-                    CloseTimeout = closeClientSide ? TimeSpan.FromSeconds(1) : TimeSpan.FromSeconds(60)
-                })
-            .UseServerOptions(
-                new ServerOptions
-                {
-                    ConnectionOptions = new ConnectionOptions()
-                    {
-                        CloseTimeout = closeClientSide ? TimeSpan.FromSeconds(60) : TimeSpan.FromSeconds(1)
-                    }
-                })
-            .BuildServiceProvider();
+                    // Console.WriteLine("configuring close timeout");
+                    options.ConnectionOptions.CloseTimeout =
+                        closeClientSide ? TimeSpan.FromSeconds(60) : TimeSpan.FromSeconds(1);
+                });
+
+        await using ServiceProvider provider = services.BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
         var proxy = ServicePrx.FromConnection(clientConnection, "/path");
         var pingTask = proxy.IcePingAsync();

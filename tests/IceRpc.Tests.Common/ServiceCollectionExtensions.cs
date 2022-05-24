@@ -36,6 +36,7 @@ public static class ServiceCollectionExtensions
             .Configure<IDispatcher>(
                 (options, dispatcher) =>
                 {
+                    // Console.WriteLine("configuring dispatcher and endpoint");
                     options.ConnectionOptions.Dispatcher = dispatcher;
                     options.Endpoint = endpoint;
                 });
