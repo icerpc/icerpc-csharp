@@ -39,7 +39,7 @@ namespace IceRpc
                 options.IsResumable,
                 options.RemoteEndpoint ?? throw new ArgumentException(
                     $"{nameof(ClientConnectionOptions.RemoteEndpoint)} is not set",
-                    nameof(options)), 
+                    nameof(options)),
                 loggerFactory)
         {
             // At this point, we consider options to be read-only.

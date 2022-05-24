@@ -84,8 +84,8 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
-            .UseServerOptions(new ServerOptions 
-            { 
+            .UseServerOptions(new ServerOptions
+            {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
             })
             .BuildServiceProvider();

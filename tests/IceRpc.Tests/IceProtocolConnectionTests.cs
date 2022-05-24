@@ -193,7 +193,7 @@ public sealed class IceProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
-            .UseServerOptions(new ServerOptions 
+            .UseServerOptions(new ServerOptions
                 {
                     ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
                 })

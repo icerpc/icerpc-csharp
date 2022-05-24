@@ -347,8 +347,8 @@ public sealed class ProtocolConnectionTests
 
         await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
-            .UseServerOptions(new ServerOptions 
-            { 
+            .UseServerOptions(new ServerOptions
+            {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
             })
             .BuildServiceProvider();
@@ -569,8 +569,8 @@ public sealed class ProtocolConnectionTests
         });
         await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
-            .UseServerOptions(new ServerOptions 
-            { 
+            .UseServerOptions(new ServerOptions
+            {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
             })
             .BuildServiceProvider();
