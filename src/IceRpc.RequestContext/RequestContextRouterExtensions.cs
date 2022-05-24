@@ -8,7 +8,7 @@ namespace IceRpc.Configure;
 /// </summary>
 public static class RequestContextRouterExtensions
 {
-    /// <summary>Adds a <see cref="RequestContext"/> to the router.</summary>
+    /// <summary>Adds a <see cref="RequestContextMiddleware"/> to the router.</summary>
     /// <param name="router">The router being configured.</param>
     public static Router UseRequestContext(this Router router) =>
         router.Use(next => new RequestContextMiddleware(next));

@@ -8,7 +8,7 @@ namespace IceRpc.Configure;
 /// </summary>
 public static class RequestContextPipelineExtensions
 {
-    /// <summary>Adds a <see cref="RequestContext"/> to the pipeline.</summary>
+    /// <summary>Adds a <see cref="RequestContextInterceptor"/> to the pipeline.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>
     /// <returns>The pipeline being configured.</returns>
     public static Pipeline UseRequestContext(this Pipeline pipeline) =>
