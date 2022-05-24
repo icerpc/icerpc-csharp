@@ -85,12 +85,15 @@ public sealed class ProtocolConnectionTests
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions
             {
-                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                ConnectionOptions = new ConnectionOptions
                 {
-                    start.Release();
-                    await hold.WaitAsync(cancel);
-                    return new OutgoingResponse(request);
-                })
+                    Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                    {
+                        start.Release();
+                        await hold.WaitAsync(cancel);
+                        return new OutgoingResponse(request);
+                    })
+                }
             })
             .BuildServiceProvider();
 
@@ -144,11 +147,14 @@ public sealed class ProtocolConnectionTests
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions
             {
-                Dispatcher = new InlineDispatcher((request, cancel) =>
+                ConnectionOptions = new ConnectionOptions
                 {
-                    result.SetResult(sut!.Value.Client.HasInvocationsInProgress);
-                    return new(new OutgoingResponse(request));
-                })
+                    Dispatcher = new InlineDispatcher((request, cancel) =>
+                    {
+                        result.SetResult(sut!.Value.Client.HasInvocationsInProgress);
+                        return new(new OutgoingResponse(request));
+                    })
+                }
             })
             .BuildServiceProvider();
         sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
@@ -173,11 +179,14 @@ public sealed class ProtocolConnectionTests
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions
             {
-                Dispatcher = new InlineDispatcher((request, cancel) =>
+                ConnectionOptions = new ConnectionOptions
                 {
-                    result.SetResult(sut!.Value.Server.HasDispatchesInProgress);
-                    return new(new OutgoingResponse(request));
-                })
+                    Dispatcher = new InlineDispatcher((request, cancel) =>
+                    {
+                        result.SetResult(sut!.Value.Server.HasDispatchesInProgress);
+                        return new(new OutgoingResponse(request));
+                    })
+                }
             })
             .BuildServiceProvider();
         sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
@@ -216,13 +225,16 @@ public sealed class ProtocolConnectionTests
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions
             {
-                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                ConnectionOptions = new ConnectionOptions
                 {
-                    start.Release();
-                    await hold.WaitAsync(cancel);
-                    return new OutgoingResponse(request);
+                    Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                    {
+                        start.Release();
+                        await hold.WaitAsync(cancel);
+                        return new OutgoingResponse(request);
 
-                })
+                    })
+                }
             })
             .BuildServiceProvider();
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
@@ -252,12 +264,15 @@ public sealed class ProtocolConnectionTests
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions
             {
-                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                ConnectionOptions= new ConnectionOptions
                 {
-                    start.Release();
-                    await hold.WaitAsync(cancel);
-                    return new OutgoingResponse(request);
-                })
+                    Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                    {
+                        start.Release();
+                        await hold.WaitAsync(cancel);
+                        return new OutgoingResponse(request);
+                    })
+                }
             })
             .BuildServiceProvider();
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
@@ -332,7 +347,10 @@ public sealed class ProtocolConnectionTests
 
         await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
-            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions 
+            { 
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
+            })
             .BuildServiceProvider();
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         IConnection connection = serviceProvider.GetInvalidConnection();
@@ -358,7 +376,10 @@ public sealed class ProtocolConnectionTests
 
         await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
-            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
+            })
             .BuildServiceProvider();
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         IConnection connection = serviceProvider.GetInvalidConnection();
@@ -388,7 +409,10 @@ public sealed class ProtocolConnectionTests
 
         await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
-            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
+            })
             .BuildServiceProvider();
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         IConnection connection = serviceProvider.GetInvalidConnection();
@@ -447,7 +471,10 @@ public sealed class ProtocolConnectionTests
 
         await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
-            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
+            })
             .BuildServiceProvider();
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         IConnection connection = serviceProvider.GetInvalidConnection();
@@ -495,15 +522,18 @@ public sealed class ProtocolConnectionTests
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions
             {
-                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                ConnectionOptions = new ConnectionOptions
                 {
-                    ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
-                    request.Payload.AdvanceTo(readResult.Buffer.End);
-                    return new OutgoingResponse(request)
+                    Dispatcher = new InlineDispatcher(async (request, cancel) =>
                     {
-                        Payload = PipeReader.Create(new ReadOnlySequence<byte>(expectedPayload))
-                    };
-                })
+                        ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
+                        request.Payload.AdvanceTo(readResult.Buffer.End);
+                        return new OutgoingResponse(request)
+                        {
+                            Payload = PipeReader.Create(new ReadOnlySequence<byte>(expectedPayload))
+                        };
+                    })
+                }
             })
             .BuildServiceProvider();
 
@@ -539,7 +569,10 @@ public sealed class ProtocolConnectionTests
         });
         await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
-            .UseServerOptions(new ServerOptions { Dispatcher = dispatcher })
+            .UseServerOptions(new ServerOptions 
+            { 
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
+            })
             .BuildServiceProvider();
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
         IConnection connection = serviceProvider.GetInvalidConnection();
@@ -572,13 +605,16 @@ public sealed class ProtocolConnectionTests
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions
             {
-                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                ConnectionOptions = new ConnectionOptions
                 {
-                    ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
-                    receivedPayload = readResult.Buffer.ToArray();
-                    request.Payload.AdvanceTo(readResult.Buffer.End);
-                    return new OutgoingResponse(request);
-                })
+                    Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                    {
+                        ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
+                        receivedPayload = readResult.Buffer.ToArray();
+                        request.Payload.AdvanceTo(readResult.Buffer.End);
+                        return new OutgoingResponse(request);
+                    })
+                }
             })
             .BuildServiceProvider();
 
@@ -612,12 +648,15 @@ public sealed class ProtocolConnectionTests
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions
             {
-                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                ConnectionOptions = new ConnectionOptions
                 {
-                    start.Release();
-                    await hold.WaitAsync(cancel);
-                    return new OutgoingResponse(request);
-                })
+                    Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                    {
+                        start.Release();
+                        await hold.WaitAsync(cancel);
+                        return new OutgoingResponse(request);
+                    })
+                }
             })
             .BuildServiceProvider();
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();

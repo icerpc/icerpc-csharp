@@ -4,6 +4,7 @@ using IceRpc.Configure;
 using IceRpc.Slice;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
@@ -46,19 +47,22 @@ public class ConnectionTests
 
         await using var provider = new ConnectionServiceCollection(protocol)
             .UseTcp(tcpServerTransportOptions, tcpClientTransportOptions)
-            .UseConnectionOptions(new ConnectionOptions
+            .UseConnectionOptions(new ClientConnectionOptions
             {
                 OnClose = (_, _) => clientConnectionClosed.SetResult()
             })
             .UseServerOptions(new ServerOptions
             {
-                OnClose = (_, _) => serverConnectionClosed.SetResult()
+                ConnectionOptions = new ConnectionOptions
+                {
+                    OnClose = (_, _) => serverConnectionClosed.SetResult()
+                }
             })
             .UseDispatcher(dispatcher)
             .BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
-        var clientConnection = provider.GetRequiredService<Connection>();
+        var clientConnection = provider.GetRequiredService<ClientConnection>();
         var proxy = Proxy.FromConnection(clientConnection, "/foo");
 
         var invokeTask = proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
@@ -90,7 +94,7 @@ public class ConnectionTests
             .UseDispatcher(dispatcher)
             .BuildServiceProvider();
         var server = provider.GetRequiredService<Server>();
-        var connection = provider.GetRequiredService<Connection>();
+        var connection = provider.GetRequiredService<ClientConnection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
 
@@ -124,7 +128,7 @@ public class ConnectionTests
             .UseDispatcher(dispatcher)
             .BuildServiceProvider();
         var server = provider.GetRequiredService<Server>();
-        var connection = provider.GetRequiredService<Connection>();
+        var connection = provider.GetRequiredService<ClientConnection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
 
@@ -157,17 +161,20 @@ public class ConnectionTests
 
         await using var provider = new ConnectionServiceCollection(protocol)
             .UseDispatcher(dispatcher)
-            .UseConnectionOptions(new ConnectionOptions
+            .UseConnectionOptions(new ClientConnectionOptions
             {
                 OnClose = (_, _) => clientConnectionClosed.SetResult(null)
             })
             .UseServerOptions(new ServerOptions
             {
-                OnClose = (_, _) => serverConnectionClosed.SetResult(null)
+                ConnectionOptions = new ConnectionOptions
+                {
+                    OnClose = (_, _) => serverConnectionClosed.SetResult(null)
+                }
             })
             .BuildServiceProvider();
         var server = provider.GetRequiredService<Server>();
-        var clientConnection = provider.GetRequiredService<Connection>();
+        var clientConnection = provider.GetRequiredService<ClientConnection>();
 
         var proxy = Proxy.FromConnection(clientConnection, "/foo");
 
@@ -191,7 +198,7 @@ public class ConnectionTests
         var slicServerTransport = new SlicServerTransport(tcpServerTransport);
 
         await using var listener = slicServerTransport.Listen($"{protocol}://127.0.0.1:0", null, NullLogger.Instance);
-        await using var connection = new Connection(new ConnectionOptions
+        await using var connection = new ClientConnection(new ClientConnectionOptions
         {
             RemoteEndpoint = listener.Endpoint,
             ConnectTimeout = TimeSpan.FromMilliseconds(100),
@@ -220,7 +227,7 @@ public class ConnectionTests
             .UseDispatcher(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))))
             .BuildServiceProvider();
         var server = provider.GetRequiredService<Server>();
-        var connection = provider.GetRequiredService<Connection>();
+        var connection = provider.GetRequiredService<ClientConnection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
 
@@ -253,10 +260,10 @@ public class ConnectionTests
         await using var provider = new ConnectionServiceCollection(protocol)
             .UseTcp(tcpServerTransportOptions, tcpClientTransportOptions)
             .UseDispatcher(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))))
-            .UseConnectionOptions(new ConnectionOptions { IsResumable = true })
+            .UseConnectionOptions(new ClientConnectionOptions { IsResumable = true })
             .BuildServiceProvider();
         var server = provider.GetRequiredService<Server>();
-        var connection = provider.GetRequiredService<Connection>();
+        var connection = provider.GetRequiredService<ClientConnection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
 
@@ -281,10 +288,10 @@ public class ConnectionTests
                     serverConnection = (Connection)request.Connection;
                     return new(new OutgoingResponse(request));
                 }))
-            .UseConnectionOptions(new ConnectionOptions { IsResumable = true })
+            .UseConnectionOptions(new ClientConnectionOptions { IsResumable = true })
             .BuildServiceProvider();
         var server = provider.GetRequiredService<Server>();
-        var connection = provider.GetRequiredService<Connection>();
+        var connection = provider.GetRequiredService<ClientConnection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
@@ -311,10 +318,10 @@ public class ConnectionTests
                     serverConnection = (Connection)request.Connection;
                     return new(new OutgoingResponse(request));
                 }))
-            .UseConnectionOptions(new ConnectionOptions { IsResumable = true })
+            .UseConnectionOptions(new ClientConnectionOptions { IsResumable = true })
             .BuildServiceProvider();
         var server = provider.GetRequiredService<Server>();
-        var connection = provider.GetRequiredService<Connection>();
+        var connection = provider.GetRequiredService<ClientConnection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
@@ -335,10 +342,10 @@ public class ConnectionTests
         // Arrange
         await using var provider = new ConnectionServiceCollection(protocol)
             .UseDispatcher(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))))
-            .UseConnectionOptions(new ConnectionOptions { IsResumable = true })
+            .UseConnectionOptions(new ClientConnectionOptions { IsResumable = true })
             .BuildServiceProvider();
         var server = provider.GetRequiredService<Server>();
-        var connection = provider.GetRequiredService<Connection>();
+        var connection = provider.GetRequiredService<ClientConnection>();
         var networkConnectionInformation = connection.NetworkConnectionInformation;
 
         // Act
@@ -367,12 +374,15 @@ public class ConnectionTests
 
         await using var provider = new ConnectionServiceCollection(protocol)
             .UseTcp(tcpServerTransportOptions, tcpClientTransportOptions)
-            .UseConnectionOptions(new ConnectionOptions { KeepAlive = keepAliveOnClient })
-            .UseServerOptions(new ServerOptions { KeepAlive = !keepAliveOnClient })
+            .UseConnectionOptions(new ClientConnectionOptions { KeepAlive = keepAliveOnClient })
+            .UseServerOptions(new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { KeepAlive = !keepAliveOnClient }
+            })
             .BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
-        var clientConnection = provider.GetRequiredService<Connection>();
+        var clientConnection = provider.GetRequiredService<ClientConnection>();
 
         // Act
         await clientConnection.ConnectAsync();
@@ -411,7 +421,7 @@ public class ConnectionTests
             .BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
-        var clientConnection = provider.GetRequiredService<Connection>();
+        var clientConnection = provider.GetRequiredService<ClientConnection>();
         var proxy = ServicePrx.FromConnection(clientConnection, "/path");
         var pingTask = proxy.IcePingAsync();
         await start.WaitAsync();
@@ -447,7 +457,7 @@ public class ConnectionTests
             .BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
-        var clientConnection = provider.GetRequiredService<Connection>();
+        var clientConnection = provider.GetRequiredService<ClientConnection>();
         var proxy = ServicePrx.FromConnection(clientConnection, "/path");
         var pingTask = proxy.IcePingAsync();
         await start.WaitAsync();
@@ -480,7 +490,7 @@ public class ConnectionTests
     public async Task Shutdown_does_not_throw_if_connect_fails()
     {
         // Arrange
-        await using var connection = new Connection("icerpc://localhost");
+        await using var connection = new ClientConnection("icerpc://localhost");
         _ = connection.ConnectAsync();
 
         // Act/Assert
@@ -491,7 +501,7 @@ public class ConnectionTests
     public async Task Dispose_does_not_throw_if_connect_fails()
     {
         // Arrange
-        await using var connection = new Connection("icerpc://localhost");
+        await using var connection = new ClientConnection("icerpc://localhost");
         _ = connection.ConnectAsync();
 
         // Act/Assert
@@ -531,7 +541,7 @@ public class ConnectionTests
             .BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
-        var clientConnection = provider.GetRequiredService<Connection>();
+        var clientConnection = provider.GetRequiredService<ClientConnection>();
         var proxy = ServicePrx.FromConnection(clientConnection, "/path");
         var pingTask = proxy.IcePingAsync();
         await start.WaitAsync();
@@ -573,7 +583,7 @@ public class ConnectionTests
         var slicServerTransport = new SlicServerTransport(tcpServerTransport);
 
         await using var listener = slicServerTransport.Listen($"icerpc://127.0.0.1:0", null, NullLogger.Instance);
-        await using var connection = new Connection(new ConnectionOptions
+        await using var connection = new ClientConnection(new ClientConnectionOptions
         {
             RemoteEndpoint = listener.Endpoint,
         });
@@ -617,19 +627,22 @@ public class ConnectionTests
         await using var provider = new ConnectionServiceCollection(protocol)
             .UseDispatcher(dispatcher)
             .UseConnectionOptions(
-                new ConnectionOptions
+                new ClientConnectionOptions
                 {
                     CloseTimeout = closeClientSide ? TimeSpan.FromSeconds(1) : TimeSpan.FromSeconds(60)
                 })
             .UseServerOptions(
                 new ServerOptions
                 {
-                    CloseTimeout = closeClientSide ? TimeSpan.FromSeconds(60) : TimeSpan.FromSeconds(1)
+                    ConnectionOptions = new ConnectionOptions()
+                    {
+                        CloseTimeout = closeClientSide ? TimeSpan.FromSeconds(60) : TimeSpan.FromSeconds(1)
+                    }
                 })
             .BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
-        var clientConnection = provider.GetRequiredService<Connection>();
+        var clientConnection = provider.GetRequiredService<ClientConnection>();
         var proxy = ServicePrx.FromConnection(clientConnection, "/path");
         var pingTask = proxy.IcePingAsync();
         await start.WaitAsync();
@@ -672,38 +685,31 @@ public class ConnectionServiceCollection : ServiceCollection
             var serverOptions = provider.GetService<ServerOptions>() ?? new ServerOptions();
             if (provider.GetService<IDispatcher>() is IDispatcher dispatcher)
             {
-                serverOptions.Dispatcher = dispatcher;
+                serverOptions.ConnectionOptions.Dispatcher = dispatcher;
             }
             serverOptions.Endpoint = provider.GetRequiredService<Endpoint>();
-            serverOptions.IceServerOptions = new()
-            {
-                ServerTransport = provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()
-            };
-            serverOptions.IceRpcServerOptions = new()
-            {
-                ServerTransport = provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>()
-            };
-            var server = new Server(serverOptions);
+
+            var server = new Server(
+                serverOptions,
+                provider.GetService<ILoggerFactory>(),
+                provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>(),
+                provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>());
             server.Listen();
             return server;
         });
 
         this.AddScoped(provider =>
         {
-            var connectionOptions = provider.GetService<ConnectionOptions>() ?? new ConnectionOptions();
+            var connectionOptions = provider.GetService<ClientConnectionOptions>() ?? new ClientConnectionOptions();
             if (connectionOptions.RemoteEndpoint == null)
             {
                 connectionOptions.RemoteEndpoint = provider.GetRequiredService<Server>().Endpoint;
             }
-            connectionOptions.IceClientOptions = new()
-            {
-                ClientTransport = provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()
-            };
-            connectionOptions.IceRpcClientOptions = new()
-            {
-                ClientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>()
-            };
-            return new Connection(connectionOptions);
+            return new ClientConnection(
+                connectionOptions,
+                provider.GetService<ILoggerFactory>(),
+                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
+                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>());
         });
     }
 }

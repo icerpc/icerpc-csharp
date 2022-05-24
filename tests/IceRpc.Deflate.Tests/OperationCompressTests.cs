@@ -42,7 +42,7 @@ public class OperationGeneratedCodeTests
             .UseDispatcher(router)
             .BuildServiceProvider();
 
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>(), "/", pipeline);
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>(), "/", pipeline);
 
         // Act
         int r = await prx.OpWithCompressArgsAndReturnAttributeAsync(10);

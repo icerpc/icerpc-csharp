@@ -23,7 +23,7 @@ public class NamespaceAttributeTests
         await using var provider = new SliceTestServiceCollection()
             .UseDispatcher(new NamespaceOperations())
             .BuildServiceProvider();
-        var prx = NamespaceOperationsPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = NamespaceOperationsPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         NamespaceAttribute.WithNamespace.N1.N2.S1 r =
             await prx.Op1Async(new NamespaceAttribute.M1.M2.M3.S1(10));

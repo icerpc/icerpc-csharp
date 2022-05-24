@@ -6,19 +6,18 @@ using Microsoft.Extensions.Logging;
 namespace IceRpc.Internal
 {
     /// <summary>A log decorator for protocol connection factory.</summary>
-    internal class LogProtocolConnectionFactoryDecorator<T, TOptions> : IProtocolConnectionFactory<T, TOptions>
+    internal class LogProtocolConnectionFactoryDecorator<T> : IProtocolConnectionFactory<T>
         where T : INetworkConnection
-        where TOptions : class
     {
-        private readonly IProtocolConnectionFactory<T, TOptions> _decoratee;
+        private readonly IProtocolConnectionFactory<T> _decoratee;
         private readonly ILogger _logger;
 
-        async Task<IProtocolConnection> IProtocolConnectionFactory<T, TOptions>.CreateProtocolConnectionAsync(
+        async Task<IProtocolConnection> IProtocolConnectionFactory<T>.CreateProtocolConnectionAsync(
             T networkConnection,
             NetworkConnectionInformation connectionInformation,
             IDispatcher dispatcher,
             bool isServer,
-            TOptions? protocolOptions,
+            Configure.ConnectionOptions connectionOptions,
             CancellationToken cancel)
         {
             using IDisposable scope = _logger.StartConnectionScope(connectionInformation, isServer);
@@ -28,7 +27,7 @@ namespace IceRpc.Internal
                 connectionInformation,
                 dispatcher,
                 isServer,
-                protocolOptions,
+                connectionOptions,
                 cancel).ConfigureAwait(false);
 
             _logger.LogCreateProtocolConnection(
@@ -43,9 +42,7 @@ namespace IceRpc.Internal
                 _logger);
         }
 
-        internal LogProtocolConnectionFactoryDecorator(
-            IProtocolConnectionFactory<T, TOptions> decoratee,
-            ILogger logger)
+        internal LogProtocolConnectionFactoryDecorator(IProtocolConnectionFactory<T> decoratee, ILogger logger)
         {
             _decoratee = decoratee;
             _logger = logger;

@@ -17,7 +17,7 @@ public class OperationGeneratedCodeTests
         await using var provider = new SliceTestServiceCollection()
             .UseDispatcher(new MyOperationsA())
             .BuildServiceProvider();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         Assert.That(async () => await prx.OpWithoutParametersAndVoidReturnAsync(), Throws.Nothing);
     }
@@ -28,7 +28,7 @@ public class OperationGeneratedCodeTests
         await using var provider = new SliceTestServiceCollection()
             .UseDispatcher(new MyDerivedOperationsA())
             .BuildServiceProvider();
-        var prx = MyDerivedOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyDerivedOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         Assert.That(async () => await prx.OpWithoutParametersAndVoidReturnAsync(), Throws.Nothing);
     }
@@ -39,7 +39,7 @@ public class OperationGeneratedCodeTests
         await using var provider = new SliceTestServiceCollection()
             .UseDispatcher(new MyOperationsA())
             .BuildServiceProvider();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         int r = await prx.OpWithSingleParameterAndReturnValueAsync(10);
 
@@ -52,7 +52,7 @@ public class OperationGeneratedCodeTests
         await using var provider = new SliceTestServiceCollection()
             .UseDispatcher(new MyOperationsA())
             .BuildServiceProvider();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         (int r1, int r2) = await prx.OpWithMultipleParametersAndReturnValuesAsync(10, 20);
 
@@ -67,7 +67,7 @@ public class OperationGeneratedCodeTests
         await using var provider = new SliceTestServiceCollection()
             .UseDispatcher(new MyOperationsA())
             .BuildServiceProvider();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
         var data = new byte[] { 1, 2, 3 };
         var pipe = new Pipe();
 
@@ -91,7 +91,7 @@ public class OperationGeneratedCodeTests
         await using var provider = new SliceTestServiceCollection()
             .UseDispatcher(new MyOperationsA())
             .BuildServiceProvider();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         // Act
         var r = await prx.OpWithIntStreamArgumentAndReturnAsync(GetDataAsync());
@@ -125,7 +125,7 @@ public class OperationGeneratedCodeTests
         await using var provider = new SliceTestServiceCollection()
             .UseDispatcher(new MyOperationsA())
             .BuildServiceProvider();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         // Act
         var r = await prx.OpWithStringStreamArgumentAndReturnAsync(GetDataAsync());
@@ -159,7 +159,7 @@ public class OperationGeneratedCodeTests
         await using var provider = new SliceTestServiceCollection()
             .UseDispatcher(new MyOperationsA())
             .BuildServiceProvider();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         // Act
         (int r1, IAsyncEnumerable<int> r2) =
@@ -196,7 +196,7 @@ public class OperationGeneratedCodeTests
         await using var provider = new SliceTestServiceCollection()
             .UseDispatcher(new MyOperationsA())
             .BuildServiceProvider();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         // Act
         Assert.That(
@@ -215,7 +215,7 @@ public class OperationGeneratedCodeTests
         await using var provider = new SliceTestServiceCollection()
             .UseDispatcher(new MyOperationsA())
             .BuildServiceProvider();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         // Act
         Assert.That(async () => await prx.OpWithCsAttributeAsync(10), Throws.Nothing);
@@ -228,7 +228,7 @@ public class OperationGeneratedCodeTests
         await using var provider = new SliceTestServiceCollection()
             .UseDispatcher(new MyOperationsA())
             .BuildServiceProvider();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         // Act
         var r = await prx.OpWithSingleReturnValueAndEncodedResultAttributeAsync();
@@ -244,7 +244,7 @@ public class OperationGeneratedCodeTests
         await using var provider = new SliceTestServiceCollection()
             .UseDispatcher(new MyOperationsA())
             .BuildServiceProvider();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<Connection>());
+        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         // Act
         (int r1, int r2) = await prx.OpWithMultipleReturnValuesAndEncodedResultAttributeAsync();
