@@ -5,10 +5,10 @@ namespace IceRpc.Features;
 /// <summary>Extension methods for interface <see cref="IEndpointFeature"/>.</summary>
 public static class EndpointFeatureExtensions
 {
-    /// <summary>Tries to remove an endpoint from this endpoint features. If the endpoint is not found, this method
+    /// <summary>Tries to remove an endpoint from this endpoint feature. If the endpoint is not found, this method
     /// does nothing.</summary>
     /// <param name="feature">The endpoint feature.</param>
-    /// <param name="endpoint">The endpoint to remove from the endpoint features.</param>
+    /// <param name="endpoint">The endpoint to remove from the endpoint feature.</param>
     public static void RemoveEndpoint(this IEndpointFeature feature, Endpoint endpoint)
     {
         // Filter-out the remote endpoint
