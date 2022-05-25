@@ -28,19 +28,19 @@ public sealed class ConnectionPoolTests
             new ConnectionPoolOptions { PreferExistingConnection = false },
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
-        IConnection connection2 = await pool.GetConnectionAsync(
+        IClientConnection connection2 = await pool.GetClientConnectionAsync(
             server2.Endpoint,
             Array.Empty<Endpoint>(),
             default);
 
         // Act
-        IConnection connection1 = await pool.GetConnectionAsync(
+        IClientConnection connection1 = await pool.GetClientConnectionAsync(
             server1.Endpoint,
             new Endpoint[] { server2.Endpoint },
             default);
 
         // Assert
-        Assert.That(connection1.Endpoint, Is.EqualTo(server1.Endpoint));
+        Assert.That(connection1.RemoteEndpoint, Is.EqualTo(server1.Endpoint));
         Assert.That(connection1, Is.Not.EqualTo(connection2));
         Assert.That(server1.Endpoint, Is.Not.EqualTo(server2.Endpoint));
     }
@@ -62,13 +62,13 @@ public sealed class ConnectionPoolTests
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
         // Act
-        IConnection connection = await pool.GetConnectionAsync(
+        IClientConnection connection = await pool.GetClientConnectionAsync(
             Endpoint.FromString("icerpc://bar?transport=coloc"),
             new Endpoint[] { server.Endpoint },
             default);
 
         // Assert
-        Assert.That(connection.Endpoint, Is.EqualTo(server.Endpoint));
+        Assert.That(connection.RemoteEndpoint, Is.EqualTo(server.Endpoint));
     }
 
     /// <summary>Verifies that the connection pool prefers connecting to the main endpoint.</summary>
@@ -92,13 +92,13 @@ public sealed class ConnectionPoolTests
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
         // Act
-        IConnection connection = await pool.GetConnectionAsync(
+        IClientConnection connection = await pool.GetClientConnectionAsync(
             server1.Endpoint,
             new Endpoint[] { server2.Endpoint },
             default);
 
         // Assert
-        Assert.That(connection.Endpoint, Is.EqualTo(server1.Endpoint));
+        Assert.That(connection.RemoteEndpoint, Is.EqualTo(server1.Endpoint));
     }
 
     /// <summary>Verifies that the connection pool reuses existing connection.</summary>
@@ -116,13 +116,13 @@ public sealed class ConnectionPoolTests
             new ConnectionPoolOptions { PreferExistingConnection = true },
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
-        IConnection connection1 = await pool.GetConnectionAsync(
+        IConnection connection1 = await pool.GetClientConnectionAsync(
             server.Endpoint,
             Array.Empty<Endpoint>(),
             default);
 
         // Act
-        IConnection connection2 = await pool.GetConnectionAsync(
+        IConnection connection2 = await pool.GetClientConnectionAsync(
             server.Endpoint,
             Array.Empty<Endpoint>(),
             default);
@@ -152,19 +152,19 @@ public sealed class ConnectionPoolTests
            new ConnectionPoolOptions { PreferExistingConnection = true },
            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
-        IConnection connection1 = await pool.GetConnectionAsync(
+        IClientConnection connection1 = await pool.GetClientConnectionAsync(
             server2.Endpoint,
             Array.Empty<Endpoint>(),
             default);
 
         // Act
-        IConnection connection2 = await pool.GetConnectionAsync(
+        IClientConnection connection2 = await pool.GetClientConnectionAsync(
             server1.Endpoint,
             new Endpoint[] { server2.Endpoint },
             default);
 
         // Assert
-        Assert.That(connection2.Endpoint, Is.EqualTo(server2.Endpoint));
+        Assert.That(connection2.RemoteEndpoint, Is.EqualTo(server2.Endpoint));
         Assert.That(connection2, Is.EqualTo(connection1));
         Assert.That(server1.Endpoint, Is.Not.EqualTo(server2.Endpoint));
     }

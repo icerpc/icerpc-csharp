@@ -7,11 +7,6 @@ namespace IceRpc;
 /// <summary>Represents a connection used to send and receive requests and responses.</summary>
 public interface IConnection
 {
-    /// <summary>The connection's endpoint. For a client connection this is the connection's remote endpoint,
-    /// for a server connection it's the server's endpoint.</summary>
-    // TODO: can we/should we eliminate this property?
-    Endpoint Endpoint { get; }
-
     /// <summary>Checks whether a call to <see cref="InvokeAsync"/> can succeed.</summary>
     /// <value><c>true</c> when a call to <see cref="InvokeAsync"/> can succeed. <c>false</c> when a call to
     /// <see cref="InvokeAsync"/> is guaranteed to fail, for example because the connection is closed or shutting down.

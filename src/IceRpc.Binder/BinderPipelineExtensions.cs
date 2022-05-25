@@ -16,7 +16,7 @@ public static class BinderPipelineExtensions
     /// <returns>The pipeline being configured.</returns>
     public static Pipeline UseBinder(
         this Pipeline pipeline,
-        IConnectionProvider connectionProvider,
+        IClientConnectionProvider connectionProvider,
         bool cacheConnection = true) =>
         pipeline.Use(next => new BinderInterceptor(next, connectionProvider, cacheConnection));
 }
