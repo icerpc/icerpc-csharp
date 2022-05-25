@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Configure;
 using IceRpc.Transports;
 using IceRpc.Transports.Tests;
 using Microsoft.Extensions.DependencyInjection;
@@ -58,10 +57,19 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddIceRpcClientConnection(this IServiceCollection services) =>
         services
             .AddIceRpcClient()
-            // TODO: should this be IClientConnection?
-            .AddSingleton<ClientConnection>(provider =>
+            .AddSingleton(provider =>
                 new ClientConnection(
                     provider.GetRequiredService<IOptions<ClientConnectionOptions>>().Value,
+                    loggerFactory: provider.GetService<ILoggerFactory>(),
+                    provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
+                    provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()));
+
+    public static IServiceCollection AddIceRpcConnectionPool(this IServiceCollection services) =>
+        services
+            .AddIceRpcClient()
+            .AddSingleton(provider =>
+                new ConnectionPool(
+                    provider.GetRequiredService<IOptions<ConnectionPoolOptions>>().Value,
                     loggerFactory: provider.GetService<ILoggerFactory>(),
                     provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
                     provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()));
@@ -94,12 +102,16 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddColocTest(
         this IServiceCollection services,
         IDispatcher dispatcher,
-        Protocol protocol) =>
-        services
-            .AddSingleton<ColocTransport>()
+        Protocol protocol,
+        string host = "colochost")
+    {
+        services.TryAddSingleton<ColocTransport>();
+        return services
             .AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ClientTransport)
             .AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ServerTransport)
-            .AddClientServerTest(dispatcher, new Endpoint(protocol) { Host = "colochost" });
+            .AddClientServerTest(dispatcher, new Endpoint(protocol) { Host = host });
+    }
+
 
     public static IServiceCollection AddColocTest(this IServiceCollection services, IDispatcher dispatcher) =>
         services.AddColocTest(dispatcher, Protocol.IceRpc);
@@ -133,23 +145,6 @@ public static class ServiceCollectionExtensions
         services.AddIceRpcClientConnection();
 
         return services;
-    }
-
-    public static IServiceCollection UseColoc(this IServiceCollection collection) =>
-        collection.UseColoc(new ColocTransport());
-
-    public static IServiceCollection UseColoc(this IServiceCollection collection, ColocTransport coloc)
-    {
-        collection.AddScoped(_ => coloc.ServerTransport);
-        collection.AddScoped(_ => coloc.ClientTransport);
-        collection.AddScoped(
-            typeof(Endpoint),
-            provider =>
-            {
-                string protocol = provider.GetService<Protocol>()?.Name ?? "icerpc";
-                return Endpoint.FromString($"{protocol}://{Guid.NewGuid()}/");
-            });
-        return collection;
     }
 
     public static IServiceCollection UseDispatcher(this IServiceCollection collection, IDispatcher dispatcher) =>

@@ -2,7 +2,6 @@
 
 using IceRpc.Features;
 using NUnit.Framework;
-using System.Linq;
 
 namespace IceRpc.Tests;
 
