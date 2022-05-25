@@ -6,7 +6,6 @@ using NUnit.Framework;
 
 namespace IceRpc.Transports.Tests;
 
-[Timeout(5000)]
 [Parallelizable(ParallelScope.All)]
 public class SlicConformanceTests : MultiplexedTransportConformanceTests
 {

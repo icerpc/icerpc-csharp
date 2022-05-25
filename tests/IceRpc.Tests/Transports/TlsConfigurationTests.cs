@@ -11,7 +11,6 @@ using System.Security.Cryptography.X509Certificates;
 namespace IceRpc.Transports.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
-[Timeout(5000)]
 public class TlsConfigurationTests
 {
     /// <summary>Verifies that the server connection establishment will fail with <see cref="AuthenticationException"/>

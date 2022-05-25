@@ -9,7 +9,6 @@ using System.Security.Cryptography.X509Certificates;
 namespace IceRpc.Transports.Tests;
 
 /// <summary>Conformance tests for the tls simple transport.</summary>
-[Timeout(5000)]
 [Parallelizable(ParallelScope.All)]
 public class TlsTransportConformanceTests : SimpleTransportConformanceTests
 {

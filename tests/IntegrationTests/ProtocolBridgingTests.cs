@@ -14,7 +14,6 @@ namespace IceRpc.IntegrationTests;
 
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 [Parallelizable(ParallelScope.All)]
-[Timeout(5000)]
 public sealed class ProtocolBridgingTests
 {
     [Test]

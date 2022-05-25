@@ -8,7 +8,6 @@ using System.IO.Pipelines;
 
 namespace IceRpc.RequestContext.Tests;
 
-[Timeout(5000)]
 public sealed class RequestContextMiddlewareTests
 {
     [Test]

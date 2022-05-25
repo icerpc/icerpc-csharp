@@ -7,7 +7,6 @@ using NUnit.Framework;
 namespace IceRpc.Transports.Tests;
 
 /// <summary>Conformance tests for the coloc simple transport.</summary>
-[Timeout(5000)]
 [Parallelizable(ParallelScope.All)]
 public class ColocTransportConformanceTests : SimpleTransportConformanceTests
 {

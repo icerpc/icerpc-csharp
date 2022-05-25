@@ -6,7 +6,6 @@ using NUnit.Framework;
 namespace IceRpc.Metrics.Tests;
 
 [Parallelizable(ParallelScope.All)]
-[Timeout(5000)]
 public sealed class MetricsInterceptorTests
 {
     /// <summary>Verifies that a canceled invocation published the expected events (request started, request canceled,

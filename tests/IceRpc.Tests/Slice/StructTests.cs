@@ -5,7 +5,6 @@ using NUnit.Framework;
 
 namespace IceRpc.Slice.Tests;
 
-[Timeout(5000)]
 [Parallelizable(ParallelScope.All)]
 public sealed class StructTests
 {

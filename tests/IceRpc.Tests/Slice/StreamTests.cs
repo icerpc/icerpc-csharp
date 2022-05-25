@@ -8,7 +8,6 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Slice.Tests;
 
-[Timeout(5000)]
 public class StreamTests
 {
     /// <summary>Verifies that we correctly encode an async enumerable of fixed size elements.</summary>

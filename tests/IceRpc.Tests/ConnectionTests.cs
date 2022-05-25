@@ -11,7 +11,6 @@ using NUnit.Framework;
 namespace IceRpc.Tests;
 
 [Parallelizable(ParallelScope.All)]
-[Timeout(5000)]
 public class ConnectionTests
 {
     /// <summary>Verifies that a connection is closed after being idle.</summary>

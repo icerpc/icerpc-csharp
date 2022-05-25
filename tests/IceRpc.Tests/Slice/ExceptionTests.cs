@@ -7,7 +7,6 @@ using NUnit.Framework;
 
 namespace IceRpc.Slice.Encoding.Tests;
 
-[Timeout(5000)]
 [Parallelizable(ParallelScope.All)]
 public sealed class ExceptionTests
 {

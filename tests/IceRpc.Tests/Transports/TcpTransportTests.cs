@@ -12,7 +12,6 @@ using System.Security.Cryptography.X509Certificates;
 namespace IceRpc.Transports.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
-[Timeout(5000)]
 public class TcpTransportTests
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage(

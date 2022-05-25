@@ -7,7 +7,6 @@ using NUnit.Framework;
 namespace IceRpc.Transports.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
-[Timeout(5000)]
 public class ColocTransportTests
 {
     [Test]

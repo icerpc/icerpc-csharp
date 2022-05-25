@@ -10,7 +10,6 @@ using System.IO.Pipelines;
 namespace IceRpc.Transports.Tests;
 
 /// <summary>Unit tests for slic transport.</summary>
-[Timeout(5000)]
 [Parallelizable(ParallelScope.All)]
 public class SlicTransportTests
 {

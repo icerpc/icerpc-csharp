@@ -9,7 +9,6 @@ using System.IO.Pipelines;
 namespace IceRpc.RequestContext.Tests;
 
 [Parallelizable(ParallelScope.All)]
-[Timeout(5000)]
 public sealed class RequestContextInterceptorTests
 {
     [Test]

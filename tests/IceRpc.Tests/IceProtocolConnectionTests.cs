@@ -8,7 +8,6 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests;
 
-[Timeout(5000)]
 [Parallelizable(ParallelScope.All)]
 public sealed class IceProtocolConnectionTests
 {

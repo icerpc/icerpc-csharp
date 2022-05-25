@@ -5,7 +5,6 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests;
 
-[Timeout(30000)]
 public class ConnectionOptionsTests
 {
     [Test]
