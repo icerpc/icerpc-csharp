@@ -83,22 +83,35 @@ public class FeatureCollectionTests
     [Test]
     public void Iterate_returns_all_features_except_masked_defauls()
     {
-        IFeatureCollection defaults = new FeatureCollection
+        // Arrange
+        IFeatureCollection f1 = new FeatureCollection
         {
             [typeof(int)] = 1,
-            [typeof(long)] = 1024,
+            [typeof(long)] = 128,
         };
-        IFeatureCollection features = new FeatureCollection(defaults);
-        features.Set(43); // Mask the default
-        features.Set("hello");
 
-        var all = features.ToDictionary(x => x.Key, x => x.Value);
+        IFeatureCollection f2 = new FeatureCollection(f1)
+        {
+            [typeof(long)] = 256, // Mask default
+        };
 
+        IFeatureCollection f3 = new FeatureCollection(f2);
+
+        IFeatureCollection f4 = new FeatureCollection(f3)
+        {
+            [typeof(int)] = 2, // Mask the default
+            [typeof(string)] = "hello"
+        };
+
+        // Act
+        var all = f4.ToDictionary(x => x.Key, x => x.Value);
+
+        // Assert
         var expected = new Dictionary<Type, object>
         {
-            [typeof(int)] = 43,
+            [typeof(int)] = 2,
             [typeof(string)] = "hello",
-            [typeof(long)] = 1024
+            [typeof(long)] = 256
         };
         Assert.That(all, Is.EqualTo(expected));
     }
