@@ -22,8 +22,7 @@ public class NamespaceAttributeTests
     public async Task Operation_with_types_using_cs_namespace_attribute()
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest()
-            .AddSingleton<IDispatcher>(new NamespaceOperations())
+            .AddColocTest(new NamespaceOperations())
             .BuildServiceProvider();
 
         provider.GetRequiredService<Server>().Listen();

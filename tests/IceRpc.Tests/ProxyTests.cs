@@ -350,8 +350,7 @@ public class ProxyTests
         router.Map<ISendProxyTest>(service);
         router.UseFeature<ISliceDecodeFeature>(new SliceDecodeFeature { ProxyInvoker = pipeline });
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest()
-            .AddSingleton<IDispatcher>(router)
+            .AddColocTest(router)
             .BuildServiceProvider();
 
         provider.GetRequiredService<Server>().Listen();
@@ -369,8 +368,7 @@ public class ProxyTests
     {
         var service = new SendProxyTest();
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest()
-            .AddSingleton<IDispatcher>(service)
+            .AddColocTest(service)
             .BuildServiceProvider();
 
         provider.GetRequiredService<Server>().Listen();
@@ -387,8 +385,7 @@ public class ProxyTests
     public async Task Proxy_received_over_an_outgoing_connection_inherits_the_callers_invoker()
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest()
-            .AddSingleton<IDispatcher>(new ReceiveProxyTest())
+            .AddColocTest(new ReceiveProxyTest())
             .BuildServiceProvider();
 
         provider.GetRequiredService<Server>().Listen();

@@ -14,8 +14,7 @@ public class PrxTests
     public async Task Downcast_prx_with_as_sync_succeeds()
     {
        await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest()
-            .AddSingleton<IDispatcher>(new MyDerivedInterface())
+            .AddColocTest(new MyDerivedInterface())
             .BuildServiceProvider();
 
         provider.GetRequiredService<Server>().Listen();
@@ -30,8 +29,7 @@ public class PrxTests
     public async Task Downcast_prx_with_as_aync_fails()
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest()
-            .AddSingleton<IDispatcher>(new MyBaseInterface())
+            .AddColocTest(new MyBaseInterface())
             .BuildServiceProvider();
 
         provider.GetRequiredService<Server>().Listen();
