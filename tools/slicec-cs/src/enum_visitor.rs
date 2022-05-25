@@ -59,14 +59,13 @@ fn enum_underlying_extensions(enum_def: &Enum, encoding: Encoding) -> CodeBlock 
     let access = enum_def.access_modifier();
     let escaped_identifier = enum_def.escape_identifier();
     let namespace = &enum_def.namespace();
-    let type_suffix = enum_def.underlying_type(encoding).type_suffix();
     let cs_type = enum_def.underlying_type(encoding).cs_keyword();
     let mut builder = ContainerBuilder::new(
         &format!("{} static class", access),
         &format!(
             "{}{}Extensions",
-            fix_case(type_suffix, CaseStyle::Pascal),
-            fix_case(enum_def.identifier(), CaseStyle::Pascal)
+            fix_case(enum_def.identifier(), CaseStyle::Pascal),
+            fix_case(cs_type, CaseStyle::Pascal),
         ),
     );
 
@@ -82,9 +81,9 @@ fn enum_underlying_extensions(enum_def: &Enum, encoding: Encoding) -> CodeBlock 
 
     // When the number of enumerators is smaller than the distance between the min and max
     // values, the values are not consecutive and we need to use a set to validate the value
-    // during unmarshaling.
+    // during decoding.
     // Note that the values are not necessarily in order, e.g. we can use a simple range check
-    // for enum E { A = 3, B = 2, C = 1 } during unmarshaling.
+    // for enum E { A = 3, B = 2, C = 1 } during decoding.
     let min_max_values = enum_def.get_min_max_values();
     let use_set = if let Some((min_value, max_value)) = min_max_values {
         !enum_def.is_unchecked && (enum_def.enumerators.len() as i64) < max_value - min_value + 1
@@ -219,6 +218,7 @@ fn enum_encoder_extensions(enum_def: &Enum, encoding: Encoding) -> CodeBlock {
 fn enum_decoder_extensions(enum_def: &Enum, encoding: Encoding) -> CodeBlock {
     let access = enum_def.access_modifier();
     let escaped_identifier = enum_def.escape_identifier();
+    let cs_type = enum_def.underlying_type(encoding).cs_keyword();
     let mut builder = ContainerBuilder::new(
         &format!("{} static class", access),
         &format!(
@@ -237,11 +237,8 @@ fn enum_decoder_extensions(enum_def: &Enum, encoding: Encoding) -> CodeBlock {
 
     let underlying_extensions_class = format!(
         "{}{}Extensions",
-        fix_case(
-            enum_def.underlying_type(encoding).type_suffix(),
-            CaseStyle::Pascal
-        ),
-        fix_case(enum_def.identifier(), CaseStyle::Pascal)
+        fix_case(enum_def.identifier(), CaseStyle::Pascal),
+        fix_case(cs_type, CaseStyle::Pascal),
     );
 
     // Enum decoding

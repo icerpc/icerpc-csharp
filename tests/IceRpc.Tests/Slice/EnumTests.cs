@@ -24,25 +24,25 @@ public class EnumTests
     [TestCase(30, MyEnumWithCustomEnumerators.enum3)]
     public void As_enum_for_an_enum_with_non_contiguous_enumerators(int value, MyEnumWithCustomEnumerators expected) =>
         Assert.That(
-            Int32MyEnumWithCustomEnumeratorsExtensions.AsMyEnumWithCustomEnumerators(value),
+            MyEnumWithCustomEnumeratorsIntExtensions.AsMyEnumWithCustomEnumerators(value),
             Is.EqualTo(expected));
 
     [TestCase(-30)]
     [TestCase(40)]
     public void As_enum_for_an_enum_with_non_contiguous_enumerators_fails_for_invalid_value(int value) =>
         Assert.That(
-            () => Int32MyEnumWithCustomEnumeratorsExtensions.AsMyEnumWithCustomEnumerators(value),
+            () => MyEnumWithCustomEnumeratorsIntExtensions.AsMyEnumWithCustomEnumerators(value),
             Throws.TypeOf<InvalidDataException>());
 
     [TestCase(0, MyEnum.enum1)]
     [TestCase(2, MyEnum.enum3)]
     public void As_enum_for_an_enum_with_contiguous_enumerators(int value, MyEnum expected) =>
-        Assert.That(Int32MyEnumExtensions.AsMyEnum(value), Is.EqualTo(expected));
+        Assert.That(MyEnumIntExtensions.AsMyEnum(value), Is.EqualTo(expected));
 
     [TestCase(-11)]
     [TestCase(3)]
     public void As_enum_for_an_enum_with_contiguous_enumerators_fails_for_invalid_values(int value) =>
-       Assert.That(() => Int32MyEnumExtensions.AsMyEnum(value), Throws.TypeOf<InvalidDataException>());
+       Assert.That(() => MyEnumIntExtensions.AsMyEnum(value), Throws.TypeOf<InvalidDataException>());
 
     [TestCase(sizeof(MyFixedLengthEnum), sizeof(short))]
     [TestCase(sizeof(MyUncheckedEnum), sizeof(uint))]
