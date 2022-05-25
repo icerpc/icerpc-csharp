@@ -29,18 +29,13 @@ impl<'a> Visitor for EnumVisitor<'a> {
 }
 
 fn enum_declaration(enum_def: &Enum) -> CodeBlock {
-    let cs_type = match &enum_def.underlying {
-        Some(underlying) => (underlying.cs_keyword()),
-        None => "int",
-    }
-    .to_owned();
     ContainerBuilder::new(
         &format!("{} enum", enum_def.access_modifier()),
         &enum_def.escape_identifier(),
     )
     .add_comment("summary", &doc_comment_message(enum_def))
     .add_container_attributes(enum_def)
-    .add_base(cs_type)
+    .add_base(enum_def.get_underlying_cs_type())
     .add_block(enum_values(enum_def))
     .build()
 }
@@ -63,11 +58,7 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
     let access = enum_def.access_modifier();
     let escaped_identifier = enum_def.escape_identifier();
     let namespace = &enum_def.namespace();
-    let cs_type = match &enum_def.underlying {
-        Some(underlying) => (underlying.cs_keyword()),
-        None => "int",
-    }
-    .to_owned();
+    let cs_type = enum_def.get_underlying_cs_type();
     let mut builder = ContainerBuilder::new(
         &format!("{} static class", access),
         &format!(
@@ -182,11 +173,7 @@ enumerator."#,
 fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
     let access = enum_def.access_modifier();
     let escaped_identifier = enum_def.escape_identifier();
-    let cs_type = match &enum_def.underlying {
-        Some(underlying) => (underlying.cs_keyword()),
-        None => "int",
-    }
-    .to_owned();
+    let cs_type = enum_def.get_underlying_cs_type();
     let mut builder = ContainerBuilder::new(
         &format!("{} static class", access),
         &format!(
@@ -231,11 +218,7 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
 fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
     let access = enum_def.access_modifier();
     let escaped_identifier = enum_def.escape_identifier();
-    let cs_type = match &enum_def.underlying {
-        Some(underlying) => (underlying.cs_keyword()),
-        None => "int",
-    }
-    .to_owned();
+    let cs_type = enum_def.get_underlying_cs_type();
     let mut builder = ContainerBuilder::new(
         &format!("{} static class", access),
         &format!(
