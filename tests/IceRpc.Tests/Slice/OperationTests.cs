@@ -16,8 +16,7 @@ public class OperationGeneratedCodeTests
     public async Task Operation_without_parameters_and_void_return()
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest()
-            .AddSingleton<IDispatcher>(new MyOperationsA())
+            .AddColocTest(new MyOperationsA())
             .BuildServiceProvider();
 
         provider.GetRequiredService<Server>().Listen();
@@ -30,8 +29,7 @@ public class OperationGeneratedCodeTests
     public async Task Operation_from_base_class()
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest()
-            .AddSingleton<IDispatcher>(new MyDerivedOperationsA())
+            .AddColocTest(new MyDerivedOperationsA())
             .BuildServiceProvider();
 
         provider.GetRequiredService<Server>().Listen();
@@ -44,8 +42,7 @@ public class OperationGeneratedCodeTests
     public async Task Operation_with_single_parameter_and_return_value()
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest()
-            .AddSingleton<IDispatcher>(new MyOperationsA())
+            .AddColocTest(new MyOperationsA())
             .BuildServiceProvider();
 
         provider.GetRequiredService<Server>().Listen();
@@ -60,8 +57,7 @@ public class OperationGeneratedCodeTests
     public async Task Operation_with_multiple_parameters_and_return_values()
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest()
-            .AddSingleton<IDispatcher>(new MyOperationsA())
+            .AddColocTest(new MyOperationsA())
             .BuildServiceProvider();
 
         provider.GetRequiredService<Server>().Listen();
@@ -78,8 +74,7 @@ public class OperationGeneratedCodeTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest()
-            .AddSingleton<IDispatcher>(new MyOperationsA())
+            .AddColocTest(new MyOperationsA())
             .BuildServiceProvider();
 
         provider.GetRequiredService<Server>().Listen();
@@ -105,8 +100,7 @@ public class OperationGeneratedCodeTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest()
-            .AddSingleton<IDispatcher>(new MyOperationsA())
+            .AddColocTest(new MyOperationsA())
             .BuildServiceProvider();
 
         provider.GetRequiredService<Server>().Listen();
@@ -142,8 +136,7 @@ public class OperationGeneratedCodeTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest()
-            .AddSingleton<IDispatcher>(new MyOperationsA())
+            .AddColocTest(new MyOperationsA())
             .BuildServiceProvider();
 
         provider.GetRequiredService<Server>().Listen();
@@ -179,8 +172,7 @@ public class OperationGeneratedCodeTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest()
-            .AddSingleton<IDispatcher>(new MyOperationsA())
+            .AddColocTest(new MyOperationsA())
             .BuildServiceProvider();
 
         provider.GetRequiredService<Server>().Listen();
@@ -219,8 +211,7 @@ public class OperationGeneratedCodeTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest()
-            .AddSingleton<IDispatcher>(new MyOperationsA())
+            .AddColocTest(new MyOperationsA())
             .BuildServiceProvider();
 
         provider.GetRequiredService<Server>().Listen();
@@ -240,8 +231,7 @@ public class OperationGeneratedCodeTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest()
-            .AddSingleton<IDispatcher>(new MyOperationsA())
+            .AddColocTest(new MyOperationsA())
             .BuildServiceProvider();
 
         provider.GetRequiredService<Server>().Listen();
@@ -256,8 +246,7 @@ public class OperationGeneratedCodeTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest()
-            .AddSingleton<IDispatcher>(new MyOperationsA())
+            .AddColocTest(new MyOperationsA())
             .BuildServiceProvider();
 
         provider.GetRequiredService<Server>().Listen();
@@ -275,8 +264,7 @@ public class OperationGeneratedCodeTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest()
-            .AddSingleton<IDispatcher>(new MyOperationsA())
+            .AddColocTest(new MyOperationsA())
             .BuildServiceProvider();
 
         provider.GetRequiredService<Server>().Listen();

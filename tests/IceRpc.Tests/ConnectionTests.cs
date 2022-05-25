@@ -668,12 +668,8 @@ public class ConnectionTests
         services
             .AddOptions<ServerOptions>()
             .Configure(
-                options =>
-                {
-                    // Console.WriteLine("configuring close timeout");
-                    options.ConnectionOptions.CloseTimeout =
-                        closeClientSide ? TimeSpan.FromSeconds(60) : TimeSpan.FromSeconds(1);
-                });
+                options => options.ConnectionOptions.CloseTimeout =
+                    closeClientSide ? TimeSpan.FromSeconds(60) : TimeSpan.FromSeconds(1));
 
         await using ServiceProvider provider = services.BuildServiceProvider();
 
