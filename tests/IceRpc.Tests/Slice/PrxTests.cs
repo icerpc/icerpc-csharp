@@ -13,9 +13,11 @@ public class PrxTests
     [Test]
     public async Task Downcast_prx_with_as_sync_succeeds()
     {
-        await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyDerivedInterface())
+       await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(new MyDerivedInterface())
             .BuildServiceProvider();
+
+        provider.GetRequiredService<Server>().Listen();
         var prx = MyBaseInterfacePrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         MyDerivedInterfacePrx? derived = await prx.AsAsync<MyDerivedInterfacePrx>();
@@ -26,9 +28,11 @@ public class PrxTests
     [Test]
     public async Task Downcast_prx_with_as_aync_fails()
     {
-        await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new MyBaseInterface())
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(new MyBaseInterface())
             .BuildServiceProvider();
+
+        provider.GetRequiredService<Server>().Listen();
         var prx = MyBaseInterfacePrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         MyDerivedInterfacePrx? derived = await prx.AsAsync<MyDerivedInterfacePrx>();

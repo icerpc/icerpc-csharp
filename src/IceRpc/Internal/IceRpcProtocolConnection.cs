@@ -55,7 +55,7 @@ namespace IceRpc.Internal
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
         private long _lastRemoteUnidirectionalStreamId = -1;
         private readonly int _maxLocalHeaderSize;
-        private int _maxRemoteHeaderSize = Configure.ConnectionOptions.DefaultMaxIceRpcHeaderSize;
+        private int _maxRemoteHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
         private readonly object _mutex = new();
         private readonly IMultiplexedNetworkConnection _networkConnection;
         private IMultiplexedStream? _remoteControlStream;
@@ -132,15 +132,17 @@ namespace IceRpc.Internal
                         throw new InvalidDataException("received icerpc request with empty header");
                     }
 
-                    bool isShuttingDown = false;
                     CancellationTokenSource? cancelDispatchSource = null;
 
                     lock (_mutex)
                     {
-                        // If shutting down, ignore the incoming request.
                         if (_isShuttingDown)
                         {
-                            isShuttingDown = true;
+                            throw IceRpcStreamError.ConnectionShutdownByPeer.ToException();
+                        }
+                        else if (_isDisposed)
+                        {
+                            throw new ConnectionClosedException();
                         }
                         else
                         {
@@ -156,39 +158,55 @@ namespace IceRpc.Internal
                                 _lastRemoteUnidirectionalStreamId = stream.Id;
                             }
 
-                            AddStream(stream);
+                            _streams.Add(stream);
+
+                            stream.OnShutdown(() =>
+                            {
+                                lock (_mutex)
+                                {
+                                    _streams.Remove(stream);
+
+                                    // If no more streams and shutting down, we can set the _streamsCompleted task
+                                    // completion source as completed to allow shutdown to progress.
+                                    if (_isShuttingDown && _streams.Count == 0)
+                                    {
+                                        _streamsCompleted.SetResult();
+                                    }
+
+                                    _cancelDispatchSources.Remove(cancelDispatchSource);
+                                }
+
+                                // If the stream is shutdown because the connection is aborted, make sure to cancel
+                                // the dispatch.
+                                if (_isDisposed)
+                                {
+                                    cancelDispatchSource.Cancel();
+                                }
+
+                                cancelDispatchSource.Dispose();
+                            });
                         }
                     }
 
-                    if (isShuttingDown)
-                    {
-                        // TODO: replace with payload exception and error code
-                        Exception exception = IceRpcStreamError.ConnectionShutdownByPeer.ToException();
-                        await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
-                        await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        (IceRpcRequestHeader header, IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields, fieldsPipeReader) =
-                            DecodeHeader(readResult.Buffer);
-                        stream.Input.AdvanceTo(readResult.Buffer.End);
+                    (IceRpcRequestHeader header, IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields, fieldsPipeReader) =
+                        DecodeHeader(readResult.Buffer);
+                    stream.Input.AdvanceTo(readResult.Buffer.End);
 
-                        var request = new IncomingRequest(connection)
-                        {
-                            Fields = fields,
-                            IsOneway = !stream.IsBidirectional,
-                            Operation = header.Operation,
-                            Path = header.Path,
-                            Payload = stream.Input
-                        };
+                    var request = new IncomingRequest(connection)
+                    {
+                        Fields = fields,
+                        IsOneway = !stream.IsBidirectional,
+                        Operation = header.Operation,
+                        Path = header.Path,
+                        Payload = stream.Input
+                    };
 
-                        Debug.Assert(cancelDispatchSource != null);
-                        _ = Task.Run(() => DispatchRequestAsync(
-                            request,
-                            stream,
-                            fieldsPipeReader,
-                            cancelDispatchSource));
-                    }
+                    Debug.Assert(cancelDispatchSource != null);
+                    _ = Task.Run(() => DispatchRequestAsync(
+                        request,
+                        stream,
+                        fieldsPipeReader,
+                        cancelDispatchSource));
                 }
                 catch (Exception exception)
                 {
@@ -225,15 +243,16 @@ namespace IceRpc.Internal
                 // dispatch. There's no point in continuing the dispatch if the peer is no longer interested in the
                 // response.
                 stream.OnPeerInputCompleted(() =>
+                {
+                    try
                     {
-                        try
-                        {
-                            cancelDispatchSource.Cancel();
-                        }
-                        catch (ObjectDisposedException)
-                        {
-                        }
-                    });
+                        cancelDispatchSource.Cancel();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // Expected if already disposed.
+                    }
+                });
 
                 OutgoingResponse response;
                 try
@@ -336,12 +355,6 @@ namespace IceRpc.Internal
                     // Even when the code above throws an exception, we catch it and send a response. So we never want
                     // to give an exception to CompleteAsync when completing the incoming payload.
                     await request.Payload.CompleteAsync().ConfigureAwait(false);
-
-                    lock (_mutex)
-                    {
-                        _cancelDispatchSources.Remove(cancelDispatchSource);
-                        cancelDispatchSource.Dispose();
-                    }
                 }
 
                 if (request.IsOneway)
@@ -426,13 +439,31 @@ namespace IceRpc.Internal
                 {
                     lock (_mutex)
                     {
-                        if (_isShuttingDown)
+                        if (_isShuttingDown || _isDisposed)
                         {
-                            throw new ConnectionClosedException("connection shutdown");
+                            throw new ConnectionClosedException();
                         }
                         else
                         {
-                            AddStream(stream);
+                            _streams.Add(stream);
+                            ++_invocationCount;
+
+                            stream.OnShutdown(() =>
+                            {
+                                lock (_mutex)
+                                {
+                                    --_invocationCount;
+
+                                    _streams.Remove(stream);
+
+                                    // If no more streams and shutting down, we can set the _streamsCompleted task
+                                    // completion source as completed to allow shutdown to progress.
+                                    if (_isShuttingDown && _streams.Count == 0)
+                                    {
+                                        _streamsCompleted.SetResult();
+                                    }
+                                }
+                            });
                         }
                     }
                 }
@@ -708,7 +739,7 @@ namespace IceRpc.Internal
             _controlStream = _networkConnection.CreateStream(false);
 
             var settings = new IceRpcSettings(
-                _maxLocalHeaderSize == Configure.ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
+                _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
                     ImmutableDictionary<IceRpcSettingKey, ulong>.Empty :
                     new Dictionary<IceRpcSettingKey, ulong>
                     {
@@ -731,39 +762,6 @@ namespace IceRpc.Internal
 
             // Start a task to wait to receive the go away frame to initiate shutdown.
             _ = Task.Run(() => WaitForGoAwayAsync(), CancellationToken.None);
-        }
-
-        private void AddStream(IMultiplexedStream stream)
-        {
-            lock (_mutex)
-            {
-                _streams.Add(stream);
-
-                if (!stream.IsRemote)
-                {
-                    ++_invocationCount;
-                }
-
-                stream.OnShutdown(() =>
-                    {
-                        lock (_mutex)
-                        {
-                            if (!stream.IsRemote)
-                            {
-                                --_invocationCount;
-                            }
-
-                            _streams.Remove(stream);
-
-                            // If no more streams and shutting down, we can set the _streamsCompleted task completion
-                            // source as completed to allow shutdown to progress.
-                            if (_isShuttingDown && _streams.Count == 0)
-                            {
-                                _streamsCompleted.SetResult();
-                            }
-                        }
-                    });
-            }
         }
 
         private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeFieldDictionary<TKey>(
@@ -875,7 +873,7 @@ namespace IceRpc.Internal
                 if (settings.Value.TryGetValue(IceRpcSettingKey.MaxHeaderSize, out ulong value))
                 {
                     // a varuint62 always fits in a long
-                    _maxRemoteHeaderSize = Configure.ConnectionOptions.IceRpcCheckMaxHeaderSize((long)value);
+                    _maxRemoteHeaderSize = ConnectionOptions.IceRpcCheckMaxHeaderSize((long)value);
                     _headerSizeLength = SliceEncoder.GetVarUInt62EncodedSize(value);
                 }
                 // all other settings are unknown and ignored

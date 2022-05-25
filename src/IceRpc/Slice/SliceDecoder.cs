@@ -23,7 +23,7 @@ namespace IceRpc.Slice
         public SliceEncoding Encoding { get; }
 
         /// <summary>The number of bytes decoded in the underlying buffer.</summary>
-        internal long Consumed => _reader.Consumed;
+        public long Consumed => _reader.Consumed;
 
         private static readonly IActivator _defaultActivator =
             ActivatorFactory.Instance.Get(typeof(SliceDecoder).Assembly);
@@ -605,6 +605,20 @@ namespace IceRpc.Slice
             return new BitSequenceReader(bitSequence);
         }
 
+        /// <summary>Skip the given number of bytes.</summary>
+        /// <param name="count">The number of bytes to skip.</param>
+        public void Skip(int count)
+        {
+            if (_reader.Remaining >= count)
+            {
+                _reader.Advance(count);
+            }
+            else
+            {
+                throw new EndOfBufferException();
+            }
+        }
+
         /// <summary>Skips the remaining tagged data members or parameters.</summary>
         public void SkipTagged(bool useTagEndMarker)
         {
@@ -668,6 +682,23 @@ namespace IceRpc.Slice
                     Skip(DecodeVarInt62Length(PeekByte()));
                     Skip(DecodeSize());
                 }
+            }
+        }
+
+        /// <summary>Skip Slice size.</summary>
+        public void SkipSize()
+        {
+            if (Encoding == SliceEncoding.Slice1)
+            {
+                byte b = DecodeUInt8();
+                if (b == 255)
+                {
+                    Skip(4);
+                }
+            }
+            else
+            {
+                Skip(DecodeVarInt62Length(PeekByte()));
             }
         }
 
@@ -745,34 +776,6 @@ namespace IceRpc.Slice
                 fields.Add(key, value);
             }
             return fields;
-        }
-
-        internal void Skip(int count)
-        {
-            if (_reader.Remaining >= count)
-            {
-                _reader.Advance(count);
-            }
-            else
-            {
-                throw new EndOfBufferException();
-            }
-        }
-
-        internal void SkipSize()
-        {
-            if (Encoding == SliceEncoding.Slice1)
-            {
-                byte b = DecodeUInt8();
-                if (b == 255)
-                {
-                    Skip(4);
-                }
-            }
-            else
-            {
-                Skip(DecodeVarInt62Length(PeekByte()));
-            }
         }
 
         /// <summary>Tries to decode a Slice uint8 into a byte.</summary>

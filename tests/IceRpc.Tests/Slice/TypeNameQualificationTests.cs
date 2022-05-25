@@ -15,9 +15,11 @@ public class TypeNameQualificationTests
     [Test]
     public async Task Operation_with_parameter_type_name_defined_in_multiple_modules()
     {
-        await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(new TypeNameQualification())
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(new TypeNameQualification())
             .BuildServiceProvider();
+
+        provider.GetRequiredService<Server>().Listen();
         var prx = TypeNameQualificationOperationsPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         var r = await prx.OpWithTypeNamesDefinedInMultipleModulesAsync(new Inner.S(10));

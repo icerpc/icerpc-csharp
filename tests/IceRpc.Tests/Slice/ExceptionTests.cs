@@ -430,9 +430,9 @@ public sealed class ExceptionTests
     {
         var coloc = new ColocTransport();
         await using var server = new Server(
-            new Configure.ServerOptions
+            new ServerOptions
             {
-                ConnectionOptions = new Configure.ConnectionOptions()
+                ConnectionOptions = new ConnectionOptions()
                 {
                     Dispatcher = new Slice2ExceptionOperations(throwException),
                 },
@@ -442,7 +442,7 @@ public sealed class ExceptionTests
         server.Listen();
 
         await using var connection = new ClientConnection(
-            new Configure.ClientConnectionOptions
+            new ClientConnectionOptions
             {
                 RemoteEndpoint = server.Endpoint,
             },
@@ -462,9 +462,9 @@ public sealed class ExceptionTests
     {
         var coloc = new ColocTransport();
         await using var server = new Server(
-            new Configure.ServerOptions
+            new ServerOptions
             {
-                ConnectionOptions = new Configure.ConnectionOptions
+                ConnectionOptions = new ConnectionOptions
                 {
                     Dispatcher = new Slice1ExceptionOperations(throwException),
                 },
@@ -474,7 +474,7 @@ public sealed class ExceptionTests
         server.Listen();
 
         await using var connection = new ClientConnection(
-            new Configure.ClientConnectionOptions
+            new ClientConnectionOptions
             {
                 RemoteEndpoint = server.Endpoint,
             },

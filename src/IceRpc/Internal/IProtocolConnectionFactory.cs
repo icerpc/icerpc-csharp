@@ -12,6 +12,6 @@ internal interface IProtocolConnectionFactory<T>
         T networkConnection,
         NetworkConnectionInformation connectionInformation,
         bool isServer,
-        Configure.ConnectionOptions connectionOptions,
+        ConnectionOptions connectionOptions,
         CancellationToken cancel);
 }

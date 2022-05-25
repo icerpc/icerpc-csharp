@@ -41,14 +41,18 @@ namespace IceRpc
             _ => "unknown"
         };
 
-        internal RetryPolicy(ref SliceDecoder decoder)
+        /// <summary>Encodes this retry policy instance into the given encoder.</summary>
+        /// <param name="decoder">The decoder.</param>
+        public RetryPolicy(ref SliceDecoder decoder)
         {
             Retryable = decoder.DecodeRetryable();
             Delay = Retryable == Retryable.AfterDelay ?
                 TimeSpan.FromMilliseconds(decoder.DecodeVarUInt62()) : TimeSpan.Zero;
         }
 
-        internal void Encode(ref SliceEncoder encoder)
+        /// <summary>Encodes this retry policy instance into the given encoder.</summary>
+        /// <param name="encoder">The encoder</param>
+        public void Encode(ref SliceEncoder encoder)
         {
             encoder.EncodeRetryable(Retryable);
             if (Retryable == Retryable.AfterDelay)

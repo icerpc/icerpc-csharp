@@ -2,7 +2,7 @@
 
 using System.Net.Security;
 
-namespace IceRpc.Configure
+namespace IceRpc
 {
     /// <summary>A property bag used to configure a <see cref="Server"/>.</summary>
     public sealed record class ServerOptions

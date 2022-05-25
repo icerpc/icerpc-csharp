@@ -11,7 +11,7 @@ namespace IceRpc.Internal
             IMultiplexedNetworkConnection networkConnection,
             NetworkConnectionInformation connectionInfo,
             bool _,
-            Configure.ConnectionOptions connectionOptions,
+            ConnectionOptions connectionOptions,
             CancellationToken cancel)
         {
             var protocolConnection = new IceRpcProtocolConnection(networkConnection, connectionOptions);

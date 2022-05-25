@@ -1,9 +1,8 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports;
 using System.Net;
 
-namespace IceRpc.Configure
+namespace IceRpc.Transports
 {
     /// <summary>The base options class for TCP transports.</summary>
     public record class TcpTransportOptions

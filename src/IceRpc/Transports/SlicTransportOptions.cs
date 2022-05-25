@@ -1,9 +1,8 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports;
 using System.Buffers;
 
-namespace IceRpc.Configure
+namespace IceRpc.Transports
 {
     /// <summary>The base options class for Slic.</summary>
     public record class SlicTransportOptions

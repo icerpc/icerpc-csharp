@@ -22,14 +22,59 @@ public sealed class IceRpcProtocolConnectionTests
         }
     }
 
-    /// <summary>Verifies that if the shutdown pending invocations and dispatches are canceled the invocations are
-    /// canceled.</summary>
+    /// <summary>Verifies that aborting the client connection cancels the dispatches.</summary>
     [Test]
-    public async Task Shutdown_invocations_cancellation()
+    public async Task Abort_cancels_dispatches()
     {
         // Arrange
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
+        var tcs = new TaskCompletionSource();
+        await using var serviceProvider = new ProtocolServiceCollection()
+            .UseProtocol(Protocol.IceRpc)
+            .UseServerOptions(new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions
+                {
+                    Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                    {
+                        start.Release();
+                        try
+                        {
+                            await hold.WaitAsync(cancel);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            tcs.SetResult();
+                        }
+                        return new OutgoingResponse(request);
+                    })
+                }
+            })
+            .BuildServiceProvider();
+
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)), InvalidConnection.IceRpc);
+
+        await start.WaitAsync(); // Wait for the dispatch to start
+
+        // Act
+        sut.Server.Abort(new ConnectionAbortedException());
+
+        // Assert
+        Assert.That(async () => await tcs.Task, Throws.Nothing);
+        hold.Release();
+    }
+
+    /// <summary>Verifies that if the shutdown cancellation cancels pending invocations and dispatches.</summary>
+    [Test]
+    public async Task Shutdown_cancellation_cancels_invocations_and_dispatches()
+    {
+        // Arrange
+        using var start = new SemaphoreSlim(0);
+        using var hold = new SemaphoreSlim(0);
+        var tcs = new TaskCompletionSource();
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.IceRpc)
@@ -40,7 +85,14 @@ public sealed class IceRpcProtocolConnectionTests
                     Dispatcher = new InlineDispatcher(async (request, cancel) =>
                     {
                         start.Release();
-                        await hold.WaitAsync(cancel);
+                        try
+                        {
+                            await hold.WaitAsync(cancel);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            tcs.SetResult();
+                        }
                         return new OutgoingResponse(request);
                     })
                 }
@@ -58,13 +110,14 @@ public sealed class IceRpcProtocolConnectionTests
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
-        var shutdownTask = sut.Client.ShutdownAsync("", new CancellationToken(canceled: true));
+        Task shutdownTask = sut.Client.ShutdownAsync("", new CancellationToken(canceled: true));
 
         // Assert
         Assert.Multiple(() =>
         {
             Assert.That(async () => await invokeTask, Throws.TypeOf<OperationCanceledException>());
             Assert.That(async () => await shutdownTask, Throws.Nothing);
+            Assert.That(async () => await tcs.Task, Throws.Nothing);
         });
         hold.Release();
     }
@@ -408,10 +461,16 @@ public sealed class IceRpcProtocolConnectionTests
         var shutdownTask = sut.Client.ShutdownAsync("");
 
         // Assert
-        Assert.That(invokeTask.IsCompleted, Is.False);
-        Assert.That(shutdownTask.IsCompleted, Is.False);
+        Assert.Multiple(() =>
+        {
+            Assert.That(invokeTask.IsCompleted, Is.False);
+            Assert.That(shutdownTask.IsCompleted, Is.False);
+        });
         hold.Release();
-        Assert.That(async () => await invokeTask, Throws.Nothing);
-        Assert.That(async () => await shutdownTask, Throws.Nothing);
+        Assert.Multiple(() =>
+        {
+            Assert.That(async () => await invokeTask, Throws.Nothing);
+            Assert.That(async () => await shutdownTask, Throws.Nothing);
+        });
     }
 }

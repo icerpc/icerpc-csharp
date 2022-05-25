@@ -75,8 +75,9 @@ compact struct IceRequestHeader
     fragment: IceRpc::Slice::Internal::Fragment,
     operation: string,
     operationMode: OperationMode,
-    context: dictionary<string, string>,
-    encapsulationHeader: EncapsulationHeader,
+    // Manually encoded/decoded
+    // context: dictionary<string, string>,
+    // encapsulationHeader: EncapsulationHeader,
 }
 
 /// The reply status of an ice response frame.
