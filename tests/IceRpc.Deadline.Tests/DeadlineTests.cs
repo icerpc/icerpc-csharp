@@ -45,8 +45,7 @@ public sealed class DeadlineTests
         var sut = new DeadlineMiddleware(dispatcher);
 
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest()
-            .AddSingleton<IDispatcher>(sut)
+            .AddColocTest(sut)
             .BuildServiceProvider();
 
         provider.GetRequiredService<Server>().Listen();

@@ -38,10 +38,11 @@ public class OperationGeneratedCodeTests
         }));
         router.Map("/", new MyOperationsA());
 
-        await using var provider = new SliceTestServiceCollection()
-            .UseDispatcher(router)
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(router)
             .BuildServiceProvider();
 
+        provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>(), "/", pipeline);
 
         // Act

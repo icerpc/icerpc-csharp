@@ -4,7 +4,6 @@ using IceRpc.Configure;
 using IceRpc.Slice;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
@@ -22,15 +21,16 @@ public class ConnectionTests
         // Arrange
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
-        var tcpServerTransportOptions = new TcpServerTransportOptions
-        {
-            IdleTimeout = idleOnClient ? TimeSpan.FromHours(1) : TimeSpan.FromMilliseconds(500),
-        };
 
-        var tcpClientTransportOptions = new TcpClientTransportOptions
-        {
-            IdleTimeout = idleOnClient ? TimeSpan.FromMilliseconds(500) : TimeSpan.FromHours(1),
-        };
+        IServiceCollection services = new ServiceCollection();
+
+        services
+            .AddOptions<TcpServerTransportOptions>()
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
+
+        services
+            .AddOptions<TcpClientTransportOptions>()
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
 
         IConnection? serverConnection = null;
         var dispatcher = new InlineDispatcher(async (request, cancel) =>
@@ -44,23 +44,20 @@ public class ConnectionTests
         var serverConnectionClosed = new TaskCompletionSource();
         var clientConnectionClosed = new TaskCompletionSource();
 
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseTcp(tcpServerTransportOptions, tcpClientTransportOptions)
-            .UseConnectionOptions(new ClientConnectionOptions
-            {
-                OnClose = (_, _) => clientConnectionClosed.SetResult()
-            })
-            .UseServerOptions(new ServerOptions
-            {
-                ConnectionOptions = new ConnectionOptions
-                {
-                    OnClose = (_, _) => serverConnectionClosed.SetResult()
-                }
-            })
-            .UseDispatcher(dispatcher)
-            .BuildServiceProvider();
+        services.AddTcpTest(dispatcher, Protocol.FromString(protocol));
+
+        services
+            .AddOptions<ClientConnectionOptions>()
+            .Configure(options => options.OnClose = (_, _) => clientConnectionClosed.SetResult());
+
+        services
+            .AddOptions<ServerOptions>()
+            .Configure(options => options.ConnectionOptions.OnClose = (_, _) => serverConnectionClosed.SetResult());
+
+        await using var provider = services.BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
         var proxy = Proxy.FromConnection(clientConnection, "/foo");
 
@@ -89,10 +86,12 @@ public class ConnectionTests
             return new OutgoingResponse(request);
         });
 
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseDispatcher(dispatcher)
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(dispatcher, Protocol.FromString(protocol))
             .BuildServiceProvider();
+
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
@@ -123,10 +122,12 @@ public class ConnectionTests
             return new OutgoingResponse(request);
         });
 
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseDispatcher(dispatcher)
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(dispatcher, Protocol.FromString(protocol))
             .BuildServiceProvider();
+
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
@@ -158,21 +159,20 @@ public class ConnectionTests
         var serverConnectionClosed = new TaskCompletionSource<object?>();
         var clientConnectionClosed = new TaskCompletionSource<object?>();
 
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseDispatcher(dispatcher)
-            .UseConnectionOptions(new ClientConnectionOptions
-            {
-                OnClose = (_, _) => clientConnectionClosed.SetResult(null)
-            })
-            .UseServerOptions(new ServerOptions
-            {
-                ConnectionOptions = new ConnectionOptions
-                {
-                    OnClose = (_, _) => serverConnectionClosed.SetResult(null)
-                }
-            })
-            .BuildServiceProvider();
+        IServiceCollection services = new ServiceCollection().AddColocTest(dispatcher, Protocol.FromString(protocol));
+
+        services
+            .AddOptions<ClientConnectionOptions>()
+            .Configure(options => options.OnClose = (_, _) => clientConnectionClosed.SetResult(null));
+
+        services
+            .AddOptions<ServerOptions>()
+            .Configure(options =>
+                options.ConnectionOptions.OnClose = (_, _) => serverConnectionClosed.SetResult(null));
+
+        await using ServiceProvider provider = services.BuildServiceProvider();
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
 
         var proxy = Proxy.FromConnection(clientConnection, "/foo");
@@ -210,22 +210,25 @@ public class ConnectionTests
     [Test]
     public async Task Non_resumable_connection_cannot_reconnect([Values("ice", "icerpc")] string protocol)
     {
-        var tcpServerTransportOptions = new TcpServerTransportOptions
-        {
-            IdleTimeout = TimeSpan.FromMilliseconds(500),
-        };
-
-        var tcpClientTransportOptions = new TcpClientTransportOptions
-        {
-            IdleTimeout = TimeSpan.FromMilliseconds(500),
-        };
-
         // Arrange
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseTcp(tcpServerTransportOptions, tcpClientTransportOptions)
-            .UseDispatcher(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))))
+        IServiceCollection services = new ServiceCollection();
+
+        services
+            .AddOptions<TcpServerTransportOptions>()
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
+
+        services
+            .AddOptions<TcpClientTransportOptions>()
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
+
+        await using ServiceProvider provider = services
+            .AddTcpTest(
+                new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
+                Protocol.FromString(protocol))
             .BuildServiceProvider();
+
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
@@ -245,23 +248,29 @@ public class ConnectionTests
     [Test]
     public async Task Resumable_connection_can_reconnect_after_being_idle([Values("ice", "icerpc")] string protocol)
     {
-        var tcpServerTransportOptions = new TcpServerTransportOptions
-        {
-            IdleTimeout = TimeSpan.FromMilliseconds(500),
-        };
-
-        var tcpClientTransportOptions = new TcpClientTransportOptions
-        {
-            IdleTimeout = TimeSpan.FromMilliseconds(500),
-        };
-
         // Arrange
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseTcp(tcpServerTransportOptions, tcpClientTransportOptions)
-            .UseDispatcher(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))))
-            .UseConnectionOptions(new ClientConnectionOptions { IsResumable = true })
-            .BuildServiceProvider();
+        IServiceCollection services = new ServiceCollection();
+
+        services
+            .AddOptions<TcpServerTransportOptions>()
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
+
+        services
+            .AddOptions<TcpClientTransportOptions>()
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
+
+        services.AddTcpTest(
+            new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
+            Protocol.FromString(protocol));
+
+        services
+            .AddOptions<ClientConnectionOptions>()
+            .Configure(options => options.IsResumable = true);
+
+        await using ServiceProvider provider = services.BuildServiceProvider();
+
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
@@ -281,15 +290,21 @@ public class ConnectionTests
     {
         // Arrange
         Connection? serverConnection = null;
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseDispatcher(new InlineDispatcher((request, cancel) =>
-                {
-                    serverConnection = (Connection)request.Connection;
-                    return new(new OutgoingResponse(request));
-                }))
-            .UseConnectionOptions(new ClientConnectionOptions { IsResumable = true })
-            .BuildServiceProvider();
+        IServiceCollection services = new ServiceCollection().AddColocTest(
+            new InlineDispatcher((request, cancel) =>
+            {
+                serverConnection = (Connection)request.Connection;
+                return new(new OutgoingResponse(request));
+            }),
+            Protocol.FromString(protocol));
+
+        services
+            .AddOptions<ClientConnectionOptions>()
+            .Configure(options => options.IsResumable = true);
+
+        await using var provider = services.BuildServiceProvider();
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
@@ -311,15 +326,22 @@ public class ConnectionTests
     {
         // Arrange
         Connection? serverConnection = null;
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseDispatcher(new InlineDispatcher((request, cancel) =>
-                {
-                    serverConnection = (Connection)request.Connection;
-                    return new(new OutgoingResponse(request));
-                }))
-            .UseConnectionOptions(new ClientConnectionOptions { IsResumable = true })
-            .BuildServiceProvider();
-        var server = provider.GetRequiredService<Server>();
+
+        IServiceCollection services = new ServiceCollection().AddColocTest(
+            new InlineDispatcher((request, cancel) =>
+            {
+                serverConnection = (Connection)request.Connection;
+                return new(new OutgoingResponse(request));
+            }),
+            Protocol.FromString(protocol));
+
+        services
+            .AddOptions<ClientConnectionOptions>()
+            .Configure(options => options.IsResumable = true);
+
+        await using ServiceProvider provider = services.BuildServiceProvider();
+
+        provider.GetRequiredService<Server>().Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
@@ -339,11 +361,17 @@ public class ConnectionTests
     public async Task Connect_sets_network_connection_information([Values("ice", "icerpc")] string protocol)
     {
         // Arrange
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseDispatcher(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))))
-            .UseConnectionOptions(new ClientConnectionOptions { IsResumable = true })
-            .BuildServiceProvider();
-        var server = provider.GetRequiredService<Server>();
+        IServiceCollection services = new ServiceCollection().AddColocTest(
+            new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
+            Protocol.FromString(protocol));
+
+        services
+            .AddOptions<ClientConnectionOptions>()
+            .Configure(options => options.IsResumable = true);
+
+        await using var provider = services.BuildServiceProvider();
+
+        provider.GetRequiredService<Server>().Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
         var networkConnectionInformation = connection.NetworkConnectionInformation;
 
@@ -361,26 +389,30 @@ public class ConnectionTests
         [Values(true, false)] bool keepAliveOnClient)
     {
         // Arrange
-        var tcpServerTransportOptions = new TcpServerTransportOptions
-        {
-            IdleTimeout = TimeSpan.FromMilliseconds(500),
-        };
+        IServiceCollection services = new ServiceCollection();
 
-        var tcpClientTransportOptions = new TcpClientTransportOptions
-        {
-            IdleTimeout = TimeSpan.FromMilliseconds(500),
-        };
+        services
+            .AddOptions<TcpServerTransportOptions>()
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
 
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseTcp(tcpServerTransportOptions, tcpClientTransportOptions)
-            .UseConnectionOptions(new ClientConnectionOptions { KeepAlive = keepAliveOnClient })
-            .UseServerOptions(new ServerOptions
-            {
-                ConnectionOptions = new ConnectionOptions { KeepAlive = !keepAliveOnClient }
-            })
-            .BuildServiceProvider();
+        services
+            .AddOptions<TcpClientTransportOptions>()
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
+
+        services.AddTcpTest(ConnectionOptions.DefaultDispatcher, Protocol.FromString(protocol));
+
+        services
+            .AddOptions<ClientConnectionOptions>()
+            .Configure(options => options.KeepAlive = keepAliveOnClient);
+
+        services
+            .AddOptions<ServerOptions>()
+            .Configure(options => options.ConnectionOptions.KeepAlive = !keepAliveOnClient);
+
+        await using var provider = services.BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
 
         // Act
@@ -397,15 +429,15 @@ public class ConnectionTests
         // Arrange
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
-        var tcpServerTransportOptions = new TcpServerTransportOptions
-        {
-            IdleTimeout = TimeSpan.FromMilliseconds(500),
-        };
+        IServiceCollection services = new ServiceCollection();
 
-        var tcpClientTransportOptions = new TcpClientTransportOptions
-        {
-            IdleTimeout = TimeSpan.FromMilliseconds(500),
-        };
+        services
+            .AddOptions<TcpServerTransportOptions>()
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
+
+        services
+            .AddOptions<TcpClientTransportOptions>()
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
 
         var dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
@@ -414,12 +446,12 @@ public class ConnectionTests
             return new OutgoingResponse(request);
         });
 
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseTcp(tcpServerTransportOptions, tcpClientTransportOptions)
-            .UseDispatcher(dispatcher)
+        await using ServiceProvider provider = services
+            .AddTcpTest(dispatcher, Protocol.FromString(protocol))
             .BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
         var proxy = ServicePrx.FromConnection(clientConnection, "/path");
         var pingTask = proxy.IcePingAsync();
@@ -451,11 +483,12 @@ public class ConnectionTests
             return new OutgoingResponse(request);
         });
 
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseDispatcher(dispatcher)
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(dispatcher, Protocol.FromString(protocol))
             .BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
         var proxy = ServicePrx.FromConnection(clientConnection, "/path");
         var pingTask = proxy.IcePingAsync();
@@ -535,11 +568,12 @@ public class ConnectionTests
             }
         });
 
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseDispatcher(dispatcher)
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(dispatcher, Protocol.FromString(protocol))
             .BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
         var proxy = ServicePrx.FromConnection(clientConnection, "/path");
         var pingTask = proxy.IcePingAsync();
@@ -623,24 +657,23 @@ public class ConnectionTests
             return new OutgoingResponse(request);
         });
 
-        await using var provider = new ConnectionServiceCollection(protocol)
-            .UseDispatcher(dispatcher)
-            .UseConnectionOptions(
-                new ClientConnectionOptions
-                {
-                    CloseTimeout = closeClientSide ? TimeSpan.FromSeconds(1) : TimeSpan.FromSeconds(60)
-                })
-            .UseServerOptions(
-                new ServerOptions
-                {
-                    ConnectionOptions = new ConnectionOptions()
-                    {
-                        CloseTimeout = closeClientSide ? TimeSpan.FromSeconds(60) : TimeSpan.FromSeconds(1)
-                    }
-                })
-            .BuildServiceProvider();
+        IServiceCollection services = new ServiceCollection().AddColocTest(dispatcher, Protocol.FromString(protocol));
+
+        services
+            .AddOptions<ClientConnectionOptions>()
+            .Configure(
+                options => options.CloseTimeout = closeClientSide ? TimeSpan.FromSeconds(1) : TimeSpan.FromSeconds(60));
+
+        services
+            .AddOptions<ServerOptions>()
+            .Configure(
+                options => options.ConnectionOptions.CloseTimeout =
+                    closeClientSide ? TimeSpan.FromSeconds(60) : TimeSpan.FromSeconds(1));
+
+        await using ServiceProvider provider = services.BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
+        server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
         var proxy = ServicePrx.FromConnection(clientConnection, "/path");
         var pingTask = proxy.IcePingAsync();
@@ -669,46 +702,5 @@ public class ConnectionTests
             Assert.ThrowsAsync<ConnectionLostException>(async () => await pingTask);
         }
         hold.Release();
-    }
-}
-
-public class ConnectionServiceCollection : ServiceCollection
-{
-    public ConnectionServiceCollection(string protocol = "icerpc")
-    {
-        this.UseColoc();
-        this.UseSlic();
-        this.UseProtocol(protocol == "ice" ? Protocol.Ice : Protocol.IceRpc);
-        this.AddScoped(provider =>
-        {
-            var serverOptions = provider.GetService<ServerOptions>() ?? new ServerOptions();
-            if (provider.GetService<IDispatcher>() is IDispatcher dispatcher)
-            {
-                serverOptions.ConnectionOptions.Dispatcher = dispatcher;
-            }
-            serverOptions.Endpoint = provider.GetRequiredService<Endpoint>();
-
-            var server = new Server(
-                serverOptions,
-                provider.GetService<ILoggerFactory>(),
-                provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>());
-            server.Listen();
-            return server;
-        });
-
-        this.AddScoped(provider =>
-        {
-            var connectionOptions = provider.GetService<ClientConnectionOptions>() ?? new ClientConnectionOptions();
-            if (connectionOptions.RemoteEndpoint == null)
-            {
-                connectionOptions.RemoteEndpoint = provider.GetRequiredService<Server>().Endpoint;
-            }
-            return new ClientConnection(
-                connectionOptions,
-                provider.GetService<ILoggerFactory>(),
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>());
-        });
     }
 }
