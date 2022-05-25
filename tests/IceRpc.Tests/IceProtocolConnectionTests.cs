@@ -96,8 +96,7 @@ public sealed class IceProtocolConnectionTests
             }
         };
 
-        await using var serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(Protocol.Ice)
+        await using var serviceProvider = new ProtocolServiceCollection(Protocol.Ice)
             .UseServerOptions(serverOptions)
             .BuildServiceProvider();
 
@@ -154,8 +153,7 @@ public sealed class IceProtocolConnectionTests
             }
         };
 
-        await using var serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(Protocol.Ice)
+        await using var serviceProvider = new ProtocolServiceCollection(Protocol.Ice)
             .UseServerOptions(serverOptions)
             .BuildServiceProvider();
 
@@ -189,8 +187,7 @@ public sealed class IceProtocolConnectionTests
         var dispatcher = new InlineDispatcher(
             (request, cancel) => throw new DispatchException(errorCode: errorCode));
 
-        await using var serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(Protocol.Ice)
+        await using var serviceProvider = new ProtocolServiceCollection(Protocol.Ice)
             .UseServerOptions(new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
@@ -220,8 +217,7 @@ public sealed class IceProtocolConnectionTests
     {
         var dispatcher = new InlineDispatcher((request, cancel) => throw thrownException);
 
-        await using var serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(Protocol.Ice)
+        await using var serviceProvider = new ProtocolServiceCollection(Protocol.Ice)
             .UseServerOptions(new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
@@ -254,8 +250,7 @@ public sealed class IceProtocolConnectionTests
                     PayloadStream = payloadStreamDecorator
                 }));
 
-        await using var serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(Protocol.Ice)
+        await using var serviceProvider = new ProtocolServiceCollection(Protocol.Ice)
             .UseServerOptions(new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
@@ -283,8 +278,7 @@ public sealed class IceProtocolConnectionTests
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
 
-        await using var serviceProvider = new ProtocolServiceCollection()
-            .UseProtocol(Protocol.Ice)
+        await using var serviceProvider = new ProtocolServiceCollection(Protocol.Ice)
             .UseServerOptions(new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions

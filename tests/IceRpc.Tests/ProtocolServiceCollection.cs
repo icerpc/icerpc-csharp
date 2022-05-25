@@ -31,9 +31,11 @@ internal struct ClientServerProtocolConnection : IDisposable
 
 internal class ProtocolServiceCollection : ServiceCollection
 {
-    public ProtocolServiceCollection()
+    public ProtocolServiceCollection(Protocol protocol)
     {
-        this.UseColoc();
+        this.AddColocTransport();
+        this.AddSingleton(protocol);
+        this.AddSingleton(typeof(Endpoint), new Endpoint(protocol) { Host = "colochost" });
         this.AddScoped<IServerTransport<IMultiplexedNetworkConnection>>(
             provider => new SlicServerTransport(
                 provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()));
@@ -72,9 +74,6 @@ internal class ProtocolServiceCollection : ServiceCollection
 
 internal static class ProtocolServiceCollectionExtensions
 {
-    internal static IServiceCollection UseProtocol(this IServiceCollection collection, Protocol protocol) =>
-        collection.AddSingleton(protocol);
-
     internal static async Task<ClientServerProtocolConnection> GetClientServerProtocolConnectionAsync(
         this IServiceProvider serviceProvider,
         bool acceptRequests = true)

@@ -12,6 +12,6 @@ public class SlicConformanceTests : MultiplexedTransportConformanceTests
     /// <summary>Creates the service collection used for Slic multiplexed transports for conformance testing.</summary>
     protected override IServiceCollection CreateServiceCollection() =>
         new ServiceCollection()
-            .UseColoc()
-            .UseSlic();
+            .AddColocTransport()
+            .AddSlicTransport();
 }
