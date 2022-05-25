@@ -55,7 +55,7 @@ namespace IceRpc.Internal
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
         private long _lastRemoteUnidirectionalStreamId = -1;
         private readonly int _maxLocalHeaderSize;
-        private int _maxRemoteHeaderSize = Configure.ConnectionOptions.DefaultMaxIceRpcHeaderSize;
+        private int _maxRemoteHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
         private readonly object _mutex = new();
         private readonly IMultiplexedNetworkConnection _networkConnection;
         private IMultiplexedStream? _remoteControlStream;
@@ -698,7 +698,7 @@ namespace IceRpc.Internal
         internal IceRpcProtocolConnection(
             IMultiplexedNetworkConnection networkConnection,
             IDispatcher dispatcher,
-            Configure.ConnectionOptions options)
+            ConnectionOptions options)
         {
             _dispatcher = dispatcher;
             _networkConnection = networkConnection;
@@ -711,7 +711,7 @@ namespace IceRpc.Internal
             _controlStream = _networkConnection.CreateStream(false);
 
             var settings = new IceRpcSettings(
-                _maxLocalHeaderSize == Configure.ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
+                _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
                     ImmutableDictionary<IceRpcSettingKey, ulong>.Empty :
                     new Dictionary<IceRpcSettingKey, ulong>
                     {
@@ -878,7 +878,7 @@ namespace IceRpc.Internal
                 if (settings.Value.TryGetValue(IceRpcSettingKey.MaxHeaderSize, out ulong value))
                 {
                     // a varuint62 always fits in a long
-                    _maxRemoteHeaderSize = Configure.ConnectionOptions.IceRpcCheckMaxHeaderSize((long)value);
+                    _maxRemoteHeaderSize = ConnectionOptions.IceRpcCheckMaxHeaderSize((long)value);
                     _headerSizeLength = SliceEncoder.GetVarUInt62EncodedSize(value);
                 }
                 // all other settings are unknown and ignored

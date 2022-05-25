@@ -13,7 +13,7 @@ public class LocatorInterceptorTests
     public async Task Location_resolver_not_called_if_the_request_has_a_connection()
     {
         var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request, request.Connection!)));
-        await using var connection = new ClientConnection(new Configure.ClientConnectionOptions()
+        await using var connection = new ClientConnection(new ClientConnectionOptions()
         {
             RemoteEndpoint = "ice://localhost:10000"
         });

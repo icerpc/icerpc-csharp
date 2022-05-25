@@ -13,6 +13,6 @@ internal interface IProtocolConnectionFactory<T>
         NetworkConnectionInformation connectionInformation,
         IDispatcher dispatcher,
         bool isServer,
-        Configure.ConnectionOptions connectionOptions,
+        ConnectionOptions connectionOptions,
         CancellationToken cancel);
 }
