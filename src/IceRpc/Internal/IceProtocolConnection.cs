@@ -355,11 +355,13 @@ namespace IceRpc.Internal
                 byte encodingMinor = 1;
 
                 // Request header.
-                encoder.EncodeIdentityPath(request.Proxy.Path);
-                encoder.EncodeFragment(request.Proxy.Fragment);
-                encoder.EncodeString(request.Operation);
-                encoder.EncodeOperationMode(request.Fields.ContainsKey(RequestFieldKey.Idempotent) ?
-                    OperationMode.Idempotent : OperationMode.Normal);
+                var requestHeader = new IceRequestHeader(
+                    request.Proxy.Path,
+                    request.Proxy.Fragment,
+                    request.Operation,
+                    request.Fields.ContainsKey(RequestFieldKey.Idempotent) ?
+                        OperationMode.Idempotent : OperationMode.Normal);
+                requestHeader.Encode(ref encoder);
                 if (request.Fields.TryGetValue(RequestFieldKey.Context, out OutgoingFieldValue requestField))
                 {
                     if (requestField.EncodeAction == null)
@@ -819,8 +821,15 @@ namespace IceRpc.Internal
                 }
 
                 IDictionary<RequestFieldKey, ReadOnlySequence<byte>>? fields;
-                if (contextReader?.TryRead(out ReadResult result) ?? false)
+                if (contextReader == null)
                 {
+                    fields = requestHeader.OperationMode == OperationMode.Normal ?
+                        ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields;
+                }
+                else
+                {
+                    contextReader.TryRead(out ReadResult result);
+                    Debug.Assert(result.Buffer.Length > 0 && result.IsCompleted);
                     fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>()
                     {
                         [RequestFieldKey.Context] = result.Buffer
@@ -830,11 +839,6 @@ namespace IceRpc.Internal
                     {
                         fields[RequestFieldKey.Idempotent] = default;
                     }
-                }
-                else
-                {
-                    fields = requestHeader.OperationMode == OperationMode.Normal ?
-                        ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields;
                 }
 
                 var request = new IncomingRequest(connection)
@@ -870,6 +874,10 @@ namespace IceRpc.Internal
                     if (contextReader != null)
                     {
                         await contextReader.CompleteAsync().ConfigureAwait(false);
+
+                        // The field values are now invalid - they point to potentially recycled and reused memory. We
+                        // replace Fields by an empty dictionary to prevent accidental access to this reused memory.
+                        request.Fields = ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
                     }
                 }
                 else
@@ -963,6 +971,10 @@ namespace IceRpc.Internal
                         if (contextReader != null)
                         {
                             await contextReader.CompleteAsync().ConfigureAwait(false);
+
+                            // The field values are now invalid - they point to potentially recycled and reused memory. We
+                            // replace Fields by an empty dictionary to prevent accidental access to this reused memory.
+                            request.Fields = ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
                         }
                     }
 
@@ -1115,6 +1127,7 @@ namespace IceRpc.Internal
                     var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
 
                     int requestId = decoder.DecodeInt32();
+
                     var requestHeader = new IceRequestHeader(ref decoder);
 
                     Pipe? contextPipe = null;

@@ -75,7 +75,7 @@ compact struct IceRequestHeader
     fragment: IceRpc::Slice::Internal::Fragment,
     operation: string,
     operationMode: OperationMode,
-    // Manually read
+    // Manually encoded/decoded
     // context: dictionary<string, string>,
     // encapsulationHeader: EncapsulationHeader,
 }
