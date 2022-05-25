@@ -131,23 +131,7 @@ public class RetryInterceptor : IInvoker
                     if (request.Connection is IClientConnection clientConnection &&
                          retryPolicy == RetryPolicy.OtherReplica)
                     {
-                        Endpoint remoteEndpoint = clientConnection.RemoteEndpoint;
-
-                        // TODO: move the code below to EndpointFeatureExtensions
-
-                        // Filter-out the remote endpoint
-                        if (endpointFeature.Endpoint == remoteEndpoint)
-                        {
-                            endpointFeature.Endpoint = null;
-                        }
-                        endpointFeature.AltEndpoints = endpointFeature.AltEndpoints.Where(
-                            e => e != remoteEndpoint).ToList();
-
-                        if (endpointFeature.Endpoint == null && endpointFeature.AltEndpoints.Any())
-                        {
-                            endpointFeature.Endpoint = endpointFeature.AltEndpoints.First();
-                            endpointFeature.AltEndpoints = endpointFeature.AltEndpoints.Skip(1);
-                        }
+                        endpointFeature.RemoveEndpoint(clientConnection.RemoteEndpoint);
                     }
 
                     tryAgain = true;
