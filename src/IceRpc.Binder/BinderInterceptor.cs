@@ -4,24 +4,27 @@ using IceRpc.Features;
 
 namespace IceRpc.Binder;
 
-/// <summary>A binder interceptor is responsible for providing connections to requests using an
-/// <see cref="IConnectionProvider"/>, the binder is no-op when the request carries a connection; otherwise it
-/// retrieves a connection from its connection provider and sets the request's connection.</summary>
+/// <summary>A binder interceptor is responsible for providing client connections to requests using an
+/// <see cref="IClientConnectionProvider"/>, the binder is no-op when the request carries a connection; otherwise it
+/// retrieves a connection from its client connection provider and sets the request's connection.</summary>
 public class BinderInterceptor : IInvoker
 {
     private readonly bool _cacheConnection;
-    private readonly IConnectionProvider _connectionProvider;
+    private readonly IClientConnectionProvider _clientConnectionProvider;
     private readonly IInvoker _next;
 
     /// <summary>Constructs a binder interceptor.</summary>
     /// <param name="next">The next invoker in the pipeline.</param>
-    /// <param name="connectionProvider">The connection provider.</param>
+    /// <param name="clientConnectionProvider">The client connection provider.</param>
     /// <param name="cacheConnection">When <c>true</c> (the default), the binder stores the connection it retrieves
-    /// from its connection provider in the proxy that created the request.</param>
-    public BinderInterceptor(IInvoker next, IConnectionProvider connectionProvider, bool cacheConnection = true)
+    /// from its client connection provider in the proxy that created the request.</param>
+    public BinderInterceptor(
+        IInvoker next,
+        IClientConnectionProvider clientConnectionProvider,
+        bool cacheConnection = true)
     {
         _next = next;
-        _connectionProvider = connectionProvider;
+        _clientConnectionProvider = clientConnectionProvider;
         _cacheConnection = cacheConnection;
     }
 
@@ -52,7 +55,7 @@ public class BinderInterceptor : IInvoker
                     throw new NoEndpointException(request.Proxy);
                 }
 
-                request.Connection = await _connectionProvider.GetConnectionAsync(
+                request.Connection = await _clientConnectionProvider.GetClientConnectionAsync(
                     endpoint.Value,
                     altEndpoints,
                     cancel).ConfigureAwait(false);

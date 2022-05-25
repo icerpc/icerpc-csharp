@@ -123,26 +123,10 @@ public class RetryInterceptor : IInvoker
                 }
                 else
                 {
-                    // With the retry-policy OtherReplica we add the current endpoint to the list of excluded
-                    // endpoints; this prevents the endpoints to be tried again during the current retry sequence.
-                    // We use this ExcludedEndpoints list rather than simply removing the endpoint from the
-                    // request.Endpoint/AltEndpoints because an interceptor down the line can change Endpoint /
-                    // AltEndpoints, for example by re-resolving the original loc endpoint.
-                    if (request.Connection != null && retryPolicy == RetryPolicy.OtherReplica)
+                    if (request.Connection is IClientConnection clientConnection &&
+                         retryPolicy == RetryPolicy.OtherReplica)
                     {
-                        // Filter-out the remote endpoint
-                        if (endpointFeature.Endpoint == request.Connection.Endpoint)
-                        {
-                            endpointFeature.Endpoint = null;
-                        }
-                        endpointFeature.AltEndpoints = endpointFeature.AltEndpoints.Where(
-                            e => e != request.Connection.Endpoint).ToList();
-
-                        if (endpointFeature.Endpoint == null && endpointFeature.AltEndpoints.Any())
-                        {
-                            endpointFeature.Endpoint = endpointFeature.AltEndpoints.First();
-                            endpointFeature.AltEndpoints = endpointFeature.AltEndpoints.Skip(1);
-                        }
+                        endpointFeature.RemoveEndpoint(clientConnection.RemoteEndpoint);
                     }
 
                     tryAgain = true;
