@@ -819,14 +819,8 @@ namespace IceRpc.Internal
                 }
 
                 IDictionary<RequestFieldKey, ReadOnlySequence<byte>>? fields;
-                if (contextReader == null)
+                if (contextReader?.TryRead(out ReadResult result) ?? false)
                 {
-                    fields = requestHeader.OperationMode == OperationMode.Normal ?
-                        ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields;
-                }
-                else
-                {
-                    var result = await contextReader.ReadAsync(default).ConfigureAwait(false);
                     fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>()
                     {
                         [RequestFieldKey.Context] = result.Buffer
@@ -836,6 +830,11 @@ namespace IceRpc.Internal
                     {
                         fields[RequestFieldKey.Idempotent] = default;
                     }
+                }
+                else
+                {
+                    fields = requestHeader.OperationMode == OperationMode.Normal ?
+                        ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields;
                 }
 
                 var request = new IncomingRequest(connection)
@@ -1116,11 +1115,7 @@ namespace IceRpc.Internal
                     var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
 
                     int requestId = decoder.DecodeInt32();
-                    string path = decoder.DecodeIdentityPath();
-                    string fragment = decoder.DecodeFragment();
-                    string operation = decoder.DecodeString();
-                    OperationMode operationMode = decoder.DecodeOperationMode();
-
+                    var requestHeader = new IceRequestHeader(ref decoder);
 
                     Pipe? contextPipe = null;
                     var pos = decoder.Consumed;
@@ -1139,23 +1134,15 @@ namespace IceRpc.Internal
 
                     var encapsulationHeader = new EncapsulationHeader(ref decoder);
 
-                    var requestHeader = new IceRequestHeader(
-                        path,
-                        fragment,
-                        operation,
-                        operationMode,
-                        ImmutableDictionary<string, string>.Empty,
-                        encapsulationHeader);
-
-                    if (requestHeader.EncapsulationHeader.PayloadEncodingMajor != 1 ||
-                        requestHeader.EncapsulationHeader.PayloadEncodingMinor != 1)
+                    if (encapsulationHeader.PayloadEncodingMajor != 1 ||
+                        encapsulationHeader.PayloadEncodingMinor != 1)
                     {
                         throw new InvalidDataException(
-                            @$"unsupported payload encoding '{requestHeader.EncapsulationHeader.PayloadEncodingMajor
-                            }.{requestHeader.EncapsulationHeader.PayloadEncodingMinor}'");
+                            @$"unsupported payload encoding '{encapsulationHeader.PayloadEncodingMajor
+                            }.{encapsulationHeader.PayloadEncodingMinor}'");
                     }
 
-                    int payloadSize = requestHeader.EncapsulationHeader.EncapsulationSize - 6;
+                    int payloadSize = encapsulationHeader.EncapsulationSize - 6;
                     if (payloadSize != (buffer.Length - decoder.Consumed))
                     {
                         throw new InvalidDataException(
