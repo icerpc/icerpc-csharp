@@ -20,18 +20,11 @@ public class SlicTransportTests
             .AddColocTransport()
             .AddSlicTransport()
             .AddScoped(
-                _ => new SlicServerTransportOptions
+                _ => new SlicTransportOptions
                 {
                     PauseWriterThreshold = 6893,
                     ResumeWriterThreshold = 2000,
                     PacketMaxSize = 2098
-                })
-            .AddScoped(
-                _ => new SlicClientTransportOptions
-                {
-                    PauseWriterThreshold = 2405,
-                    ResumeWriterThreshold = 2000,
-                    PacketMaxSize = 4567
                 }).BuildServiceProvider();
 
         using var clientConnection = (SlicNetworkConnection)serviceProvider.CreateConnection();
@@ -43,9 +36,9 @@ public class SlicTransportTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(serverConnection.PeerPauseWriterThreshold, Is.EqualTo(2405));
+            Assert.That(serverConnection.PeerPauseWriterThreshold, Is.EqualTo(6893));
             Assert.That(clientConnection.PeerPauseWriterThreshold, Is.EqualTo(6893));
-            Assert.That(serverConnection.PeerPacketMaxSize, Is.EqualTo(4567));
+            Assert.That(serverConnection.PeerPacketMaxSize, Is.EqualTo(2098));
             Assert.That(clientConnection.PeerPacketMaxSize, Is.EqualTo(2098));
         });
     }
@@ -61,7 +54,7 @@ public class SlicTransportTests
             .AddColocTransport()
             .AddSlicTransport()
             .AddScoped(
-                _ => new SlicServerTransportOptions
+                _ => new SlicTransportOptions
                 {
                     PauseWriterThreshold = pauseThreshold
                 }).BuildServiceProvider();
@@ -98,7 +91,7 @@ public class SlicTransportTests
             .AddColocTransport()
             .AddSlicTransport()
             .AddScoped(
-                _ => new SlicServerTransportOptions
+                _ => new SlicTransportOptions
                 {
                     PauseWriterThreshold = pauseThreshold
                 }).BuildServiceProvider();
@@ -141,7 +134,7 @@ public class SlicTransportTests
             .AddColocTransport()
             .AddSlicTransport()
             .AddScoped(
-                _ => new SlicServerTransportOptions
+                _ => new SlicTransportOptions
                 {
                     PauseWriterThreshold = pauseThreshold,
                     ResumeWriterThreshold = resumeThreshold,

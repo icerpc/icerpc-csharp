@@ -74,16 +74,11 @@ public static class ServiceCollectionExtensions
                 provider => new TcpClientTransport(
                     provider.GetRequiredService<IOptions<TcpClientTransportOptions>>().Value));
 
-        // TODO: fix SlicClientransportOptions to extract the simple client transport
-        services
-            .AddOptions<SlicClientTransportOptions>()
-            .Configure<IClientTransport<ISimpleNetworkConnection>>(
-                (options, simpleClientTransport) => options.SimpleClientTransport = simpleClientTransport);
-
         services.
             TryAddSingleton<IClientTransport<IMultiplexedNetworkConnection>>(
                 provider => new SlicClientTransport(
-                    provider.GetRequiredService<IOptions<SlicClientTransportOptions>>().Value));
+                    provider.GetRequiredService<IOptions<SlicTransportOptions>>().Value,
+                    provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()));
 
         return services;
     }
@@ -110,21 +105,19 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddSlicTransport(this IServiceCollection services)
     {
-        // TODO: fix SlicServerTransportOptions to extract the simple server transport
-        services
-            .AddOptions<SlicServerTransportOptions>()
-            .Configure<IServerTransport<ISimpleNetworkConnection>>(
-                (options, simpleServerTransport) => options.SimpleServerTransport = simpleServerTransport);
+        services.AddOptions<SlicTransportOptions>();
 
         services.
             TryAddSingleton<IServerTransport<IMultiplexedNetworkConnection>>(
                 provider => new SlicServerTransport(
-                    provider.GetRequiredService<IOptions<SlicServerTransportOptions>>().Value));
+                    provider.GetRequiredService<IOptions<SlicTransportOptions>>().Value,
+                    provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()));
 
         services.
             TryAddSingleton<IClientTransport<IMultiplexedNetworkConnection>>(
                 provider => new SlicClientTransport(
-                    provider.GetRequiredService<IOptions<SlicClientTransportOptions>>().Value));
+                    provider.GetRequiredService<IOptions<SlicTransportOptions>>().Value,
+                    provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()));
         return services;
     }
     public static IServiceCollection AddTcpTest(

@@ -918,7 +918,11 @@ public static class MultiplexedTransportServiceProviderExtensions
 {
     public static IMultiplexedNetworkConnection CreateConnection(this IServiceProvider provider)
     {
-        var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
+        var serverTransport = provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>();
+        var listener = serverTransport.Listen(
+            (Endpoint)provider.GetRequiredService(typeof(Endpoint)),
+            null,
+            NullLogger.Instance);
         var clientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
         var connection = clientTransport.CreateConnection(listener.Endpoint, null, NullLogger.Instance);
         return connection;
@@ -927,7 +931,11 @@ public static class MultiplexedTransportServiceProviderExtensions
     public static async Task<IMultiplexedNetworkConnection> AcceptConnectionAsync(
         this IServiceProvider provider, IMultiplexedNetworkConnection connection)
     {
-        var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
+        var serverTransport = provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>();
+        var listener = serverTransport.Listen(
+            (Endpoint)provider.GetRequiredService(typeof(Endpoint)),
+            null,
+            NullLogger.Instance);
         var connectTask = connection.ConnectAsync(default);
         var serverConnection = await listener.AcceptAsync();
         await serverConnection.ConnectAsync(default);
