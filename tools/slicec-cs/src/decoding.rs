@@ -266,12 +266,12 @@ decoder.DecodeSequence(
                             element_type.to_type_string(namespace, TypeContext::Decode, false),
                         underlying_extensions_class = enum_def
                             .escape_scoped_identifier_with_prefix_and_suffix(
-                                enum_def.underlying_type().type_suffix(),
+                                enum_def.underlying_type(encoding).type_suffix(),
                                 "Extensions",
                                 namespace
                             ),
                         name = fix_case(enum_def.identifier(), CaseStyle::Pascal),
-                        underlying_type = enum_def.underlying_type().cs_keyword()
+                        underlying_type = enum_def.underlying_type(encoding).cs_keyword()
                     ))
                 }
             }
@@ -347,12 +347,12 @@ decoder.DecodeSequence(
                             element_type.to_type_string(namespace, TypeContext::Decode, false),
                         underlying_extensions_class = enum_def
                             .escape_scoped_identifier_with_prefix_and_suffix(
-                                enum_def.underlying_type().type_suffix(),
+                                enum_def.underlying_type(encoding).type_suffix(),
                                 "Extensions",
                                 namespace
                             ),
                         name = fix_case(enum_def.identifier(), CaseStyle::Pascal),
-                        underlying_type = enum_def.underlying_type().cs_keyword()
+                        underlying_type = enum_def.underlying_type(encoding).cs_keyword()
                     );
                 }
             }

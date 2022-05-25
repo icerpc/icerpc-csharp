@@ -15,27 +15,28 @@ use slice::visitor::Visitor;
 #[derive(Debug)]
 pub struct EnumVisitor<'a> {
     pub generated_code: &'a mut GeneratedCode,
+    pub encoding: Encoding,
 }
 
 impl<'a> Visitor for EnumVisitor<'a> {
     fn visit_enum_start(&mut self, enum_def: &Enum) {
         let mut code = CodeBlock::new();
-        code.add_block(&enum_declaration(enum_def));
-        code.add_block(&enum_underlying_extensions(enum_def));
-        code.add_block(&enum_encoder_extensions(enum_def));
-        code.add_block(&enum_decoder_extensions(enum_def));
+        code.add_block(&enum_declaration(enum_def, self.encoding));
+        code.add_block(&enum_underlying_extensions(enum_def, self.encoding));
+        code.add_block(&enum_encoder_extensions(enum_def, self.encoding));
+        code.add_block(&enum_decoder_extensions(enum_def, self.encoding));
         self.generated_code.insert_scoped(enum_def, code);
     }
 }
 
-fn enum_declaration(enum_def: &Enum) -> CodeBlock {
+fn enum_declaration(enum_def: &Enum, encoding: Encoding) -> CodeBlock {
     ContainerBuilder::new(
         &format!("{} enum", enum_def.access_modifier()),
         &enum_def.escape_identifier(),
     )
     .add_comment("summary", &doc_comment_message(enum_def))
     .add_container_attributes(enum_def)
-    .add_base(enum_def.underlying_type().cs_keyword().to_owned())
+    .add_base(enum_def.underlying_type(encoding).cs_keyword().to_owned())
     .add_block(enum_values(enum_def))
     .build()
 }
@@ -54,12 +55,12 @@ fn enum_values(enum_def: &Enum) -> CodeBlock {
     code
 }
 
-fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
+fn enum_underlying_extensions(enum_def: &Enum, encoding: Encoding) -> CodeBlock {
     let access = enum_def.access_modifier();
     let escaped_identifier = enum_def.escape_identifier();
     let namespace = &enum_def.namespace();
-    let type_suffix = enum_def.underlying_type().type_suffix();
-    let cs_type = enum_def.underlying_type().cs_keyword();
+    let type_suffix = enum_def.underlying_type(encoding).type_suffix();
+    let cs_type = enum_def.underlying_type(encoding).cs_keyword();
     let mut builder = ContainerBuilder::new(
         &format!("{} static class", access),
         &format!(
@@ -171,7 +172,7 @@ enumerator."#,
     builder.build()
 }
 
-fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
+fn enum_encoder_extensions(enum_def: &Enum, encoding: Encoding) -> CodeBlock {
     let access = enum_def.access_modifier();
     let escaped_identifier = enum_def.escape_identifier();
     let mut builder = ContainerBuilder::new(
@@ -207,7 +208,7 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
                     format!("encoder.Encode{}", underlying.definition().type_suffix()),
                 None => "encoder.EncodeSize".to_owned(),
             },
-            underlying_type = enum_def.underlying_type().cs_keyword()
+            underlying_type = enum_def.underlying_type(encoding).cs_keyword()
         )
         .into(),
     );
@@ -215,7 +216,7 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
     builder.build()
 }
 
-fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
+fn enum_decoder_extensions(enum_def: &Enum, encoding: Encoding) -> CodeBlock {
     let access = enum_def.access_modifier();
     let escaped_identifier = enum_def.escape_identifier();
     let mut builder = ContainerBuilder::new(
@@ -236,7 +237,10 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
 
     let underlying_extensions_class = format!(
         "{}{}Extensions",
-        fix_case(enum_def.underlying_type().type_suffix(), CaseStyle::Pascal),
+        fix_case(
+            enum_def.underlying_type(encoding).type_suffix(),
+            CaseStyle::Pascal
+        ),
         fix_case(enum_def.identifier(), CaseStyle::Pascal)
     );
 
