@@ -91,14 +91,6 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>Installs coloc client-server test.</summary>
-    public static IServiceCollection AddColocTest(this IServiceCollection services, Protocol protocol) =>
-        services
-            .AddSingleton<ColocTransport>()
-            .AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ClientTransport)
-            .AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ServerTransport)
-            .AddClientServerTest(new Endpoint(protocol) { Host = "colochost" });
-
-    /// <summary>Installs coloc client-server test.</summary>
     public static IServiceCollection AddColocTest(
         this IServiceCollection services,
         IDispatcher dispatcher,
@@ -108,9 +100,6 @@ public static class ServiceCollectionExtensions
             .AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ClientTransport)
             .AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ServerTransport)
             .AddClientServerTest(dispatcher, new Endpoint(protocol) { Host = "colochost" });
-
-    public static IServiceCollection AddColocTest(this IServiceCollection services) =>
-        services.AddColocTest(Protocol.IceRpc);
 
     public static IServiceCollection AddColocTest(this IServiceCollection services, IDispatcher dispatcher) =>
         services.AddColocTest(dispatcher, Protocol.IceRpc);
@@ -125,31 +114,6 @@ public static class ServiceCollectionExtensions
     /// the client connection connecting to the server's endpoint.</summary>
     /// <remarks>When the endpoint's port is 0 and transport is not coloc, you need to create the server and call Listen
     ///  on it before creating the client connection.</remarks>
-    private static IServiceCollection AddClientServerTest(
-        this IServiceCollection services,
-        Endpoint endpoint)
-    {
-        services
-            .AddOptions<ServerOptions>()
-            .Configure<IDispatcher>(
-                (options, dispatcher) =>
-                {
-                    // Console.WriteLine("configuring dispatcher and endpoint");
-                    options.ConnectionOptions.Dispatcher = dispatcher;
-                    options.Endpoint = endpoint;
-                });
-
-        services.AddIceRpcServer();
-
-        services
-            .AddOptions<ClientConnectionOptions>()
-            .Configure<Server>((options, server) => options.RemoteEndpoint = server.Endpoint);
-
-        services.AddIceRpcClientConnection();
-
-        return services;
-    }
-
     private static IServiceCollection AddClientServerTest(
         this IServiceCollection services,
         IDispatcher dispatcher,

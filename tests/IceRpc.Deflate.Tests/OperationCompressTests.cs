@@ -39,8 +39,7 @@ public class OperationGeneratedCodeTests
         router.Map("/", new MyOperationsA());
 
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest()
-            .AddSingleton<IDispatcher>(router)
+            .AddColocTest(router)
             .BuildServiceProvider();
 
         provider.GetRequiredService<Server>().Listen();
