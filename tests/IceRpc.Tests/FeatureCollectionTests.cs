@@ -88,7 +88,6 @@ public class FeatureCollectionTests
             [typeof(int)] = 1,
             [typeof(long)] = 1024,
         };
-
         IFeatureCollection features = new FeatureCollection(defaults);
         features.Set(43); // Mask the default
         features.Set("hello");
