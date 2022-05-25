@@ -2,6 +2,7 @@
 
 using IceRpc.Features;
 using NUnit.Framework;
+using System.Linq;
 
 namespace IceRpc.Tests;
 
@@ -77,5 +78,29 @@ public class FeatureCollectionTests
         features[typeof(int)] = 42;
 
         Assert.That((int)features[typeof(int)]!, Is.EqualTo(42));
+    }
+
+    [Test]
+    public void Iterate_returns_all_features_except_masked_defauls()
+    {
+        IFeatureCollection defaults = new FeatureCollection
+        {
+            [typeof(int)] = 1,
+            [typeof(long)] = 1024,
+        };
+
+        IFeatureCollection features = new FeatureCollection(defaults);
+        features.Set(43); // Mask the default
+        features.Set("hello");
+
+        var all = features.ToDictionary(x => x.Key, x => x.Value);
+
+        var expected = new Dictionary<Type, object>
+        {
+            [typeof(int)] = 43,
+            [typeof(string)] = "hello",
+            [typeof(long)] = 1024
+        };
+        Assert.That(all, Is.EqualTo(expected));
     }
 }
