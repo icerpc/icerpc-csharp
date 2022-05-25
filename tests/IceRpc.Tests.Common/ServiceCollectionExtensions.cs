@@ -101,14 +101,19 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddColocTest(this IServiceCollection services) =>
         services.AddColocTest(Protocol.IceRpc);
 
-    public static IServiceCollection AddTcpTest(this IServiceCollection services, Protocol protocol) =>
-        services.AddClientServerTest(new Endpoint(protocol) { Host = "127.0.0.1", Port = 0 });
+    public static IServiceCollection AddTcpTest(
+        this IServiceCollection services,
+        IDispatcher dispatcher,
+        Protocol protocol) =>
+        services.AddClientServerTest(dispatcher, new Endpoint(protocol) { Host = "127.0.0.1", Port = 0 });
 
     /// <summary>Adds a Server and ClientConnection singletons, with the server listening on the specified endpoint and
     /// the client connection connecting to the server's endpoint.</summary>
     /// <remarks>When the endpoint's port is 0 and transport is not coloc, you need to create the server and call Listen
     ///  on it before creating the client connection.</remarks>
-    private static IServiceCollection AddClientServerTest(this IServiceCollection services, Endpoint endpoint)
+    private static IServiceCollection AddClientServerTest(
+        this IServiceCollection services,
+        Endpoint endpoint)
     {
         services
             .AddOptions<ServerOptions>()
@@ -120,6 +125,27 @@ public static class ServiceCollectionExtensions
                     options.Endpoint = endpoint;
                 });
 
+        services.AddIceRpcServer();
+
+        services
+            .AddOptions<ClientConnectionOptions>()
+            .Configure<Server>((options, server) => options.RemoteEndpoint = server.Endpoint);
+
+        services.AddIceRpcClientConnection();
+
+        return services;
+    }
+
+    private static IServiceCollection AddClientServerTest(
+        this IServiceCollection services,
+        IDispatcher dispatcher,
+        Endpoint endpoint)
+    {
+        services.AddOptions<ServerOptions>().Configure(options =>
+        {
+            options.ConnectionOptions.Dispatcher = dispatcher;
+            options.Endpoint = endpoint;
+        });
         services.AddIceRpcServer();
 
         services

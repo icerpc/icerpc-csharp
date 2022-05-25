@@ -45,9 +45,7 @@ public class ConnectionTests
         var serverConnectionClosed = new TaskCompletionSource();
         var clientConnectionClosed = new TaskCompletionSource();
 
-        services
-            .AddTcpTest(Protocol.FromString(protocol))
-            .AddSingleton<IDispatcher>(dispatcher);
+        services.AddTcpTest(dispatcher, Protocol.FromString(protocol));
 
         services
             .AddOptions<ClientConnectionOptions>()
@@ -229,8 +227,9 @@ public class ConnectionTests
             .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
 
         await using ServiceProvider provider = services
-            .AddTcpTest(Protocol.FromString(protocol))
-            .AddSingleton<IDispatcher>(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))))
+            .AddTcpTest(
+                new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
+                Protocol.FromString(protocol))
             .BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
@@ -265,9 +264,9 @@ public class ConnectionTests
             .AddOptions<TcpClientTransportOptions>()
             .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
 
-       services
-            .AddTcpTest(Protocol.FromString(protocol))
-            .AddSingleton<IDispatcher>(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))));
+        services.AddTcpTest(
+            new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
+            Protocol.FromString(protocol));
 
         services
             .AddOptions<ClientConnectionOptions>()
@@ -408,9 +407,7 @@ public class ConnectionTests
             .AddOptions<TcpClientTransportOptions>()
             .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
 
-        services
-            .AddTcpTest(Protocol.FromString(protocol))
-            .AddSingleton<IDispatcher>(ConnectionOptions.DefaultDispatcher);
+        services.AddTcpTest(ConnectionOptions.DefaultDispatcher, Protocol.FromString(protocol));
 
         services
             .AddOptions<ClientConnectionOptions>()
@@ -458,8 +455,7 @@ public class ConnectionTests
         });
 
         await using ServiceProvider provider = services
-            .AddTcpTest(Protocol.FromString(protocol))
-            .AddSingleton<IDispatcher>(dispatcher)
+            .AddTcpTest(dispatcher, Protocol.FromString(protocol))
             .BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
