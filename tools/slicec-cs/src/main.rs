@@ -85,10 +85,7 @@ fn try_main() -> Result<(), Error> {
             let mut exception_visitor = ExceptionVisitor { generated_code: &mut generated_code };
             slice_file.visit_with(&mut exception_visitor);
 
-            let mut enum_visitor = EnumVisitor {
-                generated_code: &mut generated_code,
-                encoding: slice_file.encoding(),
-            };
+            let mut enum_visitor = EnumVisitor { generated_code: &mut generated_code };
             slice_file.visit_with(&mut enum_visitor);
 
             let mut class_visitor = ClassVisitor { generated_code: &mut generated_code };
