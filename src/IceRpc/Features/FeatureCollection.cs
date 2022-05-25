@@ -54,5 +54,22 @@ public class FeatureCollection : IFeatureCollection
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     /// <inheritdoc />
-    public IEnumerator<KeyValuePair<Type, object>> GetEnumerator() => _features.GetEnumerator();
+    public IEnumerator<KeyValuePair<Type, object>> GetEnumerator()
+    {
+        foreach (KeyValuePair<Type, object> pair in _features)
+        {
+            yield return pair;
+        }
+
+        if (_defaults != null)
+        {
+            foreach (KeyValuePair<Type, object> pair in _defaults)
+            {
+                if (!_features.ContainsKey(pair.Key))
+                {
+                    yield return pair;
+                }
+            }
+        }
+    }
 }
