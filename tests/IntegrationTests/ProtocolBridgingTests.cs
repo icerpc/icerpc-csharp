@@ -58,13 +58,12 @@ public sealed class ProtocolBridgingTests
         forwarderServicePrx.Proxy.Endpoint = forwarderServer.Endpoint;
         forwarderServicePrx.Proxy.Invoker = forwarderServiceProvider.GetRequiredService<IInvoker>();
 
-        var targetService = new ProtocolBridgingTest();
+        var targetService = new ProtocolBridgingTest(targetServer.Endpoint);
         router.UseDispatchInformation();
         router.Map("/target", targetService);
         router.Map("/forward", new Forwarder(targetServicePrx.Proxy));
 
-        // TODO: test with the other encoding; currently, the encoding is always the encoding of
-        // forwardService.Proxy.Proxy
+        // TODO: test with the other encoding; currently, the encoding is always slice2
 
         ProtocolBridgingTestPrx newPrx = await TestProxyAsync(forwarderServicePrx, direct: false);
         Assert.That((object)newPrx.Proxy.Protocol.Name, Is.EqualTo(targetProtocol));
@@ -107,6 +106,10 @@ public sealed class ProtocolBridgingTests
     {
         public ImmutableDictionary<string, string> Context { get; set; } = ImmutableDictionary<string, string>.Empty;
 
+        private readonly Endpoint _publishedEndpoint;
+
+        public ProtocolBridgingTest(Endpoint publishedEndpoint) => _publishedEndpoint = publishedEndpoint;
+
         public ValueTask<int> OpAsync(int x, IFeatureCollection features, CancellationToken cancel) =>
             new(x);
 
@@ -123,8 +126,12 @@ public sealed class ProtocolBridgingTests
         {
             IDispatchInformationFeature dispatchInformation = features.Get<IDispatchInformationFeature>()!;
 
-            var proxy = new Proxy(dispatchInformation.Connection.Protocol) { Path = dispatchInformation.Path };
-            proxy.Endpoint = dispatchInformation.Connection.Endpoint;
+            var proxy = new Proxy(dispatchInformation.Connection.Protocol)
+            {
+                Path = dispatchInformation.Path,
+                Endpoint = _publishedEndpoint
+            };
+
             return new(new ProtocolBridgingTestPrx(proxy));
         }
 
