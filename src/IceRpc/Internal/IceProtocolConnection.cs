@@ -1121,7 +1121,6 @@ namespace IceRpc.Internal
                     string operation = decoder.DecodeString();
                     OperationMode operationMode = decoder.DecodeOperationMode();
 
-
                     Pipe? contextPipe = null;
                     var pos = decoder.Consumed;
                     int count = decoder.DecodeSize();

@@ -70,6 +70,20 @@ namespace IceRpc.Transports.Internal
         {
             _inputPipeReader.Abort(exception);
             _outputPipeWriter.Abort(exception);
+
+            // We don't wait for the application to complete the stream Input and Output to shutdown the stream. We
+            // abort reads and writes right away to shutdown the stream.
+            ulong errorCode;
+            if (exception is MultiplexedStreamAbortedException abortedException)
+            {
+                errorCode = abortedException.ToError();
+            }
+            else
+            {
+                errorCode = SlicStreamError.UnexpectedError.ToError();
+            }
+            AbortRead(errorCode);
+            AbortWrite(errorCode);
         }
 
         /// <inheritdoc/>
