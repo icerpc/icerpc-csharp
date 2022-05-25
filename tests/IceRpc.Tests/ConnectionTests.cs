@@ -4,7 +4,6 @@ using IceRpc.Configure;
 using IceRpc.Slice;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
@@ -23,15 +22,16 @@ public class ConnectionTests
         // Arrange
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
-        var tcpServerTransportOptions = new TcpServerTransportOptions
-        {
-            IdleTimeout = idleOnClient ? TimeSpan.FromHours(1) : TimeSpan.FromMilliseconds(500),
-        };
 
-        var tcpClientTransportOptions = new TcpClientTransportOptions
-        {
-            IdleTimeout = idleOnClient ? TimeSpan.FromMilliseconds(500) : TimeSpan.FromHours(1),
-        };
+        IServiceCollection services = new ServiceCollection();
+
+        services
+            .AddOptions<TcpServerTransportOptions>()
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
+
+        services
+            .AddOptions<TcpClientTransportOptions>()
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
 
         IConnection? serverConnection = null;
         var dispatcher = new InlineDispatcher(async (request, cancel) =>
@@ -45,8 +45,8 @@ public class ConnectionTests
         var serverConnectionClosed = new TaskCompletionSource();
         var clientConnectionClosed = new TaskCompletionSource();
 
-        IServiceCollection services = new ServiceCollection()
-            .AddTcpTest(Protocol.FromString(protocol), tcpServerTransportOptions, tcpClientTransportOptions)
+        services
+            .AddTcpTest(Protocol.FromString(protocol))
             .AddSingleton<IDispatcher>(dispatcher);
 
         services
@@ -217,19 +217,19 @@ public class ConnectionTests
     [Test]
     public async Task Non_resumable_connection_cannot_reconnect([Values("ice", "icerpc")] string protocol)
     {
-        var tcpServerTransportOptions = new TcpServerTransportOptions
-        {
-            IdleTimeout = TimeSpan.FromMilliseconds(500),
-        };
-
-        var tcpClientTransportOptions = new TcpClientTransportOptions
-        {
-            IdleTimeout = TimeSpan.FromMilliseconds(500),
-        };
-
         // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddTcpTest(Protocol.FromString(protocol), tcpServerTransportOptions, tcpClientTransportOptions)
+        IServiceCollection services = new ServiceCollection();
+
+        services
+            .AddOptions<TcpServerTransportOptions>()
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
+
+        services
+            .AddOptions<TcpClientTransportOptions>()
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
+
+        await using ServiceProvider provider = services
+            .AddTcpTest(Protocol.FromString(protocol))
             .AddSingleton<IDispatcher>(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))))
             .BuildServiceProvider();
 
@@ -254,19 +254,19 @@ public class ConnectionTests
     [Test]
     public async Task Resumable_connection_can_reconnect_after_being_idle([Values("ice", "icerpc")] string protocol)
     {
-        var tcpServerTransportOptions = new TcpServerTransportOptions
-        {
-            IdleTimeout = TimeSpan.FromMilliseconds(500),
-        };
-
-        var tcpClientTransportOptions = new TcpClientTransportOptions
-        {
-            IdleTimeout = TimeSpan.FromMilliseconds(500),
-        };
-
         // Arrange
-        IServiceCollection services = new ServiceCollection()
-            .AddTcpTest(Protocol.FromString(protocol), tcpServerTransportOptions, tcpClientTransportOptions)
+        IServiceCollection services = new ServiceCollection();
+
+        services
+            .AddOptions<TcpServerTransportOptions>()
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
+
+        services
+            .AddOptions<TcpClientTransportOptions>()
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
+
+       services
+            .AddTcpTest(Protocol.FromString(protocol))
             .AddSingleton<IDispatcher>(new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))));
 
         services
@@ -398,18 +398,18 @@ public class ConnectionTests
         [Values(true, false)] bool keepAliveOnClient)
     {
         // Arrange
-        var tcpServerTransportOptions = new TcpServerTransportOptions
-        {
-            IdleTimeout = TimeSpan.FromMilliseconds(500),
-        };
+        IServiceCollection services = new ServiceCollection();
 
-        var tcpClientTransportOptions = new TcpClientTransportOptions
-        {
-            IdleTimeout = TimeSpan.FromMilliseconds(500),
-        };
+        services
+            .AddOptions<TcpServerTransportOptions>()
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
 
-        IServiceCollection services = new ServiceCollection()
-            .AddTcpTest(Protocol.FromString(protocol), tcpServerTransportOptions, tcpClientTransportOptions)
+        services
+            .AddOptions<TcpClientTransportOptions>()
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
+
+        services
+            .AddTcpTest(Protocol.FromString(protocol))
             .AddSingleton<IDispatcher>(ConnectionOptions.DefaultDispatcher);
 
         services
@@ -440,15 +440,15 @@ public class ConnectionTests
         // Arrange
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
-        var tcpServerTransportOptions = new TcpServerTransportOptions
-        {
-            IdleTimeout = TimeSpan.FromMilliseconds(500),
-        };
+        IServiceCollection services = new ServiceCollection();
 
-        var tcpClientTransportOptions = new TcpClientTransportOptions
-        {
-            IdleTimeout = TimeSpan.FromMilliseconds(500),
-        };
+        services
+            .AddOptions<TcpServerTransportOptions>()
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
+
+        services
+            .AddOptions<TcpClientTransportOptions>()
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
 
         var dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
@@ -457,8 +457,8 @@ public class ConnectionTests
             return new OutgoingResponse(request);
         });
 
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddTcpTest(Protocol.FromString(protocol), tcpServerTransportOptions, tcpClientTransportOptions)
+        await using ServiceProvider provider = services
+            .AddTcpTest(Protocol.FromString(protocol))
             .AddSingleton<IDispatcher>(dispatcher)
             .BuildServiceProvider();
 
