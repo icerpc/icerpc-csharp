@@ -3,6 +3,7 @@
 using IceRpc.Tests;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.IO.Pipelines;
 
@@ -16,16 +17,14 @@ public class SlicTransportTests
     public async Task Stream_peer_options_are_set_after_connect()
     {
         // Arrange
-        await using ServiceProvider serviceProvider = new ServiceCollection()
-            .AddColocTransport()
-            .AddSlicTransport()
-            .AddScoped(
-                _ => new SlicTransportOptions
-                {
-                    PauseWriterThreshold = 6893,
-                    ResumeWriterThreshold = 2000,
-                    PacketMaxSize = 2098
-                }).BuildServiceProvider();
+        await using ServiceProvider serviceProvider = new SlicTransportServiceCollection(
+            new SlicTransportOptions
+            {
+                PauseWriterThreshold = 6893,
+                ResumeWriterThreshold = 2000,
+                PacketMaxSize = 2098
+            })
+            .BuildServiceProvider();
 
         using var clientConnection = (SlicNetworkConnection)serviceProvider.CreateConnection();
         Task<IMultiplexedNetworkConnection> acceptTask = serviceProvider.AcceptConnectionAsync(clientConnection);
@@ -50,14 +49,8 @@ public class SlicTransportTests
         int pauseThreshold)
     {
         // Arrange
-        await using ServiceProvider serviceProvider = new ServiceCollection()
-            .AddColocTransport()
-            .AddSlicTransport()
-            .AddScoped(
-                _ => new SlicTransportOptions
-                {
-                    PauseWriterThreshold = pauseThreshold
-                }).BuildServiceProvider();
+        await using ServiceProvider serviceProvider = new SlicTransportServiceCollection(
+            new SlicTransportOptions { PauseWriterThreshold = pauseThreshold }).BuildServiceProvider();
 
         byte[] payload = new byte[pauseThreshold - 1];
 
@@ -87,14 +80,8 @@ public class SlicTransportTests
     {
         // Arrange
         byte[] payload = new byte[pauseThreshold - 1];
-        await using ServiceProvider serviceProvider = new ServiceCollection()
-            .AddColocTransport()
-            .AddSlicTransport()
-            .AddScoped(
-                _ => new SlicTransportOptions
-                {
-                    PauseWriterThreshold = pauseThreshold
-                }).BuildServiceProvider();
+        await using ServiceProvider serviceProvider = new SlicTransportServiceCollection(
+            new SlicTransportOptions { PauseWriterThreshold = pauseThreshold }).BuildServiceProvider();
 
         using var clientConnection = (SlicNetworkConnection)serviceProvider.CreateConnection();
         Task<IMultiplexedNetworkConnection> acceptTask = serviceProvider.AcceptConnectionAsync(clientConnection);
@@ -130,15 +117,12 @@ public class SlicTransportTests
         int resumeThreshold)
     {
         // Arrange
-        await using ServiceProvider serviceProvider = new ServiceCollection()
-            .AddColocTransport()
-            .AddSlicTransport()
-            .AddScoped(
-                _ => new SlicTransportOptions
-                {
-                    PauseWriterThreshold = pauseThreshold,
-                    ResumeWriterThreshold = resumeThreshold,
-                }).BuildServiceProvider();
+        await using ServiceProvider serviceProvider = new SlicTransportServiceCollection(
+            new SlicTransportOptions
+            {
+                PauseWriterThreshold = pauseThreshold,
+                ResumeWriterThreshold = resumeThreshold,
+            }).BuildServiceProvider();
 
         using var clientConnection = (SlicNetworkConnection)serviceProvider.CreateConnection();
         Task<IMultiplexedNetworkConnection> acceptTask = serviceProvider.AcceptConnectionAsync(clientConnection);
@@ -157,6 +141,34 @@ public class SlicTransportTests
 
         // Assert
         Assert.That(async () => await writeTask, Throws.Nothing);
+    }
+
+    public class SlicTransportServiceCollection : ServiceCollection
+    {
+        public SlicTransportServiceCollection(SlicTransportOptions slicTransportOptions)
+        {
+            this.AddColocTransport();
+            this.AddSlicTransport();
+            this.AddSingleton(typeof(Endpoint), new Endpoint(Protocol.IceRpc) { Host = "colochost" });
+            this.AddOptions<SlicTransportOptions>().Configure(
+                options =>
+                {
+                    options.BidirectionalStreamMaxCount = slicTransportOptions.BidirectionalStreamMaxCount;
+                    options.PacketMaxSize = slicTransportOptions.PacketMaxSize;
+                    options.PauseWriterThreshold = slicTransportOptions.PauseWriterThreshold;
+                    options.Pool = slicTransportOptions.Pool;
+                    options.ResumeWriterThreshold = slicTransportOptions.ResumeWriterThreshold;
+                });
+            this.AddSingleton(provider =>
+            {
+                var serverTransport = provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>();
+                var listener = serverTransport.Listen(
+                    (Endpoint)provider.GetRequiredService(typeof(Endpoint)),
+                    null,
+                    NullLogger.Instance);
+                return listener;
+            });
+        }
     }
 
     private static void CompleteStreams(params IMultiplexedStream[] streams)
