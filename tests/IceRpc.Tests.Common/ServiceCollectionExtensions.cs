@@ -27,16 +27,11 @@ public static class ServiceCollectionExtensions
                 provider => new TcpServerTransport(
                     provider.GetRequiredService<IOptions<TcpServerTransportOptions>>().Value));
 
-        // TODO: fix SlicServerTransportOptions to extract the simple server transport
-        services
-            .AddOptions<SlicServerTransportOptions>()
-            .Configure<IServerTransport<ISimpleNetworkConnection>>(
-                (options, simpleServerTransport) => options.SimpleServerTransport = simpleServerTransport);
-
         services.
             TryAddSingleton<IServerTransport<IMultiplexedNetworkConnection>>(
                 provider => new SlicServerTransport(
-                    provider.GetRequiredService<IOptions<SlicServerTransportOptions>>().Value));
+                    provider.GetRequiredService<IOptions<SlicTransportOptions>>().Value,
+                    provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()));
 
         services.AddSingleton<Server>(provider =>
             new Server(
@@ -76,16 +71,11 @@ public static class ServiceCollectionExtensions
                 provider => new TcpClientTransport(
                     provider.GetRequiredService<IOptions<TcpClientTransportOptions>>().Value));
 
-        // TODO: fix SlicClientransportOptions to extract the simple client transport
-        services
-            .AddOptions<SlicClientTransportOptions>()
-            .Configure<IClientTransport<ISimpleNetworkConnection>>(
-                (options, simpleClientTransport) => options.SimpleClientTransport = simpleClientTransport);
-
         services.
             TryAddSingleton<IClientTransport<IMultiplexedNetworkConnection>>(
                 provider => new SlicClientTransport(
-                    provider.GetRequiredService<IOptions<SlicClientTransportOptions>>().Value));
+                    provider.GetRequiredService<IOptions<SlicTransportOptions>>().Value,
+                    provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()));
 
         return services;
     }
@@ -163,35 +153,33 @@ public static class ServiceCollectionExtensions
         collection.AddScoped<IServerTransport<IMultiplexedNetworkConnection>>(provider =>
         {
             var simpleServerTransport = provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>();
-            var serverOptions = provider.GetService<SlicServerTransportOptions>() ?? new SlicServerTransportOptions();
+            var slicOptions = provider.GetService<SlicTransportOptions>() ?? new SlicTransportOptions();
             var multiplexedTransportOptions = provider.GetService<MultiplexedTransportOptions>();
             if (multiplexedTransportOptions?.BidirectionalStreamMaxCount is int bidirectionalStreamMaxCount)
             {
-                serverOptions.BidirectionalStreamMaxCount = bidirectionalStreamMaxCount;
+                slicOptions.BidirectionalStreamMaxCount = bidirectionalStreamMaxCount;
             }
             if (multiplexedTransportOptions?.UnidirectionalStreamMaxCount is int unidirectionalStreamMaxCount)
             {
-                serverOptions.UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount;
+                slicOptions.UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount;
             }
-            serverOptions.SimpleServerTransport = simpleServerTransport;
-            return new SlicServerTransport(serverOptions);
+            return new SlicServerTransport(slicOptions, simpleServerTransport);
         });
 
         collection.AddScoped<IClientTransport<IMultiplexedNetworkConnection>>(provider =>
         {
             var simpleClientTransport = provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>();
-            var clientOptions = provider.GetService<SlicClientTransportOptions>() ?? new SlicClientTransportOptions();
+            var slicOptions = provider.GetService<SlicTransportOptions>() ?? new SlicTransportOptions();
             var multiplexedTransportOptions = provider.GetService<MultiplexedTransportOptions>();
             if (multiplexedTransportOptions?.BidirectionalStreamMaxCount is int bidirectionalStreamMaxCount)
             {
-                clientOptions.BidirectionalStreamMaxCount = bidirectionalStreamMaxCount;
+                slicOptions.BidirectionalStreamMaxCount = bidirectionalStreamMaxCount;
             }
             if (multiplexedTransportOptions?.UnidirectionalStreamMaxCount is int unidirectionalStreamMaxCount)
             {
-                clientOptions.UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount;
+                slicOptions.UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount;
             }
-            clientOptions.SimpleClientTransport = simpleClientTransport;
-            return new SlicClientTransport(clientOptions);
+            return new SlicClientTransport(slicOptions, simpleClientTransport);
         });
 
         collection.AddScoped<IListener<IMultiplexedNetworkConnection>>(provider =>
