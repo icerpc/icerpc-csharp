@@ -13,8 +13,6 @@ public class FeatureCollection : IFeatureCollection
     /// <inheritdoc/>
     public bool IsReadOnly => false;
 
-    private static readonly KeyComparer FeatureKeyComparer = new();
-
     private readonly IFeatureCollection? _defaults;
     private readonly Dictionary<Type, object> _features = new();
 
@@ -58,29 +56,20 @@ public class FeatureCollection : IFeatureCollection
     /// <inheritdoc />
     public IEnumerator<KeyValuePair<Type, object>> GetEnumerator()
     {
-        if (_features != null)
+        foreach (KeyValuePair<Type, object> pair in _features)
         {
-            foreach (var pair in _features)
-            {
-                yield return pair;
-            }
+            yield return pair;
         }
 
         if (_defaults != null)
         {
-            // Don't return features masked by the wrapper.
-            foreach (var pair in _features == null ? _defaults : _defaults.Except(_features, FeatureKeyComparer))
+            foreach (KeyValuePair<Type, object> pair in _defaults)
             {
-                yield return pair;
+                if (!_features.ContainsKey(pair.Key))
+                {
+                    yield return pair;
+                }
             }
         }
-    }
-
-    // A key value pair equality comparer that just checks the keys
-    private sealed class KeyComparer : IEqualityComparer<KeyValuePair<Type, object>>
-    {
-        public bool Equals(KeyValuePair<Type, object> lhs, KeyValuePair<Type, object> rhs) => lhs.Key.Equals(rhs.Key);
-
-        public int GetHashCode(KeyValuePair<Type, object> obj) => obj.Key.GetHashCode();
     }
 }
