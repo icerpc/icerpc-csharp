@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Locator.Internal;
 using IceRpc.Slice;
 using NUnit.Framework;
@@ -202,25 +203,25 @@ public class LocatorEndpointFinderTests
             _adapterId = adapterId;
         }
 
-        public Task<ServicePrx?> FindAdapterByIdAsync(string id, Invocation? invocation, CancellationToken cancel) =>
+        public Task<ServicePrx?> FindAdapterByIdAsync(string id, IFeatureCollection? features, CancellationToken cancel) =>
             Task.FromResult<ServicePrx?>(id == "good" && _adapterId ? _service : null);
 
-        public Task<ServicePrx?> FindObjectByIdAsync(string id, Invocation? invocation, CancellationToken cancel) =>
+        public Task<ServicePrx?> FindObjectByIdAsync(string id, IFeatureCollection? features, CancellationToken cancel) =>
             Task.FromResult<ServicePrx?>(id == "good" && !_adapterId ? _service : null);
 
-        Task<LocatorRegistryPrx?> ILocatorPrx.GetRegistryAsync(Invocation? invocation, CancellationToken cancel) =>
+        Task<LocatorRegistryPrx?> ILocatorPrx.GetRegistryAsync(IFeatureCollection? features, CancellationToken cancel) =>
             throw new NotImplementedException();
     }
 
     private class NotFoundLocatorPrx : ILocatorPrx
     {
-        public Task<ServicePrx?> FindAdapterByIdAsync(string id, Invocation? invocation, CancellationToken cancel) =>
+        public Task<ServicePrx?> FindAdapterByIdAsync(string id, IFeatureCollection? features, CancellationToken cancel) =>
             throw new AdapterNotFoundException();
 
-        public Task<ServicePrx?> FindObjectByIdAsync(string id, Invocation? invocation, CancellationToken cancel) =>
+        public Task<ServicePrx?> FindObjectByIdAsync(string id, IFeatureCollection? features, CancellationToken cancel) =>
             throw new ObjectNotFoundException();
 
-        public Task<LocatorRegistryPrx?> GetRegistryAsync(Invocation? invocation, CancellationToken cancel) =>
+        public Task<LocatorRegistryPrx?> GetRegistryAsync(IFeatureCollection? features, CancellationToken cancel) =>
             throw new NotImplementedException();
     }
 }

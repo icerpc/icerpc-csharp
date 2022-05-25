@@ -8,7 +8,6 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests;
 
-[Timeout(5000)]
 [Parallelizable(ParallelScope.All)]
 public sealed class IceProtocolConnectionTests
 {
@@ -193,10 +192,10 @@ public sealed class IceProtocolConnectionTests
 
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
-            .UseServerOptions(new ServerOptions 
-                {
-                    ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
-                })
+            .UseServerOptions(new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
+            })
             .BuildServiceProvider();
 
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
@@ -225,9 +224,9 @@ public sealed class IceProtocolConnectionTests
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
             .UseServerOptions(new ServerOptions
-                {
-                    ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
-                })
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
+            })
             .BuildServiceProvider();
 
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
@@ -259,9 +258,9 @@ public sealed class IceProtocolConnectionTests
         await using var serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(Protocol.Ice)
             .UseServerOptions(new ServerOptions
-                {
-                    ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
-                })
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
+            })
             .BuildServiceProvider();
         using var clientServerProtocolConnection = await serviceProvider.GetClientServerProtocolConnectionAsync();
 

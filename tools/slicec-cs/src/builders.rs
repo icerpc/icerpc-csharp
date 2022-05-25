@@ -340,18 +340,18 @@ impl FunctionBuilder {
         match context {
             TypeContext::Decode => {
                 self.add_parameter(
-                    "IceRpc.Slice.Dispatch",
-                    &escape_parameter_name(&parameters, "dispatch"),
+                    "IceRpc.Features.IFeatureCollection",
+                    &escape_parameter_name(&parameters, "features"),
                     None,
-                    Some("The dispatch properties"),
+                    Some("The dispatch features"),
                 );
             }
             TypeContext::Encode => {
                 self.add_parameter(
-                    "IceRpc.Slice.Invocation?",
-                    &escape_parameter_name(&parameters, "invocation"),
+                    "IceRpc.Features.IFeatureCollection?",
+                    &escape_parameter_name(&parameters, "features"),
                     Some("null"),
-                    Some("The invocation properties."),
+                    Some("The invocation features."),
                 );
             }
             _ => panic!("Unexpected context value"),

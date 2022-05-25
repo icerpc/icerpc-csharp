@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
-using IceRpc.Features.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
@@ -193,23 +192,8 @@ namespace IceRpc.Internal
                         DecodeHeader(readResult.Buffer);
                     stream.Input.AdvanceTo(readResult.Buffer.End);
 
-                    IFeatureCollection features = FeatureCollection.Empty;
-
-                    // Decode Context from Fields and set corresponding feature.
-                    if (fields.DecodeValue(
-                        RequestFieldKey.Context,
-                        (ref SliceDecoder decoder) => decoder.DecodeDictionary(
-                            size => new Dictionary<string, string>(size),
-                            keyDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString(),
-                            valueDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString()))
-                                is Dictionary<string, string> context && context.Count > 0)
-                    {
-                        features = features.With<IContextFeature>(new ContextFeature { Value = context });
-                    }
-
                     var request = new IncomingRequest(connection)
                     {
-                        Features = features,
                         Fields = fields,
                         IsOneway = !stream.IsBidirectional,
                         Operation = header.Operation,
@@ -341,7 +325,7 @@ namespace IceRpc.Internal
 
                     static PipeReader CreateExceptionPayload(IncomingRequest request, RemoteException exception)
                     {
-                        ISliceEncodeFeature encodeFeature = request.GetFeature<ISliceEncodeFeature>() ??
+                        ISliceEncodeFeature encodeFeature = request.Features.Get<ISliceEncodeFeature>() ??
                                 SliceEncodeFeature.Default;
 
                         var pipe = new Pipe(encodeFeature.PipeOptions);
@@ -592,24 +576,6 @@ namespace IceRpc.Internal
                 var header = new IceRpcRequestHeader(request.Proxy.Path, request.Operation);
 
                 header.Encode(ref encoder);
-
-                if (request.Features.Get<IContextFeature>()?.Value is IDictionary<string, string> context)
-                {
-                    if (context.Count == 0)
-                    {
-                        // make sure it's not set.
-                        request.Fields = request.Fields.Without(RequestFieldKey.Context);
-                    }
-                    else
-                    {
-                        request.Fields = request.Fields.With(
-                            RequestFieldKey.Context,
-                            (ref SliceEncoder encoder) => encoder.EncodeDictionary(
-                                context,
-                                (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
-                                (ref SliceEncoder encoder, string value) => encoder.EncodeString(value)));
-                    }
-                }
 
                 encoder.EncodeDictionary(
                     request.Fields,

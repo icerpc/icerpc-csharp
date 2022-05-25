@@ -5,7 +5,7 @@ using System.IO.Compression;
 
 namespace IceRpc.Configure;
 
-/// <summary>This class provide extension methods to add deflate interceptor to a <see cref="Pipeline"/>.
+/// <summary>This class provides extension methods to add deflate interceptor to a <see cref="Pipeline"/>.
 /// </summary>
 public static class DeflatePipelineExtensions
 {

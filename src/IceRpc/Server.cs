@@ -194,9 +194,9 @@ namespace IceRpc
                     where T : INetworkConnection
             {
                 // The common connection options, set through ServerOptions.
-                var connectionOptions = _options.ConnectionOptions with 
-                { 
-                    OnClose = RemoveOnClose + _options.ConnectionOptions.OnClose 
+                var connectionOptions = _options.ConnectionOptions with
+                {
+                    OnClose = RemoveOnClose + _options.ConnectionOptions.OnClose
                 };
 
                 while (true)

@@ -5,6 +5,7 @@ using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Tests;
 using IceRpc.Transports;
+using IceRpc.RequestContext;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Collections.Immutable;
@@ -13,7 +14,6 @@ namespace IceRpc.IntegrationTests;
 
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 [Parallelizable(ParallelScope.All)]
-[Timeout(5000)]
 public sealed class ProtocolBridgingTests
 {
     [Test]
@@ -22,6 +22,7 @@ public sealed class ProtocolBridgingTests
         [Values("ice", "icerpc")] string targetProtocol)
     {
         var router = new Router();
+        router.UseRequestContext();
         var targetServiceCollection = new IntegrationTestServiceCollection();
         var forwarderServiceCollection = new IntegrationTestServiceCollection();
 
@@ -33,10 +34,14 @@ public sealed class ProtocolBridgingTests
         targetServiceCollection.UseProtocol(targetProtocol).AddTransient<IDispatcher>(_ => router);
         forwarderServiceCollection.UseProtocol(forwarderProtocol).AddTransient<IDispatcher>(_ => router);
 
-        targetServiceCollection.AddTransient<IInvoker>(serviceProvider =>
-            new Pipeline().UseBinder(serviceProvider.GetRequiredService<ConnectionPool>()));
-        forwarderServiceCollection.AddTransient<IInvoker>(serviceProvider =>
-            new Pipeline().UseBinder(serviceProvider.GetRequiredService<ConnectionPool>()));
+        targetServiceCollection.AddTransient<IInvoker>(
+            serviceProvider => new Pipeline()
+                .UseBinder(serviceProvider.GetRequiredService<ConnectionPool>())
+                .UseRequestContext());
+        forwarderServiceCollection.AddTransient<IInvoker>(
+            serviceProvider => new Pipeline()
+                .UseBinder(serviceProvider.GetRequiredService<ConnectionPool>())
+                .UseRequestContext());
 
         await using ServiceProvider targetServiceProvider = targetServiceCollection.BuildServiceProvider();
         await using ServiceProvider forwarderServiceProvider = forwarderServiceCollection.BuildServiceProvider();
@@ -54,6 +59,7 @@ public sealed class ProtocolBridgingTests
         forwarderServicePrx.Proxy.Invoker = forwarderServiceProvider.GetRequiredService<IInvoker>();
 
         var targetService = new ProtocolBridgingTest();
+        router.UseDispatchInformation();
         router.Map("/target", targetService);
         router.Map("/forward", new Forwarder(targetServicePrx.Proxy));
 
@@ -69,17 +75,15 @@ public sealed class ProtocolBridgingTests
             var expectedPath = direct ? "/target" : "/forward";
             Assert.That(prx.Proxy.Path, Is.EqualTo(expectedPath));
             Assert.That(await prx.OpAsync(13), Is.EqualTo(13));
+            IFeatureCollection features = new FeatureCollection().With<IRequestContextFeature>(
+                new RequestContextFeature
+                {
+                    Value = new Dictionary<string, string> { ["MyCtx"] = "hello" }
+                });
 
-            var invocation = new Invocation
-            {
-                Features = new FeatureCollection().With<IContextFeature>(
-                    new ContextFeature
-                    {
-                        Value = new Dictionary<string, string> { ["MyCtx"] = "hello" }
-                    })
-            };
-            await prx.OpContextAsync(invocation);
-            Assert.That(invocation.Features.Get<IContextFeature>()?.Value, Is.EqualTo(targetService.Context));
+            await prx.OpContextAsync(features);
+            Assert.That(features.Get<IRequestContextFeature>()?.Value, Is.EqualTo(targetService.Context));
+
             targetService.Context = ImmutableDictionary<string, string>.Empty;
 
             await prx.OpVoidAsync();
@@ -103,31 +107,33 @@ public sealed class ProtocolBridgingTests
     {
         public ImmutableDictionary<string, string> Context { get; set; } = ImmutableDictionary<string, string>.Empty;
 
-        public ValueTask<int> OpAsync(int x, Dispatch dispatch, CancellationToken cancel) =>
+        public ValueTask<int> OpAsync(int x, IFeatureCollection features, CancellationToken cancel) =>
             new(x);
 
-        public ValueTask OpContextAsync(Dispatch dispatch, CancellationToken cancel)
+        public ValueTask OpContextAsync(IFeatureCollection features, CancellationToken cancel)
         {
-            Context = dispatch.Features.Get<IContextFeature>()?.Value?.ToImmutableDictionary() ??
+            Context = features.Get<IRequestContextFeature>()?.Value?.ToImmutableDictionary() ??
                 ImmutableDictionary<string, string>.Empty;
             return default;
         }
-        public ValueTask OpExceptionAsync(Dispatch dispatch, CancellationToken cancel) =>
+        public ValueTask OpExceptionAsync(IFeatureCollection features, CancellationToken cancel) =>
             throw new ProtocolBridgingException(42);
 
-        public ValueTask<ProtocolBridgingTestPrx> OpNewProxyAsync(Dispatch dispatch, CancellationToken cancel)
+        public ValueTask<ProtocolBridgingTestPrx> OpNewProxyAsync(IFeatureCollection features, CancellationToken cancel)
         {
-            var proxy = new Proxy(dispatch.Protocol) { Path = dispatch.Path };
-            proxy.Endpoint = dispatch.Connection.Endpoint;
+            IDispatchInformationFeature dispatchInformation = features.Get<IDispatchInformationFeature>()!;
+
+            var proxy = new Proxy(dispatchInformation.Connection.Protocol) { Path = dispatchInformation.Path };
+            proxy.Endpoint = dispatchInformation.Connection.Endpoint;
             return new(new ProtocolBridgingTestPrx(proxy));
         }
 
-        public ValueTask OpOnewayAsync(int x, Dispatch dispatch, CancellationToken cancel) => default;
+        public ValueTask OpOnewayAsync(int x, IFeatureCollection features, CancellationToken cancel) => default;
 
-        public ValueTask OpServiceNotFoundExceptionAsync(Dispatch dispatch, CancellationToken cancel) =>
+        public ValueTask OpServiceNotFoundExceptionAsync(IFeatureCollection features, CancellationToken cancel) =>
             throw new DispatchException(DispatchErrorCode.ServiceNotFound);
 
-        public ValueTask OpVoidAsync(Dispatch dispatch, CancellationToken cancel) => default;
+        public ValueTask OpVoidAsync(IFeatureCollection features, CancellationToken cancel) => default;
     }
 
     public sealed class Forwarder : IDispatcher
@@ -142,30 +148,12 @@ public sealed class ProtocolBridgingTests
 
             Protocol targetProtocol = _target.Protocol;
 
-            // Context forwarding
-            IFeatureCollection features = FeatureCollection.Empty;
-            if (incomingRequest.Protocol == Protocol.Ice || targetProtocol == Protocol.Ice)
-            {
-                // When Protocol or targetProtocol is ice, we put the request context in the initial features of the
-                // new outgoing request to ensure it gets forwarded.
-                if (incomingRequest.Features.Get<IContextFeature>() is IContextFeature contextFeature)
-                {
-                    features = features.With(contextFeature);
-                }
-            }
-
             var outgoingRequest = new OutgoingRequest(_target)
             {
-                Features = features,
-                // mostly ignored by ice, with the exception of Idempotent
-                Fields = new Dictionary<RequestFieldKey, OutgoingFieldValue>(
-                    incomingRequest.Fields.Select(
-                        pair => new KeyValuePair<RequestFieldKey, OutgoingFieldValue>(
-                            pair.Key,
-                            new OutgoingFieldValue(pair.Value)))),
                 IsOneway = incomingRequest.IsOneway,
                 Operation = incomingRequest.Operation,
-                Payload = incomingRequest.Payload
+                Payload = incomingRequest.Payload,
+                Features = incomingRequest.Features,
             };
 
             // Then invoke

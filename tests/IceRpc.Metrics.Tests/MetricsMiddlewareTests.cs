@@ -5,7 +5,6 @@ using NUnit.Framework;
 
 namespace IceRpc.Metrics.Tests;
 
-[Timeout(5000)]
 public sealed class MetricsMiddlewareTests
 {
     /// <summary>Verifies that a canceled dispatch published the expected events (request started, request canceled,

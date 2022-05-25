@@ -5,7 +5,6 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests;
 
-[Timeout(30000)]
 public class FeatureCollectionTests
 {
     /// <summary>Verifies that we can get the value of a feature that is set in the defaults.</summary>

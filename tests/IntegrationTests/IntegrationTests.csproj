@@ -26,6 +26,7 @@
     <ProjectReference Include="..\..\src\IceRpc\IceRpc.csproj" />
     <ProjectReference Include="..\..\src\IceRpc.Binder\IceRpc.Binder.csproj" />
     <ProjectReference Include="..\..\src\IceRpc.Coloc\IceRpc.Coloc.csproj" />
+    <ProjectReference Include="..\..\src\IceRpc.RequestContext\IceRpc.RequestContext.csproj" />
     <ProjectReference Include="..\..\src\IceRpc.Interop\IceRpc.Interop.csproj" />
   </ItemGroup>
 

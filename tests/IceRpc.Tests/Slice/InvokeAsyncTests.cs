@@ -7,7 +7,6 @@ using NUnit.Framework;
 namespace IceRpc.Slice.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
-[Timeout(5000)]
 public class InvokeAsyncTests
 {
     /// <summary>Verifies that InvokeAsync completes the outgoing request and incoming response payloads.</summary>
@@ -31,7 +30,7 @@ public class InvokeAsyncTests
             payload: requestPayload,
             payloadStream: null,
             defaultActivator: null,
-            invocation: null);
+            features: null);
 
         // Assert
         Assert.Multiple(async () =>
@@ -66,7 +65,7 @@ public class InvokeAsyncTests
                     payload: requestPayload,
                     payloadStream: requestPayloadStream,
                     defaultActivator: null,
-                    invocation: null),
+                    features: null),
                 Throws.InstanceOf<InvalidDataException>());
 
             Assert.That(requestPayload.Completed.IsCompleted, Is.True);

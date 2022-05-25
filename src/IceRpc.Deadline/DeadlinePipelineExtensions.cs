@@ -4,7 +4,7 @@ using IceRpc.Deadline;
 
 namespace IceRpc.Configure;
 
-/// <summary>This class provide extension methods to add the deadline interceptor to a <see cref="Pipeline"/>.
+/// <summary>This class provides extension methods to add the deadline interceptor to a <see cref="Pipeline"/>.
 /// </summary>
 public static class DeadlinePipelineExtensions
 {

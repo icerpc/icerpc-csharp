@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Features;
 using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -450,7 +451,7 @@ public class ProxyTests
 
     private class ReceiveProxyTest : Service, IReceiveProxyTest
     {
-        public ValueTask<ReceiveProxyTestPrx> ReceiveProxyAsync(Dispatch dispatch, CancellationToken cancel) =>
+        public ValueTask<ReceiveProxyTestPrx> ReceiveProxyAsync(IFeatureCollection features, CancellationToken cancel) =>
             new(ReceiveProxyTestPrx.FromPath("/hello"));
     }
 
@@ -460,7 +461,7 @@ public class ProxyTests
 
         public ValueTask SendProxyAsync(
             SendProxyTestPrx proxy,
-            Dispatch dispatch,
+            IFeatureCollection features,
             CancellationToken cancel = default)
         {
             ReceivedPrx = proxy;

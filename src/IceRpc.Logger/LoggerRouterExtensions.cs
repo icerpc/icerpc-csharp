@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Configure;
 
-/// <summary>This class provide extension methods to add logger middleware to a <see cref="Router"/>.
+/// <summary>This class provides extension methods to add logger middleware to a <see cref="Router"/>.
 /// </summary>
 public static class LoggerRouterExtensions
 {

@@ -5,7 +5,6 @@ using NUnit.Framework;
 namespace IceRpc.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
-[Timeout(30000)]
 public class EndpointTests
 {
     /// <summary>Provides test case data for

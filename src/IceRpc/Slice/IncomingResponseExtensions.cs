@@ -27,7 +27,7 @@ namespace IceRpc.Slice
                 response.DecodeRemoteExceptionAsync(
                     request,
                     response.Protocol.SliceEncoding,
-                    request.Features.Get<ISliceDecodeFeature>(fallback: response.Connection.Features),
+                    request.Features.Get<ISliceDecodeFeature>(),
                     defaultActivator,
                     prxEncodeFeature: null, // we don't expect proxies in Failures, they are usually DispatchException
                     cancel) :
@@ -55,7 +55,7 @@ namespace IceRpc.Slice
             CancellationToken cancel = default)
         {
             ISliceDecodeFeature? decodeFeature =
-                request.Features.Get<ISliceDecodeFeature>(fallback: response.Connection.Features);
+                request.Features.Get<ISliceDecodeFeature>();
 
             return response.ResultType == ResultType.Success ?
                 response.DecodeValueAsync(
@@ -100,7 +100,7 @@ namespace IceRpc.Slice
             int elementSize) =>
             response.ToAsyncEnumerable(
                 encoding,
-                request.Features.Get<ISliceDecodeFeature>(fallback: response.Connection.Features),
+                request.Features.Get<ISliceDecodeFeature>(),
                 defaultActivator,
                 defaultInvoker: request.Proxy.Invoker,
                 encodeFeature,
@@ -125,7 +125,7 @@ namespace IceRpc.Slice
             DecodeFunc<T> decodeFunc) =>
             response.ToAsyncEnumerable(
                 encoding,
-                request.Features.Get<ISliceDecodeFeature>(fallback: response.Connection.Features),
+                request.Features.Get<ISliceDecodeFeature>(),
                 defaultActivator,
                 defaultInvoker: request.Proxy.Invoker,
                 encodeFeature,
@@ -147,7 +147,7 @@ namespace IceRpc.Slice
             CancellationToken cancel = default)
         {
             ISliceDecodeFeature? decodeFeature =
-                request.Features.Get<ISliceDecodeFeature>(fallback: response.Connection.Features);
+                request.Features.Get<ISliceDecodeFeature>();
 
             return response.ResultType == ResultType.Success ?
                 response.DecodeVoidAsync(encoding, decodeFeature, cancel) :

@@ -8,6 +8,17 @@ namespace IceRpc.Configure
     /// </summary>
     public static class RouterExtensions
     {
+        /// <summary>Adds a middleware that creates and inserts the <see cref="IDispatchInformationFeature"/> feature
+        /// in all requests.</summary>
+        /// <param name="router">The router being configured.</param>
+        public static Router UseDispatchInformation(this Router router) =>
+            router.Use(next => new InlineDispatcher((request, cancel) =>
+            {
+                request.Features = request.Features.With<IDispatchInformationFeature>(
+                    new DispatchInformationFeature(request));
+                return next.DispatchAsync(request, cancel);
+            }));
+
         /// <summary>Adds a middleware that sets a feature in all requests.</summary>
         /// <paramtype name="T">The type of the feature.</paramtype>
         /// <param name="router">The router being configured.</param>

@@ -114,7 +114,7 @@ public sealed class ConnectionPoolTests
         server.Listen();
 
         await using var pool = new ConnectionPool(
-            new ConnectionPoolOptions { PreferExistingConnection = true},
+            new ConnectionPoolOptions { PreferExistingConnection = true },
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
         IConnection connection1 = await pool.GetConnectionAsync(

@@ -6,7 +6,6 @@ using NUnit.Framework;
 namespace IceRpc.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
-[Timeout(5000)]
 public class AsyncSemaphoreTests
 {
     [TestCase(0, 1)]

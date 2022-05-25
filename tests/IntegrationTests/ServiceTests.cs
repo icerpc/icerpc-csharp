@@ -8,7 +8,6 @@ using NUnit.Framework;
 namespace IceRpc.IntegrationTests;
 
 [Parallelizable(ParallelScope.All)]
-[Timeout(5000)]
 public class ServiceTests
 {
     /// <summary>Verifies the operations of <see cref="Service"/>.</summary>

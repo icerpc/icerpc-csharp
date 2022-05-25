@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
-using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Transports;
@@ -12,7 +11,6 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Tests;
 
-[Timeout(5000)]
 [Parallelizable(ParallelScope.All)]
 public sealed class ProtocolConnectionTests
 {
@@ -264,7 +262,7 @@ public sealed class ProtocolConnectionTests
             .UseProtocol(protocol)
             .UseServerOptions(new ServerOptions
             {
-                ConnectionOptions= new ConnectionOptions
+                ConnectionOptions = new ConnectionOptions
                 {
                     Dispatcher = new InlineDispatcher(async (request, cancel) =>
                     {
@@ -347,8 +345,8 @@ public sealed class ProtocolConnectionTests
 
         await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
-            .UseServerOptions(new ServerOptions 
-            { 
+            .UseServerOptions(new ServerOptions
+            {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
             })
             .BuildServiceProvider();
@@ -560,17 +558,17 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         // This large value should be large enough to create multiple buffers for the request header.
-        var expectedValue = new string('A', 4096);
-        IDictionary<string, string>? context = null;
+        var expectedValue = Enumerable.Range(0, 4096).Select(value => (byte)value).ToArray();
+        byte[]? field = null;
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
-            context = request.Features.Get<IContextFeature>()?.Value;
+            field = request.Fields[(RequestFieldKey)1024].ToArray();
             return new(new OutgoingResponse(request));
         });
         await using ServiceProvider serviceProvider = new ProtocolServiceCollection()
             .UseProtocol(protocol)
-            .UseServerOptions(new ServerOptions 
-            { 
+            .UseServerOptions(new ServerOptions
+            {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
             })
             .BuildServiceProvider();
@@ -580,19 +578,18 @@ public sealed class ProtocolConnectionTests
         var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var request = new OutgoingRequest(new Proxy(protocol))
         {
-            Features = new FeatureCollection().With<IContextFeature>(
-                new ContextFeature
-                {
-                    Value = new Dictionary<string, string> { ["foo"] = expectedValue }
-                })
+            Fields = new Dictionary<RequestFieldKey, OutgoingFieldValue>
+            {
+                [(RequestFieldKey)1024] = new OutgoingFieldValue(new ReadOnlySequence<byte>(expectedValue))
+            }
         };
 
         // Act
         _ = await sut.Client.InvokeAsync(request, connection);
 
         // Assert
-        Assert.That(context, Is.Not.Null);
-        Assert.That(context!["foo"], Is.EqualTo(expectedValue));
+        Assert.That(field, Is.Not.Null);
+        Assert.That(field, Is.EqualTo(expectedValue));
     }
 
     [Test, TestCaseSource(nameof(_protocols))]
