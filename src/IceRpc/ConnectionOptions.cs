@@ -1,9 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Features;
 using IceRpc.Slice;
 
-namespace IceRpc.Configure
+namespace IceRpc
 {
     /// <summary>A property bag used to configure client and server connections.</summary>
     public record class ConnectionOptions

@@ -17,7 +17,7 @@ namespace IceRpc.Internal
             NetworkConnectionInformation connectionInformation,
             IDispatcher dispatcher,
             bool isServer,
-            Configure.ConnectionOptions connectionOptions,
+            ConnectionOptions connectionOptions,
             CancellationToken cancel)
         {
             using IDisposable scope = _logger.StartConnectionScope(connectionInformation, isServer);

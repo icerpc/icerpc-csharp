@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc.Configure
+namespace IceRpc
 {
     /// <summary>A property bag used to configure a <see cref="ConnectionPool"/>.</summary>
     public record class ConnectionPoolOptions

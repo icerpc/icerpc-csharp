@@ -12,7 +12,7 @@ namespace IceRpc.Internal
             NetworkConnectionInformation connectionInfo,
             IDispatcher dispatcher,
             bool isServer,
-            Configure.ConnectionOptions connectionOptions,
+            ConnectionOptions connectionOptions,
             CancellationToken cancel)
         {
             var protocolConnection = new IceProtocolConnection(networkConnection, dispatcher, connectionOptions);
