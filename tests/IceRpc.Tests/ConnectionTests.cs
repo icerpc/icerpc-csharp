@@ -88,8 +88,7 @@ public class ConnectionTests
         });
 
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest(Protocol.FromString(protocol))
-            .AddSingleton<IDispatcher>(dispatcher)
+            .AddColocTest(dispatcher, Protocol.FromString(protocol))
             .BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
@@ -125,8 +124,7 @@ public class ConnectionTests
         });
 
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest(Protocol.FromString(protocol))
-            .AddSingleton<IDispatcher>(dispatcher)
+            .AddColocTest(dispatcher, Protocol.FromString(protocol))
             .BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
@@ -162,9 +160,7 @@ public class ConnectionTests
         var serverConnectionClosed = new TaskCompletionSource<object?>();
         var clientConnectionClosed = new TaskCompletionSource<object?>();
 
-        IServiceCollection services = new ServiceCollection()
-            .AddColocTest(Protocol.FromString(protocol))
-            .AddSingleton<IDispatcher>(dispatcher);
+        IServiceCollection services = new ServiceCollection().AddColocTest(dispatcher, Protocol.FromString(protocol));
 
         services
             .AddOptions<ClientConnectionOptions>()
@@ -295,14 +291,13 @@ public class ConnectionTests
     {
         // Arrange
         Connection? serverConnection = null;
-        IServiceCollection services = new ServiceCollection()
-            .AddColocTest(Protocol.FromString(protocol))
-            .AddSingleton<IDispatcher>(
-                new InlineDispatcher((request, cancel) =>
-                {
-                    serverConnection = (Connection)request.Connection;
-                    return new(new OutgoingResponse(request));
-                }));
+        IServiceCollection services = new ServiceCollection().AddColocTest(
+            new InlineDispatcher((request, cancel) =>
+            {
+                serverConnection = (Connection)request.Connection;
+                return new(new OutgoingResponse(request));
+            }),
+            Protocol.FromString(protocol));
 
         services
             .AddOptions<ClientConnectionOptions>()
@@ -333,14 +328,13 @@ public class ConnectionTests
         // Arrange
         Connection? serverConnection = null;
 
-        IServiceCollection services = new ServiceCollection()
-            .AddColocTest(Protocol.FromString(protocol))
-            .AddSingleton<IDispatcher>(
-                new InlineDispatcher((request, cancel) =>
-                {
-                    serverConnection = (Connection)request.Connection;
-                    return new(new OutgoingResponse(request));
-                }));
+        IServiceCollection services = new ServiceCollection().AddColocTest(
+            new InlineDispatcher((request, cancel) =>
+            {
+                serverConnection = (Connection)request.Connection;
+                return new(new OutgoingResponse(request));
+            }),
+            Protocol.FromString(protocol));
 
         services
             .AddOptions<ClientConnectionOptions>()
@@ -368,10 +362,9 @@ public class ConnectionTests
     public async Task Connect_sets_network_connection_information([Values("ice", "icerpc")] string protocol)
     {
         // Arrange
-        IServiceCollection services = new ServiceCollection()
-            .AddColocTest(Protocol.FromString(protocol))
-            .AddSingleton<IDispatcher>(
-                new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))));
+        IServiceCollection services = new ServiceCollection().AddColocTest(
+            new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
+            Protocol.FromString(protocol));
 
         services
             .AddOptions<ClientConnectionOptions>()
@@ -492,8 +485,7 @@ public class ConnectionTests
         });
 
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest(Protocol.FromString(protocol))
-            .AddSingleton<IDispatcher>(dispatcher)
+            .AddColocTest(dispatcher, Protocol.FromString(protocol))
             .BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
@@ -578,8 +570,7 @@ public class ConnectionTests
         });
 
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest(Protocol.FromString(protocol))
-            .AddSingleton<IDispatcher>(dispatcher)
+            .AddColocTest(dispatcher, Protocol.FromString(protocol))
             .BuildServiceProvider();
 
         var server = provider.GetRequiredService<Server>();
@@ -667,9 +658,7 @@ public class ConnectionTests
             return new OutgoingResponse(request);
         });
 
-        IServiceCollection services = new ServiceCollection()
-            .AddColocTest(Protocol.FromString(protocol))
-            .AddSingleton<IDispatcher>(dispatcher);
+        IServiceCollection services = new ServiceCollection().AddColocTest(dispatcher, Protocol.FromString(protocol));
 
         services
             .AddOptions<ClientConnectionOptions>()

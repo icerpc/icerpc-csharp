@@ -98,8 +98,22 @@ public static class ServiceCollectionExtensions
             .AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ServerTransport)
             .AddClientServerTest(new Endpoint(protocol) { Host = "colochost" });
 
+    /// <summary>Installs coloc client-server test.</summary>
+    public static IServiceCollection AddColocTest(
+        this IServiceCollection services,
+        IDispatcher dispatcher,
+        Protocol protocol) =>
+        services
+            .AddSingleton<ColocTransport>()
+            .AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ClientTransport)
+            .AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ServerTransport)
+            .AddClientServerTest(dispatcher, new Endpoint(protocol) { Host = "colochost" });
+
     public static IServiceCollection AddColocTest(this IServiceCollection services) =>
         services.AddColocTest(Protocol.IceRpc);
+
+    public static IServiceCollection AddColocTest(this IServiceCollection services, IDispatcher dispatcher) =>
+        services.AddColocTest(dispatcher, Protocol.IceRpc);
 
     public static IServiceCollection AddTcpTest(
         this IServiceCollection services,
