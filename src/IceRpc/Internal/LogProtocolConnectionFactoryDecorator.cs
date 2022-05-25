@@ -15,7 +15,6 @@ namespace IceRpc.Internal
         async Task<IProtocolConnection> IProtocolConnectionFactory<T>.CreateProtocolConnectionAsync(
             T networkConnection,
             NetworkConnectionInformation connectionInformation,
-            IDispatcher dispatcher,
             bool isServer,
             Configure.ConnectionOptions connectionOptions,
             CancellationToken cancel)
@@ -25,7 +24,6 @@ namespace IceRpc.Internal
             IProtocolConnection protocolConnection = await _decoratee.CreateProtocolConnectionAsync(
                 networkConnection,
                 connectionInformation,
-                dispatcher,
                 isServer,
                 connectionOptions,
                 cancel).ConfigureAwait(false);

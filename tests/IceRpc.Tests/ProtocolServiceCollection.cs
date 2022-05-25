@@ -105,13 +105,11 @@ internal static class ProtocolServiceCollectionExtensions
         return serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ?
             GetProtocolConnectionAsync<ISimpleNetworkConnection>(
                 serviceProvider,
-                connectionOptions.Dispatcher,
                 isServer: false,
                 connectionOptions,
                 serviceProvider.GetSimpleClientConnectionAsync) :
             GetProtocolConnectionAsync<IMultiplexedNetworkConnection>(
                 serviceProvider,
-                connectionOptions.Dispatcher,
                 isServer: false,
                 connectionOptions,
                 serviceProvider.GetMultiplexedClientConnectionAsync);
@@ -119,7 +117,6 @@ internal static class ProtocolServiceCollectionExtensions
 
     private static async Task<IProtocolConnection> GetProtocolConnectionAsync<T>(
         IServiceProvider serviceProvider,
-        IDispatcher dispatcher,
         bool isServer,
         ConnectionOptions connectionOptions,
         Func<Task<T>> networkConnectionFactory)
@@ -131,7 +128,6 @@ internal static class ProtocolServiceCollectionExtensions
             await serviceProvider.GetRequiredService<IProtocolConnectionFactory<T>>().CreateProtocolConnectionAsync(
                 networkConnection,
                 connectionInformation: new(),
-                dispatcher,
                 isServer,
                 connectionOptions,
                 CancellationToken.None);
@@ -146,13 +142,11 @@ internal static class ProtocolServiceCollectionExtensions
         return serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ?
             GetProtocolConnectionAsync(
                 serviceProvider,
-                serverOptions.ConnectionOptions.Dispatcher,
                 isServer: true,
                 serverOptions.ConnectionOptions,
                 serviceProvider.GetSimpleServerConnectionAsync) :
             GetProtocolConnectionAsync(
                 serviceProvider,
-                serverOptions.ConnectionOptions.Dispatcher,
                 isServer: true,
                 serverOptions.ConnectionOptions,
                 serviceProvider.GetMultiplexedServerConnectionAsync);

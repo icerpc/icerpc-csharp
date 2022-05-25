@@ -9,8 +9,6 @@ namespace IceRpc.Transports.Internal
     /// copies the send buffer into the receive buffer.</summary>
     internal class ColocNetworkConnection : ISimpleNetworkConnection
     {
-        TimeSpan INetworkConnection.LastActivity => TimeSpan.Zero;
-
         private readonly Endpoint _endpoint;
         // Remember the failure that caused the connection failure to raise the same exception from WriteAsync or
         // ReadAsync

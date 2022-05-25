@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Features;
+using IceRpc.Configure;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
@@ -695,13 +695,10 @@ namespace IceRpc.Internal
             }
         }
 
-        internal IceRpcProtocolConnection(
-            IMultiplexedNetworkConnection networkConnection,
-            IDispatcher dispatcher,
-            Configure.ConnectionOptions options)
+        internal IceRpcProtocolConnection(IMultiplexedNetworkConnection networkConnection, ConnectionOptions options)
         {
-            _dispatcher = dispatcher;
             _networkConnection = networkConnection;
+            _dispatcher = options.Dispatcher;
             _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
         }
 

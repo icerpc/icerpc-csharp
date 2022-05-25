@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
@@ -35,7 +36,7 @@ namespace IceRpc.Internal
             }
         }
 
-        public TimeSpan LastActivity => _networkConnection.LastActivity;
+        public TimeSpan LastActivity => _networkConnectionActivityTracker.LastActivity;
 
         public Action<string>? PeerShutdownInitiated { get; set; }
 
@@ -65,15 +66,16 @@ namespace IceRpc.Internal
         private bool _isAborted;
         private bool _isShutdown;
         private bool _isShuttingDown;
+        private readonly int _maxFrameSize;
         private readonly MemoryPool<byte> _memoryPool;
         private readonly int _minimumSegmentSize;
 
         private readonly object _mutex = new();
         private readonly ISimpleNetworkConnection _networkConnection;
+        private readonly SimpleNetworkConnectionActivityTracker _networkConnectionActivityTracker = new();
         private readonly SimpleNetworkConnectionReader _networkConnectionReader;
         private readonly SimpleNetworkConnectionWriter _networkConnectionWriter;
         private int _nextRequestId;
-        private readonly Configure.ConnectionOptions _options;
         private readonly IcePayloadPipeWriter _payloadWriter;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly CancellationTokenSource _readCancelSource = new();
@@ -468,19 +470,16 @@ namespace IceRpc.Internal
             }
         }
 
-        internal IceProtocolConnection(
-            ISimpleNetworkConnection simpleNetworkConnection,
-            IDispatcher dispatcher,
-            Configure.ConnectionOptions options)
+        internal IceProtocolConnection(ISimpleNetworkConnection simpleNetworkConnection, ConnectionOptions options)
         {
-            _dispatcher = dispatcher;
-            _options = options;
+            _dispatcher = options.Dispatcher;
+            _maxFrameSize = options.MaxIceFrameSize;
 
-            if (_options.MaxIceConcurrentDispatches > 0)
+            if (options.MaxIceConcurrentDispatches > 0)
             {
                 _dispatchSemaphore = new AsyncSemaphore(
-                    initialCount: _options.MaxIceConcurrentDispatches,
-                    maxCount: _options.MaxIceConcurrentDispatches);
+                    initialCount: options.MaxIceConcurrentDispatches,
+                    maxCount: options.MaxIceConcurrentDispatches);
             }
 
             // TODO: get the pool and minimum segment size from an option class, but which one? The Slic connection gets
@@ -494,10 +493,12 @@ namespace IceRpc.Internal
             _networkConnection = simpleNetworkConnection;
             _networkConnectionWriter = new SimpleNetworkConnectionWriter(
                 simpleNetworkConnection,
+                _networkConnectionActivityTracker,
                 _memoryPool,
                 _minimumSegmentSize);
             _networkConnectionReader = new SimpleNetworkConnectionReader(
                 simpleNetworkConnection,
+                _networkConnectionActivityTracker,
                 _memoryPool,
                 _minimumSegmentSize);
 
@@ -663,7 +664,7 @@ namespace IceRpc.Internal
                 _networkConnectionReader.AdvanceTo(prologueBuffer.End);
 
                 IceDefinitions.CheckPrologue(prologue);
-                if (prologue.FrameSize > _options.MaxIceFrameSize)
+                if (prologue.FrameSize > _maxFrameSize)
                 {
                     throw new InvalidDataException(
                         $"received frame with size ({prologue.FrameSize}) greater than max frame size");
@@ -1120,7 +1121,6 @@ namespace IceRpc.Internal
                     string fragment = decoder.DecodeFragment();
                     string operation = decoder.DecodeString();
                     OperationMode operationMode = decoder.DecodeOperationMode();
-
 
                     Pipe? contextPipe = null;
                     var pos = decoder.Consumed;
