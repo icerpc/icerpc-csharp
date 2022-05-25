@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
@@ -33,7 +32,8 @@ namespace IceRpc
     /// <summary>Represents a connection used to send and receive requests and responses.</summary>
     public abstract class Connection : IConnection, IAsyncDisposable
     {
-        /// <inheritdoc/>
+        /// <summary>The endpoint of this connection.</summary>
+        // TODO: remove
         public Endpoint Endpoint { get; }
 
         /// <inheritdoc/>
@@ -71,7 +71,7 @@ namespace IceRpc
         // TODO: replace this field by individual fields
         private readonly ConnectionOptions _options;
 
-        private IProtocolConnection? _protocolConnection;
+        private protected IProtocolConnection? _protocolConnection;
 
         private readonly CancellationTokenSource _shutdownCancellationSource = new();
 
@@ -134,7 +134,7 @@ namespace IceRpc
                     {
                         Debug.Assert(_protocolConnection == null);
 
-                        _stateTask = Endpoint.Protocol == Protocol.Ice ?
+                        _stateTask = Protocol == Protocol.Ice ?
                             PerformConnectAsync(
                                 simpleClientTransport,
                                 IceProtocol.Instance.ProtocolConnectionFactory,
@@ -209,23 +209,6 @@ namespace IceRpc
             // Perform a speedy graceful shutdown by canceling invocations and dispatches in progress.
             await ShutdownAsync("connection disposed", new CancellationToken(canceled: true)).ConfigureAwait(false);
             GC.SuppressFinalize(this);
-        }
-
-        /// <summary>Checks if the parameters of the provided endpoint are compatible with this connection. Compatible
-        /// means a client could reuse this connection instead of establishing a new connection.</summary>
-        /// <param name="remoteEndpoint">The endpoint to check.</param>
-        /// <returns><c>true</c> when this connection is an active client connection whose parameters are compatible
-        /// with the parameters of the provided endpoint; otherwise, <c>false</c>.</returns>
-        /// <remarks>This method checks only the parameters of the endpoint; it does not check other properties.
-        /// </remarks>
-        public bool HasCompatibleParams(Endpoint remoteEndpoint)
-        {
-            lock (_mutex)
-            {
-                return !_isServer &&
-                    State == ConnectionState.Active &&
-                    _protocolConnection!.HasCompatibleParams(remoteEndpoint);
-            }
         }
 
         /// <inheritdoc/>
