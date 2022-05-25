@@ -112,7 +112,6 @@ public static class ServiceCollectionExtensions
             .AddClientServerTest(dispatcher, new Endpoint(protocol) { Host = host });
     }
 
-
     public static IServiceCollection AddColocTest(this IServiceCollection services, IDispatcher dispatcher) =>
         services.AddColocTest(dispatcher, Protocol.IceRpc);
 
