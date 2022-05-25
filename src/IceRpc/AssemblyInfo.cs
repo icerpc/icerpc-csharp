@@ -12,11 +12,9 @@ using System.Runtime.CompilerServices;
 
 // Make internals visible to the tests assembly, to allow writing unit tests for the internal classes
 [assembly: InternalsVisibleTo("IceRpc.Tests")]
-[assembly: InternalsVisibleTo("IceRpc.Interop.Tests")]
 [assembly: InternalsVisibleTo("IceRpc.Conformance.Tests")]
 [assembly: InternalsVisibleTo("IceRpc.Tests.Common")]
 
-[assembly: InternalsVisibleTo("IceRpc.Retry.Tests")] // For EmptyPipeReader
-[assembly: InternalsVisibleTo("IceRpc.Telemetry.Tests")] // For EmptyPipeReader
-[assembly: InternalsVisibleTo("IceRpc.Timeout.Tests")]
 [assembly: InternalsVisibleTo("IceRpc.Deflate.Tests")]
+[assembly: InternalsVisibleTo("IceRpc.Retry.Tests")]
+[assembly: InternalsVisibleTo("IceRpc.Telemetry.Tests")]
