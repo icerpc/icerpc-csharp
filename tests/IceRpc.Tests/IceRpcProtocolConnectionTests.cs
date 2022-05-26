@@ -47,7 +47,7 @@ public sealed class IceRpcProtocolConnectionTests
                 }))
             .BuildServiceProvider();
 
-        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.IceRpc);
 
         _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)), InvalidConnection.IceRpc);
 
@@ -88,7 +88,7 @@ public sealed class IceRpcProtocolConnectionTests
                 }))
             .BuildServiceProvider();
 
-        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.IceRpc);
 
         sut.Server.PeerShutdownInitiated = message => _ = sut.Server.ShutdownAsync(message);
 
@@ -127,7 +127,7 @@ public sealed class IceRpcProtocolConnectionTests
             .AddProtocolTest(Protocol.IceRpc, dispatcher)
             .BuildServiceProvider();
 
-        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.IceRpc);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
 
         // Act
@@ -161,7 +161,7 @@ public sealed class IceRpcProtocolConnectionTests
         await using var serviceProvider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc, dispatcher)
             .BuildServiceProvider();
-        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.IceRpc);
 
         // Act
         _ = sut.Client.InvokeAsync(
@@ -180,7 +180,7 @@ public sealed class IceRpcProtocolConnectionTests
         await using var serviceProvider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc)
             .BuildServiceProvider();
-        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.IceRpc);
 
         var payloadStreamDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
@@ -204,7 +204,7 @@ public sealed class IceRpcProtocolConnectionTests
         await using var serviceProvider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc)
             .BuildServiceProvider();
-        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.IceRpc);
 
         var payloadStreamDecorator = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
@@ -235,7 +235,7 @@ public sealed class IceRpcProtocolConnectionTests
         await using var serviceProvider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc, dispatcher)
             .BuildServiceProvider();
-        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.IceRpc);
 
         // Act
         _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)), InvalidConnection.IceRpc);
@@ -259,7 +259,7 @@ public sealed class IceRpcProtocolConnectionTests
         await using var serviceProvider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc, dispatcher)
             .BuildServiceProvider();
-        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.IceRpc);
 
         // Act
         _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)), InvalidConnection.IceRpc);
@@ -278,7 +278,7 @@ public sealed class IceRpcProtocolConnectionTests
         await using var serviceProvider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc)
             .BuildServiceProvider();
-        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.IceRpc);
 
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
         {
@@ -325,7 +325,7 @@ public sealed class IceRpcProtocolConnectionTests
         await using var serviceProvider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc, dispatcher)
             .BuildServiceProvider();
-        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.IceRpc);
 
         // Act
         _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)), InvalidConnection.IceRpc);
@@ -344,7 +344,7 @@ public sealed class IceRpcProtocolConnectionTests
                 ConnectionOptions = new ConnectionOptions { MaxIceRpcHeaderSize = 100 }
             })
             .BuildServiceProvider();
-        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.IceRpc);
 
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
         {
@@ -373,7 +373,7 @@ public sealed class IceRpcProtocolConnectionTests
         await using var serviceProvider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc, dispatcher)
             .BuildServiceProvider();
-        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.IceRpc);
 
         var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
@@ -407,7 +407,7 @@ public sealed class IceRpcProtocolConnectionTests
                 }))
             .BuildServiceProvider();
 
-        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync();
+        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.IceRpc);
 
         sut.Server.PeerShutdownInitiated = message => _ = sut.Server.ShutdownAsync(message);
 

@@ -95,10 +95,11 @@ internal static class ProtocolServiceProviderExtensions
 {
     internal static async Task<ClientServerProtocolConnection> GetClientServerProtocolConnectionAsync(
         this IServiceProvider serviceProvider,
+        Protocol protocol,
         bool acceptRequests = true)
     {
-        Task<IProtocolConnection> serverTask = serviceProvider.GetServerProtocolConnectionAsync();
-        IProtocolConnection clientProtocolConnection = await serviceProvider.GetClientProtocolConnectionAsync();
+        Task<IProtocolConnection> serverTask = serviceProvider.GetServerProtocolConnectionAsync(protocol);
+        IProtocolConnection clientProtocolConnection = await serviceProvider.GetClientProtocolConnectionAsync(protocol);
         IProtocolConnection serverProtocolConnection = await serverTask;
 
         if (acceptRequests)
@@ -111,11 +112,12 @@ internal static class ProtocolServiceProviderExtensions
     }
 
     private static Task<IProtocolConnection> GetClientProtocolConnectionAsync(
-        this IServiceProvider serviceProvider)
+        this IServiceProvider serviceProvider,
+        Protocol protocol)
     {
         ConnectionOptions connectionOptions = serviceProvider.GetService<ConnectionOptions>() ?? new();
 
-        return serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ?
+        return protocol == Protocol.Ice ?
             GetProtocolConnectionAsync<ISimpleNetworkConnection>(
                 serviceProvider,
                 connectionOptions.Dispatcher,
@@ -152,11 +154,12 @@ internal static class ProtocolServiceProviderExtensions
     }
 
     private static Task<IProtocolConnection> GetServerProtocolConnectionAsync(
-        this IServiceProvider serviceProvider)
+        this IServiceProvider serviceProvider,
+        Protocol protocol)
     {
         ServerOptions serverOptions = serviceProvider.GetService<ServerOptions>() ?? new();
 
-        return serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ?
+        return protocol == Protocol.Ice ?
             GetProtocolConnectionAsync(
                 serviceProvider,
                 serverOptions.ConnectionOptions.Dispatcher,
