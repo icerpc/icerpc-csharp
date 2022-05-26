@@ -15,13 +15,10 @@ public class TcpTransportConformanceTests : SimpleTransportConformanceTests
     {
         var services = new ServiceCollection().UseSimpleTransport("icerpc://127.0.0.1:0/");
 
-        services.TryAddSingleton(new TcpServerTransportOptions());
-        services.AddSingleton<IServerTransport<ISimpleNetworkConnection>>(
-            provider => new TcpServerTransport(provider.GetRequiredService<TcpServerTransportOptions>()));
+        services.AddSingleton<IServerTransport<ISimpleNetworkConnection>>(provider => new TcpServerTransport());
 
         services.TryAddSingleton(new TcpClientTransportOptions());
-        services.AddSingleton<IClientTransport<ISimpleNetworkConnection>>(
-            provider => new TcpClientTransport(provider.GetRequiredService<TcpClientTransportOptions>()));
+        services.AddSingleton<IClientTransport<ISimpleNetworkConnection>>(provider => new TcpClientTransport());
 
         return services;
     }

@@ -135,7 +135,7 @@ public sealed class IceProtocolConnectionTests
         // Arrange
         using var semaphore = new SemaphoreSlim(0);
         int dispatchCount = 0;
-        var dispatcher  = new InlineDispatcher(
+        var dispatcher = new InlineDispatcher(
             async (request, cancel) =>
             {
                 ++dispatchCount;

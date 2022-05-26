@@ -3,7 +3,6 @@
 using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
-using System.Diagnostics;
 
 namespace IceRpc
 {
