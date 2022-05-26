@@ -110,9 +110,8 @@ fn encode_type(
                     if struct_ref.definition().has_attribute("cs::type", false) {
                         format!(
                             "{encoder_extensions_class}.Encode{identifier}(ref {encoder_param}, {value});",
-                            encoder_extensions_class = struct_ref.escape_scoped_identifier_with_prefix_and_suffix(
-                                "SliceEncoder",
-                                "Extensions",
+                            encoder_extensions_class = struct_ref.escape_scoped_identifier_with_suffix(
+                                "SliceEncoderExtensions",
                                 namespace),
                             identifier = struct_ref.identifier(),
                             encoder_param = encoder_param,
@@ -139,9 +138,8 @@ fn encode_type(
                 TypeRefs::CustomType(custom_type_ref) => {
                     format!(
                         "{encoder_extensions_class}.Encode{identifier}(ref {encoder_param}, {value});",
-                        encoder_extensions_class = custom_type_ref.escape_scoped_identifier_with_prefix_and_suffix(
-                            "SliceEncoder",
-                            "Extensions",
+                        encoder_extensions_class = custom_type_ref.escape_scoped_identifier_with_suffix(
+                            "SliceEncoderExtensions",
                             namespace),
                         identifier = custom_type_ref.identifier(),
                         encoder_param = encoder_param,
@@ -164,9 +162,8 @@ fn encode_type(
                 TypeRefs::Enum(enum_ref) => format!(
                     "{encoder_extensions_class}.Encode{name}(ref {encoder_param}, {param});",
                     encoder_extensions_class = enum_ref
-                        .escape_scoped_identifier_with_prefix_and_suffix(
-                            "SliceEncoder",
-                            "Extensions",
+                        .escape_scoped_identifier_with_suffix(
+                            "SliceEncoderExtensions",
                             namespace
                     ),
                     name = fix_case(enum_ref.identifier(), CaseStyle::Pascal),
@@ -525,9 +522,8 @@ pub fn encode_action(
                 code,
                 "(ref SliceEncoder encoder, {value_type} value) => {encoder_extensions_class}.Encode{name}(ref encoder, {value})",
                 value_type = value_type,
-                encoder_extensions_class = enum_ref.escape_scoped_identifier_with_prefix_and_suffix(
-                    "SliceEncoder",
-                    "Extensions",
+                encoder_extensions_class = enum_ref.escape_scoped_identifier_with_suffix(
+                    "SliceEncoderExtensions",
                     namespace),
                 name = fix_case(enum_ref.identifier(), CaseStyle::Pascal),
                 value = value
@@ -565,9 +561,8 @@ pub fn encode_action(
                     code,
                     "(ref SliceEncoder encoder, {value_type} value) => {encoder_extensions_class}.Encode{identifier}(ref encoder, value)",
                     value_type = value_type,
-                    encoder_extensions_class = struct_ref.escape_scoped_identifier_with_prefix_and_suffix(
-                        "SliceEncoder",
-                        "Extensions",
+                    encoder_extensions_class = struct_ref.escape_scoped_identifier_with_suffix(
+                        "SliceEncoderExtensions",
                         namespace),
                     identifier = struct_ref.identifier()
                 )
@@ -600,9 +595,8 @@ pub fn encode_action(
                 code,
                 "(ref SliceEncoder encoder, {value_type} value) => {encoder_extensions_class}.Encode{identifier}(ref encoder, value)",
                 value_type = value_type,
-                encoder_extensions_class = custom_type_ref.escape_scoped_identifier_with_prefix_and_suffix(
-                    "SliceEncoder",
-                    "Extensions",
+                encoder_extensions_class = custom_type_ref.escape_scoped_identifier_with_suffix(
+                    "SliceEncoderExtensions",
                     namespace),
                 identifier = custom_type_ref.identifier()
             )

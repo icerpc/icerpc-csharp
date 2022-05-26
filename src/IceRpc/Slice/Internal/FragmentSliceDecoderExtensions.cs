@@ -3,7 +3,7 @@
 namespace IceRpc.Slice.Internal
 {
     /// <summary>Provides an extension method for decoding a fragment.</summary>
-    internal static class SliceDecoderFragmentExtensions
+    internal static class FragmentSliceDecoderExtensions
     {
         internal static string DecodeFragment(this ref SliceDecoder decoder) =>
             decoder.DecodeSize() switch

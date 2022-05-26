@@ -44,7 +44,7 @@ public record struct MyCustomType
     public int Value;
 }
 
-public static class SliceEncoderCustomTypeExtensions
+public static class CustomTypeSliceEncoderExtensions
 {
     public static void EncodeCustomType(this ref SliceEncoder encoder, MyCustomType myCustom)
     {
@@ -53,7 +53,7 @@ public static class SliceEncoderCustomTypeExtensions
     }
 }
 
-public static class SliceDecoderCustomTypeExtensions
+public static class CustomTypeSliceDecoderExtensions
 {
     public static MyCustomType DecodeCustomType(this ref SliceDecoder decoder)
     {
