@@ -67,34 +67,6 @@ public static class ServiceCollectionExtensions
         return collection;
     }
 
-    public static ServiceCollection UseTcp(
-        this ServiceCollection collection,
-        TcpServerTransportOptions? serverTransportOptions = null,
-        TcpClientTransportOptions? clientTransportOptions = null)
-    {
-        collection.AddScoped<IServerTransport<ISimpleNetworkConnection>>(
-            provider => new TcpServerTransport(
-                serverTransportOptions ??
-                provider.GetService<TcpServerTransportOptions>() ??
-                new TcpServerTransportOptions()));
-
-        collection.AddScoped<IClientTransport<ISimpleNetworkConnection>>(
-            provider => new TcpClientTransport(
-                clientTransportOptions ??
-                provider.GetService<TcpClientTransportOptions>() ??
-                new TcpClientTransportOptions()));
-
-        collection.AddScoped(
-            typeof(Endpoint),
-            provider =>
-            {
-                string protocol = provider.GetService<Protocol>()?.Name ?? "icerpc";
-                return Endpoint.FromString($"{protocol}://127.0.0.1:0/");
-            });
-
-        return collection;
-    }
-
     public static IServiceCollection UseServerOptions(this IServiceCollection collection, ServerOptions options) =>
         collection.AddSingleton(options);
 

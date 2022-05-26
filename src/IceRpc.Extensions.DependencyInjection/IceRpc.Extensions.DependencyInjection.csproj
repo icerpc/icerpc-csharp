@@ -12,7 +12,7 @@
         <PackageProjectUrl>https://github.com/zeroc-ice/icerpc-csharp</PackageProjectUrl>
         <PackageIcon>logo.png</PackageIcon>
         <Copyright>Copyright (c) ZeroC, Inc. All rights reserved</Copyright>
-        <Description>IceRPC C#/.NET SDK.</Description>
+        <Description>IceRpc Dependency Injection Extensions.</Description>
         <PackageReleaseNotes>TODO</PackageReleaseNotes>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
         <PackageTags>IceRPC</PackageTags>
