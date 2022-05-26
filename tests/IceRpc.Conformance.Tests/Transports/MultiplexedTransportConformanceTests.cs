@@ -906,7 +906,7 @@ public static class MultiplexedTransportServiceCollectionExtensions
         int? bidirectionalStreamMaxCount = null,
         int? unidirectionalStreamMaxCount = null)
     {
-        return serviceCollection.AddScoped(_ => new MultiplexedTransportOptions
+        return serviceCollection.AddSingleton(_ => new MultiplexedTransportOptions
         {
             BidirectionalStreamMaxCount = bidirectionalStreamMaxCount,
             UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount

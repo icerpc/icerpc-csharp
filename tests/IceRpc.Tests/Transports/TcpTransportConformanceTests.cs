@@ -20,7 +20,7 @@ public class TcpTransportConformanceTests : SimpleTransportConformanceTests
             provider => new TcpServerTransport(provider.GetRequiredService<TcpServerTransportOptions>()));
 
         services.TryAddSingleton(new TcpClientTransportOptions());
-        services.AddScoped<IClientTransport<ISimpleNetworkConnection>>(
+        services.AddSingleton<IClientTransport<ISimpleNetworkConnection>>(
             provider => new TcpClientTransport(provider.GetRequiredService<TcpClientTransportOptions>()));
 
         return services;

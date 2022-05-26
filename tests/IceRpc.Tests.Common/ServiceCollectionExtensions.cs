@@ -39,7 +39,7 @@ public static class ServiceCollectionExtensions
 
     public static ServiceCollection UseSimpleTransport(this ServiceCollection collection, Endpoint endpoint)
     {
-        collection.AddScoped(provider =>
+        collection.AddSingleton(provider =>
         {
             SslServerAuthenticationOptions? serverAuthenticationOptions =
                 provider.GetService<SslServerAuthenticationOptions>();
@@ -48,7 +48,7 @@ public static class ServiceCollectionExtensions
             return serverTransport.Listen(endpoint, serverAuthenticationOptions, NullLogger.Instance);
         });
 
-        collection.AddScoped(provider =>
+        collection.AddSingleton(provider =>
         {
             SslClientAuthenticationOptions? clientAuthenticationOptions =
                 provider.GetService<SslClientAuthenticationOptions>();
