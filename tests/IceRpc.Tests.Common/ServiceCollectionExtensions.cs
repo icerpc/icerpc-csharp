@@ -67,9 +67,6 @@ public static class ServiceCollectionExtensions
         return collection;
     }
 
-    public static IServiceCollection UseServerOptions(this IServiceCollection collection, ServerOptions options) =>
-        collection.AddSingleton(options);
-
     /// <summary>Adds a Server and ClientConnection singletons, with the server listening on the specified endpoint and
     /// the client connection connecting to the server's endpoint.</summary>
     /// <remarks>When the endpoint's port is 0 and transport is not coloc, you need to create the server and call Listen

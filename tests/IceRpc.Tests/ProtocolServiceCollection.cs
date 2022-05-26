@@ -29,24 +29,38 @@ internal struct ClientServerProtocolConnection : IDisposable
     }
 }
 
-internal class ProtocolServiceCollection : ServiceCollection
+public static class ProtocolServiceCollectionExtensions
 {
-    public ProtocolServiceCollection(Protocol protocol)
+    public static IServiceCollection AddProtocolTest(
+        this IServiceCollection services,
+        Protocol protocol,
+        IDispatcher? dispatcher = null)
     {
-        this.AddColocTransport();
-        this.AddSingleton(protocol);
-        this.AddSingleton(typeof(Endpoint), new Endpoint(protocol) { Host = "colochost" });
-        this.AddScoped<IServerTransport<IMultiplexedNetworkConnection>>(
+        services.AddColocTransport();
+        services.AddSingleton(protocol);
+
+        if (dispatcher != null)
+        {
+            services.AddSingleton(new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
+            });
+        }
+
+        services.AddSingleton(typeof(Endpoint), new Endpoint(protocol) { Host = "colochost" });
+        services.AddSingleton<IServerTransport<IMultiplexedNetworkConnection>>(
             provider => new SlicServerTransport(
                 provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()));
-        this.AddScoped<IClientTransport<IMultiplexedNetworkConnection>>(
+        services.AddSingleton<IClientTransport<IMultiplexedNetworkConnection>>(
             provider => new SlicClientTransport(
                 provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()));
 
-        this.AddSingleton(IceProtocol.Instance.ProtocolConnectionFactory);
-        this.AddSingleton(IceRpcProtocol.Instance.ProtocolConnectionFactory);
-        this.AddScoped(provider => CreateListener<ISimpleNetworkConnection>(provider));
-        this.AddScoped(provider => CreateListener<IMultiplexedNetworkConnection>(provider));
+        services.AddSingleton(IceProtocol.Instance.ProtocolConnectionFactory);
+        services.AddSingleton(IceRpcProtocol.Instance.ProtocolConnectionFactory);
+        services.AddSingleton(provider => CreateListener<ISimpleNetworkConnection>(provider));
+        services.AddSingleton(provider => CreateListener<IMultiplexedNetworkConnection>(provider));
+
+        return services;
 
         static IListener<T> CreateListener<T>(IServiceProvider serviceProvider) where T : INetworkConnection
         {
@@ -72,7 +86,7 @@ internal class ProtocolServiceCollection : ServiceCollection
     }
 }
 
-internal static class ProtocolServiceCollectionExtensions
+internal static class ProtocolServiceProviderExtensions
 {
     internal static async Task<ClientServerProtocolConnection> GetClientServerProtocolConnectionAsync(
         this IServiceProvider serviceProvider,
