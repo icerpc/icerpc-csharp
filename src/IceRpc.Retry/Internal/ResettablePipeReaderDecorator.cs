@@ -6,30 +6,54 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Retry.Internal;
 
-/// <summary>A decorator that allows to reset a PipeReader decoratee to its initial state (from the caller's
-/// perspective). Exceptions, cancellation and other events can prevent reset.</summary>
-internal class ResettablePipeReaderDecorator : PipeReader, IAsyncDisposable
+/// <summary>A PipeReader decorator that allows to reset its decoratee to its initial state (from the caller's
+/// perspective).</summary>
+internal class ResettablePipeReaderDecorator : PipeReader
 {
-    public bool IsResettable { get; private set; } = true;
+    /// <summary>Gets or sets whether this decorator can be reset.</summary>
+    internal bool IsResettable
+    {
+        get => _isResettable;
 
-    public long Consumed =>
-        (_sequence != null && _highestExamined != null) ? _sequence.Value.GetOffset(_highestExamined.Value) : 0;
+        set
+        {
+            if (value)
+            {
+                throw new ArgumentException($"cannot set {nameof(IsResettable)} to true", nameof(value));
+            }
 
-    // The latest sequence returned by _decoratee; not affected by Reset.
-    private ReadOnlySequence<byte>? _sequence;
+            if (_isResettable)
+            {
+                // If Complete was called on this resettable decorator without an intervening Reset, we call Complete
+                // on the decoratee.
+
+                _isResettable = false;
+                if (_isReaderCompleted)
+                {
+                    // We complete the decoratee with the saved exception (can be null).
+                    Complete(_readerCompleteException);
+                }
+            }
+        }
+    }
 
     // The latest consumed given by caller; reset by Reset.
     private SequencePosition? _consumed;
 
+    private readonly PipeReader _decoratee;
+
     // The highest examined given to _decoratee; not affected by Reset.
     private SequencePosition? _highestExamined;
 
-    private readonly PipeReader _decoratee;
-
     // True when the caller complete this reader; reset by Reset.
     private bool _isReaderCompleted;
-
     private bool _isReadingInProgress;
+    private bool _isResettable = true;
+    private readonly int _maxBufferSize;
+    private Exception? _readerCompleteException;
+
+    // The latest sequence returned by _decoratee; not affected by Reset.
+    private ReadOnlySequence<byte>? _sequence;
 
     /// <inheritdoc/>
     public override void AdvanceTo(SequencePosition consumed) => AdvanceTo(consumed, consumed);
@@ -52,26 +76,18 @@ internal class ResettablePipeReaderDecorator : PipeReader, IAsyncDisposable
             _highestExamined = examined;
         }
 
-        if (IsResettable)
+        if (_isResettable)
         {
             ThrowIfCompleted();
-            _consumed = consumed; // saved for the next ReadAsync/TryRead
-
-            try
-            {
-                _decoratee.AdvanceTo(_sequence.Value.Start, _highestExamined.Value);
-            }
-            catch
-            {
-                IsResettable = false;
-                throw;
-            }
+            _consumed = consumed; // saved for the next ReadAsync/ReadAtLeastAsync/TryRead
+            _decoratee.AdvanceTo(_sequence.Value.Start, _highestExamined.Value);
         }
         else
         {
-            // consumed is always going to be equal or greater to the consumed we passed in the IsResettable block
+            // consumed is always going to be equal or greater to the consumed we passed in the _isResettable block
             // above (since we always passed _sequence.Value.Start).
             _decoratee.AdvanceTo(consumed, _highestExamined.Value);
+            _consumed = null;
         }
     }
 
@@ -83,7 +99,7 @@ internal class ResettablePipeReaderDecorator : PipeReader, IAsyncDisposable
     /// <inheritdoc/>
     public override void Complete(Exception? exception)
     {
-        if (IsResettable)
+        if (_isResettable)
         {
             if (_isReadingInProgress)
             {
@@ -91,8 +107,12 @@ internal class ResettablePipeReaderDecorator : PipeReader, IAsyncDisposable
                 AdvanceTo(_sequence.Value.End);
             }
 
-            _isReaderCompleted = true;
-            // and that's it
+            if (!_isReaderCompleted)
+            {
+                _isReaderCompleted = true;
+                _readerCompleteException = exception;
+            }
+            // we naturally don't complete the decoratee, otherwise this decorator would no longer be resettable
         }
         else
         {
@@ -102,71 +122,25 @@ internal class ResettablePipeReaderDecorator : PipeReader, IAsyncDisposable
     }
 
     /// <inheritdoc/>
-    public override async ValueTask CompleteAsync(Exception? exception)
-    {
-        if (IsResettable)
-        {
-            if (_isReadingInProgress)
-            {
-                Debug.Assert(_sequence != null);
-                AdvanceTo(_sequence.Value.End);
-            }
-
-            _isReaderCompleted = true;
-            // and that's it
-        }
-        else
-        {
-            _isReadingInProgress = false;
-            await _decoratee.CompleteAsync(exception).ConfigureAwait(false);
-        }
-    }
-
-    /// <inheritdoc/>
-    /// <remarks>If not resettable, the caller must call Complete/CompleteAsync, as usual.</remarks>
-    public ValueTask DisposeAsync() => IsResettable ? _decoratee.CompleteAsync() : default;
-
-    /// <inheritdoc/>
     public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken)
     {
         _isReadingInProgress = !_isReadingInProgress ? true :
             throw new InvalidOperationException("reading is already in progress");
 
-        if (IsResettable)
-        {
-            ThrowIfCompleted();
-            try
-            {
-                ReadResult readResult = await _decoratee.ReadAsync(cancellationToken).ConfigureAwait(false);
-                if (!readResult.IsCanceled)
-                {
-                    _sequence = readResult.Buffer;
-                }
+        ThrowIfCompleted();
 
-                if (_consumed is SequencePosition consumed)
-                {
-                    readResult = new ReadResult(
-                        readResult.Buffer.Slice(consumed),
-                        readResult.IsCanceled,
-                        readResult.IsCompleted);
-                }
-                return readResult;
-            }
-            catch
-            {
-                IsResettable = false;
-                throw;
-            }
-        }
-        else
+        ReadResult readResult;
+        try
         {
-            ReadResult readResult = await _decoratee.ReadAsync(cancellationToken).ConfigureAwait(false);
-            if (!readResult.IsCanceled)
-            {
-                _sequence = readResult.Buffer;
-            }
-            return readResult;
+            readResult = await _decoratee.ReadAsync(cancellationToken).ConfigureAwait(false);
         }
+        catch
+        {
+            // Complete exception from pipe writer source.
+            _isResettable = false;
+            throw;
+        }
+        return ProcessReadResult(readResult);
     }
 
     /// <inheritdoc/>
@@ -175,61 +149,66 @@ internal class ResettablePipeReaderDecorator : PipeReader, IAsyncDisposable
         _isReadingInProgress = !_isReadingInProgress ? true :
             throw new InvalidOperationException("reading is already in progress");
 
-        if (IsResettable)
+        ThrowIfCompleted();
+        try
         {
-            ThrowIfCompleted();
-            try
+            if (_decoratee.TryRead(out result))
             {
-                if (_decoratee.TryRead(out result))
-                {
-                    if (!result.IsCanceled)
-                    {
-                        _sequence = result.Buffer;
-                    }
-
-                    if (_consumed is SequencePosition consumed)
-                    {
-                        result = new ReadResult(
-                            result.Buffer.Slice(consumed),
-                            result.IsCanceled,
-                            result.IsCompleted);
-                    }
-                    // else keep result as is
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
+                result = ProcessReadResult(result);
+                return true;
             }
-            catch
+            else
             {
-                IsResettable = false;
-                throw;
+                return false;
             }
         }
-        else if (_decoratee.TryRead(out result))
+        catch
         {
-            if (!result.IsCanceled)
-            {
-                _sequence = result.Buffer;
-            }
-            return true;
-        }
-        else
-        {
-            return false;
+            // Complete exception from pipe writer source.
+            _isResettable = false;
+            throw;
         }
     }
 
+    protected override async ValueTask<ReadResult> ReadAtLeastAsyncCore(
+        int minimumSize,
+        CancellationToken cancellationToken)
+    {
+        _isReadingInProgress = !_isReadingInProgress ? true :
+            throw new InvalidOperationException("reading is already in progress");
+
+        ThrowIfCompleted();
+        if (_consumed is SequencePosition consumed)
+        {
+            minimumSize += (int)_sequence!.Value.GetOffset(consumed);
+        }
+
+        ReadResult readResult;
+        try
+        {
+            readResult = await _decoratee.ReadAtLeastAsync(minimumSize, cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Complete exception from pipe writer source.
+            _isResettable = false;
+            throw;
+        }
+        return ProcessReadResult(readResult);
+    }
+
     /// <summary>Constructs a ResettablePipeReaderDecorator.</summary>
-    internal ResettablePipeReaderDecorator(PipeReader decoratee) => _decoratee = decoratee;
+    internal ResettablePipeReaderDecorator(PipeReader decoratee, int maxBufferSize)
+    {
+        _decoratee = decoratee;
+        _maxBufferSize = maxBufferSize;
+    }
 
     /// <summary>Resets this pipe reader.</summary>
     /// <exception cref="InvalidOperationException">Thrown if <see cref="IsResettable"/> is false.</exception>
     internal void Reset()
     {
-        if (IsResettable)
+        if (_isResettable)
         {
             if (_isReadingInProgress)
             {
@@ -245,19 +224,43 @@ internal class ResettablePipeReaderDecorator : PipeReader, IAsyncDisposable
 
             _consumed = null;
             _isReaderCompleted = false;
+            _readerCompleteException = null;
         }
         else
         {
-            throw new InvalidOperationException(
-                "cannot reset non-resettable ResettablePipeReaderDecorator");
+            throw new InvalidOperationException("cannot reset non-resettable ResettablePipeReaderDecorator");
         }
+    }
+
+    private ReadResult ProcessReadResult(ReadResult readResult)
+    {
+        _sequence = readResult.Buffer;
+
+        // Remove bytes marked as consumed.
+        if (_consumed is SequencePosition consumed)
+        {
+            // Removed bytes marked as consumed
+            readResult = new ReadResult(
+                readResult.Buffer.Slice(consumed),
+                readResult.IsCanceled,
+                readResult.IsCompleted);
+        }
+
+        if (_isResettable)
+        {
+            if (_sequence.Value.Length > _maxBufferSize)
+            {
+                _isResettable = false;
+            }
+        }
+        return readResult;
     }
 
     private void ThrowIfCompleted()
     {
-        Debug.Assert(IsResettable);
         if (_isReaderCompleted)
         {
+            _isResettable = false;
             throw new InvalidOperationException("the pipe reader is completed");
         }
     }

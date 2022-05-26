@@ -201,7 +201,7 @@ public sealed class RetryInterceptorTests
     }
 
     [Test]
-    public void Retry_fails_after_max_attemps()
+    public void Retry_fails_after_max_attempts()
     {
         // Arrange
         const int maxAttempts = 5;

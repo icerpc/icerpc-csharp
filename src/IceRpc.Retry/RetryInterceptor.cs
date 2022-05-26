@@ -34,9 +34,9 @@ public class RetryInterceptor : IInvoker
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        if (request.PayloadStream != null)
+        if (request.PayloadStream is not null)
         {
-            // If the request include a payload stream it cannot be retried
+            // This interceptor does not support retrying requests with a payload stream.
             return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
         }
         else
@@ -48,20 +48,16 @@ public class RetryInterceptor : IInvoker
                 request.Features = request.Features.With(endpointFeature);
             }
 
-            bool releaseRequestAfterSent = false;
-            int attempt = 1;
-            IncomingResponse? response = null;
-            Exception? exception = null;
-
-            bool tryAgain;
-
-            var decorator = new ResettablePipeReaderDecorator(request.Payload);
-            await using var _ = decorator.ConfigureAwait(false);
-
+            var decorator = new ResettablePipeReaderDecorator(request.Payload, _options.MaxPayloadSize);
             request.Payload = decorator;
 
             try
             {
+                int attempt = 1;
+                IncomingResponse? response = null;
+                Exception? exception = null;
+                bool tryAgain;
+
                 do
                 {
                     RetryPolicy retryPolicy = RetryPolicy.NoRetry;
@@ -71,8 +67,6 @@ public class RetryInterceptor : IInvoker
                     try
                     {
                         response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
-
-                        // TODO: release payload if releaseRequestAfterSent is true
 
                         if (response.ResultType == ResultType.Success)
                         {
@@ -88,12 +82,12 @@ public class RetryInterceptor : IInvoker
                     catch (NoEndpointException ex)
                     {
                         // NoEndpointException is always considered non-retryable; it typically occurs because we
-                        // removed all remaining usable endpoints through request.ExcludedEndpoints.
+                        // removed endpoints from endpoinFeature.
                         return response ?? throw ExceptionUtil.Throw(exception ?? ex);
                     }
                     catch (OperationCanceledException)
                     {
-                        // TODO: try other replica in some cases?
+                        // TODO: try other replica depending on who canceled the request?
                         throw;
                     }
                     catch (Exception ex)
@@ -109,26 +103,12 @@ public class RetryInterceptor : IInvoker
                             retryPolicy = RetryPolicy.Immediately;
                         }
                     }
-                    finally
-                    {
-                        // If the request size is greater than _requestMaxSize we release the request after it was sent to avoid
-                        // holding too much memory and we won't retry in case of a failure.
-                        releaseRequestAfterSent = decorator.Consumed > _options.RequestMaxSize;
-                    }
 
-                    // Compute retry policy based on the exception or response retry policy, whether or not the
-                    // connection is established or the request sent and idempotent
+                    // We have an exception (possibly encoded in response) and the associated retry policy.
                     Debug.Assert(response != null || exception != null);
 
                     // Check if we can retry
-                    if (attempt == _options.MaxAttempts ||
-                        retryPolicy == RetryPolicy.NoRetry ||
-                        !decorator.IsResettable ||
-                        (request.IsSent && releaseRequestAfterSent))
-                    {
-                        tryAgain = false;
-                    }
-                    else
+                    if (attempt < _options.MaxAttempts && retryPolicy != RetryPolicy.NoRetry && decorator.IsResettable)
                     {
                         if (request.Connection is IClientConnection clientConnection &&
                              retryPolicy == RetryPolicy.OtherReplica)
@@ -160,14 +140,12 @@ public class RetryInterceptor : IInvoker
                             request.Connection = null;
                         }
 
-                        // Reset relevant request properties before trying again.
                         request.IsSent = false;
-                        if (!request.Features.IsReadOnly)
-                        {
-                            request.Features.Set<RetryPolicy>(null);
-                        }
-
                         decorator.Reset();
+                    }
+                    else
+                    {
+                        tryAgain = false;
                     }
                 }
                 while (tryAgain);
@@ -178,7 +156,7 @@ public class RetryInterceptor : IInvoker
             }
             finally
             {
-                // TODO release the request memory if not already done after sent.
+                decorator.IsResettable = false;
             }
         }
     }
