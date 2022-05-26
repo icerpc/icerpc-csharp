@@ -4,6 +4,7 @@ using IceRpc.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using NUnit.Framework;
 
 namespace IceRpc.Transports.Tests;
@@ -16,7 +17,6 @@ public class SlicConformanceTests : MultiplexedTransportConformanceTests
     {
         var services = new ServiceCollection()
             .AddColocTransport()
-            .AddSlicTransport()
             .AddSingleton(typeof(Endpoint), new Endpoint(Protocol.IceRpc) { Host = "colochost" })
             .AddSingleton(provider =>
             {
@@ -27,6 +27,18 @@ public class SlicConformanceTests : MultiplexedTransportConformanceTests
                     NullLogger.Instance);
                 return listener;
             });
+
+        services.
+            TryAddSingleton<IServerTransport<IMultiplexedNetworkConnection>>(
+                provider => new SlicServerTransport(
+                    provider.GetRequiredService<IOptions<SlicTransportOptions>>().Value,
+                    provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()));
+
+        services.
+            TryAddSingleton<IClientTransport<IMultiplexedNetworkConnection>>(
+                provider => new SlicClientTransport(
+                    provider.GetRequiredService<IOptions<SlicTransportOptions>>().Value,
+                    provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()));
 
         services.TryAddSingleton(new MultiplexedTransportOptions());
         services.AddOptions<SlicTransportOptions>().Configure<MultiplexedTransportOptions>(

@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
 using IceRpc.RequestContext;
 using IceRpc.Slice;
@@ -24,15 +25,16 @@ public sealed class ProtocolBridgingTests
         var router = new Router();
         router.UseRequestContext();
 
-        // We need to use the same coloc transport everywhere for connections to work.
+        // We need to use the same coloc transport everywhere for connections to work, the test creates two
+        // servers that use the same coloc transport, each with a different host.
         var coloc = new ColocTransport();
         await using ServiceProvider targetServiceProvider = new ServiceCollection()
             .AddSingleton(coloc)
             .AddIceRpcConnectionPool()
             .AddColocTest(router, Protocol.FromString(targetProtocol), "colochost1")
-            .AddTransient<IInvoker>(
+            .AddSingleton<IInvoker>(
                 serviceProvider => new Pipeline()
-                    .UseBinder(serviceProvider.GetRequiredService<ConnectionPool>())
+                    .UseBinder(serviceProvider.GetRequiredService<IClientConnectionProvider>())
                     .UseRequestContext())
             .BuildServiceProvider();
 
@@ -40,9 +42,9 @@ public sealed class ProtocolBridgingTests
             .AddSingleton(coloc)
             .AddIceRpcConnectionPool()
             .AddColocTest(router, Protocol.FromString(forwarderProtocol), "colochost2")
-            .AddTransient<IInvoker>(
+            .AddSingleton<IInvoker>(
                 serviceProvider => new Pipeline()
-                    .UseBinder(serviceProvider.GetRequiredService<ConnectionPool>())
+                    .UseBinder(serviceProvider.GetRequiredService<IClientConnectionProvider>())
                     .UseRequestContext())
             .BuildServiceProvider();
 
