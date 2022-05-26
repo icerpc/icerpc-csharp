@@ -11,8 +11,7 @@ namespace IceRpc.Configure
         private readonly Lazy<IInvoker> _invoker;
 
         /// <summary>Constructs a pipeline.</summary>
-        public Pipeline() =>
-            _invoker = new Lazy<IInvoker>(CreateInvokerPipeline, LazyThreadSafetyMode.ExecutionAndPublication);
+        public Pipeline() => _invoker = new Lazy<IInvoker>(CreateInvokerPipeline);
 
         /// <inheritdoc/>
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default) =>
