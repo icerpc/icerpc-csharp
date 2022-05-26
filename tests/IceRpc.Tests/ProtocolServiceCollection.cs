@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using System.Net.Security;
 
 namespace IceRpc.Tests;
@@ -43,10 +44,11 @@ public static class ProtocolServiceCollectionExtensions
 
         if (dispatcher != null)
         {
-            services.AddSingleton(new ServerOptions
-            {
-                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
-            });
+            services.AddOptions<ServerOptions>().Configure(
+                options =>
+                {
+                    options.ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher };
+                });
         }
 
         services.TryAddSingleton<IConnection>(
@@ -99,7 +101,7 @@ internal static class ProtocolServiceProviderExtensions
         bool acceptRequests = true)
     {
         Task<IProtocolConnection> serverTask;
-        ServerOptions serverOptions = serviceProvider.GetService<ServerOptions>() ?? new();
+        ServerOptions serverOptions = serviceProvider.GetService<IOptions<ServerOptions>>()?.Value ?? new();
         if (protocol == Protocol.Ice)
         {
             serverTask = GetProtocolConnectionAsync(

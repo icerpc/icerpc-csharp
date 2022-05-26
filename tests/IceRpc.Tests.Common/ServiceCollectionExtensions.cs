@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using System.Net.Security;
 
 namespace IceRpc.Tests;
@@ -42,7 +42,7 @@ public static class ServiceCollectionExtensions
         collection.AddSingleton(provider =>
         {
             SslServerAuthenticationOptions? serverAuthenticationOptions =
-                provider.GetService<SslServerAuthenticationOptions>();
+                provider.GetService<IOptions<SslServerAuthenticationOptions>>()?.Value;
             IServerTransport<ISimpleNetworkConnection>? serverTransport =
                 provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>();
             return serverTransport.Listen(endpoint, serverAuthenticationOptions, NullLogger.Instance);
@@ -51,7 +51,7 @@ public static class ServiceCollectionExtensions
         collection.AddSingleton(provider =>
         {
             SslClientAuthenticationOptions? clientAuthenticationOptions =
-                provider.GetService<SslClientAuthenticationOptions>();
+                provider.GetService<IOptions<SslClientAuthenticationOptions>>()?.Value;
             IListener<ISimpleNetworkConnection> listener =
                 provider.GetRequiredService<IListener<ISimpleNetworkConnection>>();
             IClientTransport<ISimpleNetworkConnection> clientTransport =

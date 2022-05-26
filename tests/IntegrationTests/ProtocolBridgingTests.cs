@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
-using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
 using IceRpc.RequestContext;
 using IceRpc.Slice;

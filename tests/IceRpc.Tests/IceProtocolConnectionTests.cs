@@ -58,48 +58,44 @@ public sealed class IceProtocolConnectionTests
         int maxCount = 0;
         var mutex = new object();
 
-        var serverOptions = new ServerOptions
+        var dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
-            ConnectionOptions = new ConnectionOptions
+            // We want to make sure that no more than maxConcurrentDispatches are executing this dispatcher. So
+            // we are tracking the maximum count here (before work) and decrement this count immediately in the
+            // "work". Without the decrement, the count (and max count) could be greater than
+            // maxConcurrentDispatches.
+            IncrementCount();
+            startSemaphore.Release();
+            await workSemaphore.WaitAsync(cancel);
+            DecrementCount();
+            return new OutgoingResponse(request);
+
+            void DecrementCount()
             {
-                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                lock (mutex)
                 {
-                    // We want to make sure that no more than maxConcurrentDispatches are executing this dispatcher. So
-                    // we are tracking the maximum count here (before work) and decrement this count immediately in the
-                    // "work". Without the decrement, the count (and max count) could be greater than
-                    // maxConcurrentDispatches.
-                    IncrementCount();
-                    startSemaphore.Release();
-                    await workSemaphore.WaitAsync(cancel);
-                    DecrementCount();
-                    return new OutgoingResponse(request);
-
-                    void DecrementCount()
-                    {
-                        lock (mutex)
-                        {
-                            count--;
-                        }
-                    }
-
-                    void IncrementCount()
-                    {
-                        lock (mutex)
-                        {
-                            count++;
-                            maxCount = Math.Max(maxCount, count);
-                        }
-                    }
-                }),
-
-                MaxIceConcurrentDispatches = maxConcurrentDispatches
+                    count--;
+                }
             }
-        };
 
-        await using var serviceProvider = new ServiceCollection()
-            .AddProtocolTest(Protocol.Ice)
-            .AddSingleton(serverOptions)
-            .BuildServiceProvider();
+            void IncrementCount()
+            {
+                lock (mutex)
+                {
+                    count++;
+                    maxCount = Math.Max(maxCount, count);
+                }
+            }
+        });
+
+        var services = new ServiceCollection().AddProtocolTest(Protocol.Ice);
+        services.AddOptions<ServerOptions>().Configure(options =>
+        {
+            options.ConnectionOptions.Dispatcher = dispatcher;
+            options.ConnectionOptions.MaxIceConcurrentDispatches = maxConcurrentDispatches;
+        });
+
+        await using var serviceProvider = services.BuildServiceProvider();
 
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.Ice);
 
@@ -139,25 +135,22 @@ public sealed class IceProtocolConnectionTests
         // Arrange
         using var semaphore = new SemaphoreSlim(0);
         int dispatchCount = 0;
-        var serverOptions = new ServerOptions
-        {
-            ConnectionOptions = new ConnectionOptions
+        var dispatcher  = new InlineDispatcher(
+            async (request, cancel) =>
             {
-                Dispatcher = new InlineDispatcher(
-                async (request, cancel) =>
-                {
-                    ++dispatchCount;
-                    await semaphore.WaitAsync(CancellationToken.None);
-                    return new OutgoingResponse(request);
-                }),
-                MaxIceConcurrentDispatches = 1
-            }
-        };
+                ++dispatchCount;
+                await semaphore.WaitAsync(CancellationToken.None);
+                return new OutgoingResponse(request);
+            });
 
-        await using var serviceProvider = new ServiceCollection()
-            .AddProtocolTest(Protocol.Ice)
-            .AddSingleton(serverOptions)
-            .BuildServiceProvider();
+        var services = new ServiceCollection().AddProtocolTest(Protocol.Ice);
+        services.AddOptions<ServerOptions>().Configure(
+            options =>
+            {
+                options.ConnectionOptions.Dispatcher = dispatcher;
+                options.ConnectionOptions.MaxIceConcurrentDispatches = 1;
+            });
+        await using var serviceProvider = services.BuildServiceProvider();
 
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.Ice);
 

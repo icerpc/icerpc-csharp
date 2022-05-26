@@ -337,13 +337,9 @@ public sealed class IceRpcProtocolConnectionTests
     [Test]
     public async Task Request_with_header_size_larger_than_max_header_size_fails()
     {
-        await using var serviceProvider = new ServiceCollection()
-            .AddProtocolTest(Protocol.IceRpc)
-            .AddSingleton(new ServerOptions
-            {
-                ConnectionOptions = new ConnectionOptions { MaxIceRpcHeaderSize = 100 }
-            })
-            .BuildServiceProvider();
+        var services = new ServiceCollection().AddProtocolTest(Protocol.IceRpc);
+        services.AddOptions<ServerOptions>().Configure(options => options.ConnectionOptions.MaxIceRpcHeaderSize = 100);
+        await using var serviceProvider = services.BuildServiceProvider();
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.IceRpc);
 
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))

@@ -3,6 +3,7 @@
 using IceRpc.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
@@ -20,8 +21,12 @@ public class SlicConformanceTests : MultiplexedTransportConformanceTests
             .AddColocTransport()
             .AddSingleton(provider =>
             {
+                var loggerFactory = provider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;
                 var transport = provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>();
-                var listener = transport.Listen(endpoint, null, NullLogger.Instance);
+                var listener = transport.Listen(
+                    endpoint,
+                    null,
+                    loggerFactory.CreateLogger("IceRpc"));
                 return listener;
             });
 
