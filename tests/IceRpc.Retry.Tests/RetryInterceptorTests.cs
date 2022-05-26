@@ -42,8 +42,8 @@ public sealed class RetryInterceptorTests
         });
 
         var proxy = new Proxy(Protocol.IceRpc);
-        var loggerFactory = new TestLoggerFactory();
-        var sut = new RetryInterceptor(invoker, new RetryOptions { LoggerFactory = loggerFactory });
+        using var loggerFactory = new TestLoggerFactory();
+        var sut = new RetryInterceptor(invoker, new RetryOptions(), loggerFactory);
 
         var request = new OutgoingRequest(proxy) { Operation = "Op" };
 

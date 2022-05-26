@@ -12,6 +12,9 @@ internal class ResettablePipeReaderDecorator : PipeReader, IAsyncDisposable
 {
     public bool IsResettable { get; private set; } = true;
 
+    public long Consumed =>
+        (_sequence != null && _highestExamined != null) ? _sequence.Value.GetOffset(_highestExamined.Value) : 0;
+
     // The latest sequence returned by _decoratee; not affected by Reset.
     private ReadOnlySequence<byte>? _sequence;
 
