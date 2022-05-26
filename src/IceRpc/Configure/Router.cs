@@ -28,8 +28,7 @@ namespace IceRpc.Configure
         private readonly IDictionary<string, IDispatcher> _prefixMatchRoutes = new Dictionary<string, IDispatcher>();
 
         /// <summary>Constructs a top-level router.</summary>
-        public Router() =>
-            _dispatcher = new Lazy<IDispatcher>(CreateDispatchPipeline);
+        public Router() => _dispatcher = new Lazy<IDispatcher>(CreateDispatchPipeline);
 
         /// <summary>Constructs a router with an absolute prefix.</summary>
         /// <param name="absolutePrefix">The absolute prefix of the new router. It must start with a <c>/</c>.</param>
