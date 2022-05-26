@@ -216,12 +216,6 @@ internal class ResettablePipeReaderDecorator : PipeReader
                     "cannot reset ResettablePipeReaderDecorator while reading is in progress");
             }
 
-            if (!_isReaderCompleted && _consumed != null)
-            {
-                throw new InvalidOperationException(
-                    "cannot reset a non-completed partially consumed ResettablePipeReaderDecorator");
-            }
-
             _consumed = null;
             _isReaderCompleted = false;
             _readerCompleteException = null;
