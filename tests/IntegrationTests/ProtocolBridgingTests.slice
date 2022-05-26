@@ -25,6 +25,6 @@ interface ProtocolBridgingTest
     // Check the context is correctly forwarded
     opContext();
 
-    // Operation that returns a new proxy
+    // Operation that returns a new proxy to the same target
     opNewProxy() -> ProtocolBridgingTest;
 }
