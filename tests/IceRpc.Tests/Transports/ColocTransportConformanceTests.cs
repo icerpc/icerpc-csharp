@@ -11,7 +11,5 @@ namespace IceRpc.Transports.Tests;
 public class ColocTransportConformanceTests : SimpleTransportConformanceTests
 {
     protected override IServiceCollection CreateServiceCollection() =>
-        new ServiceCollection().UseSimpleTransport().AddColocTransport().AddSingleton(
-            typeof(Endpoint),
-            new Endpoint(Protocol.IceRpc) { Host = "colochost"});
+        new ServiceCollection().UseSimpleTransport("icerpc://colochost/").AddColocTransport();
 }

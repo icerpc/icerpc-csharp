@@ -37,7 +37,7 @@ public static class ServiceCollectionExtensions
         Protocol protocol) =>
         services.AddClientServerTest(dispatcher, new Endpoint(protocol) { Host = "127.0.0.1", Port = 0 });
 
-    public static ServiceCollection UseSimpleTransport(this ServiceCollection collection)
+    public static ServiceCollection UseSimpleTransport(this ServiceCollection collection, Endpoint endpoint)
     {
         collection.AddScoped(provider =>
         {
@@ -45,10 +45,7 @@ public static class ServiceCollectionExtensions
                 provider.GetService<SslServerAuthenticationOptions>();
             IServerTransport<ISimpleNetworkConnection>? serverTransport =
                 provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>();
-            return serverTransport.Listen(
-                provider.GetRequiredService<Endpoint>(),
-                serverAuthenticationOptions,
-                NullLogger.Instance);
+            return serverTransport.Listen(endpoint, serverAuthenticationOptions, NullLogger.Instance);
         });
 
         collection.AddScoped(provider =>

@@ -13,8 +13,7 @@ public class TcpTransportConformanceTests : SimpleTransportConformanceTests
 {
     protected override IServiceCollection CreateServiceCollection()
     {
-        var services = new ServiceCollection()
-            .UseSimpleTransport();
+        var services = new ServiceCollection().UseSimpleTransport("icerpc://127.0.0.1:0/");
 
         services.TryAddSingleton(new TcpServerTransportOptions());
         services.AddSingleton<IServerTransport<ISimpleNetworkConnection>>(
@@ -23,14 +22,6 @@ public class TcpTransportConformanceTests : SimpleTransportConformanceTests
         services.TryAddSingleton(new TcpClientTransportOptions());
         services.AddScoped<IClientTransport<ISimpleNetworkConnection>>(
             provider => new TcpClientTransport(provider.GetRequiredService<TcpClientTransportOptions>()));
-
-        services.AddScoped(
-            typeof(Endpoint),
-            provider =>
-            {
-                string protocol = provider.GetService<Protocol>()?.Name ?? "icerpc";
-                return Endpoint.FromString($"{protocol}://127.0.0.1:0/");
-            });
 
         return services;
     }

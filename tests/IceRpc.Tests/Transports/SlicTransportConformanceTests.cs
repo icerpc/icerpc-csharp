@@ -15,16 +15,13 @@ public class SlicConformanceTests : MultiplexedTransportConformanceTests
     /// <summary>Creates the service collection used for Slic multiplexed transports for conformance testing.</summary>
     protected override IServiceCollection CreateServiceCollection()
     {
+        var endpoint = new Endpoint(Protocol.IceRpc) { Host = "colochost" };
         var services = new ServiceCollection()
             .AddColocTransport()
-            .AddSingleton(typeof(Endpoint), new Endpoint(Protocol.IceRpc) { Host = "colochost" })
             .AddSingleton(provider =>
             {
                 var transport = provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>();
-                var listener = transport.Listen(
-                    (Endpoint)provider.GetRequiredService(typeof(Endpoint)),
-                    null,
-                    NullLogger.Instance);
+                var listener = transport.Listen(endpoint, null, NullLogger.Instance);
                 return listener;
             });
 

@@ -13,7 +13,7 @@ public static class SlicTransportServiceCollectionExtensions
     public static IServiceCollection AddSlicTest(this IServiceCollection services, SlicTransportOptions slicTransportOptions)
     {
         services.AddColocTransport();
-        services.AddSingleton(typeof(Endpoint), new Endpoint(Protocol.IceRpc) { Host = "colochost" });
+        var endpoint = new Endpoint(Protocol.IceRpc) { Host = "colochost" };
         services.AddOptions<SlicTransportOptions>().Configure(
             options =>
             {
@@ -37,10 +37,7 @@ public static class SlicTransportServiceCollectionExtensions
         services.AddSingleton(provider =>
         {
             var serverTransport = provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>();
-            var listener = serverTransport.Listen(
-                (Endpoint)provider.GetRequiredService(typeof(Endpoint)),
-                null,
-                NullLogger.Instance);
+            var listener = serverTransport.Listen(endpoint, null, NullLogger.Instance);
             return listener;
         });
         return services;

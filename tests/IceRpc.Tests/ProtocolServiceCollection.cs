@@ -4,6 +4,7 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Net.Security;
@@ -36,6 +37,7 @@ public static class ProtocolServiceCollectionExtensions
         Protocol protocol,
         IDispatcher? dispatcher = null)
     {
+        var endpoint = new Endpoint(protocol) { Host = "colochost" };
         services.AddColocTransport();
         services.AddSingleton(protocol);
 
@@ -47,7 +49,9 @@ public static class ProtocolServiceCollectionExtensions
             });
         }
 
-        services.AddSingleton(typeof(Endpoint), new Endpoint(protocol) { Host = "colochost" });
+        services.TryAddSingleton<IConnection>(
+            protocol == Protocol.Ice ? InvalidConnection.Ice : InvalidConnection.IceRpc);
+
         services.AddSingleton<IServerTransport<IMultiplexedNetworkConnection>>(
             provider => new SlicServerTransport(
                 provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()));
@@ -57,18 +61,19 @@ public static class ProtocolServiceCollectionExtensions
 
         services.AddSingleton(IceProtocol.Instance.ProtocolConnectionFactory);
         services.AddSingleton(IceRpcProtocol.Instance.ProtocolConnectionFactory);
-        services.AddSingleton(provider => CreateListener<ISimpleNetworkConnection>(provider));
-        services.AddSingleton(provider => CreateListener<IMultiplexedNetworkConnection>(provider));
+        services.AddSingleton(provider => CreateListener<ISimpleNetworkConnection>(provider, endpoint));
+        services.AddSingleton(provider => CreateListener<IMultiplexedNetworkConnection>(provider, endpoint));
 
         return services;
 
-        static IListener<T> CreateListener<T>(IServiceProvider serviceProvider) where T : INetworkConnection
+        static IListener<T> CreateListener<T>(IServiceProvider serviceProvider, Endpoint endpoint)
+            where T : INetworkConnection
         {
             ILogger logger = serviceProvider.GetService<ILogger>() ?? NullLogger.Instance;
 
             IListener<T> listener =
                 serviceProvider.GetRequiredService<IServerTransport<T>>().Listen(
-                    serviceProvider.GetRequiredService<Endpoint>(),
+                    endpoint,
                     serviceProvider.GetService<SslServerAuthenticationOptions>(),
                     logger);
 
@@ -98,16 +103,12 @@ internal static class ProtocolServiceProviderExtensions
 
         if (acceptRequests)
         {
-            _ = clientProtocolConnection.AcceptRequestsAsync(serviceProvider.GetInvalidConnection());
-            _ = serverProtocolConnection.AcceptRequestsAsync(serviceProvider.GetInvalidConnection());
+            _ = clientProtocolConnection.AcceptRequestsAsync(serviceProvider.GetRequiredService<IConnection>());
+            _ = serverProtocolConnection.AcceptRequestsAsync(serviceProvider.GetRequiredService<IConnection>());
         }
 
         return new ClientServerProtocolConnection(clientProtocolConnection, serverProtocolConnection);
     }
-
-    internal static IConnection GetInvalidConnection(this IServiceProvider serviceProvider) =>
-        serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ? InvalidConnection.Ice :
-            InvalidConnection.IceRpc;
 
     private static Task<IProtocolConnection> GetClientProtocolConnectionAsync(
         this IServiceProvider serviceProvider)
