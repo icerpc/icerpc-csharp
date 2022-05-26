@@ -70,12 +70,11 @@ public static class Program
                         .UseTelemetry(serviceProvider.GetRequiredService<ActivitySource>(), loggerFactory);
                 });
 
-                services.AddSingleton<IConnection>(serviceProvider =>
-                    new ClientConnection(serviceProvider.GetRequiredService<IOptions<ClientConnectionOptions>>().Value));
+                services.AddIceRpcClientConnection();
 
                 services.AddSingleton<IHelloPrx>(serviceProvider =>
                     HelloPrx.FromConnection(
-                        serviceProvider.GetRequiredService<IConnection>(),
+                        serviceProvider.GetRequiredService<ClientConnection>(),
                         invoker: serviceProvider.GetRequiredService<IInvoker>()));
             });
 

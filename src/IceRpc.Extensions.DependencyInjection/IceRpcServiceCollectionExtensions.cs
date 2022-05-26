@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc;
+using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -46,6 +47,22 @@ public static class IceRpcServiceCollectionExtensions
     public static IServiceCollection AddIceRpcServer(this IServiceCollection services, IDispatcher dispatcher)
     {
         services.AddOptions<ServerOptions>().Configure(options => options.ConnectionOptions.Dispatcher = dispatcher);
+        return services.AddIceRpcServer();
+    }
+
+    /// <summary>Adds <see cref="Server"/> with the specified dispatcher to the given <see cref="IServiceCollection"/>.
+    /// </summary>
+    /// <param name="services">The service collection to add services to.</param>
+    /// <param name="configure">The action to configure the dispatcher using a <see cref="DispatcherBuilder"/>.</param>
+    public static IServiceCollection AddIceRpcServer(this IServiceCollection services, Action<DispatcherBuilder> configure)
+    {
+        services.AddOptions<ServerOptions>().Configure<IServiceProvider>(
+            (options, provider) =>
+            {
+                var dispatcherBuilder = new DispatcherBuilder(provider);
+                configure(dispatcherBuilder);
+                options.ConnectionOptions.Dispatcher = dispatcherBuilder.Build();
+            });
         return services.AddIceRpcServer();
     }
 
