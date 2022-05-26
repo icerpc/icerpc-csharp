@@ -1,4 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
+
 use crate::builders::{Builder, FunctionCallBuilder};
 use crate::code_block::CodeBlock;
 use crate::cs_util::*;
@@ -96,11 +97,7 @@ fn decode_member(
                     code,
                     "{decoder_extensions_class}.Decode{name}(ref decoder)",
                     decoder_extensions_class = struct_ref
-                        .escape_scoped_identifier_with_prefix_and_suffix(
-                            "SliceDecoder",
-                            "Extensions",
-                            namespace
-                        ),
+                        .escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
                     name = fix_case(struct_ref.identifier(), CaseStyle::Pascal)
                 );
             } else {
@@ -121,11 +118,7 @@ fn decode_member(
                 code,
                 "{decoder_extensions_class}.Decode{name}(ref decoder)",
                 decoder_extensions_class = enum_ref
-                    .escape_scoped_identifier_with_prefix_and_suffix(
-                        "SliceDecoder",
-                        "Extensions",
-                        namespace
-                    ),
+                    .escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
                 name = fix_case(enum_ref.identifier(), CaseStyle::Pascal),
             );
         }
@@ -137,11 +130,7 @@ fn decode_member(
                 code,
                 "{decoder_extensions_class}.Decode{name}(ref decoder)",
                 decoder_extensions_class = custom_type_ref
-                    .escape_scoped_identifier_with_prefix_and_suffix(
-                        "SliceDecoder",
-                        "Extensions",
-                        namespace
-                    ),
+                    .escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
                 name = fix_case(custom_type_ref.identifier(), CaseStyle::Pascal)
             );
         }
@@ -434,9 +423,8 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
         TypeRefs::Enum(enum_ref) => {
             format!(
                 "(ref SliceDecoder decoder) => {decoder_extensions_class}.Decode{name}(ref decoder)",
-                decoder_extensions_class = enum_ref.escape_scoped_identifier_with_prefix_and_suffix(
-                    "SliceDecoder",
-                    "Extensions",
+                decoder_extensions_class = enum_ref.escape_scoped_identifier_with_suffix(
+                    "SliceDecoderExtensions",
                     namespace
                 ),
                 name = fix_case(enum_ref.identifier(), CaseStyle::Pascal)
@@ -447,9 +435,8 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
                 format!(
                     "(ref SliceDecoder decoder) => {decoder_extensions_class}.Decode{name}(ref decoder)",
                     decoder_extensions_class = struct_ref
-                        .escape_scoped_identifier_with_prefix_and_suffix(
-                            "SliceDecoder",
-                            "Extensions",
+                        .escape_scoped_identifier_with_suffix(
+                            "SliceDecoderExtensions",
                             namespace
                         ),
                     name = fix_case(struct_ref.identifier(), CaseStyle::Pascal)
@@ -477,9 +464,8 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
             format!(
                 "(ref SliceDecoder decoder) => {decoder_extensions_class}.Decode{name}(ref decoder)",
                 decoder_extensions_class = custom_type_ref
-                    .escape_scoped_identifier_with_prefix_and_suffix(
-                        "SliceDecoder",
-                        "Extensions",
+                    .escape_scoped_identifier_with_suffix(
+                        "SliceDecoderExtensions",
                         namespace
                     ),
                 name = fix_case(custom_type_ref.identifier(), CaseStyle::Pascal)

@@ -177,7 +177,7 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
     let mut builder = ContainerBuilder::new(
         &format!("{} static class", access),
         &format!(
-            "SliceEncoder{}Extensions",
+            "{}SliceEncoderExtensions",
             fix_case(enum_def.identifier(), CaseStyle::Pascal),
         ),
     );
@@ -222,7 +222,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
     let mut builder = ContainerBuilder::new(
         &format!("{} static class", access),
         &format!(
-            "SliceDecoder{}Extensions",
+            "{}SliceDecoderExtensions",
             fix_case(enum_def.identifier(), CaseStyle::Pascal),
         ),
     );
