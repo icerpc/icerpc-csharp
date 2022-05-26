@@ -14,12 +14,12 @@ public class ServiceTests
     [Test]
     public async Task Service_operations([Values("ice", "icerpc")] string protocol)
     {
-        await using ServiceProvider provider = new IntegrationTestServiceCollection()
-            .UseDispatcher(new Service())
-            .UseProtocol(protocol)
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(new Service(), Protocol.FromString(protocol))
             .BuildServiceProvider();
-
         var service = ServicePrx.FromConnection(provider.GetRequiredService<ClientConnection>(), "/service");
+        var server = provider.GetRequiredService<Server>();
+        server.Listen();
 
         string[] ids = new string[]
         {

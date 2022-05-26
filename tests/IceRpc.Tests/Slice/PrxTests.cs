@@ -13,9 +13,9 @@ public class PrxTests
     [Test]
     public async Task Downcast_prx_with_as_sync_succeeds()
     {
-       await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest(new MyDerivedInterface())
-            .BuildServiceProvider();
+        await using ServiceProvider provider = new ServiceCollection()
+             .AddColocTest(new MyDerivedInterface())
+             .BuildServiceProvider();
 
         provider.GetRequiredService<Server>().Listen();
         var prx = MyBaseInterfacePrx.FromConnection(provider.GetRequiredService<ClientConnection>());

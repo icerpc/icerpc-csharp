@@ -2,10 +2,10 @@
 
 using IceRpc.Configure;
 using IceRpc.Features;
+using IceRpc.RequestContext;
 using IceRpc.Slice;
 using IceRpc.Tests;
 using IceRpc.Transports;
-using IceRpc.RequestContext;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Collections.Immutable;
@@ -23,40 +23,41 @@ public sealed class ProtocolBridgingTests
     {
         var router = new Router();
         router.UseRequestContext();
-        var targetServiceCollection = new IntegrationTestServiceCollection();
-        var forwarderServiceCollection = new IntegrationTestServiceCollection();
 
-        // We need to use the same coloc transport everywhere for connections to work.
+        // We need to use the same coloc transport everywhere for connections to work, the test creates two
+        // servers that use the same coloc transport, each with a different host.
         var coloc = new ColocTransport();
-        targetServiceCollection.UseColoc(coloc);
-        forwarderServiceCollection.UseColoc(coloc);
+        await using ServiceProvider targetServiceProvider = new ServiceCollection()
+            .AddSingleton(coloc)
+            .AddIceRpcConnectionPool()
+            .AddColocTest(router, Protocol.FromString(targetProtocol), "colochost1")
+            .AddSingleton<IInvoker>(
+                serviceProvider => new Pipeline()
+                    .UseBinder(serviceProvider.GetRequiredService<IClientConnectionProvider>())
+                    .UseRequestContext())
+            .BuildServiceProvider();
 
-        targetServiceCollection.UseProtocol(targetProtocol).AddTransient<IDispatcher>(_ => router);
-        forwarderServiceCollection.UseProtocol(forwarderProtocol).AddTransient<IDispatcher>(_ => router);
-
-        targetServiceCollection.AddTransient<IInvoker>(
-            serviceProvider => new Pipeline()
-                .UseBinder(serviceProvider.GetRequiredService<ConnectionPool>())
-                .UseRequestContext());
-        forwarderServiceCollection.AddTransient<IInvoker>(
-            serviceProvider => new Pipeline()
-                .UseBinder(serviceProvider.GetRequiredService<ConnectionPool>())
-                .UseRequestContext());
-
-        await using ServiceProvider targetServiceProvider = targetServiceCollection.BuildServiceProvider();
-        await using ServiceProvider forwarderServiceProvider = forwarderServiceCollection.BuildServiceProvider();
-
-        // TODO: add context testing
+        await using ServiceProvider forwarderServiceProvider = new ServiceCollection()
+            .AddSingleton(coloc)
+            .AddIceRpcConnectionPool()
+            .AddColocTest(router, Protocol.FromString(forwarderProtocol), "colochost2")
+            .AddSingleton<IInvoker>(
+                serviceProvider => new Pipeline()
+                    .UseBinder(serviceProvider.GetRequiredService<IClientConnectionProvider>())
+                    .UseRequestContext())
+            .BuildServiceProvider();
 
         Server targetServer = targetServiceProvider.GetRequiredService<Server>();
         var targetServicePrx = ProtocolBridgingTestPrx.Parse($"{targetServer.Endpoint.Protocol}:/target");
         targetServicePrx.Proxy.Endpoint = targetServer.Endpoint;
         targetServicePrx.Proxy.Invoker = targetServiceProvider.GetRequiredService<IInvoker>();
+        targetServer.Listen();
 
         Server forwarderServer = forwarderServiceProvider.GetRequiredService<Server>();
         var forwarderServicePrx = ProtocolBridgingTestPrx.Parse($"{forwarderServer.Endpoint.Protocol}:/forward");
         forwarderServicePrx.Proxy.Endpoint = forwarderServer.Endpoint;
         forwarderServicePrx.Proxy.Invoker = forwarderServiceProvider.GetRequiredService<IInvoker>();
+        forwarderServer.Listen();
 
         var targetService = new ProtocolBridgingTest(targetServer.Endpoint);
         router.UseDispatchInformation();
