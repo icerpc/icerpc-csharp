@@ -98,8 +98,48 @@ internal static class ProtocolServiceProviderExtensions
         Protocol protocol,
         bool acceptRequests = true)
     {
-        Task<IProtocolConnection> serverTask = serviceProvider.GetServerProtocolConnectionAsync(protocol);
-        IProtocolConnection clientProtocolConnection = await serviceProvider.GetClientProtocolConnectionAsync(protocol);
+        Task<IProtocolConnection> serverTask;
+        ServerOptions serverOptions = serviceProvider.GetService<ServerOptions>() ?? new();
+        if (protocol == Protocol.Ice)
+        {
+            serverTask = GetProtocolConnectionAsync(
+                serviceProvider,
+                serverOptions.ConnectionOptions.Dispatcher,
+                isServer: true,
+                serverOptions.ConnectionOptions,
+                serviceProvider.GetSimpleServerConnectionAsync);
+        }
+        else
+        {
+            serverTask = GetProtocolConnectionAsync(
+                serviceProvider,
+                serverOptions.ConnectionOptions.Dispatcher,
+                isServer: true,
+                serverOptions.ConnectionOptions,
+                serviceProvider.GetMultiplexedServerConnectionAsync);
+        }
+
+        IProtocolConnection clientProtocolConnection;
+        ConnectionOptions connectionOptions = serviceProvider.GetService<ConnectionOptions>() ?? new();
+        if (protocol == Protocol.Ice)
+        {
+            clientProtocolConnection = await GetProtocolConnectionAsync<ISimpleNetworkConnection>(
+                serviceProvider,
+                connectionOptions.Dispatcher,
+                isServer: false,
+                connectionOptions,
+                serviceProvider.GetSimpleClientConnectionAsync);
+        }
+        else
+        {
+            clientProtocolConnection = await GetProtocolConnectionAsync<IMultiplexedNetworkConnection>(
+                serviceProvider,
+                connectionOptions.Dispatcher,
+                isServer: false,
+                connectionOptions,
+                serviceProvider.GetMultiplexedClientConnectionAsync);
+        }
+
         IProtocolConnection serverProtocolConnection = await serverTask;
 
         if (acceptRequests)
@@ -109,27 +149,6 @@ internal static class ProtocolServiceProviderExtensions
         }
 
         return new ClientServerProtocolConnection(clientProtocolConnection, serverProtocolConnection);
-    }
-
-    private static Task<IProtocolConnection> GetClientProtocolConnectionAsync(
-        this IServiceProvider serviceProvider,
-        Protocol protocol)
-    {
-        ConnectionOptions connectionOptions = serviceProvider.GetService<ConnectionOptions>() ?? new();
-
-        return protocol == Protocol.Ice ?
-            GetProtocolConnectionAsync<ISimpleNetworkConnection>(
-                serviceProvider,
-                connectionOptions.Dispatcher,
-                isServer: false,
-                connectionOptions,
-                serviceProvider.GetSimpleClientConnectionAsync) :
-            GetProtocolConnectionAsync<IMultiplexedNetworkConnection>(
-                serviceProvider,
-                connectionOptions.Dispatcher,
-                isServer: false,
-                connectionOptions,
-                serviceProvider.GetMultiplexedClientConnectionAsync);
     }
 
     private static async Task<IProtocolConnection> GetProtocolConnectionAsync<T>(
@@ -151,27 +170,6 @@ internal static class ProtocolServiceProviderExtensions
                 connectionOptions,
                 CancellationToken.None);
         return protocolConnection;
-    }
-
-    private static Task<IProtocolConnection> GetServerProtocolConnectionAsync(
-        this IServiceProvider serviceProvider,
-        Protocol protocol)
-    {
-        ServerOptions serverOptions = serviceProvider.GetService<ServerOptions>() ?? new();
-
-        return protocol == Protocol.Ice ?
-            GetProtocolConnectionAsync(
-                serviceProvider,
-                serverOptions.ConnectionOptions.Dispatcher,
-                isServer: true,
-                serverOptions.ConnectionOptions,
-                serviceProvider.GetSimpleServerConnectionAsync) :
-            GetProtocolConnectionAsync(
-                serviceProvider,
-                serverOptions.ConnectionOptions.Dispatcher,
-                isServer: true,
-                serverOptions.ConnectionOptions,
-                serviceProvider.GetMultiplexedServerConnectionAsync);
     }
 
     public static Task<IMultiplexedNetworkConnection> GetMultiplexedClientConnectionAsync(
