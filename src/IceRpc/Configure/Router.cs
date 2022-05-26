@@ -20,7 +20,7 @@ namespace IceRpc.Configure
         // results in numerous unsuccessful lookups.
         private const int MaxSegments = 10;
 
-        private IDispatcher? _dispatcher;
+        private readonly Lazy<IDispatcher> _dispatcher;
         private readonly IDictionary<string, IDispatcher> _exactMatchRoutes = new Dictionary<string, IDispatcher>();
 
         private readonly Stack<Func<IDispatcher, IDispatcher>> _middlewareStack = new();
@@ -28,15 +28,14 @@ namespace IceRpc.Configure
         private readonly IDictionary<string, IDispatcher> _prefixMatchRoutes = new Dictionary<string, IDispatcher>();
 
         /// <summary>Constructs a top-level router.</summary>
-        public Router()
-        {
-        }
+        public Router() =>
+            _dispatcher = new Lazy<IDispatcher>(CreateDispatchPipeline, LazyThreadSafetyMode.ExecutionAndPublication);
 
         /// <summary>Constructs a router with an absolute prefix.</summary>
         /// <param name="absolutePrefix">The absolute prefix of the new router. It must start with a <c>/</c>.</param>
         /// <exception cref="FormatException">Thrown if <paramref name="absolutePrefix"/> is not a valid path.
         /// </exception>
-        public Router(string absolutePrefix)
+        public Router(string absolutePrefix) : this()
         {
             Proxy.CheckPath(absolutePrefix);
             absolutePrefix = NormalizePrefix(absolutePrefix);
@@ -45,7 +44,7 @@ namespace IceRpc.Configure
 
         /// <inheritdoc/>
         public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel = default) =>
-            (_dispatcher ??= CreateDispatchPipeline()).DispatchAsync(request, cancel);
+            _dispatcher.Value.DispatchAsync(request, cancel);
 
         /// <summary>Registers a route with a path. If there is an existing route at the same path, it is replaced.
         /// </summary>
@@ -58,7 +57,7 @@ namespace IceRpc.Configure
         /// <seealso cref="Mount"/>
         public void Map(string path, IDispatcher dispatcher)
         {
-            if (_dispatcher != null)
+            if (_dispatcher.IsValueCreated)
             {
                 throw new InvalidOperationException(
                     $"cannot call {nameof(Map)} after calling {nameof(IDispatcher.DispatchAsync)}");
@@ -87,7 +86,7 @@ namespace IceRpc.Configure
         /// <seealso cref="Map(string, IDispatcher)"/>
         public void Mount(string prefix, IDispatcher dispatcher)
         {
-            if (_dispatcher != null)
+            if (_dispatcher.IsValueCreated)
             {
                 throw new InvalidOperationException(
                     $"cannot call {nameof(Mount)} after calling {nameof(IDispatcher.DispatchAsync)}");
@@ -120,7 +119,7 @@ namespace IceRpc.Configure
         /// called on this router.</exception>
         public Router Use(Func<IDispatcher, IDispatcher> middleware)
         {
-            if (_dispatcher != null)
+            if (_dispatcher.IsValueCreated)
             {
                 throw new InvalidOperationException(
                     $"all middleware must be registered before calling {nameof(IDispatcher.DispatchAsync)}");

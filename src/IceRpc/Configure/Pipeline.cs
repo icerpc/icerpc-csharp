@@ -8,11 +8,15 @@ namespace IceRpc.Configure
     public sealed class Pipeline : IInvoker
     {
         private readonly Stack<Func<IInvoker, IInvoker>> _interceptorStack = new();
-        private IInvoker? _invoker;
+        private readonly Lazy<IInvoker> _invoker;
+
+        /// <summary>Constructs a pipeline.</summary>
+        public Pipeline() =>
+            _invoker = new Lazy<IInvoker>(CreateInvokerPipeline, LazyThreadSafetyMode.ExecutionAndPublication);
 
         /// <inheritdoc/>
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default) =>
-            (_invoker ??= CreateInvokerPipeline()).InvokeAsync(request, cancel);
+            _invoker.Value.InvokeAsync(request, cancel);
 
         /// <summary>Installs an interceptor at the end of the pipeline.</summary>
         /// <param name="interceptor">The interceptor to install.</param>
@@ -20,7 +24,7 @@ namespace IceRpc.Configure
         /// <see cref="InvokeAsync"/>.</exception>
         public Pipeline Use(Func<IInvoker, IInvoker> interceptor)
         {
-            if (_invoker != null)
+            if (_invoker.IsValueCreated)
             {
                 throw new InvalidOperationException(
                     "interceptors must be installed before the first call to InvokeAsync");
