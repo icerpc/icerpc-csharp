@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace IceRpc.Extensions.DependencyInjection.Builder;
 
@@ -62,13 +64,34 @@ public class DispatcherBuilder
     public DispatcherBuilder Route(string prefix, Action<Router> configure) =>
         new DispatcherBuilder(ServiceProvider, _router.Route(prefix, configure));
 
-    /// <summary>Installs a middleware in this dispatch pipeline. A middleware must be installed before calling
-    /// <see cref="IDispatcher.DispatchAsync"/>.</summary>
+    /// <summary>Installs a middleware in this dispatch pipeline.</summary>
     /// <param name="middleware">The middleware to install.</param>
-    /// <returns>This router.</returns>
+    /// <returns>The builder.</returns>
     public DispatcherBuilder Use(Func<IDispatcher, IDispatcher> middleware)
     {
         _router.Use(middleware);
+        return this;
+    }
+
+    /// <summary>Installs a middleware in this dispatch pipeline.</summary>
+    /// <typeparam name="T">The type of the middleware being install.</typeparam>
+    /// <returns>The builder.</returns>
+    public DispatcherBuilder UseMiddleware<T>() where T : IDispatcher
+    {
+        _router.Use(next => ActivatorUtilities.CreateInstance<T>(ServiceProvider, new object[] { next }));
+        return this;
+    }
+
+    /// <summary>Installs a middleware in this dispatch pipeline.</summary>
+    /// <typeparam name="T">The type of the middleware being install.</typeparam>
+    /// <typeparam name="TOptions">The type of the middleware options install.</typeparam>
+    /// <returns>The builder.</returns>
+    public DispatcherBuilder UseMiddleware<T, TOptions>()
+        where T : IDispatcher
+        where TOptions : class
+    {
+        var options = ServiceProvider.GetRequiredService <IOptions<TOptions>>().Value;
+        _router.Use(next => ActivatorUtilities.CreateInstance<T>(ServiceProvider, new object[] { next, options }));
         return this;
     }
 

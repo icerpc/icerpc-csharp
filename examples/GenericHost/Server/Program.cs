@@ -2,10 +2,11 @@
 
 using IceRpc;
 using IceRpc.Configure;
+using IceRpc.Logger;
+using IceRpc.Telemetry;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
@@ -48,8 +49,8 @@ public static class Program
                 // Add a server and configure the dispatcher using a dispatcher builder
                 services.AddIceRpcServer(
                     builder => builder
-                        .UseLogger()
-                        .UseTelemetry()
+                        .UseMiddleware<LoggerMiddleware>()
+                        .UseMiddleware<TelemetryMiddleware>()
                         .Map<IHello>(new Hello()));
             });
 

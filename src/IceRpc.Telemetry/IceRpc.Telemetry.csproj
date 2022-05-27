@@ -18,6 +18,5 @@
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\IceRpc\IceRpc.csproj" />
-        <ProjectReference Include="..\IceRpc.Extensions.DependencyInjection\IceRpc.Extensions.DependencyInjection.csproj" />
     </ItemGroup>
 </Project>
