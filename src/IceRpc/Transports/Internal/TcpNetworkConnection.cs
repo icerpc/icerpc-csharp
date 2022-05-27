@@ -12,9 +12,8 @@ namespace IceRpc.Transports.Internal
 {
     internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
     {
-        public TimeSpan LastActivity => TimeSpan.FromTicks(_lastActivity * TimeSpan.TicksPerMillisecond);
-
         internal abstract Socket Socket { get; }
+
         internal abstract SslStream? SslStream { get; }
 
         // The MaxDataSize of the SSL implementation.
@@ -22,7 +21,6 @@ namespace IceRpc.Transports.Internal
 
         protected int Disposed;
 
-        private long _lastActivity = Environment.TickCount64;
         private readonly List<ArraySegment<byte>> _segments = new();
 
         public abstract Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel);
@@ -76,7 +74,6 @@ namespace IceRpc.Transports.Internal
                 throw exception.ToTransportException();
             }
 
-            Interlocked.Exchange(ref _lastActivity, Environment.TickCount64);
             return received;
         }
 
@@ -184,9 +181,6 @@ namespace IceRpc.Transports.Internal
                         await Socket.SendAsync(_segments, SocketFlags.None).WaitAsync(cancel).ConfigureAwait(false);
                     }
                 }
-
-                // TODO: should we update _lastActivity when an exception is thrown?
-                Interlocked.Exchange(ref _lastActivity, Environment.TickCount64);
             }
             catch when (Disposed == 1)
             {

@@ -106,7 +106,6 @@ internal static class ProtocolServiceProviderExtensions
         {
             serverTask = GetProtocolConnectionAsync(
                 serviceProvider,
-                serverOptions.ConnectionOptions.Dispatcher,
                 isServer: true,
                 serverOptions.ConnectionOptions,
                 serviceProvider.GetSimpleServerConnectionAsync);
@@ -115,7 +114,6 @@ internal static class ProtocolServiceProviderExtensions
         {
             serverTask = GetProtocolConnectionAsync(
                 serviceProvider,
-                serverOptions.ConnectionOptions.Dispatcher,
                 isServer: true,
                 serverOptions.ConnectionOptions,
                 serviceProvider.GetMultiplexedServerConnectionAsync);
@@ -127,7 +125,6 @@ internal static class ProtocolServiceProviderExtensions
         {
             clientProtocolConnection = await GetProtocolConnectionAsync<ISimpleNetworkConnection>(
                 serviceProvider,
-                connectionOptions.Dispatcher,
                 isServer: false,
                 connectionOptions,
                 serviceProvider.GetSimpleClientConnectionAsync);
@@ -136,7 +133,6 @@ internal static class ProtocolServiceProviderExtensions
         {
             clientProtocolConnection = await GetProtocolConnectionAsync<IMultiplexedNetworkConnection>(
                 serviceProvider,
-                connectionOptions.Dispatcher,
                 isServer: false,
                 connectionOptions,
                 serviceProvider.GetMultiplexedClientConnectionAsync);
@@ -155,7 +151,6 @@ internal static class ProtocolServiceProviderExtensions
 
     private static async Task<IProtocolConnection> GetProtocolConnectionAsync<T>(
         IServiceProvider serviceProvider,
-        IDispatcher dispatcher,
         bool isServer,
         ConnectionOptions connectionOptions,
         Func<Task<T>> networkConnectionFactory)
@@ -167,7 +162,6 @@ internal static class ProtocolServiceProviderExtensions
             await serviceProvider.GetRequiredService<IProtocolConnectionFactory<T>>().CreateProtocolConnectionAsync(
                 networkConnection,
                 connectionInformation: new(),
-                dispatcher,
                 isServer,
                 connectionOptions,
                 CancellationToken.None);

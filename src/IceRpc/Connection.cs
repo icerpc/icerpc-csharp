@@ -318,7 +318,6 @@ namespace IceRpc
                 IProtocolConnection protocolConnection = await protocolConnectionFactory.CreateProtocolConnectionAsync(
                     networkConnection,
                     NetworkConnectionInformation.Value,
-                    _options.Dispatcher,
                     _isServer,
                     _options,
                     cancel).ConfigureAwait(false);

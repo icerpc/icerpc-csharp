@@ -11,6 +11,7 @@ namespace IceRpc.Transports.Internal
     /// is not a PipeReader.</summary>
     internal class SimpleNetworkConnectionReader : IDisposable
     {
+        private readonly SimpleNetworkConnectionActivityTracker _activityTracker;
         private readonly ISimpleNetworkConnection _connection;
         private readonly Pipe _pipe;
 
@@ -22,9 +23,11 @@ namespace IceRpc.Transports.Internal
 
         internal SimpleNetworkConnectionReader(
             ISimpleNetworkConnection connection,
+            SimpleNetworkConnectionActivityTracker activityTracker,
             MemoryPool<byte> pool,
             int minimumSegmentSize)
         {
+            _activityTracker = activityTracker;
             _connection = connection;
             _pipe = new Pipe(new PipeOptions(
                 pool: pool,
@@ -89,6 +92,8 @@ namespace IceRpc.Transports.Internal
                     bufferWriter.Advance(read);
                     byteCount -= read;
 
+                    _activityTracker.Update();
+
                     if (byteCount > 0 && read == 0)
                     {
                         // The peer gracefully shut down the connection but returned less data than expected, it's
@@ -126,6 +131,8 @@ namespace IceRpc.Transports.Internal
                 int read = await _connection.ReadAsync(buffer, cancel).ConfigureAwait(false);
                 _pipe.Writer.Advance(read);
                 minimumSize -= read;
+
+                _activityTracker.Update();
 
                 if (minimumSize > 0 && read == 0)
                 {

@@ -35,6 +35,14 @@ namespace IceRpc
         /// <value>The dispatcher that dispatches requests received by this connection.</value>
         public IDispatcher Dispatcher { get; set; } = DefaultDispatcher;
 
+        /// <summary>Gets or sets the connection's keep alive. If a connection is kept alive, the connection monitoring
+        /// will send keep alive frames to ensure the peer doesn't close the connection in the period defined by its
+        /// idle timeout. How often keep alive frames are sent depends on the peer's IdleTimeout configuration.
+        /// </summary>
+        /// <value><c>true</c>to enable connection keep alive. <c>false</c> to disable it. The default is <c>false</c>.
+        /// </value>
+        public bool KeepAlive { get; set; }
+
         /// <summary>Gets or sets the maximum number of requests that an ice connection can dispatch concurrently.
         /// </summary>
         /// <value>The maximum number of requests that an ice connection can dispatch concurrently. 0 means no maximum.
@@ -47,8 +55,8 @@ namespace IceRpc
         }
 
         /// <summary>Gets or sets the maximum size of a frame received over the ice protocol.</summary>
-        /// <value>The maximum size of an incoming frame, in bytes. This value must be at least 256. The default value is
-        /// 1 MB.</value>
+        /// <value>The maximum size of an incoming frame, in bytes. This value must be at least 256. The default value
+        /// is 1 MB.</value>
         public int MaxIceFrameSize
         {
             get => _maxIceFrameSize;
@@ -59,21 +67,13 @@ namespace IceRpc
         }
 
         /// <summary>Gets or sets the maximum size of icerpc protocol header.</summary>
-        /// <value>The maximum size of the header of an incoming request, response or control frame, in bytes. The default
-        /// value is 16,383, and the range of this value is 63 to 1,048,575.</value>
+        /// <value>The maximum size of the header of an incoming request, response or control frame, in bytes. The
+        /// default value is 16,383, and the range of this value is 63 to 1,048,575.</value>
         public int MaxIceRpcHeaderSize
         {
             get => _maxIceRpcHeaderSize;
             set => _maxIceRpcHeaderSize = IceRpcCheckMaxHeaderSize(value);
         }
-
-        /// <summary>Gets or sets the connection's keep alive. If a connection is kept alive, the connection
-        /// monitoring will send keep alive frames to ensure the peer doesn't close the connection in the period defined
-        /// by its idle timeout. How often keep alive frames are sent depends on the peer's IdleTimeout configuration.
-        /// </summary>
-        /// <value><c>true</c>to enable connection keep alive. <c>false</c> to disable it. The default is <c>false</c>.
-        /// </value>
-        public bool KeepAlive { get; set; }
 
         /// <summary>Gets or set an action that executes when the connection is closed.</summary>
         public Action<Connection, Exception>? OnClose { get; set; }

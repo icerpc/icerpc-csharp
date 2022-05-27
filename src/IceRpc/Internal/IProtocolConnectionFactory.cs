@@ -11,7 +11,6 @@ internal interface IProtocolConnectionFactory<T>
     Task<IProtocolConnection> CreateProtocolConnectionAsync(
         T networkConnection,
         NetworkConnectionInformation connectionInformation,
-        IDispatcher dispatcher,
         bool isServer,
         ConnectionOptions connectionOptions,
         CancellationToken cancel);

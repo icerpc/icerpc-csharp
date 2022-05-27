@@ -160,27 +160,6 @@ public abstract class SimpleTransportConformanceTests
             Throws.TypeOf<ObjectDisposedException>());
     }
 
-    /// <summary>Verifies that reading from the connection updates its last activity property.</summary>
-    [Test]
-    public async Task Read_updates_last_activity()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
-        using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
-        await sut.ServerConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
-        var delay = TimeSpan.FromMilliseconds(2);
-        TimeSpan lastActivity = sut.ClientConnection.LastActivity;
-        await Task.Delay(delay);
-        var buffer = new Memory<byte>(new byte[1]);
-
-        // Act
-        await sut.ClientConnection.ReadAsync(buffer, default);
-
-        // Assert
-        Assert.That(sut.ClientConnection.LastActivity,
-                    Is.GreaterThanOrEqualTo(delay + lastActivity).Or.EqualTo(TimeSpan.Zero));
-    }
-
     [Test]
     public async Task Read_returns_zero_after_shutdown()
     {
@@ -299,25 +278,6 @@ public abstract class SimpleTransportConformanceTests
                 new List<ReadOnlyMemory<byte>>() { new byte[1024] },
                 default),
             Throws.TypeOf<ObjectDisposedException>());
-    }
-
-    /// <summary>Verifies that reading from the connection updates its last activity property.</summary>
-    [Test]
-    public async Task Write_updates_last_activity()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
-        using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
-        var delay = TimeSpan.FromMilliseconds(10);
-        TimeSpan lastActivity = sut.ClientConnection.LastActivity;
-        await Task.Delay(delay);
-
-        // Act
-        await sut.ClientConnection.WriteAsync(new List<ReadOnlyMemory<byte>>() { new byte[1] }, default);
-
-        // Assert
-        Assert.That(sut.ClientConnection.LastActivity,
-                    Is.GreaterThanOrEqualTo(delay + lastActivity).Or.EqualTo(TimeSpan.Zero));
     }
 
     [Test]

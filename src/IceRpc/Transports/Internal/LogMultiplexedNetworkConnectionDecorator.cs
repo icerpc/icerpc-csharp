@@ -11,6 +11,8 @@ namespace IceRpc.Transports.Internal
         LogNetworkConnectionDecorator,
         IMultiplexedNetworkConnection
     {
+        public TimeSpan LastActivity => _decoratee.LastActivity;
+
         private readonly IMultiplexedNetworkConnection _decoratee;
 
         public void Abort(Exception exception) => _decoratee.Abort(exception);
