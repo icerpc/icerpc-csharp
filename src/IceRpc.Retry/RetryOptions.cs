@@ -2,7 +2,7 @@
 
 using IceRpc.Retry;
 
-namespace IceRpc.Configure;
+namespace IceRpc.Retry;
 
 /// <summary>Options class to configure <see cref="RetryInterceptor"/>.</summary>
 public sealed record class RetryOptions
@@ -17,29 +17,31 @@ public sealed record class RetryOptions
             if (value < 1)
             {
                 throw new ArgumentOutOfRangeException(
-                    $"Invalid value '{value}' for '{nameof(MaxAttempts)}', it must be greater than 0.");
+                    nameof(value),
+                    $"invalid value '{value}' for '{nameof(MaxAttempts)}', it must be greater than 0");
             }
             _maxAttempts = value;
         }
     }
 
-    /// <summary>Gets or sets the maximum payload size in bytes for a request to be retryable. Requests with a
-    /// bigger payload size are released after sent and cannot be retried.</summary>
+    /// <summary>Gets or sets the maximum size of the request payload in bytes. Requests with a larger payload or
+    /// a payload stream are not retryable.</summary>
     /// <value>The maximum payload size in bytes. The default value is 1 MB.</value>
-    public int RequestMaxSize
+    public int MaxPayloadSize
     {
-        get => _requestMaxSize;
+        get => _maxPayloadSize;
         set
         {
             if (value < 1)
             {
                 throw new ArgumentOutOfRangeException(
-                    $"Invalid value '{value}' for '{nameof(RequestMaxSize)}' it must be greater than 0.");
+                    nameof(value),
+                    $"invalid value '{value}' for '{nameof(MaxPayloadSize)}' it must be greater than 0");
             }
-            _requestMaxSize = value;
+            _maxPayloadSize = value;
         }
     }
 
     private int _maxAttempts = 2;
-    private int _requestMaxSize = 1024 * 1024;
+    private int _maxPayloadSize = 1024 * 1024;
 }
