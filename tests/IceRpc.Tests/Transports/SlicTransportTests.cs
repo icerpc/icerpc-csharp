@@ -22,6 +22,12 @@ public class SlicTransportTests
                     PauseWriterThreshold = 6893,
                     ResumeWriterThreshold = 2000,
                     PacketMaxSize = 2098
+                },
+                clientSlicTransportOptions: new SlicTransportOptions
+                {
+                    PauseWriterThreshold = 2405,
+                    ResumeWriterThreshold = 2000,
+                    PacketMaxSize = 4567
                 })
             .BuildServiceProvider();
 
@@ -34,9 +40,9 @@ public class SlicTransportTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(serverConnection.PeerPauseWriterThreshold, Is.EqualTo(6893));
+            Assert.That(serverConnection.PeerPauseWriterThreshold, Is.EqualTo(2405));
             Assert.That(clientConnection.PeerPauseWriterThreshold, Is.EqualTo(6893));
-            Assert.That(serverConnection.PeerPacketMaxSize, Is.EqualTo(2098));
+            Assert.That(serverConnection.PeerPacketMaxSize, Is.EqualTo(4567));
             Assert.That(clientConnection.PeerPacketMaxSize, Is.EqualTo(2098));
         });
     }
