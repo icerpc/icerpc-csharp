@@ -51,7 +51,7 @@ public static class Program
                     builder => builder
                         .UseMiddleware<LoggerMiddleware>()
                         .UseMiddleware<TelemetryMiddleware>()
-                        .Map<IHello>(new Hello()));
+                        .Map<IHello, Hello>());
             });
 
     /// <summary>The server hosted service is ran and managed by the .NET Generic Host</summary>

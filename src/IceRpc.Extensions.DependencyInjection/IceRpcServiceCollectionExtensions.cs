@@ -39,7 +39,7 @@ public static class IceRpcServiceCollectionExtensions
     /// <param name="configure">The action to configure the dispatcher using a <see cref="DispatcherBuilder"/>.</param>
     public static IServiceCollection AddIceRpcServer(
         this IServiceCollection services,
-        Action<DispatcherBuilder> configure) =>
+        Action<IDispatcherBuilder> configure) =>
         services
             .AddIceRpcServerTransport()
             .AddSingleton<Server>(provider =>
