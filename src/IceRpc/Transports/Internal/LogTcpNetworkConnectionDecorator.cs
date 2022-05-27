@@ -9,8 +9,6 @@ namespace IceRpc.Transports.Internal
     /// <summary>The log decorator installed by the TCP transports.</summary>
     internal class LogTcpNetworkConnectionDecorator : ISimpleNetworkConnection
     {
-        TimeSpan INetworkConnection.LastActivity => _decoratee.LastActivity;
-
         private readonly TcpNetworkConnection _decoratee;
         private readonly ILogger _logger;
 

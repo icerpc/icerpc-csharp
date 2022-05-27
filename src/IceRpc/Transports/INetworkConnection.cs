@@ -7,9 +7,6 @@ namespace IceRpc.Transports
     /// <summary>A network connection represents a transport-level connection used to exchange data as bytes.</summary>
     public interface INetworkConnection : IDisposable
     {
-        /// <summary>The time elapsed since the last activity of the connection.</summary>
-        TimeSpan LastActivity { get; }
-
         /// <summary>Connects this network connection.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The <see cref="NetworkConnectionInformation"/>.</returns>

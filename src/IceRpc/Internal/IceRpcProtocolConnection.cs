@@ -725,13 +725,10 @@ namespace IceRpc.Internal
             }
         }
 
-        internal IceRpcProtocolConnection(
-            IMultiplexedNetworkConnection networkConnection,
-            IDispatcher dispatcher,
-            ConnectionOptions options)
+        internal IceRpcProtocolConnection(IMultiplexedNetworkConnection networkConnection, ConnectionOptions options)
         {
-            _dispatcher = dispatcher;
             _networkConnection = networkConnection;
+            _dispatcher = options.Dispatcher;
             _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
         }
 

@@ -14,7 +14,7 @@ namespace IceRpc.Transports.Internal
     /// top of a <see cref="ISimpleNetworkConnection"/>.</summary>
     internal class SlicNetworkConnection : IMultiplexedNetworkConnection
     {
-        public TimeSpan LastActivity => _simpleNetworkConnection.LastActivity;
+        public TimeSpan LastActivity => _simpleNetworkConnectionActivityTracker.LastActivity;
 
         internal TimeSpan IdleTimeout { get; set; }
         internal bool IsAborted => _exception != null;
@@ -43,6 +43,7 @@ namespace IceRpc.Transports.Internal
         private TaskCompletionSource? _readFramesTaskCompletionSource;
         private readonly ISlicFrameReader _reader;
         private readonly ISimpleNetworkConnection _simpleNetworkConnection;
+        private readonly SimpleNetworkConnectionActivityTracker _simpleNetworkConnectionActivityTracker = new();
         private readonly SimpleNetworkConnectionReader _simpleNetworkConnectionReader;
         private readonly SimpleNetworkConnectionWriter _simpleNetworkConnectionWriter;
         private readonly ConcurrentDictionary<long, SlicMultiplexedStream> _streams = new();
@@ -325,11 +326,13 @@ namespace IceRpc.Transports.Internal
 
             _simpleNetworkConnectionWriter = new SimpleNetworkConnectionWriter(
                 simpleNetworkConnection,
+                _simpleNetworkConnectionActivityTracker,
                 slicOptions.Pool,
                 slicOptions.MinimumSegmentSize);
 
             _simpleNetworkConnectionReader = new SimpleNetworkConnectionReader(
                 simpleNetworkConnection,
+                _simpleNetworkConnectionActivityTracker,
                 slicOptions.Pool,
                 slicOptions.MinimumSegmentSize);
 

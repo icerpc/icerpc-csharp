@@ -14,8 +14,6 @@ namespace IceRpc.Transports.Internal
 
     internal abstract class LogNetworkConnectionDecorator : INetworkConnection
     {
-        public TimeSpan LastActivity => _decoratee.LastActivity;
-
         internal ILogger Logger { get; }
 
         private protected bool IsServer { get; }
