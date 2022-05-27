@@ -64,6 +64,7 @@ internal class ResettablePipeReaderDecorator : PipeReader
         _isReadingInProgress = _isReadingInProgress ? false :
             throw new InvalidOperationException("cannot call AdvanceTo before reading PipeReader");
 
+        // All successful calls to ReadAsync/TryRead set _sequence.
         Debug.Assert(_sequence != null);
 
         // The examined given to _decoratee must be ever-increasing.
@@ -84,10 +85,9 @@ internal class ResettablePipeReaderDecorator : PipeReader
         }
         else
         {
-            // consumed is always going to be equal or greater to the consumed we passed in the _isResettable block
-            // above (since we always passed _sequence.Value.Start).
+            // the first time around, consumed is necessarily equals to or greater than the _sequence.Value.Start passed
+            // by the preceding call in the_isResettable=true block above
             _decoratee.AdvanceTo(consumed, _highestExamined.Value);
-            _consumed = null;
         }
     }
 
@@ -178,7 +178,7 @@ internal class ResettablePipeReaderDecorator : PipeReader
             throw new InvalidOperationException("reading is already in progress");
 
         ThrowIfCompleted();
-        if (_consumed is SequencePosition consumed)
+        if (_isResettable && _consumed is SequencePosition consumed)
         {
             minimumSize += (int)_sequence!.Value.GetOffset(consumed);
         }
@@ -230,18 +230,17 @@ internal class ResettablePipeReaderDecorator : PipeReader
     {
         _sequence = readResult.Buffer;
 
-        // Remove bytes marked as consumed.
-        if (_consumed is SequencePosition consumed)
-        {
-            // Removed bytes marked as consumed
-            readResult = new ReadResult(
-                readResult.Buffer.Slice(consumed),
-                readResult.IsCanceled,
-                readResult.IsCompleted);
-        }
-
         if (_isResettable)
         {
+            if (_consumed is SequencePosition consumed)
+            {
+                // Removed bytes marked as consumed
+                readResult = new ReadResult(
+                    readResult.Buffer.Slice(consumed),
+                    readResult.IsCanceled,
+                    readResult.IsCompleted);
+            }
+
             if (_sequence.Value.Length > _maxBufferSize)
             {
                 _isResettable = false;

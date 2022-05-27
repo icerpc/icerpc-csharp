@@ -1,6 +1,5 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Configure;
 using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Retry.Internal;
