@@ -2,6 +2,7 @@
 
 using IceRpc;
 using IceRpc.Configure;
+using IceRpc.Extensions.DependencyInjection.Builder;
 using IceRpc.Logger;
 using IceRpc.Telemetry;
 using Microsoft.Extensions.Configuration;
@@ -51,7 +52,7 @@ public static class Program
                     builder => builder
                         .UseMiddleware<LoggerMiddleware>()
                         .UseMiddleware<TelemetryMiddleware>()
-                        .Map<IHello, Hello>());
+                        .Map<Hello>("/hello"));
             });
 
     /// <summary>The server hosted service is ran and managed by the .NET Generic Host</summary>

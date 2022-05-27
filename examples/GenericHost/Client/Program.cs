@@ -75,6 +75,7 @@ public static class Program
                 services.AddSingleton<IHelloPrx>(serviceProvider =>
                     HelloPrx.FromConnection(
                         serviceProvider.GetRequiredService<ClientConnection>(),
+                        path: "/hello",
                         invoker: serviceProvider.GetRequiredService<IInvoker>()));
             });
 
