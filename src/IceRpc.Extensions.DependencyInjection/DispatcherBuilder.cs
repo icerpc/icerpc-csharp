@@ -1,15 +1,14 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
-using IceRpc.Slice;
 
-namespace IceRpc.Extensions.DependencyInjection;
+namespace IceRpc.Extensions.DependencyInjection.Builder;
 
 /// <summary>A builder for configuring IceRpc server dispatcher.</summary>
 public class DispatcherBuilder
 {
     /// <summary>The service provider used by the builder.</summary>
-    public IServiceProvider ApplicationServices { get; }
+    public IServiceProvider ServiceProvider { get; }
 
     private readonly Router _router;
 
@@ -17,7 +16,7 @@ public class DispatcherBuilder
     /// </summary>
     /// <param name="path">The path of this route. It must match exactly the path of the request. In particular, it
     /// must start with a <c>/</c>.</param>
-    /// <param name="dispatcher">The target of this route. It is typically an <see cref="IService"/>.</param>
+    /// <param name="dispatcher">The target of this route.</param>
     /// <exception cref="FormatException">Thrown if <paramref name="path"/> is not a valid path.</exception>
     /// <seealso cref="Mount"/>
     public DispatcherBuilder Map(string path, IDispatcher dispatcher)
@@ -33,7 +32,11 @@ public class DispatcherBuilder
     /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync"/> was already
     /// called on this router.</exception>
     /// <seealso cref="Mount"/>
-    public DispatcherBuilder Map<T>(IDispatcher service) where T : class => Map(typeof(T).GetDefaultPath(), service);
+    public DispatcherBuilder Map<T>(IDispatcher service) where T : class
+    {
+        _router.Map<T>(service);
+        return this;
+    }
 
     /// <summary>Registers a route with a prefix. If there is an existing route at the same prefix, it is replaced.
     /// </summary>
@@ -57,7 +60,7 @@ public class DispatcherBuilder
     /// <returns>The new sub-router.</returns>
     /// <exception cref="FormatException">Thrown if <paramref name="prefix"/> is not a valid path.</exception>
     public DispatcherBuilder Route(string prefix, Action<Router> configure) =>
-        new DispatcherBuilder(ApplicationServices, _router.Route(prefix, configure));
+        new DispatcherBuilder(ServiceProvider, _router.Route(prefix, configure));
 
     /// <summary>Installs a middleware in this dispatch pipeline. A middleware must be installed before calling
     /// <see cref="IDispatcher.DispatchAsync"/>.</summary>
@@ -77,7 +80,7 @@ public class DispatcherBuilder
 
     private DispatcherBuilder(IServiceProvider provider, Router router)
     {
-        ApplicationServices = provider;
+        ServiceProvider = provider;
         _router = router;
     }
 }

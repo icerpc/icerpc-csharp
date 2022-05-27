@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Extensions.DependencyInjection;
+using IceRpc.Extensions.DependencyInjection.Builder;
 using IceRpc.Logger;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -16,5 +16,5 @@ public static class LoggerDispatcherBuilderExtensions
     /// <returns>The dispatcher builder.</returns>
     public static DispatcherBuilder UseLogger(this DispatcherBuilder builder) =>
         builder.Use(next =>
-        new LoggerMiddleware(next, builder.ApplicationServices.GetRequiredService<ILoggerFactory>()));
+        new LoggerMiddleware(next, builder.ServiceProvider.GetRequiredService<ILoggerFactory>()));
 }

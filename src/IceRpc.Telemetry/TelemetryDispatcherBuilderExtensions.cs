@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Extensions.DependencyInjection;
+using IceRpc.Extensions.DependencyInjection.Builder;
 using IceRpc.Telemetry;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -20,6 +20,6 @@ public static class TelemetryDispatcherBuilderExtensions
         builder.Use(
             next => new TelemetryMiddleware(
                 next,
-                builder.ApplicationServices.GetRequiredService<ActivitySource>(),
-                builder.ApplicationServices.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance));
+                builder.ServiceProvider.GetRequiredService<ActivitySource>(),
+                builder.ServiceProvider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance));
 }
