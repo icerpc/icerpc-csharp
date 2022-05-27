@@ -4,8 +4,9 @@ using System.Buffers;
 
 namespace IceRpc.Transports
 {
-    /// <summary>The base options class for Slic.</summary>
-    public record class SlicTransportOptions
+    /// <summary>A property bag used to configure a <see cref="SlicClientTransport"/> or
+    /// <see cref="SlicServerTransport"/>.</summary>
+    public sealed record class SlicTransportOptions
     {
         /// <summary>Configures the bidirectional stream maximum count to limit the number of concurrent
         /// bidirectional streams opened on a connection. When this limit is reached, trying to open a new
@@ -92,19 +93,5 @@ namespace IceRpc.Transports
         private int _pauseWriterThreshold = 65536;
         private int _resumeWriterThreshold = 32768;
         private int _unidirectionalStreamMaxCount = 100;
-    }
-
-    /// <summary>An options class for configuring a <see cref="SlicClientTransport"/>.</summary>
-    public sealed record class SlicClientTransportOptions : SlicTransportOptions
-    {
-        /// <summary>Gets or sets the underlying simple client transport.</summary>
-        public IClientTransport<ISimpleNetworkConnection>? SimpleClientTransport { get; set; }
-    }
-
-    /// <summary>An options class for configuring a <see cref="SlicServerTransport"/>.</summary>
-    public sealed record class SlicServerTransportOptions : SlicTransportOptions
-    {
-        /// <summary>Gets or sets the underlying simple server transport.</summary>
-        public IServerTransport<ISimpleNetworkConnection>? SimpleServerTransport { get; set; }
     }
 }

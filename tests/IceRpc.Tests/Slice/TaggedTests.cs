@@ -3,6 +3,7 @@
 using IceRpc.Slice.Internal;
 using IceRpc.Slice.Tagged.Slice1.Tests;
 using NUnit.Framework;
+using IceRpc.Slice.Tests;
 
 namespace IceRpc.Slice.Tests;
 
@@ -272,8 +273,7 @@ public class TaggedTests
             encoder.EncodeTagged(
                 3,
                 c,
-                (ref SliceEncoder encoder, MyEnum value) =>
-                    SliceEncoderMyEnumExtensions.EncodeMyEnum(ref encoder, value));
+                (ref SliceEncoder encoder, MyEnum value) => encoder.EncodeMyEnum(value));
         }
         if (expected.D is IList<byte> d)
         {
@@ -390,7 +390,7 @@ public class TaggedTests
                 7,
                 TagFormat.Size,
                 (ref SliceDecoder decoder) =>
-                    Tagged.Slice1.Tests.SliceDecoderMyEnumExtensions.DecodeMyEnum(ref decoder) as
+                    Tagged.Slice1.Tests.MyEnumSliceDecoderExtensions.DecodeMyEnum(ref decoder) as
                         Tagged.Slice1.Tests.MyEnum?,
                 useTagEndMarker: false),
             Is.EqualTo(c.G));
@@ -456,8 +456,7 @@ public class TaggedTests
         Assert.That(
             decoder.DecodeTagged(
                 3,
-                (ref SliceDecoder decoder) =>
-                    Slice.Tests.SliceDecoderMyEnumExtensions.DecodeMyEnum(ref decoder) as Slice.Tests.MyEnum?,
+                (ref SliceDecoder decoder) => decoder.DecodeMyEnum() as MyEnum?,
                 useTagEndMarker: true),
             Is.EqualTo(expected.C));
 

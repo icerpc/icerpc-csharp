@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Configure;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System.Net.Security;
@@ -22,17 +21,17 @@ namespace IceRpc.Transports
         private readonly SlicTransportOptions _slicTransportOptions;
 
         /// <summary>Constructs a Slic server transport.</summary>
-        public SlicServerTransport(SlicServerTransportOptions options)
+        public SlicServerTransport(
+            SlicTransportOptions options,
+            IServerTransport<ISimpleNetworkConnection> simpleServerTransport)
         {
-            _simpleServerTransport = options.SimpleServerTransport ?? throw new ArgumentException(
-                $"{nameof(options.SimpleServerTransport)} is null",
-                nameof(options));
             _slicTransportOptions = options;
+            _simpleServerTransport = simpleServerTransport;
         }
 
         /// <summary>Constructs a Slic server transport.</summary>
         public SlicServerTransport(IServerTransport<ISimpleNetworkConnection> simpleServerTransport)
-            : this(new SlicServerTransportOptions { SimpleServerTransport = simpleServerTransport })
+            : this(new(), simpleServerTransport)
         {
         }
 

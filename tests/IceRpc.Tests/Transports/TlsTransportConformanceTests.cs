@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Net.Security;
@@ -10,27 +9,33 @@ namespace IceRpc.Transports.Tests;
 
 /// <summary>Conformance tests for the tls simple transport.</summary>
 [Parallelizable(ParallelScope.All)]
-public class TlsTransportConformanceTests : SimpleTransportConformanceTests
+public class TlsTransportConformanceTests : TcpTransportConformanceTests
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Security",
         "CA5359:Do Not Disable Certificate Validation",
         Justification = "The transport conformance tests do not rely on certificate validation")]
-    protected override IServiceCollection CreateServiceCollection() =>
-        new ServiceCollection()
-            .UseTcp()
-            .UseSimpleTransport()
-            .AddScoped(_ => new SslClientAuthenticationOptions
+    protected override IServiceCollection CreateServiceCollection()
+    {
+        var services = base.CreateServiceCollection();
+
+        services.AddOptions<SslClientAuthenticationOptions>().Configure(
+            options =>
             {
-                ClientCertificates = new X509CertificateCollection()
+                options.ClientCertificates = new X509CertificateCollection()
                 {
                     new X509Certificate2("../../../certs/client.p12", "password")
-                },
-                RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true,
-            })
-            .AddScoped(_ => new SslServerAuthenticationOptions
-            {
-                ClientCertificateRequired = false,
-                ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
+                };
+                options.RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true;
             });
+
+        services.AddOptions<SslServerAuthenticationOptions>().Configure(
+            options =>
+            {
+                options.ClientCertificateRequired = false;
+                options.ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password");
+            });
+
+        return services;
+    }
 }

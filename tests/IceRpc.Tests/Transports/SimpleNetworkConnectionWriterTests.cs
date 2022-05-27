@@ -19,8 +19,8 @@ public class SimpleNetworkConnectionWriterTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .UseSimpleTransport()
-            .UseColoc()
+            .UseSimpleTransport("icerpc://colochost/")
+            .AddColocTransport()
             .BuildServiceProvider();
         using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
 

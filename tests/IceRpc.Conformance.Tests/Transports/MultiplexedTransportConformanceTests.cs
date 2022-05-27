@@ -77,11 +77,11 @@ public abstract class MultiplexedTransportConformanceTests
         IServiceCollection serviceCollection = CreateServiceCollection();
         if (bidirectional)
         {
-            serviceCollection.UseTransportOptions(bidirectionalStreamMaxCount: streamMaxCount);
+            serviceCollection.AddTransportOptions(bidirectionalStreamMaxCount: streamMaxCount);
         }
         else
         {
-            serviceCollection.UseTransportOptions(unidirectionalStreamMaxCount: streamMaxCount);
+            serviceCollection.AddTransportOptions(unidirectionalStreamMaxCount: streamMaxCount);
         }
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider();
         using IMultiplexedNetworkConnection clientConnection = provider.CreateConnection();
@@ -340,7 +340,7 @@ public abstract class MultiplexedTransportConformanceTests
 
         await using ServiceProvider provider =
             CreateServiceCollection().
-            UseTransportOptions(bidirectionalStreamMaxCount: streamMaxCount).
+            AddTransportOptions(bidirectionalStreamMaxCount: streamMaxCount).
             BuildServiceProvider();
         using IMultiplexedNetworkConnection clientConnection = provider.CreateConnection();
         using IMultiplexedNetworkConnection serverConnection = await provider.AcceptConnectionAsync(clientConnection);
@@ -432,7 +432,7 @@ public abstract class MultiplexedTransportConformanceTests
 
         await using ServiceProvider provider =
             CreateServiceCollection().
-            UseTransportOptions(unidirectionalStreamMaxCount: streamMaxCount).
+            AddTransportOptions(unidirectionalStreamMaxCount: streamMaxCount).
             BuildServiceProvider();
         using IMultiplexedNetworkConnection clientConnection = provider.CreateConnection();
         using IMultiplexedNetworkConnection serverConnection = await provider.AcceptConnectionAsync(clientConnection);
@@ -901,12 +901,12 @@ public record class MultiplexedTransportOptions
 
 public static class MultiplexedTransportServiceCollectionExtensions
 {
-    public static IServiceCollection UseTransportOptions(
+    public static IServiceCollection AddTransportOptions(
         this IServiceCollection serviceCollection,
         int? bidirectionalStreamMaxCount = null,
         int? unidirectionalStreamMaxCount = null)
     {
-        return serviceCollection.AddScoped(_ => new MultiplexedTransportOptions
+        return serviceCollection.AddSingleton(_ => new MultiplexedTransportOptions
         {
             BidirectionalStreamMaxCount = bidirectionalStreamMaxCount,
             UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount

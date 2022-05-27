@@ -35,7 +35,7 @@ fn enum_declaration(enum_def: &Enum) -> CodeBlock {
     )
     .add_comment("summary", &doc_comment_message(enum_def))
     .add_container_attributes(enum_def)
-    .add_base(enum_def.underlying_type().cs_keyword().to_owned())
+    .add_base(enum_def.get_underlying_cs_type())
     .add_block(enum_values(enum_def))
     .build()
 }
@@ -58,14 +58,13 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
     let access = enum_def.access_modifier();
     let escaped_identifier = enum_def.escape_identifier();
     let namespace = &enum_def.namespace();
-    let type_suffix = enum_def.underlying_type().type_suffix();
-    let cs_type = enum_def.underlying_type().cs_keyword();
+    let cs_type = enum_def.get_underlying_cs_type();
     let mut builder = ContainerBuilder::new(
         &format!("{} static class", access),
         &format!(
             "{}{}Extensions",
-            fix_case(type_suffix, CaseStyle::Pascal),
-            fix_case(enum_def.identifier(), CaseStyle::Pascal)
+            fix_case(enum_def.identifier(), CaseStyle::Pascal),
+            fix_case(&cs_type, CaseStyle::Pascal),
         ),
     );
 
@@ -81,9 +80,9 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
 
     // When the number of enumerators is smaller than the distance between the min and max
     // values, the values are not consecutive and we need to use a set to validate the value
-    // during unmarshaling.
+    // during decoding.
     // Note that the values are not necessarily in order, e.g. we can use a simple range check
-    // for enum E { A = 3, B = 2, C = 1 } during unmarshaling.
+    // for enum E { A = 3, B = 2, C = 1 } during decoding.
     let min_max_values = enum_def.get_min_max_values();
     let use_set = if let Some((min_value, max_value)) = min_max_values {
         !enum_def.is_unchecked && (enum_def.enumerators.len() as i64) < max_value - min_value + 1
@@ -174,10 +173,11 @@ enumerator."#,
 fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
     let access = enum_def.access_modifier();
     let escaped_identifier = enum_def.escape_identifier();
+    let cs_type = enum_def.get_underlying_cs_type();
     let mut builder = ContainerBuilder::new(
         &format!("{} static class", access),
         &format!(
-            "SliceEncoder{}Extensions",
+            "{}SliceEncoderExtensions",
             fix_case(enum_def.identifier(), CaseStyle::Pascal),
         ),
     );
@@ -207,7 +207,7 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
                     format!("encoder.Encode{}", underlying.definition().type_suffix()),
                 None => "encoder.EncodeSize".to_owned(),
             },
-            underlying_type = enum_def.underlying_type().cs_keyword()
+            underlying_type = cs_type,
         )
         .into(),
     );
@@ -218,10 +218,11 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
 fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
     let access = enum_def.access_modifier();
     let escaped_identifier = enum_def.escape_identifier();
+    let cs_type = enum_def.get_underlying_cs_type();
     let mut builder = ContainerBuilder::new(
         &format!("{} static class", access),
         &format!(
-            "SliceDecoder{}Extensions",
+            "{}SliceDecoderExtensions",
             fix_case(enum_def.identifier(), CaseStyle::Pascal),
         ),
     );
@@ -236,8 +237,8 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
 
     let underlying_extensions_class = format!(
         "{}{}Extensions",
-        fix_case(enum_def.underlying_type().type_suffix(), CaseStyle::Pascal),
-        fix_case(enum_def.identifier(), CaseStyle::Pascal)
+        fix_case(enum_def.identifier(), CaseStyle::Pascal),
+        fix_case(&cs_type, CaseStyle::Pascal),
     );
 
     // Enum decoding

@@ -33,12 +33,11 @@ fn validate_cs_attribute(attribute: &Attribute, error_reporter: &mut ErrorReport
     match attribute.arguments.len() {
         1 => (), // Expected 1 argument
         0 => error_reporter.report_error(
-            r#"missing required argument, expected 'cs::attribute("<attribute-value>")'"#
-                .to_owned(),
+            r#"missing required argument, expected 'cs::attribute("<attribute-value>")'"#,
             Some(&attribute.location),
         ),
         _ => error_reporter.report_error(
-            r#"too many arguments expected 'cs::attribute("<attribute-value>")'"#.to_owned(),
+            r#"too many arguments expected 'cs::attribute("<attribute-value>")'"#,
             Some(&attribute.location),
         ),
     }
@@ -47,7 +46,7 @@ fn validate_cs_attribute(attribute: &Attribute, error_reporter: &mut ErrorReport
 fn validate_cs_internal(attribute: &Attribute, error_reporter: &mut ErrorReporter) {
     if !attribute.arguments.is_empty() {
         error_reporter.report_error(
-            "too many arguments expected 'cs::internal'".to_owned(),
+            "too many arguments expected 'cs::internal'",
             Some(&attribute.location),
         );
     }
@@ -56,7 +55,7 @@ fn validate_cs_internal(attribute: &Attribute, error_reporter: &mut ErrorReporte
 fn validate_cs_encoded_result(attribute: &Attribute, error_reporter: &mut ErrorReporter) {
     if !attribute.arguments.is_empty() {
         error_reporter.report_error(
-            "too many arguments expected 'cs::encodedResult'".to_owned(),
+            "too many arguments expected 'cs::encodedResult'",
             Some(&attribute.location),
         );
     }
@@ -66,11 +65,11 @@ fn validate_cs_generic(attribute: &Attribute, error_reporter: &mut ErrorReporter
     match attribute.arguments.len() {
         1 => (), // Expected 1 argument
         0 => error_reporter.report_error(
-            r#"missing required argument, expected 'cs::generic("<generic-type>")'"#.to_owned(),
+            r#"missing required argument, expected 'cs::generic("<generic-type>")'"#,
             Some(&attribute.location),
         ),
         _ => error_reporter.report_error(
-            r#"too many arguments expected 'cs::generic("<generic-type>")'"#.to_owned(),
+            r#"too many arguments expected 'cs::generic("<generic-type>")'"#,
             Some(&attribute.location),
         ),
     }
@@ -80,11 +79,11 @@ fn validate_cs_type(attribute: &Attribute, error_reporter: &mut ErrorReporter) {
     match attribute.arguments.len() {
         1 => (), // Expected 1 argument
         0 => error_reporter.report_error(
-            r#"missing required argument, expected 'cs::type("<type>")'"#.to_owned(),
+            r#"missing required argument, expected 'cs::type("<type>")'"#,
             Some(&attribute.location),
         ),
         _ => error_reporter.report_error(
-            r#"too many arguments, expected 'cs::type("<type>")'"#.to_owned(),
+            r#"too many arguments, expected 'cs::type("<type>")'"#,
             Some(&attribute.location),
         ),
     }
@@ -135,20 +134,17 @@ impl Visitor for CsValidator<'_> {
                     match attribute.arguments.len() {
                         1 => (), // Expected 1 argument
                         0 => self.error_reporter.report_error(
-                            r#"missing required argument, expected 'cs::namespace("<namespace>")'"#
-                                .to_owned(),
+                            r#"missing required argument, expected 'cs::namespace("<namespace>")'"#,
                             Some(&attribute.location),
                         ),
                         _ => self.error_reporter.report_error(
-                            r#"too many arguments expected 'cs::namespace("<namespace>")'"#
-                                .to_owned(),
+                            r#"too many arguments expected 'cs::namespace("<namespace>")'"#,
                             Some(&attribute.location),
                         ),
                     }
                     if !module_def.is_top_level() {
                         self.error_reporter.report_error(
-                            "The 'cs::namespace' attribute is only valid for top-level modules"
-                                .to_owned(),
+                            "The 'cs::namespace' attribute is only valid for top-level modules",
                             Some(&attribute.location),
                         );
                     }
@@ -165,7 +161,7 @@ impl Visitor for CsValidator<'_> {
                 "readonly" => {
                     if !attribute.arguments.is_empty() {
                         self.error_reporter.report_error(
-                            "too many arguments expected 'cs::readonly'".to_owned(),
+                            "too many arguments expected 'cs::readonly'",
                             Some(&attribute.location),
                         );
                     }
@@ -173,7 +169,7 @@ impl Visitor for CsValidator<'_> {
                 "type" => {
                     if !struct_def.is_compact {
                         self.error_reporter.report_error(
-                            r#"The 'cs::type("<type>")' attribute is only valid for compact structs"#.to_owned(),
+                            r#"The 'cs::type("<type>")' attribute is only valid for compact structs"#,
                             Some(&attribute.location))
                     }
                     validate_cs_type(attribute, self.error_reporter);
@@ -243,7 +239,7 @@ impl Visitor for CsValidator<'_> {
         // We require 'cs::type' on custom types to know how to encode/decode it.
         if !custom_type.has_attribute("cs::type", false) {
             self.error_reporter.report_error(
-                "missing required attribute: 'cs::type'".to_owned(),
+                "missing required attribute: 'cs::type'",
                 Some(&custom_type.location),
             );
         }

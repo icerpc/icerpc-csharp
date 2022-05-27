@@ -42,8 +42,8 @@ public sealed class RetryInterceptorTests
         });
 
         var proxy = new Proxy(Protocol.IceRpc);
-        var loggerFactory = new TestLoggerFactory();
-        var sut = new RetryInterceptor(invoker, new RetryOptions { LoggerFactory = loggerFactory });
+        using var loggerFactory = new TestLoggerFactory();
+        var sut = new RetryInterceptor(invoker, new RetryOptions(), loggerFactory);
 
         var request = new OutgoingRequest(proxy) { Operation = "Op" };
 
@@ -324,8 +324,12 @@ public sealed class RetryInterceptorTests
         });
 
         var proxy = Proxy.FromConnection(connection1, "/path");
-        proxy.Endpoint = connection1.Endpoint;
-        proxy.AltEndpoints = new List<Endpoint> { connection2.Endpoint, connection3.Endpoint }.ToImmutableList();
+        proxy.Endpoint = connection1.RemoteEndpoint;
+        proxy.AltEndpoints = new List<Endpoint>
+        {
+            connection2.RemoteEndpoint,
+            connection3.RemoteEndpoint
+        }.ToImmutableList();
         var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = 3 });
 
         var request = new OutgoingRequest(proxy) { Operation = "Op" };

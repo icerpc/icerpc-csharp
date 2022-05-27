@@ -1,15 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
-using System.Diagnostics;
 
 namespace IceRpc
 {
-    /// <summary>A connection pool manages a pool of client connections and is a connection provider.</summary>
-    public sealed partial class ConnectionPool : IConnectionProvider, IAsyncDisposable
+    /// <summary>A connection pool manages a pool of client connections and is a client connection provider.</summary>
+    public sealed partial class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
     {
         private readonly ConnectionPoolOptions _connectionPoolOptions;
         private readonly Dictionary<Endpoint, List<ClientConnection>> _connections = new(EndpointComparer.ParameterLess);
@@ -53,18 +51,18 @@ namespace IceRpc
         /// <returns>A value task constructed using the task returned by ShutdownAsync.</returns>
         public ValueTask DisposeAsync() => new(ShutdownAsync());
 
-        /// <summary>Returns a connection to one of the specified endpoints.</summary>
+        /// <summary>Returns a client connection to one of the specified endpoints.</summary>
         /// <param name="endpoint">The first endpoint to try.</param>
         /// <param name="altEndpoints">The alternative endpoints.</param>
         /// <param name="cancel">The cancellation token.</param>
-        public ValueTask<IConnection> GetConnectionAsync(
+        public ValueTask<IClientConnection> GetClientConnectionAsync(
             Endpoint endpoint,
             IEnumerable<Endpoint> altEndpoints,
             CancellationToken cancel)
         {
             if (_connectionPoolOptions.PreferExistingConnection)
             {
-                Connection? connection = null;
+                ClientConnection? connection = null;
                 lock (_mutex)
                 {
                     connection = GetCachedConnection(endpoint);
@@ -88,7 +86,7 @@ namespace IceRpc
 
             return CreateConnectionAsync();
 
-            async ValueTask<IConnection> CreateConnectionAsync()
+            async ValueTask<IClientConnection> CreateConnectionAsync()
             {
                 try
                 {
@@ -137,12 +135,12 @@ namespace IceRpc
                 }
             }
 
-            Connection? GetCachedConnection(Endpoint endpoint) =>
+            ClientConnection? GetCachedConnection(Endpoint endpoint) =>
                 _connections.TryGetValue(endpoint, out List<ClientConnection>? connections) &&
                 connections.FirstOrDefault(
                     connection =>
                         connection.HasCompatibleParams(endpoint) &&
-                        connection.State <= ConnectionState.Active) is Connection connection ? connection : null;
+                        connection.State <= ConnectionState.Active) is ClientConnection connection ? connection : null;
         }
 
         /// <summary>Releases all resources used by this connection pool. This method can be called multiple times.
@@ -193,7 +191,7 @@ namespace IceRpc
             }
         }
 
-        private async ValueTask<Connection> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
+        private async ValueTask<ClientConnection> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
         {
             ClientConnection? connection = null;
             lock (_mutex)
@@ -236,17 +234,18 @@ namespace IceRpc
 
             void RemoveOnClose(Connection connection, Exception _)
             {
-                Debug.Assert(connection is ClientConnection);
+                var clientConnection = (ClientConnection)connection;
+
                 lock (_mutex)
                 {
                     // _connections is immutable after shutdown
                     if (_shutdownTask == null)
                     {
-                        List<ClientConnection> list = _connections[connection.Endpoint];
-                        list.Remove((ClientConnection)connection);
+                        List<ClientConnection> list = _connections[clientConnection.RemoteEndpoint];
+                        list.Remove(clientConnection);
                         if (list.Count == 0)
                         {
-                            _connections.Remove(connection.Endpoint);
+                            _connections.Remove(clientConnection.RemoteEndpoint);
                         }
                     }
                 }

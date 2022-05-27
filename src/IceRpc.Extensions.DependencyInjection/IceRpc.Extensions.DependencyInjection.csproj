@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <AssemblyName>IceRpc.Extensions.DependencyInjection</AssemblyName>
+        <Title>IceRpc Dependency Injection Extensions</Title>
+        <TargetFramework>net6.0</TargetFramework>
+        <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+        <PackageVersion>$(IceRpcVersion)</PackageVersion>
+        <Authors>ZeroC</Authors>
+        <PackageId>icerpc.extensions.dependencyinjection</PackageId>
+        <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/zeroc-ice/icerpc-csharp</PackageProjectUrl>
+        <PackageIcon>logo.png</PackageIcon>
+        <Copyright>Copyright (c) ZeroC, Inc. All rights reserved</Copyright>
+        <Description>IceRpc Dependency Injection Extensions.</Description>
+        <PackageReleaseNotes>TODO</PackageReleaseNotes>
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+        <PackageTags>IceRPC</PackageTags>
+    </PropertyGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\IceRpc\IceRpc.csproj" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1" PrivateAssets="All" />
+    </ItemGroup>
+    <!-- NuGet package contents-->
+    <ItemGroup>
+      <None Include="..\..\build\logo.png">
+          <Pack>True</Pack>
+          <PackagePath>.</PackagePath>
+      </None>
+    </ItemGroup>
+</Project>
