@@ -17,6 +17,6 @@
         <PackageTags>IceRPC</PackageTags>
     </PropertyGroup>
     <ItemGroup>
-      <ProjectReference Include="..\IceRpc\IceRpc.csproj" />
+        <ProjectReference Include="..\IceRpc\IceRpc.csproj" />
     </ItemGroup>
 </Project>
