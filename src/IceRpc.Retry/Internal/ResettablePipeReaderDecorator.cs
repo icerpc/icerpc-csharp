@@ -88,6 +88,7 @@ internal class ResettablePipeReaderDecorator : PipeReader
             // the first time around, consumed is necessarily equals to or greater than the _sequence.Value.Start passed
             // by the preceding call in the_isResettable=true block above
             _decoratee.AdvanceTo(consumed, _highestExamined.Value);
+            _consumed = null; // no need to slice the new ReadAsync/ReadAtAtLeastAsync/TryRead
         }
     }
 
@@ -97,18 +98,19 @@ internal class ResettablePipeReaderDecorator : PipeReader
     public override void CancelPendingRead() => _decoratee.CancelPendingRead();
 
     /// <inheritdoc/>
-    public override void Complete(Exception? exception)
+    public override void Complete(Exception? exception = default)
     {
         if (_isResettable)
         {
             if (_isReadingInProgress)
             {
                 Debug.Assert(_sequence != null);
-                AdvanceTo(_sequence.Value.End);
+                AdvanceTo(_sequence.Value.Start);
             }
 
             if (!_isReaderCompleted)
             {
+                // Only save the first call to Complete
                 _isReaderCompleted = true;
                 _readerCompleteException = exception;
             }
@@ -122,7 +124,7 @@ internal class ResettablePipeReaderDecorator : PipeReader
     }
 
     /// <inheritdoc/>
-    public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken)
+    public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
     {
         _isReadingInProgress = !_isReadingInProgress ? true :
             throw new InvalidOperationException("reading is already in progress");
@@ -172,7 +174,7 @@ internal class ResettablePipeReaderDecorator : PipeReader
 
     protected override async ValueTask<ReadResult> ReadAtLeastAsyncCore(
         int minimumSize,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default)
     {
         _isReadingInProgress = !_isReadingInProgress ? true :
             throw new InvalidOperationException("reading is already in progress");
@@ -230,21 +232,18 @@ internal class ResettablePipeReaderDecorator : PipeReader
     {
         _sequence = readResult.Buffer;
 
-        if (_isResettable)
+        if (_consumed is SequencePosition consumed)
         {
-            if (_consumed is SequencePosition consumed)
-            {
-                // Removed bytes marked as consumed
-                readResult = new ReadResult(
-                    readResult.Buffer.Slice(consumed),
-                    readResult.IsCanceled,
-                    readResult.IsCompleted);
-            }
+            // Removed bytes marked as consumed
+            readResult = new ReadResult(
+                readResult.Buffer.Slice(consumed),
+                readResult.IsCanceled,
+                readResult.IsCompleted);
+        }
 
-            if (_sequence.Value.Length > _maxBufferSize)
-            {
-                _isResettable = false;
-            }
+        if (_isResettable && _sequence.Value.Length > _maxBufferSize)
+        {
+            _isResettable = false;
         }
         return readResult;
     }
