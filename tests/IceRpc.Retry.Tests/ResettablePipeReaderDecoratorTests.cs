@@ -19,18 +19,18 @@ public sealed class ResettablePipeReaderDecoratorTests
 
         var mock = new MockPipeReader(readResult);
         var sut = new ResettablePipeReaderDecorator(mock, maxBufferSize: 100);
-
-        sut.CancelPendingRead(); // also verify that CancelPendingRead flows through
         _ = await sut.ReadAsync();
         sut.AdvanceTo(readResult.Buffer.End);
         await sut.CompleteAsync();
+
+        // Act
         sut.Reset();
 
         Assert.That(sut.IsResettable);
         Assert.That(mock.CompleteCalled, Is.False);
         Assert.That(mock.CompleteException, Is.Null);
         Assert.That(mock.Consumed, Is.EqualTo(readResult.Buffer.Start));
-        Assert.That(mock.CancelPendingReadCalled, Is.True);
+        Assert.That(mock.CancelPendingReadCalled, Is.False);
         Assert.That(mock.Examined, Is.EqualTo(readResult.Buffer.End));
     }
 
@@ -49,10 +49,11 @@ public sealed class ResettablePipeReaderDecoratorTests
         sut.AdvanceTo(readResult.Buffer.GetPosition(3), readResult.Buffer.GetPosition(4));
         await sut.CompleteAsync();
         sut.Reset();
-         _ = await sut.ReadAsync();
+
+        // Act
+        _ = await sut.ReadAsync();
         sut.AdvanceTo(readResult.Buffer.GetPosition(1), readResult.Buffer.GetPosition(2));
         await sut.CompleteAsync();
-        sut.Reset();
 
         Assert.That(sut.IsResettable);
         Assert.That(mock.CompleteCalled, Is.False);
@@ -72,11 +73,11 @@ public sealed class ResettablePipeReaderDecoratorTests
 
         var mock = new MockPipeReader(readResult);
         var sut = new ResettablePipeReaderDecorator(mock, maxBufferSize: 100);
-
         _ = await sut.ReadAsync();
         sut.AdvanceTo(readResult.Buffer.GetPosition(3), readResult.Buffer.GetPosition(4));
+
+        // Act
         ReadResult slicedResult = await sut.ReadAsync();
-        // no AdvanceTo on purpose
         await sut.CompleteAsync();
 
         Assert.That(slicedResult.Buffer.Length, Is.EqualTo(2));
@@ -98,10 +99,11 @@ public sealed class ResettablePipeReaderDecoratorTests
 
         var mock = new MockPipeReader(readResult);
         var sut = new ResettablePipeReaderDecorator(mock, maxBufferSize: 100);
-
         _ = await sut.ReadAsync();
         sut.AdvanceTo(readResult.Buffer.GetPosition(2), readResult.Buffer.GetPosition(3));
         sut.IsResettable = false;
+
+        // Act
         ReadResult slicedResult = await sut.ReadAsync();
         sut.AdvanceTo(slicedResult.Buffer.GetPosition(2)); // 2 + 2 >= 3
         await sut.CompleteAsync();
@@ -126,6 +128,7 @@ public sealed class ResettablePipeReaderDecoratorTests
         var mock = new MockPipeReader(readResult);
         var sut = new ResettablePipeReaderDecorator(mock, maxBufferSize: 2);
 
+        // Act
         _ = await sut.ReadAsync();
         sut.AdvanceTo(readResult.Buffer.End);
         await sut.CompleteAsync();
@@ -150,6 +153,7 @@ public sealed class ResettablePipeReaderDecoratorTests
         var sut = new ResettablePipeReaderDecorator(mock, maxBufferSize: 100);
         sut.IsResettable = false;
 
+        // Act
         _ = await sut.ReadAsync();
         sut.AdvanceTo(readResult.Buffer.End);
         await sut.CompleteAsync();
