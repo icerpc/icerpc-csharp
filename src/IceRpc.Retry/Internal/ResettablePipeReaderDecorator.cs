@@ -80,7 +80,7 @@ internal class ResettablePipeReaderDecorator : PipeReader
         if (_isResettable)
         {
             ThrowIfCompleted();
-            _consumed = consumed; // saved for the next ReadAsync/ReadAtLeastAsync/TryRead
+            _consumed = consumed; // saved to slice the buffer returned by the next ReadAsync/ReadAtLeastAsync/TryRead
             _decoratee.AdvanceTo(_sequence.Value.Start, _highestExamined.Value);
         }
         else
@@ -88,13 +88,13 @@ internal class ResettablePipeReaderDecorator : PipeReader
             // the first time around, consumed is necessarily equals to or greater than the _sequence.Value.Start passed
             // by the preceding call in the_isResettable=true block above
             _decoratee.AdvanceTo(consumed, _highestExamined.Value);
-            _consumed = null; // no need to slice the new ReadAsync/ReadAtAtLeastAsync/TryRead
+            _consumed = null; // don't slice the buffer returned by the next ReadAsync/ReadAtAtLeastAsync/TryRead
         }
     }
 
     /// <inheritdoc/>
     // This method can be called from another thread so we always forward it to the decoratee directly.
-    // ReadAsync/TryRead will return IsCanceled as appropriate.
+    // ReadAsync/ReadAtLeastAsync/TryRead will return IsCanceled as appropriate.
     public override void CancelPendingRead() => _decoratee.CancelPendingRead();
 
     /// <inheritdoc/>
@@ -180,7 +180,7 @@ internal class ResettablePipeReaderDecorator : PipeReader
             throw new InvalidOperationException("reading is already in progress");
 
         ThrowIfCompleted();
-        if (_isResettable && _consumed is SequencePosition consumed)
+        if (_consumed is SequencePosition consumed)
         {
             minimumSize += (int)_sequence!.Value.GetOffset(consumed);
         }
