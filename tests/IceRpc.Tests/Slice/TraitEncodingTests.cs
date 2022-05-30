@@ -78,7 +78,7 @@ public sealed class TraitEncodingTests
         var buffer = new MemoryBufferWriter(new byte[1024]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         var traitStructB = new TraitStructB(42);
-        encoder.EncodeString("::IceRpc::Slice::Tests::FakeTrait");
+        encoder.EncodeString("::IceRpc::Tests::Slice::FakeTrait");
         traitStructB.Encode(ref encoder);
 
         // Act/Assert

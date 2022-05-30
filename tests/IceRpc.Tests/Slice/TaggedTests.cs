@@ -2,8 +2,8 @@
 
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
-using NUnit.Framework;
 using IceRpc.Tests.Slice.Tagged.Slice1;
+using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice;
 

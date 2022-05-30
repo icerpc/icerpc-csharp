@@ -1,13 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Slice;
 using IceRpc.Slice.Internal;
-using IceRpc.Tests;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
 
-namespace IceRpc.Slice.Tests;
+namespace IceRpc.Tests.Slice;
 
 /// <summary>Test decoding strings with the supported Slice encodings.</summary>
 [Parallelizable(scope: ParallelScope.All)]

@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Conformance.Tests;
-using IceRpc.Tests;
+using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
 
-namespace IceRpc.Transports.Tests;
+namespace IceRpc.Tests.Transports;
 
 [Parallelizable(ParallelScope.All)]
 public class SlicConformanceTests : MultiplexedTransportConformanceTests

@@ -1,7 +1,5 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Retry;
-
 namespace IceRpc.Retry;
 
 /// <summary>Options class to configure <see cref="RetryInterceptor"/>.</summary>

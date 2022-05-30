@@ -3,7 +3,7 @@
 using IceRpc.Slice.Internal;
 using NUnit.Framework;
 
-namespace IceRpc.Slice.Tests;
+namespace IceRpc.Tests.Slice;
 
 /// <summary>Test encoding and decoding proxies.</summary>
 [Parallelizable(scope: ParallelScope.All)]
