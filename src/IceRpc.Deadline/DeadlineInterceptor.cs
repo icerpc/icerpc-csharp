@@ -12,7 +12,7 @@ public class DeadlineInterceptor : IInvoker
 
     /// <summary>Constructs a deadline interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
-    /// <param name="timeout">The default timeout for the invocation, this value can be overwrite by setting the
+    /// <param name="timeout">The default timeout for the request. This value can be overwritten by setting the
     /// <see cref="ITimeoutFeature"/> request feature.</param>
     public DeadlineInterceptor(IInvoker next, TimeSpan timeout)
     {
@@ -41,13 +41,20 @@ public class DeadlineInterceptor : IInvoker
         else
         {
             timeout = request.Features.Get<ITimeoutFeature>()?.Value ?? _timeout;
-            deadline = DateTime.UtcNow + timeout;
+            if (timeout != Timeout.InfiniteTimeSpan)
+            {
+                deadline = DateTime.UtcNow + timeout;
+            }
         }
 
-        long dealdineValue = (long)(deadline - DateTime.UnixEpoch).TotalMilliseconds;
-        request.Fields = request.Fields.With(
-            RequestFieldKey.Deadline,
-            (ref SliceEncoder encoder) => encoder.EncodeVarInt62(dealdineValue));
+        if (deadline != DateTime.MaxValue)
+        {
+            long deadlineValue = (long)(deadline - DateTime.UnixEpoch).TotalMilliseconds;
+            request.Fields = request.Fields.With(
+                RequestFieldKey.Deadline,
+                (ref SliceEncoder encoder) => encoder.EncodeVarInt62(deadlineValue));
+        }
+
         if (timeout == Timeout.InfiniteTimeSpan)
         {
             return _next.InvokeAsync(request, cancel);
