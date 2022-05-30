@@ -159,32 +159,48 @@ internal static class ProtocolServiceProviderExtensions
         T networkConnection = await networkConnectionFactory();
 
         IProtocolConnection protocolConnection =
-            await serviceProvider.GetRequiredService<IProtocolConnectionFactory<T>>().CreateProtocolConnectionAsync(
+            serviceProvider.GetRequiredService<IProtocolConnectionFactory<T>>().CreateProtocolConnectionAsync(
                 networkConnection,
-                connectionInformation: new(),
-                isServer,
-                connectionOptions,
-                CancellationToken.None);
+                connectionOptions);
+        await protocolConnection.ConnectAsync(isServer, default).ConfigureAwait(false);
         return protocolConnection;
     }
 
-    public static Task<IMultiplexedNetworkConnection> GetMultiplexedClientConnectionAsync(
-            this IServiceProvider serviceProvider) =>
-            GetClientNetworkConnectionAsync<IMultiplexedNetworkConnection>(serviceProvider);
+    public static async Task<IMultiplexedNetworkConnection> GetMultiplexedClientConnectionAsync(
+            this IServiceProvider serviceProvider)
+    {
+        var connection = CreateClientNetworkConnectionAsync<IMultiplexedNetworkConnection>(serviceProvider);
+        await connection.ConnectAsync(TimeSpan.MaxValue, default).ConfigureAwait(false);
+        return connection;
+    }
 
-    public static Task<IMultiplexedNetworkConnection> GetMultiplexedServerConnectionAsync(
-        this IServiceProvider serviceProvider) =>
-        GetServerNetworkConnectionAsync<IMultiplexedNetworkConnection>(serviceProvider);
+    public async static Task<IMultiplexedNetworkConnection> GetMultiplexedServerConnectionAsync(
+        this IServiceProvider serviceProvider)
+    {
+        var connection = await AcceptServerNetworkConnectionAsync<IMultiplexedNetworkConnection>(
+            serviceProvider).ConfigureAwait(false);
+        await connection.ConnectAsync(TimeSpan.MaxValue, default).ConfigureAwait(false);
+        return connection;
+    }
 
-    public static Task<ISimpleNetworkConnection> GetSimpleClientConnectionAsync(
-        this IServiceProvider serviceProvider) =>
-        GetClientNetworkConnectionAsync<ISimpleNetworkConnection>(serviceProvider);
+    public static async Task<ISimpleNetworkConnection> GetSimpleClientConnectionAsync(
+        this IServiceProvider serviceProvider)
+    {
+        var connection = CreateClientNetworkConnectionAsync<ISimpleNetworkConnection>(serviceProvider);
+        await connection.ConnectAsync(default).ConfigureAwait(false);
+        return connection;
+    }
 
-    public static Task<ISimpleNetworkConnection> GetSimpleServerConnectionAsync(
-        this IServiceProvider serviceProvider) =>
-        GetServerNetworkConnectionAsync<ISimpleNetworkConnection>(serviceProvider);
+    public static async Task<ISimpleNetworkConnection> GetSimpleServerConnectionAsync(
+        this IServiceProvider serviceProvider)
+    {
+        var connection = await AcceptServerNetworkConnectionAsync<ISimpleNetworkConnection>(
+            serviceProvider).ConfigureAwait(false);
+        await connection.ConnectAsync(default).ConfigureAwait(false);
+        return connection;
+    }
 
-    private static async Task<T> GetClientNetworkConnectionAsync<T>(
+    private static T CreateClientNetworkConnectionAsync<T>(
         IServiceProvider serviceProvider) where T : INetworkConnection
     {
         Endpoint endpoint = serviceProvider.GetRequiredService<IListener<T>>().Endpoint;
@@ -202,16 +218,14 @@ internal static class ProtocolServiceProviderExtensions
                 connection = decorator(connection, endpoint, false, logger);
             }
         }
-        await connection.ConnectAsync(default);
         return connection;
     }
 
-    private static async Task<T> GetServerNetworkConnectionAsync<T>(
+    private static async Task<T> AcceptServerNetworkConnectionAsync<T>(
         IServiceProvider serviceProvider) where T : INetworkConnection
     {
         IListener<T> listener = serviceProvider.GetRequiredService<IListener<T>>();
         T connection = await listener.AcceptAsync();
-        await connection.ConnectAsync(default);
         return connection;
     }
 }

@@ -25,7 +25,6 @@ public class ColocTransportTests
         Assert.That(networkConnectionInformation.RemoteEndPoint, Is.TypeOf<ColocEndPoint>());
         endPoint = (ColocEndPoint)networkConnectionInformation.RemoteEndPoint;
         Assert.That(endPoint.ToString(), Is.EqualTo(listener.Endpoint.ToString()));
-        Assert.That(networkConnectionInformation.IdleTimeout, Is.EqualTo(TimeSpan.MaxValue));
         Assert.That(networkConnectionInformation.RemoteCertificate, Is.Null);
     }
 }

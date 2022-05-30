@@ -128,60 +128,6 @@ public sealed class ProtocolConnectionTests
         }
     }
 
-    /// <summary>Ensures that the connection HasInvocationInProgress works.</summary>
-    [Test, TestCaseSource(nameof(_protocols))]
-    public async Task Connection_has_invocation_in_progress(Protocol protocol)
-    {
-        // Arrange
-        var result = new TaskCompletionSource<bool>();
-        ClientServerProtocolConnection? sut = null;
-        await using ServiceProvider serviceProvider = new ServiceCollection()
-            .AddProtocolTest(
-                protocol,
-                new InlineDispatcher((request, cancel) =>
-                {
-                    result.SetResult(sut!.Value.Client.HasInvocationsInProgress);
-                    return new(new OutgoingResponse(request));
-                }))
-            .BuildServiceProvider();
-        sut = await serviceProvider.GetClientServerProtocolConnectionAsync(protocol);
-        IConnection connection = serviceProvider.GetRequiredService<IConnection>();
-
-        // Act
-        await sut.Value.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
-
-        // Assert
-        Assert.That(await result.Task, Is.True);
-        sut!.Value.Dispose();
-    }
-
-    /// <summary>Ensures that the connection HasDispatchInProgress works.</summary>
-    [Test, TestCaseSource(nameof(_protocols))]
-    public async Task Connection_has_dispatch_in_progress(Protocol protocol)
-    {
-        // Arrange
-        var result = new TaskCompletionSource<bool>();
-        ClientServerProtocolConnection? sut = null;
-        await using ServiceProvider serviceProvider = new ServiceCollection()
-            .AddProtocolTest(
-                protocol,
-                new InlineDispatcher((request, cancel) =>
-                {
-                    result.SetResult(sut!.Value.Server.HasDispatchesInProgress);
-                    return new(new OutgoingResponse(request));
-                }))
-            .BuildServiceProvider();
-        sut = await serviceProvider.GetClientServerProtocolConnectionAsync(protocol);
-        IConnection connection = serviceProvider.GetRequiredService<IConnection>();
-
-        // Act
-        await sut.Value.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
-
-        // Assert
-        Assert.That(await result.Task, Is.True);
-        sut!.Value.Dispose();
-    }
-
     [Test, TestCaseSource(nameof(_protocols))]
     public async Task Dispose_the_protocol_connections(Protocol protocol)
     {
