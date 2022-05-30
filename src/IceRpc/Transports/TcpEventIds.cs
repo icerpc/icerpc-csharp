@@ -6,7 +6,7 @@ namespace IceRpc.Transports
     public enum TcpEventIds
     {
         /// <summary>Connect completed successfully.</summary>
-        Connect = IceRpc.Internal.BaseEventIds.Tcp,
+        Connect = BaseEventIds.Tcp,
 
         /// <summary>The TLS authentication operation completed successfully.</summary>
         TlsAuthentication,

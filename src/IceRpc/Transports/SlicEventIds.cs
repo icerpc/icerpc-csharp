@@ -16,7 +16,7 @@ namespace IceRpc.Transports
         /// <summary>Received Slic stream consume frame.</summary>
         ReceivedStreamConsumedFrame,
         /// <summary>Received Slic stream reset frame.</summary>
-        ReceivedStreamResetFrame = IceRpc.Internal.BaseEventIds.Slic,
+        ReceivedStreamResetFrame = BaseEventIds.Slic,
         /// <summary>Received Slic stream stop sending frame.</summary>
         ReceivedStreamStopSendingFrame,
         /// <summary>Received Slic unidirectional stream released frame.</summary>

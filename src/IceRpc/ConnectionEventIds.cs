@@ -9,7 +9,7 @@ namespace IceRpc
         AcceptRequests,
 
         /// <summary>The exception that triggered the closure of a connection.</summary>
-        ConnectionClosedReason = Internal.BaseEventIds.Connection,
+        ConnectionClosedReason = BaseEventIds.Connection,
 
         /// <summary>Established a protocol connection.</summary>
         CreateProtocolConnection,

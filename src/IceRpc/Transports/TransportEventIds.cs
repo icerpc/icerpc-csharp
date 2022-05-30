@@ -24,7 +24,7 @@ namespace IceRpc.Transports
         MultiplexedStreamWrite,
 
         /// <summary>Connect on a network connection succeeded.</summary>
-        NetworkConnectionConnect = IceRpc.Internal.BaseEventIds.Transport,
+        NetworkConnectionConnect = BaseEventIds.Transport,
 
         /// <summary>Connect on a network connection failed.</summary>
         NetworkConnectionConnectFailed,
