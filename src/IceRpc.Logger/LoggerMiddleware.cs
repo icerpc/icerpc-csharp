@@ -17,7 +17,7 @@ public class LoggerMiddleware : IDispatcher
     public LoggerMiddleware(IDispatcher next, ILoggerFactory loggerFactory)
     {
         _next = next;
-        _logger = loggerFactory.CreateLogger("IceRpc");
+        _logger = loggerFactory.CreateLogger("IceRpc.LoggerMiddleware");
     }
 
     /// <inheritdoc/>

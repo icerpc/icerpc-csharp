@@ -53,7 +53,7 @@ public sealed class RetryInterceptorTests
         // Assert
         Assert.That(attempts, Is.EqualTo(2));
 
-        Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc"));
+        Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc.RetryInterceptor"));
         Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(1));
         TestLoggerEntry entry = loggerFactory.Logger!.Entries[0];
         Assert.That(entry.State["RetryPolicy"], Is.EqualTo(RetryPolicy.Immediately));

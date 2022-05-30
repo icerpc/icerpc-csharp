@@ -6,10 +6,10 @@ namespace IceRpc
     public enum ConnectionEventIds
     {
         /// <summary>The protocol connection is accepting requests.</summary>
-        AcceptRequests,
+        AcceptRequests = Internal.BaseEventIds.Connection,
 
         /// <summary>The exception that triggered the closure of a connection.</summary>
-        ConnectionClosedReason = BaseEventIds.Connection,
+        ConnectionClosedReason,
 
         /// <summary>Established a protocol connection.</summary>
         CreateProtocolConnection,

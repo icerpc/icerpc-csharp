@@ -6,5 +6,5 @@ namespace IceRpc.Retry;
 public enum RetryInterceptorEventIds
 {
     /// <summary>A request will be retried because of a retryable exception.</summary>
-    RetryRequest = BaseEventIds.Retry,
+    RetryRequest,
 }
