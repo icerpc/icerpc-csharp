@@ -36,7 +36,7 @@ namespace IceRpc.Transports.Internal
 
         public async Task ShutdownAsync(CancellationToken cancel)
         {
-            await ShutdownAsync(cancel).ConfigureAwait(false);
+            await _decoratee.ShutdownAsync(cancel).ConfigureAwait(false);
             Logger.LogSimpleNetworkConnectionShutdown();
         }
 
