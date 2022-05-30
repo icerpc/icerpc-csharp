@@ -255,12 +255,10 @@ decoder.DecodeSequence(
                             element_type.to_type_string(namespace, TypeContext::Decode, false),
                         underlying_extensions_class = enum_def
                             .escape_scoped_identifier_with_suffix(
-                                fix_case(
-                                    format!("{}Extensions", &enum_def.get_underlying_cs_type())
-                                        .as_str(),
-                                    CaseStyle::Pascal
-                                )
-                                .as_str(),
+                                &format!(
+                                    "{}Extensions",
+                                    fix_case(&enum_def.get_underlying_cs_type(), CaseStyle::Pascal)
+                                ),
                                 namespace
                             ),
                         name = fix_case(enum_def.identifier(), CaseStyle::Pascal),
@@ -340,12 +338,10 @@ decoder.DecodeSequence(
                             element_type.to_type_string(namespace, TypeContext::Decode, false),
                         underlying_extensions_class = enum_def
                             .escape_scoped_identifier_with_suffix(
-                                fix_case(
-                                    format!("{}Extensions", &enum_def.get_underlying_cs_type())
-                                        .as_str(),
-                                    CaseStyle::Pascal
-                                )
-                                .as_str(),
+                                &format!(
+                                    "{}Extensions",
+                                    fix_case(&enum_def.get_underlying_cs_type(), CaseStyle::Pascal)
+                                ),
                                 namespace
                             ),
                         name = fix_case(enum_def.identifier(), CaseStyle::Pascal),
