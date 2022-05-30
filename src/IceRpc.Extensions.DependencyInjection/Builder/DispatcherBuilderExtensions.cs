@@ -12,9 +12,9 @@ public static class IceRpcServiceCollectionExtensions
     /// <typeparam name="TMiddleware">The type of the midlleware to register.</typeparam>
     /// <returns>The builder.</returns>
     public static IDispatcherBuilder UseMiddleware<TMiddleware>(this IDispatcherBuilder builder)
-        where TMiddleware : class =>
+        where TMiddleware : IDispatcher =>
         builder.Use(next =>
-            (IDispatcher)ActivatorUtilities.CreateInstance<TMiddleware>(
+            ActivatorUtilities.CreateInstance<TMiddleware>(
                 builder.ServiceProvider,
                 new object[] { next }));
 
@@ -24,12 +24,12 @@ public static class IceRpcServiceCollectionExtensions
     /// <typeparam name="TMiddlewareOptions">The type of options class to configure the middleware.</typeparam>
     /// <returns>The builder.</returns>
     public static IDispatcherBuilder UseMiddleware<TMiddleware, TMiddlewareOptions>(this IDispatcherBuilder builder)
-        where TMiddleware : class
+        where TMiddleware : IDispatcher
         where TMiddlewareOptions : class
     {
         TMiddlewareOptions options = builder.ServiceProvider.GetRequiredService<IOptions<TMiddlewareOptions>>().Value;
         return builder.Use(next =>
-            (IDispatcher)ActivatorUtilities.CreateInstance<TMiddleware>(
+            ActivatorUtilities.CreateInstance<TMiddleware>(
                 builder.ServiceProvider,
                 new object[] { next, options }));
     }
