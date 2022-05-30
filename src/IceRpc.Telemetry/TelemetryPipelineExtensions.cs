@@ -1,8 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Telemetry;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using System.Diagnostics;
 
 namespace IceRpc.Configure;
@@ -15,14 +13,7 @@ public static class TelemetryPipelineExtensions
     /// <param name="pipeline">The pipeline being configured.</param>
     /// <param name="activitySource">If set to a non null object the <see cref="ActivitySource"/> is used to start the
     /// request and response activities.</param>
-    /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
     /// <returns>The pipeline being configured.</returns>
-    public static Pipeline UseTelemetry(
-        this Pipeline pipeline,
-        ActivitySource activitySource,
-        ILoggerFactory? loggerFactory = null) =>
-        pipeline.Use(next => new TelemetryInterceptor(
-            next,
-            activitySource,
-            loggerFactory ?? NullLoggerFactory.Instance));
+    public static Pipeline UseTelemetry(this Pipeline pipeline, ActivitySource activitySource) =>
+        pipeline.Use(next => new TelemetryInterceptor(next, activitySource));
 }

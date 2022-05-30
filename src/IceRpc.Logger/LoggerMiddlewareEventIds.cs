@@ -6,7 +6,7 @@ namespace IceRpc.Logger;
 public enum LoggerMiddlewareEventIds
 {
     /// <summary>The dispatch of the request failed.</summary>
-    DispatchException,
+    DispatchException = 128,
     /// <summary>Received a request.</summary>
     ReceivedRequest,
     /// <summary>A response is being sent.</summary>

@@ -14,21 +14,15 @@ namespace IceRpc.Telemetry;
 public class TelemetryInterceptor : IInvoker
 {
     private readonly IInvoker _next;
-    private readonly ILogger _logger;
     private readonly ActivitySource _activitySource;
 
     /// <summary>Constructs a telemetry interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
     /// <param name="activitySource">The <see cref="ActivitySource"/> used to start the request activity.</param>
-    /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
-    public TelemetryInterceptor(
-        IInvoker next,
-        ActivitySource activitySource,
-        ILoggerFactory loggerFactory)
+    public TelemetryInterceptor(IInvoker next, ActivitySource activitySource)
     {
         _next = next;
         _activitySource = activitySource;
-        _logger = loggerFactory.CreateLogger("IceRpc");
     }
 
     /// <inheritdoc/>
