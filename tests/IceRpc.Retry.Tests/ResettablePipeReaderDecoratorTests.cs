@@ -26,12 +26,29 @@ public sealed class ResettablePipeReaderDecoratorTests
         // Act
         sut.Reset();
 
-        Assert.That(sut.IsResettable);
+        Assert.That(sut.IsResettable, Is.True);
         Assert.That(mock.CompleteCalled, Is.False);
         Assert.That(mock.CompleteException, Is.Null);
         Assert.That(mock.Consumed, Is.EqualTo(readResult.Buffer.Start));
         Assert.That(mock.CancelPendingReadCalled, Is.False);
         Assert.That(mock.Examined, Is.EqualTo(readResult.Buffer.End));
+    }
+
+    [Test]
+    public void CancelPendingRead_cancels_decoratee()
+    {
+        var readResult = new ReadResult(
+            new ReadOnlySequence<byte>(new byte[] { 1, 2, 3 }),
+            false,
+            false);
+
+        var mock = new MockPipeReader(readResult);
+        var sut = new ResettablePipeReaderDecorator(mock, maxBufferSize: 100);
+
+        // Act
+        sut.CancelPendingRead();
+
+        Assert.That(mock.CancelPendingReadCalled, Is.True);
     }
 
     [Test]
@@ -55,7 +72,7 @@ public sealed class ResettablePipeReaderDecoratorTests
         sut.AdvanceTo(readResult.Buffer.GetPosition(1), readResult.Buffer.GetPosition(2));
         await sut.CompleteAsync();
 
-        Assert.That(sut.IsResettable);
+        Assert.That(sut.IsResettable, Is.True);
         Assert.That(mock.CompleteCalled, Is.False);
         Assert.That(mock.CompleteException, Is.Null);
         Assert.That(mock.Consumed, Is.EqualTo(readResult.Buffer.Start));
@@ -133,7 +150,7 @@ public sealed class ResettablePipeReaderDecoratorTests
         sut.AdvanceTo(readResult.Buffer.End);
         await sut.CompleteAsync();
 
-        Assert.That(!sut.IsResettable);
+        Assert.That(sut.IsResettable, Is.False);
         Assert.That(mock.CompleteCalled, Is.True);
         Assert.That(mock.CompleteException, Is.Null);
         Assert.That(mock.Consumed, Is.EqualTo(readResult.Buffer.End));
