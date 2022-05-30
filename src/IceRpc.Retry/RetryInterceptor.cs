@@ -160,7 +160,8 @@ public class RetryInterceptor : IInvoker
                 // If the payload is still readable (e.g. we received a non-retryable exception before reading anything
                 // or just after a Reset), an upstream interceptor may want to attempt another call that reads this
                 // payload and the now non-resettable decorator will provide the correct behavior. The decorator ensures
-                // that calls to AdvanceTo on the decoratee always receive ever-increasing examined values.
+                // that calls to AdvanceTo on the decoratee always receive ever-increasing examined values even after
+                // one or more Resets.
                 decorator.IsResettable = false;
             }
         }
