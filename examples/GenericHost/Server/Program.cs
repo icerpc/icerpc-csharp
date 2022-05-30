@@ -2,11 +2,12 @@
 
 using IceRpc;
 using IceRpc.Configure;
+using IceRpc.Extensions.DependencyInjection.Builder;
+using IceRpc.Logger;
+using IceRpc.Telemetry;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using System.Diagnostics;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
@@ -29,26 +30,14 @@ public static class Program
                 // Add the ServerHostedService to the hosted services of the .NET Generic Host.
                 services.AddHostedService<ServerHostedService>();
 
-                // Add an IDispatcher singleton service.
-                services.AddSingleton<IDispatcher>(serviceProvider =>
-                    {
-                        // The dispatcher is a router configured with the logger and telemetry middlewares and the
-                        // IHello service. The middlewares use the logger factory provided by the .NET Generic Host.
-                        ILoggerFactory loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
-                        var router = new Router();
-                        router.UseLogger(loggerFactory);
-                        router.UseTelemetry(serviceProvider.GetRequiredService<ActivitySource>(), loggerFactory);
-                        router.Map<IHello>(new Hello());
-                        return router;
-                    });
                 services.AddSingleton(sp => new ActivitySource("IceRpc"));
 
                 // Bind the server options to the "appsettings.json" configuration "Server" section, and add a Configure
-                // callback to configure its authentication options and dispatcher.
+                // callback to configure its authentication options.
                 services
                     .AddOptions<ServerOptions>()
                     .Bind(hostContext.Configuration.GetSection("Server"))
-                    .Configure<IDispatcher>((options, dispatcher) =>
+                    .Configure(options =>
                     {
                         options.ServerAuthenticationOptions = new SslServerAuthenticationOptions()
                         {
@@ -56,12 +45,16 @@ public static class Program
                                 hostContext.Configuration.GetValue<string>("Certificate:File"),
                                 hostContext.Configuration.GetValue<string>("Certificate:Password"))
                         };
-
-                        options.ConnectionOptions.Dispatcher = dispatcher;
                     });
 
-                services.AddSingleton<Server>(serviceProvider =>
-                    new Server(serviceProvider.GetRequiredService<IOptions<ServerOptions>>().Value));
+                services.AddSingleton<Hello>();
+
+                // Add a server and configure the dispatcher using a dispatcher builder
+                services.AddIceRpcServer(
+                    builder => builder
+                        .UseMiddleware<LoggerMiddleware>()
+                        .UseMiddleware<TelemetryMiddleware>()
+                        .Map<Hello>("/hello"));
             });
 
     /// <summary>The server hosted service is ran and managed by the .NET Generic Host</summary>
