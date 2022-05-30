@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc.Timeout;
+namespace IceRpc.Deadline;
 
 /// <summary>The default implementation for <see cref="ITimeoutFeature"/>.</summary>
 public sealed class TimeoutFeature : ITimeoutFeature

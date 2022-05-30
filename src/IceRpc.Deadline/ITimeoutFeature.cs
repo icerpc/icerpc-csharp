@@ -1,6 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc.Timeout;
+namespace IceRpc.Deadline;
 
 /// <summary>A feature to customize the invocation timeout.</summary>
 public interface ITimeoutFeature
