@@ -28,7 +28,7 @@ public static class IceRpcServiceCollectionExtensions
 
     /// <summary>Adds a <see cref="Server"/> with the default name ("") to this service collection.</summary>
     public static IServiceCollection AddIceRpcServer(this IServiceCollection services) =>
-        services.AddIceRpcServer("");
+        services.AddIceRpcServer(Options.Options.DefaultName);
 
     /// <summary>Adds a <see cref="Server"/> with the specified name and dispatcher to this service collection.
     /// </summary>
@@ -50,7 +50,7 @@ public static class IceRpcServiceCollectionExtensions
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="dispatcher">The server dispatcher.</param>
     public static IServiceCollection AddIceRpcServer(this IServiceCollection services, IDispatcher dispatcher) =>
-        services.AddIceRpcServer(serverName: "", dispatcher);
+        services.AddIceRpcServer(serverName: Options.Options.DefaultName, dispatcher);
 
     /// <summary>Adds a <see cref="Server"/> with the specified name to this service collection.</summary>
     /// <param name="services">The service collection to add services to.</param>
@@ -77,13 +77,13 @@ public static class IceRpcServiceCollectionExtensions
                     provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>());
             });
 
-    /// <summary>Adds a <see cref="Server"/> with the default name ("") this service collection.</summary>
+    /// <summary>Adds a <see cref="Server"/> with the default name ("") to this service collection.</summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="configure">The action to configure the dispatcher using a <see cref="DispatcherBuilder"/>.</param>
     public static IServiceCollection AddIceRpcServer(
         this IServiceCollection services,
         Action<IDispatcherBuilder> configure) =>
-        services.AddIceRpcServer(serverName: "", configure);
+        services.AddIceRpcServer(serverName: Options.Options.DefaultName, configure);
 
     /// <summary>Adds <see cref="ClientConnection"/> to this service collection.</summary>
     /// <param name="services">The service collection to add services to.</param>
