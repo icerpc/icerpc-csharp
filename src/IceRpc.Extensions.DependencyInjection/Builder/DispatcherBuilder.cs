@@ -14,16 +14,16 @@ public class DispatcherBuilder : IDispatcherBuilder
     private readonly Router _router = new();
 
     /// <inheritdoc/>
-    public IDispatcherBuilder Map<T>(string path) where T : class
+    public IDispatcherBuilder Map<TService>(string path) where TService : class
     {
-        _router.Map(path, (IDispatcher)ActivatorUtilities.CreateInstance<T>(ServiceProvider));
+        _router.Map(path, (IDispatcher)ServiceProvider.GetRequiredService<TService>());
         return this;
     }
 
     /// <inheritdoc/>
-    public IDispatcherBuilder Mount<T>(string prefix) where T : class
+    public IDispatcherBuilder Mount<TService>(string prefix) where TService : class
     {
-        _router.Mount(prefix, (IDispatcher)ActivatorUtilities.CreateInstance<T>(ServiceProvider));
+        _router.Mount(prefix, (IDispatcher)ServiceProvider.GetRequiredService<TService>());
         return this;
     }
 
