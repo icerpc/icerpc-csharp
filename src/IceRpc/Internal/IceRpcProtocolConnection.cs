@@ -12,7 +12,7 @@ namespace IceRpc.Internal
 {
     internal sealed class IceRpcProtocolConnection : IProtocolConnection
     {
-        public Action<string>? PeerShutdownInitiated { get; set; }
+        public Action<string>? InitiateShutdown { get; set; }
 
         public Protocol Protocol => Protocol.IceRpc;
 
@@ -387,7 +387,7 @@ namespace IceRpc.Internal
             }
         }
 
-        public async Task<NetworkConnectionInformation> ConnectAsync(bool _, CancellationToken cancel)
+        public async Task<NetworkConnectionInformation> ConnectAsync(bool isServer, CancellationToken cancel)
         {
             // Connect the network connection.
             NetworkConnectionInformation networkConnectionInformation =
@@ -1089,7 +1089,7 @@ namespace IceRpc.Internal
                 _waitForGoAwayFrame.SetResult(goAwayFrame);
 
                 // Call the peer shutdown initiated callback.
-                PeerShutdownInitiated?.Invoke(goAwayFrame.Message);
+                InitiateShutdown?.Invoke(goAwayFrame.Message);
             }
             catch (Exception exception)
             {

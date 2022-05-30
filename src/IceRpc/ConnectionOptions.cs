@@ -51,6 +51,7 @@ namespace IceRpc
         /// </summary>
         /// <value><c>true</c>to enable connection keep alive. <c>false</c> to disable it. The default is <c>false</c>.
         /// </value>
+        // TODO: move to ClientConnectionOptions when fixing #1265
         public bool KeepAlive { get; set; }
 
         /// <summary>Gets or sets the maximum number of requests that an ice connection can dispatch concurrently.

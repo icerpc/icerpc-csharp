@@ -92,7 +92,7 @@ public sealed class ProtocolConnectionTests
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(protocol);
         IConnection connection = serviceProvider.GetRequiredService<IConnection>();
 
-        sut.Client.PeerShutdownInitiated += (message) => sut.Client.ShutdownAsync("shutdown", default);
+        sut.Client.InitiateShutdown += (message) => sut.Client.ShutdownAsync("shutdown", default);
         var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
         await start.WaitAsync(); // Wait for the dispatch to start
 
@@ -394,10 +394,10 @@ public sealed class ProtocolConnectionTests
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.Null);
     }
 
-    /// <summary>Ensures that the PeerShutdownInitiated callback is called when the peer initiates the
+    /// <summary>Ensures that the InitiateShutdown callback is called when the peer initiates the
     /// shutdown.</summary>
     [Test, TestCaseSource(nameof(Protocol_on_server_and_client_connection))]
-    public async Task PeerShutdownInitiated_callback_is_called(Protocol protocol, ConnectionType connectionType)
+    public async Task InitiateShutdown_callback_is_called(Protocol protocol, ConnectionType connectionType)
     {
         // Arrange
         await using var serviceProvider = new ServiceCollection()
@@ -409,7 +409,7 @@ public sealed class ProtocolConnectionTests
         IProtocolConnection connection2 = connectionType == ConnectionType.Client ? sut.Client : sut.Server;
 
         var shutdownInitiatedCalled = new TaskCompletionSource<string>();
-        connection2.PeerShutdownInitiated = message =>
+        connection2.InitiateShutdown = message =>
         {
             shutdownInitiatedCalled.SetResult(message);
             _ = connection2.ShutdownAsync("");
@@ -552,7 +552,7 @@ public sealed class ProtocolConnectionTests
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(protocol);
         IConnection connection = serviceProvider.GetRequiredService<IConnection>();
 
-        sut.Client.PeerShutdownInitiated = message => _ = sut.Client.ShutdownAsync(message);
+        sut.Client.InitiateShutdown = message => _ = sut.Client.ShutdownAsync(message);
         var invokeTask1 = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
         await start.WaitAsync(); // Wait for the dispatch to start
 

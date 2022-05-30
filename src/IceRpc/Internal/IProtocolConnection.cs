@@ -8,8 +8,8 @@ namespace IceRpc.Internal
     /// protocol.</summary>
     internal interface IProtocolConnection : IDisposable
     {
-        /// <summary>This event is raised when the protocol connection is notified of the peer shutdown.</summary>
-        Action<string>? PeerShutdownInitiated { get; set; }
+        /// <summary>This callback is called when the protocol connection wants to initiate shutdown.</summary>
+        Action<string>? InitiateShutdown { get; set; }
 
         /// <summary>Returns the protocol implemented by this protocol connection.</summary>
         Protocol Protocol { get; }

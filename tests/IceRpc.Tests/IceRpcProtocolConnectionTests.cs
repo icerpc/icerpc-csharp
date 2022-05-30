@@ -90,7 +90,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.IceRpc);
 
-        sut.Server.PeerShutdownInitiated = message => _ = sut.Server.ShutdownAsync(message);
+        sut.Server.InitiateShutdown = message => _ = sut.Server.ShutdownAsync(message);
 
         var invokeTask = sut.Client.InvokeAsync(
             new OutgoingRequest(new Proxy(Protocol.IceRpc)),
@@ -405,7 +405,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.IceRpc);
 
-        sut.Server.PeerShutdownInitiated = message => _ = sut.Server.ShutdownAsync(message);
+        sut.Server.InitiateShutdown = message => _ = sut.Server.ShutdownAsync(message);
 
         var invokeTask = sut.Client.InvokeAsync(
             new OutgoingRequest(new Proxy(Protocol.IceRpc)),

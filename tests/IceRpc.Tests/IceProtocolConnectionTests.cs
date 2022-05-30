@@ -278,7 +278,7 @@ public sealed class IceProtocolConnectionTests
 
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.Ice);
 
-        sut.Server.PeerShutdownInitiated = message =>
+        sut.Server.InitiateShutdown = message =>
             sut.Server.ShutdownAsync("");
 
         var invokeTask = sut.Client.InvokeAsync(

@@ -14,7 +14,7 @@ namespace IceRpc.Internal
 {
     internal sealed class IceProtocolConnection : IProtocolConnection
     {
-        public Action<string>? PeerShutdownInitiated { get; set; }
+        public Action<string>? InitiateShutdown { get; set; }
 
         public Protocol Protocol => Protocol.Ice;
 
@@ -170,7 +170,7 @@ namespace IceRpc.Internal
 
             if (_idleTimeout != TimeSpan.MaxValue && _idleTimeout != Timeout.InfiniteTimeSpan)
             {
-                _timer = new Timer(_ => Monitor(), null, _idleTimeout, _idleTimeout);
+                _timer = new Timer(_ => Monitor(), null, _idleTimeout / 2, _idleTimeout / 2);
             }
 
             return networkConnectionInformation;
@@ -617,7 +617,7 @@ namespace IceRpc.Internal
                     }
                     else
                     {
-                        PeerShutdownInitiated?.Invoke("connection idle");
+                        InitiateShutdown?.Invoke("connection idle");
                     }
                 }
                 else if (idleTime > _idleTimeout / 4 && (_keepAlive || _dispatches.Count > 0))
@@ -727,7 +727,7 @@ namespace IceRpc.Internal
                         }
 
                         // Call the peer shutdown initiated callback.
-                        PeerShutdownInitiated?.Invoke("connection shutdown by peer");
+                        InitiateShutdown?.Invoke("connection shutdown by peer");
                         return;
                     }
 
