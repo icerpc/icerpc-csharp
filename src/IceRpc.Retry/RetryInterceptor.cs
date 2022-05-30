@@ -155,6 +155,12 @@ public class RetryInterceptor : IInvoker
             }
             finally
             {
+                // We want to leave request.Payload in a correct, usable state when we exit. Usually request.Payload
+                // will get completed by the caller, and we want this Complete call to flow through to the decoratee.
+                // If the payload is still readable (e.g. we received a non-retryable exception before reading anything
+                // or just after a Reset), an upstream interceptor may want to attempt another call that reads this
+                // payload and the now non-resettable decorator will provide the correct behavior. The decorator ensures
+                // that calls to AdvanceTo on the decoratee always receive ever-increasing examined values.
                 decorator.IsResettable = false;
             }
         }
