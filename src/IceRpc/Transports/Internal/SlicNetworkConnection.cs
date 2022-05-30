@@ -14,7 +14,7 @@ namespace IceRpc.Transports.Internal
     /// top of a <see cref="ISimpleNetworkConnection"/>.</summary>
     internal class SlicNetworkConnection : IMultiplexedNetworkConnection
     {
-        public TimeSpan LastActivity => _simpleNetworkConnectionActivityTracker.LastActivity;
+        public bool KeepAlive { get; set; }
 
         internal TimeSpan IdleTimeout { get; set; }
         internal bool IsAborted => _exception != null;
@@ -47,6 +47,7 @@ namespace IceRpc.Transports.Internal
         private readonly SimpleNetworkConnectionReader _simpleNetworkConnectionReader;
         private readonly SimpleNetworkConnectionWriter _simpleNetworkConnectionWriter;
         private readonly ConcurrentDictionary<long, SlicMultiplexedStream> _streams = new();
+        private Timer? _timer;
         private readonly int _unidirectionalMaxStreams;
         private int _unidirectionalStreamCount;
         private AsyncSemaphore? _unidirectionalStreamSemaphore;
@@ -80,6 +81,8 @@ namespace IceRpc.Transports.Internal
 
             _acceptStreamQueue.TryComplete(_exception);
 
+            _timer?.Dispose();
+
             // Release remaining resources in the background.
             _ = AbortCoreAsync();
 
@@ -109,14 +112,14 @@ namespace IceRpc.Transports.Internal
         public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel) =>
             _acceptStreamQueue.DequeueAsync(cancel);
 
-        public async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
+        public async Task<NetworkConnectionInformation> ConnectAsync(TimeSpan idleTimeout, CancellationToken cancel)
         {
             // Connect the simple network connection.
             NetworkConnectionInformation information = await _simpleNetworkConnection.ConnectAsync(
                 cancel).ConfigureAwait(false);
 
             // The initial Slic idle timeout is the simple connection idle timeout.
-            IdleTimeout = information.IdleTimeout;
+            IdleTimeout = idleTimeout;
 
             // Initialize the Slic connection.
             FrameType type;
@@ -234,6 +237,16 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
+            // Setup a timer to check for the connection idle time every IdleTimeout / 2 period.
+            if (IdleTimeout != TimeSpan.MaxValue && IdleTimeout != Timeout.InfiniteTimeSpan)
+            {
+                _timer = new Timer(
+                    value => Monitor(),
+                    null,
+                    IdleTimeout / 2,
+                    IdleTimeout / 2);
+            }
+
             // Start a task to read frames from the network connection.
             _ = Task.Run(
                 async () =>
@@ -270,7 +283,7 @@ namespace IceRpc.Transports.Internal
                 },
                 CancellationToken.None);
 
-            return information with { IdleTimeout = IdleTimeout };
+            return information;
         }
 
         public IMultiplexedStream CreateStream(bool bidirectional) =>
@@ -574,6 +587,50 @@ namespace IceRpc.Transports.Internal
                 byte[] buffer = new byte[sizeLength];
                 SliceEncoder.EncodeVarUInt62(value, buffer);
                 return new((int)key, buffer);
+            }
+        }
+
+        private void Monitor()
+        {
+            lock (_mutex)
+            {
+                // TimeSpan idleTime =
+                //     TimeSpan.FromMilliseconds(Environment.TickCount64) -
+                //     _simpleNetworkConnectionActivityTracker.LastActivity;
+
+                // if (idleTime > IdleTimeout)
+                // {
+                //     if (_protocolConnection.HasInvocationsInProgress)
+                //     {
+                //         // Close the connection if we didn't receive a heartbeat and the connection is idle. The server
+                //         // is supposed to send heartbeats when dispatches are in progress. Close can't be called from
+                //         // within the synchronization since it calls the "on close" callbacks so we call it from a
+                //         // thread pool thread.
+                //         IProtocolConnection protocolConnection = _protocolConnection;
+                //         Task.Run(() => Close(
+                //             new ConnectionAbortedException("connection timed out"),
+                //             isResumable: true,
+                //             protocolConnection));
+                //     }
+                //     else
+                //     {
+                //         // The connection is idle, gracefully shut it down.
+                //         _ = ShutdownAsync("connection idle", isResumable: true, CancellationToken.None);
+                //     }
+                // }
+                // else if (idleTime > NetworkConnectionInformation.Value.IdleTimeout / 4 &&
+                //          (keepAlive || _protocolConnection.HasDispatchesInProgress))
+                // {
+                //     // We send a ping if there was no activity in the last (IdleTimeout / 4) period. Sending a ping
+                //     // sooner than really needed is safer to ensure that the receiver will receive the ping in time.
+                //     // Sending the ping if there was no activity in the last (IdleTimeout / 2) period isn't enough since
+                //     // Monitor is called only every (IdleTimeout / 2) period. We also send a ping if dispatch are in
+                //     // progress to notify the peer that we're still alive.
+                //     //
+                //     // Note that this doesn't imply that we are sending 4 heartbeats per timeout period because Monitor
+                //     // is still only called every (IdleTimeout / 2) period.
+                //     _ = _protocolConnection.PingAsync(CancellationToken.None);
+                // }
             }
         }
 

@@ -21,11 +21,7 @@ namespace IceRpc.Transports.Internal
         public Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
         {
             var colocEndPoint = new ColocEndPoint(_endpoint);
-            return Task.FromResult(new NetworkConnectionInformation(
-                colocEndPoint,
-                colocEndPoint,
-                TimeSpan.MaxValue,
-                null));
+            return Task.FromResult(new NetworkConnectionInformation(colocEndPoint, colocEndPoint, null));
         }
 
         public void Dispose()

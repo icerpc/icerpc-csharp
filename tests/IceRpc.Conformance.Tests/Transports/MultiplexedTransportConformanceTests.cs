@@ -928,9 +928,9 @@ public static class MultiplexedTransportServiceProviderExtensions
         this IServiceProvider provider, IMultiplexedNetworkConnection connection)
     {
         var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
-        var connectTask = connection.ConnectAsync(default);
+        var connectTask = connection.ConnectAsync(TimeSpan.MaxValue, default);
         var serverConnection = await listener.AcceptAsync();
-        await serverConnection.ConnectAsync(default);
+        await serverConnection.ConnectAsync(TimeSpan.MaxValue, default);
         await connectTask;
         return serverConnection;
     }

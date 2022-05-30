@@ -11,9 +11,13 @@ namespace IceRpc.Transports.Internal
         LogNetworkConnectionDecorator,
         IMultiplexedNetworkConnection
     {
-        public TimeSpan LastActivity => _decoratee.LastActivity;
-
         private readonly IMultiplexedNetworkConnection _decoratee;
+
+        public bool KeepAlive
+        {
+            get => _decoratee.KeepAlive;
+            set => _decoratee.KeepAlive = value;
+        }
 
         public void Abort(Exception exception) => _decoratee.Abort(exception);
 
@@ -21,6 +25,26 @@ namespace IceRpc.Transports.Internal
             new LogMultiplexedStreamDecorator(
                 await _decoratee.AcceptStreamAsync(cancel).ConfigureAwait(false),
                 Logger);
+
+        public virtual async Task<NetworkConnectionInformation> ConnectAsync(
+            TimeSpan idleTimeout,
+            CancellationToken cancel)
+        {
+            using IDisposable scope = Logger.StartNewConnectionScope(_endpoint, IsServer);
+
+            try
+            {
+                Information = await _decoratee.ConnectAsync(idleTimeout, cancel).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogNetworkConnectionConnectFailed(ex);
+                throw;
+            }
+
+            Logger.LogNetworkConnectionConnect(Information.Value.LocalEndPoint, Information.Value.RemoteEndPoint);
+            return Information.Value;
+        }
 
         public async Task ShutdownAsync(ulong applicationErrorCode, CancellationToken cancel)
         {

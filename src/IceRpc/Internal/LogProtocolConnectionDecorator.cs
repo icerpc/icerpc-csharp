@@ -8,10 +8,6 @@ namespace IceRpc.Internal
     /// <summary>A log decorator for protocol connections.</summary>
     internal class LogProtocolConnectionDecorator : IProtocolConnection
     {
-        bool IProtocolConnection.HasDispatchesInProgress => _decoratee.HasDispatchesInProgress;
-        bool IProtocolConnection.HasInvocationsInProgress => _decoratee.HasInvocationsInProgress;
-        TimeSpan IProtocolConnection.LastActivity => _decoratee.LastActivity;
-
         Action<string>? IProtocolConnection.PeerShutdownInitiated
         {
             get => _decoratee.PeerShutdownInitiated;
@@ -21,8 +17,8 @@ namespace IceRpc.Internal
         Protocol IProtocolConnection.Protocol => _decoratee.Protocol;
 
         private readonly IProtocolConnection _decoratee;
-        private readonly NetworkConnectionInformation _information;
-        private readonly bool _isServer;
+        private NetworkConnectionInformation _information;
+        private bool _isServer;
         private readonly ILogger _logger;
 
         public void Abort(Exception exception)
@@ -37,6 +33,22 @@ namespace IceRpc.Internal
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             _logger.LogAcceptRequests();
             await _decoratee.AcceptRequestsAsync(connection).ConfigureAwait(false);
+        }
+
+        async Task<NetworkConnectionInformation> IProtocolConnection.ConnectAsync(
+            bool isServer,
+            CancellationToken cancel)
+        {
+            _isServer = isServer;
+            _information = await _decoratee.ConnectAsync(isServer, cancel).ConfigureAwait(false);
+
+            using IDisposable scope = _logger.StartConnectionScope(_information, isServer);
+            _logger.LogProtocolConnectionConnect(
+                _decoratee.Protocol,
+                _information.LocalEndPoint,
+                _information.RemoteEndPoint);
+
+            return _information;
         }
 
         void IDisposable.Dispose()
@@ -64,13 +76,6 @@ namespace IceRpc.Internal
             return response;
         }
 
-        async Task IProtocolConnection.PingAsync(CancellationToken cancel)
-        {
-            using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
-            await _decoratee.PingAsync(cancel).ConfigureAwait(false);
-            _logger.LogPing();
-        }
-
         async Task IProtocolConnection.ShutdownAsync(string message, CancellationToken cancel)
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
@@ -88,15 +93,9 @@ namespace IceRpc.Internal
             _logger.LogProtocolConnectionShutdown(_decoratee.Protocol, message);
         }
 
-        internal LogProtocolConnectionDecorator(
-            IProtocolConnection decoratee,
-            NetworkConnectionInformation connectionInformation,
-            bool isServer,
-            ILogger logger)
+        internal LogProtocolConnectionDecorator(IProtocolConnection decoratee, ILogger logger)
         {
             _decoratee = decoratee;
-            _information = connectionInformation;
-            _isServer = isServer;
             _logger = logger;
         }
     }

@@ -12,30 +12,6 @@ namespace IceRpc.Internal
 {
     internal sealed class IceRpcProtocolConnection : IProtocolConnection
     {
-        public bool HasDispatchesInProgress
-        {
-            get
-            {
-                lock (_mutex)
-                {
-                    return _cancelDispatchSources.Count > 0;
-                }
-            }
-        }
-
-        public bool HasInvocationsInProgress
-        {
-            get
-            {
-                lock (_mutex)
-                {
-                    return _invocationCount > 0;
-                }
-            }
-        }
-
-        public TimeSpan LastActivity => _networkConnection.LastActivity;
-
         public Action<string>? PeerShutdownInitiated { get; set; }
 
         public Protocol Protocol => Protocol.IceRpc;
@@ -47,9 +23,11 @@ namespace IceRpc.Internal
 
         // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
         private int _headerSizeLength = 2;
+        private readonly TimeSpan _idleTimeout;
         private int _invocationCount;
         private bool _isDisposed;
         private bool _isShuttingDown;
+        private readonly bool _keepAlive;
         private long _lastRemoteBidirectionalStreamId = -1;
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
         private long _lastRemoteUnidirectionalStreamId = -1;
@@ -58,12 +36,9 @@ namespace IceRpc.Internal
         private readonly object _mutex = new();
         private readonly IMultiplexedNetworkConnection _networkConnection;
         private IMultiplexedStream? _remoteControlStream;
-
         private readonly HashSet<IMultiplexedStream> _streams = new();
-
         private readonly TaskCompletionSource _streamsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
-
         private TaskCompletionSource<IceRpcGoAway>? _waitForGoAwayFrame;
 
         public void Abort(Exception exception)
@@ -412,6 +387,43 @@ namespace IceRpc.Internal
             }
         }
 
+        public async Task<NetworkConnectionInformation> ConnectAsync(bool _, CancellationToken cancel)
+        {
+            // Connect the network connection.
+            NetworkConnectionInformation networkConnectionInformation =
+                 await _networkConnection.ConnectAsync(_idleTimeout, cancel).ConfigureAwait(false);
+
+            // Create the control stream and send the protocol Settings frame
+            _controlStream = _networkConnection.CreateStream(false);
+
+            var settings = new IceRpcSettings(
+                _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
+                    ImmutableDictionary<IceRpcSettingKey, ulong>.Empty :
+                    new Dictionary<IceRpcSettingKey, ulong>
+                    {
+                        [IceRpcSettingKey.MaxHeaderSize] = (ulong)_maxLocalHeaderSize
+                    });
+
+            await SendControlFrameAsync(
+                IceRpcControlFrameType.Settings,
+                (ref SliceEncoder encoder) => settings.Encode(ref encoder),
+                cancel).ConfigureAwait(false);
+
+            // Wait for the remote control stream to be accepted and read the protocol Settings frame
+            _remoteControlStream = await _networkConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
+
+            await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.Settings, cancel).ConfigureAwait(false);
+            await ReceiveSettingsFrameBody(cancel).ConfigureAwait(false);
+
+            _waitForGoAwayFrame = new TaskCompletionSource<IceRpcGoAway>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+
+            // Start a task to wait to receive the go away frame to initiate shutdown.
+            var waitForGoAwayTask = Task.Run(() => WaitForGoAwayAsync(), CancellationToken.None);
+
+            return networkConnectionInformation;
+        }
+
         public void Dispose() => Abort(new ConnectionClosedException());
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
@@ -729,38 +741,9 @@ namespace IceRpc.Internal
         {
             _networkConnection = networkConnection;
             _dispatcher = options.Dispatcher;
+            _idleTimeout = options.IdleTimeout;
+            _keepAlive = options.KeepAlive;
             _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
-        }
-
-        internal async Task ConnectAsync(CancellationToken cancel)
-        {
-            // Create the control stream and send the protocol Settings frame
-            _controlStream = _networkConnection.CreateStream(false);
-
-            var settings = new IceRpcSettings(
-                _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
-                    ImmutableDictionary<IceRpcSettingKey, ulong>.Empty :
-                    new Dictionary<IceRpcSettingKey, ulong>
-                    {
-                        [IceRpcSettingKey.MaxHeaderSize] = (ulong)_maxLocalHeaderSize
-                    });
-
-            await SendControlFrameAsync(
-                IceRpcControlFrameType.Settings,
-                (ref SliceEncoder encoder) => settings.Encode(ref encoder),
-                cancel).ConfigureAwait(false);
-
-            // Wait for the remote control stream to be accepted and read the protocol Settings frame
-            _remoteControlStream = await _networkConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
-
-            await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.Settings, cancel).ConfigureAwait(false);
-            await ReceiveSettingsFrameBody(cancel).ConfigureAwait(false);
-
-            _waitForGoAwayFrame = new TaskCompletionSource<IceRpcGoAway>(
-                TaskCreationOptions.RunContinuationsAsynchronously);
-
-            // Start a task to wait to receive the go away frame to initiate shutdown.
-            _ = Task.Run(() => WaitForGoAwayAsync(), CancellationToken.None);
         }
 
         private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeFieldDictionary<TKey>(

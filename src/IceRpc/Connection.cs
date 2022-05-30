@@ -311,16 +311,23 @@ namespace IceRpc
                 // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
                 await Task.Yield();
 
-                // Establish the network connection.
-                NetworkConnectionInformation = await networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
-
                 // Create the protocol connection.
-                IProtocolConnection protocolConnection = await protocolConnectionFactory.CreateProtocolConnectionAsync(
+                IProtocolConnection protocolConnection = protocolConnectionFactory.CreateProtocolConnectionAsync(
                     networkConnection,
-                    NetworkConnectionInformation.Value,
-                    _isServer,
-                    _options,
-                    cancel).ConfigureAwait(false);
+                    _options);
+
+                // Establish the network connection.
+                try
+                {
+                    NetworkConnectionInformation = await protocolConnection.ConnectAsync(
+                        _isServer,
+                        cancel).ConfigureAwait(false);
+                }
+                catch
+                {
+                    protocolConnection.Dispose();
+                    throw;
+                }
 
                 lock (_mutex)
                 {
@@ -350,19 +357,6 @@ namespace IceRpc
                     // that peer initiated shutdown. This is in particular useful for the connection pool to not return
                     // a connection which is being shutdown.
                     _protocolConnection.PeerShutdownInitiated = InitiateShutdown;
-
-                    // Setup a timer to check for the connection idle time every IdleTimeout / 2 period. If the
-                    // transport doesn't support idle timeout (e.g.: the colocated transport), IdleTimeout will be
-                    // infinite.
-                    TimeSpan idleTimeout = NetworkConnectionInformation!.Value.IdleTimeout;
-                    if (idleTimeout != TimeSpan.MaxValue && idleTimeout != Timeout.InfiniteTimeSpan)
-                    {
-                        _timer = new Timer(
-                            value => Monitor(_options.KeepAlive),
-                            null,
-                            idleTimeout / 2,
-                            idleTimeout / 2);
-                    }
 
                     // Start accepting requests. _protocolConnection might be updated before the task is ran so it's
                     // important to use protocolConnection here.
@@ -400,55 +394,6 @@ namespace IceRpc
             {
                 Close(exception, isResumable: true);
                 throw;
-            }
-        }
-
-        internal void Monitor(bool keepAlive)
-        {
-            lock (_mutex)
-            {
-                if (_state != ConnectionState.Active)
-                {
-                    return;
-                }
-
-                Debug.Assert(_protocolConnection != null && NetworkConnectionInformation != null);
-
-                TimeSpan idleTime =
-                    TimeSpan.FromMilliseconds(Environment.TickCount64) - _protocolConnection!.LastActivity;
-                if (idleTime > NetworkConnectionInformation.Value.IdleTimeout)
-                {
-                    if (_protocolConnection.HasInvocationsInProgress)
-                    {
-                        // Close the connection if we didn't receive a heartbeat and the connection is idle. The server
-                        // is supposed to send heartbeats when dispatches are in progress. Close can't be called from
-                        // within the synchronization since it calls the "on close" callbacks so we call it from a
-                        // thread pool thread.
-                        IProtocolConnection protocolConnection = _protocolConnection;
-                        Task.Run(() => Close(
-                            new ConnectionAbortedException("connection timed out"),
-                            isResumable: true,
-                            protocolConnection));
-                    }
-                    else
-                    {
-                        // The connection is idle, gracefully shut it down.
-                        _ = ShutdownAsync("connection idle", isResumable: true, CancellationToken.None);
-                    }
-                }
-                else if (idleTime > NetworkConnectionInformation.Value.IdleTimeout / 4 &&
-                         (keepAlive || _protocolConnection.HasDispatchesInProgress))
-                {
-                    // We send a ping if there was no activity in the last (IdleTimeout / 4) period. Sending a ping
-                    // sooner than really needed is safer to ensure that the receiver will receive the ping in time.
-                    // Sending the ping if there was no activity in the last (IdleTimeout / 2) period isn't enough since
-                    // Monitor is called only every (IdleTimeout / 2) period. We also send a ping if dispatch are in
-                    // progress to notify the peer that we're still alive.
-                    //
-                    // Note that this doesn't imply that we are sending 4 heartbeats per timeout period because Monitor
-                    // is still only called every (IdleTimeout / 2) period.
-                    _ = _protocolConnection.PingAsync(CancellationToken.None);
-                }
             }
         }
 

@@ -7,11 +7,6 @@ namespace IceRpc.Internal;
 internal interface IProtocolConnectionFactory<T>
     where T : INetworkConnection
 {
-    /// <summary>Creates a protocol connection over a connected network connection.</summary>
-    Task<IProtocolConnection> CreateProtocolConnectionAsync(
-        T networkConnection,
-        NetworkConnectionInformation connectionInformation,
-        bool isServer,
-        ConnectionOptions connectionOptions,
-        CancellationToken cancel);
+    /// <summary>Creates a protocol connection over a network connection.</summary>
+    IProtocolConnection CreateProtocolConnectionAsync(T networkConnection, ConnectionOptions connectionOptions);
 }

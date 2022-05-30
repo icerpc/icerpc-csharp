@@ -11,14 +11,11 @@ namespace IceRpc
         /// <summary>The exception that triggered the closure of a connection.</summary>
         ConnectionClosedReason = Internal.BaseEventIds.Connection,
 
-        /// <summary>Established a protocol connection.</summary>
-        CreateProtocolConnection,
-
-        /// <summary>Sent a ping.</summary>
-        Ping,
-
         /// <summary>The protocol connection was aborted.</summary>
         ProtocolConnectionAbort,
+
+        /// <summary>Established a protocol connection.</summary>
+        ProtocolConnectionConnect,
 
         /// <summary>The protocol connection was disposed.</summary>
         ProtocolConnectionDispose,

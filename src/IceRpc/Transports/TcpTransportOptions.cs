@@ -7,16 +7,6 @@ namespace IceRpc.Transports
     /// <summary>The base options class for TCP transports.</summary>
     public record class TcpTransportOptions
     {
-        /// <summary>Gets or sets the idle timeout. This timeout is used to monitor the network connection. If
-        /// the connection is idle within this timeout period, the connection is gracefully closed.</summary>
-        /// <value>The network connection idle timeout value. The default is 60s.</value>
-        public TimeSpan IdleTimeout
-        {
-            get => _idleTimeout;
-            set => _idleTimeout = value != TimeSpan.Zero ? value :
-                throw new ArgumentException($"0 is not a valid value for {nameof(IdleTimeout)}", nameof(value));
-        }
-
         /// <summary>Gets or sets the socket receive buffer size in bytes.</summary>
         /// <value>The receive buffer size in bytes. It can't be less than 1KB. <c>null</c> means use the operating
         /// system default.</value>
@@ -37,7 +27,6 @@ namespace IceRpc.Transports
                 throw new ArgumentException($"{nameof(SendBufferSize)} can't be less than 1KB", nameof(value));
         }
 
-        private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
         private int? _receiveBufferSize;
         private int? _sendBufferSize;
     }

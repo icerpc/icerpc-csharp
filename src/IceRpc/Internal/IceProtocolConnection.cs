@@ -14,30 +14,6 @@ namespace IceRpc.Internal
 {
     internal sealed class IceProtocolConnection : IProtocolConnection
     {
-        public bool HasDispatchesInProgress
-        {
-            get
-            {
-                lock (_mutex)
-                {
-                    return _dispatches.Count > 0;
-                }
-            }
-        }
-
-        public bool HasInvocationsInProgress
-        {
-            get
-            {
-                lock (_mutex)
-                {
-                    return _invocations.Count > 0;
-                }
-            }
-        }
-
-        public TimeSpan LastActivity => _networkConnectionActivityTracker.LastActivity;
-
         public Action<string>? PeerShutdownInitiated { get; set; }
 
         public Protocol Protocol => Protocol.Ice;
@@ -64,8 +40,10 @@ namespace IceRpc.Internal
         private readonly AsyncSemaphore? _dispatchSemaphore;
         private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
         private bool _isAborted;
+        private readonly TimeSpan _idleTimeout;
         private bool _isShutdown;
         private bool _isShuttingDown;
+        private readonly bool _keepAlive;
         private readonly int _maxFrameSize;
         private readonly MemoryPool<byte> _memoryPool;
         private readonly int _minimumSegmentSize;
@@ -80,6 +58,7 @@ namespace IceRpc.Internal
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly CancellationTokenSource _readCancelSource = new();
         private TaskCompletionSource? _readFramesTaskCompletionSource;
+        private Timer? _timer;
         private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
         public void Abort(Exception exception)
@@ -110,6 +89,8 @@ namespace IceRpc.Internal
             _dispatchesAndInvocationsCompleted.TrySetException(exception);
 
             _readCancelSource.Dispose();
+
+            _timer?.Dispose();
 
             // Release remaining resources in the background.
             _ = AbortCoreAsync();
@@ -149,6 +130,61 @@ namespace IceRpc.Internal
             finally
             {
                 _readFramesTaskCompletionSource?.SetResult();
+            }
+        }
+
+        public async Task<NetworkConnectionInformation> ConnectAsync(bool isServer, CancellationToken cancel)
+        {
+            // Connect the network connection.
+            NetworkConnectionInformation networkConnectionInformation =
+                await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+
+            if (isServer)
+            {
+                EncodeValidateConnectionFrame(_networkConnectionWriter);
+
+                // The flush can't be canceled because it would lead to the writing of an incomplete frame.
+                await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            else
+            {
+                ReadOnlySequence<byte> buffer = await _networkConnectionReader.ReadAtLeastAsync(
+                    IceDefinitions.PrologueSize,
+                    cancel).ConfigureAwait(false);
+
+                (IcePrologue validateConnectionFrame, long consumed) = DecodeValidateConnectionFrame(buffer);
+                _networkConnectionReader.AdvanceTo(buffer.GetPosition(consumed), buffer.End);
+
+                IceDefinitions.CheckPrologue(validateConnectionFrame);
+                if (validateConnectionFrame.FrameSize != IceDefinitions.PrologueSize)
+                {
+                    throw new InvalidDataException(
+                        $"received Ice frame with only '{validateConnectionFrame.FrameSize}' bytes");
+                }
+                if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
+                {
+                    throw new InvalidDataException(
+                        @$"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'");
+                }
+            }
+
+            if (_idleTimeout != TimeSpan.MaxValue && _idleTimeout != Timeout.InfiniteTimeSpan)
+            {
+                _timer = new Timer(_ => Monitor(), null, _idleTimeout, _idleTimeout);
+            }
+
+            return networkConnectionInformation;
+
+            static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
+            {
+                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
+                IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
+            }
+
+            static (IcePrologue, long) DecodeValidateConnectionFrame(ReadOnlySequence<byte> buffer)
+            {
+                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
+                return (new IcePrologue(ref decoder), decoder.Consumed);
             }
         }
 
@@ -391,27 +427,6 @@ namespace IceRpc.Internal
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             _networkConnection.HasCompatibleParams(remoteEndpoint);
 
-        public async Task PingAsync(CancellationToken cancel)
-        {
-            await _writeSemaphore.EnterAsync(cancel).ConfigureAwait(false);
-            try
-            {
-                EncodeValidateConnectionFrame(_networkConnectionWriter);
-                // The flush can't be canceled because it would lead to the writing of an incomplete frame.
-                await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-            }
-            finally
-            {
-                _writeSemaphore.Release();
-            }
-
-            static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
-            {
-                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
-                IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
-            }
-        }
-
         public async Task ShutdownAsync(string message, CancellationToken cancel)
         {
             bool alreadyShuttingDown = false;
@@ -476,6 +491,8 @@ namespace IceRpc.Internal
         {
             _dispatcher = options.Dispatcher;
             _maxFrameSize = options.MaxIceFrameSize;
+            _idleTimeout = options.IdleTimeout;
+            _keepAlive = options.KeepAlive;
 
             if (options.MaxIceConcurrentDispatches > 0)
             {
@@ -505,51 +522,6 @@ namespace IceRpc.Internal
                 _minimumSegmentSize);
 
             _payloadWriter = new IcePayloadPipeWriter(_networkConnectionWriter);
-        }
-
-        internal async Task ConnectAsync(bool isServer, CancellationToken cancel)
-        {
-            if (isServer)
-            {
-                EncodeValidateConnectionFrame(_networkConnectionWriter);
-
-                // The flush can't be canceled because it would lead to the writing of an incomplete frame.
-                await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-            }
-            else
-            {
-                ReadOnlySequence<byte> buffer = await _networkConnectionReader.ReadAtLeastAsync(
-                    IceDefinitions.PrologueSize,
-                    cancel).ConfigureAwait(false);
-
-                (IcePrologue validateConnectionFrame, long consumed) = DecodeValidateConnectionFrame(buffer);
-                _networkConnectionReader.AdvanceTo(buffer.GetPosition(consumed), buffer.End);
-
-                IceDefinitions.CheckPrologue(validateConnectionFrame);
-                if (validateConnectionFrame.FrameSize != IceDefinitions.PrologueSize)
-                {
-                    throw new InvalidDataException(
-                        $"received Ice frame with only '{validateConnectionFrame.FrameSize}' bytes");
-                }
-                if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
-                {
-                    throw new InvalidDataException(
-                        @$"expected '{nameof(IceFrameType.ValidateConnection)
-                        }' frame but received frame type '{validateConnectionFrame.FrameType}'");
-                }
-            }
-
-            static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
-            {
-                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
-                IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
-            }
-
-            static (IcePrologue, long) DecodeValidateConnectionFrame(ReadOnlySequence<byte> buffer)
-            {
-                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
-                return (new IcePrologue(ref decoder), decoder.Consumed);
-            }
         }
 
         private void CancelDispatches()
@@ -624,6 +596,65 @@ namespace IceRpc.Internal
             }
 
             return pipe.Reader;
+        }
+
+        private void Monitor()
+        {
+            lock (_mutex)
+            {
+                TimeSpan idleTime =
+                    TimeSpan.FromMilliseconds(Environment.TickCount64) - _networkConnectionActivityTracker.LastActivity;
+
+                if (idleTime > _idleTimeout)
+                {
+                    if (_invocations.Count > 0)
+                    {
+                        // Abort the connection if we didn't receive a heartbeat and the connection is idle. The server
+                        // is supposed to send heartbeats when dispatches are in progress. Close can't be called from
+                        // within the synchronization since it calls the "on close" callbacks so we call it from a
+                        // thread pool thread.
+                        Abort(new ConnectionAbortedException("connection timed out"));
+                    }
+                    else
+                    {
+                        PeerShutdownInitiated?.Invoke("connection idle");
+                    }
+                }
+                else if (idleTime > _idleTimeout / 4 && (_keepAlive || _dispatches.Count > 0))
+                {
+                    // We send a ping if there was no activity in the last (IdleTimeout / 4) period. Sending a ping
+                    // sooner than really needed is safer to ensure that the receiver will receive the ping in time.
+                    // Sending the ping if there was no activity in the last (IdleTimeout / 2) period isn't enough since
+                    // Monitor is called only every (IdleTimeout / 2) period. We also send a ping if dispatch are in
+                    // progress to notify the peer that we're still alive.
+                    //
+                    // Note that this doesn't imply that we are sending 4 heartbeats per timeout period because Monitor
+                    // is still only called every (IdleTimeout / 2) period.
+                    _ = PingAsync();
+                }
+            }
+
+            async Task PingAsync()
+            {
+                // TODO: Should this really be non-cancelable?
+                await _writeSemaphore.EnterAsync(CancellationToken.None).ConfigureAwait(false);
+                try
+                {
+                    EncodeValidateConnectionFrame(_networkConnectionWriter);
+                    // The flush can't be canceled because it would lead to the writing of an incomplete frame.
+                    await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                }
+                finally
+                {
+                    _writeSemaphore.Release();
+                }
+
+                static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
+                {
+                    var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
+                    IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
+                }
+            }
         }
 
         /// <summary>Reads the full Ice payload from the given pipe reader.</summary>
@@ -1132,7 +1163,7 @@ namespace IceRpc.Internal
                     var requestHeader = new IceRequestHeader(ref decoder);
 
                     Pipe? contextPipe = null;
-                    var pos = decoder.Consumed;
+                    long pos = decoder.Consumed;
                     int count = decoder.DecodeSize();
                     if (count > 0)
                     {

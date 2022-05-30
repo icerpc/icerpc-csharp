@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Transports.Internal
@@ -7,6 +8,24 @@ namespace IceRpc.Transports.Internal
     internal class LogSimpleNetworkConnectionDecorator : LogNetworkConnectionDecorator, ISimpleNetworkConnection
     {
         private readonly ISimpleNetworkConnection _decoratee;
+
+        public virtual async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
+        {
+            using IDisposable scope = Logger.StartNewConnectionScope(_endpoint, IsServer);
+
+            try
+            {
+                Information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogNetworkConnectionConnectFailed(ex);
+                throw;
+            }
+
+            Logger.LogNetworkConnectionConnect(Information.Value.LocalEndPoint, Information.Value.RemoteEndPoint);
+            return Information.Value;
+        }
 
         public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {

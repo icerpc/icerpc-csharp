@@ -35,6 +35,16 @@ namespace IceRpc
         /// <value>The dispatcher that dispatches requests received by this connection.</value>
         public IDispatcher Dispatcher { get; set; } = DefaultDispatcher;
 
+        /// <summary>Gets or sets the idle timeout. This timeout is used to monitor the network connection. If
+        /// the connection is idle within this timeout period, the connection is gracefully closed.</summary>
+        /// <value>The network connection idle timeout value. The default is 60s.</value>
+        public TimeSpan IdleTimeout
+        {
+            get => _idleTimeout;
+            set => _idleTimeout = value != TimeSpan.Zero ? value :
+                throw new ArgumentException($"0 is not a valid value for {nameof(IdleTimeout)}", nameof(value));
+        }
+
         /// <summary>Gets or sets the connection's keep alive. If a connection is kept alive, the connection monitoring
         /// will send keep alive frames to ensure the peer doesn't close the connection in the period defined by its
         /// idle timeout. How often keep alive frames are sent depends on the peer's IdleTimeout configuration.
@@ -85,10 +95,9 @@ namespace IceRpc
 
         private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
         private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
-
         private int _iceConcurrentDispatches = 100;
+        private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
         private int _maxIceFrameSize = 1024 * 1024;
-
         private int _maxIceRpcHeaderSize = DefaultMaxIceRpcHeaderSize;
 
         internal static int IceRpcCheckMaxHeaderSize(long value) => value is >= 63 and <= 1_048_575 ? (int)value :
