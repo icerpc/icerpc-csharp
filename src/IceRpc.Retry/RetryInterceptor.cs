@@ -1,12 +1,12 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
-using IceRpc.Internal;
 using IceRpc.Retry.Internal;
 using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 
 namespace IceRpc.Retry;
 
@@ -82,7 +82,7 @@ public class RetryInterceptor : IInvoker
                     {
                         // NoEndpointException is always considered non-retryable; it typically occurs because we
                         // removed endpoints from endpoinFeature.
-                        return response ?? throw ExceptionUtil.Throw(exception ?? ex);
+                        return response ?? throw RethrowException(exception ?? ex);
                     }
                     catch (OperationCanceledException)
                     {
@@ -151,12 +151,19 @@ public class RetryInterceptor : IInvoker
 
                 Debug.Assert(response != null || exception != null);
                 Debug.Assert(response == null || response.ResultType != ResultType.Success);
-                return response ?? throw ExceptionUtil.Throw(exception!);
+                return response ?? throw RethrowException(exception!);
             }
             finally
             {
                 decorator.IsResettable = false;
             }
         }
+    }
+
+    private static Exception RethrowException(Exception ex)
+    {
+        ExceptionDispatchInfo.Throw(ex);
+        Debug.Assert(false);
+        return ex;
     }
 }

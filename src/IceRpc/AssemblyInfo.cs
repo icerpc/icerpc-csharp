@@ -6,8 +6,6 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("IceRpc.Coloc")] // necessary to use IceRpc.Transports.Internal.AsyncQueue
 [assembly: InternalsVisibleTo("IceRpc.Interop")]
 
-[assembly: InternalsVisibleTo("IceRpc.Retry")] // For ExceptionUtil.Throw
-
 // Make internals visible to the tests assembly, to allow writing unit tests for the internal classes
 [assembly: InternalsVisibleTo("IceRpc.Tests")]
 [assembly: InternalsVisibleTo("IceRpc.Conformance.Tests")]
