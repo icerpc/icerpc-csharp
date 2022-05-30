@@ -2,7 +2,7 @@
 
 using NUnit.Framework;
 
-namespace IceRpc.Slice.Tests;
+namespace IceRpc.Tests.Slice;
 
 public class EnumTests
 {

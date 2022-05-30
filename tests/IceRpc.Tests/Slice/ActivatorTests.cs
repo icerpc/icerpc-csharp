@@ -1,10 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
 using IceRpc.Tests.ReferencedAssemblies;
 using NUnit.Framework;
 using System.Reflection;
 
-namespace IceRpc.Slice.Tests;
+namespace IceRpc.Tests.Slice;
 
 public class ActivatorTests
 {

@@ -1,11 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
 using IceRpc.Slice.Internal;
-using IceRpc.Slice.Tagged.Slice1.Tests;
 using NUnit.Framework;
-using IceRpc.Slice.Tests;
+using IceRpc.Tests.Slice.Tagged.Slice1;
 
-namespace IceRpc.Slice.Tests;
+namespace IceRpc.Tests.Slice;
 
 public class TaggedTests
 {
@@ -78,7 +78,7 @@ public class TaggedTests
                     40,
                     new FixedLengthStruct(1, 1),
                     new VarLengthStruct("hello world!"),
-                    Tagged.Slice1.Tests.MyEnum.Two,
+                    Tagged.Slice1.MyEnum.Two,
                     new byte[] { 1, 2, 3 },
                     new int[] { 4, 5, 6 },
                     "hello world!"),
@@ -90,7 +90,7 @@ public class TaggedTests
                     null,
                     new FixedLengthStruct(1, 1),
                     null,
-                    Tagged.Slice1.Tests.MyEnum.Two,
+                    Tagged.Slice1.MyEnum.Two,
                     null,
                     new int[] { 4, 5, 6 },
                     null)
@@ -199,7 +199,7 @@ public class TaggedTests
                 7,
                 TagFormat.Size,
                 expected.G.Value,
-                (ref SliceEncoder encoder, Tagged.Slice1.Tests.MyEnum value) => encoder.EncodeMyEnum(value));
+                (ref SliceEncoder encoder, Tagged.Slice1.MyEnum value) => encoder.EncodeMyEnum(value));
         }
 
         if (expected.H != null)
@@ -390,8 +390,7 @@ public class TaggedTests
                 7,
                 TagFormat.Size,
                 (ref SliceDecoder decoder) =>
-                    Tagged.Slice1.Tests.MyEnumSliceDecoderExtensions.DecodeMyEnum(ref decoder) as
-                        Tagged.Slice1.Tests.MyEnum?,
+                    Tagged.Slice1.MyEnumSliceDecoderExtensions.DecodeMyEnum(ref decoder) as Tagged.Slice1.MyEnum?,
                 useTagEndMarker: false),
             Is.EqualTo(c.G));
 

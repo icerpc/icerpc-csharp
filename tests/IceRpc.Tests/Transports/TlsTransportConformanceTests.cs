@@ -5,7 +5,7 @@ using NUnit.Framework;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
-namespace IceRpc.Transports.Tests;
+namespace IceRpc.Tests.Transports;
 
 /// <summary>Conformance tests for the tls simple transport.</summary>
 [Parallelizable(ParallelScope.All)]

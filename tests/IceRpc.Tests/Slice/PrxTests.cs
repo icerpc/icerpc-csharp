@@ -1,10 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
 using IceRpc.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
-namespace IceRpc.Slice.Tests;
+namespace IceRpc.Tests.Slice;
 
 /// <summary>Test IPrx extension methods other than InvokeAsync.</summary>
 [Parallelizable(scope: ParallelScope.All)]
