@@ -8,7 +8,7 @@ namespace IceRpc
     public enum ProtocolEventIds
     {
         /// <summary>Received an ice close connection frame.</summary>
-        ReceivedIceCloseConnectionFrame,
+        ReceivedIceCloseConnectionFrame = Internal.BaseEventIds.Protocol,
 
         /// <summary>Received an ice request batch frame.</summary>
         ReceivedIceRequestBatchFrame,

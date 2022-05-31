@@ -28,7 +28,7 @@ public sealed class TelemetryInterceptorTests
         using var activitySource = new ActivitySource("Test Activity Source");
         using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
 
-        var sut = new TelemetryInterceptor(invoker, activitySource, NullLoggerFactory.Instance);
+        var sut = new TelemetryInterceptor(invoker, activitySource);
 
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc) { Path = "/path" })
         {
@@ -77,7 +77,7 @@ public sealed class TelemetryInterceptorTests
         using var activitySource = new ActivitySource("Test Activity Source");
         using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
 
-        var sut = new TelemetryInterceptor(invoker, activitySource, NullLoggerFactory.Instance);
+        var sut = new TelemetryInterceptor(invoker, activitySource);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc) { Path = "/" })
         {
             Operation = "op"
