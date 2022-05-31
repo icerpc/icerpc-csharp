@@ -35,7 +35,7 @@ public sealed class ProtocolBridgingTests
                 serviceProvider => new Pipeline()
                     .UseBinder(serviceProvider.GetRequiredService<IClientConnectionProvider>())
                     .UseRequestContext())
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         await using ServiceProvider forwarderServiceProvider = new ServiceCollection()
             .AddSingleton(coloc)
@@ -45,7 +45,7 @@ public sealed class ProtocolBridgingTests
                 serviceProvider => new Pipeline()
                     .UseBinder(serviceProvider.GetRequiredService<IClientConnectionProvider>())
                     .UseRequestContext())
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         Server targetServer = targetServiceProvider.GetRequiredService<Server>();
         var targetServicePrx = ProtocolBridgingTestPrx.Parse($"{targetServer.Endpoint.Protocol}:/target");

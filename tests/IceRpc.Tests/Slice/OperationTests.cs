@@ -18,7 +18,7 @@ public class OperationGeneratedCodeTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
@@ -31,7 +31,7 @@ public class OperationGeneratedCodeTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyDerivedOperationsA())
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var prx = MyDerivedOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
@@ -44,7 +44,7 @@ public class OperationGeneratedCodeTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
@@ -59,7 +59,7 @@ public class OperationGeneratedCodeTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
@@ -76,7 +76,7 @@ public class OperationGeneratedCodeTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
@@ -102,7 +102,7 @@ public class OperationGeneratedCodeTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
@@ -138,7 +138,7 @@ public class OperationGeneratedCodeTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
@@ -174,7 +174,7 @@ public class OperationGeneratedCodeTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
@@ -213,7 +213,7 @@ public class OperationGeneratedCodeTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
@@ -233,7 +233,7 @@ public class OperationGeneratedCodeTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
@@ -248,7 +248,7 @@ public class OperationGeneratedCodeTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
@@ -266,7 +266,7 @@ public class OperationGeneratedCodeTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());

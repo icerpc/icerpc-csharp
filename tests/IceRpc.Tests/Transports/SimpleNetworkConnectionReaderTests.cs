@@ -22,7 +22,7 @@ public class SimpleNetworkConnectionReaderTests
         await using ServiceProvider provider = new ServiceCollection()
             .UseSimpleTransport("icerpc://colochost/")
             .AddColocTransport()
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         var listener = provider.GetRequiredService<IListener<ISimpleNetworkConnection>>();
         var clientConnection = provider.GetRequiredService<ISimpleNetworkConnection>();

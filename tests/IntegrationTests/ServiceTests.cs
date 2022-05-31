@@ -16,7 +16,7 @@ public class ServiceTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new Service(), Protocol.FromString(protocol))
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
         var service = ServicePrx.FromConnection(provider.GetRequiredService<ClientConnection>(), "/service");
         var server = provider.GetRequiredService<Server>();
         server.Listen();

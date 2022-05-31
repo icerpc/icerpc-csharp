@@ -352,7 +352,7 @@ public class ProxyTests
         router.UseFeature<ISliceDecodeFeature>(new SliceDecodeFeature { ProxyInvoker = pipeline });
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(router)
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var prx = SendProxyTestPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
@@ -370,7 +370,7 @@ public class ProxyTests
         var service = new SendProxyTest();
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(service)
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var prx = SendProxyTestPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
@@ -387,7 +387,7 @@ public class ProxyTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new ReceiveProxyTest())
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var invoker = new Pipeline();

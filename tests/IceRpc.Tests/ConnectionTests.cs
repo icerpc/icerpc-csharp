@@ -54,7 +54,7 @@ public class ConnectionTests
             .AddOptions<ServerOptions>()
             .Configure(options => options.ConnectionOptions.OnClose = (_, _) => serverConnectionClosed.SetResult());
 
-        await using var provider = services.BuildServiceProvider();
+        await using var provider = services.BuildServiceProvider(validateScopes: true);
 
         var server = provider.GetRequiredService<Server>();
         server.Listen();
@@ -88,7 +88,7 @@ public class ConnectionTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(dispatcher, Protocol.FromString(protocol))
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         var server = provider.GetRequiredService<Server>();
         server.Listen();
@@ -124,7 +124,7 @@ public class ConnectionTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(dispatcher, Protocol.FromString(protocol))
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         var server = provider.GetRequiredService<Server>();
         server.Listen();
@@ -170,7 +170,7 @@ public class ConnectionTests
             .Configure(options =>
                 options.ConnectionOptions.OnClose = (_, _) => serverConnectionClosed.SetResult(null));
 
-        await using ServiceProvider provider = services.BuildServiceProvider();
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
         var server = provider.GetRequiredService<Server>();
         server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
@@ -225,7 +225,7 @@ public class ConnectionTests
             .AddTcpTest(
                 new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
                 Protocol.FromString(protocol))
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         var server = provider.GetRequiredService<Server>();
         server.Listen();
@@ -267,7 +267,7 @@ public class ConnectionTests
             .AddOptions<ClientConnectionOptions>()
             .Configure(options => options.IsResumable = true);
 
-        await using ServiceProvider provider = services.BuildServiceProvider();
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
         var server = provider.GetRequiredService<Server>();
         server.Listen();
@@ -302,7 +302,7 @@ public class ConnectionTests
             .AddOptions<ClientConnectionOptions>()
             .Configure(options => options.IsResumable = true);
 
-        await using var provider = services.BuildServiceProvider();
+        await using var provider = services.BuildServiceProvider(validateScopes: true);
         var server = provider.GetRequiredService<Server>();
         server.Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
@@ -339,7 +339,7 @@ public class ConnectionTests
             .AddOptions<ClientConnectionOptions>()
             .Configure(options => options.IsResumable = true);
 
-        await using ServiceProvider provider = services.BuildServiceProvider();
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
@@ -369,7 +369,7 @@ public class ConnectionTests
             .AddOptions<ClientConnectionOptions>()
             .Configure(options => options.IsResumable = true);
 
-        await using var provider = services.BuildServiceProvider();
+        await using var provider = services.BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
@@ -409,7 +409,7 @@ public class ConnectionTests
             .AddOptions<ServerOptions>()
             .Configure(options => options.ConnectionOptions.KeepAlive = !keepAliveOnClient);
 
-        await using var provider = services.BuildServiceProvider();
+        await using var provider = services.BuildServiceProvider(validateScopes: true);
 
         var server = provider.GetRequiredService<Server>();
         server.Listen();
@@ -448,7 +448,7 @@ public class ConnectionTests
 
         await using ServiceProvider provider = services
             .AddTcpTest(dispatcher, Protocol.FromString(protocol))
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         var server = provider.GetRequiredService<Server>();
         server.Listen();
@@ -485,7 +485,7 @@ public class ConnectionTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(dispatcher, Protocol.FromString(protocol))
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         var server = provider.GetRequiredService<Server>();
         server.Listen();
@@ -570,7 +570,7 @@ public class ConnectionTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(dispatcher, Protocol.FromString(protocol))
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         var server = provider.GetRequiredService<Server>();
         server.Listen();
@@ -670,7 +670,7 @@ public class ConnectionTests
                 options => options.ConnectionOptions.CloseTimeout =
                     closeClientSide ? TimeSpan.FromSeconds(60) : TimeSpan.FromSeconds(1));
 
-        await using ServiceProvider provider = services.BuildServiceProvider();
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
         var server = provider.GetRequiredService<Server>();
         server.Listen();

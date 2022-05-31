@@ -16,7 +16,7 @@ public class PrxTests
     {
         await using ServiceProvider provider = new ServiceCollection()
              .AddColocTest(new MyDerivedInterface())
-             .BuildServiceProvider();
+             .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var prx = MyBaseInterfacePrx.FromConnection(provider.GetRequiredService<ClientConnection>());
@@ -31,7 +31,7 @@ public class PrxTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyBaseInterface())
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var prx = MyBaseInterfacePrx.FromConnection(provider.GetRequiredService<ClientConnection>());
