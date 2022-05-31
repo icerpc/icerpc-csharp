@@ -2,6 +2,7 @@
 
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
+using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -36,12 +37,12 @@ public static class SlicTransportServiceCollectionExtensions
             return listener;
         });
 
-        services.AddSingleton<IMultiplexedNetworkConnection>(provider =>
+        services.AddSingleton<SlicNetworkConnection>(provider =>
         {
             var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
             var clientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
             var connection = clientTransport.CreateConnection(listener.Endpoint, null, NullLogger.Instance);
-            return connection;
+            return (SlicNetworkConnection)connection;
         });
         return services;
     }
