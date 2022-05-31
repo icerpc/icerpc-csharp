@@ -3,7 +3,7 @@
 using System.Buffers;
 using System.Collections.Concurrent;
 
-namespace IceRpc.Tests;
+namespace IceRpc.Tests.Common;
 
 /// <summary>A memory pool with "poisoned" memory and small buffers.</summary>
 public class TestMemoryPool : MemoryPool<byte>

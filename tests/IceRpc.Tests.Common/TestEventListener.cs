@@ -2,7 +2,7 @@
 
 using System.Diagnostics.Tracing;
 
-namespace IceRpc.Tests;
+namespace IceRpc.Tests.Common;
 
 /// <summary>An event listener used by unit tests to wait for events published by an event source.</summary>
 public class TestEventListener : EventListener

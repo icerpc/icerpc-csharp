@@ -2,7 +2,7 @@
 
 encoding = 1;
 
-module IceRpc::Slice::Encoding::Tests;
+module IceRpc::Tests::Slice;
 
 exception MyException
 {

@@ -2,11 +2,12 @@
 
 using IceRpc.Configure;
 using IceRpc.Features;
-using IceRpc.Tests;
+using IceRpc.Slice;
+using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
-namespace IceRpc.Slice.Tests;
+namespace IceRpc.Deflate.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
 public class OperationGeneratedCodeTests

@@ -1,34 +1,32 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Tests;
+using IceRpc.Tests.Common;
+using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace IceRpc.Transports.Tests;
+namespace IceRpc.Tests.Transports;
 
 public static class SlicTransportServiceCollectionExtensions
 {
     public static IServiceCollection AddSlicTest(
         this IServiceCollection services,
-        SlicTransportOptions slicTransportOptions,
-        SlicTransportOptions? clientSlicTransportOptions = null)
+        SlicTransportOptions? slicTransportOptions = null)
     {
-        clientSlicTransportOptions ??= slicTransportOptions;
-
         services.AddColocTransport();
         var endpoint = new Endpoint(Protocol.IceRpc) { Host = "colochost" };
 
         services.
-            AddSingleton<IServerTransport<IMultiplexedNetworkConnection>>(
+            TryAddSingleton<IServerTransport<IMultiplexedNetworkConnection>>(
                 provider => new SlicServerTransport(
-                    slicTransportOptions,
+                    slicTransportOptions ?? new SlicTransportOptions(),
                     provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()));
 
         services.
-            AddSingleton<IClientTransport<IMultiplexedNetworkConnection>>(
+            TryAddSingleton<IClientTransport<IMultiplexedNetworkConnection>>(
                 provider => new SlicClientTransport(
-                    clientSlicTransportOptions,
+                    slicTransportOptions ?? new SlicTransportOptions(),
                     provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()));
 
         services.AddSingleton(provider =>

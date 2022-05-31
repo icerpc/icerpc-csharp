@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Slice::Tests;
+module IceRpc::Deflate::Tests;
 
 // Used for testing the generated code corresponding to proxy and dispatch visitors.
 interface MyOperationsA

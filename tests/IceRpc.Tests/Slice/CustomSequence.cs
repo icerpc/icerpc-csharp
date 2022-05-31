@@ -2,7 +2,7 @@
 
 using System.Collections;
 
-namespace IceRpc.Slice.Tests;
+namespace IceRpc.Tests.Slice;
 
 public class CustomSequence<T> : IList<T>
 {

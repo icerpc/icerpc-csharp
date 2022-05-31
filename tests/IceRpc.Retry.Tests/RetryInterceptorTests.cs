@@ -1,11 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Configure;
 using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
-using IceRpc.Tests;
+using IceRpc.Tests.Common;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System.Buffers;
