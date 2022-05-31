@@ -4,7 +4,12 @@ using IceRpc.Slice;
 
 namespace IceRpc.Deadline;
 
-/// <summary>The deadline interceptor sets the invocation timeout and encodes the deadline field.</summary>
+/// <summary>The deadline interceptor sets the invocation timeout and encodes the deadline field. When the request
+/// carries a deadline feature the invocation timeout set by the <see cref="ITimeoutFeature"/> or with the interceptor
+/// is ignored and the caller must pass a cancelable cancellation token to the invocation, otherwise the interceptor
+/// creates a cancellation token that is canceled after the configured timeout, and computes the request deadline from the
+/// configured timeout. The timeout set by <see cref="ITimeoutFeature"/> always has preference over the timeout
+/// configured with the interceptor allowing to overwrite the invocation timeout per request.</summary>
 public class DeadlineInterceptor : IInvoker
 {
     private readonly IInvoker _next;
