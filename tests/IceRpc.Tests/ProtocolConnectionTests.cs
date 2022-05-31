@@ -70,8 +70,6 @@ public sealed class ProtocolConnectionTests
                     provider.GetRequiredService<IConnection>(),
                     acceptRequests: false);
 
-
-
         Task clientAcceptRequestsTask = sut.Client.AcceptRequestsAsync(provider.GetRequiredService<IConnection>());
         Task serverAcceptRequestsTask = sut.Server.AcceptRequestsAsync(provider.GetRequiredService<IConnection>());
 
@@ -224,7 +222,7 @@ public sealed class ProtocolConnectionTests
                     provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>(),
                     connection,
                     serverOptions: serverOptions);
-        
+
         // Act
         await sut.Value.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
 
@@ -593,7 +591,7 @@ public sealed class ProtocolConnectionTests
             });
 
         var serverOptions = new ServerOptions
-        { 
+        {
             ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
         };
 
