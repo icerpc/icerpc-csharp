@@ -451,7 +451,7 @@ public sealed class ProtocolConnectionTests
         };
 
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol, dispatcher)
+            .AddProtocolTest(protocol)
             .BuildServiceProvider(validateScopes: true);
         IConnection connection = provider.GetRequiredService<IConnection>();
         using var sut = protocol == Protocol.Ice ?
@@ -493,7 +493,7 @@ public sealed class ProtocolConnectionTests
         };
 
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol, dispatcher)
+            .AddProtocolTest(protocol)
             .BuildServiceProvider(validateScopes: true);
         IConnection connection = provider.GetRequiredService<IConnection>();
         using var sut = protocol == Protocol.Ice ?

@@ -147,7 +147,7 @@ public sealed class IceRpcProtocolConnectionTests
         var dispatcher = new InlineDispatcher((request, cancel) => throw thrownException);
 
         await using var provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .AddProtocolTest(Protocol.IceRpc)
             .BuildServiceProvider(validateScopes: true);
 
         using var sut = await ProtocolTests.CreateClientServerProtocolConnectionAsync(

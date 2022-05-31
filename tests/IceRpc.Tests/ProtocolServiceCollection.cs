@@ -34,23 +34,11 @@ internal struct ClientServerProtocolConnection : IDisposable
 
 public static class ProtocolServiceCollectionExtensions
 {
-    public static IServiceCollection AddProtocolTest(
-        this IServiceCollection services,
-        Protocol protocol,
-        IDispatcher? dispatcher = null)
+    public static IServiceCollection AddProtocolTest(this IServiceCollection services, Protocol protocol)
     {
         var endpoint = new Endpoint(protocol) { Host = "colochost" };
         services.AddColocTransport();
         services.AddSingleton(protocol);
-
-        if (dispatcher != null)
-        {
-            services.AddOptions<ServerOptions>().Configure(
-                options =>
-                {
-                    options.ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher };
-                });
-        }
 
         services.TryAddSingleton<IConnection>(
             protocol == Protocol.Ice ? InvalidConnection.Ice : InvalidConnection.IceRpc);
@@ -101,7 +89,6 @@ internal static class ProtocolTests
         IClientTransport<T> clientTransport,
         IListener<T> listener,
         IConnection connection,
-        ConnectionOptions? clientConnectionOptions = null,
         ServerOptions? serverOptions = null,
         bool acceptRequests = true) where T : INetworkConnection
     {
@@ -122,7 +109,7 @@ internal static class ProtocolTests
             clientNetworkConnection,
             connectionInformation: new(),
             false,
-            clientConnectionOptions ?? new ConnectionOptions(),
+            new ConnectionOptions(),
             CancellationToken.None);
 
         IProtocolConnection serverProtocolConnection = await serverTask;
