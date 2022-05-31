@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Conformance.Tests;
 using IceRpc.Tests.Common;
+using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -23,11 +23,17 @@ public class SimpleNetworkConnectionWriterTests
             .UseSimpleTransport("icerpc://colochost/")
             .AddColocTransport()
             .BuildServiceProvider();
-        using ClientServerSimpleTransportConnection sut = await provider.ConnectAndAcceptAsync();
+        var listener = provider.GetRequiredService<IListener<ISimpleNetworkConnection>>();
+        var clientConnection = provider.GetRequiredService<ISimpleNetworkConnection>();
+        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
+        Task<NetworkConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
+        using ISimpleNetworkConnection serverConnection = await acceptTask;
+        Task<NetworkConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
+        await Task.WhenAll(clientConnectTask, serverConnectTask);
 
         var activityTracker = new SimpleNetworkConnectionActivityTracker();
         using var writer = new SimpleNetworkConnectionWriter(
-            sut.ClientConnection,
+            clientConnection,
             activityTracker,
             MemoryPool<byte>.Shared,
             4096);
