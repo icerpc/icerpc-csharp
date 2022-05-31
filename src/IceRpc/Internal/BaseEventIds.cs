@@ -16,6 +16,6 @@ namespace IceRpc.Internal
         internal const int Slic = 4 * EventIdRange;
         /// <summary>The base event ID for Tcp tracing.</summary>
         internal const int Tcp = 5 * EventIdRange;
-        private const int EventIdRange = 128;
+        private const int EventIdRange = 100;
     }
 }
