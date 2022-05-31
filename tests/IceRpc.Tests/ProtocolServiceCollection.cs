@@ -94,109 +94,45 @@ public static class ProtocolServiceCollectionExtensions
     }
 }
 
-internal static class ProtocolServiceProviderExtensions
+internal static class ProtocolTests
 {
-    internal static async Task<ClientServerProtocolConnection> GetClientServerProtocolConnectionAsync(
-        this IServiceProvider provider,
-        Protocol protocol,
-        bool acceptRequests = true)
+    internal static async Task<ClientServerProtocolConnection> CreateClientServerProtocolConnectionAsync<T>(
+        IProtocolConnectionFactory<T> protocolConnectionFactory,
+        IClientTransport<T> clientTransport,
+        IListener<T> listener,
+        IConnection connection,
+        ConnectionOptions? clientConnectionOptions = null,
+        ServerOptions? serverOptions = null,
+        bool acceptRequests = true) where T : INetworkConnection
     {
-        Task<IProtocolConnection> serverTask;
-        ServerOptions serverOptions = provider.GetService<IOptions<ServerOptions>>()?.Value ?? new();
-        if (protocol == Protocol.Ice)
-        {
-            serverTask = GetProtocolConnectionAsync(
-                provider,
-                isServer: true,
-                serverOptions.ConnectionOptions,
-                () => GetServerNetworkConnectionAsync<ISimpleNetworkConnection>(provider));
-        }
-        else
-        {
-            serverTask = GetProtocolConnectionAsync(
-                provider,
-                isServer: true,
-                serverOptions.ConnectionOptions,
-                () => GetServerNetworkConnectionAsync<IMultiplexedNetworkConnection>(provider));
-        }
+        T clientNetworkConnection = clientTransport.CreateConnection(listener.Endpoint, null, NullLogger.Instance);
+        var connectTask = clientNetworkConnection.ConnectAsync(CancellationToken.None);
+        T serverNetworkConnection = await listener.AcceptAsync();
+        await serverNetworkConnection.ConnectAsync(CancellationToken.None);
+        await connectTask;
 
-        IProtocolConnection clientProtocolConnection;
-        ConnectionOptions connectionOptions = provider.GetService<ConnectionOptions>() ?? new();
-        if (protocol == Protocol.Ice)
-        {
-            clientProtocolConnection = await GetProtocolConnectionAsync<ISimpleNetworkConnection>(
-                provider,
-                isServer: false,
-                connectionOptions,
-                () => GetClientNetworkConnectionAsync<ISimpleNetworkConnection>(provider));
-        }
-        else
-        {
-            clientProtocolConnection = await GetProtocolConnectionAsync<IMultiplexedNetworkConnection>(
-                provider,
-                isServer: false,
-                connectionOptions,
-                () => GetClientNetworkConnectionAsync<IMultiplexedNetworkConnection>(provider));
-        }
+        var serverTask = protocolConnectionFactory.CreateProtocolConnectionAsync(
+            serverNetworkConnection,
+            connectionInformation: new(),
+            true,
+            serverOptions?.ConnectionOptions ?? new ConnectionOptions(),
+            CancellationToken.None);
+
+        IProtocolConnection clientProtocolConnection = await protocolConnectionFactory.CreateProtocolConnectionAsync(
+            clientNetworkConnection,
+            connectionInformation: new(),
+            false,
+            clientConnectionOptions ?? new ConnectionOptions(),
+            CancellationToken.None);
 
         IProtocolConnection serverProtocolConnection = await serverTask;
 
         if (acceptRequests)
         {
-            _ = clientProtocolConnection.AcceptRequestsAsync(provider.GetRequiredService<IConnection>());
-            _ = serverProtocolConnection.AcceptRequestsAsync(provider.GetRequiredService<IConnection>());
+            _ = clientProtocolConnection.AcceptRequestsAsync(connection);
+            _ = serverProtocolConnection.AcceptRequestsAsync(connection);
         }
 
         return new ClientServerProtocolConnection(clientProtocolConnection, serverProtocolConnection);
-
-        static async Task<IProtocolConnection> GetProtocolConnectionAsync<T>(
-            IServiceProvider serviceProvider,
-            bool isServer,
-            ConnectionOptions connectionOptions,
-            Func<Task<T>> networkConnectionFactory)
-            where T : INetworkConnection
-        {
-            T networkConnection = await networkConnectionFactory();
-
-            IProtocolConnection protocolConnection =
-                await serviceProvider.GetRequiredService<IProtocolConnectionFactory<T>>().CreateProtocolConnectionAsync(
-                    networkConnection,
-                    connectionInformation: new(),
-                    isServer,
-                    connectionOptions,
-                    CancellationToken.None);
-            return protocolConnection;
-        }
-
-        static async Task<T> GetServerNetworkConnectionAsync<T>(IServiceProvider provider)
-            where T : INetworkConnection
-        {
-            IListener<T> listener = provider.GetRequiredService<IListener<T>>();
-            T connection = await listener.AcceptAsync();
-            await connection.ConnectAsync(default);
-            return connection;
-        }
-
-        static async Task<T> GetClientNetworkConnectionAsync<T>(IServiceProvider provider)
-            where T : INetworkConnection
-        {
-            Endpoint endpoint = provider.GetRequiredService<IListener<T>>().Endpoint;
-            ILogger logger = provider.GetService<ILogger>() ?? NullLogger.Instance;
-            T connection = provider.GetRequiredService<IClientTransport<T>>().CreateConnection(
-                endpoint,
-                provider.GetService<SslClientAuthenticationOptions>(),
-                logger);
-            if (logger != NullLogger.Instance)
-            {
-                LogNetworkConnectionDecoratorFactory<T>? decorator =
-                    provider.GetService<LogNetworkConnectionDecoratorFactory<T>>();
-                if (decorator != null)
-                {
-                    connection = decorator(connection, endpoint, false, logger);
-                }
-            }
-            await connection.ConnectAsync(default);
-            return connection;
-        }
     }
 }
