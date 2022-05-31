@@ -64,10 +64,9 @@ public static class Program
                 {
                     // The invoker is a pipeline configured with the logger and telemetry interceptors. The
                     // interceptors use the logger factory provided by the .NET Generic Host.
-                    ILoggerFactory loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
                     return new Pipeline()
-                        .UseLogger(loggerFactory)
-                        .UseTelemetry(serviceProvider.GetRequiredService<ActivitySource>(), loggerFactory);
+                        .UseLogger(serviceProvider.GetRequiredService<ILoggerFactory>())
+                        .UseTelemetry(serviceProvider.GetRequiredService<ActivitySource>());
                 });
 
                 services.AddIceRpcClientConnection();
