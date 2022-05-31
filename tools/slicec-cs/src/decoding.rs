@@ -254,9 +254,11 @@ decoder.DecodeSequence(
                         enum_type_name =
                             element_type.to_type_string(namespace, TypeContext::Decode, false),
                         underlying_extensions_class = enum_def
-                            .escape_scoped_identifier_with_prefix_and_suffix(
-                                &enum_def.get_underlying_cs_type(),
-                                "Extensions",
+                            .escape_scoped_identifier_with_suffix(
+                                &format!(
+                                    "{}Extensions",
+                                    fix_case(&enum_def.get_underlying_cs_type(), CaseStyle::Pascal)
+                                ),
                                 namespace
                             ),
                         name = fix_case(enum_def.identifier(), CaseStyle::Pascal),
@@ -335,9 +337,11 @@ decoder.DecodeSequence(
                         enum_type =
                             element_type.to_type_string(namespace, TypeContext::Decode, false),
                         underlying_extensions_class = enum_def
-                            .escape_scoped_identifier_with_prefix_and_suffix(
-                                &enum_def.get_underlying_cs_type(),
-                                "Extensions",
+                            .escape_scoped_identifier_with_suffix(
+                                &format!(
+                                    "{}Extensions",
+                                    fix_case(&enum_def.get_underlying_cs_type(), CaseStyle::Pascal)
+                                ),
                                 namespace
                             ),
                         name = fix_case(enum_def.identifier(), CaseStyle::Pascal),

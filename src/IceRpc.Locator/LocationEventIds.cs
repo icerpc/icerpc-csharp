@@ -7,7 +7,7 @@ namespace IceRpc.Locator;
 public enum LocationEventIds
 {
     /// <summary>The location resolver is resolving a location.</summary>
-    Resolving = IceRpc.Internal.BaseEventIds.Location,
+    Resolving,
 
     /// <summary>The location resolver resolved successfully a location.</summary>
     Resolved,
