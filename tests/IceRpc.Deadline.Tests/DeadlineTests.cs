@@ -2,7 +2,7 @@
 
 using IceRpc.Configure;
 using IceRpc.Features;
-using IceRpc.Tests;
+using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 

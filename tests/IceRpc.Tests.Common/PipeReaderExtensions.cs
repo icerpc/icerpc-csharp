@@ -2,7 +2,7 @@
 
 using System.IO.Pipelines;
 
-namespace IceRpc.Tests;
+namespace IceRpc.Tests.Common;
 
 public static class PipeReaderExtensions
 {

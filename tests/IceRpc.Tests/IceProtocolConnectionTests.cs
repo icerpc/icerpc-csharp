@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
+using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 

@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using System.Net.Security;
 
-namespace IceRpc.Tests;
+namespace IceRpc.Tests.Common;
 
 public static class ServiceCollectionExtensions
 {

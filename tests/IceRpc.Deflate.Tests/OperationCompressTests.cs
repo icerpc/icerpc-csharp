@@ -3,10 +3,11 @@
 using IceRpc.Configure;
 using IceRpc.Features;
 using IceRpc.Slice;
+using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
-namespace IceRpc.Tests.Slice;
+namespace IceRpc.Deflate.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
 public class OperationGeneratedCodeTests

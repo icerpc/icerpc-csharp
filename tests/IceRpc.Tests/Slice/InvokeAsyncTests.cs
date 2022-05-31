@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
+using IceRpc.Tests.Common;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice;
