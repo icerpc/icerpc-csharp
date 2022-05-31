@@ -1,9 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using NUnit.Framework;
 
-namespace IceRpc.Slice.Tests;
+namespace IceRpc.Tests.Slice;
 
 public sealed class TraitEncodingTests
 {
@@ -35,7 +36,7 @@ public sealed class TraitEncodingTests
     {
         var buffer = new MemoryBufferWriter(new byte[1024]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        encoder.EncodeString("::IceRpc::Slice::Tests::TraitStructB");
+        encoder.EncodeString("::IceRpc::Tests::Slice::TraitStructB");
         var traitStructB1 = new TraitStructB(79);
         traitStructB1.Encode(ref encoder);
         var decoder = new SliceDecoder(
@@ -55,7 +56,7 @@ public sealed class TraitEncodingTests
     {
         var buffer = new MemoryBufferWriter(new byte[1024]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        encoder.EncodeString("::IceRpc::Slice::Tests::TraitStructA");
+        encoder.EncodeString("::IceRpc::Tests::Slice::TraitStructA");
         var tsa = new TraitStructA("Bar");
         tsa.Encode(ref encoder);
         var decoder = new SliceDecoder(
@@ -77,7 +78,7 @@ public sealed class TraitEncodingTests
         var buffer = new MemoryBufferWriter(new byte[1024]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         var traitStructB = new TraitStructB(42);
-        encoder.EncodeString("::IceRpc::Slice::Tests::FakeTrait");
+        encoder.EncodeString("::IceRpc::Tests::Slice::FakeTrait");
         traitStructB.Encode(ref encoder);
 
         // Act/Assert
@@ -131,7 +132,7 @@ public sealed class TraitEncodingTests
             buffer.WrittenMemory,
             SliceEncoding.Slice2,
             activator: SliceDecoder.GetActivator(typeof(TraitStructA).Assembly));
-        Assert.That(decoder.DecodeString(), Is.EqualTo("::IceRpc::Slice::Tests::TraitStructA"));
+        Assert.That(decoder.DecodeString(), Is.EqualTo("::IceRpc::Tests::Slice::TraitStructA"));
         Assert.That(new TraitStructA(ref decoder), Is.EqualTo(traitStructA));
     }
 }

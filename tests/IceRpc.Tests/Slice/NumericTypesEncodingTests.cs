@@ -1,8 +1,10 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using NUnit.Framework;
-namespace IceRpc.Slice.Tests;
+
+namespace IceRpc.Tests.Slice;
 
 /// <summary>Test encoding of built-in types with the supported Slice encodings.</summary>
 [Parallelizable(scope: ParallelScope.All)]

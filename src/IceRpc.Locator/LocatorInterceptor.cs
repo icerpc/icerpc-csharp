@@ -178,7 +178,7 @@ public class LocatorLocationResolver : ILocationResolver
                 $"{nameof(options.RefreshThreshold)} must be smaller than {nameof(options.Ttl)}");
         }
 
-        ILogger logger = loggerFactory.CreateLogger("IceRpc");
+        ILogger logger = loggerFactory.CreateLogger("IceRpc.Locator");
         bool installLogDecorator = logger.IsEnabled(LogLevel.Information);
 
         // Create and decorate endpoint cache (if caching enabled):

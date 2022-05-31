@@ -1,11 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Conformance.Tests;
+using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.IO.Pipelines;
 
-namespace IceRpc.Transports.Tests;
+namespace IceRpc.Tests.Transports;
 
 /// <summary>Unit tests for slic transport.</summary>
 [Parallelizable(ParallelScope.All)]
@@ -16,13 +18,25 @@ public class SlicTransportTests
     {
         // Arrange
         await using ServiceProvider serviceProvider = new ServiceCollection()
-            .AddSlicTest(
-                new SlicTransportOptions
-                {
-                    PauseWriterThreshold = 6893,
-                    ResumeWriterThreshold = 2000,
-                    PacketMaxSize = 2098
-                })
+            .AddSingleton<IServerTransport<IMultiplexedNetworkConnection>>(
+                provider => new SlicServerTransport(
+                    new SlicTransportOptions
+                    {
+                        PauseWriterThreshold = 6893,
+                        ResumeWriterThreshold = 2000,
+                        PacketMaxSize = 2098
+                    },
+                    provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()))
+            .AddSingleton<IClientTransport<IMultiplexedNetworkConnection>>(
+                provider => new SlicClientTransport(
+                    new SlicTransportOptions
+                    {
+                        PauseWriterThreshold = 2405,
+                        ResumeWriterThreshold = 2000,
+                        PacketMaxSize = 4567
+                    },
+                    provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()))
+            .AddSlicTest()
             .BuildServiceProvider();
 
         using var clientConnection = (SlicNetworkConnection)serviceProvider.CreateConnection();
@@ -34,9 +48,9 @@ public class SlicTransportTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(serverConnection.PeerPauseWriterThreshold, Is.EqualTo(6893));
+            Assert.That(serverConnection.PeerPauseWriterThreshold, Is.EqualTo(2405));
             Assert.That(clientConnection.PeerPauseWriterThreshold, Is.EqualTo(6893));
-            Assert.That(serverConnection.PeerPacketMaxSize, Is.EqualTo(2098));
+            Assert.That(serverConnection.PeerPacketMaxSize, Is.EqualTo(4567));
             Assert.That(clientConnection.PeerPacketMaxSize, Is.EqualTo(2098));
         });
     }

@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc.Tests;
+namespace IceRpc.Tests.Common;
 
 /// <summary>Provides invalid shared connections. Each connection is protocol-specific.</summary>
 public static class InvalidConnection

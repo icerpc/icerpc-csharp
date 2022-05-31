@@ -1,12 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
 
-namespace IceRpc.Transports.Tests;
+namespace IceRpc.Conformance.Tests;
 
 /// <summary>Conformance tests for the multiplexed transports.</summary>
 public abstract class MultiplexedTransportConformanceTests

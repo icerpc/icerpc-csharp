@@ -8,7 +8,7 @@ using NUnit.Framework.Internal;
 
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace IceRpc.Tests;
+namespace IceRpc.Tests.Common;
 
 /// <summary>LogLevel setting for the LogAttribute. The enum declaration is duplicated here to avoid
 /// having to add a using Microsoft.Extensions.Logging directive in the test source code.</summary>

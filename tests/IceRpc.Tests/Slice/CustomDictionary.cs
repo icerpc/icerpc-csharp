@@ -3,7 +3,7 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 
-namespace IceRpc.Slice.Tests;
+namespace IceRpc.Tests.Slice;
 
 public class CustomDictionary<TKey, TValue> : IDictionary<TKey, TValue> where TKey : notnull
 {

@@ -3,7 +3,7 @@
 using IceRpc.Configure;
 using IceRpc.Slice;
 using IceRpc.Features;
-using IceRpc.Tests;
+using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.IO.Pipelines;

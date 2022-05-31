@@ -4,7 +4,7 @@ using IceRpc.Configure;
 using IceRpc.Features;
 using IceRpc.RequestContext;
 using IceRpc.Slice;
-using IceRpc.Tests;
+using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;

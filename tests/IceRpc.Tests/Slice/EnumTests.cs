@@ -1,8 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
 using NUnit.Framework;
+using System.IO.Pipelines;
 
-namespace IceRpc.Slice.Tests;
+namespace IceRpc.Tests.Slice;
 
 public class EnumTests
 {
@@ -48,4 +50,89 @@ public class EnumTests
     [TestCase(sizeof(MyUncheckedEnum), sizeof(uint))]
     public void Enum_has_the_expected_size(int size, int expectedSize) =>
         Assert.That(size, Is.EqualTo(expectedSize));
+
+    [Test]
+    public void Operation_with_checked_enum_sequence_parameter()
+    {
+        // Arrange
+        var expected = new MyEnum[]
+        {
+            MyEnum.enum1,
+            MyEnum.enum2,
+            MyEnum.enum3,
+        };
+
+        // Act
+        var payload = EnumOperatonsPrx.Request.OpCheckedEnumSeq(expected);
+
+        // Assert
+        var decoded = Decode(payload);
+        Assert.That(decoded, Is.EqualTo(expected));
+        payload.Complete();
+
+        static MyEnum[] Decode(PipeReader payload)
+        {
+            payload.TryRead(out var readResult);
+            var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+            decoder.SkipSize();
+            return decoder.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeMyEnum());
+        }
+    }
+
+    [Test]
+    public void Operation_with_checked_fixed_length_enum_sequence_parameter()
+    {
+        // Arrange
+        var expected = new MyFixedLengthEnum[]
+        {
+            MyFixedLengthEnum.senum1,
+            MyFixedLengthEnum.senum2,
+            MyFixedLengthEnum.senum3,
+        };
+
+        // Act
+        var payload = EnumOperatonsPrx.Request.OpCheckedEnumWithFixedLengthSeq(expected);
+
+        // Assert
+        var decoded = Decode(payload);
+        Assert.That(decoded, Is.EqualTo(expected));
+        payload.Complete();
+
+        static MyFixedLengthEnum[] Decode(PipeReader payload)
+        {
+            payload.TryRead(out var readResult);
+            var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+            decoder.SkipSize();
+            return decoder.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeMyFixedLengthEnum());
+        }
+    }
+
+    [Test]
+    public void Operation_with_unchecked_enum_sequence_parameter()
+    {
+        // Arrange
+        var expected = new MyUncheckedEnum[]
+        {
+            MyUncheckedEnum.E0,
+            MyUncheckedEnum.E1,
+            MyUncheckedEnum.E2,
+            MyUncheckedEnum.E3
+        };
+
+        // Act
+        var payload = EnumOperatonsPrx.Request.OpUncheckedEnumSeq(expected.AsMemory());
+
+        // Assert
+        var decoded = Decode(payload);
+        Assert.That(decoded, Is.EqualTo(expected));
+        payload.Complete();
+
+        static MyUncheckedEnum[] Decode(PipeReader payload)
+        {
+            payload.TryRead(out var readResult);
+            var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+            decoder.SkipSize();
+            return decoder.DecodeSequence<MyUncheckedEnum>();
+        }
+    }
 }

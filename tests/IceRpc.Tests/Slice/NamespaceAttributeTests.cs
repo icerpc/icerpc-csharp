@@ -1,11 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
-using IceRpc.Tests;
+using IceRpc.Slice;
+using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
-namespace IceRpc.Slice.Tests;
+namespace IceRpc.Tests.Slice;
 
 [Parallelizable(scope: ParallelScope.All)]
 public class NamespaceAttributeTests

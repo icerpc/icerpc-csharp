@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Slice::Tests;
+module IceRpc::Tests::Slice;
 
 [cs::type("MyCustomType")]
 custom CustomType;

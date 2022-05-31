@@ -2,64 +2,64 @@
 
 encoding = 1;
 
-module IceRpc::Slice::Tests;
+module IceRpc::Tests::Slice;
 
-class MyBaseClass
+class SlicingBaseClass
 {
     m1: string,
 }
 
-class MyDerivedClass : MyBaseClass
+class SlicingDerivedClass : SlicingBaseClass
 {
     m2: string,
 }
 
-class MyMostDerivedClass : MyDerivedClass
+class SlicingMostDerivedClass : SlicingDerivedClass
 {
     m3: string,
 }
 
-class MyCompactBaseClass(1)
+class SlicingCompactBaseClass(1)
 {
     m1: string,
 }
 
-class MyCompactDerivedClass(2) : MyCompactBaseClass
+class SlicingCompactDerivedClass(2) : SlicingCompactBaseClass
 {
     m2: string,
 }
 
-class MyCompactMostDerivedClass(3) : MyCompactDerivedClass
+class SlicingCompactMostDerivedClass(3) : SlicingCompactDerivedClass
 {
     m3: string,
 }
 
-exception MyBaseException
+exception SlicingBaseException
 {
     m1: string,
 }
 
-exception MyDerivedException : MyBaseException
+exception SlicingDerivedException : SlicingBaseException
 {
     m2: string,
 }
 
-exception MyMostDerivedException : MyDerivedException
+exception SlicingMostDerivedException : SlicingDerivedException
 {
     m3: string,
 }
 
-class MyPreservedClass : MyBaseClass
+class SlicingPreservedClass : SlicingBaseClass
 {
     m2: string,
 }
 
-class MyPreservedDerivedClass1 : MyPreservedClass
+class SlicingPreservedDerivedClass1 : SlicingPreservedClass
 {
-    m3: MyBaseClass,
+    m3: SlicingBaseClass,
 }
 
-class MyPreservedDerivedClass2(56) : MyPreservedClass
+class SlicingPreservedDerivedClass2(56) : SlicingPreservedClass
 {
-    m3: MyBaseClass,
+    m3: SlicingBaseClass,
 }
