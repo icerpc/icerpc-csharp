@@ -96,7 +96,7 @@ public sealed class IceProtocolConnectionTests
             options.ConnectionOptions.MaxIceConcurrentDispatches = maxConcurrentDispatches;
         });
 
-        await using var serviceProvider = services.BuildServiceProvider();
+        await using var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.Ice);
 
@@ -151,7 +151,7 @@ public sealed class IceProtocolConnectionTests
                 options.ConnectionOptions.Dispatcher = dispatcher;
                 options.ConnectionOptions.MaxIceConcurrentDispatches = 1;
             });
-        await using var serviceProvider = services.BuildServiceProvider();
+        await using var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.Ice);
 
@@ -185,7 +185,7 @@ public sealed class IceProtocolConnectionTests
 
         await using var serviceProvider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.Ice);
         var request = new OutgoingRequest(proxy);
@@ -212,7 +212,7 @@ public sealed class IceProtocolConnectionTests
 
         await using var serviceProvider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.Ice);
         var request = new OutgoingRequest(new Proxy(Protocol.Ice));
@@ -242,7 +242,7 @@ public sealed class IceProtocolConnectionTests
 
         await using var serviceProvider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
         using var clientServerProtocolConnection =
             await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.Ice);
 
@@ -275,7 +275,7 @@ public sealed class IceProtocolConnectionTests
                     await hold.WaitAsync(cancel);
                     return new OutgoingResponse(request);
                 }))
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.Ice);
 

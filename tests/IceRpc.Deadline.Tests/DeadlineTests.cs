@@ -46,7 +46,7 @@ public sealed class DeadlineTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(sut)
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
 

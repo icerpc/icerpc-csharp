@@ -18,7 +18,7 @@ public class TypeNameQualificationTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new TypeNameQualification())
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var prx = TypeNameQualificationOperationsPrx.FromConnection(provider.GetRequiredService<ClientConnection>());

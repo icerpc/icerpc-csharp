@@ -41,7 +41,7 @@ public class OperationGeneratedCodeTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(router)
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>(), "/", pipeline);

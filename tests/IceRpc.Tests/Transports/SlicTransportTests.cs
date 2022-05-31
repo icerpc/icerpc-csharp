@@ -37,7 +37,7 @@ public class SlicTransportTests
                     },
                     provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()))
             .AddSlicTest()
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         using var clientConnection = (SlicNetworkConnection)serviceProvider.CreateConnection();
         Task<IMultiplexedNetworkConnection> acceptTask = serviceProvider.AcceptConnectionAsync(clientConnection);
@@ -64,7 +64,7 @@ public class SlicTransportTests
         // Arrange
         await using ServiceProvider serviceProvider = new ServiceCollection()
             .AddSlicTest(new SlicTransportOptions { PauseWriterThreshold = pauseThreshold })
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         byte[] payload = new byte[pauseThreshold - 1];
 
@@ -96,7 +96,7 @@ public class SlicTransportTests
         byte[] payload = new byte[pauseThreshold - 1];
         await using ServiceProvider serviceProvider = new ServiceCollection()
             .AddSlicTest(new SlicTransportOptions { PauseWriterThreshold = pauseThreshold })
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         using var clientConnection = (SlicNetworkConnection)serviceProvider.CreateConnection();
         Task<IMultiplexedNetworkConnection> acceptTask = serviceProvider.AcceptConnectionAsync(clientConnection);
@@ -138,7 +138,7 @@ public class SlicTransportTests
                 {
                     PauseWriterThreshold = pauseThreshold,
                     ResumeWriterThreshold = resumeThreshold,
-                }).BuildServiceProvider();
+                }).BuildServiceProvider(validateScopes: true);
 
         using var clientConnection = (SlicNetworkConnection)serviceProvider.CreateConnection();
         Task<IMultiplexedNetworkConnection> acceptTask = serviceProvider.AcceptConnectionAsync(clientConnection);

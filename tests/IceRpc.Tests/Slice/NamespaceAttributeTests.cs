@@ -24,7 +24,7 @@ public class NamespaceAttributeTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new NamespaceOperations())
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var prx = NamespaceOperationsPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
