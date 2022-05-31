@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Tests;
+using IceRpc.Slice;
 using NUnit.Framework;
 using System.IO.Pipelines;
 
