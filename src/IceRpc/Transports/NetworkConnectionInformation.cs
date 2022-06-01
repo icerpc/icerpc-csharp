@@ -18,7 +18,7 @@ namespace IceRpc.Transports
         /// <summary>Gets the remote endpoint.</summary>
         public EndPoint RemoteEndPoint { get; }
 
-        /// <summary>Gets the peer remote certificate if TLS is used for the connection, <c>null</c> otherwise.</summary>
+        /// <summary>Gets the peer's remote certificate if TLS is used for the connection, <c>null</c> otherwise.</summary>
         public X509Certificate? RemoteCertificate { get; }
 
         /// <summary>Constructs a new instance of <see cref="NetworkConnectionInformation"/>.</summary>
