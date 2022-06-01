@@ -9,8 +9,10 @@ namespace IceRpc.Transports
     {
         /// <summary>Tranport errors.</summary>
         Transport,
+
         /// <summary>Protocol errors.</summary>
         Protocol,
+
         /// <summary>Application errors.</summary>
         Application
     }

@@ -4,7 +4,7 @@ namespace IceRpc.Slice.Internal
 {
     internal readonly partial record struct Identity
     {
-        /// <summary>The null identity.</summary>
+        /// <summary>Gets the null identity.</summary>
         internal static Identity Empty { get; } = new("", "");
 
         public override string ToString() => ToPath();

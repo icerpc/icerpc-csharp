@@ -16,6 +16,22 @@ namespace IceRpc.Transports.Internal
         private AsyncQueueCore<T> _queue = new();
 #pragma warning restore CA1805
 
+        /// <summary>Cancels the pending DequeueAsync call by completing the queue with OperationCanceledException.
+        /// Completing the queue is fine for transports but might not be for general purpose use of an asynchronous
+        /// queue.</summary>
+        void IAsyncQueueValueTaskSource<T>.Cancel() => _queue.TryComplete(new OperationCanceledException());
+
+        T IValueTaskSource<T>.GetResult(short token) => _queue.GetResult(token);
+
+        ValueTaskSourceStatus IValueTaskSource<T>.GetStatus(short token) => _queue.GetStatus(token);
+
+        void IValueTaskSource<T>.OnCompleted(
+                Action<object?> continuation,
+                object? state,
+                short token,
+                ValueTaskSourceOnCompletedFlags flags) =>
+            _queue.OnCompleted(continuation, state, token, flags);
+
         /// <summary>Asynchronously dequeues an element.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns name="value">The value of the element to dequeue.</returns>
@@ -32,20 +48,5 @@ namespace IceRpc.Transports.Internal
         /// <returns><c>true</c> if the queue as been marked as completed, <c>false</c> if the queue was already
         /// completed.</returns>
         internal bool TryComplete(Exception exception) => _queue.TryComplete(exception);
-
-        /// <summary>Cancels the pending DequeueAsync call by completing the queue with OperationCanceledException.
-        /// Completing the queue is fine for transports but might not be for general purpose use of an asynchronous
-        /// queue.</summary>
-        void IAsyncQueueValueTaskSource<T>.Cancel() => _queue.TryComplete(new OperationCanceledException());
-
-        T IValueTaskSource<T>.GetResult(short token) => _queue.GetResult(token);
-
-        ValueTaskSourceStatus IValueTaskSource<T>.GetStatus(short token) => _queue.GetStatus(token);
-
-        void IValueTaskSource<T>.OnCompleted(
-                Action<object?> continuation,
-                object? state, short token,
-                ValueTaskSourceOnCompletedFlags flags) =>
-            _queue.OnCompleted(continuation, state, token, flags);
     }
 }

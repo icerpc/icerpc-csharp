@@ -19,10 +19,10 @@ namespace IceRpc.Slice
     /// <summary>Decodes a byte buffer encoded using the Slice encoding.</summary>
     public ref partial struct SliceDecoder
     {
-        /// <summary>The Slice encoding decoded by this decoder.</summary>
+        /// <summary>Gets the Slice encoding decoded by this decoder.</summary>
         public SliceEncoding Encoding { get; }
 
-        /// <summary>The number of bytes decoded in the underlying buffer.</summary>
+        /// <summary>Gets the number of bytes decoded in the underlying buffer.</summary>
         public long Consumed => _reader.Consumed;
 
         private static readonly IActivator _defaultActivator =
@@ -321,6 +321,7 @@ namespace IceRpc.Slice
         /// <param name="fallback">An optional function that creates a trait in case the activator does not find a
         /// struct or class associated with the type ID.</param>
         /// <returns>The decoded trait.</returns>
+        /// <typeparam name="T">The type of the decoded trait.</typeparam>
         public T DecodeTrait<T>(DecodeTraitFunc<T>? fallback = null)
         {
             if (Encoding == SliceEncoding.Slice1)
@@ -352,7 +353,7 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Decodes a nullable Prx struct (Slice1 only).</summary>
-        /// <paramtype name="TPrx">The type of the Prx struct to decode.</paramtype>
+        /// <typeparam name="TPrx">The type of the Prx struct to decode.</typeparam>
         /// <returns>The decoded Prx, or null.</returns>
         public TPrx? DecodeNullablePrx<TPrx>() where TPrx : struct, IPrx
         {
@@ -365,7 +366,7 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Decodes a Prx struct.</summary>
-        /// <paramtype name="TPrx">The type of the Prx struct to decode.</paramtype>
+        /// <typeparam name="TPrx">The type of the Prx struct to decode.</typeparam>
         /// <returns>The decoded Prx struct.</returns>
         public TPrx DecodePrx<TPrx>() where TPrx : struct, IPrx
         {
@@ -380,8 +381,9 @@ namespace IceRpc.Slice
                 string proxyString = DecodeString();
                 try
                 {
-                    if (proxyString.StartsWith('/')) // relative proxy
+                    if (proxyString.StartsWith('/'))
                     {
+                        // relative proxy
                         if (_connection == null)
                         {
                             throw new InvalidOperationException(
@@ -510,7 +512,8 @@ namespace IceRpc.Slice
         /// marks the end of the tagged parameters.</param>
         /// <returns>The decoded value of the tagged parameter or data member, or null if not found.</returns>
         /// <remarks>We return a T? and not a T to avoid ambiguities in the generated code with nullable reference
-        /// types such as string?</remarks>
+        /// types such as string?.</remarks>
+        /// <typeparam name="T">The type of the decoded value.</typeparam>
         public T? DecodeTagged<T>(int tag, DecodeFunc<T> decodeFunc, bool useTagEndMarker)
         {
             if (Encoding == SliceEncoding.Slice1)
@@ -555,6 +558,7 @@ namespace IceRpc.Slice
         /// <returns>The decoded value of the tagged parameter or data member, or null if not found.</returns>
         /// <remarks>We return a T? and not a T to avoid ambiguities in the generated code with nullable reference
         /// types such as string?.</remarks>
+        /// <typeparam name="T">The type of the decoded value.</typeparam>
         public T? DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<T> decodeFunc, bool useTagEndMarker)
         {
             if (Encoding != SliceEncoding.Slice1)
@@ -583,7 +587,6 @@ namespace IceRpc.Slice
         /// <summary>Gets a bit sequence reader to read the underlying bit sequence later on.</summary>
         /// <param name="bitSequenceSize">The minimum number of bits in the sequence.</param>
         /// <returns>A bit sequence reader.</returns>
-
         public BitSequenceReader GetBitSequenceReader(int bitSequenceSize)
         {
             if (Encoding == SliceEncoding.Slice1)
@@ -744,7 +747,8 @@ namespace IceRpc.Slice
         /// copied.</returns>
         internal Dictionary<TKey, ReadOnlySequence<byte>> DecodeShallowFieldDictionary<TKey>(
             int count,
-            DecodeFunc<TKey> decodeKeyFunc) where TKey : struct
+            DecodeFunc<TKey> decodeKeyFunc)
+            where TKey : struct
         {
             Debug.Assert(count > 0);
 

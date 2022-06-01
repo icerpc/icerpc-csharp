@@ -7,7 +7,7 @@ namespace IceRpc.Slice.Internal
     /// <summary>Implements a buffer writer over a single Memory{byte}.</summary>
     internal class MemoryBufferWriter : IBufferWriter<byte>
     {
-        /// <summary>Returns the written portion of the underlying buffer.</summary>
+        /// <summary>Gets the written portion of the underlying buffer.</summary>
         internal Memory<byte> WrittenMemory => _initialBuffer[0.._written];
 
         private Memory<byte> _available;

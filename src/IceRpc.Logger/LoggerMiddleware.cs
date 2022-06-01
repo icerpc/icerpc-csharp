@@ -29,10 +29,11 @@ public class LoggerMiddleware : IDispatcher
             OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
             if (!request.IsOneway)
             {
-                _logger.LogSendingResponse(request.Connection,
-                                           request.Path,
-                                           request.Operation,
-                                           response.ResultType);
+                _logger.LogSendingResponse(
+                    request.Connection,
+                    request.Path,
+                    request.Operation,
+                    response.ResultType);
             }
             return response;
         }

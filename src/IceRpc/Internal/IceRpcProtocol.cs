@@ -9,10 +9,12 @@ namespace IceRpc.Internal
     internal sealed class IceRpcProtocol : Protocol
     {
         public override int DefaultUriPort => 4062;
+
         public override bool HasFields => true;
+
         public override bool IsSupported => true;
 
-        /// <summary>The IceRpc protocol singleton.</summary>
+        /// <summary>Gets the IceRpc protocol singleton.</summary>
         internal static IceRpcProtocol Instance { get; } = new();
 
         internal IProtocolConnectionFactory<IMultiplexedNetworkConnection> ProtocolConnectionFactory { get; } =

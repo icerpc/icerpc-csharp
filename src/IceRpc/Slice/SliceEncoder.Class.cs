@@ -10,6 +10,7 @@ using static IceRpc.Slice.Internal.Slice1Definitions;
 
 namespace IceRpc.Slice
 {
+    /// <summary>SliceEncoder class encoding methods.</summary>
     public ref partial struct SliceEncoder
     {
         /// <summary>Encodes a class instance.</summary>
@@ -53,6 +54,7 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Marks the end of the encoding of a class or exception slice.</summary>
+        /// <param name="lastSlice">Whether this is the last Slice or not.</param>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void EndSlice(bool lastSlice)
         {

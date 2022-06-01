@@ -6,7 +6,7 @@ namespace IceRpc.Slice.Internal
     /// </summary>
     internal ref struct SpanEnumerator
     {
-        /// <summary>Returns the current span.</summary>
+        /// <summary>Gets the current span.</summary>
         internal Span<byte> Current => _position >= 0 ? _currentSpan :
             throw new InvalidOperationException("enumerator not initialized");
 

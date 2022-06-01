@@ -33,7 +33,7 @@ public static class PrxExtensions
 
     /// <summary>Tests whether the target service implements the interface implemented by the TPrx typed proxy. This
     /// method is a wrapper for <see cref="IServicePrx.IceIsAAsync"/>.</summary>
-    /// <paramtype name="TPrx">The type of the target Prx struct.</paramtype>
+    /// <typeparam name="TPrx">The type of the target Prx struct.</typeparam>
     /// <param name="prx">The source Prx being tested.</param>
     /// <param name="features">The invocation features.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -60,6 +60,8 @@ public static class PrxExtensions
     /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
     /// <remarks>This method stores the response features into the invocation's response features when
     /// invocation is not null.</remarks>
+    /// <typeparam name="TPrx">The type of the Prx struct.</typeparam>
+    /// <typeparam name="T">The response type.</typeparam>
     public static Task<T> InvokeAsync<TPrx, T>(
         this TPrx prx,
         string operation,
@@ -94,8 +96,9 @@ public static class PrxExtensions
             // We perform as much work as possible in a non async method to throw exceptions synchronously.
             return ReadResponseAsync(invoker.InvokeAsync(request, cancel), request);
         }
-        catch (Exception exception) // synchronous exception throws by InvokeAsync
+        catch (Exception exception)
         {
+            // synchronous exception throws by InvokeAsync
             request.Complete(exception);
             throw;
         }
@@ -137,6 +140,7 @@ public static class PrxExtensions
     /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
     /// <remarks>This method stores the response features into the invocation's response features when invocation is
     /// not null.</remarks>
+    /// <typeparam name="TPrx">The type of the Prx struct.</typeparam>
     public static Task InvokeAsync<TPrx>(
         this TPrx prx,
         string operation,
@@ -174,8 +178,9 @@ public static class PrxExtensions
             // We perform as much work as possible in a non async method to throw exceptions synchronously.
             return ReadResponseAsync(invoker.InvokeAsync(request, cancel), request);
         }
-        catch (Exception exception) // synchronous exception thrown by InvokeAsync
+        catch (Exception exception)
         {
+            // synchronous exception thrown by InvokeAsync
             request.Complete(exception);
             throw;
         }
@@ -211,6 +216,7 @@ public static class PrxExtensions
     /// <paramtype name="TPrx">The type of the target Prx struct.</paramtype>
     /// <param name="prx">The source Prx.</param>
     /// <returns>A new TPrx instance.</returns>
+    /// <typeparam name="TPrx">The type of the Prx struct.</typeparam>
     public static TPrx ToPrx<TPrx>(this IPrx prx) where TPrx : struct, IPrx =>
         new() { EncodeFeature = prx.EncodeFeature, Proxy = prx.Proxy };
 
@@ -218,6 +224,7 @@ public static class PrxExtensions
     /// <paramtype name="TPrx">The type of source Prx struct.</paramtype>
     /// <param name="prx">The Prx struct.</param>
     /// <param name="format">The proxy format.</param>
+    /// <typeparam name="TPrx">The type of the Prx struct.</typeparam>
     public static string ToString<TPrx>(this TPrx prx, IProxyFormat format) where TPrx : struct, IPrx =>
         format.ToString(prx.Proxy);
 }

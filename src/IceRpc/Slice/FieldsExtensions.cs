@@ -16,6 +16,8 @@ namespace IceRpc.Slice
         /// <param name="decodeFunc">The function used to decode the field value.</param>
         /// <returns>The decoded field value, or default if the key was not found in <paramref name="fields"/>.
         /// </returns>
+        /// <typeparam name="TKey">The field key type.</typeparam>
+        /// <typeparam name="TValue">The type of the decode value.</typeparam>
         public static TValue? DecodeValue<TKey, TValue>(
             this IDictionary<TKey, ReadOnlySequence<byte>> fields,
             TKey key,

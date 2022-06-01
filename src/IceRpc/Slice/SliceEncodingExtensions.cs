@@ -19,7 +19,6 @@ namespace IceRpc.Slice
             {
                 throw new NotSupportedException(
                     $"{nameof(CreateSizeZeroPayload)} is only available for stream-capable Slice encodings");
-
             }
             return PipeReader.Create(_sizeZeroPayload);
         }
@@ -31,6 +30,7 @@ namespace IceRpc.Slice
         /// <param name="encodeAction">The action used to encode the streamed member.</param>
         /// <param name="useSegments"><c>true</c> if we are encoding a stream elements in segments this is the case
         /// when the streamed elements are of variable size; otherwise, <c>false</c>.</param>
+        /// <typeparam name="T">The stream element type.</typeparam>
         public static PipeReader CreatePayloadStream<T>(
             this SliceEncoding encoding,
             IAsyncEnumerable<T> asyncEnumerable,

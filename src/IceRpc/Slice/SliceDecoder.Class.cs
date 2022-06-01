@@ -11,17 +11,19 @@ using static IceRpc.Slice.Internal.Slice1Definitions;
 
 namespace IceRpc.Slice
 {
-    // Class-related methods for SliceDecoder.
+    /// <summary>SliceDecoder class encoding methods.</summary>
     public ref partial struct SliceDecoder
     {
         /// <summary>Decodes a class instance.</summary>
         /// <returns>The decoded class instance.</returns>
+        /// <typeparam name="T">The class type.</typeparam>
         public T DecodeClass<T>() where T : AnyClass =>
             DecodeNullableClass<T>() ??
                throw new InvalidDataException("decoded a null class instance, but expected a non-null instance");
 
         /// <summary>Decodes a nullable class instance.</summary>
         /// <returns>The class instance, or null.</returns>
+        /// <typeparam name="T">The class type.</typeparam>
         public T? DecodeNullableClass<T>() where T : class
         {
             if (Encoding != SliceEncoding.Slice1)
@@ -65,8 +67,9 @@ namespace IceRpc.Slice
                 DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
                 remoteException = _activator?.CreateInstance(typeId, ref this) as RemoteException;
-                if (remoteException == null && SkipSlice(typeId)) // Slice off what we don't understand.
+                if (remoteException == null && SkipSlice(typeId))
                 {
+                    // Slice off what we don't understand.
                     break;
                 }
             }
@@ -258,8 +261,9 @@ namespace IceRpc.Slice
                     instance = _activator?.CreateInstance(typeId, ref this) as AnyClass;
                 }
 
-                if (instance == null && SkipSlice(typeId)) // Slice off what we don't understand.
+                if (instance == null && SkipSlice(typeId))
                 {
+                    // Slice off what we don't understand.
                     instance = new UnknownSlicedClass();
                     // Don't decode the indirection table as it's the last entry in DeferredIndirectionTableList.
                     decodeIndirectionTable = false;
@@ -521,17 +525,19 @@ namespace IceRpc.Slice
             else if (hasIndirectionTable)
             {
                 Debug.Assert(_classContext.Current.PosAfterIndirectionTable != null);
+
                 // Move past indirection table
                 _reader.Advance(_classContext.Current.PosAfterIndirectionTable.Value - _reader.Consumed);
                 _classContext.Current.PosAfterIndirectionTable = null;
             }
 
             _classContext.Current.Slices ??= new List<SliceInfo>();
-            var info = new SliceInfo(typeId,
-                                     new ReadOnlyMemory<byte>(bytes),
-                                     Array.AsReadOnly(_classContext.Current.IndirectionTable ??
-                                        Array.Empty<AnyClass>()),
-                                     hasTaggedMembers);
+            var info = new SliceInfo(
+                typeId,
+                new ReadOnlyMemory<byte>(bytes),
+                Array.AsReadOnly(_classContext.Current.IndirectionTable ??
+                Array.Empty<AnyClass>()),
+                hasTaggedMembers);
             _classContext.Current.Slices.Add(info);
 
             // If we decoded the indirection table previously, we don't need it anymore since we're skipping this slice.

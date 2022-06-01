@@ -8,6 +8,7 @@ namespace IceRpc.Transports.Internal
 {
     /// <summary>This interface is required because AsyncQueueCore is a struct and we can't reference a struct from the
     /// function registered with the cancellation token to cancel the asynchronous dequeue call.</summary>
+    /// <typeparam name="T">The type of the result.</typeparam>
     internal interface IAsyncQueueValueTaskSource<T> : IValueTaskSource<T>
     {
         /// <summary>Cancels the asynchronous dequeue call.</summary>
@@ -21,9 +22,11 @@ namespace IceRpc.Transports.Internal
     internal struct AsyncQueueCore<T>
     {
         private Exception? _exception;
+
         // Provide thread safety using a spin lock to avoid having to create another object on the heap. The lock is
         // used to protect the setting of the signal value or exception with the manual reset value task source.
         private SpinLock _lock;
+
         // The result queue is only created when Enqueue() is called and if the result can't be set on the source when a
         // result is already set on the source.
         private Queue<T>? _queue;

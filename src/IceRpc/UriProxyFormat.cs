@@ -8,7 +8,7 @@ namespace IceRpc
     /// <summary>The default proxy format using URIs.</summary>
     public class UriProxyFormat : IProxyFormat
     {
-        /// <summary>The only instance of UriProxyFormat.</summary>
+        /// <summary>Gets the UriProxyFormat singleton instance.</summary>
         public static UriProxyFormat Instance { get; } = new();
 
         /// <summary>Parses a string into a proxy.</summary>

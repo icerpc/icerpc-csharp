@@ -232,7 +232,7 @@ namespace IceRpc
             await connection.ConnectAsync(cancel).ConfigureAwait(false);
             return connection;
 
-            void RemoveOnClose(Connection connection, Exception _)
+            void RemoveOnClose(Connection connection, Exception exception)
             {
                 var clientConnection = (ClientConnection)connection;
 

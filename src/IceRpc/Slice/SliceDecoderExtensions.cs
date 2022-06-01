@@ -85,6 +85,7 @@ namespace IceRpc.Slice
         /// <param name="decoder">The Slice decoder.</param>
         /// <param name="checkElement">A delegate used to check each element of the array (optional).</param>
         /// <returns>An array of T.</returns>
+        /// <typeparam name="T">The sequence element type.</typeparam>
         public static T[] DecodeSequence<T>(this ref SliceDecoder decoder, Action<T>? checkElement = null)
             where T : struct
         {
@@ -171,7 +172,7 @@ namespace IceRpc.Slice
         /// <typeparam name="T">The type of the elements in the array.</typeparam>
         /// <returns>An array of T.</returns>
         /// <remarks>We return a T? and not a T to avoid ambiguities in the generated code with nullable reference
-        /// types such as string?</remarks>
+        /// types such as string?.</remarks>
         public static T?[] DecodeSequenceWithBitSequence<T>(this ref SliceDecoder decoder, DecodeFunc<T> decodeFunc)
         {
             int count = decoder.DecodeSize();

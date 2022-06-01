@@ -5,7 +5,7 @@ namespace IceRpc.Extensions.DependencyInjection.Builder;
 /// <summary>A builder for configuring IceRpc server dispatcher.</summary>
 public interface IDispatcherBuilder
 {
-    /// <summary>The service provider used by the builder.</summary>
+    /// <summary>Gets the service provider used by the builder.</summary>
     IServiceProvider ServiceProvider { get; }
 
     /// <summary>Registers a route with a path. If there is an existing route at the same path, it is replaced.

@@ -18,10 +18,10 @@ namespace IceRpc.Slice
     /// <summary>Encodes data into one or more byte buffers using the Slice encoding.</summary>
     public ref partial struct SliceEncoder
     {
-        /// <summary>The number of bytes encoded by this encoder into the underlying buffer writer.</summary>
+        /// <summary>Gets the number of bytes encoded by this encoder into the underlying buffer writer.</summary>
         public int EncodedByteCount { get; private set; }
 
-        /// <summary>The Slice encoding of this encoder.</summary>
+        /// <summary>Gets the Slice encoding of this encoder.</summary>
         public SliceEncoding Encoding { get; }
 
         internal const long VarInt62MinValue = -2_305_843_009_213_693_952; // -2^61
@@ -37,6 +37,51 @@ namespace IceRpc.Slice
         private ClassContext _classContext;
 
         private Encoder? _utf8Encoder; // initialized lazily
+
+        /// <summary>Encodes a ulong as a Slice varuint62 into a span of bytes using a fixed number of bytes.</summary>
+        /// <param name="value">The value to encode.</param>
+        /// <param name="into">The destination byte buffer, which must be 1, 2, 4 or 8 bytes long.</param>
+        public static void EncodeVarUInt62(ulong value, Span<byte> into)
+        {
+            int sizeLength = into.Length;
+            Debug.Assert(sizeLength == 1 || sizeLength == 2 || sizeLength == 4 || sizeLength == 8);
+
+            (uint encodedSizeExponent, long maxSize) = sizeLength switch
+            {
+                1 => (0x00u, 63), // 2^6 - 1
+                2 => (0x01u, 16_383), // 2^14 - 1
+                4 => (0x02u, 1_073_741_823), // 2^30 - 1
+                _ => (0x03u, (long)VarUInt62MaxValue)
+            };
+
+            if (value > (ulong)maxSize)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    $"'{value}' cannot be encoded on {sizeLength} bytes");
+            }
+
+            Span<byte> ulongBuf = stackalloc byte[8];
+            value <<= 2;
+
+            value |= encodedSizeExponent;
+            MemoryMarshal.Write(ulongBuf, ref value);
+            ulongBuf[0..sizeLength].CopyTo(into);
+        }
+
+        /// <summary>Computes the minimum number of bytes required to encode a long value using the Slice encoding's
+        /// variable-size encoded representation.</summary>
+        /// <param name="value">The long value.</param>
+        /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.
+        /// </returns>
+        public static int GetVarInt62EncodedSize(long value) => 1 << GetVarInt62EncodedSizeExponent(value);
+
+        /// <summary>Computes the minimum number of bytes required to encode a ulong value using the Slice encoding's
+        /// variable-size encoded representation.</summary>
+        /// <param name="value">The ulong value.</param>
+        /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.
+        /// </returns>
+        public static int GetVarUInt62EncodedSize(ulong value) => 1 << GetVarUInt62EncodedSizeExponent(value);
 
         /// <summary>Constructs an Slice encoder.</summary>
         /// <param name="pipeWriter">The pipe writer that provides the buffers to write into.</param>
@@ -330,56 +375,12 @@ namespace IceRpc.Slice
 
         // Other methods
 
-        /// <summary>Encodes a ulong as a Slice varuint62 into a span of bytes using a fixed number of bytes.</summary>
-        /// <param name="value">The value to encode.</param>
-        /// <param name="into">The destination byte buffer, which must be 1, 2, 4 or 8 bytes long.</param>
-        public static void EncodeVarUInt62(ulong value, Span<byte> into)
-        {
-            int sizeLength = into.Length;
-            Debug.Assert(sizeLength == 1 || sizeLength == 2 || sizeLength == 4 || sizeLength == 8);
-
-            (uint encodedSizeExponent, long maxSize) = sizeLength switch
-            {
-                1 => (0x00u, 63), // 2^6 - 1
-                2 => (0x01u, 16_383), // 2^14 - 1
-                4 => (0x02u, 1_073_741_823), // 2^30 - 1
-                _ => (0x03u, (long)VarUInt62MaxValue)
-            };
-
-            if (value > (ulong)maxSize)
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(value),
-                    $"'{value}' cannot be encoded on {sizeLength} bytes");
-            }
-
-            Span<byte> ulongBuf = stackalloc byte[8];
-            value <<= 2;
-
-            value |= encodedSizeExponent;
-            MemoryMarshal.Write(ulongBuf, ref value);
-            ulongBuf[0..sizeLength].CopyTo(into);
-        }
-
-        /// <summary>Computes the minimum number of bytes required to encode a long value using the Slice encoding's
-        /// variable-size encoded representation.</summary>
-        /// <param name="value">The long value.</param>
-        /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.
-        /// </returns>
-        public static int GetVarInt62EncodedSize(long value) => 1 << GetVarInt62EncodedSizeExponent(value);
-
-        /// <summary>Computes the minimum number of bytes required to encode a ulong value using the Slice encoding's
-        /// variable-size encoded representation.</summary>
-        /// <param name="value">The ulong value.</param>
-        /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.
-        /// </returns>
-        public static int GetVarUInt62EncodedSize(ulong value) => 1 << GetVarUInt62EncodedSizeExponent(value);
-
         /// <summary>Encodes a non-null Slice2 encoded tagged value. The number of bytes needed to encode the value is
         /// not known before encoding this value (Slice2 only).</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The value to encode.</param>
         /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
+        /// <typeparam name="T">The type of the value being encoded.</typeparam>
         public void EncodeTagged<T>(int tag, T v, EncodeAction<T> encodeAction) where T : notnull
         {
             if (Encoding == SliceEncoding.Slice1)
@@ -400,6 +401,7 @@ namespace IceRpc.Slice
         /// <param name="size">The number of bytes needed to encode the value.</param>
         /// <param name="v">The value to encode.</param>
         /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
+        /// <typeparam name="T">The type of the value being encoded.</typeparam>
         public void EncodeTagged<T>(int tag, int size, T v, EncodeAction<T> encodeAction) where T : notnull
         {
             if (size <= 0)
@@ -423,8 +425,9 @@ namespace IceRpc.Slice
             int actualSize = EncodedByteCount - startPos;
             if (actualSize != size)
             {
-                throw new ArgumentException($"value of size ({size}) does not match encoded size ({actualSize})",
-                                            nameof(size));
+                throw new ArgumentException(
+                    $"value of size ({size}) does not match encoded size ({actualSize})",
+                    nameof(size));
             }
         }
 
@@ -435,6 +438,7 @@ namespace IceRpc.Slice
         /// <param name="v">The value to encode.</param>
         /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
         /// <exception cref="ArgumentException">Thrown if <paramref name="tagFormat"/> is VSize.</exception>
+        /// <typeparam name="T">The type of the value being encoded.</typeparam>
         public void EncodeTagged<T>(
             int tag,
             TagFormat tagFormat,
@@ -540,7 +544,8 @@ namespace IceRpc.Slice
                             Advance(memory.Length);
                             remaining -= memory.Length;
                         }
-                    } while (remaining > 0);
+                    }
+                    while (remaining > 0);
                 }
             }
 
@@ -590,6 +595,7 @@ namespace IceRpc.Slice
         internal static int GetBitSequenceByteCount(int bitCount) => (bitCount >> 3) + ((bitCount & 0x07) != 0 ? 1 : 0);
 
         internal static void EncodeInt32(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
+
         /// <summary>Encodes a fixed-size numeric value.</summary>
         /// <param name="v">The numeric value to encode.</param>
         internal void EncodeFixedSizeNumeric<T>(T v) where T : struct

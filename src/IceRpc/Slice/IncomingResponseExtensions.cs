@@ -44,6 +44,7 @@ namespace IceRpc.Slice
         /// <param name="decodeFunc">The decode function for the return value.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The return value.</returns>
+        /// <typeparam name="T">The return value type.</typeparam>
         public static ValueTask<T> DecodeReturnValueAsync<T>(
             this IncomingResponse response,
             OutgoingRequest request,
@@ -89,6 +90,7 @@ namespace IceRpc.Slice
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
         /// <param name="elementSize">The size in bytes of the streamed elements.</param>
         /// <returns>The async enumerable to decode and return the streamed members.</returns>
+        /// <typeparam name="T">The stream element type.</typeparam>
         public static IAsyncEnumerable<T> DecodeStream<T>(
             this IncomingResponse response,
             OutgoingRequest request,
@@ -115,6 +117,7 @@ namespace IceRpc.Slice
         /// <param name="encodeFeature">The encode feature of the Prx struct that sent the request.</param>
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
         /// <returns>The async enumerable to decode and return the streamed members.</returns>
+        /// <typeparam name="T">The stream element type.</typeparam>
         public static IAsyncEnumerable<T> DecodeStream<T>(
             this IncomingResponse response,
             OutgoingRequest request,

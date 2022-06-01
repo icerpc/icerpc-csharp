@@ -8,8 +8,8 @@ namespace IceRpc.Configure
     /// <summary>A router routes incoming requests to dispatchers.</summary>
     public sealed class Router : IDispatcher
     {
-        /// <summary>Returns the absolute path-prefix of this router. The absolute path of a service added to this
-        /// Router is <code>$"{AbsolutePrefix}{path}"</code> where <c>path</c> corresponds to the argument given to
+        /// <summary>Gets the absolute path-prefix of this router. The absolute path of a service added to this
+        /// Router is: <code>$"{AbsolutePrefix}{path}"</code> where <c>path</c> corresponds to the argument given to
         /// <see cref="Map(string, IDispatcher)"/>.</summary>
         /// <value>The absolute prefix of this router. It is either an empty string or a string with two or more
         /// characters starting with a <c>/</c>.</value>
@@ -73,7 +73,9 @@ namespace IceRpc.Configure
         /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync"/> was already
         /// called on this router.</exception>
         /// <seealso cref="Mount"/>
-        public void Map<T>(IDispatcher service) where T : class => Map(typeof(T).GetDefaultPath(), service);
+        public void Map<T>(IDispatcher service)
+            where T : class =>
+            Map(typeof(T).GetDefaultPath(), service);
 
         /// <summary>Registers a route with a prefix. If there is an existing route at the same prefix, it is replaced.
         /// </summary>

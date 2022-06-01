@@ -206,7 +206,6 @@ namespace IceRpc.Slice.Internal
                             encoding,
                             decodeFeature.MaxSegmentSize,
                             cancel).ConfigureAwait(false);
-
                     }
                     catch (Exception ex)
                     {
@@ -343,7 +342,6 @@ namespace IceRpc.Slice.Internal
                     try
                     {
                         readResult = await payload.ReadAsync(cancel).ConfigureAwait(false);
-
                     }
                     catch (Exception ex)
                     {

@@ -20,6 +20,7 @@ public static class FeatureCollectionExtensions
     /// <param name="features">This feature collection.</param>
     /// <param name="value">The new value.</param>
     /// <returns>The updated feature collection.</returns>
+    /// <typeparam name="T">The feature type.</typeparam>
     public static IFeatureCollection With<T>(this IFeatureCollection features, T value)
     {
         if (features.IsReadOnly)

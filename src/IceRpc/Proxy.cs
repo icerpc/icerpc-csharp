@@ -14,7 +14,7 @@ namespace IceRpc
     /// <seealso cref="Slice.IPrx"/>
     public sealed record class Proxy
     {
-        /// <summary>The default invoker of proxies.</summary>
+        /// <summary>Gets the default invoker of proxies.</summary>
         public static IInvoker DefaultInvoker { get; } =
             new InlineInvoker((request, cancel) =>
                 request.Connection?.InvokeAsync(request, cancel) ??
@@ -144,7 +144,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Returns the URI used to create this proxy, if this proxy was created from a URI and URI-derived
+        /// <summary>Gets the URI used to create this proxy, if this proxy was created from a URI and URI-derived
         /// properties such as <see cref="Endpoint"/> have not been updated.</summary>
         public Uri? OriginalUri { get; private set; }
 
@@ -175,7 +175,8 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The parameters of this proxy. Always empty when <see cref="Endpoint"/> is not null.</summary>
+        /// <summary>Gets or sets the parameters of this proxy. Always empty when <see cref="Endpoint"/> is not null.
+        /// </summary>
         public ImmutableDictionary<string, string> Params
         {
             get => _params;
@@ -203,7 +204,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The protocol of this proxy.</summary>
+        /// <summary>Gets the proxy's protocol .</summary>
         public Protocol Protocol { get; }
 
         private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
@@ -341,10 +342,12 @@ namespace IceRpc
                         Params = queryParams;
                     }
                 }
+
                 // else, not a supported protocol so nothing to do
             }
-            else // relative proxy
+            else
             {
+                // relative proxy
                 Protocol = Protocol.Relative;
                 _path = uri.ToString();
                 CheckPath(_path);

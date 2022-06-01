@@ -4,7 +4,7 @@ using IceRpc.Features;
 
 namespace IceRpc.Configure
 {
-    /// <summary>This class provide extension methods to add built-in middleware to a <see cref="Router"/>
+    /// <summary>This class provide extension methods to add built-in middleware to a <see cref="Router"/>.
     /// </summary>
     public static class RouterExtensions
     {
@@ -20,7 +20,7 @@ namespace IceRpc.Configure
             }));
 
         /// <summary>Adds a middleware that sets a feature in all requests.</summary>
-        /// <paramtype name="T">The type of the feature.</paramtype>
+        /// <typeparam name="T">The type of the feature.</typeparam>
         /// <param name="router">The router being configured.</param>
         /// <param name="feature">The value of the feature to set in all requests.</param>
         public static Router UseFeature<T>(this Router router, T feature) =>

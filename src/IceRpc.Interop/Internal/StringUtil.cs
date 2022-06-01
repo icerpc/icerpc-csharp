@@ -7,7 +7,12 @@ namespace IceRpc.Internal
 {
     /// <summary>Identifies different ways  to escape non-ASCII characters in identities and facets. See
     /// <see cref="IceProxyFormat"/>.</summary>
-    internal enum EscapeMode : byte { Unicode, Ascii, Compat }
+    internal enum EscapeMode : byte
+    {
+        Unicode,
+        Ascii,
+        Compat
+    }
 
     /// <summary>Helper methods for string manipulation.</summary>
     internal static class StringUtil
@@ -39,8 +44,9 @@ namespace IceRpc.Internal
         // Adds escape sequences (such as "\n", or "\007") to the input string
         internal static string EscapeString(string s, EscapeMode escapeMode, char? special = null)
         {
-            Debug.Assert(special == null || (special >= 32 && special <= 126),
-                         "special character must be in ASCII range 32-126");
+            Debug.Assert(
+                special == null || (special >= 32 && special <= 126),
+                "special character must be in ASCII range 32-126");
 
             if (escapeMode == EscapeMode.Compat)
             {
@@ -130,6 +136,113 @@ namespace IceRpc.Internal
             }
 
             return -1;
+        }
+
+        /// <summary>Helper method for split string; returns null for unmatched quotes.</summary>
+        /// <param name="str">The string to split.</param>
+        /// <param name="separators">A string containing the characters used as separators.</param>
+        /// <returns>An array of strings, whose elements correspond to the parts of the string separated by one of the
+        /// separator characters.</returns>
+        internal static string[]? SplitString(string str, string separators)
+        {
+            var l = new List<string>();
+            char[] arr = new char[str.Length];
+            int pos = 0;
+
+            int n = 0;
+            char quoteChar = '\0';
+            while (pos < str.Length)
+            {
+                if (quoteChar == '\0' && (str[pos] == '"' || str[pos] == '\''))
+                {
+                    quoteChar = str[pos++];
+                    continue; // Skip the quote.
+                }
+                else if (quoteChar == '\0' && str[pos] == '\\' && pos + 1 < str.Length &&
+                        (str[pos + 1] == '\'' || str[pos + 1] == '"'))
+                {
+                    ++pos; // Skip the backslash
+                }
+                else if (quoteChar != '\0' && str[pos] == '\\' && pos + 1 < str.Length && str[pos + 1] == quoteChar)
+                {
+                    ++pos; // Skip the backslash
+                }
+                else if (quoteChar != '\0' && str[pos] == quoteChar)
+                {
+                    ++pos;
+                    quoteChar = '\0';
+                    continue; // Skip the quote.
+                }
+                else if (separators.IndexOf(str[pos], StringComparison.InvariantCulture) != -1)
+                {
+                    if (quoteChar == '\0')
+                    {
+                        ++pos;
+                        if (n > 0)
+                        {
+                            l.Add(new string(arr, 0, n));
+                            n = 0;
+                        }
+                        continue;
+                    }
+                }
+
+                if (pos < str.Length)
+                {
+                    arr[n++] = str[pos++];
+                }
+            }
+
+            if (n > 0)
+            {
+                l.Add(new string(arr, 0, n));
+            }
+            if (quoteChar != '\0')
+            {
+                return null; // Unmatched quote.
+            }
+            return l.ToArray();
+        }
+
+        /// <summary>Remove escape sequences added by <see cref="EscapeString"/>. Throws System.ArgumentException for
+        /// an invalid input string.</summary>
+        /// <param name="s">The string to escape.</param>
+        /// <param name="start">Index to start escaping the string.</param>
+        /// <param name="end">Index to end escaping the string.</param>
+        /// <param name="special">String containing special characters that must be escape.</param>
+        /// <returns>The escaped string.</returns>
+        internal static string UnescapeString(string s, int start, int end, string special)
+        {
+            Debug.Assert(start >= 0 && start <= end && end <= s.Length);
+
+            for (int i = 0; i < special.Length; ++i)
+            {
+                if (special[i] < 32 || special[i] > 126)
+                {
+                    throw new ArgumentException("special characters must be in ASCII range 32-126", nameof(special));
+                }
+            }
+
+            // Optimization for strings without escapes
+            if (start == end || s.IndexOf('\\', start, end - start) == -1)
+            {
+                int p = start;
+                while (p < end)
+                {
+                    CheckChar(s, p++);
+                }
+                return s[start..end];
+            }
+            else
+            {
+                var sb = new StringBuilder(end - start);
+                var utf8Encoding = new UTF8Encoding(false, true);
+                while (start < end)
+                {
+                    start = DecodeChar(s, start, end, special, sb, utf8Encoding);
+                }
+                return sb.ToString();
+            }
         }
 
         private static char CheckChar(string s, int pos)
@@ -264,11 +377,11 @@ namespace IceRpc.Internal
                         }
                         if (size > 0)
                         {
-                            throw new System.ArgumentException("Invalid universal character name: too few hex digits");
+                            throw new ArgumentException("Invalid universal character name: too few hex digits");
                         }
                         if (codePoint >= 0xD800 && codePoint <= 0xDFFF)
                         {
-                            throw new System.ArgumentException("A universal character name cannot designate a surrogate");
+                            throw new ArgumentException("A universal character name cannot designate a surrogate");
                         }
                         if (inBMP || codePoint <= 0xFFFF)
                         {
@@ -509,114 +622,6 @@ namespace IceRpc.Internal
                     }
                     break;
                 }
-            }
-        }
-
-        /// <summary>Helper method for split string; returns null for unmatched quotes.</summary>
-        /// <param name="str">The string to split.</param>
-        /// <param name="separators">A string containing the characters used as separators.</param>
-        /// <returns>An array of strings, whose elements correspond to the parts of the string separated by one of the
-        /// separator characters.</returns>
-        internal static string[]? SplitString(string str, string separators)
-        {
-            var l = new List<string>();
-            char[] arr = new char[str.Length];
-            int pos = 0;
-
-            int n = 0;
-            char quoteChar = '\0';
-            while (pos < str.Length)
-            {
-                if (quoteChar == '\0' && (str[pos] == '"' || str[pos] == '\''))
-                {
-                    quoteChar = str[pos++];
-                    continue; // Skip the quote.
-                }
-                else if (quoteChar == '\0' && str[pos] == '\\' && pos + 1 < str.Length &&
-                        (str[pos + 1] == '\'' || str[pos + 1] == '"'))
-                {
-                    ++pos; // Skip the backslash
-                }
-                else if (quoteChar != '\0' && str[pos] == '\\' && pos + 1 < str.Length && str[pos + 1] == quoteChar)
-                {
-                    ++pos; // Skip the backslash
-                }
-                else if (quoteChar != '\0' && str[pos] == quoteChar)
-                {
-                    ++pos;
-                    quoteChar = '\0';
-                    continue; // Skip the quote.
-                }
-                else if (separators.IndexOf(str[pos], StringComparison.InvariantCulture) != -1)
-                {
-                    if (quoteChar == '\0')
-                    {
-                        ++pos;
-                        if (n > 0)
-                        {
-                            l.Add(new string(arr, 0, n));
-                            n = 0;
-                        }
-                        continue;
-                    }
-                }
-
-                if (pos < str.Length)
-                {
-                    arr[n++] = str[pos++];
-                }
-            }
-
-            if (n > 0)
-            {
-                l.Add(new string(arr, 0, n));
-            }
-            if (quoteChar != '\0')
-            {
-                return null; // Unmatched quote.
-            }
-            return l.ToArray();
-        }
-
-        /// <summary>Remove escape sequences added by <see cref="EscapeString"/>. Throws System.ArgumentException for
-        /// an invalid input string.</summary>
-        /// <param name="s">The string to escape.</param>
-        /// <param name="start">Index to start escaping the string.</param>
-        /// <param name="end">Index to end escaping the string.</param>
-        /// <param name="special">String containing special characters that must be escape.</param>
-        /// <returns>The escaped string.</returns>
-        internal static string UnescapeString(string s, int start, int end, string special)
-        {
-            Debug.Assert(start >= 0 && start <= end && end <= s.Length);
-
-            for (int i = 0; i < special.Length; ++i)
-            {
-                if (special[i] < 32 || special[i] > 126)
-                {
-                    throw new System.ArgumentException("special characters must be in ASCII range 32-126",
-                                                        nameof(special));
-                }
-            }
-
-            // Optimization for strings without escapes
-            if (start == end || s.IndexOf('\\', start, end - start) == -1)
-            {
-                int p = start;
-                while (p < end)
-                {
-                    CheckChar(s, p++);
-                }
-                return s[start..end];
-            }
-            else
-            {
-                var sb = new StringBuilder(end - start);
-                var utf8Encoding = new UTF8Encoding(false, true);
-                while (start < end)
-                {
-                    start = DecodeChar(s, start, end, special, sb, utf8Encoding);
-                }
-                return sb.ToString();
             }
         }
     }
