@@ -3,7 +3,7 @@
 namespace IceRpc.Deadline;
 
 /// <summary>A feature to customize the invocation timeout, the timeout feature can be used to overwrite the default
-/// invocation timeout set with the <see cref="DeadlineInterceptor"/>.</summary>
+///  timeout set with the <see cref="DeadlineInterceptor(IInvoker, TimeSpan)"/>.</summary>
 public interface ITimeoutFeature
 {
     /// <summary>Gets the timeout for the invocation.</summary>
