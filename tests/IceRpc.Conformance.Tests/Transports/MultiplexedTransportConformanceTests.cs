@@ -860,11 +860,11 @@ public abstract class MultiplexedTransportConformanceTests
             await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         IMultiplexedStream clientStream = clientConnection.CreateStream(bidirectional: true);
-        using var cancelationSource = new CancellationTokenSource();
-        ValueTask<ReadResult> readTask = clientStream.Input.ReadAsync(cancelationSource.Token);
+        using var cancellationSource = new CancellationTokenSource();
+        ValueTask<ReadResult> readTask = clientStream.Input.ReadAsync(cancellationSource.Token);
 
         // Act
-        cancelationSource.Cancel();
+        cancellationSource.Cancel();
 
         // Assert
         Assert.CatchAsync<OperationCanceledException>(async () => await readTask);
