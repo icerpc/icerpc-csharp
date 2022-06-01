@@ -9,17 +9,21 @@ namespace IceRpc.Internal
     internal sealed class InvalidPipeWriter : PipeWriter
     {
         public override bool CanGetUnflushedBytes => false;
+
         public override long UnflushedBytes => throw _notSupportedException;
 
-        /// <summary>A shared instance of this pipe writer.</summary>
+        /// <summary>Gets the InvalidPipeWriter singleton instance.</summary>
         internal static PipeWriter Instance { get; } = new InvalidPipeWriter();
 
         private static readonly Exception _notSupportedException =
             new NotSupportedException("cannot use invalid pipe writer");
 
         public override void Advance(int bytes) => throw _notSupportedException;
+
         public override Stream AsStream(bool leaveOpen = false) => throw _notSupportedException;
+
         public override void CancelPendingFlush() => throw _notSupportedException;
+
         public override void Complete(Exception? exception)
         {
             // no-op
@@ -29,6 +33,7 @@ namespace IceRpc.Internal
            throw _notSupportedException;
 
         public override Memory<byte> GetMemory(int sizeHint) => throw _notSupportedException;
+
         public override Span<byte> GetSpan(int sizeHint) => throw _notSupportedException;
 
         public override ValueTask<FlushResult> WriteAsync(

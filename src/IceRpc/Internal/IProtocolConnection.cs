@@ -6,21 +6,20 @@ namespace IceRpc.Internal
     /// protocol.</summary>
     internal interface IProtocolConnection : IDisposable
     {
-        /// <summary>Returns <c>true</c> if one or more dispatches are in progress, <c>false</c>
-        /// otherwise.</summary>
+        /// <summary>Gets a value indicating whether dispatches are in progress or not.</summary>
         bool HasDispatchesInProgress { get; }
 
-        /// <summary>Returns <c>true</c> if one or more invocations are in progress, <c>false</c>
-        /// otherwise.</summary>
+        /// <summary>Gets a value indicating whether invocations are in progress or not.</summary>
         bool HasInvocationsInProgress { get; }
 
-        /// <summary>The time elapsed since the last activity of the connection.</summary>
+        /// <summary>Gets the time elapsed since the last activity of the connection.</summary>
         TimeSpan LastActivity { get; }
 
-        /// <summary>This event is raised when the protocol connection is notified of the peer shutdown.</summary>
+        /// <summary>Gets or sets the action that is executed when the protocol connection is notified of the peer
+        /// shutdown.</summary>
         Action<string>? PeerShutdownInitiated { get; set; }
 
-        /// <summary>Returns the protocol implemented by this protocol connection.</summary>
+        /// <summary>Gets the protocol implemented by this protocol connection.</summary>
         Protocol Protocol { get; }
 
         /// <summary>Aborts the connection.</summary>
@@ -30,6 +29,7 @@ namespace IceRpc.Internal
 
         /// <summary>Accepts requests and returns once the connection is closed or the shutdown completes.</summary>
         /// <param name="connection">The connection of incoming requests created by this method.</param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         Task AcceptRequestsAsync(IConnection connection);
 
         /// <summary>Checks if the parameters of the provided endpoint are compatible with the network connection of
@@ -53,11 +53,13 @@ namespace IceRpc.Internal
 
         /// <summary>Sends a ping frame to defer the idle timeout.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         Task PingAsync(CancellationToken cancel = default);
 
         /// <summary>Shuts down gracefully the connection.</summary>
         /// <param name="message">The reason of the connection shutdown.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         Task ShutdownAsync(string message, CancellationToken cancel = default);
     }
 }

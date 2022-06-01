@@ -8,21 +8,22 @@ namespace IceRpc.Slice
         /// <inheritdoc/>
         public override string Message => _hasCustomMessage || DefaultMessage == null ? base.Message : DefaultMessage;
 
-        /// <summary>When true, if this exception is thrown from the implementation of an operation, Ice will convert
-        /// it into an Ice.UnhandledException. When false, Ice marshals this remote exception as-is. true is the
+        /// <summary>Gets or sets a value indicating whether the exception should be converted to an unhandled exception,
+        /// when true, if this exception is thrown from the implementation of an operation, Ice will convert it into an
+        /// Ice.UnhandledException. When false, Ice marshals this remote exception as-is. true is the
         /// default for exceptions unmarshaled by Ice, while false is the default for exceptions that did not originate
         /// in a remote server.</summary>
         public bool ConvertToUnhandled { get; set; }
 
-        /// <summary>The remote exception origin.</summary>
+        /// <summary>Gets the remote exception origin.</summary>
         public OutgoingRequest? Origin { get; internal set; }
 
-        /// <summary>The remote exception retry policy.</summary>
+        /// <summary>Gets the remote exception retry policy.</summary>
         public RetryPolicy RetryPolicy { get; } = RetryPolicy.NoRetry;
 
-        /// <summary>When DefaultMessage is not null and the application does not construct the exception with a
-        /// constructor that takes a message parameter, Message returns DefaultMessage. This property should be
-        /// overridden in derived partial exception classes that provide a custom default message.</summary>
+        /// <summary>Gets the exception default message. When not null and the application does not construct the
+        /// exception with a constructor that takes a message parameter, Message returns DefaultMessage. This property
+        /// should be overridden in derived partial exception classes that provide a custom default message.</summary>
         protected virtual string? DefaultMessage => null;
 
         private readonly bool _hasCustomMessage;
@@ -35,6 +36,8 @@ namespace IceRpc.Slice
         /// <param name="encoder">The Slice encoder.</param>
         /// <remarks>Implemented only by Slice2-compatible exceptions.</remarks>
         public virtual void EncodeTrait(ref SliceEncoder encoder) => throw new NotImplementedException();
+
+        internal void Decode(ref SliceDecoder decoder) => DecodeCore(ref decoder);
 
         /// <summary>Constructs a remote exception with the default system message.</summary>
         /// <param name="retryPolicy">The retry policy for the exception.</param>
@@ -72,7 +75,5 @@ namespace IceRpc.Slice
         /// <param name="encoder">The Slice encoder.</param>
         /// <remarks>Implemented for all Slice encodings.</remarks>
         protected abstract void EncodeCore(ref SliceEncoder encoder);
-
-        internal void Decode(ref SliceDecoder decoder) => DecodeCore(ref decoder);
     }
 }

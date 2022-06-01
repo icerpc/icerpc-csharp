@@ -58,7 +58,7 @@ namespace IceRpc.Transports
         /// <summary>Gets or sets the length of the server socket queue for accepting new connections. If a new
         /// connection request arrives and the queue is full, the client connection establishment will fail with a
         /// <see cref="ConnectionRefusedException"/> exception.</summary>
-        /// <value>The server socket backlog size. The default is 511</value>
+        /// <value>The server socket backlog size. The default is 511.</value>
         public int ListenerBackLog
         {
             get => _listenerBackLog;

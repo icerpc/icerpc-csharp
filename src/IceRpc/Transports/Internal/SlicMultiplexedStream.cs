@@ -24,6 +24,7 @@ namespace IceRpc.Transports.Internal
                 }
                 return id;
             }
+
             set
             {
                 Debug.Assert(_id == -1);
@@ -304,6 +305,10 @@ namespace IceRpc.Transports.Internal
                 new StreamConsumedBody((ulong)size).Encode,
                 CancellationToken.None).AsTask();
 
+        internal bool TrySetReadCompleted() => TrySetState(State.ReadsCompleted);
+
+        internal bool TrySetWriteCompleted() => TrySetState(State.WritesCompleted);
+
         private void ExecuteStateAction(ref Action? stateAction)
         {
             Action? action;
@@ -375,8 +380,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal bool TrySetReadCompleted() => TrySetState(State.ReadsCompleted);
-
         private bool TrySetState(State state)
         {
             if (_state.TrySetFlag(state, out int newState))
@@ -402,8 +405,6 @@ namespace IceRpc.Transports.Internal
                 return false;
             }
         }
-
-        internal bool TrySetWriteCompleted() => TrySetState(State.WritesCompleted);
 
         [Flags]
         private enum State : int

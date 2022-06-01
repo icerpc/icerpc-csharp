@@ -14,20 +14,20 @@ namespace IceRpc
     /// <see cref="Listen"/> and finally shut down with <see cref="ShutdownAsync"/>.</summary>
     public sealed class Server : IAsyncDisposable
     {
-        /// <summary>The default server transport for icerpc protocol connections.</summary>
+        /// <summary>Gets the default server transport for icerpc protocol connections.</summary>
         public static IServerTransport<IMultiplexedNetworkConnection> DefaultMultiplexedServerTransport { get; } =
             new SlicServerTransport(new TcpServerTransport());
 
-        /// <summary>The default server transport for ice protocol connections.</summary>
+        /// <summary>Gets the default server transport for ice protocol connections.</summary>
         public static IServerTransport<ISimpleNetworkConnection> DefaultSimpleServerTransport { get; } =
             new TcpServerTransport();
 
-        /// <summary>Returns the endpoint of this server.</summary>
+        /// <summary>Gets the server's endpoint.</summary>
         /// <value>The endpoint of this server. Once <see cref="Listen"/> is called, the endpoint's value is the
         /// listening endpoint returned by the transport.</value>
         public Endpoint Endpoint { get; private set; }
 
-        /// <summary>Returns a task that completes when the server's shutdown is complete: see <see
+        /// <summary>Gets a task that completes when the server's shutdown is complete: see <see
         /// cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
         public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
@@ -164,7 +164,8 @@ namespace IceRpc
 
                 Action<Connection, Exception>? onClose = null;
 
-                if (logger.IsEnabled(LogLevel.Error)) // TODO: log level
+                // TODO: log level
+                if (logger.IsEnabled(LogLevel.Error))
                 {
                     listener = new LogListenerDecorator<T>(listener, logger, logDecoratorFactory);
                     _listener = listener;
@@ -245,7 +246,7 @@ namespace IceRpc
                 }
             }
 
-            void RemoveOnClose(Connection connection, Exception _)
+            void RemoveOnClose(Connection connection, Exception exception)
             {
                 lock (_mutex)
                 {
@@ -323,7 +324,7 @@ namespace IceRpc
             }
         }
 
-        /// <inherit-doc/>
+        /// <inheritdoc/>
         public override string ToString() => Endpoint.ToString();
 
         /// <inheritdoc/>

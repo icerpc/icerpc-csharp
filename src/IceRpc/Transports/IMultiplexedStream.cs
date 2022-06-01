@@ -7,20 +7,20 @@ namespace IceRpc.Transports
     /// <summary>A multiplexed stream enables byte data exchange over a multiplexed transport.</summary>
     public interface IMultiplexedStream : IDuplexPipe
     {
-        /// <summary>The stream ID.</summary>
+        /// <summary>Gets the stream ID.</summary>
         /// <exception cref="InvalidOperationException">Raised if the stream is not started. Local streams are not
         /// started until data is written. A remote stream is always started.</exception>
         long Id { get; }
 
-        /// <summary>Returns <c>true</c> if the stream is a bidirectional stream, <c>false</c> otherwise.</summary>
+        /// <summary>Gets a value indicating whether the stream is bidirectional.</summary>
         bool IsBidirectional { get; }
 
-        /// <summary>Returns <c>true</c> if the stream is a remote stream, <c>false</c> otherwise. A remote stream is a
+        /// <summary>Gets a value indicating whether the stream is remote. A remote stream is a
         /// stream initiated by the peer and it's returned by <see
         /// cref="IMultiplexedNetworkConnection.AcceptStreamAsync(CancellationToken)"/>.</summary>
         bool IsRemote { get; }
 
-        /// <summary>Returns <c>true</c> if the local stream is started, <c>false</c> otherwise.</summary>
+        /// <summary>Gets a value indicating whether the stream is started.</summary>
         bool IsStarted { get; }
 
         /// <summary>Aborts the stream. This will cause the stream <see cref="IDuplexPipe.Input"/> and <see

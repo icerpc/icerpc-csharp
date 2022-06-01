@@ -283,8 +283,10 @@ namespace IceRpc.Transports.Internal
         {
             /// <summary><see cref="Complete"/> was called on this Slic pipe reader.</summary>
             Completed = 1,
+
             /// <summary>Data is being written to the internal pipe writer.</summary>
             PipeWriterInUse = 2,
+
             /// <summary>The internal pipe writer was completed either by <see cref="Complete"/> or <see
             /// cref="ReceivedResetFrame"/>.</summary>
             PipeWriterCompleted = 4

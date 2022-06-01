@@ -23,11 +23,11 @@ namespace IceRpc
         public IDictionary<RequestFieldKey, OutgoingFieldValue> Fields { get; set; } =
             ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty;
 
-        /// <summary>Gets or initializes whether this request is oneway or two-way.</summary>
+        /// <summary>Gets a value indicating whether this request is oneway or two-way.</summary>
         /// <value><c>true</c> for oneway requests, <c>false</c> otherwise. The default is <c>false</c>.</value>
         public bool IsOneway { get; init; }
 
-        /// <summary>Indicates whether or not this request has been sent.</summary>
+        /// <summary>Gets or sets a value indicating whether or not this request has been sent.</summary>
         /// <value>When <c>true</c>, the request was sent. When <c>false</c> the request was not sent yet.</value>
         public bool IsSent { get; set; }
 
@@ -35,7 +35,7 @@ namespace IceRpc
         /// <value>The name of the operation. The default is the empty string.</value>
         public string Operation { get; init; } = "";
 
-        /// <summary>Returns the proxy that is sending this request.</summary>
+        /// <summary>Gets the proxy that is sending this request.</summary>
         public Proxy Proxy { get; }
 
         /// <summary>Gets or sets the latest response to this request.</summary>

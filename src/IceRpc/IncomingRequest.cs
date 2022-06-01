@@ -26,7 +26,7 @@ namespace IceRpc
                 throw new InvalidOperationException("cannot create an icerpc request with a non-empty fragment");
         }
 
-        /// <summary>Gets or initializes whether this request is oneway or two-way.</summary>
+        /// <summary>Gets a value indicating whether this request is oneway or two-way.</summary>
         /// <value><c>true</c> for oneway requests, <c>false</c> otherwise. The default is <c>false</c>.</value>
         public bool IsOneway { get; init; }
 

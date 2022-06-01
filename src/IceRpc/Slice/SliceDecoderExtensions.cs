@@ -9,13 +9,13 @@ namespace IceRpc.Slice
     public static class SliceDecoderExtensions
     {
         /// <summary>Decodes a dictionary.</summary>
+        /// <typeparam name="TDictionary">The type of the returned dictionary.</typeparam>
+        /// <typeparam name="TKey">The type of the keys in the dictionary.</typeparam>
+        /// <typeparam name="TValue">The type of the values in the dictionary.</typeparam>
         /// <param name="decoder">The Slice decoder.</param>
         /// <param name="dictionaryFactory">The factory for creating the dictionary instance.</param>
         /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
         /// <param name="valueDecodeFunc">The decode function for each value of the dictionary.</param>
-        /// <typeparam name="TDictionary">The type of the returned dictionary.</typeparam>
-        /// <typeparam name="TKey">The type of the keys in the dictionary.</typeparam>
-        /// <typeparam name="TValue">The type of the values in the dictionary.</typeparam>
         /// <returns>The dictionary decoded by this decoder.</returns>
         public static TDictionary DecodeDictionary<TDictionary, TKey, TValue>(
             this ref SliceDecoder decoder,
@@ -45,13 +45,13 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Decodes a dictionary with null values encoded using a bit sequence.</summary>
+        /// <typeparam name="TDictionary">The type of the returned dictionary.</typeparam>
+        /// <typeparam name="TKey">The type of the keys in the dictionary.</typeparam>
+        /// <typeparam name="TValue">The type of the values in the dictionary.</typeparam>
         /// <param name="decoder">The Slice decoder.</param>
         /// <param name="dictionaryFactory">The factory for creating the dictionary instance.</param>
         /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
         /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
-        /// <typeparam name="TDictionary">The type of the returned dictionary.</typeparam>
-        /// <typeparam name="TKey">The type of the keys in the dictionary.</typeparam>
-        /// <typeparam name="TValue">The type of the values in the dictionary.</typeparam>
         /// <returns>The dictionary decoded by this decoder.</returns>
         public static TDictionary DecodeDictionaryWithBitSequence<TDictionary, TKey, TValue>(
             this ref SliceDecoder decoder,
@@ -82,6 +82,7 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Decodes a sequence of fixed-size numeric values.</summary>
+        /// <typeparam name="T">The sequence element type.</typeparam>
         /// <param name="decoder">The Slice decoder.</param>
         /// <param name="checkElement">A delegate used to check each element of the array (optional).</param>
         /// <returns>An array of T.</returns>
@@ -113,9 +114,9 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Decodes a sequence.</summary>
+        /// <typeparam name="T">The type of the elements in the array.</typeparam>
         /// <param name="decoder">The Slice decoder.</param>
         /// <param name="decodeFunc">The decode function for each element of the sequence.</param>
-        /// <typeparam name="T">The type of the elements in the array.</typeparam>
         /// <returns>An array of T.</returns>
         public static T[] DecodeSequence<T>(this ref SliceDecoder decoder, DecodeFunc<T> decodeFunc)
         {
@@ -137,11 +138,11 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Decodes a sequence.</summary>
+        /// <typeparam name="TSequence">The type of the returned sequence.</typeparam>
+        /// <typeparam name="TElement">The type of the elements in the sequence.</typeparam>
         /// <param name="decoder">The Slice decoder.</param>
         /// <param name="sequenceFactory">The factory for creating the sequence instance.</param>
         /// <param name="decodeFunc">The decode function for each element of the sequence.</param>
-        /// <typeparam name="TSequence">The type of the returned sequence.</typeparam>
-        /// <typeparam name="TElement">The type of the elements in the sequence.</typeparam>
         /// <returns>A TSequence.</returns>
         public static TSequence DecodeSequence<TSequence, TElement>(
             this ref SliceDecoder decoder,
@@ -166,12 +167,12 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Decodes a sequence that encodes null values using a bit sequence.</summary>
+        /// <typeparam name="T">The type of the elements in the array.</typeparam>
         /// <param name="decoder">The Slice decoder.</param>
         /// <param name="decodeFunc">The decode function for each non-null element of the sequence.</param>
-        /// <typeparam name="T">The type of the elements in the array.</typeparam>
         /// <returns>An array of T.</returns>
         /// <remarks>We return a T? and not a T to avoid ambiguities in the generated code with nullable reference
-        /// types such as string?</remarks>
+        /// types such as string?.</remarks>
         public static T?[] DecodeSequenceWithBitSequence<T>(this ref SliceDecoder decoder, DecodeFunc<T> decodeFunc)
         {
             int count = decoder.DecodeSize();
@@ -193,11 +194,11 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Decodes a sequence that encodes null values using a bit sequence.</summary>
+        /// <typeparam name="TSequence">The type of the returned sequence.</typeparam>
+        /// <typeparam name="TElement">The type of the elements in the sequence.</typeparam>
         /// <param name="decoder">The Slice decoder.</param>
         /// <param name="sequenceFactory">The factory for creating the sequence instance.</param>
         /// <param name="decodeFunc">The decode function for each non-null element of the sequence.</param>
-        /// <typeparam name="TSequence">The type of the returned sequence.</typeparam>
-        /// <typeparam name="TElement">The type of the elements in the sequence.</typeparam>
         /// <returns>A TSequence.</returns>
         public static TSequence DecodeSequenceWithBitSequence<TSequence, TElement>(
             this ref SliceDecoder decoder,

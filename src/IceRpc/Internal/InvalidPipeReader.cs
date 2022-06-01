@@ -7,7 +7,7 @@ namespace IceRpc.Internal;
 /// <summary>A PipeReader that does nothing and always throws NotSupportedException except for Complete.</summary>
 internal sealed class InvalidPipeReader : PipeReader
 {
-    /// <summary>A shared instance of this pipe writer.</summary>
+    /// <summary>Gets the invalid pipe reader singleton instance.</summary>
     public static PipeReader Instance { get; } = new InvalidPipeReader();
 
     private static readonly Exception _notSupportedException =

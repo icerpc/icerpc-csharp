@@ -76,7 +76,7 @@ public class TelemetryMiddleware : IDispatcher
         // Read tracestate encoded as a string
         activity.TraceStateString = decoder.DecodeString();
 
-        IEnumerable<(string key, string value)> baggage = decoder.DecodeSequence(
+        IEnumerable<(string Key, string Value)> baggage = decoder.DecodeSequence(
             (ref SliceDecoder decoder) =>
             {
                 string key = decoder.DecodeString();
@@ -91,5 +91,4 @@ public class TelemetryMiddleware : IDispatcher
             activity.AddBaggage(key, value);
         }
     }
-
 }

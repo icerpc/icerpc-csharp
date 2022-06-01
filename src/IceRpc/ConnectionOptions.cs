@@ -7,7 +7,7 @@ namespace IceRpc
     /// <summary>A property bag used to configure client and server connections.</summary>
     public record class ConnectionOptions
     {
-        /// <summary>Returns the default value for <see cref="Dispatcher"/>.</summary>
+        /// <summary>Gets the default value for <see cref="Dispatcher"/>.</summary>
         public static IDispatcher DefaultDispatcher { get; } = new InlineDispatcher((request, cancel) =>
             throw new DispatchException(DispatchErrorCode.ServiceNotFound, RetryPolicy.OtherReplica));
 
@@ -35,10 +35,10 @@ namespace IceRpc
         /// <value>The dispatcher that dispatches requests received by this connection.</value>
         public IDispatcher Dispatcher { get; set; } = DefaultDispatcher;
 
-        /// <summary>Gets or sets the connection's keep alive. If a connection is kept alive, the connection monitoring
-        /// will send keep alive frames to ensure the peer doesn't close the connection in the period defined by its
-        /// idle timeout. How often keep alive frames are sent depends on the peer's IdleTimeout configuration.
-        /// </summary>
+        /// <summary>Gets or sets a value indicating whether the connection is kept alive. If a connection is kept
+        /// alive, the connection monitoring will send keep alive frames to ensure the peer doesn't close the
+        /// connection in the period defined by its idle timeout. How often keep alive frames are sent depends on the
+        /// peer's IdleTimeout configuration.</summary>
         /// <value><c>true</c>to enable connection keep alive. <c>false</c> to disable it. The default is <c>false</c>.
         /// </value>
         public bool KeepAlive { get; set; }
@@ -75,7 +75,7 @@ namespace IceRpc
             set => _maxIceRpcHeaderSize = IceRpcCheckMaxHeaderSize(value);
         }
 
-        /// <summary>Gets or set an action that executes when the connection is closed.</summary>
+        /// <summary>Gets or sets an action that executes when the connection is closed.</summary>
         public Action<Connection, Exception>? OnClose { get; set; }
 
         /// <summary>The default value for <see cref="MaxIceRpcHeaderSize"/>.</summary>

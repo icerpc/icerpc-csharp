@@ -17,7 +17,7 @@ public class ProxyTests
         {
             foreach ((string Str, string _, string _) in _validIceFormatProxies)
             {
-                yield return new TestCaseData(Str, IceProxyFormat.Default);
+                yield return new TestCaseData(Str, IceProxyFormat.Unicode);
             }
         }
     }
@@ -30,7 +30,7 @@ public class ProxyTests
         {
             foreach (string str in _invalidIceFormatProxies)
             {
-                yield return new TestCaseData(str, IceProxyFormat.Default);
+                yield return new TestCaseData(str, IceProxyFormat.Unicode);
             }
         }
     }
@@ -43,7 +43,7 @@ public class ProxyTests
         {
             foreach ((string Str, string Path, string Fragment) in _validIceFormatProxies)
             {
-                yield return new TestCaseData(Str, IceProxyFormat.Default, Path, Fragment);
+                yield return new TestCaseData(Str, IceProxyFormat.Unicode, Path, Fragment);
             }
         }
     }
@@ -266,7 +266,7 @@ public class ProxyTests
         var proxy = new Proxy(Protocol.Ice) { Path = path };
         string iceProxyString = proxy.ToString(format);
 
-        var iceProxy = Proxy.Parse(iceProxyString, format: IceProxyFormat.Default);
+        var iceProxy = Proxy.Parse(iceProxyString, format: IceProxyFormat.Unicode);
 
         Assert.That(iceProxy.Path, Is.EqualTo(path));
     }

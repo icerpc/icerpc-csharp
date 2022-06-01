@@ -12,9 +12,10 @@ namespace IceRpc.Internal
         public override int DefaultUriPort => 4061;
 
         public override bool HasFragment => true;
+
         public override bool IsSupported => true;
 
-        /// <summary>The Ice protocol singleton.</summary>
+        /// <summary>Gets the Ice protocol singleton.</summary>
         internal static IceProtocol Instance { get; } = new();
 
         internal override SliceEncoding SliceEncoding => SliceEncoding.Slice1;

@@ -100,7 +100,8 @@ namespace IceRpc.Transports.Internal
                         // considered as an error.
                         throw new ConnectionLostException("received less data than expected");
                     }
-                } while (byteCount > 0);
+                }
+                while (byteCount > 0);
             }
         }
 
