@@ -10,12 +10,12 @@ namespace IceRpc.Extensions.DependencyInjection.Tests;
 public sealed class DispatcherBuilderTests
 {
     [Test]
-    /// <summary>Verifies that DispatcherBuilder.Map works with singleton, scoped and transient services.</summary>
-    public async Task Map_dispatches_to_service_with_any_lifetime([Values] ServiceLifetime lifetime)
+    /// <summary>Verifies that DispatcherBuilder.Map works with scoped services.</summary>
+    public async Task Map_dispatches_to_service()
     {
-        IServiceCollection services = new ServiceCollection().AddSingleton<ICallTracker, CallTracker>();
-        var descriptor = new ServiceDescriptor(typeof(ITestService), typeof(TestService), lifetime);
-        services.Add(descriptor);
+        IServiceCollection services = new ServiceCollection()
+            .AddSingleton<ICallTracker, CallTracker>()
+            .AddScoped<ITestService, TestService>();
         await using var provider = services.BuildServiceProvider(true);
         var dispatcherBuilder = new DispatcherBuilder(provider);
         dispatcherBuilder.Map<ITestService>("/foo");
@@ -27,12 +27,12 @@ public sealed class DispatcherBuilderTests
     }
 
     [Test]
-    /// <summary>Verifies that DispatcherBuilder.Mount works with singleton, scoped and transient services.</summary>
-    public async Task Mount_dispatches_to_service_with_any_lifetime([Values] ServiceLifetime lifetime)
+    /// <summary>Verifies that DispatcherBuilder.Mount works with scoped services.</summary>
+    public async Task Mount_dispatches_to_service()
     {
-        IServiceCollection services = new ServiceCollection().AddSingleton<ICallTracker, CallTracker>();
-        var descriptor = new ServiceDescriptor(typeof(ITestService), typeof(TestService), lifetime);
-        services.Add(descriptor);
+        IServiceCollection services = new ServiceCollection()
+            .AddSingleton<ICallTracker, CallTracker>()
+            .AddScoped<ITestService, TestService>();
         await using var provider = services.BuildServiceProvider(true);
         var dispatcherBuilder = new DispatcherBuilder(provider);
         dispatcherBuilder.Mount<ITestService>("/");
