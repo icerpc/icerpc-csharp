@@ -1,70 +1,81 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.DependencyInjection;
+using System.Reflection;
 
 namespace IceRpc.Extensions.DependencyInjection.Internal;
 
-/// <summary>Adapts a middleware with a single service dependency to an IDispatcher.</summary>
-internal class MiddlewareAdapter<TDep> : IDispatcher where TDep : notnull
+internal class MiddlewareAdapter<TMiddleware> : IDispatcher
 {
-    private readonly IMiddleware<TDep> _middleware;
+    private readonly IDispatcher _dispatcher;
+    private readonly TMiddleware _middleware;
 
-    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
+    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel) =>
+        _dispatcher.DispatchAsync(request, cancel);
+
+    internal MiddlewareAdapter(TMiddleware middleware)
     {
-        IServiceProviderFeature feature = request.Features.Get<IServiceProviderFeature>() ??
-            throw new InvalidOperationException("no service provider feature in request features");
+        _middleware = middleware;
+        if (_middleware is IDispatcher dispatcher)
+        {
+            _dispatcher = dispatcher;
+        }
+        else
+        {
+            Type type = typeof(TMiddleware);
 
-        return _middleware.DispatchAsync(
-            request,
-            feature.ServiceProvider.GetRequiredService<TDep>(),
-            cancel);
+            try
+            {
+                MethodInfo method = type.GetMethod(
+                    "DispatchAsync",
+                    BindingFlags.Public | BindingFlags.Instance) ??
+                    throw new InvalidOperationException(
+                        $"{type.Name} does not have a public DispatchAsync instance method");
+
+                if (method.ReturnType != typeof(ValueTask<OutgoingResponse>))
+                {
+                    throw new InvalidOperationException(
+                        $"{type.Name}.DispatchAsync must return a {nameof(ValueTask<OutgoingResponse>)}");
+                }
+
+                ParameterInfo[] paramInfo = method.GetParameters();
+
+                if (paramInfo[0].ParameterType != typeof(IncomingRequest))
+                {
+                    throw new InvalidOperationException(
+                        $"the first parameter of {type.Name}.DispatchAsync must an {nameof(IncomingRequest)}");
+                }
+                if (paramInfo[^1].ParameterType != typeof(CancellationToken))
+                {
+                    throw new InvalidOperationException(
+                        $"the last parameter of {type.Name}.DispatchAsync must a {nameof(CancellationToken)}");
+                }
+                if (paramInfo.Length < 3)
+                {
+                    throw new InvalidOperationException(
+                        @$"{type.Name}.DispatchAsync must have at least 3 parameters when {type.Name
+                        } is not an {nameof(IDispatcher)}");
+                }
+
+                _dispatcher = new InlineDispatcher((request, cancel) =>
+                {
+                    IServiceProviderFeature feature = request.Features.Get<IServiceProviderFeature>() ??
+                        throw new InvalidOperationException("no service provider feature in request features");
+
+                    object[] args = new object[paramInfo.Length];
+                    args[0] = request;
+                    args[^1] = cancel;
+                    for (int i = 1; i < args.Length - 1; ++i)
+                    {
+                        args[i] = feature.ServiceProvider.GetRequiredService(paramInfo[i].ParameterType);
+                    }
+                    return (ValueTask<OutgoingResponse>)method.Invoke(_middleware, args)!;
+                });
+            }
+            catch (AmbiguousMatchException exception)
+            {
+                throw new InvalidOperationException($"{type.Name} has multiple DispatchAsync overloads", exception);
+            }
+        }
     }
-
-    internal MiddlewareAdapter(IMiddleware<TDep> middleware) => _middleware = middleware;
-}
-
-/// <summary>Adapts a middleware with 2 service dependencies to an IDispatcher.</summary>
-internal class MiddlewareAdapter<TDep1, TDep2> : IDispatcher
-    where TDep1 : notnull
-    where TDep2 : notnull
-{
-    private readonly IMiddleware<TDep1, TDep2> _middleware;
-
-    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
-    {
-        IServiceProviderFeature feature = request.Features.Get<IServiceProviderFeature>() ??
-            throw new InvalidOperationException("no service provider feature in request features");
-
-        return _middleware.DispatchAsync(
-            request,
-            feature.ServiceProvider.GetRequiredService<TDep1>(),
-            feature.ServiceProvider.GetRequiredService<TDep2>(),
-            cancel);
-    }
-
-    internal MiddlewareAdapter(IMiddleware<TDep1, TDep2> middleware) => _middleware = middleware;
-}
-
-/// <summary>Adapts a middleware with 3 service dependencies to an IDispatcher.</summary>
-internal class MiddlewareAdapter<TDep1, TDep2, TDep3> : IDispatcher
-    where TDep1 : notnull
-    where TDep2 : notnull
-    where TDep3 : notnull
-{
-    private readonly IMiddleware<TDep1, TDep2, TDep3> _middleware;
-
-    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
-    {
-        IServiceProviderFeature feature = request.Features.Get<IServiceProviderFeature>() ??
-            throw new InvalidOperationException("no service provider feature in request features");
-
-        return _middleware.DispatchAsync(
-            request,
-            feature.ServiceProvider.GetRequiredService<TDep1>(),
-            feature.ServiceProvider.GetRequiredService<TDep2>(),
-            feature.ServiceProvider.GetRequiredService<TDep3>(),
-            cancel);
-    }
-
-    internal MiddlewareAdapter(IMiddleware<TDep1, TDep2, TDep3> middleware) => _middleware = middleware;
 }

@@ -56,7 +56,7 @@ public sealed class DispatcherBuilderTests
 
         await using var provider = services.BuildServiceProvider(true);
         var dispatcherBuilder = new DispatcherBuilder(provider);
-        dispatcherBuilder.UseMiddleware<UserMiddleware, IUser>();
+        dispatcherBuilder.UseMiddleware<UserMiddleware>();
         dispatcherBuilder.Map<ITestService>("/foo");
         IDispatcher dispatcher = dispatcherBuilder.Build();
 
@@ -107,15 +107,15 @@ public sealed class DispatcherBuilderTests
         public User(IPathTracker pathTracker) => _pathTracker = pathTracker;
     }
 
-    public class UserMiddleware : IMiddleware<IUser>
+    public class UserMiddleware
     {
         private readonly IDispatcher _next;
 
         public UserMiddleware(IDispatcher next) => _next = next;
 
-        public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, IUser dep, CancellationToken cancel)
+        public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, IUser user, CancellationToken cancel)
         {
-            dep.Path = request.Path;
+            user.Path = request.Path;
             return _next.DispatchAsync(request, cancel);
         }
     }
