@@ -15,7 +15,7 @@ public interface IDispatcherBuilder
     /// <typeparam name="TService">The type of the target dispatcher.</typeparam>
     /// <exception cref="FormatException">Thrown if <paramref name="path"/> is not a valid path.</exception>
     /// <returns>The builder.</returns>
-    IDispatcherBuilder Map<TService>(string path) where TService : class;
+    IDispatcherBuilder Map<TService>(string path) where TService : notnull;
 
     /// <summary>Registers a route with a prefix. If there is an existing route at the same prefix, it is replaced.
     /// </summary>
@@ -24,7 +24,7 @@ public interface IDispatcherBuilder
     /// <typeparam name="TService">The type of the target service.</typeparam>
     /// <exception cref="FormatException">Thrown if <paramref name="prefix"/> is not a valid path.</exception>
     /// <returns>The builder.</returns>
-    IDispatcherBuilder Mount<TService>(string prefix) where TService : class;
+    IDispatcherBuilder Mount<TService>(string prefix) where TService : notnull;
 
     /// <summary>Registers a middleware.</summary>
     /// <param name="middleware">The middleware to register.</param>
