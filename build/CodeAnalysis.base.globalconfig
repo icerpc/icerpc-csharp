@@ -151,5 +151,80 @@ dotnet_diagnostic.SA1000.severity = warning
 # SA1001: Commas should not be preceded by whitespace
 dotnet_diagnostic.SA1001.severity = warning
 
+# SA1013: Closing brace should not be preceded by a space TODO review disabled due to our multi-line string style
+dotnet_diagnostic.SA1013.severity = none
+
 # SA1014: Opening generic brackets should not be preceded by a space
 dotnet_diagnostic.SA1014.severity = warning
+
+# SA1101: Prefix local calls with this
+dotnet_diagnostic.SA1101.severity = none
+
+# SA1118: The parameter spans multiple lines
+dotnet_diagnostic.SA1118.severity = none
+
+# SA1122: Use string.Empty for empty strings
+dotnet_diagnostic.SA1122.severity = none
+
+# SA1127: Generic type constraints should be on their own line
+dotnet_diagnostic.SA1127.severity = none
+
+# SA1129: Do not use default value type constructor
+dotnet_diagnostic.SA1129.severity = none
+
+# SA1200: A C# using directive is placed outside of a namespace element
+dotnet_diagnostic.SA1200.severity = none
+
+# SA1201: A field should not follow a property
+dotnet_diagnostic.SA1201.severity = none
+
+# SA1214: Readonly fields should appear before non-readonly fields
+dotnet_diagnostic.SA1214.severity = none
+
+# SA1309: Field should not begin with an underscore
+dotnet_diagnostic.SA1309.severity = none
+
+# SA1312: Variable should begin with lower-case letter
+dotnet_diagnostic.SA1312.severity = none
+
+# SA1401: Field should be private
+dotnet_diagnostic.SA1401.severity = none
+
+# SA1402: File may only contain a single type
+dotnet_diagnostic.SA1402.severity = none
+
+# SA1405: Debug.Assert should provide message text
+dotnet_diagnostic.SA1405.severity = none
+
+# SA1413: Use trailing comma in multi-line initializers
+dotnet_diagnostic.SA1413.severity = none
+
+# SA1414: Tuple types in signatures should have element names, TODO Review this rule
+dotnet_diagnostic.SA1414.severity = none
+
+# SA1512: Single-line comments should not be followed by blank line
+dotnet_diagnostic.SA1512.severity = none
+
+# SA1513: Closing brace should be followed by blank line
+dotnet_diagnostic.SA1513.severity = none
+
+# SA1515: Single-line comment should be preceded by blank line
+dotnet_diagnostic.SA1515.severity = none
+
+# SA1600: Element should be documented
+dotnet_diagnostic.SA1600.severity = none
+
+# SA1611: The documentation for parameter is missing, TODO enable to ensure all parameters are documented
+dotnet_diagnostic.SA1611.severity = none
+
+# SA1615: Element return value should be documented, TODO enable to ensure we always document the return value
+dotnet_diagnostic.SA1615.severity = none
+
+# SA1625: Element documentation should not be copied and pasted
+dotnet_diagnostic.SA1625.severity = none
+
+# SA1642: Element should be documented
+dotnet_diagnostic.SA1642.severity = none
+
+# SA1649: File name should match first type name
+dotnet_diagnostic.SA1649.severity = none

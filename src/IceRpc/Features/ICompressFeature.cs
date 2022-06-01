@@ -7,6 +7,6 @@ namespace IceRpc.Features;
 /// <remarks>An interceptor or middleware needs to perform this compression.</remarks>
 public interface ICompressFeature
 {
-    /// <summary>Indicates whether or not to compress the payload.</summary>
+    /// <summary>Gets a value indicating whether or not to compress the payload.</summary>
     bool Value { get; }
 }

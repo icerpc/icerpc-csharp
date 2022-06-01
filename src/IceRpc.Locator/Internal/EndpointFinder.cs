@@ -112,31 +112,6 @@ internal class LogEndpointFinderDecorator : IEndpointFinder
     }
 }
 
-/// <summary>This class contains ILogger extension methods used by LogEndpointFinderDecorator.</summary>
-internal static partial class EndpointFinderLoggerExtensions
-{
-    [LoggerMessage(
-        EventId = (int)LocationEventIds.FindFailed,
-        EventName = nameof(LocationEventIds.FindFailed),
-        Level = LogLevel.Trace,
-        Message = "failed to find {LocationKind} '{Location}'")]
-    internal static partial void LogFindFailed(
-        this ILogger logger,
-        string locationKind,
-        Location location);
-
-    [LoggerMessage(
-        EventId = (int)LocationEventIds.Found,
-        EventName = nameof(LocationEventIds.Found),
-        Level = LogLevel.Trace,
-        Message = "found {LocationKind} '{Location}' = '{Proxy}'")]
-    internal static partial void LogFound(
-        this ILogger logger,
-        string locationKind,
-        Location location,
-        Proxy proxy);
-}
-
 /// <summary>A decorator that updates its endpoint cache after a call to its decoratee (e.g. remote locator). It
 /// needs to execute downstream from the Coalesce decorator.</summary>
 internal class CacheUpdateEndpointFinderDecorator : IEndpointFinder

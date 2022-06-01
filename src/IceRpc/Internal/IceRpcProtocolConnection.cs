@@ -809,6 +809,144 @@ namespace IceRpc.Internal
             return (fields, pipeReader);
         }
 
+        /// <summary>Sends the payload and payload stream of an outgoing frame. SendPayloadAsync completes the payload
+        /// if successful. It completes the output only if there's no payload stream. Otherwise, it starts a streaming
+        /// task that is responsible for completing the payload stream and the output.</summary>
+        private static async ValueTask SendPayloadAsync(
+            OutgoingFrame outgoingFrame,
+            IMultiplexedStream stream,
+            CancellationToken cancel)
+        {
+            PipeWriter payloadWriter = outgoingFrame.GetPayloadWriter(stream.Output);
+            PipeReader? payloadStream = outgoingFrame.PayloadStream;
+
+            try
+            {
+                FlushResult flushResult = await CopyReaderToWriterAsync(
+                    outgoingFrame.Payload,
+                    payloadWriter,
+                    endStream: payloadStream == null,
+                    cancel).ConfigureAwait(false);
+
+                if (flushResult.IsCompleted)
+                {
+                    // The remote reader gracefully completed the stream input pipe. We're done.
+                    await payloadWriter.CompleteAsync().ConfigureAwait(false);
+
+                    // We complete the payload and payload stream immediately. For example, we've just sent an outgoing
+                    // request and we're waiting for the exception to come back.
+                    await outgoingFrame.Payload.CompleteAsync().ConfigureAwait(false);
+                    if (payloadStream != null)
+                    {
+                        await payloadStream.CompleteAsync().ConfigureAwait(false);
+                    }
+                    return;
+                }
+                else if (flushResult.IsCanceled)
+                {
+                    throw new InvalidOperationException(
+                        "a payload writer is not allowed to return a canceled flush result");
+                }
+            }
+            catch (Exception exception)
+            {
+                await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
+
+                // An exception will trigger the immediate completion of the request and indirectly of the
+                // outgoingFrame payloads.
+                throw;
+            }
+
+            await outgoingFrame.Payload.CompleteAsync().ConfigureAwait(false);
+
+            if (payloadStream == null)
+            {
+                await payloadWriter.CompleteAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                // Send payloadStream in the background.
+                outgoingFrame.PayloadStream = null; // we're now responsible for payloadStream
+
+                _ = Task.Run(
+                    async () =>
+                    {
+                        try
+                        {
+                            FlushResult flushResult = await CopyReaderToWriterAsync(
+                                payloadStream,
+                                payloadWriter,
+                                endStream: true,
+                                CancellationToken.None).ConfigureAwait(false);
+
+                            if (flushResult.IsCanceled)
+                            {
+                                throw new InvalidOperationException(
+                                    "a payload writer interceptor is not allowed to return a canceled flush result");
+                            }
+
+                            await payloadStream.CompleteAsync().ConfigureAwait(false);
+                            await payloadWriter.CompleteAsync().ConfigureAwait(false);
+                        }
+                        catch (Exception exception)
+                        {
+                            await payloadStream.CompleteAsync(exception).ConfigureAwait(false);
+                            await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
+                        }
+                    },
+                    cancel);
+            }
+
+            async Task<FlushResult> CopyReaderToWriterAsync(
+                PipeReader reader,
+                PipeWriter writer,
+                bool endStream,
+                CancellationToken cancel)
+            {
+                // If the peer completes its input pipe reader, we cancel the pending read on the payload.
+                stream.OnPeerInputCompleted(reader.CancelPendingRead);
+
+                FlushResult flushResult;
+                do
+                {
+                    ReadResult readResult = await reader.ReadAsync(cancel).ConfigureAwait(false);
+
+                    if (readResult.IsCanceled)
+                    {
+                        // If the peer input pipe reader was completed, this will throw with the reason of the pipe
+                        // reader completion.
+                        flushResult = await writer.FlushAsync(cancel).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        try
+                        {
+                            flushResult = await writer.WriteAsync(
+                                readResult.Buffer,
+                                readResult.IsCompleted && endStream,
+                                cancel).ConfigureAwait(false);
+                        }
+                        finally
+                        {
+                            reader.AdvanceTo(readResult.Buffer.End);
+                        }
+                    }
+
+                    if (readResult.IsCompleted)
+                    {
+                        // We're done if there's no more data to send for the payload.
+                        break;
+                    }
+                    else if (readResult.IsCanceled)
+                    {
+                        throw new OperationCanceledException("payload pipe reader was canceled");
+                    }
+                }
+                while (!flushResult.IsCanceled && !flushResult.IsCompleted);
+                return flushResult;
+            }
+        }
+
         private async ValueTask ReceiveControlFrameHeaderAsync(
             IceRpcControlFrameType expectedFrameType,
             CancellationToken cancel)
@@ -940,144 +1078,6 @@ namespace IceRpc.Internal
                 int headerSize = encoder.EncodedByteCount - startPos;
                 CheckRemoteHeaderSize(headerSize);
                 SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
-            }
-        }
-
-        /// <summary>Sends the payload and payload stream of an outgoing frame. SendPayloadAsync completes the payload
-        /// if successful. It completes the output only if there's no payload stream. Otherwise, it starts a streaming
-        /// task that is responsible for completing the payload stream and the output.</summary>
-        private static async ValueTask SendPayloadAsync(
-            OutgoingFrame outgoingFrame,
-            IMultiplexedStream stream,
-            CancellationToken cancel)
-        {
-            PipeWriter payloadWriter = outgoingFrame.GetPayloadWriter(stream.Output);
-            PipeReader? payloadStream = outgoingFrame.PayloadStream;
-
-            try
-            {
-                FlushResult flushResult = await CopyReaderToWriterAsync(
-                    outgoingFrame.Payload,
-                    payloadWriter,
-                    endStream: payloadStream == null,
-                    cancel).ConfigureAwait(false);
-
-                if (flushResult.IsCompleted)
-                {
-                    // The remote reader gracefully completed the stream input pipe. We're done.
-                    await payloadWriter.CompleteAsync().ConfigureAwait(false);
-
-                    // We complete the payload and payload stream immediately. For example, we've just sent an outgoing
-                    // request and we're waiting for the exception to come back.
-                    await outgoingFrame.Payload.CompleteAsync().ConfigureAwait(false);
-                    if (payloadStream != null)
-                    {
-                        await payloadStream.CompleteAsync().ConfigureAwait(false);
-                    }
-                    return;
-                }
-                else if (flushResult.IsCanceled)
-                {
-                    throw new InvalidOperationException(
-                        "a payload writer is not allowed to return a canceled flush result");
-                }
-            }
-            catch (Exception exception)
-            {
-                await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
-
-                // An exception will trigger the immediate completion of the request and indirectly of the
-                // outgoingFrame payloads.
-                throw;
-            }
-
-            await outgoingFrame.Payload.CompleteAsync().ConfigureAwait(false);
-
-            if (payloadStream == null)
-            {
-                await payloadWriter.CompleteAsync().ConfigureAwait(false);
-            }
-            else
-            {
-                // Send payloadStream in the background.
-                outgoingFrame.PayloadStream = null; // we're now responsible for payloadStream
-
-                _ = Task.Run(
-                    async () =>
-                    {
-                        try
-                        {
-                            FlushResult flushResult = await CopyReaderToWriterAsync(
-                                payloadStream,
-                                payloadWriter,
-                                endStream: true,
-                                CancellationToken.None).ConfigureAwait(false);
-
-                            if (flushResult.IsCanceled)
-                            {
-                                throw new InvalidOperationException(
-                                    "a payload writer interceptor is not allowed to return a canceled flush result");
-                            }
-
-                            await payloadStream.CompleteAsync().ConfigureAwait(false);
-                            await payloadWriter.CompleteAsync().ConfigureAwait(false);
-                        }
-                        catch (Exception exception)
-                        {
-                            await payloadStream.CompleteAsync(exception).ConfigureAwait(false);
-                            await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
-                        }
-                    },
-                    cancel);
-            }
-
-            async Task<FlushResult> CopyReaderToWriterAsync(
-                PipeReader reader,
-                PipeWriter writer,
-                bool endStream,
-                CancellationToken cancel)
-            {
-                // If the peer completes its input pipe reader, we cancel the pending read on the payload.
-                stream.OnPeerInputCompleted(reader.CancelPendingRead);
-
-                FlushResult flushResult;
-                do
-                {
-                    ReadResult readResult = await reader.ReadAsync(cancel).ConfigureAwait(false);
-
-                    if (readResult.IsCanceled)
-                    {
-                        // If the peer input pipe reader was completed, this will throw with the reason of the pipe
-                        // reader completion.
-                        flushResult = await writer.FlushAsync(cancel).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        try
-                        {
-                            flushResult = await writer.WriteAsync(
-                                readResult.Buffer,
-                                readResult.IsCompleted && endStream,
-                                cancel).ConfigureAwait(false);
-
-                        }
-                        finally
-                        {
-                            reader.AdvanceTo(readResult.Buffer.End);
-                        }
-                    }
-
-                    if (readResult.IsCompleted)
-                    {
-                        // We're done if there's no more data to send for the payload.
-                        break;
-                    }
-                    else if (readResult.IsCanceled)
-                    {
-                        throw new OperationCanceledException("payload pipe reader was canceled");
-                    }
-                } while (!flushResult.IsCanceled && !flushResult.IsCompleted);
-                return flushResult;
             }
         }
 

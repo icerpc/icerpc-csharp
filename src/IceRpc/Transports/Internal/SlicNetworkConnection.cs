@@ -17,13 +17,21 @@ namespace IceRpc.Transports.Internal
         public TimeSpan LastActivity => _simpleNetworkConnectionActivityTracker.LastActivity;
 
         internal TimeSpan IdleTimeout { get; set; }
+
         internal bool IsAborted => _exception != null;
+
         internal bool IsServer { get; }
+
         internal int MinimumSegmentSize { get; }
+
         internal int PauseWriterThreshold { get; }
+
         internal int PeerPacketMaxSize { get; private set; }
+
         internal int PeerPauseWriterThreshold { get; private set; }
+
         internal MemoryPool<byte> Pool { get; }
+
         internal int ResumeWriterThreshold { get; }
 
         private readonly AsyncQueue<IMultiplexedStream> _acceptStreamQueue = new();

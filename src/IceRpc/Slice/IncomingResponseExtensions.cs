@@ -35,7 +35,7 @@ namespace IceRpc.Slice
                     nameof(response));
 
         /// <summary>Decodes a response payload.</summary>
-        /// <paramtype name="T">The type of the return value.</paramtype>
+        /// <typeparam name="T">The type of the return value.</typeparam>
         /// <param name="response">The incoming response.</param>
         /// <param name="request">The outgoing request.</param>
         /// <param name="encoding">The encoding of the response payload.</param>
@@ -81,6 +81,7 @@ namespace IceRpc.Slice
 
         /// <summary>Creates an async enumerable over the payload reader of an incoming response to decode fixed size
         /// streamed elements.</summary>
+        /// <typeparam name="T">The stream element type.</typeparam>
         /// <param name="response">The incoming response.</param>
         /// <param name="request">The outgoing request.</param>
         /// <param name="encoding">The encoding of the response payload.</param>
@@ -108,6 +109,7 @@ namespace IceRpc.Slice
 
         /// <summary>Creates an async enumerable over the payload reader of an incoming response to decode variable
         /// size streamed elements.</summary>
+        /// <typeparam name="T">The stream element type.</typeparam>
         /// <param name="response">The incoming response.</param>
         /// <param name="request">The outgoing request.</param>
         /// <param name="encoding">The encoding of the response payload.</param>

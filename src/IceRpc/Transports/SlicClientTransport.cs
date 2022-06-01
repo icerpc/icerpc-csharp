@@ -15,12 +15,16 @@ namespace IceRpc.Transports
 
         private static readonly Func<ISlicFrameReader, ISlicFrameReader> _defaultSlicFrameReaderDecorator =
             reader => reader;
+
         private static readonly Func<ISlicFrameWriter, ISlicFrameWriter> _defaultSlicFrameWriterDecorator =
             writer => writer;
+
         private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
         private readonly SlicTransportOptions _slicTransportOptions;
 
         /// <summary>Constructs a Slic client transport.</summary>
+        /// <param name="options">The options to configure the Slic transport.</param>
+        /// <param name="simpleClientTransport">The simple client transport.</param>
         public SlicClientTransport(
             SlicTransportOptions options,
             IClientTransport<ISimpleNetworkConnection> simpleClientTransport)
@@ -30,6 +34,7 @@ namespace IceRpc.Transports
         }
 
         /// <summary>Constructs a Slic client transport.</summary>
+        /// <param name="simpleClientTransport">The simple client transport.</param>
         public SlicClientTransport(IClientTransport<ISimpleNetworkConnection> simpleClientTransport)
             : this(new(), simpleClientTransport)
         {
@@ -61,11 +66,12 @@ namespace IceRpc.Transports
                 slicFrameWriterDecorator = writer => new LogSlicFrameWriterDecorator(writer, logger);
             }
 
-            return new SlicNetworkConnection(simpleNetworkConnection,
-                                             isServer: false,
-                                             slicFrameReaderDecorator,
-                                             slicFrameWriterDecorator,
-                                             _slicTransportOptions);
+            return new SlicNetworkConnection(
+                simpleNetworkConnection,
+                isServer: false,
+                slicFrameReaderDecorator,
+                slicFrameWriterDecorator,
+                _slicTransportOptions);
         }
     }
 }

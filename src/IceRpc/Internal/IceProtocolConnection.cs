@@ -59,6 +59,7 @@ namespace IceRpc.Internal
         private readonly IDispatcher _dispatcher;
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         private readonly HashSet<CancellationTokenSource> _dispatches = new();
         private readonly AsyncSemaphore? _dispatchSemaphore;
         private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
@@ -380,7 +381,8 @@ namespace IceRpc.Internal
                 }
                 new EncapsulationHeader(
                     encapsulationSize: payloadSize + 6,
-                    encodingMajor, encodingMinor).Encode(ref encoder);
+                    encodingMajor,
+                    encodingMinor).Encode(ref encoder);
 
                 int frameSize = checked(encoder.EncodedByteCount + payloadSize);
                 SliceEncoder.EncodeInt32(frameSize, sizePlaceholder);
@@ -551,45 +553,6 @@ namespace IceRpc.Internal
             }
         }
 
-        private void CancelDispatches()
-        {
-            IEnumerable<CancellationTokenSource> dispatches;
-            lock (_mutex)
-            {
-                dispatches = _dispatches.ToArray();
-            }
-
-            foreach (CancellationTokenSource cancelDispatchSource in dispatches)
-            {
-                try
-                {
-                    cancelDispatchSource.Cancel();
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Ignore, the dispatch completed concurrently.
-                }
-            }
-        }
-
-        private void CancelInvocations(Exception exception)
-        {
-            IEnumerable<TaskCompletionSource<PipeReader>> invocations;
-            lock (_mutex)
-            {
-                invocations = _invocations.Values.ToArray();
-            }
-
-            // Unblock invocations which are waiting on the write semaphore.
-            _writeSemaphore.CancelAwaiters(exception);
-
-            // Unblock invocations which are waiting for the reply frame.
-            foreach (TaskCompletionSource<PipeReader> responseCompletionSource in invocations)
-            {
-                responseCompletionSource.TrySetException(exception);
-            }
-        }
-
         /// <summary>Creates a pipe reader to simplify the reading of a request or response frame. The frame is read
         /// fully and buffered into an internal pipe.</summary>
         private static async ValueTask<PipeReader> CreateFrameReaderAsync(
@@ -641,6 +604,45 @@ namespace IceRpc.Internal
 
             return readResult.IsCompleted ? readResult.Buffer :
                 throw new ArgumentException("the payload size is greater than int.MaxValue", nameof(payload));
+        }
+
+        private void CancelDispatches()
+        {
+            IEnumerable<CancellationTokenSource> dispatches;
+            lock (_mutex)
+            {
+                dispatches = _dispatches.ToArray();
+            }
+
+            foreach (CancellationTokenSource cancelDispatchSource in dispatches)
+            {
+                try
+                {
+                    cancelDispatchSource.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Ignore, the dispatch completed concurrently.
+                }
+            }
+        }
+
+        private void CancelInvocations(Exception exception)
+        {
+            IEnumerable<TaskCompletionSource<PipeReader>> invocations;
+            lock (_mutex)
+            {
+                invocations = _invocations.Values.ToArray();
+            }
+
+            // Unblock invocations which are waiting on the write semaphore.
+            _writeSemaphore.CancelAwaiters(exception);
+
+            // Unblock invocations which are waiting for the reply frame.
+            foreach (TaskCompletionSource<PipeReader> responseCompletionSource in invocations)
+            {
+                responseCompletionSource.TrySetException(exception);
+            }
         }
 
         /// <summary>Read incoming frames and returns on graceful connection shutdown.</summary>

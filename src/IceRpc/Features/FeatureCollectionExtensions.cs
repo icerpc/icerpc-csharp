@@ -16,7 +16,7 @@ public static class FeatureCollectionExtensions
 
     /// <summary>Updates this feature collection (if read-write) or creates a new feature collection (if read-only)
     /// and sets its T to the provided value.</summary>
-    /// <paramtype name="T">The type of the value to set in the feature collection.</paramtype>
+    /// <typeparam name="T">The type of the value to set in the feature collection.</typeparam>
     /// <param name="features">This feature collection.</param>
     /// <param name="value">The new value.</param>
     /// <returns>The updated feature collection.</returns>

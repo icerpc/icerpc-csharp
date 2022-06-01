@@ -84,7 +84,7 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Decodes the request's payload into a list of arguments.</summary>
-        /// <paramtype name="T">The type of the request parameters.</paramtype>
+        /// <typeparam name="T">The type of the request parameters.</typeparam>
         /// <param name="request">The incoming request.</param>
         /// <param name="encoding">The encoding of the request payload.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
@@ -122,6 +122,7 @@ namespace IceRpc.Slice
 
         /// <summary>Creates an async enumerable over the payload reader of an incoming request to decode fixed size
         /// streamed elements.</summary>
+        /// <typeparam name="T">The stream element type.</typeparam>
         /// <param name="request">The incoming request.</param>
         /// <param name="encoding">The encoding of the request payload.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
@@ -145,6 +146,7 @@ namespace IceRpc.Slice
 
         /// <summary>Creates an async enumerable over the payload reader of an incoming request to decode variable size
         /// streamed elements.</summary>
+        /// <typeparam name="T">The stream element type.</typeparam>
         /// <param name="request">The incoming request.</param>
         /// <param name="encoding">The encoding of the request payload.</param>
         /// <param name="defaultActivator">The optional default activator.</param>

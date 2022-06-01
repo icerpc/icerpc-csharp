@@ -7,7 +7,8 @@ namespace IceRpc.Transports
     public interface IMultiplexedNetworkConnection : INetworkConnection
     {
         // TODO: Remove once the idle timeout is implemented by Slic (Quic supports it as well). See #906.
-        /// <summary>The time elapsed since the last activity of the connection.</summary>
+
+        /// <summary>Gets the time elapsed since the last activity of the connection.</summary>
         TimeSpan LastActivity { get; }
 
         /// <summary>Aborts the connection. This will call <see cref="IMultiplexedStream.Abort"/> on each stream and

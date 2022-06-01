@@ -7,7 +7,7 @@ namespace IceRpc.Features;
 /// Microsoft.AspNetCore.Http.Features.</summary>
 public interface IFeatureCollection : IEnumerable<KeyValuePair<Type, object>>
 {
-    /// <summary>Indicates whether this feature collection is read-only or read-write.</summary>
+    /// <summary>Gets a value indicating whether this feature collection is read-only or read-write.</summary>
     bool IsReadOnly { get; }
 
     /// <summary>Gets or sets a feature. Setting null removes the feature.</summary>

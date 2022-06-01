@@ -161,7 +161,7 @@ internal static class ProtocolServiceProviderExtensions
             IProtocolConnection protocolConnection =
                 await serviceProvider.GetRequiredService<IProtocolConnectionFactory<T>>().CreateProtocolConnectionAsync(
                     networkConnection,
-                    connectionInformation: new(),
+                    networkConnectionInformation: new(),
                     isServer,
                     connectionOptions,
                     CancellationToken.None);

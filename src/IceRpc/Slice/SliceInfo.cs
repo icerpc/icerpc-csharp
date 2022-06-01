@@ -6,16 +6,16 @@ namespace IceRpc.Slice
     /// encoding.</summary>
     public sealed class SliceInfo
     {
-        /// <summary>The Slice type ID or compact ID for this slice.</summary>
+        /// <summary>Gets the Slice type ID or compact ID for this slice.</summary>
         public string TypeId { get; }
 
-        /// <summary>The encoded bytes for this slice, including the leading size integer.</summary>
+        /// <summary>Gets the encoded bytes for this slice, including the leading size integer.</summary>
         public ReadOnlyMemory<byte> Bytes { get; }
 
-        /// <summary>The class instances referenced by this slice.</summary>
+        /// <summary>Gets the class instances referenced by this slice.</summary>
         public IReadOnlyList<AnyClass> Instances { get; internal set; }
 
-        /// <summary>Whether or not the slice contains tagged members.</summary>
+        /// <summary>Gets a value indicating whether or not the slice contains tagged members.</summary>
         public bool HasTaggedMembers { get; }
 
         internal SliceInfo(
