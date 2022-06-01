@@ -18,18 +18,31 @@ public static class IceRpcServiceCollectionExtensions
             new MiddlewareAdapter<TMiddleware>(
                 ActivatorUtilities.CreateInstance<TMiddleware>(builder.ServiceProvider, next)));
 
-    /// <summary>Installs a middleware.</summary>
+    /// <summary>Installs a middleware with an options class.</summary>
     /// <typeparam name="TMiddleware">The type of the middleware to install.</typeparam>
     /// <typeparam name="TMiddlewareOptions">The type of options class to configure the middleware.</typeparam>
     /// <param name="builder">This dispatcher builder.</param>
+    /// <param name="optionName">The name of the option instance.</param>
     /// <returns>The dispatcher builder.</returns>
-    // TODO: add support for named options
-    public static IDispatcherBuilder UseMiddleware<TMiddleware, TMiddlewareOptions>(this IDispatcherBuilder builder)
+    public static IDispatcherBuilder UseMiddleware<TMiddleware, TMiddlewareOptions>(
+        this IDispatcherBuilder builder,
+        string optionName)
         where TMiddlewareOptions : class
     {
-        TMiddlewareOptions options = builder.ServiceProvider.GetRequiredService<IOptions<TMiddlewareOptions>>().Value;
+        TMiddlewareOptions options =
+            builder.ServiceProvider.GetRequiredService<IOptionsMonitor<TMiddlewareOptions>>().Get(optionName);
         return builder.Use(next =>
             new MiddlewareAdapter<TMiddleware>(
                 ActivatorUtilities.CreateInstance<TMiddleware>(builder.ServiceProvider, next, options)));
     }
+
+    /// <summary>Installs a middleware with an options class and the default name ("") for the options instance.
+    /// </summary>
+    /// <typeparam name="TMiddleware">The type of the middleware to install.</typeparam>
+    /// <typeparam name="TMiddlewareOptions">The type of options class to configure the middleware.</typeparam>
+    /// <param name="builder">This dispatcher builder.</param>
+    /// <returns>The dispatcher builder.</returns>
+    public static IDispatcherBuilder UseMiddleware<TMiddleware, TMiddlewareOptions>(this IDispatcherBuilder builder)
+        where TMiddlewareOptions : class =>
+        builder.UseMiddleware<TMiddleware, TMiddlewareOptions>(Options.DefaultName);
 }
