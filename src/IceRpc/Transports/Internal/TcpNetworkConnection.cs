@@ -12,6 +12,8 @@ namespace IceRpc.Transports.Internal
 {
     internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
     {
+        protected int disposed;
+
         internal abstract Socket Socket { get; }
 
         internal abstract SslStream? SslStream { get; }
@@ -19,15 +21,13 @@ namespace IceRpc.Transports.Internal
         // The MaxDataSize of the SSL implementation.
         private const int MaxSslDataSize = 16 * 1024;
 
-        protected int Disposed;
-
         private readonly List<ArraySegment<byte>> _segments = new();
 
         public abstract Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel);
 
         public void Dispose()
         {
-            if (Interlocked.Exchange(ref Disposed, 1) == 1)
+            if (Interlocked.Exchange(ref disposed, 1) == 1)
             {
                 return; // Aready disposed.
             }
@@ -61,7 +61,7 @@ namespace IceRpc.Transports.Internal
                     received = await Socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
                 }
             }
-            catch when (Disposed == 1)
+            catch when (disposed == 1)
             {
                 throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
             }
@@ -126,7 +126,8 @@ namespace IceRpc.Transports.Internal
                             {
                                 break; // while
                             }
-                        } while (index < buffers.Count);
+                        }
+                        while (index < buffers.Count);
 
                         if (index == 1)
                         {
@@ -182,7 +183,7 @@ namespace IceRpc.Transports.Internal
                     }
                 }
             }
-            catch when (Disposed == 1)
+            catch when (disposed == 1)
             {
                 throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
             }
@@ -200,6 +201,7 @@ namespace IceRpc.Transports.Internal
     internal class TcpClientNetworkConnection : TcpNetworkConnection
     {
         internal override Socket Socket { get; }
+
         internal override SslStream? SslStream => _sslStream;
 
         private readonly EndPoint _addr;
@@ -238,7 +240,7 @@ namespace IceRpc.Transports.Internal
                     _idleTimeout,
                     _sslStream?.RemoteCertificate);
             }
-            catch when (Disposed == 1)
+            catch when (disposed == 1)
             {
                 throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
             }
@@ -341,7 +343,7 @@ namespace IceRpc.Transports.Internal
                     _idleTimeout,
                     _sslStream?.RemoteCertificate);
             }
-            catch when (Disposed == 1)
+            catch when (disposed == 1)
             {
                 throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
             }

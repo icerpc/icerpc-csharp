@@ -13,10 +13,10 @@ namespace IceRpc
     [TypeConverter(typeof(EndpointTypeConverter))]
     public readonly record struct Endpoint
     {
-        /// <summary>The protocol of this endpoint.</summary>
+        /// <summary>Gets the endpoint's protocol.</summary>
         public Protocol Protocol { get; }
 
-        /// <summary>The host name or address.</summary>
+        /// <summary>Gets the endpoint's host name or address.</summary>
         public string Host
         {
             get => _host;
@@ -31,7 +31,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The port number.</summary>
+        /// <summary>Gets the endpoint's port number.</summary>
         public ushort Port
         {
             get => _port;
@@ -42,7 +42,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Transport-specific parameters.</summary>
+        /// <summary>Gets the endpoint's transport-specific parameters.</summary>
         public ImmutableDictionary<string, string> Params
         {
             get => _params;
@@ -61,7 +61,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Returns the URI used to create this endpoint, if this endpoint was created from a URI.</summary>
+        /// <summary>Gets the URI used to create this endpoint, if this endpoint was created from a URI.</summary>
         public Uri? OriginalUri { get; private init; }
 
         private readonly string _host = "::0";
@@ -208,7 +208,7 @@ namespace IceRpc
     /// <summary>Equality comparer for <see cref="Endpoint"/>.</summary>
     public abstract class EndpointComparer : EqualityComparer<Endpoint>
     {
-        /// <summary>An endpoint comparer that compares all endpoint properties except the parameters.</summary>
+        /// <summary>Gets an endpoint comparer that compares all endpoint properties except the parameters.</summary>
         public static EndpointComparer ParameterLess { get; } = new ParamLessEndpointComparer();
 
         private class ParamLessEndpointComparer : EndpointComparer

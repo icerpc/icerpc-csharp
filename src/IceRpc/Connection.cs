@@ -17,14 +17,18 @@ namespace IceRpc
         /// cref="Connection.ConnectAsync(CancellationToken)"/> is called. A connection is in this state after creation
         /// or if it's closed and resumable.</summary>
         NotConnected,
+
         /// <summary>The connection establishment is in progress.</summary>
         Connecting,
+
         /// <summary>The connection is active and can send and receive messages.</summary>
         Active,
+
         /// <summary>The connection is being gracefully shutdown. If the connection is resumable and the shutdown is
         /// initiated by the peer, the connection will switch to the <see cref="NotConnected"/> state once the graceful
         /// shutdown completes. It will switch to the <see cref="Closed"/> state otherwise.</summary>
         ShuttingDown,
+
         /// <summary>The connection is closed and it can't be resumed.</summary>
         Closed
     }
@@ -32,7 +36,7 @@ namespace IceRpc
     /// <summary>Represents a connection used to send and receive requests and responses.</summary>
     public abstract class Connection : IConnection, IAsyncDisposable
     {
-        /// <summary>The endpoint of this connection.</summary>
+        /// <summary>Gets the connection's endpoint.</summary>
         // TODO: remove
         public Endpoint Endpoint { get; }
 
@@ -45,7 +49,7 @@ namespace IceRpc
         /// <inheritdoc/>
         public Protocol Protocol => Endpoint.Protocol;
 
-        /// <summary>The state of the connection.</summary>
+        /// <summary>Gets the state of the connection.</summary>
         public ConnectionState State
         {
             get
@@ -56,6 +60,8 @@ namespace IceRpc
                 }
             }
         }
+
+        private protected IProtocolConnection? _protocolConnection;
 
         private readonly CancellationTokenSource _connectCancellationSource = new();
 
@@ -71,8 +77,6 @@ namespace IceRpc
         // TODO: replace this field by individual fields
         private readonly ConnectionOptions _options;
 
-        private protected IProtocolConnection? _protocolConnection;
-
         private readonly CancellationTokenSource _shutdownCancellationSource = new();
 
         private ConnectionState _state = ConnectionState.NotConnected;
@@ -87,7 +91,7 @@ namespace IceRpc
         /// <summary>Constructs a client connection.</summary>
         /// <param name="options">The connection options.</param>
         /// <param name="isResumable">Specifies if the connection can be resumed after being closed.</param>
-        /// <param name="endpoint">The connection endpoint</param>
+        /// <param name="endpoint">The connection endpoint.</param>
         /// <param name="loggerFactory">The logger factory used to create loggers to log connection-related activities.
         /// </param>
         protected Connection(ConnectionOptions options, bool isResumable, Endpoint endpoint, ILoggerFactory? loggerFactory)
@@ -110,98 +114,6 @@ namespace IceRpc
         /// <returns>A task that indicates the completion of the connect operation.</returns>
         /// <exception cref="ConnectionClosedException">Thrown if the connection is already closed.</exception>
         public abstract Task ConnectAsync(CancellationToken cancel = default);
-
-        /// <summary>Establishes the client connection.</summary>
-        /// <param name="multiplexedClientTransport">The transport used to create icerpc protocol connections.</param>
-        /// <param name="simpleClientTransport">The transport used to create ice protocol connections.</param>
-        /// <param name="authenticationOptions">The SSL client authentication options.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A task that indicates the completion of the connect operation.</returns>
-        /// <exception cref="ConnectionClosedException">Thrown if the connection is already closed.</exception>
-        protected async Task ConnectAsync(
-            IClientTransport<IMultiplexedNetworkConnection> multiplexedClientTransport,
-            IClientTransport<ISimpleNetworkConnection> simpleClientTransport,
-            SslClientAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel = default)
-        {
-            // Loop until the connection is active or connection establishment fails.
-            while (true)
-            {
-                Task? waitTask = null;
-                lock (_mutex)
-                {
-                    if (_state == ConnectionState.NotConnected)
-                    {
-                        Debug.Assert(_protocolConnection == null);
-
-                        _stateTask = Protocol == Protocol.Ice ?
-                            PerformConnectAsync(
-                                simpleClientTransport,
-                                IceProtocol.Instance.ProtocolConnectionFactory,
-                                LogSimpleNetworkConnectionDecorator.Decorate) :
-                            PerformConnectAsync(
-                                multiplexedClientTransport,
-                                IceRpcProtocol.Instance.ProtocolConnectionFactory,
-                                LogMultiplexedNetworkConnectionDecorator.Decorate);
-
-                        Debug.Assert(_state == ConnectionState.Connecting);
-                    }
-                    else if (_state == ConnectionState.Active)
-                    {
-                        return;
-                    }
-                    else // ShuttingDown or Closed
-                    {
-                        throw new ConnectionClosedException();
-                    }
-
-                    Debug.Assert(_stateTask != null);
-                    waitTask = _stateTask;
-                }
-
-                await waitTask.WaitAsync(cancel).ConfigureAwait(false);
-            }
-
-            Task PerformConnectAsync<T>(
-                IClientTransport<T> clientTransport,
-                IProtocolConnectionFactory<T> protocolConnectionFactory,
-                LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory)
-                    where T : INetworkConnection
-            {
-                // This is the composition root of client Connections, where we install log decorators when logging is
-                // enabled.
-
-                ILogger logger = _loggerFactory.CreateLogger("IceRpc.Client");
-
-                T networkConnection = clientTransport.CreateConnection(
-                    Endpoint,
-                    authenticationOptions,
-                    logger);
-
-                Action<Connection, Exception>? onClose = null;
-
-                if (logger.IsEnabled(LogLevel.Error)) // TODO: log level
-                {
-                    networkConnection = logDecoratorFactory(networkConnection, Endpoint, isServer: false, logger);
-
-                    protocolConnectionFactory =
-                        new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, logger);
-
-                    onClose = (connection, exception) =>
-                    {
-                        if (NetworkConnectionInformation is NetworkConnectionInformation connectionInformation)
-                        {
-                            using IDisposable scope = logger.StartClientConnectionScope(connectionInformation);
-                            logger.LogConnectionClosedReason(exception);
-                        }
-                    };
-                }
-
-                _state = ConnectionState.Connecting;
-
-                return ConnectAsync(networkConnection, protocolConnectionFactory, onClose);
-            }
-        }
 
         /// <inheritdoc/>
         public async ValueTask DisposeAsync()
@@ -277,6 +189,100 @@ namespace IceRpc
 
         /// <inheritdoc/>
         public override string ToString() => Endpoint.ToString();
+
+        /// <summary>Establishes the client connection.</summary>
+        /// <param name="multiplexedClientTransport">The transport used to create icerpc protocol connections.</param>
+        /// <param name="simpleClientTransport">The transport used to create ice protocol connections.</param>
+        /// <param name="authenticationOptions">The SSL client authentication options.</param>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        /// <returns>A task that indicates the completion of the connect operation.</returns>
+        /// <exception cref="ConnectionClosedException">Thrown if the connection is already closed.</exception>
+        protected async Task ConnectAsync(
+            IClientTransport<IMultiplexedNetworkConnection> multiplexedClientTransport,
+            IClientTransport<ISimpleNetworkConnection> simpleClientTransport,
+            SslClientAuthenticationOptions? authenticationOptions,
+            CancellationToken cancel = default)
+        {
+            // Loop until the connection is active or connection establishment fails.
+            while (true)
+            {
+                Task? waitTask = null;
+                lock (_mutex)
+                {
+                    if (_state == ConnectionState.NotConnected)
+                    {
+                        Debug.Assert(_protocolConnection == null);
+
+                        _stateTask = Protocol == Protocol.Ice ?
+                            PerformConnectAsync(
+                                simpleClientTransport,
+                                IceProtocol.Instance.ProtocolConnectionFactory,
+                                LogSimpleNetworkConnectionDecorator.Decorate) :
+                            PerformConnectAsync(
+                                multiplexedClientTransport,
+                                IceRpcProtocol.Instance.ProtocolConnectionFactory,
+                                LogMultiplexedNetworkConnectionDecorator.Decorate);
+
+                        Debug.Assert(_state == ConnectionState.Connecting);
+                    }
+                    else if (_state == ConnectionState.Active)
+                    {
+                        return;
+                    }
+                    else
+                    {
+                        // ShuttingDown or Closed
+                        throw new ConnectionClosedException();
+                    }
+
+                    Debug.Assert(_stateTask != null);
+                    waitTask = _stateTask;
+                }
+
+                await waitTask.WaitAsync(cancel).ConfigureAwait(false);
+            }
+
+            Task PerformConnectAsync<T>(
+                IClientTransport<T> clientTransport,
+                IProtocolConnectionFactory<T> protocolConnectionFactory,
+                LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory)
+                    where T : INetworkConnection
+            {
+                // This is the composition root of client Connections, where we install log decorators when logging is
+                // enabled.
+
+                ILogger logger = _loggerFactory.CreateLogger("IceRpc.Client");
+
+                T networkConnection = clientTransport.CreateConnection(
+                    Endpoint,
+                    authenticationOptions,
+                    logger);
+
+                Action<Connection, Exception>? onClose = null;
+
+                // TODO: log level
+                if (logger.IsEnabled(LogLevel.Error))
+                {
+                    networkConnection = logDecoratorFactory(networkConnection, Endpoint, isServer: false, logger);
+
+                    protocolConnectionFactory =
+                        new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, logger);
+
+                    onClose = (connection, exception) =>
+                    {
+                        if (NetworkConnectionInformation is NetworkConnectionInformation connectionInformation)
+                        {
+                            using IDisposable scope = logger.StartClientConnectionScope(connectionInformation);
+                            logger.LogConnectionClosedReason(exception);
+                        }
+                    };
+                }
+
+                _state = ConnectionState.Connecting;
+
+                return ConnectAsync(networkConnection, protocolConnectionFactory, onClose);
+            }
+        }
 
         /// <summary>Constructs a server connection from an accepted network connection.</summary>
         private protected Connection(Endpoint endpoint, ConnectionOptions options, ILoggerFactory? loggerFactory)

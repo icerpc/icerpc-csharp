@@ -9,8 +9,8 @@ namespace IceRpc
         /// </summary>
         public ClientConnectionOptions ClientConnectionOptions { get; set; } = new();
 
-        /// <summary>Gets or sets whether or not the pool prefers an existing connection over creating a new one.
-        /// </summary>
+        /// <summary>Gets or sets a value indicating whether or not the pool prefers an existing connection over
+        /// creating a new one.</summary>
         public bool PreferExistingConnection { get; set; } = true;
     }
 }

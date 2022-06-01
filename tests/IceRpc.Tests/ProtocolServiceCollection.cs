@@ -100,14 +100,14 @@ internal static class ProtocolTests
 
         var serverTask = protocolConnectionFactory.CreateProtocolConnectionAsync(
             serverNetworkConnection,
-            connectionInformation: new(),
+            networkConnectionInformation: new(),
             true,
             serverOptions?.ConnectionOptions ?? new ConnectionOptions(),
             CancellationToken.None);
 
         IProtocolConnection clientProtocolConnection = await protocolConnectionFactory.CreateProtocolConnectionAsync(
             clientNetworkConnection,
-            connectionInformation: new(),
+            networkConnectionInformation: new(),
             false,
             new ConnectionOptions(),
             CancellationToken.None);

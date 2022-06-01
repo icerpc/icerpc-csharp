@@ -10,7 +10,7 @@ namespace IceRpc.Retry.Internal;
 /// perspective).</summary>
 internal class ResettablePipeReaderDecorator : PipeReader
 {
-    /// <summary>Gets or sets whether this decorator can be reset.</summary>
+    /// <summary>Gets or sets a value indicating whether this decorator can be reset.</summary>
     internal bool IsResettable
     {
         get => _isResettable;
@@ -68,8 +68,9 @@ internal class ResettablePipeReaderDecorator : PipeReader
         Debug.Assert(_sequence != null);
 
         // The examined given to _decoratee must be ever-increasing.
-        if (_highestExamined == null) // first AdvanceTo ever
+        if (_highestExamined == null)
         {
+            // first AdvanceTo ever
             _highestExamined = examined;
         }
         else if (_sequence.Value.GetOffset(examined) > _sequence.Value.GetOffset(_highestExamined.Value))

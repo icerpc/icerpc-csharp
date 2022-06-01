@@ -13,10 +13,10 @@ namespace IceRpc.Transports
         /// <summary>The transport name.</summary>
         public const string Name = "coloc";
 
-        /// <summary>The colocated client transport.</summary>
+        /// <summary>Gets the colocated client transport.</summary>
         public IClientTransport<ISimpleNetworkConnection> ClientTransport { get; }
 
-        /// <summary>The colocated server transport.</summary>
+        /// <summary>Gets the colocated server transport.</summary>
         public IServerTransport<ISimpleNetworkConnection> ServerTransport { get; }
 
         /// <summary>Constructs a <see cref="ColocTransport"/>.</summary>

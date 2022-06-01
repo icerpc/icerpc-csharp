@@ -15,12 +15,16 @@ namespace IceRpc.Transports
 
         private static readonly Func<ISlicFrameReader, ISlicFrameReader> _defaultSlicFrameReaderDecorator =
             reader => reader;
+
         private static readonly Func<ISlicFrameWriter, ISlicFrameWriter> _defaultSlicFrameWriterDecorator =
             writer => writer;
+
         private readonly IServerTransport<ISimpleNetworkConnection> _simpleServerTransport;
         private readonly SlicTransportOptions _slicTransportOptions;
 
         /// <summary>Constructs a Slic server transport.</summary>
+        /// <param name="options">The options to configure the transport.</param>
+        /// <param name="simpleServerTransport">The simple server transport.</param>
         public SlicServerTransport(
             SlicTransportOptions options,
             IServerTransport<ISimpleNetworkConnection> simpleServerTransport)
@@ -30,6 +34,7 @@ namespace IceRpc.Transports
         }
 
         /// <summary>Constructs a Slic server transport.</summary>
+        /// <param name="simpleServerTransport">The simple server transport.</param>
         public SlicServerTransport(IServerTransport<ISimpleNetworkConnection> simpleServerTransport)
             : this(new(), simpleServerTransport)
         {

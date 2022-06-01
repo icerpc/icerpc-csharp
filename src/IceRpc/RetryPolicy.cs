@@ -9,21 +9,22 @@ namespace IceRpc
     /// protocol, the retry policy is transmitted as a field with the response and later decoded by the client's.</summary>
     public sealed record class RetryPolicy
     {
-        /// <summary>The Immediately policy specifies that the exception can be retried without any delay.</summary>
+        /// <summary>Gets the Immediately policy instance, the Immediately policy specifies that the exception can be
+        /// retried without any delay.</summary>
         public static RetryPolicy Immediately { get; } = new(Retryable.AfterDelay, TimeSpan.Zero);
 
-        /// <summary>The NoRetry policy specifies that the exception cannot be retried. This is the default policy
-        /// when no policy is specified.</summary>
+        /// <summary>Gets the NoRetry policy instance, the NoRetry policy specifies that the exception cannot be
+        /// retried. This is the default policy when no policy is specified.</summary>
         public static RetryPolicy NoRetry { get; } = new(Retryable.No);
 
-        /// <summary>The OtherReplica policy specifies that the exception can be retried on a different replica.
-        /// </summary>
+        /// <summary>Gets the OtherReplica policy instance, the OtherReplica policy specifies that the exception can
+        /// be retried on a different replica.</summary>
         public static RetryPolicy OtherReplica { get; } = new(Retryable.OtherReplica);
 
-        /// <summary>The retry policy ability for retrying.</summary>
+        /// <summary>Gets the retry policy ability for retrying.</summary>
         public Retryable Retryable { get; }
 
-        /// <summary>The retry policy delay to apply for retries.</summary>
+        /// <summary>Gets the retry policy delay to apply for retries.</summary>
         public TimeSpan Delay { get; }
 
         /// <summary>Creates a retry policy that specifies that the exception can be retried after the given delay.
@@ -51,7 +52,7 @@ namespace IceRpc
         }
 
         /// <summary>Encodes this retry policy instance into the given encoder.</summary>
-        /// <param name="encoder">The encoder</param>
+        /// <param name="encoder">The encoder.</param>
         public void Encode(ref SliceEncoder encoder)
         {
             encoder.EncodeRetryable(Retryable);

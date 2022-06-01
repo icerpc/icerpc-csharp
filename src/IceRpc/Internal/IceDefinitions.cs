@@ -21,8 +21,14 @@ namespace IceRpc.Internal
         internal static readonly byte[] ProtocolBytes = new byte[] { 1, 0, 1, 0 };
 
         internal static readonly IcePrologue CloseConnectionFrame = new(
-            Magic[0], Magic[1], Magic[2], Magic[3],
-            ProtocolBytes[0], ProtocolBytes[1], ProtocolBytes[2], ProtocolBytes[3],
+            Magic[0],
+            Magic[1],
+            Magic[2],
+            Magic[3],
+            ProtocolBytes[0],
+            ProtocolBytes[1],
+            ProtocolBytes[2],
+            ProtocolBytes[3],
             IceFrameType.CloseConnection,
             compressionStatus: 0,
             PrologueSize);
@@ -34,8 +40,14 @@ namespace IceRpc.Internal
         };
 
         internal static readonly IcePrologue ValidateConnectionFrame = new(
-            Magic[0], Magic[1], Magic[2], Magic[3],
-            ProtocolBytes[0], ProtocolBytes[1], ProtocolBytes[2], ProtocolBytes[3],
+            Magic[0],
+            Magic[1],
+            Magic[2],
+            Magic[3],
+            ProtocolBytes[0],
+            ProtocolBytes[1],
+            ProtocolBytes[2],
+            ProtocolBytes[3],
             IceFrameType.ValidateConnection,
             compressionStatus: 0,
             PrologueSize);

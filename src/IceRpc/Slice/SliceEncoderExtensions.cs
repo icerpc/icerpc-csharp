@@ -10,6 +10,8 @@ namespace IceRpc.Slice
     public static class SliceEncoderExtensions
     {
         /// <summary>Encodes a dictionary.</summary>
+        /// <typeparam name="TKey">The dictionary key type.</typeparam>
+        /// <typeparam name="TValue">The dictionary value type.</typeparam>
         /// <param name="encoder">The Slice encoder.</param>
         /// <param name="v">The dictionary to encode.</param>
         /// <param name="keyEncodeAction">The encode action for the keys.</param>
@@ -30,6 +32,8 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Encodes a dictionary with null values encoded using a bit sequence.</summary>
+        /// <typeparam name="TKey">The dictionary key type.</typeparam>
+        /// <typeparam name="TValue">The dictionary value type.</typeparam>
         /// <param name="encoder">The Slice encoder.</param>
         /// <param name="v">The dictionary to encode.</param>
         /// <param name="keyEncodeAction">The encode action for the keys.</param>
@@ -60,9 +64,11 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Encodes a sequence of fixed-size numeric values, such as int or ulong.</summary>
+        /// <typeparam name="T">The sequence element type.</typeparam>
         /// <param name="encoder">The Slice encoder.</param>
         /// <param name="v">The sequence of numeric values.</param>
-        public static void EncodeSequence<T>(this ref SliceEncoder encoder, IEnumerable<T> v) where T : struct
+        public static void EncodeSequence<T>(this ref SliceEncoder encoder, IEnumerable<T> v)
+            where T : struct
         {
             switch (v)
             {
@@ -87,8 +93,8 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Encodes a sequence.</summary>
-        /// <paramtype name="T">The type of the sequence elements. It is non-nullable except for nullable class and
-        /// proxy types.</paramtype>
+        /// <typeparam name="T">The type of the sequence elements. It is non-nullable except for nullable class and
+        /// proxy types.</typeparam>
         /// <param name="encoder">The Slice encoder.</param>
         /// <param name="v">The sequence to encode.</param>
         /// <param name="encodeAction">The encode action for an element.</param>
@@ -105,7 +111,7 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Encodes a sequence with null values encoded using a bit sequence.</summary>
-        /// <paramtype name="T">The nullable type of the sequence elements.</paramtype>
+        /// <typeparam name="T">The nullable type of the sequence elements.</typeparam>
         /// <param name="encoder">The Slice encoder.</param>
         /// <param name="v">The sequence to encode.</param>
         /// <param name="encodeAction">The encode action for a non-null value.</param>
@@ -132,11 +138,13 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Encodes a span of fixed-size numeric values, such as int or ulong.</summary>
+        /// <typeparam name="T">The span element type.</typeparam>
         /// <param name="encoder">The Slice encoder.</param>
         /// <param name="v">The span of numeric values represented by a <see cref="ReadOnlySpan{T}"/>.</param>
-        // This method works because (as long as) there is no padding in the memory representation of the ReadOnlySpan.
-        public static void EncodeSpan<T>(this ref SliceEncoder encoder, ReadOnlySpan<T> v) where T : struct
+        public static void EncodeSpan<T>(this ref SliceEncoder encoder, ReadOnlySpan<T> v)
+            where T : struct
         {
+            // This method works because (as long as) there is no padding in the memory representation of the ReadOnlySpan.
             encoder.EncodeSize(v.Length);
             if (!v.IsEmpty)
             {

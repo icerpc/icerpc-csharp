@@ -13,8 +13,7 @@ namespace IceRpc.Transports.Internal
         private static readonly Action<ILogger, Dictionary<string, string>, Exception> _tlsAuthentication =
             LoggerMessage.Define<Dictionary<string, string>>(
                 LogLevel.Debug,
-                new EventId((int)TcpEventIds.TlsAuthentication,
-                             nameof(TcpEventIds.TlsAuthentication)),
+                new EventId((int)TcpEventIds.TlsAuthentication, nameof(TcpEventIds.TlsAuthentication)),
                 "Tls authentication succeeded ({TlsInfo})");
 
         [LoggerMessage(

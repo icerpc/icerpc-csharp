@@ -13,7 +13,8 @@ namespace IceRpc
         /// </value>
         public SslClientAuthenticationOptions? ClientAuthenticationOptions { get; set; }
 
-        /// <summary>Specifies if the connection can be resumed after being closed.</summary>
+        /// <summary>Gets or sets a value indicating whether or not the connection can be resumed after being closed.
+        /// </summary>
         /// <value>When <c>true</c>, the connection will be re-established by the next call to
         /// <see cref="Connection.ConnectAsync(CancellationToken)"/> or the next invocation. The
         /// <see cref="Connection.State"/> is always switched back to <see cref="ConnectionState.NotConnected"/> after

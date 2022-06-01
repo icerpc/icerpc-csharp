@@ -10,35 +10,36 @@ namespace IceRpc
     /// <summary>Protocol identifies a RPC protocol.</summary>
     public class Protocol : IEquatable<Protocol>
     {
-        /// <summary>The <c>ice</c> protocol.</summary>
+        /// <summary>Gets the <c>ice</c> protocol.</summary>
         public static Protocol Ice => IceProtocol.Instance;
 
-        /// <summary>The <c>icerpc</c> protocol.</summary>
+        /// <summary>Gets the <c>icerpc</c> protocol.</summary>
         public static Protocol IceRpc => IceRpcProtocol.Instance;
 
-        /// <summary>The protocol of relative proxies.</summary>
+        /// <summary>Gets the protocol of relative proxies.</summary>
         public static Protocol Relative { get; } = new(RelativeName);
 
-        /// <summary>Returns the default port for this protocol.</summary>
+        /// <summary>Gets the default port for this protocol.</summary>
         /// <value>The value is either -1 (no default port) or between 0 and 65,535.</value>
         public virtual int DefaultUriPort => -1;
 
-        /// <summary>Returns whether or not this protocol supports fields.</summary>
+        /// <summary>Gets a value indicating whether or not this protocol supports fields.</summary>
         /// <returns><c>true</c> if the protocol supports fields; otherwise, <c>false</c>.</returns>
         public virtual bool HasFields => false;
 
-        /// <summary>Returns whether or not this protocol supports fragments in proxies.</summary>
+        /// <summary>Gets a value indicating whether or not this protocol supports fragments in proxies.</summary>
         /// <returns><c>true</c> if the protocol supports fragments; otherwise, <c>false</c>.</returns>
         public virtual bool HasFragment => false;
 
-        /// <summary>Checks if IceRPC can an establish a connection using this protocol.</summary>
+        /// <summary>Gets a value indicating whether or not IceRPC can an establish a connection using this protocol.
+        /// </summary>
         /// <returns><c>true</c> if the protocol is supported; otherwise, <c>false</c>.</returns>
         public virtual bool IsSupported => false;
 
-        /// <summary>The name of this protocol.</summary>
+        /// <summary>Gets the name of this protocol.</summary>
         public string Name { get; }
 
-        /// <summary>Returns the Slice encoding that this protocol uses for its headers.</summary>
+        /// <summary>Gets the Slice encoding that this protocol uses for its headers.</summary>
         /// <returns>The Slice encoding.</returns>
         internal virtual SliceEncoding SliceEncoding => throw new NotSupportedException();
 

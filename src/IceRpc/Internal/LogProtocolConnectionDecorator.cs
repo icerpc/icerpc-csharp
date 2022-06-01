@@ -9,7 +9,9 @@ namespace IceRpc.Internal
     internal class LogProtocolConnectionDecorator : IProtocolConnection
     {
         bool IProtocolConnection.HasDispatchesInProgress => _decoratee.HasDispatchesInProgress;
+
         bool IProtocolConnection.HasInvocationsInProgress => _decoratee.HasInvocationsInProgress;
+
         TimeSpan IProtocolConnection.LastActivity => _decoratee.LastActivity;
 
         Action<string>? IProtocolConnection.PeerShutdownInitiated

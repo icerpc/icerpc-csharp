@@ -7,6 +7,7 @@ namespace IceRpc.Transports.Internal
     {
         /// <summary>The stream was successfully completed.</summary>
         NoError,
+
         /// <summary>The stream was completed with an unexpected error.</summary>
         UnexpectedError,
     }

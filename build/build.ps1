@@ -23,7 +23,6 @@ $packages = @(
   'icerpc.requestcontext'
   'icerpc.retry'
   'icerpc.telemetry'
-  'icerpc.timeout'
 )
 
 $exampleProjects = @(

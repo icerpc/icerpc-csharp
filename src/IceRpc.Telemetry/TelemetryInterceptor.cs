@@ -39,7 +39,8 @@ public class TelemetryInterceptor : IInvoker
             // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md#common-remote-procedure-call-conventions
             activity.Start();
 
-            request.Fields = request.Fields.With(RequestFieldKey.TraceContext,
+            request.Fields = request.Fields.With(
+                RequestFieldKey.TraceContext,
                 (ref SliceEncoder encoder) => WriteActivityContext(ref encoder, activity));
             return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
         }
