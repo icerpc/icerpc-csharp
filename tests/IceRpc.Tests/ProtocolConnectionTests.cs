@@ -182,7 +182,6 @@ public sealed class ProtocolConnectionTests
 
         // Assert
         Assert.That(await result.Task, Is.True);
-        sut.Dispose();
     }
 
     [Test, TestCaseSource(nameof(_protocols))]

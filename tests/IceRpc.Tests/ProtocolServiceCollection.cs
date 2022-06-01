@@ -13,7 +13,7 @@ using System.Net.Security;
 
 namespace IceRpc.Tests;
 
-internal interface IClientServerProtocolConnection : IDisposable
+internal interface IClientServerProtocolConnection
 {
     IProtocolConnection Client { get; }
     IProtocolConnection Server { get; }
@@ -21,7 +21,7 @@ internal interface IClientServerProtocolConnection : IDisposable
 }
 
 /// <summary>A helper struct to ensure the network and protocol connections are correctly disposed.</summary>
-internal class ClientServerProtocolConnection<T> : IClientServerProtocolConnection
+internal class ClientServerProtocolConnection<T> : IClientServerProtocolConnection, IDisposable
     where T : INetworkConnection
 {
     public IProtocolConnection Client => _client ?? throw new InvalidOperationException("client connection not initialized");
