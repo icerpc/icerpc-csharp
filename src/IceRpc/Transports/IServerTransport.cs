@@ -6,7 +6,7 @@ using System.Net.Security;
 namespace IceRpc.Transports
 {
     /// <summary>Gives class <see cref="Server"/> the ability to create incoming transport connections.</summary>
-    /// <typeparam name="T">The transport network type.</typeparam>
+    /// <typeparam name="T">The network connection type.</typeparam>
     public interface IServerTransport<T> where T : INetworkConnection
     {
         /// <summary>Gets the transport's name.</summary>

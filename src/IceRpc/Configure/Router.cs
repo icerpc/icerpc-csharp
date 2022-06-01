@@ -68,14 +68,14 @@ namespace IceRpc.Configure
 
         /// <summary>Registers a route to a service that uses the service default path as the route path. If there is
         /// an existing route at the same path, it is replaced.</summary>
-        /// <typeparam name="T">The service type used to get the default path.</typeparam>
+        /// <typeparam name="TService">The service type used to get the default path.</typeparam>
         /// <param name="service">The target service of this route.</param>
         /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync"/> was already
         /// called on this router.</exception>
         /// <seealso cref="Mount"/>
-        public void Map<T>(IDispatcher service)
-            where T : class =>
-            Map(typeof(T).GetDefaultPath(), service);
+        public void Map<TService>(IDispatcher service)
+            where TService : class =>
+            Map(typeof(TService).GetDefaultPath(), service);
 
         /// <summary>Registers a route with a prefix. If there is an existing route at the same prefix, it is replaced.
         /// </summary>

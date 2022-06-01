@@ -15,15 +15,15 @@ namespace IceRpc.Slice
     public ref partial struct SliceDecoder
     {
         /// <summary>Decodes a class instance.</summary>
-        /// <returns>The decoded class instance.</returns>
         /// <typeparam name="T">The class type.</typeparam>
+        /// <returns>The decoded class instance.</returns>
         public T DecodeClass<T>() where T : AnyClass =>
             DecodeNullableClass<T>() ??
                throw new InvalidDataException("decoded a null class instance, but expected a non-null instance");
 
         /// <summary>Decodes a nullable class instance.</summary>
-        /// <returns>The class instance, or null.</returns>
         /// <typeparam name="T">The class type.</typeparam>
+        /// <returns>The class instance, or null.</returns>
         public T? DecodeNullableClass<T>() where T : class
         {
             if (Encoding != SliceEncoding.Slice1)

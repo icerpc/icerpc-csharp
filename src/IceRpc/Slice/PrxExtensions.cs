@@ -47,6 +47,8 @@ public static class PrxExtensions
             new TPrx { EncodeFeature = prx.EncodeFeature, Proxy = prx.Proxy } : null;
 
     /// <summary>Sends a request to a service and decodes the response.</summary>
+    /// <typeparam name="TPrx">The type of the Prx struct.</typeparam>
+    /// <typeparam name="T">The response type.</typeparam>
     /// <param name="prx">A proxy to the remote service.</param>
     /// <param name="operation">The name of the operation, as specified in Slice.</param>
     /// <param name="payload">The payload of the request. <c>null</c> is equivalent to an empty payload.</param>
@@ -60,8 +62,6 @@ public static class PrxExtensions
     /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
     /// <remarks>This method stores the response features into the invocation's response features when
     /// invocation is not null.</remarks>
-    /// <typeparam name="TPrx">The type of the Prx struct.</typeparam>
-    /// <typeparam name="T">The response type.</typeparam>
     public static Task<T> InvokeAsync<TPrx, T>(
         this TPrx prx,
         string operation,
@@ -125,6 +125,7 @@ public static class PrxExtensions
     }
 
     /// <summary>Sends a request to a service and decodes the "void" response.</summary>
+    /// <typeparam name="TPrx">The type of the Prx struct.</typeparam>
     /// <param name="prx">A proxy for the remote service.</param>
     /// <param name="operation">The name of the operation, as specified in Slice.</param>
     /// <param name="encoding">The encoding of the request payload.</param>
@@ -140,7 +141,6 @@ public static class PrxExtensions
     /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
     /// <remarks>This method stores the response features into the invocation's response features when invocation is
     /// not null.</remarks>
-    /// <typeparam name="TPrx">The type of the Prx struct.</typeparam>
     public static Task InvokeAsync<TPrx>(
         this TPrx prx,
         string operation,
@@ -213,18 +213,16 @@ public static class PrxExtensions
     }
 
     /// <summary>Converts a proxy struct into another proxy struct. This convertion always succeeds.</summary>
-    /// <paramtype name="TPrx">The type of the target Prx struct.</paramtype>
+    /// <typeparam name="TPrx">The type of the target Prx struct.</typeparam>
     /// <param name="prx">The source Prx.</param>
     /// <returns>A new TPrx instance.</returns>
-    /// <typeparam name="TPrx">The type of the Prx struct.</typeparam>
     public static TPrx ToPrx<TPrx>(this IPrx prx) where TPrx : struct, IPrx =>
         new() { EncodeFeature = prx.EncodeFeature, Proxy = prx.Proxy };
 
     /// <summary>Converts this Prx struct into a string using a specific format.</summary>
-    /// <paramtype name="TPrx">The type of source Prx struct.</paramtype>
+    /// <typeparam name="TPrx">The type of source Prx struct.</typeparam>
     /// <param name="prx">The Prx struct.</param>
     /// <param name="format">The proxy format.</param>
-    /// <typeparam name="TPrx">The type of the Prx struct.</typeparam>
     public static string ToString<TPrx>(this TPrx prx, IProxyFormat format) where TPrx : struct, IPrx =>
         format.ToString(prx.Proxy);
 }

@@ -16,24 +16,21 @@ namespace IceRpc
     /// <see cref="Proxy.ToString(IProxyFormat)"/> and similar ToString methods.</remarks>
     public class IceProxyFormat : IProxyFormat
     {
-        /// <summary>Gets the ACII format, with this format, characters with ordinal values greater than 127 are
-        /// encoded as universal character names in the resulting string: \\unnnn for BMP characters and \\Unnnnnnnn
-        /// for non-BMP characters. Non-printable ASCII characters with ordinal values 127 and below are encoded as
-        /// \\t, \\n (etc.) or \\unnnn. This is an optional format introduced in Ice 3.7.</summary>
+        /// <summary>Gets the ACII Ice proxy format, with this format, characters with ordinal values greater than 127
+        /// are encoded as universal character names in the resulting string: \\unnnn for BMP characters and
+        /// \\Unnnnnnnn for non-BMP characters. Non-printable ASCII characters with ordinal values 127 and below are
+        /// encoded as \\t, \\n (etc.) or \\unnnn. This is an optional format introduced in Ice 3.7.</summary>
         public static IceProxyFormat ASCII { get; } = new(EscapeMode.Ascii);
 
-        /// <summary>Gets the Compat format, with this format, characters with ordinal values greater than 127 are
-        /// encoded as a sequence of UTF-8 bytes using octal escapes. Characters with ordinal values 127 and below are
-        /// encoded as \\t, \\n (etc.) or an octal escape. This is the format used by Ice 3.6 and earlier Ice versions.
-        /// </summary>
+        /// <summary>Gets the Compat Ice proxy format, with this format, characters with ordinal values greater than
+        /// 127 are encoded as a sequence of UTF-8 bytes using octal escapes. Characters with ordinal values 127 and
+        /// below are encoded as \\t, \\n (etc.) or an octal escape. This is the format used by Ice 3.6 and earlier
+        /// Ice versions. </summary>
         public static IceProxyFormat Compat { get; } = new(EscapeMode.Compat);
 
-        /// <summary>Gets the default format, this is an alias for the <see cref="Unicode"/> format.</summary>
-        public static IceProxyFormat Default => Unicode;
-
-        /// <summary>Gets the Unicode format, with this format, characters with ordinal values greater than 127 are
-        /// kept as-is in the resulting string. Non-printable ASCII characters with ordinal values 127 and below are
-        ///  encoded as \\t, \\n (etc.). This corresponds to the default format in Ice 3.7.</summary>
+        /// <summary>Gets the Unicode Ice proxy format, with this format, characters with ordinal values greater than
+        /// 127 are kept as-is in the resulting string. Non-printable ASCII characters with ordinal values 127 and
+        /// below are encoded as \\t, \\n (etc.). This corresponds to the default format in Ice 3.7.</summary>
         public static IceProxyFormat Unicode { get; } = new(EscapeMode.Unicode);
 
         internal EscapeMode EscapeMode { get; }

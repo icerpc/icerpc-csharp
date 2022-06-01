@@ -10,11 +10,10 @@ namespace IceRpc
     {
         /// <summary>Sets an entry in the outgoing fields dictionary and returns the fields dictionary. If
         /// <paramref name="fields"/> is read-only, a copy is created, modified then returned.</summary>
-        /// <paramtype name="TKey">The type of the field key.</paramtype>
+        /// <typeparam name="TKey">The type of the field key.</typeparam>
         /// <param name="fields">A fields dictionary.</param>
         /// <param name="key">The key of the entry to set.</param>
         /// <param name="value">The value of the entry to set.</param>
-        /// <typeparam name="TKey">The field key type.</typeparam>
         /// <returns>The fields dictionary.</returns>
         public static IDictionary<TKey, OutgoingFieldValue> With<TKey>(
             this IDictionary<TKey, OutgoingFieldValue> fields,
@@ -32,11 +31,10 @@ namespace IceRpc
 
         /// <summary>Sets an entry in the outgoing fields dictionary and returns the fields dictionary. If
         /// <paramref name="fields"/> is read-only, a copy is created, modified then returned.</summary>
-        /// <paramtype name="TKey">The type of the field key.</paramtype>
+        /// <typeparam name="TKey">The type of the field key.</typeparam>
         /// <param name="fields">A fields dictionary.</param>
         /// <param name="key">The key of the entry to set.</param>
         /// <param name="value">The value of the entry to set.</param>
-        /// <typeparam name="TKey">The field key type.</typeparam>
         /// <returns>The fields dictionary.</returns>
         public static IDictionary<TKey, OutgoingFieldValue> With<TKey>(
             this IDictionary<TKey, OutgoingFieldValue> fields,
@@ -54,11 +52,9 @@ namespace IceRpc
         /// <summary>Removes an entry in the fields dictionary and returns the fields dictionary. If
         /// <paramref name="fields"/> is read-only and contains the value, a copy is created, modified then returned.
         /// </summary>
-        /// <paramtype name="TKey">The type of the field key.</paramtype>
-        /// <paramtype name="TValue">The type of the field value.</paramtype>
+        /// <typeparam name="TKey">The type of the field key.</typeparam>
         /// <param name="fields">A fields dictionary.</param>
         /// <param name="key">The key of the entry to check.</param>
-        /// <typeparam name="TKey">The field key type.</typeparam>
         /// <returns>The fields dictionary.</returns>
         public static IDictionary<TKey, OutgoingFieldValue> Without<TKey>(
             this IDictionary<TKey, OutgoingFieldValue> fields,

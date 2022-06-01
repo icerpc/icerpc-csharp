@@ -20,10 +20,10 @@ namespace IceRpc.Configure
             }));
 
         /// <summary>Adds a middleware that sets a feature in all requests.</summary>
-        /// <typeparam name="T">The type of the feature.</typeparam>
+        /// <typeparam name="TFeature">The type of the feature.</typeparam>
         /// <param name="router">The router being configured.</param>
         /// <param name="feature">The value of the feature to set in all requests.</param>
-        public static Router UseFeature<T>(this Router router, T feature) =>
+        public static Router UseFeature<TFeature>(this Router router, TFeature feature) =>
             router.Use(next => new InlineDispatcher((request, cancel) =>
             {
                 request.Features = request.Features.With(feature);

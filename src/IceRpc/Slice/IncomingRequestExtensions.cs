@@ -84,14 +84,13 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Decodes the request's payload into a list of arguments.</summary>
-        /// <paramtype name="T">The type of the request parameters.</paramtype>
+        /// <typeparam name="T">The type of the request parameters.</typeparam>
         /// <param name="request">The incoming request.</param>
         /// <param name="encoding">The encoding of the request payload.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
         /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The request arguments.</returns>
-        /// <typeparam name="T">The arguments type.</typeparam>
         public static ValueTask<T> DecodeArgsAsync<T>(
             this IncomingRequest request,
             SliceEncoding encoding,
@@ -123,13 +122,13 @@ namespace IceRpc.Slice
 
         /// <summary>Creates an async enumerable over the payload reader of an incoming request to decode fixed size
         /// streamed elements.</summary>
+        /// <typeparam name="T">The stream element type.</typeparam>
         /// <param name="request">The incoming request.</param>
         /// <param name="encoding">The encoding of the request payload.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
         /// <param name="elementSize">The size in bytes of the streamed elements.</param>
         /// <returns>The async enumerable to decode and return the streamed members.</returns>
-        /// <typeparam name="T">The stream element type.</typeparam>
         public static IAsyncEnumerable<T> DecodeStream<T>(
             this IncomingRequest request,
             SliceEncoding encoding,
@@ -147,12 +146,12 @@ namespace IceRpc.Slice
 
         /// <summary>Creates an async enumerable over the payload reader of an incoming request to decode variable size
         /// streamed elements.</summary>
+        /// <typeparam name="T">The stream element type.</typeparam>
         /// <param name="request">The incoming request.</param>
         /// <param name="encoding">The encoding of the request payload.</param>
         /// <param name="defaultActivator">The optional default activator.</param>
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
         /// <returns>The async enumerable to decode and return the streamed members.</returns>
-        /// <typeparam name="T">The stream element type.</typeparam>
         public static IAsyncEnumerable<T> DecodeStream<T>(
             this IncomingRequest request,
             SliceEncoding encoding,

@@ -318,10 +318,10 @@ namespace IceRpc.Slice
         // Decode methods for constructed types
 
         /// <summary>Decodes a trait.</summary>
+        /// <typeparam name="T">The type of the decoded trait.</typeparam>
         /// <param name="fallback">An optional function that creates a trait in case the activator does not find a
         /// struct or class associated with the type ID.</param>
         /// <returns>The decoded trait.</returns>
-        /// <typeparam name="T">The type of the decoded trait.</typeparam>
         public T DecodeTrait<T>(DecodeTraitFunc<T>? fallback = null)
         {
             if (Encoding == SliceEncoding.Slice1)
@@ -504,6 +504,7 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Decodes a Slice2-encoded tagged parameter or data member.</summary>
+        /// <typeparam name="T">The type of the decoded value.</typeparam>
         /// <param name="tag">The tag.</param>
         /// <param name="decodeFunc">A decode function that decodes the value of this tagged parameter or data member.
         /// </param>
@@ -513,7 +514,6 @@ namespace IceRpc.Slice
         /// <returns>The decoded value of the tagged parameter or data member, or null if not found.</returns>
         /// <remarks>We return a T? and not a T to avoid ambiguities in the generated code with nullable reference
         /// types such as string?.</remarks>
-        /// <typeparam name="T">The type of the decoded value.</typeparam>
         public T? DecodeTagged<T>(int tag, DecodeFunc<T> decodeFunc, bool useTagEndMarker)
         {
             if (Encoding == SliceEncoding.Slice1)
@@ -549,6 +549,7 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Decodes a Slice1-encoded tagged parameter or data member.</summary>
+        /// <typeparam name="T">The type of the decoded value.</typeparam>
         /// <param name="tag">The tag.</param>
         /// <param name="tagFormat">The expected tag format of this tag when found in the underlying buffer.</param>
         /// <param name="decodeFunc">A decode function that decodes the value of this tag.</param>
@@ -558,7 +559,6 @@ namespace IceRpc.Slice
         /// <returns>The decoded value of the tagged parameter or data member, or null if not found.</returns>
         /// <remarks>We return a T? and not a T to avoid ambiguities in the generated code with nullable reference
         /// types such as string?.</remarks>
-        /// <typeparam name="T">The type of the decoded value.</typeparam>
         public T? DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<T> decodeFunc, bool useTagEndMarker)
         {
             if (Encoding != SliceEncoding.Slice1)
