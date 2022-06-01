@@ -8,15 +8,13 @@ namespace IceRpc.Extensions.DependencyInjection.Internal;
 internal class MiddlewareAdapter<TMiddleware> : IDispatcher
 {
     private readonly IDispatcher _dispatcher;
-    private readonly TMiddleware _middleware;
 
     public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel) =>
         _dispatcher.DispatchAsync(request, cancel);
 
     internal MiddlewareAdapter(TMiddleware middleware)
     {
-        _middleware = middleware;
-        if (_middleware is IDispatcher dispatcher)
+        if (middleware is IDispatcher dispatcher)
         {
             _dispatcher = dispatcher;
         }
@@ -69,7 +67,7 @@ internal class MiddlewareAdapter<TMiddleware> : IDispatcher
                     {
                         args[i] = feature.ServiceProvider.GetRequiredService(paramInfo[i].ParameterType);
                     }
-                    return (ValueTask<OutgoingResponse>)method.Invoke(_middleware, args)!;
+                    return (ValueTask<OutgoingResponse>)method.Invoke(middleware, args)!;
                 });
             }
             catch (AmbiguousMatchException exception)
