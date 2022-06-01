@@ -56,19 +56,8 @@ public sealed class ProtocolConnectionTests
             .AddProtocolTest(protocol)
             .BuildServiceProvider(validateScopes: true);
 
-        ClientServerProtocolConnection sut = protocol == Protocol.Ice ?
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IConnection>(),
-                acceptRequests: false) :
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IConnection>(),
-                acceptRequests: false);
+        IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync(false);
 
         Task clientAcceptRequestsTask = sut.Client.AcceptRequestsAsync(provider.GetRequiredService<IConnection>());
         Task serverAcceptRequestsTask = sut.Server.AcceptRequestsAsync(provider.GetRequiredService<IConnection>());
@@ -97,30 +86,13 @@ public sealed class ProtocolConnectionTests
             await hold.WaitAsync(cancel);
             return new OutgoingResponse(request);
         });
-
-        var serverOptions = new ServerOptions
-        {
-            ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
-        };
-
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
+            .AddProtocolTest(protocol, dispatcher)
             .BuildServiceProvider(validateScopes: true);
 
         IConnection connection = provider.GetRequiredService<IConnection>();
-        using var sut = protocol == Protocol.Ice ?
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions) :
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions);
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
         sut.Client.PeerShutdownInitiated += (message) => sut.Client.ShutdownAsync("shutdown", default);
         var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
@@ -164,40 +136,25 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         var result = new TaskCompletionSource<bool>();
-        ClientServerProtocolConnection? sut = null;
+        IClientServerProtocolConnection? sut = null;
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
-            result.SetResult(sut!.Value.Client.HasInvocationsInProgress);
+            result.SetResult(sut!.Client.HasInvocationsInProgress);
             return new(new OutgoingResponse(request));
         });
-        var serverOptions = new ServerOptions
-        {
-            ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
-        };
+
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
+            .AddProtocolTest(protocol, dispatcher)
             .BuildServiceProvider(validateScopes: true);
         IConnection connection = provider.GetRequiredService<IConnection>();
-        sut = protocol == Protocol.Ice ?
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions) :
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions);
+        sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
         // Act
-        await sut.Value.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
+        await sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
 
         // Assert
         Assert.That(await result.Task, Is.True);
-        sut!.Value.Dispose();
     }
 
     /// <summary>Ensures that the connection HasDispatchInProgress works.</summary>
@@ -206,41 +163,26 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         var result = new TaskCompletionSource<bool>();
-        ClientServerProtocolConnection? sut = null;
+        IClientServerProtocolConnection? sut = null;
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
-            result.SetResult(sut!.Value.Server.HasDispatchesInProgress);
+            result.SetResult(sut!.Server.HasDispatchesInProgress);
             return new(new OutgoingResponse(request));
         });
 
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
+            .AddProtocolTest(protocol, dispatcher)
             .BuildServiceProvider(validateScopes: true);
-        var serverOptions = new ServerOptions
-        {
-            ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
-        };
         IConnection connection = provider.GetRequiredService<IConnection>();
-        sut = protocol == Protocol.Ice ?
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions) :
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions);
+        sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
         // Act
-        await sut.Value.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
+        await sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
 
         // Assert
         Assert.That(await result.Task, Is.True);
-        sut!.Value.Dispose();
+        sut.Dispose();
     }
 
     [Test, TestCaseSource(nameof(_protocols))]
@@ -251,17 +193,8 @@ public sealed class ProtocolConnectionTests
             .AddProtocolTest(protocol)
             .BuildServiceProvider(validateScopes: true);
         IConnection connection = provider.GetRequiredService<IConnection>();
-        using var sut = protocol == Protocol.Ice ?
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-                connection) :
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>(),
-                connection);
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
         // Act
         sut.Client.Dispose();
@@ -284,28 +217,13 @@ public sealed class ProtocolConnectionTests
             return new OutgoingResponse(request);
 
         });
-        var serverOptions = new ServerOptions
-        {
-            ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-        };
+
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
+            .AddProtocolTest(protocol, dispatcher)
             .BuildServiceProvider(validateScopes: true);
         IConnection connection = provider.GetRequiredService<IConnection>();
-        using var sut = protocol == Protocol.Ice ?
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions) :
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions);
-
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
         var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
         await start.WaitAsync(); // Wait for the dispatch to start
 
@@ -332,28 +250,12 @@ public sealed class ProtocolConnectionTests
             await hold.WaitAsync(cancel);
             return new OutgoingResponse(request);
         });
-        var serverOptions = new ServerOptions
-        {
-            ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-        };
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
+            .AddProtocolTest(protocol, dispatcher)
             .BuildServiceProvider(validateScopes: true);
         IConnection connection = provider.GetRequiredService<IConnection>();
-        using var sut = protocol == Protocol.Ice ?
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions) :
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions);
-
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
         var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
         await start.WaitAsync(); // Wait for the dispatch to start
 
@@ -375,18 +277,8 @@ public sealed class ProtocolConnectionTests
             .AddProtocolTest(protocol)
             .BuildServiceProvider(validateScopes: true);
         IConnection connection = provider.GetRequiredService<IConnection>();
-        using var sut = protocol == Protocol.Ice ?
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-                connection) :
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>(),
-                connection);
-
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
         _ = sut.Client.ShutdownAsync("");
 
         // Act
@@ -407,17 +299,8 @@ public sealed class ProtocolConnectionTests
             .AddProtocolTest(protocol)
             .BuildServiceProvider(validateScopes: true);
         IConnection connection = provider.GetRequiredService<IConnection>();
-        using var sut = protocol == Protocol.Ice ?
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-                connection) :
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>(),
-                connection);
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
         var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var request = new OutgoingRequest(new Proxy(protocol))
@@ -445,28 +328,12 @@ public sealed class ProtocolConnectionTests
                     Payload = payloadDecorator
                 }));
 
-        var serverOptions = new ServerOptions
-        {
-            ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
-        };
-
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
+            .AddProtocolTest(protocol, dispatcher)
             .BuildServiceProvider(validateScopes: true);
         IConnection connection = provider.GetRequiredService<IConnection>();
-        using var sut = protocol == Protocol.Ice ?
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions) :
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions);
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
         // Act
         _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
@@ -487,28 +354,12 @@ public sealed class ProtocolConnectionTests
                     Payload = payloadDecorator
                 }));
 
-        var serverOptions = new ServerOptions
-        {
-            ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
-        };
-
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
+            .AddProtocolTest(protocol, dispatcher)
             .BuildServiceProvider(validateScopes: true);
         IConnection connection = provider.GetRequiredService<IConnection>();
-        using var sut = protocol == Protocol.Ice ?
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions) :
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions);
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
         // Act
         _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
@@ -532,27 +383,12 @@ public sealed class ProtocolConnectionTests
                 response.Use(writer => InvalidPipeWriter.Instance);
                 return new(response);
             });
-        var serverOptions = new ServerOptions
-        {
-            ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
-        };
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
+            .AddProtocolTest(protocol, dispatcher)
             .BuildServiceProvider(validateScopes: true);
         IConnection connection = provider.GetRequiredService<IConnection>();
-        using var sut = protocol == Protocol.Ice ?
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions) :
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions);
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
         // Act
         _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
@@ -570,17 +406,8 @@ public sealed class ProtocolConnectionTests
             .AddProtocolTest(protocol)
             .BuildServiceProvider(validateScopes: true);
         IConnection connection = provider.GetRequiredService<IConnection>();
-        using var sut = protocol == Protocol.Ice ?
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-                connection) :
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>(),
-                connection);
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
         var request = new OutgoingRequest(new Proxy(protocol));
         var payloadWriterSource = new TaskCompletionSource<PayloadPipeWriterDecorator>();
@@ -616,28 +443,12 @@ public sealed class ProtocolConnectionTests
                 return new(response);
             });
 
-        var serverOptions = new ServerOptions
-        {
-            ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
-        };
-
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
+            .AddProtocolTest(protocol, dispatcher)
             .BuildServiceProvider(validateScopes: true);
         IConnection connection = provider.GetRequiredService<IConnection>();
-        using var sut = protocol == Protocol.Ice ?
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions) :
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions);
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
         // Act
         _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
@@ -656,17 +467,8 @@ public sealed class ProtocolConnectionTests
             .AddProtocolTest(protocol)
             .BuildServiceProvider(validateScopes: true);
         IConnection connection = provider.GetRequiredService<IConnection>();
-        using var sut = protocol == Protocol.Ice ?
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-                connection) :
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>(),
-                connection);
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
         IProtocolConnection connection1 = connectionType == ConnectionType.Client ? sut.Server : sut.Client;
         IProtocolConnection connection2 = connectionType == ConnectionType.Client ? sut.Client : sut.Server;
@@ -691,10 +493,6 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         byte[] expectedPayload = Enumerable.Range(0, 4096).Select(p => (byte)p).ToArray();
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
-            .BuildServiceProvider(validateScopes: true);
-
         var dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
             ReadResult readResult = await request.Payload.ReadAllAsync(cancel);
@@ -704,26 +502,13 @@ public sealed class ProtocolConnectionTests
                 Payload = PipeReader.Create(new ReadOnlySequence<byte>(expectedPayload))
             };
         });
-
-        var serverOptions = new ServerOptions
-        {
-            ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
-        };
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(protocol, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
 
         IConnection connection = provider.GetRequiredService<IConnection>();
-        using var sut = protocol == Protocol.Ice ?
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions) :
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions);
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
         // Act
         var response = await sut.Client.InvokeAsync(
@@ -754,27 +539,12 @@ public sealed class ProtocolConnectionTests
             field = request.Fields[RequestFieldKey.Context].ToArray();
             return new(new OutgoingResponse(request));
         });
-        var serverOptions = new ServerOptions
-        {
-            ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
-        };
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
+            .AddProtocolTest(protocol, dispatcher)
             .BuildServiceProvider(validateScopes: true);
         IConnection connection = provider.GetRequiredService<IConnection>();
-        using var sut = protocol == Protocol.Ice ?
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions) :
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions);
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
         var request = new OutgoingRequest(new Proxy(protocol))
         {
@@ -819,26 +589,11 @@ public sealed class ProtocolConnectionTests
             return new OutgoingResponse(request);
         });
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
+            .AddProtocolTest(protocol, dispatcher)
             .BuildServiceProvider(validateScopes: true);
-        var serverOptions = new ServerOptions
-        {
-            ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
-        };
         IConnection connection = provider.GetRequiredService<IConnection>();
-        using var sut = protocol == Protocol.Ice ?
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions) :
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions);
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
         // Act
         await sut.Client.InvokeAsync(
@@ -867,28 +622,12 @@ public sealed class ProtocolConnectionTests
             await hold.WaitAsync(cancel);
             return new OutgoingResponse(request);
         });
-
-        var serverOptions = new ServerOptions
-        {
-            ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher }
-        };
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
+            .AddProtocolTest(protocol, dispatcher)
             .BuildServiceProvider(validateScopes: true);
         IConnection connection = provider.GetRequiredService<IConnection>();
-        using var sut = protocol == Protocol.Ice ?
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
-                provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions) :
-            await ProtocolTests.CreateClientServerProtocolConnectionAsync(
-                provider.GetRequiredService<IProtocolConnectionFactory<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>(),
-                connection,
-                serverOptions: serverOptions);
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
         sut.Client.PeerShutdownInitiated = message => _ = sut.Client.ShutdownAsync(message);
         var invokeTask1 = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
