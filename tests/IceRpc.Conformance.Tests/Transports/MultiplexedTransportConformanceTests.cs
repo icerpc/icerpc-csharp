@@ -11,6 +11,17 @@ namespace IceRpc.Transports.Tests;
 /// <summary>Conformance tests for the multiplexed transports.</summary>
 public abstract class MultiplexedTransportConformanceTests
 {
+    private static IEnumerable<TestCaseData> ClientServerIdleTimeouts
+    {
+        get
+        {
+            yield return new TestCaseData(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2));
+            yield return new TestCaseData(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(1));
+            yield return new TestCaseData(TimeSpan.MaxValue, TimeSpan.FromSeconds(2));
+            yield return new TestCaseData(TimeSpan.FromSeconds(2), TimeSpan.MaxValue);
+        }
+    }
+
     private static readonly ReadOnlyMemory<byte> _oneBytePayload = new(new byte[] { 0xFF });
 
     /// <summary>Verifies that both peers can initiate and accept streams.</summary>
@@ -213,12 +224,118 @@ public abstract class MultiplexedTransportConformanceTests
         await stream.Input.CompleteAsync();
     }
 
+    /// <summary>Verifies that the idle timeout is correctly negotiated.</summary>
+    [Test, TestCaseSource(nameof(ClientServerIdleTimeouts))]
+    public async Task Connection_idle_timeout_negotiation(TimeSpan clientIdleTimeout, TimeSpan serverIdleTimeout)
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
+
+        var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
+        var clientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
+        using var clientConnection = clientTransport.CreateConnection(listener.Endpoint, null, NullLogger.Instance);
+
+        var connectTask = clientConnection.ConnectAsync(clientIdleTimeout, default);
+        using var serverConnection = await listener.AcceptAsync();
+
+        // Act
+        (TimeSpan negotiatedServerIdleTimeout, _) = await serverConnection.ConnectAsync(serverIdleTimeout, default);
+        (TimeSpan negotiatedClientIdleTimeout, _) = await connectTask;
+
+        // Assert
+        Assert.That(negotiatedClientIdleTimeout, Is.EqualTo(negotiatedServerIdleTimeout));
+    }
+
+    /// <summary>Verifies that the setting of idle timeout causes the abort of the connection when it's idle.</summary>
+    [Test]
+    public async Task Connection_with_idle_timeout_aborted_when_idle([Values(true, false)] bool serverIdleTimeout)
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
+
+        var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
+        var clientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
+        using var clientConnection = clientTransport.CreateConnection(listener.Endpoint, null, NullLogger.Instance);
+
+        TimeSpan idleTimeout = TimeSpan.FromMilliseconds(200);
+        var connectTask = clientConnection.ConnectAsync(serverIdleTimeout ? TimeSpan.MaxValue : idleTimeout, default);
+        using var serverConnection = await listener.AcceptAsync();
+
+        _ = await serverConnection.ConnectAsync(serverIdleTimeout ? idleTimeout : TimeSpan.MaxValue, default);
+        _ = await connectTask;
+
+        ValueTask<IMultiplexedStream> acceptTask = serverConnection.AcceptStreamAsync(default);
+
+        // Act
+        await Task.Delay(TimeSpan.FromSeconds(1));
+
+        // Assert
+        Assert.That(async () => await acceptTask, Throws.InstanceOf<ConnectionAbortedException>());
+    }
+
+    /// <summary>Verifies that the setting of idle timeout causes the abort of the connection when it's idle.</summary>
+    [Test]
+    public async Task Connection_with_idle_timeout_is_not_aborted_when_kept_alive(
+        [Values(true, false)] bool serverIdleTimeout,
+        [Values(true, false)] bool serverKeepAlive)
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
+
+        var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
+        var clientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
+        using var clientConnection = clientTransport.CreateConnection(listener.Endpoint, null, NullLogger.Instance);
+
+        TimeSpan idleTimeout = TimeSpan.FromMilliseconds(500);
+        var connectTask = clientConnection.ConnectAsync(serverIdleTimeout ? TimeSpan.MaxValue : idleTimeout, default);
+        using var serverConnection = await listener.AcceptAsync();
+
+        _ = await serverConnection.ConnectAsync(serverIdleTimeout ? idleTimeout : TimeSpan.MaxValue, default);
+        _ = await connectTask;
+
+        (serverKeepAlive ? serverConnection : clientConnection).KeepAlive = true;
+
+        ValueTask<IMultiplexedStream> acceptTask = serverConnection.AcceptStreamAsync(default);
+
+        // Act
+        await Task.Delay(TimeSpan.FromSeconds(2));
+
+        // Assert
+        Assert.That(acceptTask.IsCompleted, Is.False);
+    }
+
+    /// <summary>Verifies that not setting the idle timeout doesn't cause the abort of the connection when it's
+    /// idle.</summary>
+    [Test]
+    public async Task Connection_with_no_idle_timeout_is_not_aborted_when_idle()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
+
+        var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
+        var clientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
+        using var clientConnection = clientTransport.CreateConnection(listener.Endpoint, null, NullLogger.Instance);
+
+        var connectTask = clientConnection.ConnectAsync(TimeSpan.MaxValue, default);
+        using var serverConnection = await listener.AcceptAsync();
+
+        _ = await serverConnection.ConnectAsync(TimeSpan.MaxValue, default);
+        _ = await connectTask;
+
+        ValueTask<IMultiplexedStream> acceptTask = serverConnection.AcceptStreamAsync(default);
+
+        // Act
+        await Task.Delay(TimeSpan.FromSeconds(1));
+
+        // Assert
+        Assert.That(acceptTask.IsCompleted, Is.False);
+    }
+
     /// <summary>Verifies that disposing the connection aborts the streams.</summary>
     /// <param name="disposeServer">Whether to dispose the server connection or the client connection.
     /// </param>
     [Test]
-    public async Task Disposing_the_connection_aborts_the_streams(
-        [Values(true, false)] bool disposeServer)
+    public async Task Disposing_the_connection_aborts_the_streams([Values(true, false)] bool disposeServer)
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();

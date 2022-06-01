@@ -11,5 +11,6 @@ public class ConnectionOptionsTests
     {
         Assert.Throws<ArgumentException>(() => new ConnectionOptions { CloseTimeout = TimeSpan.Zero });
         Assert.Throws<ArgumentException>(() => new ConnectionOptions { ConnectTimeout = TimeSpan.Zero });
+        Assert.Throws<ArgumentException>(() => new ConnectionOptions { IdleTimeout = TimeSpan.Zero });
     }
 }

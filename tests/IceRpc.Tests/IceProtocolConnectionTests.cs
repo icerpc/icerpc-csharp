@@ -45,6 +45,40 @@ public sealed class IceProtocolConnectionTests
         }
     }
 
+    /// <summary>Verifies that a connection is closed after being idle.</summary>
+    [Test]
+    public async Task Close_on_idle([Values(true, false)] bool idleOnClient)
+    {
+        // Arrange
+
+        IServiceCollection services = new ServiceCollection().AddProtocolTest(Protocol.Ice);
+
+        services
+            .AddOptions<ClientConnectionOptions>()
+            .Configure(options => options.IdleTimeout =
+                idleOnClient ? TimeSpan.FromMilliseconds(500) : TimeSpan.MaxValue);
+
+        services
+            .AddOptions<ServerOptions>()
+            .Configure(options => options.ConnectionOptions.IdleTimeout =
+                idleOnClient ? TimeSpan.MaxValue : TimeSpan.FromMilliseconds(500));
+
+        await using var serviceProvider = services.BuildServiceProvider();
+
+        using var clientServerProtocolConnection =
+            await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.Ice);
+
+        bool shutdownInitiated = false;
+        clientServerProtocolConnection.Client.InitiateShutdown = _ => shutdownInitiated = true;
+        clientServerProtocolConnection.Server.InitiateShutdown = _ => shutdownInitiated = true;
+
+        // Act
+        await Task.Delay(TimeSpan.FromSeconds(2));
+
+        // Assert
+        Assert.That(shutdownInitiated, Is.True);
+    }
+
     /// <summary>Verifies that concurrent dispatches on a given ice connection are limited to MaxConcurrentDispatches.
     /// </summary>
     [Test]
@@ -223,7 +257,93 @@ public sealed class IceProtocolConnectionTests
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
         var exception = await response.DecodeFailureAsync(request) as DispatchException;
         Assert.That(exception, Is.Not.Null);
-        Assert.That(exception.ErrorCode, Is.EqualTo(errorCode));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(errorCode));
+    }
+
+    [Test]
+    public async Task Keep_alive_on_idle([Values(true, false)] bool keepAliveOnClient)
+    {
+        // Arrange
+        IServiceCollection services = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, ConnectionOptions.DefaultDispatcher);
+
+        services
+            .AddOptions<ClientConnectionOptions>()
+            .Configure(options =>
+            {
+                options.KeepAlive = keepAliveOnClient;
+                options.IdleTimeout = TimeSpan.FromMilliseconds(500);
+            });
+
+        services
+            .AddOptions<ServerOptions>()
+            .Configure(options =>
+            {
+                options.ConnectionOptions.KeepAlive = !keepAliveOnClient;
+                options.ConnectionOptions.IdleTimeout = TimeSpan.FromMilliseconds(500);
+            });
+
+        await using var serviceProvider = services.BuildServiceProvider();
+
+        using var clientServerProtocolConnection =
+            await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.Ice);
+
+        bool shutdownInitiated = false;
+        clientServerProtocolConnection.Client.InitiateShutdown = _ => shutdownInitiated = true;
+        clientServerProtocolConnection.Server.InitiateShutdown = _ => shutdownInitiated = true;
+
+        // Act
+        await Task.Delay(TimeSpan.FromSeconds(2));
+
+        // Assert
+        Assert.That(shutdownInitiated, Is.False);
+    }
+
+    [Test]
+    public async Task Keep_alive_on_invocation()
+    {
+        // Arrange
+        using var start = new SemaphoreSlim(0);
+        using var hold = new SemaphoreSlim(0);
+        IServiceCollection services = new ServiceCollection();
+
+        services
+            .AddOptions<ClientConnectionOptions>()
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
+
+        services
+            .AddOptions<ServerOptions>()
+            .Configure(options => options.ConnectionOptions.IdleTimeout = TimeSpan.FromMilliseconds(500));
+
+        var dispatcher = new InlineDispatcher(async (request, cancel) =>
+        {
+            start.Release();
+            await hold.WaitAsync(CancellationToken.None);
+            return new OutgoingResponse(request);
+        });
+
+        await using ServiceProvider serviceProvider = services
+            .AddProtocolTest(Protocol.Ice, dispatcher)
+            .BuildServiceProvider();
+
+        using var clientServerProtocolConnection =
+            await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.Ice);
+
+        bool shutdownInitiated = false;
+        clientServerProtocolConnection.Client.InitiateShutdown = _ => shutdownInitiated = true;
+        clientServerProtocolConnection.Server.InitiateShutdown = _ => shutdownInitiated = true;
+
+        _ = clientServerProtocolConnection.Client.InvokeAsync(
+            new OutgoingRequest(new Proxy(Protocol.Ice)),
+            InvalidConnection.Ice);
+        await start.WaitAsync();
+
+        // Act
+        await Task.Delay(TimeSpan.FromSeconds(2));
+
+        // Assert
+        Assert.That(shutdownInitiated, Is.False);
+        hold.Release();
     }
 
     /// <summary>Ensures that the response payload stream is completed even if the Ice protocol doesn't support

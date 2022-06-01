@@ -51,8 +51,7 @@ public static class ProtocolServiceCollectionExtensions
                 });
         }
 
-        services.TryAddSingleton<IConnection>(
-            protocol == Protocol.Ice ? InvalidConnection.Ice : InvalidConnection.IceRpc);
+        services.TryAddSingleton(protocol == Protocol.Ice ? InvalidConnection.Ice : InvalidConnection.IceRpc);
 
         services.AddSingleton<IServerTransport<IMultiplexedNetworkConnection>>(
             provider => new SlicServerTransport(
@@ -120,7 +119,8 @@ internal static class ProtocolServiceProviderExtensions
         }
 
         IProtocolConnection clientProtocolConnection;
-        ConnectionOptions connectionOptions = serviceProvider.GetService<ConnectionOptions>() ?? new();
+        ConnectionOptions connectionOptions =
+            serviceProvider.GetService<IOptions<ClientConnectionOptions>>()?.Value ?? new();
         if (protocol == Protocol.Ice)
         {
             var networkConnection = CreateClientNetworkConnection<ISimpleNetworkConnection>(serviceProvider);
@@ -162,7 +162,11 @@ internal static class ProtocolServiceProviderExtensions
             serviceProvider.GetRequiredService<IProtocolConnectionFactory<T>>().CreateProtocolConnectionAsync(
                 await networkConnectionFactory(serviceProvider).ConfigureAwait(false),
                 connectionOptions);
-        await protocolConnection.ConnectAsync(isServer, default).ConfigureAwait(false);
+        await protocolConnection.ConnectAsync(
+            isServer,
+            connectionOptions.KeepAlive,
+            connectionOptions.IdleTimeout,
+            default).ConfigureAwait(false);
         return protocolConnection;
     }
 

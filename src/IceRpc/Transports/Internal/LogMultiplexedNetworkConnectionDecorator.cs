@@ -26,7 +26,7 @@ namespace IceRpc.Transports.Internal
                 await _decoratee.AcceptStreamAsync(cancel).ConfigureAwait(false),
                 Logger);
 
-        public virtual async Task<NetworkConnectionInformation> ConnectAsync(
+        public virtual async Task<(TimeSpan, NetworkConnectionInformation)> ConnectAsync(
             TimeSpan idleTimeout,
             CancellationToken cancel)
         {
@@ -34,7 +34,7 @@ namespace IceRpc.Transports.Internal
 
             try
             {
-                Information = await _decoratee.ConnectAsync(idleTimeout, cancel).ConfigureAwait(false);
+                (idleTimeout, Information) = await _decoratee.ConnectAsync(idleTimeout, cancel).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -43,7 +43,7 @@ namespace IceRpc.Transports.Internal
             }
 
             Logger.LogNetworkConnectionConnect(Information.Value.LocalEndPoint, Information.Value.RemoteEndPoint);
-            return Information.Value;
+            return (idleTimeout, Information.Value);
         }
 
         public async Task ShutdownAsync(ulong applicationErrorCode, CancellationToken cancel)

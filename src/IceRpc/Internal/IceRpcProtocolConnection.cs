@@ -23,11 +23,11 @@ namespace IceRpc.Internal
 
         // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
         private int _headerSizeLength = 2;
-        private readonly TimeSpan _idleTimeout;
         private int _invocationCount;
         private bool _isDisposed;
+        private TimeSpan _idleTimeout;
         private bool _isShuttingDown;
-        private readonly bool _keepAlive;
+        private bool _keepAliveOnInvocationsOrDispatches;
         private long _lastRemoteBidirectionalStreamId = -1;
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
         private long _lastRemoteUnidirectionalStreamId = -1;
@@ -40,6 +40,7 @@ namespace IceRpc.Internal
         private readonly TaskCompletionSource _streamsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private TaskCompletionSource<IceRpcGoAway>? _waitForGoAwayFrame;
+        private Timer? _timer;
 
         public void Abort(Exception exception)
         {
@@ -53,6 +54,7 @@ namespace IceRpc.Internal
             }
 
             _networkConnection.Abort(exception);
+            _timer?.Dispose();
 
             _ = AbortCoreAsync();
 
@@ -132,6 +134,12 @@ namespace IceRpc.Internal
                                 _lastRemoteUnidirectionalStreamId = stream.Id;
                             }
 
+                            if (_streams.Count == 0 && _keepAliveOnInvocationsOrDispatches)
+                            {
+                                _networkConnection.KeepAlive = true;
+                                _timer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                            }
+
                             _streams.Add(stream);
 
                             stream.OnShutdown(() =>
@@ -140,11 +148,20 @@ namespace IceRpc.Internal
                                 {
                                     _streams.Remove(stream);
 
-                                    // If no more streams and shutting down, we can set the _streamsCompleted task
-                                    // completion source as completed to allow shutdown to progress.
-                                    if (_isShuttingDown && _streams.Count == 0)
+                                    if (_streams.Count == 0)
                                     {
-                                        _streamsCompleted.SetResult();
+                                        if (_keepAliveOnInvocationsOrDispatches)
+                                        {
+                                            _networkConnection.KeepAlive = false;
+                                            _timer?.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
+                                        }
+
+                                        if (_isShuttingDown)
+                                        {
+                                            // If shutting down, we can set the _streamsCompleted task completion source
+                                            // as completed to allow shutdown to progress.
+                                            _streamsCompleted.SetResult();
+                                        }
                                     }
 
                                     _cancelDispatchSources.Remove(cancelDispatchSource);
@@ -387,11 +404,34 @@ namespace IceRpc.Internal
             }
         }
 
-        public async Task<NetworkConnectionInformation> ConnectAsync(bool isServer, CancellationToken cancel)
+        public async Task<NetworkConnectionInformation> ConnectAsync(
+            bool isServer,
+            bool keepAlive,
+            TimeSpan idleTimeout,
+            CancellationToken cancel)
         {
-            // Connect the network connection.
-            NetworkConnectionInformation networkConnectionInformation =
-                 await _networkConnection.ConnectAsync(_idleTimeout, cancel).ConfigureAwait(false);
+            // Connect the network connection. We use a slightly longer transport idle timeout to ensure that the
+            // connection is always gracefully shutdown before the transport forcefully close the connection when idle.
+            (TimeSpan negotiatedIdleTimeout, NetworkConnectionInformation networkConnectionInformation)  =
+                 await _networkConnection.ConnectAsync(
+                     idleTimeout + TimeSpan.FromSeconds(1),
+                     cancel).ConfigureAwait(false);
+
+            _idleTimeout = negotiatedIdleTimeout;
+
+            if (!isServer)
+            {
+                if (keepAlive)
+                {
+                    // The network connection keep alive is always enabled.
+                    _networkConnection.KeepAlive = true;
+                }
+                else
+                {
+                    // The network connection keep alive is enabled only if there's pending dispatches or invocations.
+                    _keepAliveOnInvocationsOrDispatches = true;
+                }
+            }
 
             // Create the control stream and send the protocol Settings frame
             _controlStream = _networkConnection.CreateStream(false);
@@ -420,6 +460,22 @@ namespace IceRpc.Internal
 
             // Start a task to wait to receive the go away frame to initiate shutdown.
             var waitForGoAwayTask = Task.Run(() => WaitForGoAwayAsync(), CancellationToken.None);
+
+            // Setup the idle timer for client connection which are not always kept alive. The connection will
+            // gracefully be shutdown if there's no invocations or dispatches during the idle timeout period. If the
+            // connection is always kept alive by the transport, there's no need to setup this idle timer, the
+            // connection will be closed on failures only.
+            if (!isServer &&
+                !keepAlive &&
+                _idleTimeout != TimeSpan.MaxValue &&
+                _idleTimeout != Timeout.InfiniteTimeSpan)
+            {
+                _timer = new Timer(
+                    _ => InitiateShutdown?.Invoke("connection idle"),
+                    null,
+                    _idleTimeout,
+                    Timeout.InfiniteTimeSpan);
+            }
 
             return networkConnectionInformation;
         }
@@ -456,6 +512,12 @@ namespace IceRpc.Internal
                         }
                         else
                         {
+                            if (_streams.Count == 0 && _keepAliveOnInvocationsOrDispatches)
+                            {
+                                _networkConnection.KeepAlive = true;
+                                _timer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                            }
+
                             _streams.Add(stream);
                             ++_invocationCount;
 
@@ -467,11 +529,20 @@ namespace IceRpc.Internal
 
                                     _streams.Remove(stream);
 
-                                    // If no more streams and shutting down, we can set the _streamsCompleted task
-                                    // completion source as completed to allow shutdown to progress.
-                                    if (_isShuttingDown && _streams.Count == 0)
+                                    if (_streams.Count == 0)
                                     {
-                                        _streamsCompleted.SetResult();
+                                        if (_keepAliveOnInvocationsOrDispatches)
+                                        {
+                                            _networkConnection.KeepAlive = true;
+                                            _timer?.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
+                                        }
+
+                                        if (_isShuttingDown)
+                                        {
+                                            // If shutting down, we can set the _streamsCompleted task completion source
+                                            // as completed to allow shutdown to progress.
+                                            _streamsCompleted.SetResult();
+                                        }
                                     }
                                 }
                             });
@@ -613,9 +684,6 @@ namespace IceRpc.Internal
             }
         }
 
-        public Task PingAsync(CancellationToken cancel) =>
-            SendControlFrameAsync(IceRpcControlFrameType.Ping, encodeAction: null, cancel).AsTask();
-
         public async Task ShutdownAsync(string message, CancellationToken cancel)
         {
             if (_waitForGoAwayFrame == null)
@@ -741,8 +809,6 @@ namespace IceRpc.Internal
         {
             _networkConnection = networkConnection;
             _dispatcher = options.Dispatcher;
-            _idleTimeout = options.IdleTimeout;
-            _keepAlive = options.KeepAlive;
             _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
         }
 
@@ -796,7 +862,6 @@ namespace IceRpc.Internal
             IceRpcControlFrameType expectedFrameType,
             CancellationToken cancel)
         {
-            Debug.Assert(expectedFrameType != IceRpcControlFrameType.Ping);
             PipeReader input = _remoteControlStream!.Input;
 
             while (true)
@@ -813,11 +878,6 @@ namespace IceRpc.Internal
 
                 IceRpcControlFrameType frameType = readResult.Buffer.FirstSpan[0].AsIceRpcControlFrameType();
                 input.AdvanceTo(readResult.Buffer.GetPosition(1));
-
-                if (frameType == IceRpcControlFrameType.Ping)
-                {
-                    continue;
-                }
 
                 if (frameType != expectedFrameType)
                 {

@@ -25,7 +25,7 @@ namespace IceRpc.Transports
         /// <param name="idleTimeout">The idle timeout. If the connection is idle for a longer period than the idle
         /// timeout it will be closed.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The <see cref="NetworkConnectionInformation"/>.</returns>
+        /// <returns>The negotiated idle timeout and the <see cref="NetworkConnectionInformation"/>.</returns>
         /// <exception cref="ConnectFailedException">Thrown if the connection establishment to the per
         /// failed.</exception>
         /// <exception cref="ConnectionLostException">Thrown if the peer closed its side of the connection while the
@@ -36,7 +36,7 @@ namespace IceRpc.Transports
         /// <remarks>A transport implementation might raise other exceptions. A network connection supporting SSL can
         /// for instance raise <see cref="AuthenticationException"/> if the authentication fails while the connection is
         /// being established.</remarks>
-        Task<NetworkConnectionInformation> ConnectAsync(TimeSpan idleTimeout, CancellationToken cancel);
+        Task<(TimeSpan, NetworkConnectionInformation)> ConnectAsync(TimeSpan idleTimeout, CancellationToken cancel);
 
         /// <summary>Creates a local stream.</summary>
         /// <param name="bidirectional"><c>True</c> to create a bidirectional stream, <c>false</c> otherwise.</param>

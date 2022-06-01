@@ -40,10 +40,8 @@ namespace IceRpc.Internal
         private readonly AsyncSemaphore? _dispatchSemaphore;
         private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
         private bool _isAborted;
-        private readonly TimeSpan _idleTimeout;
         private bool _isShutdown;
         private bool _isShuttingDown;
-        private readonly bool _keepAlive;
         private readonly int _maxFrameSize;
         private readonly MemoryPool<byte> _memoryPool;
         private readonly int _minimumSegmentSize;
@@ -133,7 +131,11 @@ namespace IceRpc.Internal
             }
         }
 
-        public async Task<NetworkConnectionInformation> ConnectAsync(bool isServer, CancellationToken cancel)
+        public async Task<NetworkConnectionInformation> ConnectAsync(
+            bool isServer,
+            bool keepAlive,
+            TimeSpan idleTimeout,
+            CancellationToken cancel)
         {
             // Connect the network connection.
             NetworkConnectionInformation networkConnectionInformation =
@@ -164,13 +166,14 @@ namespace IceRpc.Internal
                 if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
                 {
                     throw new InvalidDataException(
-                        @$"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'");
+                        @$"expected '{nameof(IceFrameType.ValidateConnection)
+                        }' frame but received frame type '{validateConnectionFrame.FrameType}'");
                 }
             }
 
-            if (_idleTimeout != TimeSpan.MaxValue && _idleTimeout != Timeout.InfiniteTimeSpan)
+            if (idleTimeout != TimeSpan.MaxValue && idleTimeout != Timeout.InfiniteTimeSpan)
             {
-                _timer = new Timer(_ => Monitor(), null, _idleTimeout / 2, _idleTimeout / 2);
+                _timer = new Timer(_ => Monitor(keepAlive, idleTimeout), null, idleTimeout / 2, idleTimeout / 2);
             }
 
             return networkConnectionInformation;
@@ -491,8 +494,6 @@ namespace IceRpc.Internal
         {
             _dispatcher = options.Dispatcher;
             _maxFrameSize = options.MaxIceFrameSize;
-            _idleTimeout = options.IdleTimeout;
-            _keepAlive = options.KeepAlive;
 
             if (options.MaxIceConcurrentDispatches > 0)
             {
@@ -598,14 +599,14 @@ namespace IceRpc.Internal
             return pipe.Reader;
         }
 
-        private void Monitor()
+        private void Monitor(bool keepAlive, TimeSpan idleTimeout)
         {
             lock (_mutex)
             {
                 TimeSpan idleTime =
                     TimeSpan.FromMilliseconds(Environment.TickCount64) - _networkConnectionActivityTracker.LastActivity;
 
-                if (idleTime > _idleTimeout)
+                if (idleTime > idleTimeout)
                 {
                     if (_invocations.Count > 0)
                     {
@@ -620,7 +621,7 @@ namespace IceRpc.Internal
                         InitiateShutdown?.Invoke("connection idle");
                     }
                 }
-                else if (idleTime > _idleTimeout / 4 && (_keepAlive || _dispatches.Count > 0))
+                else if (idleTime > idleTimeout / 4 && (keepAlive || _dispatches.Count > 0))
                 {
                     // We send a ping if there was no activity in the last (IdleTimeout / 4) period. Sending a ping
                     // sooner than really needed is safer to ensure that the receiver will receive the ping in time.

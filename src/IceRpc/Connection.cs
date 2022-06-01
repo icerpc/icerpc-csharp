@@ -321,6 +321,8 @@ namespace IceRpc
                 {
                     NetworkConnectionInformation = await protocolConnection.ConnectAsync(
                         _isServer,
+                        _options.KeepAlive,
+                        _options.IdleTimeout,
                         cancel).ConfigureAwait(false);
                 }
                 catch
