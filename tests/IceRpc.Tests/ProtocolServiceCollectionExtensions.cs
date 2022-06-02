@@ -1,0 +1,182 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+using IceRpc.Internal;
+using IceRpc.Tests.Common;
+using IceRpc.Transports;
+using IceRpc.Transports.Internal;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using System.Net.Security;
+
+namespace IceRpc.Tests;
+
+public static class ProtocolServiceCollectionExtensions
+{
+    public static IServiceCollection AddProtocolTest(
+        this IServiceCollection services,
+        Protocol protocol,
+        IDispatcher? dispatcher = null)
+    {
+        var endpoint = new Endpoint(protocol) { Host = "colochost" };
+        services.AddColocTransport();
+
+        if (dispatcher != null)
+        {
+            services.AddOptions<ServerOptions>().Configure(
+                options =>
+                {
+                    options.ConnectionOptions.Dispatcher = dispatcher;
+                });
+        }
+        services.TryAddSingleton<ILogger>(NullLogger.Instance);
+
+        services.AddSingleton<IServerTransport<IMultiplexedNetworkConnection>>(
+            provider => new SlicServerTransport(
+                provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()));
+
+        services.AddSingleton<IClientTransport<IMultiplexedNetworkConnection>>(
+            provider => new SlicClientTransport(
+                provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()));
+
+        services.AddSingleton<IListener<ISimpleNetworkConnection>>(
+               provider => ActivatorUtilities.CreateInstance<ListenerAdapter<ISimpleNetworkConnection>>(provider, endpoint));
+
+        services.AddSingleton<IListener<IMultiplexedNetworkConnection>>(
+            provider => ActivatorUtilities.CreateInstance<ListenerAdapter<IMultiplexedNetworkConnection>>(provider, endpoint));
+
+        if (protocol == Protocol.Ice)
+        {
+            services.TryAddSingleton<IConnection>(InvalidConnection.Ice);
+            services.AddSingleton(IceProtocol.Instance.ProtocolConnectionFactory);
+            services.AddSingleton<IClientServerProtocolConnection, ClientServerProtocolConnection<ISimpleNetworkConnection>>();
+        }
+        else
+        {
+            services.TryAddSingleton<IConnection>(InvalidConnection.IceRpc);
+            services.AddSingleton(IceRpcProtocol.Instance.ProtocolConnectionFactory);
+            services.AddSingleton<IClientServerProtocolConnection, ClientServerProtocolConnection<IMultiplexedNetworkConnection>>();
+        }
+        return services;
+    }
+}
+
+/// <summary>A helper class to ensure the network and protocol connections are correctly disposed.</summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage(
+    "Performance",
+    "CA1812:Avoid uninstantiated internal classes",
+    Justification = "DI instantiated")]
+internal class ClientServerProtocolConnection<T> : IClientServerProtocolConnection, IDisposable
+    where T : INetworkConnection
+{
+    public IProtocolConnection Client => _client ?? throw new InvalidOperationException("client connection not initialized");
+
+    public IProtocolConnection Server => _server ?? throw new InvalidOperationException("server connection not initialized");
+
+    private IProtocolConnection? _client;
+    private readonly ConnectionOptions _clientConnectionOptions;
+    private readonly IClientTransport<T> _clientTransport;
+    private readonly IListener<T> _listener;
+    private readonly IConnection _connection;
+    private readonly IProtocolConnectionFactory<T> _protocolConnectionFactory;
+    private IProtocolConnection? _server;
+    private readonly ServerOptions _serverOptions;
+
+    public async Task ConnectAsync(bool accept = true)
+    {
+        T clientNetworkConnection = _clientTransport.CreateConnection(_listener.Endpoint, null, NullLogger.Instance);
+        var connectTask = clientNetworkConnection.ConnectAsync(CancellationToken.None);
+        T serverNetworkConnection = await _listener.AcceptAsync();
+        await serverNetworkConnection.ConnectAsync(CancellationToken.None);
+        await connectTask;
+
+        var serverTask = _protocolConnectionFactory.CreateProtocolConnectionAsync(
+            serverNetworkConnection,
+            networkConnectionInformation: new(),
+            true,
+            _serverOptions.ConnectionOptions,
+            CancellationToken.None);
+
+        IProtocolConnection clientProtocolConnection = await _protocolConnectionFactory.CreateProtocolConnectionAsync(
+            clientNetworkConnection,
+            networkConnectionInformation: new(),
+            false,
+            _clientConnectionOptions,
+            CancellationToken.None);
+
+        IProtocolConnection serverProtocolConnection = await serverTask;
+
+        _client = clientProtocolConnection;
+        _server = serverProtocolConnection;
+
+        if (accept)
+        {
+            _ = _client.AcceptRequestsAsync(_connection);
+            _ = _server.AcceptRequestsAsync(_connection);
+        }
+    }
+
+    public void Dispose()
+    {
+        _client?.Dispose();
+        _server?.Dispose();
+    }
+
+    // This constructor must be public to be usable by DI container
+    public ClientServerProtocolConnection(
+        IConnection connection,
+        IProtocolConnectionFactory<T> protocolConnectionFactory,
+        IClientTransport<T> clientTransport,
+        IListener<T> listener,
+        IOptions<ConnectionOptions>? clientConnectionOptions = null,
+        IOptions<ServerOptions>? serverOptions = null)
+    {
+        _connection = connection;
+        _protocolConnectionFactory = protocolConnectionFactory;
+        _clientTransport = clientTransport;
+        _listener = listener;
+        _clientConnectionOptions = clientConnectionOptions?.Value ?? new ConnectionOptions();
+        _serverOptions = serverOptions?.Value ?? new ServerOptions();
+        _client = null;
+        _server = null;
+    }
+}
+
+internal interface IClientServerProtocolConnection
+{
+    IProtocolConnection Client { get; }
+
+    IProtocolConnection Server { get; }
+
+    Task ConnectAsync(bool accept = true);
+}
+
+[System.Diagnostics.CodeAnalysis.SuppressMessage(
+    "Performance",
+    "CA1812:Avoid uninstantiated internal classes",
+    Justification = "DI instantiated")]
+internal class ListenerAdapter<T> : IListener<T> where T : INetworkConnection
+{
+    private readonly IListener<T> _listener;
+
+    public ListenerAdapter(
+        IServerTransport<T> serverTransport,
+        Endpoint endpoint,
+        ILogger logger,
+        IOptions<SslServerAuthenticationOptions>? sslServerAuthenticationOptions = null,
+        LogNetworkConnectionDecoratorFactory<T>? logDecoratorFactory = null)
+    {
+        _listener = serverTransport.Listen(endpoint, null, logger);
+        if (logger != NullLogger.Instance && logDecoratorFactory != null)
+        {
+            _listener = new LogListenerDecorator<T>(_listener, logger, logDecoratorFactory);
+        }
+    }
+
+    public Endpoint Endpoint => _listener.Endpoint;
+
+    public Task<T> AcceptAsync() => _listener.AcceptAsync();
+    public ValueTask DisposeAsync() => _listener.DisposeAsync();
+}
