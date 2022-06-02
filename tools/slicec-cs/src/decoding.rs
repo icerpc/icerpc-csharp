@@ -587,7 +587,7 @@ pub fn decode_operation_stream(
                 dispatch,
                 "request",
                 "response",
-                "DecodeByteStream",
+                "DetachPayload",
             )
             .build()
         }
@@ -595,7 +595,7 @@ pub fn decode_operation_stream(
             dispatch,
             "request",
             "response",
-            &format!("DecodeStream<{}>", param_type_str),
+            &format!("ToAsyncEnumerable<{}>", param_type_str),
         )
         .arguments_on_newline(true)
         .add_argument_unless(dispatch, "request")
