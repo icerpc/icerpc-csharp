@@ -12,11 +12,11 @@ namespace IceRpc.Internal
         private readonly IProtocolConnectionFactory<T> _decoratee;
         private readonly ILogger _logger;
 
-        IProtocolConnection IProtocolConnectionFactory<T>.CreateProtocolConnectionAsync(
+        IProtocolConnection IProtocolConnectionFactory<T>.CreateConnection(
             T networkConnection,
             ConnectionOptions connectionOptions) =>
             new LogProtocolConnectionDecorator(
-                _decoratee.CreateProtocolConnectionAsync(networkConnection, connectionOptions),
+                _decoratee.CreateConnection(networkConnection, connectionOptions),
                 _logger);
 
         internal LogProtocolConnectionFactoryDecorator(IProtocolConnectionFactory<T> decoratee, ILogger logger)

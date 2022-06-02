@@ -306,23 +306,20 @@ namespace IceRpc
                 _connectCancellationSource.Token);
             CancellationToken cancel = connectCancellationSource.Token;
 
+            IProtocolConnection? protocolConnection = null;
             try
             {
                 // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
                 await Task.Yield();
 
                 // Create the protocol connection.
-                IProtocolConnection protocolConnection = protocolConnectionFactory.CreateProtocolConnectionAsync(
-                    networkConnection,
-                    _options);
+                protocolConnection = protocolConnectionFactory.CreateConnection(networkConnection, _options);
 
-                // Establish the network connection.
                 try
                 {
+                    // Connect the protocol connection.
                     NetworkConnectionInformation = await protocolConnection.ConnectAsync(
                         _isServer,
-                        _options.KeepAlive,
-                        _options.IdleTimeout,
                         cancel).ConfigureAwait(false);
                 }
                 catch

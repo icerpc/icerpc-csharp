@@ -30,6 +30,7 @@ namespace IceRpc.Transports.Internal
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly int _bidirectionalMaxStreams;
         private Exception? _exception;
+        private TimeSpan _idleTimeout;
         private long _lastRemoteBidirectionalStreamId = -1;
         private long _lastRemoteUnidirectionalStreamId = -1;
         // _mutex ensure the assignment of _lastRemoteXxx members and the addition of the stream to _streams is
@@ -111,9 +112,7 @@ namespace IceRpc.Transports.Internal
         public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel) =>
             _acceptStreamQueue.DequeueAsync(cancel);
 
-        public async Task<(TimeSpan, NetworkConnectionInformation)> ConnectAsync(
-            TimeSpan idleTimeout,
-            CancellationToken cancel)
+        public async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
         {
             // Connect the simple network connection.
             NetworkConnectionInformation information = await _simpleNetworkConnection.ConnectAsync(
@@ -189,13 +188,13 @@ namespace IceRpc.Transports.Internal
                 await SendFrameAsync(
                     stream: null,
                     FrameType.InitializeAck,
-                    new InitializeAckBody(GetParameters(idleTimeout)).Encode,
+                    new InitializeAckBody(GetParameters(_idleTimeout)).Encode,
                     cancel).ConfigureAwait(false);
             }
             else
             {
                 // Write the Initialize frame.
-                var initializeBody = new InitializeBody(Protocol.IceRpc.Name, GetParameters(idleTimeout));
+                var initializeBody = new InitializeBody(Protocol.IceRpc.Name, GetParameters(_idleTimeout));
                 await SendFrameAsync(
                     stream: null,
                     FrameType.Initialize,
@@ -236,19 +235,19 @@ namespace IceRpc.Transports.Internal
             }
 
             // Use the smallest idle timeout.
-            if (peerIdleTimeout < idleTimeout)
+            if (peerIdleTimeout < _idleTimeout)
             {
-                idleTimeout = peerIdleTimeout;
+                _idleTimeout = peerIdleTimeout;
             }
 
             // Setup a timer to check for the connection idle time every IdleTimeout / 2 period.
-            if (idleTimeout != TimeSpan.MaxValue && idleTimeout != Timeout.InfiniteTimeSpan)
+            if (_idleTimeout != TimeSpan.MaxValue && _idleTimeout != Timeout.InfiniteTimeSpan)
             {
                 _timer = new Timer(
-                    value => Monitor(idleTimeout),
+                    value => Monitor(),
                     null,
-                    idleTimeout / 2,
-                    idleTimeout / 2);
+                    _idleTimeout / 2,
+                    _idleTimeout / 2);
             }
 
             // Start a task to read frames from the network connection.
@@ -287,7 +286,7 @@ namespace IceRpc.Transports.Internal
                 },
                 CancellationToken.None);
 
-            return (idleTimeout, information);
+            return information;
         }
 
         public IMultiplexedStream CreateStream(bool bidirectional) =>
@@ -336,6 +335,7 @@ namespace IceRpc.Transports.Internal
             Pool = slicOptions.Pool;
             MinimumSegmentSize = slicOptions.MinimumSegmentSize;
 
+            _idleTimeout = slicOptions.IdleTimeout;
             _packetMaxSize = slicOptions.PacketMaxSize;
             _bidirectionalMaxStreams = slicOptions.BidirectionalStreamMaxCount;
             _unidirectionalMaxStreams = slicOptions.UnidirectionalStreamMaxCount;
@@ -594,29 +594,24 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private void Monitor(TimeSpan idleTimeout)
+        private void Monitor()
         {
-            lock (_mutex)
-            {
-                TimeSpan idleTime =
-                    TimeSpan.FromMilliseconds(Environment.TickCount64) -
-                    _simpleNetworkConnectionActivityTracker.LastActivity;
+            TimeSpan idleTime =
+                TimeSpan.FromMilliseconds(Environment.TickCount64) -
+                _simpleNetworkConnectionActivityTracker.LastActivity;
 
-                if (idleTime > idleTimeout)
-                {
-                    // Abort the connection if there was no activity on the simple network connection for longer than
-                    // the idle timeout.
-                    Abort(new ConnectionAbortedException("connection idle"));
-                }
-                else if (idleTime > idleTimeout / 4 && KeepAlive)
-                {
-                    // If the connection has been idle for more than idleTimeout / 4, send a ping frame to keep alive
-                    // the connection. Given that Monitor is called every idleTimeout / 2 period, this shouldn't send
-                    // more than two ping frames during an idle timeout period.
-                    // TODO: msquic allows to specify the keep alive interval independently from the idle timeout. Is
-                    // it worth an additional configuration?
-                    ValueTask _ = SendFrameAsync(stream: null, FrameType.Ping, null, default);
-                }
+            if (idleTime > _idleTimeout)
+            {
+                // Abort the connection if there was no activity on the simple network connection for longer than the
+                // idle timeout.
+                Abort(new ConnectionAbortedException("connection timed out"));
+            }
+            else if (!IsServer && idleTime > _idleTimeout / 4 && KeepAlive)
+            {
+                // If the connection has been idle for more than idleTimeout / 4, send a ping frame to keep alive the
+                // connection. Given that Monitor is called every idleTimeout / 2 period, this shouldn't send more than
+                // two ping frames during an idle timeout period.
+                ValueTask _ = SendFrameAsync(stream: null, FrameType.Ping, null, default);
             }
         }
 

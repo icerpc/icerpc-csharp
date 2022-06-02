@@ -224,28 +224,6 @@ public abstract class MultiplexedTransportConformanceTests
         await stream.Input.CompleteAsync();
     }
 
-    /// <summary>Verifies that the idle timeout is correctly negotiated.</summary>
-    [Test, TestCaseSource(nameof(ClientServerIdleTimeouts))]
-    public async Task Connection_idle_timeout_negotiation(TimeSpan clientIdleTimeout, TimeSpan serverIdleTimeout)
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider();
-
-        var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
-        var clientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
-        using var clientConnection = clientTransport.CreateConnection(listener.Endpoint, null, NullLogger.Instance);
-
-        var connectTask = clientConnection.ConnectAsync(clientIdleTimeout, default);
-        using var serverConnection = await listener.AcceptAsync();
-
-        // Act
-        (TimeSpan negotiatedServerIdleTimeout, _) = await serverConnection.ConnectAsync(serverIdleTimeout, default);
-        (TimeSpan negotiatedClientIdleTimeout, _) = await connectTask;
-
-        // Assert
-        Assert.That(negotiatedClientIdleTimeout, Is.EqualTo(negotiatedServerIdleTimeout));
-    }
-
     /// <summary>Verifies that the setting of idle timeout causes the abort of the connection when it's idle.</summary>
     [Test]
     public async Task Connection_with_idle_timeout_aborted_when_idle([Values(true, false)] bool serverIdleTimeout)
@@ -1045,9 +1023,9 @@ public static class MultiplexedTransportServiceProviderExtensions
         this IServiceProvider provider, IMultiplexedNetworkConnection connection)
     {
         var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
-        var connectTask = connection.ConnectAsync(TimeSpan.MaxValue, default);
+        var connectTask = connection.ConnectAsync(default);
         var serverConnection = await listener.AcceptAsync();
-        await serverConnection.ConnectAsync(TimeSpan.MaxValue, default);
+        await serverConnection.ConnectAsync(default);
         await connectTask;
         return serverConnection;
     }

@@ -38,10 +38,13 @@ namespace IceRpc.Internal
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly HashSet<CancellationTokenSource> _dispatches = new();
         private readonly AsyncSemaphore? _dispatchSemaphore;
+        private TimeSpan _idleSinceTime;
+        private readonly TimeSpan _idleTimeout;
         private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
         private bool _isAborted;
         private bool _isShutdown;
         private bool _isShuttingDown;
+        private readonly bool _keepAlive;
         private readonly int _maxFrameSize;
         private readonly MemoryPool<byte> _memoryPool;
         private readonly int _minimumSegmentSize;
@@ -131,11 +134,7 @@ namespace IceRpc.Internal
             }
         }
 
-        public async Task<NetworkConnectionInformation> ConnectAsync(
-            bool isServer,
-            bool keepAlive,
-            TimeSpan idleTimeout,
-            CancellationToken cancel)
+        public async Task<NetworkConnectionInformation> ConnectAsync(bool isServer, CancellationToken cancel)
         {
             // Connect the network connection.
             NetworkConnectionInformation networkConnectionInformation =
@@ -171,9 +170,9 @@ namespace IceRpc.Internal
                 }
             }
 
-            if (idleTimeout != TimeSpan.MaxValue && idleTimeout != Timeout.InfiniteTimeSpan)
+            if (_idleTimeout != TimeSpan.MaxValue && _idleTimeout != Timeout.InfiniteTimeSpan)
             {
-                _timer = new Timer(_ => Monitor(keepAlive, idleTimeout), null, idleTimeout / 2, idleTimeout / 2);
+                _timer = new Timer(_ => Monitor(isServer), null, _idleTimeout / 2, _idleTimeout / 2);
             }
 
             return networkConnectionInformation;
@@ -366,10 +365,13 @@ namespace IceRpc.Internal
                 {
                     if (_invocations.Remove(requestId))
                     {
-                        // If no more invocations or dispatches and shutting down, shutdown can complete.
-                        if (_isShuttingDown && _invocations.Count == 0 && _dispatches.Count == 0)
+                        if (_invocations.Count == 0 && _dispatches.Count == 0)
                         {
-                            _dispatchesAndInvocationsCompleted.TrySetResult();
+                            if (_isShuttingDown)
+                            {
+                                _dispatchesAndInvocationsCompleted.TrySetResult();
+                            }
+                            _idleSinceTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
                         }
                     }
                 }
@@ -494,6 +496,10 @@ namespace IceRpc.Internal
         {
             _dispatcher = options.Dispatcher;
             _maxFrameSize = options.MaxIceFrameSize;
+            _idleTimeout = options.IdleTimeout;
+            _keepAlive = options.KeepAlive;
+
+            _idleSinceTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
             if (options.MaxIceConcurrentDispatches > 0)
             {
@@ -503,7 +509,7 @@ namespace IceRpc.Internal
             }
 
             // TODO: get the pool and minimum segment size from an option class, but which one? The Slic connection gets
-            // these from SlicOptions but another option could be to add Pool/MinimunSegmentSize on
+            // these from SlicOptions but another option could be to add Pool/MinimumSegmentSize on
             // ConnectionOptions/ServerOptions. These properties would be used by:
             // - the multiplexed transport implementations
             // - the Ice protocol connection
@@ -599,45 +605,40 @@ namespace IceRpc.Internal
             return pipe.Reader;
         }
 
-        private void Monitor(bool keepAlive, TimeSpan idleTimeout)
+        private void Monitor(bool isServer)
         {
-            lock (_mutex)
-            {
-                TimeSpan idleTime =
-                    TimeSpan.FromMilliseconds(Environment.TickCount64) - _networkConnectionActivityTracker.LastActivity;
+            TimeSpan now = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
-                if (idleTime > idleTimeout)
+            if (now - _idleSinceTime > _idleTimeout)
+            {
+                // Gracefully shutdown if it's idle.
+                InitiateShutdown?.Invoke("connection idle");
+            }
+            else
+            {
+                // Check the connection's health.
+                TimeSpan networkIdleTime = now - _networkConnectionActivityTracker.LastActivity;
+
+                if (networkIdleTime > _idleTimeout)
                 {
-                    if (_invocations.Count > 0)
-                    {
-                        // Abort the connection if we didn't receive a heartbeat and the connection is idle. The server
-                        // is supposed to send heartbeats when dispatches are in progress. Close can't be called from
-                        // within the synchronization since it calls the "on close" callbacks so we call it from a
-                        // thread pool thread.
-                        Abort(new ConnectionAbortedException("connection timed out"));
-                    }
-                    else
-                    {
-                        InitiateShutdown?.Invoke("connection idle");
-                    }
+                    Abort(new ConnectionAbortedException("connection timed out"));
                 }
-                else if (idleTime > idleTimeout / 4 && (keepAlive || _dispatches.Count > 0))
+                else if (!isServer &&
+                         networkIdleTime > _idleTimeout / 4 &&
+                         (_keepAlive || _dispatches.Count > 0 || _invocations.Count > 0))
                 {
-                    // We send a ping if there was no activity in the last (IdleTimeout / 4) period. Sending a ping
-                    // sooner than really needed is safer to ensure that the receiver will receive the ping in time.
-                    // Sending the ping if there was no activity in the last (IdleTimeout / 2) period isn't enough since
-                    // Monitor is called only every (IdleTimeout / 2) period. We also send a ping if dispatch are in
-                    // progress to notify the peer that we're still alive.
-                    //
-                    // Note that this doesn't imply that we are sending 4 heartbeats per timeout period because Monitor
-                    // is still only called every (IdleTimeout / 2) period.
+                    // If the connection has been idle for more than idleTimeout / 4, send a ping frame to keep alive
+                    // the connection. Given that Monitor is called every idleTimeout / 2 period, this shouldn't send
+                    // more than two ping frames during an idle timeout period.
                     _ = PingAsync();
                 }
             }
 
             async Task PingAsync()
             {
-                // TODO: Should this really be non-cancelable?
+                // Not using a cancellation token is fine here since this is performed in the background. The async
+                // calls will eventually return if the connection is dead.
+
                 await _writeSemaphore.EnterAsync(CancellationToken.None).ConfigureAwait(false);
                 try
                 {
@@ -1107,10 +1108,14 @@ namespace IceRpc.Internal
                             // Dispatch is done, remove the cancellation token source for the dispatch.
                             if (_dispatches.Remove(cancelDispatchSource))
                             {
-                                // If no more invocations or dispatches and shutting down, shutdown can complete.
-                                if (_isShuttingDown && _invocations.Count == 0 && _dispatches.Count == 0)
+                                if (_invocations.Count == 0 && _dispatches.Count == 0)
                                 {
-                                    _dispatchesAndInvocationsCompleted.TrySetResult();
+                                    if (_isShuttingDown)
+                                    {
+                                        _dispatchesAndInvocationsCompleted.TrySetResult();
+                                    }
+
+                                    _idleSinceTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
                                 }
                             }
                         }

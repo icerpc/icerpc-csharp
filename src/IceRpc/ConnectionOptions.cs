@@ -35,9 +35,9 @@ namespace IceRpc
         /// <value>The dispatcher that dispatches requests received by this connection.</value>
         public IDispatcher Dispatcher { get; set; } = DefaultDispatcher;
 
-        /// <summary>Gets or sets the idle timeout. This timeout is used to monitor the network connection. If
-        /// the connection is idle within this timeout period, the connection is gracefully closed.</summary>
-        /// <value>The network connection idle timeout value. The default is 60s.</value>
+        /// <summary>Gets or sets the idle timeout. This timeout is used to gracefully shutdown the connection if it's
+        /// idle for longer than this timeout.</summary>
+        /// <value>The connection idle timeout value. The default is 60s.</value>
         public TimeSpan IdleTimeout
         {
             get => _idleTimeout;
@@ -45,13 +45,10 @@ namespace IceRpc
                 throw new ArgumentException($"0 is not a valid value for {nameof(IdleTimeout)}", nameof(value));
         }
 
-        /// <summary>Gets or sets the connection's keep alive. If a connection is kept alive, the connection monitoring
-        /// will send keep alive frames to ensure the peer doesn't close the connection in the period defined by its
-        /// idle timeout. How often keep alive frames are sent depends on the peer's IdleTimeout configuration.
-        /// </summary>
+        /// <summary>Gets or sets a value indicating whether the connection sends keep alive frames or not to check if
+        /// it's healthy when idle.</summary>
         /// <value><c>true</c>to enable connection keep alive. <c>false</c> to disable it. The default is <c>false</c>.
         /// </value>
-        // TODO: move to ClientConnectionOptions when fixing #1265
         public bool KeepAlive { get; set; }
 
         /// <summary>Gets or sets the maximum number of requests that an ice connection can dispatch concurrently.

@@ -23,6 +23,16 @@ namespace IceRpc.Transports
                     nameof(value));
         }
 
+        /// <summary>Gets or sets the idle timeout. This timeout is used to monitor the network connection health. If no
+        /// data is received within the idle timeout period, the network connection is considered closed. The default is
+        /// 60s.</summary>
+        public TimeSpan IdleTimeout
+        {
+            get => _idleTimeout;
+            set => _idleTimeout = value != TimeSpan.Zero ? value :
+                throw new ArgumentException($"0 is not a valid value for {nameof(IdleTimeout)}", nameof(value));
+        }
+
         /// <summary>Gets or sets the <see cref="MemoryPool{T}" /> object used for buffer management.</summary>
         /// <value>A pool of memory blocks used for buffer management.</value>
         public MemoryPool<byte> Pool { get; set; } = MemoryPool<byte>.Shared;
@@ -86,6 +96,7 @@ namespace IceRpc.Transports
         }
 
         private int _bidirectionalStreamMaxCount = 100;
+        private TimeSpan _idleTimeout;
         private int _minimumSegmentSize = 4096;
         // The default packet size matches the SSL record maximum data size to avoid fragmentation of the Slic packet
         // when using SSL.

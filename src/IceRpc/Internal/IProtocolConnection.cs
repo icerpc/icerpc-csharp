@@ -26,15 +26,9 @@ namespace IceRpc.Internal
         /// <summary>Connects the protocol connection. The implementation should also connect the underlying network
         /// connection.</summary>
         /// <param name="isServer"><c>true</c> if the protocol connection is a server-side connection.</param>
-        /// <param name="keepAlive"><c>true</c> to keep alive the connection.</param>
-        /// <param name="idleTimeout">The connection idle timeout.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The network connection information</returns>
-        Task<NetworkConnectionInformation> ConnectAsync(
-            bool isServer,
-            bool keepAlive,
-            TimeSpan idleTimeout,
-            CancellationToken cancel);
+        Task<NetworkConnectionInformation> ConnectAsync(bool isServer, CancellationToken cancel);
 
         /// <summary>Checks if the parameters of the provided endpoint are compatible with the network connection of
         /// this protocol connection. Compatible means a client could reuse the network connection instead of

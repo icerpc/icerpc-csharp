@@ -37,12 +37,10 @@ namespace IceRpc.Internal
 
         async Task<NetworkConnectionInformation> IProtocolConnection.ConnectAsync(
             bool isServer,
-            bool keepAlive,
-            TimeSpan idleTimeout,
             CancellationToken cancel)
         {
             _isServer = isServer;
-            _information = await _decoratee.ConnectAsync(isServer, keepAlive, idleTimeout, cancel).ConfigureAwait(false);
+            _information = await _decoratee.ConnectAsync(isServer, cancel).ConfigureAwait(false);
 
             using IDisposable scope = _logger.StartConnectionScope(_information, isServer);
             _logger.LogProtocolConnectionConnect(

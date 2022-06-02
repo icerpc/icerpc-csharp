@@ -8,5 +8,5 @@ internal interface IProtocolConnectionFactory<T>
     where T : INetworkConnection
 {
     /// <summary>Creates a protocol connection over a network connection.</summary>
-    IProtocolConnection CreateProtocolConnectionAsync(T networkConnection, ConnectionOptions connectionOptions);
+    IProtocolConnection CreateConnection(T networkConnection, ConnectionOptions connectionOptions);
 }

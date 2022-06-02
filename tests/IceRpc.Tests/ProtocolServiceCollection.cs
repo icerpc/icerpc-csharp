@@ -159,7 +159,7 @@ internal static class ProtocolServiceProviderExtensions
             where T : INetworkConnection
     {
         IProtocolConnection protocolConnection =
-            serviceProvider.GetRequiredService<IProtocolConnectionFactory<T>>().CreateProtocolConnectionAsync(
+            serviceProvider.GetRequiredService<IProtocolConnectionFactory<T>>().CreateConnection(
                 await networkConnectionFactory(serviceProvider).ConfigureAwait(false),
                 connectionOptions);
         await protocolConnection.ConnectAsync(
