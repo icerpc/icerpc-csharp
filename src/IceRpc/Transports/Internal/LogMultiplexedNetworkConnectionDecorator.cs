@@ -43,7 +43,7 @@ namespace IceRpc.Transports.Internal
             ILogger logger) =>
             new LogMultiplexedNetworkConnectionDecorator(decoratee, endpoint, isServer, logger);
 
-        private LogMultiplexedNetworkConnectionDecorator(
+        internal LogMultiplexedNetworkConnectionDecorator(
             IMultiplexedNetworkConnection decoratee,
             Endpoint endpoint,
             bool isServer,
