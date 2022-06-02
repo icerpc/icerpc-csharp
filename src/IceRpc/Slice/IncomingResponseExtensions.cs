@@ -90,7 +90,7 @@ namespace IceRpc.Slice
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
         /// <param name="elementSize">The size in bytes of the streamed elements.</param>
         /// <returns>The async enumerable to decode and return the streamed members.</returns>
-        public static IAsyncEnumerable<T> DecodeStream<T>(
+        public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this IncomingResponse response,
             OutgoingRequest request,
             SliceEncoding encoding,
@@ -117,7 +117,7 @@ namespace IceRpc.Slice
         /// <param name="encodeFeature">The encode feature of the Prx struct that sent the request.</param>
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
         /// <returns>The async enumerable to decode and return the streamed members.</returns>
-        public static IAsyncEnumerable<T> DecodeStream<T>(
+        public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this IncomingResponse response,
             OutgoingRequest request,
             SliceEncoding encoding,
