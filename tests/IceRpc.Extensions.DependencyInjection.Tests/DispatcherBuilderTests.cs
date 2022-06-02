@@ -132,7 +132,7 @@ public sealed class DispatcherBuilderTests
 
     public interface IPathTracker
     {
-       string Path { get; set; }
+        string Path { get; set; }
     }
 
     public class PathTracker : IPathTracker

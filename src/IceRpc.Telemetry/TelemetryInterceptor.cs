@@ -1,7 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice;
-using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Diagnostics;
 
