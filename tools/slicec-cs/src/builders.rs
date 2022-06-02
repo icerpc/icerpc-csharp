@@ -332,7 +332,11 @@ impl FunctionBuilder {
             self.add_parameter(
                 &format!("{}{}", parameter_attributes, &parameter_type),
                 &parameter_name,
-                None,
+                if context == TypeContext::Encode && parameter.tag.is_some() {
+                    Some("default")
+                } else {
+                    None
+                },
                 parameter_comment,
             );
         }

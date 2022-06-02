@@ -9,3 +9,13 @@ interface MyBaseInterface
 interface MyDerivedInterface : MyBaseInterface
 {
 }
+
+interface MyTaggedOperations
+{
+    op(x: int32, y: tag(1) int32?, z: tag(2) int32?);
+}
+
+interface MyTaggedOperationsReadOnlyMemoryParams
+{
+    op(x: sequence<int32>, y: tag(1) sequence<int32>?, z: tag(2) sequence<int32>?);
+}
