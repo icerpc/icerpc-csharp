@@ -20,17 +20,18 @@ public static class ProtocolServiceCollectionExtensions
         Protocol protocol,
         IDispatcher? dispatcher = null)
     {
-        var endpoint = new Endpoint(protocol) { Host = "colochost" };
         services.AddColocTransport();
 
-        if (dispatcher != null)
-        {
-            services.AddOptions<ServerOptions>().Configure(
-                options =>
+        services.AddOptions<ServerOptions>().Configure(
+            options =>
+            {
+                options.Endpoint = new Endpoint(protocol) { Host = "colochost" };
+                if (dispatcher != null)
                 {
                     options.ConnectionOptions.Dispatcher = dispatcher;
-                });
-        }
+                }
+            });
+
         services.TryAddSingleton<ILogger>(NullLogger.Instance);
 
         services.AddSingleton<IServerTransport<IMultiplexedNetworkConnection>>(
@@ -42,10 +43,10 @@ public static class ProtocolServiceCollectionExtensions
                 provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()));
 
         services.AddSingleton<IListener<ISimpleNetworkConnection>>(
-               provider => ActivatorUtilities.CreateInstance<ListenerAdapter<ISimpleNetworkConnection>>(provider, endpoint));
+               provider => ActivatorUtilities.CreateInstance<ListenerAdapter<ISimpleNetworkConnection>>(provider));
 
         services.AddSingleton<IListener<IMultiplexedNetworkConnection>>(
-            provider => ActivatorUtilities.CreateInstance<ListenerAdapter<IMultiplexedNetworkConnection>>(provider, endpoint));
+            provider => ActivatorUtilities.CreateInstance<ListenerAdapter<IMultiplexedNetworkConnection>>(provider));
 
         if (protocol == Protocol.Ice)
         {
@@ -71,9 +72,11 @@ public static class ProtocolServiceCollectionExtensions
 internal class ClientServerProtocolConnection<T> : IClientServerProtocolConnection, IDisposable
     where T : INetworkConnection
 {
-    public IProtocolConnection Client => _client ?? throw new InvalidOperationException("client connection not initialized");
+    public IProtocolConnection Client =>
+        _client ?? throw new InvalidOperationException("client connection not initialized");
 
-    public IProtocolConnection Server => _server ?? throw new InvalidOperationException("server connection not initialized");
+    public IProtocolConnection Server =>
+        _server ?? throw new InvalidOperationException("server connection not initialized");
 
     private IProtocolConnection? _client;
     private readonly ConnectionOptions _clientConnectionOptions;
@@ -163,12 +166,14 @@ internal class ListenerAdapter<T> : IListener<T> where T : INetworkConnection
 
     public ListenerAdapter(
         IServerTransport<T> serverTransport,
-        Endpoint endpoint,
         ILogger logger,
-        IOptions<SslServerAuthenticationOptions>? sslServerAuthenticationOptions = null,
+        IOptions<ServerOptions> serverOptions,
         LogNetworkConnectionDecoratorFactory<T>? logDecoratorFactory = null)
     {
-        _listener = serverTransport.Listen(endpoint, null, logger);
+        _listener = serverTransport.Listen(
+            serverOptions.Value.Endpoint,
+            serverOptions.Value.ServerAuthenticationOptions,
+            logger);
         if (logger != NullLogger.Instance && logDecoratorFactory != null)
         {
             _listener = new LogListenerDecorator<T>(_listener, logger, logDecoratorFactory);
