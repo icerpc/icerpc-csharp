@@ -14,7 +14,8 @@ public static class IncomingFrameExtensions
     /// <returns>The payload pipe reader.</returns>
     public static PipeReader DetachPayload(this IncomingFrame incoming)
     {
-        (PipeReader payload, incoming.Payload) = (incoming.Payload, InvalidPipeReader.Instance);
+        PipeReader payload = incoming.Payload;
+        incoming.Payload = InvalidPipeReader.Instance;
         return payload;
     }
 }
