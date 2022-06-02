@@ -15,17 +15,16 @@ public class BinderInterceptor : IInvoker
 
     /// <summary>Constructs a binder interceptor.</summary>
     /// <param name="next">The next invoker in the pipeline.</param>
+    /// <param name="options">The options to configure the binder interceptor.</param>
     /// <param name="clientConnectionProvider">The client connection provider.</param>
-    /// <param name="cacheConnection">When <c>true</c> (the default), the binder stores the connection it retrieves
-    /// from its client connection provider in the proxy that created the request.</param>
     public BinderInterceptor(
         IInvoker next,
-        IClientConnectionProvider clientConnectionProvider,
-        bool cacheConnection = true)
+        BinderOptions options,
+        IClientConnectionProvider clientConnectionProvider)
     {
         _next = next;
         _clientConnectionProvider = clientConnectionProvider;
-        _cacheConnection = cacheConnection;
+        _cacheConnection = options.CacheConnection;
     }
 
     Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
