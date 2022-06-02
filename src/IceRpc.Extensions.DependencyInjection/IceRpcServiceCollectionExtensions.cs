@@ -64,7 +64,7 @@ public static class IceRpcServiceCollectionExtensions
             .TryAddIceRpcServerTransport()
             .AddSingleton<Server>(provider =>
             {
-                var dispatcherBuilder = new DispatcherBuilder(provider);
+                var dispatcherBuilder = new DispatcherBuilder(provider, serverName);
                 configure(dispatcherBuilder);
 
                 ServerOptions options = provider.GetRequiredService<IOptionsMonitor<ServerOptions>>().Get(serverName);

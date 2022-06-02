@@ -7,9 +7,12 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace IceRpc.Extensions.DependencyInjection.Builder;
 
-/// <summary>A builder for configuring IceRpc server dispatcher.</summary>
+/// <summary>Provides the default implementation of <see cref="IDispatcherBuilder"/>.</summary>
 public class DispatcherBuilder : IDispatcherBuilder
 {
+    /// <inheritdoc/>
+    public string ContainerName { get; }
+
     /// <inheritdoc/>
     public IServiceProvider ServiceProvider { get; }
 
@@ -47,5 +50,9 @@ public class DispatcherBuilder : IDispatcherBuilder
         return await _router.DispatchAsync(request, cancel).ConfigureAwait(false);
     });
 
-    internal DispatcherBuilder(IServiceProvider provider) => ServiceProvider = provider;
+    internal DispatcherBuilder(IServiceProvider provider, string containerName = "")
+    {
+        ContainerName = containerName;
+        ServiceProvider = provider;
+    }
 }
