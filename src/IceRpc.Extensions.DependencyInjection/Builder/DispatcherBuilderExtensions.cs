@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace IceRpc.Extensions.DependencyInjection.Builder;
 
 /// <summary>Extension methods for <see cref="IDispatcherBuilder"/>.</summary>
-public static class IceRpcServiceCollectionExtensions
+public static class DispatcherBuilderExtensions
 {
     /// <summary>Registers a standard middleware. Such a middleware implements <see cref="IDispatcher"/> and provides a
     /// single constructor that accepts a dispatcher (the next dispatcher) followed by 0 or more DI-injected services.

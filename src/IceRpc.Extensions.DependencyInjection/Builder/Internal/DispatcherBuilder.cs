@@ -5,10 +5,10 @@ using IceRpc.Extensions.DependencyInjection.Internal;
 using IceRpc.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace IceRpc.Extensions.DependencyInjection.Builder;
+namespace IceRpc.Extensions.DependencyInjection.Builder.Internal;
 
 /// <summary>Provides the default implementation of <see cref="IDispatcherBuilder"/>.</summary>
-public class DispatcherBuilder : IDispatcherBuilder
+internal class DispatcherBuilder : IDispatcherBuilder
 {
     /// <inheritdoc/>
     public string ContainerName { get; }
@@ -39,6 +39,12 @@ public class DispatcherBuilder : IDispatcherBuilder
         return this;
     }
 
+    internal DispatcherBuilder(IServiceProvider provider, string containerName = "")
+    {
+        ContainerName = containerName;
+        ServiceProvider = provider;
+    }
+
     internal IDispatcher Build() => new InlineDispatcher(async (request, cancel) =>
     {
         AsyncServiceScope asyncScope = ServiceProvider.CreateAsyncScope();
@@ -49,10 +55,4 @@ public class DispatcherBuilder : IDispatcherBuilder
 
         return await _router.DispatchAsync(request, cancel).ConfigureAwait(false);
     });
-
-    internal DispatcherBuilder(IServiceProvider provider, string containerName = "")
-    {
-        ContainerName = containerName;
-        ServiceProvider = provider;
-    }
 }

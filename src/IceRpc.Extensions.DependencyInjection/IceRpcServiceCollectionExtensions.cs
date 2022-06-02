@@ -2,6 +2,7 @@
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection.Builder;
+using IceRpc.Extensions.DependencyInjection.Builder.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
