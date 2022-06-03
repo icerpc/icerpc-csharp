@@ -6,13 +6,22 @@
           "src": "../",
           "files": [
               "src/IceRpc/bin/**/IceRpc.dll",
+              "src/IceRpc.Binder/bin/**/IceRpc.Binder.dll",
               "src/IceRpc.Coloc/bin/**/IceRpc.Coloc.dll",
+              "src/IceRpc.Deadline/bin/**/IceRpc.Deadline.dll",
+              "src/IceRpc.Deflate/bin/**/IceRpc.Deflate.dll",
+              "src/IceRpc.Extensions.DependencyInjection/bin/**/IceRpc.Extensions.DependencyInjection.dll",
               "src/IceRpc.Interop/bin/**/IceRpc.Interop.dll",
+              "src/IceRpc.Locator/bin/**/IceRpc.Locator.dll",
+              "src/IceRpc.Logger/bin/**/IceRpc.Logger.dll",
+              "src/IceRpc.Metrics/bin/**/IceRpc.Metrics.dll",
+              "src/IceRpc.RequestContext/bin/**/IceRpc.RequestContext.dll",
+              "src/IceRpc.Retry/bin/**/IceRpc.Retry.dll",
+              "src/IceRpc.Telemetry/bin/**/IceRpc.Telemetry.dll",
           ],
           "exclude": [
               "**/obj/**",
               "**/ref/**",
-              "_site/**"
           ]
         }
       ],
@@ -37,11 +46,12 @@
     ],
     "overwrite": "specs/*.md",
     "globalMetadata": {
-      "_appTitle": "docfx seed website",
+      "_appTitle": "IceRPC C# documentation",
       "_enableSearch": true
     },
     "markdownEngineName": "markdig",
-    "dest": "_site",
+      "dest": "_site",
+      "template": ["default"],
     "xrefService": [ "https://xref.docs.microsoft.com/query?uid={uid}" ]
   }
 }

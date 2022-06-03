@@ -117,8 +117,7 @@ function Test($config, $coverage) {
 
 function Doc() {
     Push-Location "doc"
-    RunCommand "docfx"
-    RunCommand explorer "_site\index.html"
+    RunCommand "docfx" @('build')
     Pop-Location
 }
 
