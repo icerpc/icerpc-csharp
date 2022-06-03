@@ -66,47 +66,34 @@ public class LocatorInterceptor : IInvoker
 
             if (location != default)
             {
-                try
-                {
-                    (Proxy? proxy, bool fromCache) = await _locationResolver.ResolveAsync(
-                        location,
-                        refreshCache,
-                        cancel).ConfigureAwait(false);
+                (Proxy? proxy, bool fromCache) = await _locationResolver.ResolveAsync(
+                    location,
+                    refreshCache,
+                    cancel).ConfigureAwait(false);
 
-                    if (refreshCache)
-                    {
-                        if (!fromCache && !request.Features.IsReadOnly)
-                        {
-                            // No need to resolve this location again since we are not returning a cached value.
-                            request.Features.Set<ICachedResolutionFeature>(null);
-                        }
-                    }
-                    else if (fromCache)
-                    {
-                        // Make sure the next attempt re-resolves location and sets refreshCache to true.
-                        request.Features = request.Features.With<ICachedResolutionFeature>(
-                            new CachedResolutionFeature(location));
-                    }
-
-                    if (proxy != null)
-                    {
-                        // A well behaved location resolver should never return a non-null proxy with a null endpoint.
-                        Debug.Assert(proxy.Endpoint != null);
-                        endpointFeature.Endpoint = proxy.Endpoint;
-                        endpointFeature.AltEndpoints = proxy.AltEndpoints;
-                    }
-                    // else, resolution failed and we don't update anything
-                }
-                catch (Exception exception)
+                if (refreshCache)
                 {
-                    // Clean-up request
-                    await request.Payload.CompleteAsync(exception).ConfigureAwait(false);
-                    if (request.PayloadStream != null)
+                    if (!fromCache && !request.Features.IsReadOnly)
                     {
-                        await request.PayloadStream.CompleteAsync(exception).ConfigureAwait(false);
+                        // No need to resolve this location again since we are not returning a cached value.
+                        request.Features.Set<ICachedResolutionFeature>(null);
                     }
-                    throw;
                 }
+                else if (fromCache)
+                {
+                    // Make sure the next attempt re-resolves location and sets refreshCache to true.
+                    request.Features = request.Features.With<ICachedResolutionFeature>(
+                        new CachedResolutionFeature(location));
+                }
+
+                if (proxy != null)
+                {
+                    // A well behaved location resolver should never return a non-null proxy with a null endpoint.
+                    Debug.Assert(proxy.Endpoint != null);
+                    endpointFeature.Endpoint = proxy.Endpoint;
+                    endpointFeature.AltEndpoints = proxy.AltEndpoints;
+                }
+                // else, resolution failed and we don't update anything
             }
         }
         return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
