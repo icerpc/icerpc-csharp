@@ -11,7 +11,7 @@ using System.IO.Pipelines;
 namespace IceRpc.Tests.Slice;
 
 [Parallelizable(scope: ParallelScope.All)]
-public class OperationGeneratedCodeTests
+public class OperationTests
 {
     [Test]
     public async Task Operation_without_parameters_and_void_return()
@@ -405,6 +405,46 @@ public class OperationGeneratedCodeTests
             Is.EqualTo(p));
     }
 
+    /// <summary>Verifies that tagged parameters has a default value that is equivalent to a non set tagged parameter.
+    /// </summary>
+    [Test]
+    public async Task Tagged_default_values()
+    {
+        var service = new MyTaggedOperations();
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(service)
+            .BuildServiceProvider(validateScopes: true);
+
+        provider.GetRequiredService<Server>().Listen();
+        var prx = MyTaggedOperationsPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
+
+        await prx.OpAsync(1, z: 10);
+
+        Assert.That(service.X, Is.EqualTo(1));
+        Assert.That(service.Y, Is.Null);
+        Assert.That(service.Z, Is.EqualTo(10));
+    }
+
+    /// <summary>Verifies that a tagged sequence parameter that uses the <see cref="ReadOnlyMemory{T}"/> mapping has a
+    /// default value that is equivalent to a non set tagged parameter.</summary>
+    [Test]
+    public async Task Prx_tagged_default_values_with_readonly_memory_params()
+    {
+        var service = new MyTaggedOperationsReadOnlyMemoryParams();
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(service)
+            .BuildServiceProvider(validateScopes: true);
+
+        provider.GetRequiredService<Server>().Listen();
+        var prx = MyTaggedOperationsReadOnlyMemoryParamsPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
+
+        await prx.OpAsync(new int[] { 1 }, z: new int[] { 10 });
+
+        Assert.That(service.X, Is.EqualTo(new int[] { 1 }));
+        Assert.That(service.Y, Is.Null);
+        Assert.That(service.Z, Is.EqualTo(new int[] { 10 }));
+    }
+
     class MyOperationsA : Service, IMyOperationsA
     {
         public ValueTask ContinueAsync(IFeatureCollection features, CancellationToken cancel) => default;
@@ -487,5 +527,35 @@ public class OperationGeneratedCodeTests
             CancellationToken cancel) => new(p1);
     }
 
-    class MyDerivedOperationsA : MyOperationsA { }
+    private class MyDerivedOperationsA : MyOperationsA { }
+
+    private class MyTaggedOperations : Service, IMyTaggedOperations
+    {
+        internal int X { get; set; }
+        internal int? Y { get; set; }
+        internal int? Z { get; set; }
+
+        public ValueTask OpAsync(int x, int? y, int? z, IFeatureCollection features, CancellationToken cancel)
+        {
+            X = x;
+            Y = y;
+            Z = z;
+            return default;
+        }
+    }
+
+    private class MyTaggedOperationsReadOnlyMemoryParams : Service, IMyTaggedOperationsReadOnlyMemoryParams
+    {
+        internal int[] X { get; set; } = Array.Empty<int>();
+        internal int[]? Y { get; set; }
+        internal int[]? Z { get; set; }
+
+        public ValueTask OpAsync(int[] x, int[]? y, int[]? z, IFeatureCollection features, CancellationToken cancel)
+        {
+            X = x;
+            Y = y;
+            Z = z;
+            return default;
+        }
+    }
 }
