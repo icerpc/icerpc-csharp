@@ -360,7 +360,11 @@ impl FunctionBuilder {
         self.add_parameter(
             "global::System.Threading.CancellationToken",
             &escape_parameter_name(&parameters, "cancel"),
-            Some("default"),
+            if context == TypeContext::Encode {
+                Some("default")
+            } else {
+                None
+            },
             Some("A cancellation token that receives the cancellation requests."),
         );
 
