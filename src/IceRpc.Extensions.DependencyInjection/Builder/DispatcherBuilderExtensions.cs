@@ -8,32 +8,6 @@ namespace IceRpc.Builder;
 /// <summary>Extension methods for <see cref="IDispatcherBuilder"/>.</summary>
 public static class DispatcherBuilderExtensions
 {
-    /// <summary>Registers a standard middleware. Such a middleware implements <see cref="IDispatcher"/> and provides a
-    /// single constructor that accepts a dispatcher (the next dispatcher) followed by 0 or more DI-injected services.
-    /// </summary>
-    /// <typeparam name="TMiddleware">The type of the middleware to register.</typeparam>
-    /// <param name="builder">This dispatcher builder.</param>
-    /// <returns>The dispatcher builder.</returns>
-    public static IDispatcherBuilder UseMiddleware<TMiddleware>(this IDispatcherBuilder builder)
-        where TMiddleware : IDispatcher =>
-        builder.Use(next => ActivatorUtilities.CreateInstance<TMiddleware>(builder.ServiceProvider, next));
-
-    /// <summary>Registers a standard middleware with an Options parameter. Such a middleware implements
-    /// <see cref="IDispatcher"/> and provides a single constructor that accepts a dispatcher (the next dispatcher)
-    /// followed by an instance of <typeparamref name="TMiddlewareOptions"/> and then 0 or more DI-injected services.
-    /// </summary>
-    /// <typeparam name="TMiddleware">The type of the middleware to register.</typeparam>
-    /// <typeparam name="TMiddlewareOptions">The type of Options parameter of this middleware.</typeparam>
-    /// <param name="builder">This dispatcher builder.</param>
-    /// <param name="options">The options to give to the constructor of the middleware.</param>
-    /// <returns>The dispatcher builder.</returns>
-    public static IDispatcherBuilder UseMiddleware<TMiddleware, TMiddlewareOptions>(
-        this IDispatcherBuilder builder,
-        TMiddlewareOptions options)
-        where TMiddleware : IDispatcher
-        where TMiddlewareOptions : notnull =>
-        builder.Use(next => ActivatorUtilities.CreateInstance<TMiddleware>(builder.ServiceProvider, next, options));
-
     /// <summary>Registers a middleware with one service dependency in its DispatchAsync method. Such a middleware
     /// implements <see cref="IMiddleware{TDep}"/> and provides a single constructor that accepts a dispatcher (the next
     /// dispatcher) followed by 0 or more DI-injected services.</summary>
