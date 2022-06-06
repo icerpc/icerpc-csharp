@@ -30,16 +30,18 @@ public sealed class ProtocolBridgingTests
         var targetServicePrx = ProtocolBridgingTestPrx.Parse($"{targetProtocol}:/target");
         targetServicePrx.Proxy.Endpoint = targetEndpoint;
 
+        var targetService = new ProtocolBridgingTest(targetEndpoint);
+
         IServiceCollection services = new ServiceCollection()
             .AddColocTransport()
             .AddIceRpcConnectionPool()
-            .AddSingleton<ProtocolBridgingTest>(_ => new ProtocolBridgingTest(targetEndpoint))
+            .AddSingleton<IProtocolBridgingTest>(targetService)
             .AddSingleton<Forwarder>(_ => new Forwarder(targetServicePrx.Proxy))
             .AddIceRpcDispatcher(builder =>
             {
                 builder.UseRequestContext();
                 builder.UseDispatchInformation();
-                builder.Map<ProtocolBridgingTest>("/target");
+                builder.Map<IProtocolBridgingTest>("/target");
                 builder.Map<Forwarder>("/forward");
             })
             .AddIceRpcServer("forwarder")
@@ -65,7 +67,6 @@ public sealed class ProtocolBridgingTests
 
         forwarderServicePrx.Proxy.Invoker = serviceProvider.GetRequiredService<IInvoker>();
         targetServicePrx.Proxy.Invoker = serviceProvider.GetRequiredService<IInvoker>();
-        ProtocolBridgingTest targetService = serviceProvider.GetRequiredService<ProtocolBridgingTest>();
 
         foreach (Server server in serviceProvider.GetServices<Server>())
         {
