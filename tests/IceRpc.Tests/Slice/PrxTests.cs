@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,8 +16,8 @@ public class PrxTests
     public async Task Downcast_prx_with_as_sync_succeeds()
     {
         await using ServiceProvider provider = new ServiceCollection()
-             .AddColocTest(new MyDerivedInterface())
-             .BuildServiceProvider(validateScopes: true);
+            .AddColocTest(new MyDerivedInterface())
+            .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var prx = MyBaseInterfacePrx.FromConnection(provider.GetRequiredService<ClientConnection>());

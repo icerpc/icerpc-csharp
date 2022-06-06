@@ -48,30 +48,18 @@ public class BinderInterceptor : IInvoker
 
         async Task<IncomingResponse> PerformBindAsync(Endpoint? endpoint, IEnumerable<Endpoint> altEndpoints)
         {
-            try
+            if (endpoint == null)
             {
-                if (endpoint == null)
-                {
-                    throw new NoEndpointException(request.Proxy);
-                }
-
-                request.Connection = await _clientConnectionProvider.GetClientConnectionAsync(
-                    endpoint.Value,
-                    altEndpoints,
-                    cancel).ConfigureAwait(false);
-                if (_cacheConnection)
-                {
-                    request.Proxy.Connection = request.Connection;
-                }
+                throw new NoEndpointException(request.Proxy);
             }
-            catch (Exception exception)
+
+            request.Connection = await _clientConnectionProvider.GetClientConnectionAsync(
+                endpoint.Value,
+                altEndpoints,
+                cancel).ConfigureAwait(false);
+            if (_cacheConnection)
             {
-                await request.Payload.CompleteAsync(exception).ConfigureAwait(false);
-                if (request.PayloadStream != null)
-                {
-                    await request.PayloadStream.CompleteAsync(exception).ConfigureAwait(false);
-                }
-                throw;
+                request.Proxy.Connection = request.Connection;
             }
             return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
         }
