@@ -3,7 +3,7 @@
 using IceRpc.Slice;
 using System.Diagnostics;
 
-namespace IceRpc.Configure
+namespace IceRpc
 {
     /// <summary>A router routes incoming requests to dispatchers.</summary>
     public sealed class Router : IDispatcher

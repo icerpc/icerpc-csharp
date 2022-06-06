@@ -2,7 +2,6 @@
 
 using Demo;
 using IceRpc;
-using IceRpc.Configure;
 
 var options = new ClientConnectionOptions
 {
