@@ -1,5 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Builder;
 using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Tests.Common;
@@ -27,19 +28,20 @@ public class OperationGeneratedCodeTests
             return response;
         }));
 
-        var router = new Router();
-        router.UseDeflate();
-        router.Use(next => new InlineDispatcher(async (request, cancel) =>
-        {
-            var response = await next.DispatchAsync(request, cancel);
-            compressResponseFeature =
-                request.Features.Get<ICompressFeature>() is ICompressFeature compress && compress.Value;
-            return response;
-        }));
-        router.Map("/", new MyOperationsA());
-
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTest(router)
+            .AddSingleton<MyOperationsA>()
+            .AddColocTest(builder =>
+            {
+                builder.UseDeflate();
+                builder.Use(next => new InlineDispatcher(async (request, cancel) =>
+                {
+                    var response = await next.DispatchAsync(request, cancel);
+                    compressResponseFeature =
+                        request.Features.Get<ICompressFeature>() is ICompressFeature compress && compress.Value;
+                    return response;
+                }));
+                builder.Map<MyOperationsA>("/");
+            })
             .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
@@ -54,7 +56,7 @@ public class OperationGeneratedCodeTests
         Assert.That(compressResponseFeature, Is.True);
     }
 
-    class MyOperationsA : Service, IMyOperationsA
+    public class MyOperationsA : Service, IMyOperationsA
     {
         public ValueTask<int> OpWithCompressArgsAndReturnAttributeAsync(
             int p,

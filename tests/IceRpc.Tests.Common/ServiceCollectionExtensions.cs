@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Builder;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -21,6 +22,19 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddColocTest(this IServiceCollection services, IDispatcher dispatcher) =>
         services.AddColocTest(dispatcher, Protocol.IceRpc);
+
+    /// <summary>Installs coloc client-server test.</summary>
+    public static IServiceCollection AddColocTest(
+        this IServiceCollection services,
+        Action<IDispatcherBuilder> configure,
+        Protocol protocol,
+        string host = "colochost") =>
+        services.AddColocTransport().AddClientServerTest(configure, new Endpoint(protocol) { Host = host });
+
+    public static IServiceCollection AddColocTest(
+        this IServiceCollection services,
+        Action<IDispatcherBuilder> configure) =>
+        services.AddColocTest(configure, Protocol.IceRpc);
 
     /// <summary>Installs the coloc simple transport.</summary>
     public static IServiceCollection AddColocTransport(this IServiceCollection services)
@@ -79,6 +93,23 @@ public static class ServiceCollectionExtensions
             options.Endpoint = endpoint;
         });
         services.AddIceRpcServer();
+
+        services
+            .AddOptions<ClientConnectionOptions>()
+            .Configure<Server>((options, server) => options.RemoteEndpoint = server.Endpoint);
+
+        services.AddIceRpcClientConnection();
+
+        return services;
+    }
+
+    private static IServiceCollection AddClientServerTest(
+        this IServiceCollection services,
+        Action<IDispatcherBuilder> configure,
+        Endpoint endpoint)
+    {
+        services.AddOptions<ServerOptions>().Configure(options => options.Endpoint = endpoint);
+        services.AddIceRpcServer(configure);
 
         services
             .AddOptions<ClientConnectionOptions>()
