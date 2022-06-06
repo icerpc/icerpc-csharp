@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc.Extensions.DependencyInjection;
+namespace IceRpc;
 
 /// <summary>Represents a middleware with a single injected service dependency in its DispatchAsync method.</summary>
 /// <typeparam name="TDep">The type of the injected dependency.</typeparam>

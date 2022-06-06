@@ -1,17 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Extensions.DependencyInjection.Internal;
 using IceRpc.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace IceRpc.Extensions.DependencyInjection.Builder.Internal;
+namespace IceRpc.Builder.Internal;
 
 /// <summary>Provides the default implementation of <see cref="IDispatcherBuilder"/>.</summary>
 internal class DispatcherBuilder : IDispatcherBuilder
 {
-    /// <inheritdoc/>
-    public string ContainerName { get; }
-
     /// <inheritdoc/>
     public IServiceProvider ServiceProvider { get; }
 
@@ -38,11 +34,7 @@ internal class DispatcherBuilder : IDispatcherBuilder
         return this;
     }
 
-    internal DispatcherBuilder(IServiceProvider provider, string containerName = "")
-    {
-        ContainerName = containerName;
-        ServiceProvider = provider;
-    }
+    internal DispatcherBuilder(IServiceProvider provider) => ServiceProvider = provider;
 
     internal IDispatcher Build() => new InlineDispatcher(async (request, cancel) =>
     {
