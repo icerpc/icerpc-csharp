@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Builder;
 
-/// <summary>This class provides extension methods to add a logger middleware to a <see cref="IDispatcherBuilder"/>.
+/// <summary>This class provides extension methods to add the logger middleware to a <see cref="IDispatcherBuilder"/>.
 /// </summary>
 public static class LoggerDispatcherBuilderExtensions
 {
