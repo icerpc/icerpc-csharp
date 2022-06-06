@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc;
-using IceRpc.Configure;
 using IceRpc.Extensions.DependencyInjection.Builder;
 using IceRpc.Logger;
 using IceRpc.Telemetry;
