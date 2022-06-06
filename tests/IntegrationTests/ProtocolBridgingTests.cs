@@ -5,7 +5,6 @@ using IceRpc.Features;
 using IceRpc.RequestContext;
 using IceRpc.Slice;
 using IceRpc.Tests.Common;
-using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Collections.Immutable;
@@ -36,14 +35,12 @@ public sealed class ProtocolBridgingTests
             .AddColocTransport()
             .AddIceRpcConnectionPool()
             .AddSingleton<IProtocolBridgingTest>(targetService)
-            .AddSingleton<Forwarder>(_ => new Forwarder(targetServicePrx.Proxy))
-            .AddIceRpcDispatcher(builder =>
-            {
-                builder.UseRequestContext();
-                builder.UseDispatchInformation();
-                builder.Map<IProtocolBridgingTest>("/target");
-                builder.Map<Forwarder>("/forward");
-            })
+            .AddSingleton(_ => new Forwarder(targetServicePrx.Proxy))
+            .AddIceRpcDispatcher(builder => builder
+                .UseRequestContext()
+                .UseDispatchInformation()
+                .Map<IProtocolBridgingTest>("/target")
+                .Map<Forwarder>("/forward"))
             .AddIceRpcServer("forwarder")
             .AddIceRpcServer("target")
             .AddSingleton<IInvoker>(
