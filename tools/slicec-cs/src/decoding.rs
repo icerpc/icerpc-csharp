@@ -225,6 +225,17 @@ pub fn decode_sequence(
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
     let element_type = &sequence_ref.element_type;
+    if sequence_ref.get_attribute("cs::generic", false).is_none()
+        && matches!(element_type.concrete_type(), Types::Sequence(_))
+    {
+        // For nested sequences we want to cast Foo[][] returned by DecodeSequence to IList<Foo>[]
+        // used in the request and response decode methods.
+        write!(
+            code,
+            "({}[])",
+            element_type.to_type_string(namespace, TypeContext::Nested, true)
+        );
+    };
 
     if sequence_ref.get_attribute("cs::generic", false).is_some() {
         let arg: Option<String> = match element_type.concrete_type() {

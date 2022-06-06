@@ -11,4 +11,7 @@ interface SequenceMappingOperations
     opReturnSingleType() -> [cs::generic("CustomSequence")] sequence<int32>;
 
     opSingleParameter([cs::generic("CustomSequence")] p: sequence<int32>);
+
+    opNumericTypeNestedSequence(p1: sequence<sequence<sequence<uint8>>>) -> sequence<sequence<sequence<uint8>>>;
+    opStructNestedSequence(p1: sequence<sequence<sequence<MyStruct>>>) -> sequence<sequence<sequence<MyStruct>>>;
 }
