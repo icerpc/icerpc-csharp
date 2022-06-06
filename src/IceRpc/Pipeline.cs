@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc.Configure
+namespace IceRpc
 {
     /// <summary>A pipeline is an invoker created from zero or more interceptors installed by calling <see cref="Use"/>.
     /// The last invoker of the pipeline calls the connection carried by the request or throws
