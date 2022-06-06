@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Builder;
 using IceRpc.Features;
 using IceRpc.RequestContext;
 using IceRpc.Slice;
@@ -20,54 +21,67 @@ public sealed class ProtocolBridgingTests
         [Values("ice", "icerpc")] string forwarderProtocol,
         [Values("ice", "icerpc")] string targetProtocol)
     {
-        var router = new Router();
-        router.UseRequestContext();
+        Endpoint forwarderEndpoint = $"{forwarderProtocol}://colochost1";
+        Endpoint targetEndpoint = $"{targetProtocol}://colochost2";
 
-        // We need to use the same coloc transport everywhere for connections to work, the test creates two
-        // servers that use the same coloc transport, each with a different host.
-        var coloc = new ColocTransport();
-        await using ServiceProvider targetServiceProvider = new ServiceCollection()
-            .AddSingleton(coloc)
+        var forwarderServicePrx = ProtocolBridgingTestPrx.Parse($"{forwarderProtocol}:/forward");
+        forwarderServicePrx.Proxy.Endpoint = forwarderEndpoint;
+
+        var targetServicePrx = ProtocolBridgingTestPrx.Parse($"{targetProtocol}:/target");
+        targetServicePrx.Proxy.Endpoint = targetEndpoint;
+
+        IServiceCollection services = new ServiceCollection()
+            .AddColocTransport()
             .AddIceRpcConnectionPool()
-            .AddColocTest(router, Protocol.FromString(targetProtocol), "colochost1")
+            .AddSingleton<ProtocolBridgingTest>(_ => new ProtocolBridgingTest(targetEndpoint))
+            .AddSingleton<Forwarder>(_ => new Forwarder(targetServicePrx.Proxy))
+            .AddIceRpcDispatcher(builder =>
+            {
+                builder.UseRequestContext();
+                builder.UseDispatchInformation();
+                builder.Map<ProtocolBridgingTest>("/target");
+                builder.Map<Forwarder>("/forward");
+            })
+            .AddIceRpcServer("forwarder")
+            .AddIceRpcServer("target")
             .AddSingleton<IInvoker>(
                 serviceProvider => new Pipeline()
                     .UseBinder(serviceProvider.GetRequiredService<IClientConnectionProvider>())
-                    .UseRequestContext())
-            .BuildServiceProvider(validateScopes: true);
+                    .UseRequestContext());
 
-        await using ServiceProvider forwarderServiceProvider = new ServiceCollection()
-            .AddSingleton(coloc)
-            .AddIceRpcConnectionPool()
-            .AddColocTest(router, Protocol.FromString(forwarderProtocol), "colochost2")
-            .AddSingleton<IInvoker>(
-                serviceProvider => new Pipeline()
-                    .UseBinder(serviceProvider.GetRequiredService<IClientConnectionProvider>())
-                    .UseRequestContext())
-            .BuildServiceProvider(validateScopes: true);
+        services.AddOptions<ServerOptions>("forwarder").Configure<IDispatcher>((options, dispatcher) =>
+        {
+            options.Endpoint = forwarderEndpoint;
+            options.ConnectionOptions.Dispatcher = dispatcher;
+        });
 
-        Server targetServer = targetServiceProvider.GetRequiredService<Server>();
-        var targetServicePrx = ProtocolBridgingTestPrx.Parse($"{targetServer.Endpoint.Protocol}:/target");
-        targetServicePrx.Proxy.Endpoint = targetServer.Endpoint;
-        targetServicePrx.Proxy.Invoker = targetServiceProvider.GetRequiredService<IInvoker>();
-        targetServer.Listen();
+        services.AddOptions<ServerOptions>("target").Configure<IDispatcher>((options, dispatcher) =>
+        {
+            options.Endpoint = targetEndpoint;
+            options.ConnectionOptions.Dispatcher = dispatcher;
+        });
 
-        Server forwarderServer = forwarderServiceProvider.GetRequiredService<Server>();
-        var forwarderServicePrx = ProtocolBridgingTestPrx.Parse($"{forwarderServer.Endpoint.Protocol}:/forward");
-        forwarderServicePrx.Proxy.Endpoint = forwarderServer.Endpoint;
-        forwarderServicePrx.Proxy.Invoker = forwarderServiceProvider.GetRequiredService<IInvoker>();
-        forwarderServer.Listen();
+        await using ServiceProvider serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-        var targetService = new ProtocolBridgingTest(targetServer.Endpoint);
-        router.UseDispatchInformation();
-        router.Map("/target", targetService);
-        router.Map("/forward", new Forwarder(targetServicePrx.Proxy));
+        forwarderServicePrx.Proxy.Invoker = serviceProvider.GetRequiredService<IInvoker>();
+        targetServicePrx.Proxy.Invoker = serviceProvider.GetRequiredService<IInvoker>();
+        ProtocolBridgingTest targetService = serviceProvider.GetRequiredService<ProtocolBridgingTest>();
+
+        foreach (Server server in serviceProvider.GetServices<Server>())
+        {
+            server.Listen();
+        }
 
         // TODO: test with the other encoding; currently, the encoding is always slice2
 
         ProtocolBridgingTestPrx newPrx = await TestProxyAsync(forwarderServicePrx, direct: false);
         Assert.That((object)newPrx.Proxy.Protocol.Name, Is.EqualTo(targetProtocol));
         _ = await TestProxyAsync(newPrx, direct: true);
+
+        foreach (Server server in serviceProvider.GetServices<Server>())
+        {
+            await server.ShutdownAsync();
+        }
 
         async Task<ProtocolBridgingTestPrx> TestProxyAsync(ProtocolBridgingTestPrx prx, bool direct)
         {

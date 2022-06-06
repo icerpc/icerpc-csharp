@@ -13,6 +13,20 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// <summary>Extension methods for setting up IceRpc services in an <see cref="IServiceCollection"/>.</summary>
 public static class IceRpcServiceCollectionExtensions
 {
+    /// <summary>Adds an <see cref="IDispatcher"/> singleton to this service collection using a builder.</summary>
+    /// <param name="services">The service collection to add services to.</param>
+    /// <param name="configure">The action to configure the dispatcher builder.</param>
+    public static IServiceCollection AddIceRpcDispatcher(
+        this IServiceCollection services,
+        Action<IDispatcherBuilder> configure) =>
+        services
+            .AddSingleton<IDispatcher>(provider =>
+            {
+                var builder = new DispatcherBuilder(provider);
+                configure(builder);
+                return builder.Build();
+            });
+
     /// <summary>Adds a <see cref="Server"/> with name <paramref name="serverName"/> to this service collection.
     /// </summary>
     /// <param name="services">The service collection to add services to.</param>
