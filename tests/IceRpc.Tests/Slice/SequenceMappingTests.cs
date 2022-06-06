@@ -62,4 +62,53 @@ public class SequenceMappingTests
                 default),
             Throws.Nothing);
     }
+
+    [Test]
+    public async Task Struct_nested_sequence_parameter()
+    {
+        var data = new IList<IList<MyStruct>>[]
+        {
+            new List<IList<MyStruct>>()
+            {
+                new List<MyStruct>()
+                {
+                    new MyStruct(1, 2),
+                    new MyStruct(2, 4),
+                    new MyStruct(4, 8)
+                },
+            },
+        };
+        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var response = new IncomingResponse(request, InvalidConnection.IceRpc)
+        {
+            Payload = SequenceMappingOperationsPrx.Request.OpStructNestedSequence(data)
+        };
+
+        ValueTask<IList<IList<MyStruct>>[]> result =
+            SequenceMappingOperationsPrx.Response.OpStructNestedSequenceAsync(response, request, null, default);
+
+        Assert.That(await result, Is.EqualTo(data));
+    }
+
+    [Test]
+    public async Task Numeric_nested_sequence_parameter()
+    {
+        var data = new IList<IList<byte>>[]
+        {
+            new List<IList<byte>>()
+            {
+                new List<byte>() { 1, 2, 3 },
+            },
+        };
+        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var response = new IncomingResponse(request, InvalidConnection.IceRpc)
+        {
+            Payload = SequenceMappingOperationsPrx.Request.OpNumericTypeNestedSequence(data)
+        };
+
+        ValueTask<IList<IList<byte>>[]> result =
+            SequenceMappingOperationsPrx.Response.OpNumericTypeNestedSequenceAsync(response, request, null, default);
+
+        Assert.That(await result, Is.EqualTo(data));
+    }
 }
