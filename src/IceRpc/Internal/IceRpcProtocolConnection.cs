@@ -25,7 +25,7 @@ namespace IceRpc.Internal
         private int _headerSizeLength = 2;
         private int _invocationCount;
         private bool _isDisposed;
-        private TimeSpan _idleSinceTime;
+        private long _idleSinceTime;
         private readonly TimeSpan _idleTimeout;
         private bool _isShuttingDown;
         private long _lastRemoteBidirectionalStreamId = -1;
@@ -136,7 +136,7 @@ namespace IceRpc.Internal
                             }
 
                             _streams.Add(stream);
-                            _idleSinceTime = TimeSpan.MaxValue; // Disable idle timeout.
+                            _idleSinceTime = long.MaxValue; // Disable idle timeout.
 
                             stream.OnShutdown(() =>
                             {
@@ -146,7 +146,7 @@ namespace IceRpc.Internal
 
                                     if (_streams.Count == 0)
                                     {
-                                        _idleSinceTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
+                                        _idleSinceTime = Environment.TickCount64;
 
                                         if (_isShuttingDown)
                                         {
@@ -437,7 +437,8 @@ namespace IceRpc.Internal
                 _timer = new Timer(
                     _ =>
                     {
-                        if (TimeSpan.FromMilliseconds(Environment.TickCount64) - _idleSinceTime > _idleTimeout)
+                        var now = TimeSpan.FromMilliseconds(Environment.TickCount64);
+                        if (now - TimeSpan.FromMilliseconds(_idleSinceTime) > _idleTimeout)
                         {
                             InitiateShutdown?.Invoke("connection idle");
                         }
@@ -483,7 +484,7 @@ namespace IceRpc.Internal
                         else
                         {
                             _streams.Add(stream);
-                            _idleSinceTime = TimeSpan.MaxValue; // Disable idle timeout.
+                            _idleSinceTime = long.MaxValue; // Disable idle timeout.
                             ++_invocationCount;
 
                             stream.OnShutdown(() =>
@@ -496,7 +497,7 @@ namespace IceRpc.Internal
 
                                     if (_streams.Count == 0)
                                     {
-                                        _idleSinceTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
+                                        _idleSinceTime = Environment.TickCount64;
 
                                         if (_isShuttingDown)
                                         {
@@ -773,7 +774,7 @@ namespace IceRpc.Internal
             _idleTimeout = options.IdleTimeout;
             _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
 
-            _idleSinceTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
+            _idleSinceTime = Environment.TickCount64;
         }
 
         private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeFieldDictionary<TKey>(

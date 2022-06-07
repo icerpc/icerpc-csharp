@@ -38,7 +38,7 @@ namespace IceRpc.Internal
 
         private readonly HashSet<CancellationTokenSource> _dispatches = new();
         private readonly AsyncSemaphore? _dispatchSemaphore;
-        private TimeSpan _idleSinceTime;
+        private long _idleSinceTime;
         private readonly TimeSpan _idleTimeout;
         private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
         private bool _isAborted;
@@ -233,7 +233,7 @@ namespace IceRpc.Internal
                         requestId = ++_nextRequestId;
                         responseCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
                         _invocations[requestId] = responseCompletionSource;
-                        _idleSinceTime = TimeSpan.MaxValue; // Disable idle timeout
+                        _idleSinceTime = long.MaxValue; // Disable idle timeout
                     }
                 }
 
@@ -370,7 +370,7 @@ namespace IceRpc.Internal
                             {
                                 _dispatchesAndInvocationsCompleted.TrySetResult();
                             }
-                            _idleSinceTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
+                            _idleSinceTime = Environment.TickCount64;
                         }
                     }
                 }
@@ -498,7 +498,7 @@ namespace IceRpc.Internal
             _maxFrameSize = options.MaxIceFrameSize;
             _idleTimeout = options.IdleTimeout;
 
-            _idleSinceTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
+            _idleSinceTime = Environment.TickCount64;
 
             if (options.MaxIceConcurrentDispatches > 0)
             {
@@ -630,7 +630,7 @@ namespace IceRpc.Internal
             // specify when the ping should be sent and expected. We keep it simple here to match the icerpc protocol
             // implementation.
 
-            if (now - _idleSinceTime > _idleTimeout)
+            if (now - TimeSpan.FromMilliseconds(_idleSinceTime) > _idleTimeout)
             {
                 // Graceful shutdown if the connection is idle.
                 InitiateShutdown?.Invoke("idle connection");
@@ -898,7 +898,7 @@ namespace IceRpc.Internal
                     {
                         cancelDispatchSource = new();
                         _dispatches.Add(cancelDispatchSource);
-                        _idleSinceTime = TimeSpan.MaxValue; // Disable idle timeout
+                        _idleSinceTime = long.MaxValue; // Disable idle timeout
                     }
                 }
 
@@ -1116,7 +1116,7 @@ namespace IceRpc.Internal
                                     {
                                         _dispatchesAndInvocationsCompleted.TrySetResult();
                                     }
-                                    _idleSinceTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
+                                    _idleSinceTime = Environment.TickCount64;
                                 }
                             }
                         }
