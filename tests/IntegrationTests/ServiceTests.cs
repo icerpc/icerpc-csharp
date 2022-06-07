@@ -16,8 +16,9 @@ public class ServiceTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new Service(), Protocol.FromString(protocol))
+            .AddIceRpcPrx<IServicePrx, ServicePrx>("/service")
             .BuildServiceProvider(validateScopes: true);
-        var service = ServicePrx.FromConnection(provider.GetRequiredService<ClientConnection>(), "/service");
+        IServicePrx prx = provider.GetRequiredService<IServicePrx>();
         var server = provider.GetRequiredService<Server>();
         server.Listen();
 
@@ -26,9 +27,9 @@ public class ServiceTests
             "::Slice::Service",
         };
 
-        Assert.That(await service.IceIdsAsync(), Is.EqualTo(ids));
-        Assert.That(await service.IceIsAAsync("::Slice::Service"), Is.True);
-        Assert.That(await service.IceIsAAsync("::Foo"), Is.False);
-        Assert.DoesNotThrowAsync(() => service.IcePingAsync());
+        Assert.That(await prx.IceIdsAsync(), Is.EqualTo(ids));
+        Assert.That(await prx.IceIsAAsync("::Slice::Service"), Is.True);
+        Assert.That(await prx.IceIsAAsync("::Foo"), Is.False);
+        Assert.DoesNotThrowAsync(() => prx.IcePingAsync());
     }
 }

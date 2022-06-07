@@ -18,10 +18,11 @@ public class OperationTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
+            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
+        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
         provider.GetRequiredService<Server>().Listen();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         Assert.That(async () => await prx.OpWithoutParametersAndVoidReturnAsync(), Throws.Nothing);
     }
@@ -31,10 +32,11 @@ public class OperationTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyDerivedOperationsA())
+            .AddIceRpcPrx<IMyDerivedOperationsAPrx, MyDerivedOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
+        IMyDerivedOperationsAPrx prx = provider.GetRequiredService<IMyDerivedOperationsAPrx>();
         provider.GetRequiredService<Server>().Listen();
-        var prx = MyDerivedOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         Assert.That(async () => await prx.OpWithoutParametersAndVoidReturnAsync(), Throws.Nothing);
     }
@@ -44,10 +46,11 @@ public class OperationTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
+            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
+        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
         provider.GetRequiredService<Server>().Listen();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         int r = await prx.OpWithSingleParameterAndReturnValueAsync(10);
 
@@ -59,10 +62,11 @@ public class OperationTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
+            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
+        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
         provider.GetRequiredService<Server>().Listen();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         (int r1, int r2) = await prx.OpWithMultipleParametersAndReturnValuesAsync(10, 20);
 
@@ -76,10 +80,12 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
+            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
+        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
         provider.GetRequiredService<Server>().Listen();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
+
         var data = new byte[] { 1, 2, 3 };
         var pipe = new Pipe();
 
@@ -102,10 +108,11 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
+            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
+        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
         provider.GetRequiredService<Server>().Listen();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         // Act
         var r = await prx.OpWithIntStreamArgumentAndReturnAsync(GetDataAsync());
@@ -138,10 +145,11 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
+            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
+        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
         provider.GetRequiredService<Server>().Listen();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         // Act
         var r = await prx.OpWithStringStreamArgumentAndReturnAsync(GetDataAsync());
@@ -174,10 +182,11 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
+            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
+        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
         provider.GetRequiredService<Server>().Listen();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         // Act
         (int r1, IAsyncEnumerable<int> r2) =
@@ -213,10 +222,11 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
+            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
+        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
         provider.GetRequiredService<Server>().Listen();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         // Act
         Assert.That(
@@ -233,10 +243,11 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
+            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
+        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
         provider.GetRequiredService<Server>().Listen();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         // Act
         Assert.That(async () => await prx.OpWithCsAttributeAsync(10), Throws.Nothing);
@@ -248,10 +259,11 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
+            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
+        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
         provider.GetRequiredService<Server>().Listen();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         // Act
         var r = await prx.OpWithSingleReturnValueAndEncodedResultAttributeAsync();
@@ -266,10 +278,11 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
+            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
-        provider.GetRequiredService<Server>().Listen();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
+        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
+        provider.GetRequiredService<Server>().Listen();;
 
         // Act
         (int r1, int r2) = await prx.OpWithMultipleReturnValuesAndEncodedResultAttributeAsync();
@@ -413,10 +426,11 @@ public class OperationTests
         var service = new MyTaggedOperations();
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(service)
+            .AddIceRpcPrx<IMyTaggedOperationsPrx, MyTaggedOperationsPrx>()
             .BuildServiceProvider(validateScopes: true);
 
+        IMyTaggedOperationsPrx prx = provider.GetRequiredService<IMyTaggedOperationsPrx>();
         provider.GetRequiredService<Server>().Listen();
-        var prx = MyTaggedOperationsPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         await prx.OpAsync(1, z: 10);
 
@@ -433,10 +447,12 @@ public class OperationTests
         var service = new MyTaggedOperationsReadOnlyMemoryParams();
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(service)
+            .AddIceRpcPrx<IMyTaggedOperationsReadOnlyMemoryParamsPrx, MyTaggedOperationsReadOnlyMemoryParamsPrx>()
             .BuildServiceProvider(validateScopes: true);
 
+        IMyTaggedOperationsReadOnlyMemoryParamsPrx prx =
+            provider.GetRequiredService<IMyTaggedOperationsReadOnlyMemoryParamsPrx>();
         provider.GetRequiredService<Server>().Listen();
-        var prx = MyTaggedOperationsReadOnlyMemoryParamsPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         await prx.OpAsync(new int[] { 1 }, z: new int[] { 10 });
 
