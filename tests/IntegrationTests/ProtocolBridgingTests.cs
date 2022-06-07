@@ -47,9 +47,9 @@ public sealed class ProtocolBridgingTests
                     .UseRequestContext()
                     .UseDispatchInformation()
                     .Map<IProtocolBridgingTest>("/target"))
-            .AddSingleton<IInvoker>(
-                serviceProvider => new Pipeline()
-                    .UseBinder(serviceProvider.GetRequiredService<IClientConnectionProvider>())
+            .AddIceRpcInvoker(
+                builder => builder
+                    .UseBinder()
                     .UseRequestContext());
 
         services.AddOptions<ServerOptions>("forwarder").Configure(options => options.Endpoint = forwarderEndpoint);
