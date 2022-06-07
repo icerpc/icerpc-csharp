@@ -341,6 +341,7 @@ public class ProxyTests
 
     /// <summary>Verifies that the proxy invoker of the <see cref="ISliceDecodeFeature"/> is used for proxies
     /// received over an incoming connection.</summary>
+    // TODO: move this test to Slice
     [Test]
     public async Task Proxy_invoker_is_set_to_the_slice_decode_options_feature_proxy_invoker()
     {
@@ -353,8 +354,8 @@ public class ProxyTests
             .AddColocTest(router)
             .BuildServiceProvider(validateScopes: true);
 
-        provider.GetRequiredService<Server>().Listen();
         var prx = SendProxyTestPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
+        provider.GetRequiredService<Server>().Listen();
 
         await prx.SendProxyAsync(prx);
 
@@ -363,6 +364,7 @@ public class ProxyTests
     }
 
     /// <summary>Verifies that a proxy received over an incoming connection uses the default invoker.</summary>
+    // TODO: move this test to Slice
     [Test]
     public async Task Proxy_received_over_an_incoming_connection_uses_the_default_invoker()
     {
@@ -371,8 +373,8 @@ public class ProxyTests
             .AddColocTest(service)
             .BuildServiceProvider(validateScopes: true);
 
-        provider.GetRequiredService<Server>().Listen();
         var prx = SendProxyTestPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
+         provider.GetRequiredService<Server>().Listen();
 
         await prx.SendProxyAsync(prx);
 

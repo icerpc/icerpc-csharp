@@ -57,21 +57,15 @@ public static class Program
                             return customChain.Build((X509Certificate2)certificate!);
                         };
                     });
-                services.AddSingleton(_ => new ActivitySource("IceRpc"));
 
-                // Adds an IInvoker service singleton.
-                services.AddIceRpcInvoker(builder => builder.UseLogger().UseTelemetry());
-
-                services.AddIceRpcClientConnection();
-
-                services.AddSingleton<IHelloPrx>(serviceProvider =>
-                    HelloPrx.FromConnection(
-                        serviceProvider.GetRequiredService<ClientConnection>(),
-                        path: "/hello",
-                        invoker: serviceProvider.GetRequiredService<IInvoker>()));
+                services
+                    .AddSingleton(_ => new ActivitySource("IceRpc"))
+                    .AddIceRpcInvoker(builder => builder.UseLogger().UseTelemetry())
+                    .AddIceRpcClientConnection()
+                    .AddIceRpcPrx<IHelloPrx, HelloPrx>("/hello");
             });
 
-    /// <summary>The hosted client service is ran and managed by the .NET Generic Host</summary>
+    /// <summary>The hosted client service is ran and managed by the .NET Generic Host.</summary>
     private class ClientHostedService : BackgroundService
     {
         // The host application lifetime is used to stop the .NET Generic Host.
