@@ -46,40 +46,6 @@ public sealed class IceProtocolConnectionTests
         }
     }
 
-    /// <summary>Verifies that a connection is closed after being idle.</summary>
-    [Test]
-    public async Task Close_on_idle([Values(true, false)] bool idleOnClient)
-    {
-        // Arrange
-
-        IServiceCollection services = new ServiceCollection().AddProtocolTest(Protocol.Ice);
-
-        services
-            .AddOptions<ConnectionOptions>()
-            .Configure(options => options.IdleTimeout =
-                idleOnClient ? TimeSpan.FromMilliseconds(500) : TimeSpan.MaxValue);
-
-        services
-            .AddOptions<ServerOptions>()
-            .Configure(options => options.ConnectionOptions.IdleTimeout =
-                idleOnClient ? TimeSpan.MaxValue : TimeSpan.FromMilliseconds(500));
-
-        await using var provider = services.BuildServiceProvider();
-
-        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-
-        bool shutdownInitiated = false;
-        sut.Client.InitiateShutdown = _ => shutdownInitiated = true;
-        sut.Server.InitiateShutdown = _ => shutdownInitiated = true;
-
-        // Act
-        await Task.Delay(TimeSpan.FromSeconds(2));
-
-        // Assert
-        Assert.That(shutdownInitiated, Is.True);
-    }
-
     /// <summary>Verifies that concurrent dispatches on a given ice connection are limited to MaxConcurrentDispatches.
     /// </summary>
     [Test]

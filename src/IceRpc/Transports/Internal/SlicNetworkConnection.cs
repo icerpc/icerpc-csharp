@@ -602,8 +602,6 @@ namespace IceRpc.Transports.Internal
 
             if (idleTime > _idleTimeout)
             {
-                // Abort the connection if there was no activity on the simple network connection for longer than the
-                // idle timeout.
                 Abort(new ConnectionAbortedException("idle connection"));
             }
             else if (!IsServer && idleTime > _idleTimeout / 4)
@@ -649,6 +647,7 @@ namespace IceRpc.Transports.Internal
                     }
                     case FrameType.Pong:
                     {
+                        // Nothing to do, the simple network connection reader keeps track of the last activity time.
                         break;
                     }
                     case FrameType.Stream:
@@ -904,7 +903,6 @@ namespace IceRpc.Transports.Internal
                 }
                 else if (key == ParameterKey.IdleTimeout)
                 {
-                    // Use the smallest idle timeout.
                     peerIdleTimeout = TimeSpan.FromMilliseconds(value);
                 }
                 else if (key == ParameterKey.PacketMaxSize)

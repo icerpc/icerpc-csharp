@@ -12,17 +12,6 @@ namespace IceRpc.Conformance.Tests;
 /// <summary>Conformance tests for the multiplexed transports.</summary>
 public abstract class MultiplexedTransportConformanceTests
 {
-    private static IEnumerable<TestCaseData> ClientServerIdleTimeouts
-    {
-        get
-        {
-            yield return new TestCaseData(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2));
-            yield return new TestCaseData(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(1));
-            yield return new TestCaseData(TimeSpan.MaxValue, TimeSpan.FromSeconds(2));
-            yield return new TestCaseData(TimeSpan.FromSeconds(2), TimeSpan.MaxValue);
-        }
-    }
-
     private static readonly ReadOnlyMemory<byte> _oneBytePayload = new(new byte[] { 0xFF });
 
     /// <summary>Verifies that both peers can initiate and accept streams.</summary>

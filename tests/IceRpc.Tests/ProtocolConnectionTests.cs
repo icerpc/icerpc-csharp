@@ -72,11 +72,11 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Verifies that a connection is closed after being idle.</summary>
-    [Test]
-    public async Task Close_on_idle()
+    [Test, TestCaseSource(nameof(_protocols))]
+    public async Task Close_on_idle(Protocol protocol)
     {
         // Arrange
-        IServiceCollection services = new ServiceCollection().AddProtocolTest(Protocol.Ice);
+        IServiceCollection services = new ServiceCollection().AddProtocolTest(protocol);
 
         services
             .AddOptions<ConnectionOptions>()

@@ -18,11 +18,11 @@ namespace IceRpc.Transports.Internal
 
         private protected bool IsServer { get; }
 
-        private protected readonly Endpoint _endpoint;
-
         private protected NetworkConnectionInformation? Information { get; set; }
 
         private readonly INetworkConnection _decoratee;
+
+        private readonly Endpoint _endpoint;
 
         public virtual async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
         {

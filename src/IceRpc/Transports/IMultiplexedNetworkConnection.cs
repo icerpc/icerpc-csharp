@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Security.Authentication;
-
 namespace IceRpc.Transports
 {
     /// <summary>Represents a network connection created by a multiplexed transport.</summary>
