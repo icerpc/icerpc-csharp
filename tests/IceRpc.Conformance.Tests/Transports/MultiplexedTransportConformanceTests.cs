@@ -492,7 +492,7 @@ public abstract class MultiplexedTransportConformanceTests
         const int streamMaxCount = 16;
         const int createStreamCount = 32;
 
-        await using ServiceProvider provider =CreateServiceCollection()
+        await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
             .AddTransportOptions(bidirectionalStreamMaxCount: streamMaxCount)
             .BuildServiceProvider(validateScopes: true);

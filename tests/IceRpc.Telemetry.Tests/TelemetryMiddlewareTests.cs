@@ -3,7 +3,6 @@
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Tests.Common;
-using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.Buffers;
 using System.Diagnostics;

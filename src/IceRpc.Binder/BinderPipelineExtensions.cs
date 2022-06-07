@@ -2,7 +2,7 @@
 
 using IceRpc.Binder;
 
-namespace IceRpc.Configure;
+namespace IceRpc;
 
 /// <summary>This class provides extension methods to add deflate interceptor to a <see cref="Pipeline"/>.
 /// </summary>

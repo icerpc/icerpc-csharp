@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Diagnostics;
-
 namespace IceRpc.Slice
 {
     /// <summary>This attribute class is used by the generated code to assign a Slice type ID to C# classes, interfaces

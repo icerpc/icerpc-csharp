@@ -4,7 +4,7 @@ using IceRpc.Retry;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace IceRpc.Configure;
+namespace IceRpc;
 
 /// <summary>This class provides extension methods to add metrics interceptors to a <see cref="Pipeline"/>.
 /// </summary>

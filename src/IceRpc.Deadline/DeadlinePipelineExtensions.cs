@@ -2,7 +2,7 @@
 
 using IceRpc.Deadline;
 
-namespace IceRpc.Configure;
+namespace IceRpc;
 
 /// <summary>This class provides extension methods to add the deadline interceptor to a <see cref="Pipeline"/>.
 /// </summary>

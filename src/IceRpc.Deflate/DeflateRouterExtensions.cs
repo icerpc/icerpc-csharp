@@ -3,7 +3,7 @@
 using IceRpc.Deflate;
 using System.IO.Compression;
 
-namespace IceRpc.Configure;
+namespace IceRpc;
 
 /// <summary>This class provides extension methods to add deflate middleware to a <see cref="Router"/>.
 /// </summary>

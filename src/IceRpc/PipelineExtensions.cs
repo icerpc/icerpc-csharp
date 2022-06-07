@@ -2,7 +2,7 @@
 
 using IceRpc.Features;
 
-namespace IceRpc.Configure
+namespace IceRpc
 {
     /// <summary>This class provide extension methods to add built-in interceptors to a <see cref="Pipeline"/>.
     /// </summary>

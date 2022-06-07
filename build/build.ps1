@@ -9,28 +9,7 @@ param (
     [switch]$help
 )
 
-$packages = @(
-  'icerpc'
-  'icerpc.binder'
-  'icerpc.coloc'
-  'icerpc.deadline'
-  'icerpc.deflate'
-  'icerpc.extensions.dependencyinjection'
-  'icerpc.interop'
-  'icerpc.locator'
-  'icerpc.logger'
-  'icerpc.metrics'
-  'icerpc.requestcontext'
-  'icerpc.retry'
-  'icerpc.telemetry'
-)
-
-$exampleProjects = @(
-  'Bidir'
-  'Hello'
-  'HelloSecure'
-  'GenericHost'
-)
+$exampleProjects = $packages = Get-Childitem -Path "examples" -Include *.sln -Recurse
 
 $version = "0.1.0-preview1"
 
@@ -59,7 +38,7 @@ function BuildIceRpcExamples($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
     foreach ($example in $exampleProjects)
     {
-        RunCommand "dotnet" @('build', '--configuration', $dotnetConfiguration, "examples\$example\$example.sln")
+        RunCommand "dotnet" @('build', '--configuration', $dotnetConfiguration, "$example")
     }
 }
 
@@ -72,7 +51,7 @@ function CleanIceRpcExamples($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
     foreach ($example in $exampleProjects)
     {
-        RunCommand "dotnet" @('clean', '--configuration', $dotnetConfiguration, "examples\$example\$example.sln")
+        RunCommand "dotnet" @('clean', '--configuration', $dotnetConfiguration, "$example")
     }
 }
 
@@ -94,9 +73,12 @@ function Install($config) {
     Pack $config
     $global_packages = dotnet nuget locals -l global-packages
     $global_packages = $global_packages.replace("global-packages: ", "")
+    $packages = Get-Childitem -Path "src\*\bin\$dotnetConfiguration" -Include *.nupkg -Recurse
     foreach ($package in $packages)
     {
-        Remove-Item $global_packages"\$package\$version" -Recurse -Force -ErrorAction Ignore
+        $package_name = (Get-Item $package).Basename
+        $package_name = $package_name.Substring(0, $package_name.Length - ".$version".Length)
+        Remove-Item $global_packages"\$package_name\$version" -Recurse -Force -ErrorAction Ignore
     }
     RunCommand "dotnet" @('nuget', 'push', "src\**\$dotnetConfiguration\*.nupkg", '--source', $global_packages)
 }
@@ -135,8 +117,7 @@ function Test($config, $coverage) {
 
 function Doc() {
     Push-Location "doc"
-    RunCommand "docfx"
-    RunCommand explorer "_site\index.html"
+    RunCommand "docfx" @('build')
     Pop-Location
 }
 

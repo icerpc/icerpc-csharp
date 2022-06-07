@@ -1,0 +1,3 @@
+# On Windows files are checkout wiht CRLF Line endings are normalized as LF during commit, we checkout the lincese
+# with LF so that when rustfmt runs in the pre-commit hook the linces template matches the commit files.
+.rustfmt-license-template text eol=lf

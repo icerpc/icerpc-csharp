@@ -3,7 +3,7 @@
 using IceRpc.Locator;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace IceRpc.Configure;
+namespace IceRpc;
 
 /// <summary>This class provides extension methods to install a locator interceptor in a <see cref="Pipeline"/>.
 /// </summary>

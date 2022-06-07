@@ -1,15 +1,17 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Configure;
 using IceRpc.Extensions.DependencyInjection.Internal;
 using IceRpc.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace IceRpc.Extensions.DependencyInjection.Builder;
+namespace IceRpc.Extensions.DependencyInjection.Builder.Internal;
 
-/// <summary>A builder for configuring IceRpc server dispatcher.</summary>
-public class DispatcherBuilder : IDispatcherBuilder
+/// <summary>Provides the default implementation of <see cref="IDispatcherBuilder"/>.</summary>
+internal class DispatcherBuilder : IDispatcherBuilder
 {
+    /// <inheritdoc/>
+    public string ContainerName { get; }
+
     /// <inheritdoc/>
     public IServiceProvider ServiceProvider { get; }
 
@@ -36,6 +38,12 @@ public class DispatcherBuilder : IDispatcherBuilder
         return this;
     }
 
+    internal DispatcherBuilder(IServiceProvider provider, string containerName = "")
+    {
+        ContainerName = containerName;
+        ServiceProvider = provider;
+    }
+
     internal IDispatcher Build() => new InlineDispatcher(async (request, cancel) =>
     {
         AsyncServiceScope asyncScope = ServiceProvider.CreateAsyncScope();
@@ -46,6 +54,4 @@ public class DispatcherBuilder : IDispatcherBuilder
 
         return await _router.DispatchAsync(request, cancel).ConfigureAwait(false);
     });
-
-    internal DispatcherBuilder(IServiceProvider provider) => ServiceProvider = provider;
 }

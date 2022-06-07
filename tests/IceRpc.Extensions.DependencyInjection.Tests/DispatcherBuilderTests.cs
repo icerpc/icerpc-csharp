@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Extensions.DependencyInjection.Builder;
+using IceRpc.Extensions.DependencyInjection.Builder.Internal;
 using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -13,34 +14,36 @@ public sealed class DispatcherBuilderTests
     /// <summary>Verifies that DispatcherBuilder.Map works with scoped services.</summary>
     public async Task Map_dispatches_to_service()
     {
-        IServiceCollection services = new ServiceCollection()
+        await using ServiceProvider provider = new ServiceCollection()
             .AddSingleton<ICallTracker, CallTracker>()
-            .AddScoped<ITestService, TestService>();
-        await using var provider = services.BuildServiceProvider(true);
-        var dispatcherBuilder = new DispatcherBuilder(provider);
-        dispatcherBuilder.Map<ITestService>("/foo");
-        IDispatcher dispatcher = dispatcherBuilder.Build();
+            .AddScoped<ITestService, TestService>()
+            .BuildServiceProvider(true);
+
+        var builder = new DispatcherBuilder(provider);
+        builder.Map<ITestService>("/foo");
+        IDispatcher dispatcher = builder.Build();
 
         _ = await dispatcher.DispatchAsync(new IncomingRequest(InvalidConnection.IceRpc) { Path = "/foo" });
 
-        Assert.That(provider.GetRequiredService<ICallTracker>().Called, Is.True);
+        Assert.That(provider.GetRequiredService<ICallTracker>().Count, Is.EqualTo(1));
     }
 
     [Test]
     /// <summary>Verifies that DispatcherBuilder.Mount works with scoped services.</summary>
     public async Task Mount_dispatches_to_service()
     {
-        IServiceCollection services = new ServiceCollection()
+        await using ServiceProvider provider = new ServiceCollection()
             .AddSingleton<ICallTracker, CallTracker>()
-            .AddScoped<ITestService, TestService>();
-        await using var provider = services.BuildServiceProvider(true);
-        var dispatcherBuilder = new DispatcherBuilder(provider);
-        dispatcherBuilder.Mount<ITestService>("/");
-        IDispatcher dispatcher = dispatcherBuilder.Build();
+            .AddScoped<ITestService, TestService>()
+            .BuildServiceProvider(true);
+
+        var builder = new DispatcherBuilder(provider);
+        builder.Mount<ITestService>("/");
+        IDispatcher dispatcher = builder.Build();
 
         _ = await dispatcher.DispatchAsync(new IncomingRequest(InvalidConnection.IceRpc) { Path = "/foo" });
 
-        Assert.That(provider.GetRequiredService<ICallTracker>().Called, Is.True);
+        Assert.That(provider.GetRequiredService<ICallTracker>().Count, Is.EqualTo(1));
     }
 
     [Test]
@@ -48,21 +51,46 @@ public sealed class DispatcherBuilderTests
     /// </summary>
     public async Task UseMiddleware_with_single_service_dependency()
     {
-        IServiceCollection services = new ServiceCollection()
+        await using ServiceProvider provider = new ServiceCollection()
             .AddSingleton<ICallTracker, CallTracker>()
             .AddSingleton<IPathTracker, PathTracker>()
             .AddScoped<IUser, User>()
-            .AddScoped<ITestService, TestService>();
+            .AddScoped<ITestService, TestService>()
+            .BuildServiceProvider(true);
 
-        await using var provider = services.BuildServiceProvider(true);
-        var dispatcherBuilder = new DispatcherBuilder(provider);
-        dispatcherBuilder.UseMiddleware<UserMiddleware, IUser>();
-        dispatcherBuilder.Map<ITestService>("/foo");
-        IDispatcher dispatcher = dispatcherBuilder.Build();
+        var builder = new DispatcherBuilder(provider);
+        builder.UseMiddleware<UserMiddleware, IUser>();
+        builder.Map<ITestService>("/foo");
+        IDispatcher dispatcher = builder.Build();
 
         _ = await dispatcher.DispatchAsync(new IncomingRequest(InvalidConnection.IceRpc) { Path = "/foo" });
 
-        Assert.That(provider.GetRequiredService<ICallTracker>().Called, Is.True);
+        Assert.That(provider.GetRequiredService<ICallTracker>().Count, Is.EqualTo(1));
+        Assert.That(provider.GetRequiredService<IPathTracker>().Path, Is.EqualTo("/foo"));
+    }
+
+    [Test]
+    /// <summary>Verifies that UseMiddleware with a 3 service dependencies works with scoped service dependencies.
+    /// </summary>
+    public async Task UseMiddleware_with_3_service_dependencies()
+    {
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSingleton<ICallTracker, CallTracker>()
+            .AddSingleton<IPathTracker, PathTracker>()
+            .AddScoped<IUser, User>()
+            .AddScoped<IDep2, Dep2>()
+            .AddScoped<IDep3, Dep3>()
+            .AddScoped<ITestService, TestService>()
+            .BuildServiceProvider(true);
+
+        var builder = new DispatcherBuilder(provider);
+        builder.UseMiddleware<TripleMiddleware, IUser, IDep2, IDep3>();
+        builder.Map<ITestService>("/foo");
+        IDispatcher dispatcher = builder.Build();
+
+        _ = await dispatcher.DispatchAsync(new IncomingRequest(InvalidConnection.IceRpc) { Path = "/foo" });
+
+        Assert.That(provider.GetRequiredService<ICallTracker>().Count, Is.EqualTo(3));
         Assert.That(provider.GetRequiredService<IPathTracker>().Path, Is.EqualTo("/foo"));
     }
 
@@ -79,7 +107,7 @@ public sealed class DispatcherBuilderTests
 
         public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
         {
-            _callTracker.Called = true;
+            _callTracker.Called();
             DoIt();
             return new(new OutgoingResponse(request));
         }
@@ -107,6 +135,40 @@ public sealed class DispatcherBuilderTests
         public User(IPathTracker pathTracker) => _pathTracker = pathTracker;
     }
 
+    public interface IDep2
+    {
+        void DoIt();
+    }
+
+    public class Dep2 : IDep2
+    {
+        public void DoIt()
+        {
+        }
+
+        public Dep2(ICallTracker callTracker)
+        {
+            callTracker.Called();
+        }
+    }
+
+    public interface IDep3
+    {
+        void DoIt();
+    }
+
+    public class Dep3 : IDep3
+    {
+        public void DoIt()
+        {
+        }
+
+        public Dep3(ICallTracker callTracker)
+        {
+            callTracker.Called();
+        }
+    }
+
     public class UserMiddleware : IMiddleware<IUser>
     {
         private readonly IDispatcher _next;
@@ -115,24 +177,49 @@ public sealed class DispatcherBuilderTests
 
         public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, IUser dep, CancellationToken cancel)
         {
-            dep.Path = request.Path;
+            var user = dep;
+            user.Path = request.Path;
+            return _next.DispatchAsync(request, cancel);
+        }
+    }
+
+    public class TripleMiddleware : IMiddleware<IUser, IDep2, IDep3>
+    {
+        private readonly IDispatcher _next;
+
+        public TripleMiddleware(IDispatcher next) => _next = next;
+
+        public ValueTask<OutgoingResponse> DispatchAsync(
+            IncomingRequest request,
+            IUser dep1,
+            IDep2 dep2,
+            IDep3 dep3,
+            CancellationToken cancel)
+        {
+            var user = dep1;
+            user.Path = request.Path;
             return _next.DispatchAsync(request, cancel);
         }
     }
 
     public interface ICallTracker
     {
-        bool Called { get; set; }
+        int Count { get; }
+
+        void Called();
     }
 
     public class CallTracker : ICallTracker
     {
-        public bool Called { get; set; }
+        public int Count => _count;
+        private int _count;
+
+        public void Called() => _count++;
     }
 
     public interface IPathTracker
     {
-       string Path { get; set; }
+        string Path { get; set; }
     }
 
     public class PathTracker : IPathTracker

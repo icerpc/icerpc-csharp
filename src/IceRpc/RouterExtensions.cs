@@ -2,7 +2,7 @@
 
 using IceRpc.Features;
 
-namespace IceRpc.Configure
+namespace IceRpc
 {
     /// <summary>This class provide extension methods to add built-in middleware to a <see cref="Router"/>.
     /// </summary>

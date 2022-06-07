@@ -3,7 +3,7 @@
 using IceRpc.Telemetry;
 using System.Diagnostics;
 
-namespace IceRpc.Configure;
+namespace IceRpc;
 
 /// <summary>This class provide extension methods to add telemetry interceptor to a <see cref="Pipeline"/>.
 /// </summary>

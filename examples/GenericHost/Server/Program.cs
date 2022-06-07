@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc;
-using IceRpc.Configure;
 using IceRpc.Extensions.DependencyInjection.Builder;
 using IceRpc.Logger;
 using IceRpc.Telemetry;
@@ -52,8 +51,8 @@ public static class Program
                 // Add a server and configure the dispatcher using a dispatcher builder
                 services.AddIceRpcServer(
                     builder => builder
-                        .Use<LoggerMiddleware>()
-                        .Use<TelemetryMiddleware>()
+                        .UseMiddleware<LoggerMiddleware>()
+                        .UseMiddleware<TelemetryMiddleware>()
                         .Map<Hello>("/hello"));
             });
 
