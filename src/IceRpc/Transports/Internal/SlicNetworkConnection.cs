@@ -14,8 +14,6 @@ namespace IceRpc.Transports.Internal
     /// top of a <see cref="ISimpleNetworkConnection"/>.</summary>
     internal class SlicNetworkConnection : IMultiplexedNetworkConnection
     {
-        public bool KeepAlive { get; set; }
-
         internal bool IsAborted => _exception != null;
 
         internal bool IsServer { get; }
@@ -609,7 +607,7 @@ namespace IceRpc.Transports.Internal
                 // idle timeout.
                 Abort(new ConnectionAbortedException("idle connection"));
             }
-            else if (!IsServer && idleTime > _idleTimeout / 4 && KeepAlive)
+            else if (!IsServer && idleTime > _idleTimeout / 4)
             {
                 // If the connection has been idle for more than idleTimeout / 4, send a ping frame to keep alive the
                 // connection. Given that Monitor is called every idleTimeout / 2 period, this shouldn't send more than
@@ -648,6 +646,10 @@ namespace IceRpc.Transports.Internal
                     {
                         // Send back a pong frame to let the peer know that we're still alive.
                         ValueTask _ = SendFrameAsync(stream: null, FrameType.Pong, null, default);
+                        break;
+                    }
+                    case FrameType.Pong:
+                    {
                         break;
                     }
                     case FrameType.Stream:

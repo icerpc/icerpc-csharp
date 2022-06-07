@@ -45,12 +45,6 @@ namespace IceRpc
                 throw new ArgumentException($"0 is not a valid value for {nameof(IdleTimeout)}", nameof(value));
         }
 
-        /// <summary>Gets or sets a value indicating whether the connection sends keep alive frames or not to check if
-        /// it's healthy when idle.</summary>
-        /// <value><c>true</c>to enable connection keep alive. <c>false</c> to disable it. The default is <c>false</c>.
-        /// </value>
-        public bool KeepAlive { get; set; }
-
         /// <summary>Gets or sets the maximum number of requests that an ice connection can dispatch concurrently.
         /// </summary>
         /// <value>The maximum number of requests that an ice connection can dispatch concurrently. 0 means no maximum.

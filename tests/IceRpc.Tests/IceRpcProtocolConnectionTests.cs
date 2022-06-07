@@ -62,33 +62,6 @@ public sealed class IceRpcProtocolConnectionTests
         hold.Release();
     }
 
-    /// <summary>Verifies that a connection is closed after being idle.</summary>
-    [Test]
-    public async Task Close_on_idle()
-    {
-        // Arrange
-        IServiceCollection services = new ServiceCollection().AddProtocolTest(Protocol.Ice);
-
-        services
-            .AddOptions<ConnectionOptions>()
-            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
-
-        await using var provider = services.BuildServiceProvider();
-
-        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-
-        bool shutdownInitiated = false;
-        sut.Client.InitiateShutdown = _ => shutdownInitiated = true;
-        sut.Server.InitiateShutdown = _ => shutdownInitiated = true;
-
-        // Act
-        await Task.Delay(TimeSpan.FromSeconds(2));
-
-        // Assert
-        Assert.That(shutdownInitiated, Is.True);
-    }
-
     /// <summary>Verifies that if the shutdown cancellation cancels pending invocations and dispatches.</summary>
     [Test]
     public async Task Shutdown_cancellation_cancels_invocations_and_dispatches()
@@ -168,78 +141,6 @@ public sealed class IceRpcProtocolConnectionTests
         var exception = await response.DecodeFailureAsync(request) as DispatchException;
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception!.ErrorCode, Is.EqualTo(errorCode));
-    }
-
-    [Test]
-    public async Task Keep_alive_on_idle()
-    {
-        // Arrange
-        IServiceCollection services = new ServiceCollection()
-            .AddProtocolTest(Protocol.IceRpc, ConnectionOptions.DefaultDispatcher);
-
-        services
-            .AddOptions<ConnectionOptions>()
-            .Configure(options =>
-            {
-                options.KeepAlive = true;
-                options.IdleTimeout = TimeSpan.FromMilliseconds(500);
-            });
-
-        await using var provider = services.BuildServiceProvider(validateScopes: true);
-
-        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-
-        bool shutdownInitiated = false;
-        sut.Client.InitiateShutdown = _ => shutdownInitiated = true;
-        sut.Server.InitiateShutdown = _ => shutdownInitiated = true;
-
-        // Act
-        await Task.Delay(TimeSpan.FromSeconds(2));
-
-        // Assert
-        Assert.That(shutdownInitiated, Is.False);
-    }
-
-    [Test]
-    public async Task Keep_alive_on_invocation()
-    {
-        // Arrange
-        using var start = new SemaphoreSlim(0);
-        using var hold = new SemaphoreSlim(0);
-        IServiceCollection services = new ServiceCollection();
-
-        services
-            .AddOptions<ConnectionOptions>()
-            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
-
-        var dispatcher = new InlineDispatcher(async (request, cancel) =>
-        {
-            start.Release();
-            await hold.WaitAsync(CancellationToken.None);
-            return new OutgoingResponse(request);
-        });
-
-        await using var provider = services
-            .AddProtocolTest(Protocol.IceRpc, dispatcher)
-            .BuildServiceProvider(validateScopes: true);
-
-        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-
-        bool shutdownInitiated = false;
-        sut.Client.InitiateShutdown = _ => shutdownInitiated = true;
-        sut.Server.InitiateShutdown = _ => shutdownInitiated = true;
-
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)), InvalidConnection.IceRpc);
-        await start.WaitAsync();
-
-        // Act
-        await Task.Delay(TimeSpan.FromSeconds(2));
-
-        // Assert
-        Assert.That(shutdownInitiated, Is.False);
-        hold.Release();
     }
 
     /// <summary>Ensures that the response payload is completed if the response fields are invalid.</summary>

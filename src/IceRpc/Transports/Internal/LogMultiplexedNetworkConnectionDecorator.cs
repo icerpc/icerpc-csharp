@@ -13,12 +13,6 @@ namespace IceRpc.Transports.Internal
     {
         private readonly IMultiplexedNetworkConnection _decoratee;
 
-        public bool KeepAlive
-        {
-            get => _decoratee.KeepAlive;
-            set => _decoratee.KeepAlive = value;
-        }
-
         public void Abort(Exception exception) => _decoratee.Abort(exception);
 
         public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel) =>

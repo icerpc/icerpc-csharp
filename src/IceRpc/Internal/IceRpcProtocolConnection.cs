@@ -28,7 +28,6 @@ namespace IceRpc.Internal
         private TimeSpan _idleSinceTime;
         private readonly TimeSpan _idleTimeout;
         private bool _isShuttingDown;
-        private readonly bool _keepAliveOnlyOnInvocationsOrDispatches;
         private long _lastRemoteBidirectionalStreamId = -1;
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
         private long _lastRemoteUnidirectionalStreamId = -1;
@@ -136,11 +135,6 @@ namespace IceRpc.Internal
                                 _lastRemoteUnidirectionalStreamId = stream.Id;
                             }
 
-                            if (_streams.Count == 0 && _keepAliveOnlyOnInvocationsOrDispatches)
-                            {
-                                _networkConnection.KeepAlive = true;
-                            }
-
                             _streams.Add(stream);
                             _idleSinceTime = TimeSpan.MaxValue; // Disable idle timeout.
 
@@ -152,11 +146,7 @@ namespace IceRpc.Internal
 
                                     if (_streams.Count == 0)
                                     {
-                                        if (_keepAliveOnlyOnInvocationsOrDispatches)
-                                        {
-                                            _networkConnection.KeepAlive = false;
-                                            _idleSinceTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
-                                        }
+                                        _idleSinceTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
                                         if (_isShuttingDown)
                                         {
@@ -412,12 +402,6 @@ namespace IceRpc.Internal
             NetworkConnectionInformation networkConnectionInformation =
                 await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
 
-            if (!isServer && !_keepAliveOnlyOnInvocationsOrDispatches)
-            {
-                // Always enable the network connection keep alive.
-                _networkConnection.KeepAlive = true;
-            }
-
             // Create the control stream and send the protocol Settings frame
             _controlStream = _networkConnection.CreateStream(false);
 
@@ -498,11 +482,6 @@ namespace IceRpc.Internal
                         }
                         else
                         {
-                            if (_streams.Count == 0 && _keepAliveOnlyOnInvocationsOrDispatches)
-                            {
-                                _networkConnection.KeepAlive = true;
-                            }
-
                             _streams.Add(stream);
                             _idleSinceTime = TimeSpan.MaxValue; // Disable idle timeout.
                             ++_invocationCount;
@@ -517,11 +496,7 @@ namespace IceRpc.Internal
 
                                     if (_streams.Count == 0)
                                     {
-                                        if (_keepAliveOnlyOnInvocationsOrDispatches)
-                                        {
-                                            _networkConnection.KeepAlive = true;
-                                            _idleSinceTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
-                                        }
+                                        _idleSinceTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
                                         if (_isShuttingDown)
                                         {
@@ -796,7 +771,6 @@ namespace IceRpc.Internal
             _networkConnection = networkConnection;
             _dispatcher = options.Dispatcher;
             _idleTimeout = options.IdleTimeout;
-            _keepAliveOnlyOnInvocationsOrDispatches = !options.KeepAlive;
             _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
 
             _idleSinceTime = TimeSpan.FromMilliseconds(Environment.TickCount64);

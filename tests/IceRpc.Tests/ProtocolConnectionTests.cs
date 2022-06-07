@@ -71,6 +71,33 @@ public sealed class ProtocolConnectionTests
         Assert.DoesNotThrowAsync(() => serverAcceptRequestsTask);
     }
 
+    /// <summary>Verifies that a connection is closed after being idle.</summary>
+    [Test]
+    public async Task Close_on_idle()
+    {
+        // Arrange
+        IServiceCollection services = new ServiceCollection().AddProtocolTest(Protocol.Ice);
+
+        services
+            .AddOptions<ConnectionOptions>()
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
+
+        await using var provider = services.BuildServiceProvider();
+
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        bool shutdownInitiated = false;
+        sut.Client.InitiateShutdown = _ => shutdownInitiated = true;
+        sut.Server.InitiateShutdown = _ => shutdownInitiated = true;
+
+        // Act
+        await Task.Delay(TimeSpan.FromSeconds(2));
+
+        // Assert
+        Assert.That(shutdownInitiated, Is.True);
+    }
+
     /// <summary>Verifies that calling ShutdownAsync with a canceled token results in the cancellation of the the
     /// pending dispatches.</summary>
     [Test, TestCaseSource(nameof(_protocols))]

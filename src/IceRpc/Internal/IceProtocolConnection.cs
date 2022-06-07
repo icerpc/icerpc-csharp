@@ -44,7 +44,6 @@ namespace IceRpc.Internal
         private bool _isAborted;
         private bool _isShutdown;
         private bool _isShuttingDown;
-        private readonly bool _keepAlive;
         private readonly int _maxFrameSize;
         private readonly MemoryPool<byte> _memoryPool;
         private readonly int _minimumSegmentSize;
@@ -499,7 +498,6 @@ namespace IceRpc.Internal
             _dispatcher = options.Dispatcher;
             _maxFrameSize = options.MaxIceFrameSize;
             _idleTimeout = options.IdleTimeout;
-            _keepAlive = options.KeepAlive;
 
             _idleSinceTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
@@ -631,8 +629,8 @@ namespace IceRpc.Internal
 
             if (now - _idleSinceTime > _idleTimeout)
             {
-                // Gracefully shutdown if it's idle.
-                InitiateShutdown?.Invoke("connection idle");
+                // Graceful shutdown if the connection is idle.
+                InitiateShutdown?.Invoke("idle connection");
             }
             else
             {
@@ -641,11 +639,9 @@ namespace IceRpc.Internal
 
                 if (networkIdleTime > _idleTimeout)
                 {
-                    Abort(new ConnectionAbortedException("connection timed out"));
+                    Abort(new ConnectionAbortedException("idle connection"));
                 }
-                else if (!isServer &&
-                         networkIdleTime > _idleTimeout / 4 &&
-                         (_keepAlive || _dispatches.Count > 0 || _invocations.Count > 0))
+                else if (!isServer && networkIdleTime > _idleTimeout / 4)
                 {
                     // If the connection has been idle for more than idleTimeout / 4, send a ping frame to keep alive
                     // the connection. Given that Monitor is called every idleTimeout / 2 period, this shouldn't send
