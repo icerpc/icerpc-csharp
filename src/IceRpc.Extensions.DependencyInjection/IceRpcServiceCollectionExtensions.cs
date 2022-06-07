@@ -13,6 +13,34 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// <summary>Extension methods for setting up IceRpc services in an <see cref="IServiceCollection"/>.</summary>
 public static class IceRpcServiceCollectionExtensions
 {
+    /// <summary>Adds <see cref="ClientConnection"/> and <see cref="IClientConnection"/> singleton to this service
+    /// collection.</summary>
+    /// <param name="services">The service collection to add services to.</param>
+    public static IServiceCollection AddIceRpcClientConnection(this IServiceCollection services) =>
+        services
+            .TryAddIceRpcClientTransport()
+            .AddSingleton<ClientConnection>(provider =>
+                new ClientConnection(
+                    provider.GetRequiredService<IOptions<ClientConnectionOptions>>().Value,
+                    loggerFactory: provider.GetService<ILoggerFactory>(),
+                    provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
+                    provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()))
+            .AddSingleton<IClientConnection>(provider => provider.GetRequiredService<ClientConnection>());
+
+    /// <summary>Adds <see cref="ConnectionPool"/> connection provider to this service collection.</summary>
+    /// <param name="services">The service collection to add services to.</param>
+    /// <seealso cref="IClientConnectionProvider"/>
+    public static IServiceCollection AddIceRpcConnectionPool(this IServiceCollection services) =>
+        services
+            .TryAddIceRpcClientTransport()
+            .AddSingleton<ConnectionPool>(provider =>
+                new ConnectionPool(
+                    provider.GetRequiredService<IOptions<ConnectionPoolOptions>>().Value,
+                    loggerFactory: provider.GetService<ILoggerFactory>(),
+                    provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
+                    provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()))
+            .AddSingleton<IClientConnectionProvider>(provider => provider.GetRequiredService<ConnectionPool>());
+
     /// <summary>Adds an <see cref="IDispatcher"/> singleton to this service collection using a builder.</summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="configure">The action to configure the dispatcher builder.</param>
@@ -41,53 +69,52 @@ public static class IceRpcServiceCollectionExtensions
                 return builder.Build();
             });
 
-    /// <summary>Adds a <see cref="Server"/> with name <paramref name="serverName"/> to this service collection.
-    /// </summary>
+    /// <summary>Adds a <see cref="Server"/> to this service collection.</summary>
     /// <param name="services">The service collection to add services to.</param>
-    /// <param name="serverName">The server name.</param>
-    public static IServiceCollection AddIceRpcServer(this IServiceCollection services, string serverName) =>
+    /// <param name="optionsName">The name of the ServerOptions instance.</param>
+    public static IServiceCollection AddIceRpcServer(this IServiceCollection services, string optionsName) =>
         services
             .TryAddIceRpcServerTransport()
             .AddSingleton<Server>(provider =>
                 new Server(
-                    provider.GetRequiredService<IOptionsMonitor<ServerOptions>>().Get(serverName),
+                    provider.GetRequiredService<IOptionsMonitor<ServerOptions>>().Get(optionsName),
                     loggerFactory: provider.GetService<ILoggerFactory>(),
                     provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>(),
                     provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()));
 
-    /// <summary>Adds a <see cref="Server"/> with the default name ("") to this service collection.</summary>
+    /// <summary>Adds a <see cref="Server"/> to this service collection. This method uses the default name ("") for the
+    /// ServerOptions instance.</summary>
     public static IServiceCollection AddIceRpcServer(this IServiceCollection services) =>
         services.AddIceRpcServer(Options.Options.DefaultName);
 
-    /// <summary>Adds a <see cref="Server"/> with the specified name and dispatcher to this service collection.
-    /// </summary>
+    /// <summary>Adds a <see cref="Server"/> with the specified dispatcher to this service collection.</summary>
     /// <param name="services">The service collection to add services to.</param>
-    /// <param name="serverName">The server name.</param>
+    /// <param name="optionsName">The name of the ServerOptions instance.</param>
     /// <param name="dispatcher">The server dispatcher.</param>
     public static IServiceCollection AddIceRpcServer(
         this IServiceCollection services,
-        string serverName,
+        string optionsName,
         IDispatcher dispatcher)
     {
-        services.AddOptions<ServerOptions>(serverName).Configure(
+        services.AddOptions<ServerOptions>(optionsName).Configure(
             options => options.ConnectionOptions.Dispatcher = dispatcher);
-        return services.AddIceRpcServer(serverName);
+        return services.AddIceRpcServer(optionsName);
     }
 
-    /// <summary>Adds a <see cref="Server"/> with the specified dispatcher and default name ("") to this service
-    /// collection.</summary>
+    /// <summary>Adds a <see cref="Server"/> with the specified dispatcher to this service collection. This method uses
+    /// the default name ("") for the ServerOptions instance.</summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="dispatcher">The server dispatcher.</param>
     public static IServiceCollection AddIceRpcServer(this IServiceCollection services, IDispatcher dispatcher) =>
-        services.AddIceRpcServer(serverName: Options.Options.DefaultName, dispatcher);
+        services.AddIceRpcServer(optionsName: Options.Options.DefaultName, dispatcher);
 
-    /// <summary>Adds a <see cref="Server"/> with the specified name to this service collection.</summary>
+    /// <summary>Adds a <see cref="Server"/> with the specified name to this service collection. </summary>
     /// <param name="services">The service collection to add services to.</param>
-    /// <param name="serverName">The server name.</param>
+    /// <param name="optionsName">The server name.</param>
     /// <param name="configure">The action to configure the dispatcher using a <see cref="DispatcherBuilder"/>.</param>
     public static IServiceCollection AddIceRpcServer(
         this IServiceCollection services,
-        string serverName,
+        string optionsName,
         Action<IDispatcherBuilder> configure) =>
         services
             .TryAddIceRpcServerTransport()
@@ -96,7 +123,7 @@ public static class IceRpcServiceCollectionExtensions
                 var dispatcherBuilder = new DispatcherBuilder(provider);
                 configure(dispatcherBuilder);
 
-                ServerOptions options = provider.GetRequiredService<IOptionsMonitor<ServerOptions>>().Get(serverName);
+                ServerOptions options = provider.GetRequiredService<IOptionsMonitor<ServerOptions>>().Get(optionsName);
                 options.ConnectionOptions.Dispatcher = dispatcherBuilder.Build();
 
                 return new Server(
@@ -106,39 +133,14 @@ public static class IceRpcServiceCollectionExtensions
                     provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>());
             });
 
-    /// <summary>Adds a <see cref="Server"/> with the default name ("") to this service collection.</summary>
+    /// <summary>Adds a <see cref="Server"/> to this service collection. This method uses the default name ("") for the
+    /// ServerOptions instance.</summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="configure">The action to configure the dispatcher using a <see cref="DispatcherBuilder"/>.</param>
     public static IServiceCollection AddIceRpcServer(
         this IServiceCollection services,
         Action<IDispatcherBuilder> configure) =>
-        services.AddIceRpcServer(serverName: Options.Options.DefaultName, configure);
-
-    /// <summary>Adds <see cref="ClientConnection"/> to this service collection.</summary>
-    /// <param name="services">The service collection to add services to.</param>
-    public static IServiceCollection AddIceRpcClientConnection(this IServiceCollection services) =>
-        services
-            .TryAddIceRpcClientTransport()
-            // TODO should this be IClientConnection?
-            .AddSingleton<ClientConnection>(provider =>
-                new ClientConnection(
-                    provider.GetRequiredService<IOptions<ClientConnectionOptions>>().Value,
-                    loggerFactory: provider.GetService<ILoggerFactory>(),
-                    provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                    provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()));
-
-    /// <summary>Adds <see cref="ConnectionPool"/> connection provider to this service collection.</summary>
-    /// <param name="services">The service collection to add services to.</param>
-    /// <seealso cref="IClientConnectionProvider"/>
-    public static IServiceCollection AddIceRpcConnectionPool(this IServiceCollection services) =>
-        services
-            .TryAddIceRpcClientTransport()
-            .AddSingleton<IClientConnectionProvider>(provider =>
-                new ConnectionPool(
-                    provider.GetRequiredService<IOptions<ConnectionPoolOptions>>().Value,
-                    loggerFactory: provider.GetService<ILoggerFactory>(),
-                    provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                    provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()));
+        services.AddIceRpcServer(optionsName: Options.Options.DefaultName, configure);
 
     private static IServiceCollection TryAddIceRpcServerTransport(this IServiceCollection services)
     {
