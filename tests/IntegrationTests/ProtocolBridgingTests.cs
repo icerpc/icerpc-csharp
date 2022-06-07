@@ -36,29 +36,24 @@ public sealed class ProtocolBridgingTests
             .AddIceRpcConnectionPool()
             .AddSingleton<IProtocolBridgingTest>(targetService)
             .AddSingleton(_ => new Forwarder(targetServicePrx.Proxy))
-            .AddIceRpcDispatcher(builder => builder
-                .UseRequestContext()
-                .UseDispatchInformation()
-                .Map<IProtocolBridgingTest>("/target")
-                .Map<Forwarder>("/forward"))
-            .AddIceRpcServer("forwarder")
-            .AddIceRpcServer("target")
+            .AddIceRpcServer(
+                "forwarder",
+                builder => builder
+                    .UseRequestContext()
+                    .Map<Forwarder>("/forward"))
+            .AddIceRpcServer(
+                "target",
+                builder => builder
+                    .UseRequestContext()
+                    .UseDispatchInformation()
+                    .Map<IProtocolBridgingTest>("/target"))
             .AddSingleton<IInvoker>(
                 serviceProvider => new Pipeline()
                     .UseBinder(serviceProvider.GetRequiredService<IClientConnectionProvider>())
                     .UseRequestContext());
 
-        services.AddOptions<ServerOptions>("forwarder").Configure<IDispatcher>((options, dispatcher) =>
-        {
-            options.Endpoint = forwarderEndpoint;
-            options.ConnectionOptions.Dispatcher = dispatcher;
-        });
-
-        services.AddOptions<ServerOptions>("target").Configure<IDispatcher>((options, dispatcher) =>
-        {
-            options.Endpoint = targetEndpoint;
-            options.ConnectionOptions.Dispatcher = dispatcher;
-        });
+        services.AddOptions<ServerOptions>("forwarder").Configure(options => options.Endpoint = forwarderEndpoint);
+        services.AddOptions<ServerOptions>("target").Configure(options => options.Endpoint = targetEndpoint);
 
         await using ServiceProvider serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
