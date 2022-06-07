@@ -312,14 +312,15 @@ namespace IceRpc
                 _connectCancellationSource.Token);
             CancellationToken cancel = connectCancellationSource.Token;
 
-            IProtocolConnection? protocolConnection = null;
             try
             {
                 // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
                 await Task.Yield();
 
                 // Create the protocol connection.
-                protocolConnection = protocolConnectionFactory.CreateConnection(networkConnection, _options);
+                IProtocolConnection protocolConnection = protocolConnectionFactory.CreateConnection(
+                    networkConnection,
+                    _options);
 
                 try
                 {
@@ -355,7 +356,6 @@ namespace IceRpc
 
                     _stateTask = null;
                     _protocolConnection = protocolConnection;
-
                     _onClose = onClose;
 
                     // Switch the connection to the ShuttingDown state as soon as the protocol receives a notification
@@ -391,8 +391,8 @@ namespace IceRpc
             }
             catch (OperationCanceledException) when (_connectCancellationSource.IsCancellationRequested)
             {
-                // This occurs when connection establishment is canceled by Close. We just throw ConnectionClosedException here
-                // because the connection is already closed and disposed.
+                // This occurs when connection establishment is canceled by Close. We just throw
+                // ConnectionClosedException here because the connection is already closed and disposed.
                 throw new ConnectionClosedException("connection aborted");
             }
             catch (Exception exception)
@@ -594,11 +594,8 @@ namespace IceRpc
             // is assigned before any synchronous continuations are ran.
             await Task.Yield();
 
-            using var closeTimeoutTimer = new Timer(
-                value => Close(new ConnectionAbortedException("shutdown timed out"), isResumable, protocolConnection),
-                state: null,
-                dueTime: _options.CloseTimeout,
-                period: Timeout.InfiniteTimeSpan);
+            using var cancelCloseTimeoutSource = new CancellationTokenSource();
+            _ = CloseOnTimeoutAsync(cancelCloseTimeoutSource.Token);
 
             Exception? exception = null;
             try
@@ -614,7 +611,20 @@ namespace IceRpc
             }
             finally
             {
+                cancelCloseTimeoutSource.Cancel();
                 Close(exception, isResumable);
+            }
+
+            async Task CloseOnTimeoutAsync(CancellationToken cancel)
+            {
+                try
+                {
+                    await Task.Delay(_options.CloseTimeout, cancel).ConfigureAwait(false);
+                    Close(new ConnectionAbortedException("shutdown timed out"), isResumable, protocolConnection);
+                }
+                catch (OperationCanceledException)
+                {
+                }
             }
         }
     }
