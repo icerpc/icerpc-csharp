@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IceRpc;
 
-/// <summary>This class provides extension methods to install a locator interceptor in a <see cref="Pipeline"/>.
+/// <summary>This class provides extension methods to install the locator interceptor in a <see cref="Pipeline"/>.
 /// </summary>
 public static class LocatorPipelineExtensions
 {
@@ -13,6 +13,7 @@ public static class LocatorPipelineExtensions
     /// </summary>
     /// <param name="pipeline">The pipeline being configured.</param>
     /// <param name="locator">The locator proxy used for the resolutions.</param>
+    /// <returns>The pipeline being configured.</returns>
     public static Pipeline UseLocator(this Pipeline pipeline, ILocatorPrx locator) =>
         UseLocator(
             pipeline,

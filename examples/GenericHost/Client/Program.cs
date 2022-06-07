@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc;
+using IceRpc.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -56,17 +57,10 @@ public static class Program
                             return customChain.Build((X509Certificate2)certificate!);
                         };
                     });
-                services.AddSingleton(sp => new ActivitySource("IceRpc"));
+                services.AddSingleton(_ => new ActivitySource("IceRpc"));
 
-                // Add an IInvoker service.
-                services.AddSingleton<IInvoker>(serviceProvider =>
-                {
-                    // The invoker is a pipeline configured with the logger and telemetry interceptors. The
-                    // interceptors use the logger factory provided by the .NET Generic Host.
-                    return new Pipeline()
-                        .UseLogger(serviceProvider.GetRequiredService<ILoggerFactory>())
-                        .UseTelemetry(serviceProvider.GetRequiredService<ActivitySource>());
-                });
+                // Adds an IInvoker service singleton.
+                services.AddIceRpcInvoker(builder => builder.UseLogger().UseTelemetry());
 
                 services.AddIceRpcClientConnection();
 

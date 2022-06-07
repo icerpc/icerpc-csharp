@@ -16,20 +16,20 @@ public class OperationGeneratedCodeTests
     public async Task Operation_with_compress_args_and_return_attribute()
     {
         // Arrange
-        var pipeline = new Pipeline();
-        pipeline.UseDeflate();
         bool compressRequestFeature = false;
         bool compressResponseFeature = false;
-        pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
-        {
-            var response = await next.InvokeAsync(request, cancel);
-            compressRequestFeature =
-                request.Features.Get<ICompressFeature>() is ICompressFeature compress && compress.Value;
-            return response;
-        }));
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddSingleton<MyOperationsA>()
+            .AddIceRpcInvoker(builder => builder
+                .UseDeflate()
+                .Use(next => new InlineInvoker(async (request, cancel) =>
+                {
+                    IncomingResponse response = await next.InvokeAsync(request, cancel);
+                    compressRequestFeature =
+                        request.Features.Get<ICompressFeature>() is ICompressFeature compress && compress.Value;
+                    return response;
+                })))
             .AddColocTest(builder =>
             {
                 builder.UseDeflate();
@@ -45,7 +45,10 @@ public class OperationGeneratedCodeTests
             .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>(), "/", pipeline);
+        var prx = MyOperationsAPrx.FromConnection(
+            provider.GetRequiredService<ClientConnection>(),
+            "/",
+            provider.GetRequiredService<IInvoker>());
 
         // Act
         int r = await prx.OpWithCompressArgsAndReturnAttributeAsync(10);

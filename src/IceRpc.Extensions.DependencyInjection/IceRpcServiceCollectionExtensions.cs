@@ -27,6 +27,20 @@ public static class IceRpcServiceCollectionExtensions
                 return builder.Build();
             });
 
+    /// <summary>Adds an <see cref="IInvoker"/> singleton to this service collection using a builder.</summary>
+    /// <param name="services">The service collection to add services to.</param>
+    /// <param name="configure">The action to configure the invoker builder.</param>
+    public static IServiceCollection AddIceRpcInvoker(
+        this IServiceCollection services,
+        Action<IInvokerBuilder> configure) =>
+        services
+            .AddSingleton<IInvoker>(provider =>
+            {
+                var builder = new InvokerBuilder(provider);
+                configure(builder);
+                return builder.Build();
+            });
+
     /// <summary>Adds a <see cref="Server"/> with name <paramref name="serverName"/> to this service collection.
     /// </summary>
     /// <param name="services">The service collection to add services to.</param>

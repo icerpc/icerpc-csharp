@@ -6,11 +6,11 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IceRpc;
 
-/// <summary>This class provides extension methods to add metrics interceptors to a <see cref="Pipeline"/>.
+/// <summary>This class provides extension methods to add the retry interceptor to a <see cref="Pipeline"/>.
 /// </summary>
 public static class RetryPipelineExtensions
 {
-    /// <summary>Adds a <see cref="RetryInterceptor"/> that use the default <see cref="RetryOptions"/> to the
+    /// <summary>Adds a <see cref="RetryInterceptor"/> that uses the default <see cref="RetryOptions"/> to the
     /// pipeline.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>
     /// <returns>The pipeline being configured.</returns>
