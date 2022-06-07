@@ -111,4 +111,21 @@ public class SequenceMappingTests
 
         Assert.That(await result, Is.EqualTo(data));
     }
+
+    /// <summary>Verifies that a Slice defined data member using a sequence type can be assigned from a type
+    /// implementing IList.</summary>
+    [Test]
+    public void Data_member_using_sequence_type_can_be_asigned_from_ilist()
+    {
+        IList<IList<int>> data = new IList<int>[]
+        {
+            new CustomSequence<int>(new int[] { 1, 2, 3 }),
+            new int[] { 4, 5, 6 },
+            new CustomSequence<int>(new int[] { 7, 8, 9 })
+        };
+
+        var s = new SequenceMappingStruct() { Data = data };
+
+        Assert.That(s.Data, Is.EqualTo(data));
+    }
 }

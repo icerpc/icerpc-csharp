@@ -15,3 +15,8 @@ interface SequenceMappingOperations
     opNumericTypeNestedSequence(p1: sequence<sequence<sequence<uint8>>>) -> sequence<sequence<sequence<uint8>>>;
     opStructNestedSequence(p1: sequence<sequence<sequence<MyStruct>>>) -> sequence<sequence<sequence<MyStruct>>>;
 }
+
+struct SequenceMappingStruct
+{
+    data: sequence<sequence<int32>>
+}
