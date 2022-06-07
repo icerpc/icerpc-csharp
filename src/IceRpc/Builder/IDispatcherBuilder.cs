@@ -1,16 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc.Extensions.DependencyInjection.Builder;
+namespace IceRpc.Builder;
 
-/// <summary>Provides the mechanism to configure a request dispatch pipeline that executes each request dispatch in its
-/// own async scope.</summary>
+/// <summary>Provides the mechanism to configure a dispatcher when using Dependency Injection (DI). Each request will
+/// be dispatched in its own scope.</summary>
 public interface IDispatcherBuilder
 {
-    /// <summary>Gets the name of the container for which this builder was created. For example, this corresponds to the
-    /// server name for a builder created for a server.</summary>
-    /// <remarks>Typical use-case: an extension method use this name to lookup a named Options instance.</remarks>
-    string ContainerName { get; }
-
     /// <summary>Gets the service provider.</summary>
     IServiceProvider ServiceProvider { get; }
 

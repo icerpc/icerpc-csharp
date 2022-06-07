@@ -1,8 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace IceRpc.Extensions.DependencyInjection.Internal;
+namespace IceRpc.Builder.Internal;
 
 /// <summary>Adapts a middleware with a single service dependency to an IDispatcher.</summary>
 internal class MiddlewareAdapter<TDep> : IDispatcher where TDep : notnull

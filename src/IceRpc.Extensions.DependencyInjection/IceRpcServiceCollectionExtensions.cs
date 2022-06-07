@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc;
-using IceRpc.Extensions.DependencyInjection.Builder;
-using IceRpc.Extensions.DependencyInjection.Builder.Internal;
+using IceRpc.Builder;
+using IceRpc.Builder.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -65,7 +65,7 @@ public static class IceRpcServiceCollectionExtensions
             .TryAddIceRpcServerTransport()
             .AddSingleton<Server>(provider =>
             {
-                var dispatcherBuilder = new DispatcherBuilder(provider, serverName);
+                var dispatcherBuilder = new DispatcherBuilder(provider);
                 configure(dispatcherBuilder);
 
                 ServerOptions options = provider.GetRequiredService<IOptionsMonitor<ServerOptions>>().Get(serverName);

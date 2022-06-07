@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc.Extensions.DependencyInjection;
+namespace IceRpc.Features;
 
 /// <summary>A feature that gives access to the service provider. This service provider is typically the service
 /// provider of the async scope created for the request.</summary>

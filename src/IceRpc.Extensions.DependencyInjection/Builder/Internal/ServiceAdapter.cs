@@ -1,8 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace IceRpc.Extensions.DependencyInjection.Internal;
+namespace IceRpc.Builder.Internal;
 
 /// <summary>Adapts a service managed by the DI container to an IDispatcher.</summary>
 internal class ServiceAdapter<TService> : IDispatcher where TService : notnull
