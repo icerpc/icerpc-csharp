@@ -10,7 +10,6 @@ namespace IceRpc.Transports.Internal
     /// is not a PipeWriter.</summary>
     internal class SimpleNetworkConnectionWriter : IBufferWriter<byte>, IDisposable
     {
-        private readonly SimpleNetworkConnectionActivityTracker _activityTracker;
         private readonly ISimpleNetworkConnection _connection;
         private readonly Pipe _pipe;
         private readonly List<ReadOnlyMemory<byte>> _sendBuffers = new(16);
@@ -33,11 +32,9 @@ namespace IceRpc.Transports.Internal
 
         internal SimpleNetworkConnectionWriter(
             ISimpleNetworkConnection connection,
-            SimpleNetworkConnectionActivityTracker activityTracker,
             MemoryPool<byte> pool,
             int minimumSegmentSize)
         {
-            _activityTracker = activityTracker;
             _connection = connection;
             _pipe = new Pipe(new PipeOptions(
                 pool: pool,
@@ -95,8 +92,6 @@ namespace IceRpc.Transports.Internal
                 {
                     await task.ConfigureAwait(false);
                 }
-
-                _activityTracker.Update();
             }
             finally
             {

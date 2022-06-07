@@ -50,7 +50,6 @@ namespace IceRpc.Internal
 
         private readonly object _mutex = new();
         private readonly ISimpleNetworkConnection _networkConnection;
-        private readonly SimpleNetworkConnectionActivityTracker _networkConnectionActivityTracker = new();
         private readonly SimpleNetworkConnectionReader _networkConnectionReader;
         private readonly SimpleNetworkConnectionWriter _networkConnectionWriter;
         private int _nextRequestId;
@@ -171,7 +170,7 @@ namespace IceRpc.Internal
 
             if (_idleTimeout != TimeSpan.MaxValue && _idleTimeout != Timeout.InfiniteTimeSpan)
             {
-                _timer = new Timer(_ => Monitor(isServer), null, _idleTimeout / 2, _idleTimeout / 2);
+                _timer = new Timer(_ => Monitor(), null, _idleTimeout / 2, _idleTimeout / 2);
             }
 
             return networkConnectionInformation;
@@ -519,12 +518,10 @@ namespace IceRpc.Internal
             _networkConnection = simpleNetworkConnection;
             _networkConnectionWriter = new SimpleNetworkConnectionWriter(
                 simpleNetworkConnection,
-                _networkConnectionActivityTracker,
                 _memoryPool,
                 _minimumSegmentSize);
             _networkConnectionReader = new SimpleNetworkConnectionReader(
                 simpleNetworkConnection,
-                _networkConnectionActivityTracker,
                 _memoryPool,
                 _minimumSegmentSize);
 
@@ -623,9 +620,15 @@ namespace IceRpc.Internal
             }
         }
 
-        private void Monitor(bool isServer)
+        private void Monitor()
         {
             var now = TimeSpan.FromMilliseconds(Environment.TickCount64);
+
+            // Like Ice, the idle timeout serves two purposes. It's used to close idle connections and it's also used to
+            // check the connection's health. It basically combines the icerpc protocol idle timeout and the Slic
+            // timeout functionality. IceRpc only provides an IdleTimeout option where Ice provides many more knobs to
+            // specify when the ping should be sent and expected. We keep it simple here to match the icerpc protocol
+            // implementation.
 
             if (now - _idleSinceTime > _idleTimeout)
             {
@@ -635,17 +638,17 @@ namespace IceRpc.Internal
             else
             {
                 // Check the connection's health.
-                TimeSpan networkIdleTime = now - _networkConnectionActivityTracker.LastActivity;
-
-                if (networkIdleTime > _idleTimeout)
+                TimeSpan idleTime = now - _networkConnectionReader.LastActivity;
+                if (idleTime > _idleTimeout)
                 {
                     Abort(new ConnectionAbortedException("idle connection"));
                 }
-                else if (!isServer && networkIdleTime > _idleTimeout / 4)
+                else if (idleTime > _idleTimeout / 4)
                 {
                     // If the connection has been idle for more than idleTimeout / 4, send a ping frame to keep alive
                     // the connection. Given that Monitor is called every idleTimeout / 2 period, this shouldn't send
-                    // more than two ping frames during an idle timeout period.
+                    // more than two ping frames during an idle timeout period. Unlike Slic, both end send ping frames.
+                    // It's therefore important that both side of the connection use the same idle timeout.
                     _ = PingAsync();
                 }
             }

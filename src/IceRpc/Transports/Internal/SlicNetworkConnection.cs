@@ -48,7 +48,6 @@ namespace IceRpc.Transports.Internal
         private TaskCompletionSource? _readFramesTaskCompletionSource;
         private readonly ISlicFrameReader _reader;
         private readonly ISimpleNetworkConnection _simpleNetworkConnection;
-        private readonly SimpleNetworkConnectionActivityTracker _simpleNetworkConnectionActivityTracker = new();
         private readonly SimpleNetworkConnectionReader _simpleNetworkConnectionReader;
         private readonly SimpleNetworkConnectionWriter _simpleNetworkConnectionWriter;
         private readonly ConcurrentDictionary<long, SlicMultiplexedStream> _streams = new();
@@ -344,13 +343,11 @@ namespace IceRpc.Transports.Internal
 
             _simpleNetworkConnectionWriter = new SimpleNetworkConnectionWriter(
                 simpleNetworkConnection,
-                _simpleNetworkConnectionActivityTracker,
                 slicOptions.Pool,
                 slicOptions.MinimumSegmentSize);
 
             _simpleNetworkConnectionReader = new SimpleNetworkConnectionReader(
                 simpleNetworkConnection,
-                _simpleNetworkConnectionActivityTracker,
                 slicOptions.Pool,
                 slicOptions.MinimumSegmentSize);
 
@@ -597,9 +594,11 @@ namespace IceRpc.Transports.Internal
 
         private void Monitor()
         {
+            // Check if data was received since the last idle timeout. If the connection is idle, a ping frame is sent
+            // by the client side. The server side can count on the receive of the ping frame to defer the idle timeout.
+            // And the client side can rely on the receive of pong frame from the server side to defer the idle timeout.
             TimeSpan idleTime =
-                TimeSpan.FromMilliseconds(Environment.TickCount64) -
-                _simpleNetworkConnectionActivityTracker.LastActivity;
+                TimeSpan.FromMilliseconds(Environment.TickCount64) - _simpleNetworkConnectionReader.LastActivity;
 
             if (idleTime > _idleTimeout)
             {

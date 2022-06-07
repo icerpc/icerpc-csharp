@@ -32,16 +32,14 @@ public class SimpleNetworkConnectionReaderTests
         Task<NetworkConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
-        var activityTracker = new SimpleNetworkConnectionActivityTracker();
         using var reader = new SimpleNetworkConnectionReader(
             clientConnection,
-            activityTracker,
             MemoryPool<byte>.Shared,
             4096);
 
         await serverConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
 
-        TimeSpan lastActivity = activityTracker.LastActivity;
+        TimeSpan lastActivity = reader.LastActivity;
         var delay = TimeSpan.FromMilliseconds(2);
         await Task.Delay(delay);
 
@@ -50,7 +48,7 @@ public class SimpleNetworkConnectionReaderTests
 
         // Assert
         Assert.That(
-            activityTracker.LastActivity,
+            reader.LastActivity,
             Is.GreaterThanOrEqualTo(delay + lastActivity).Or.EqualTo(TimeSpan.Zero));
     }
 }
