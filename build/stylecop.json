@@ -1,10 +1,15 @@
 {
     "$schema": "https://raw.githubusercontent.com/DotNetAnalyzers/StyleCopAnalyzers/master/StyleCop.Analyzers/StyleCop.Analyzers/Settings/stylecop.schema.json",
     "settings": {
-        "documentationRules": {
-            "companyName": "ZeroC",
-            "copyrightText": "Copyright (c) ZeroC, Inc. All rights reserved.",
-            "xmlHeader": false
-        }
+      "documentationRules": {
+        "companyName": "ZeroC",
+        "copyrightText": "Copyright (c) ZeroC, Inc. All rights reserved.",
+        "xmlHeader": false,
+        "documentInterfaces": true,
+        "documentExposedElements": true,
+        "documentInternalElements": false,
+        "documentPrivateElements": false,
+        "documentPrivateFields": false
+      }
     }
 }

@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Tests;
+using IceRpc.Conformance.Tests;
+using IceRpc.Tests.Common;
+using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -8,7 +10,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
 
-namespace IceRpc.Transports.Tests;
+namespace IceRpc.Tests.Transports;
 
 [Parallelizable(ParallelScope.All)]
 public class SlicConformanceTests : MultiplexedTransportConformanceTests
@@ -33,30 +35,37 @@ public class SlicConformanceTests : MultiplexedTransportConformanceTests
         services.
             TryAddSingleton<IServerTransport<IMultiplexedNetworkConnection>>(
                 provider => new SlicServerTransport(
-                    provider.GetRequiredService<IOptions<SlicTransportOptions>>().Value,
+                    provider.GetRequiredService<IOptionsMonitor<SlicTransportOptions>>().Get("server"),
                     provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>()));
 
         services.
             TryAddSingleton<IClientTransport<IMultiplexedNetworkConnection>>(
                 provider => new SlicClientTransport(
-                    provider.GetRequiredService<IOptions<SlicTransportOptions>>().Value,
+                    provider.GetRequiredService<IOptionsMonitor<SlicTransportOptions>>().Get("client"),
                     provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()));
 
         services.TryAddSingleton(new MultiplexedTransportOptions());
-        services.AddOptions<SlicTransportOptions>().Configure<MultiplexedTransportOptions>(
-            (options, multiplexedTransportOptions) =>
-            {
-                if (multiplexedTransportOptions.BidirectionalStreamMaxCount is int bidirectionalStreamMaxCount)
-                {
-                    options.BidirectionalStreamMaxCount = bidirectionalStreamMaxCount;
-                }
 
-                if (multiplexedTransportOptions.UnidirectionalStreamMaxCount is int unidirectionalStreamMaxCount)
-                {
-                    options.UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount;
-                }
-            });
+        services.AddOptions<SlicTransportOptions>("client").Configure<MultiplexedTransportOptions>(
+            ConfigureMultiplexedTransportOptions);
+        services.AddOptions<SlicTransportOptions>("server").Configure<MultiplexedTransportOptions>(
+            ConfigureMultiplexedTransportOptions);
 
         return services;
+
+        static void ConfigureMultiplexedTransportOptions(
+            SlicTransportOptions options,
+            MultiplexedTransportOptions multiplexedTransportOptions)
+        {
+            if (multiplexedTransportOptions.BidirectionalStreamMaxCount is int bidirectionalStreamMaxCount)
+            {
+                options.BidirectionalStreamMaxCount = bidirectionalStreamMaxCount;
+            }
+
+            if (multiplexedTransportOptions.UnidirectionalStreamMaxCount is int unidirectionalStreamMaxCount)
+            {
+                options.UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount;
+            }
+        }
     }
 }

@@ -7,7 +7,7 @@ namespace IceRpc
     /// <summary>A property bag used to configure client and server connections.</summary>
     public record class ConnectionOptions
     {
-        /// <summary>Returns the default value for <see cref="Dispatcher"/>.</summary>
+        /// <summary>Gets the default value for <see cref="Dispatcher"/>.</summary>
         public static IDispatcher DefaultDispatcher { get; } = new InlineDispatcher((request, cancel) =>
             throw new DispatchException(DispatchErrorCode.ServiceNotFound, RetryPolicy.OtherReplica));
 
@@ -83,7 +83,7 @@ namespace IceRpc
             set => _maxIceRpcHeaderSize = IceRpcCheckMaxHeaderSize(value);
         }
 
-        /// <summary>Gets or set an action that executes when the connection is closed.</summary>
+        /// <summary>Gets or sets an action that executes when the connection is closed.</summary>
         public Action<Connection, Exception>? OnClose { get; set; }
 
         /// <summary>The default value for <see cref="MaxIceRpcHeaderSize"/>.</summary>

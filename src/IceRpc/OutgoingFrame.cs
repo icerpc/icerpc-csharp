@@ -17,7 +17,7 @@ namespace IceRpc
         /// background: the sending operation does not await it.</summary>
         public PipeReader? PayloadStream { get; set; }
 
-        /// <summary>Returns the protocol of this frame.</summary>
+        /// <summary>Gets the protocol of this frame.</summary>
         public Protocol Protocol { get; }
 
         /// <summary>Installs a payload writer interceptor in this outgoing frame. This interceptor is executed just

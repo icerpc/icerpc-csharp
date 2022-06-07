@@ -13,22 +13,16 @@ namespace IceRpc.Telemetry;
 /// <seealso cref="TelemetryInterceptor"/>
 public class TelemetryMiddleware : IDispatcher
 {
-    private readonly ILogger _logger;
     private readonly IDispatcher _next;
     private readonly ActivitySource _activitySource;
 
     /// <summary>Constructs a telemetry middleware.</summary>
     /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
     /// <param name="activitySource">The <see cref="ActivitySource"/> is used to start the request activity.</param>
-    /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
-    public TelemetryMiddleware(
-        IDispatcher next,
-        ActivitySource activitySource,
-        ILoggerFactory loggerFactory)
+    public TelemetryMiddleware(IDispatcher next, ActivitySource activitySource)
     {
         _next = next;
         _activitySource = activitySource;
-        _logger = loggerFactory.CreateLogger("IceRpc");
     }
 
     /// <inheritdoc/>
@@ -82,7 +76,7 @@ public class TelemetryMiddleware : IDispatcher
         // Read tracestate encoded as a string
         activity.TraceStateString = decoder.DecodeString();
 
-        IEnumerable<(string key, string value)> baggage = decoder.DecodeSequence(
+        IEnumerable<(string Key, string Value)> baggage = decoder.DecodeSequence(
             (ref SliceDecoder decoder) =>
             {
                 string key = decoder.DecodeString();
@@ -97,5 +91,4 @@ public class TelemetryMiddleware : IDispatcher
             activity.AddBaggage(key, value);
         }
     }
-
 }

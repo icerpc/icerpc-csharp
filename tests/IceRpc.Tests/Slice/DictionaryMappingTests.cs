@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Tests;
+using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.IO.Pipelines;
 
-namespace IceRpc.Slice.Tests;
+namespace IceRpc.Tests.Slice;
 
 [Parallelizable(scope: ParallelScope.All)]
 public class DictionaryMappingTests

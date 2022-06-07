@@ -128,10 +128,10 @@ public class LocatorInterceptor : IInvoker
 /// <summary>A location is either an adapter ID or a path.</summary>
 public readonly record struct Location
 {
-    /// <summary>Returns true when this location holds an adapter ID; otherwise, false.</summary>
+    /// <summary>Gets a value indicating whether or not this location holds an adapter ID; otherwise, false.</summary>
     public bool IsAdapterId { get; init; }
 
-    /// <summary>The adapter ID or path.</summary>
+    /// <summary>Gets the adapter ID or path.</summary>
     public string Value { get; init; }
 
     internal string Kind => IsAdapterId ? "adapter ID" : "well-known proxy";
@@ -178,7 +178,7 @@ public class LocatorLocationResolver : ILocationResolver
                 $"{nameof(options.RefreshThreshold)} must be smaller than {nameof(options.Ttl)}");
         }
 
-        ILogger logger = loggerFactory.CreateLogger("IceRpc");
+        ILogger logger = loggerFactory.CreateLogger("IceRpc.Locator");
         bool installLogDecorator = logger.IsEnabled(LogLevel.Information);
 
         // Create and decorate endpoint cache (if caching enabled):

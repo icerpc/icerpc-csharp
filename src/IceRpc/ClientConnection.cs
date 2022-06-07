@@ -10,11 +10,11 @@ namespace IceRpc
     /// <summary>Represents a client connection used to send and receive requests and responses.</summary>
     public sealed class ClientConnection : Connection, IClientConnection
     {
-        /// <summary>The default client transport for icerpc protocol connections.</summary>
+        /// <summary>Gets the default client transport for icerpc protocol connections.</summary>
         public static IClientTransport<IMultiplexedNetworkConnection> DefaultMultiplexedClientTransport { get; } =
             new SlicClientTransport(new TcpClientTransport());
 
-        /// <summary>The default client transport for ice protocol connections.</summary>
+        /// <summary>Gets the default client transport for ice protocol connections.</summary>
         public static IClientTransport<ISimpleNetworkConnection> DefaultSimpleClientTransport { get; } =
             new TcpClientTransport();
 
@@ -36,8 +36,8 @@ namespace IceRpc
             ClientConnectionOptions options,
             ILoggerFactory? loggerFactory = null,
             IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
-            IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null) :
-            base(
+            IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
+            : base(
                 options,
                 options.IsResumable,
                 options.RemoteEndpoint ?? throw new ArgumentException(

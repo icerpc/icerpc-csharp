@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice;
-using IceRpc.Tests;
+using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
@@ -16,7 +16,7 @@ public class ServiceTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new Service(), Protocol.FromString(protocol))
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
         var service = ServicePrx.FromConnection(provider.GetRequiredService<ClientConnection>(), "/service");
         var server = provider.GetRequiredService<Server>();
         server.Listen();

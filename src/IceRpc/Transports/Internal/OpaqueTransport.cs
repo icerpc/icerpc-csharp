@@ -6,6 +6,7 @@ namespace IceRpc.Transports.Internal
     internal static class OpaqueTransport
     {
         internal const string Host = "opaque"; // the "pseudo host" for transport opaque
+
         internal static ushort Port => (ushort)Protocol.Ice.DefaultUriPort; // the "pseudo port" for transport opaque
     }
 }

@@ -4,6 +4,39 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Locator.Internal;
 
+/// <summary>This class contains ILogger extension methods used by LogLocationResolverDecorator.</summary>
+internal static partial class LocatorLoggerExtensions
+{
+    [LoggerMessage(
+        EventId = (int)LocationEventIds.Resolving,
+        EventName = nameof(LocationEventIds.Resolving),
+        Level = LogLevel.Trace,
+        Message = "resolving {LocationKind} {Location}")]
+    internal static partial void LogResolving(this ILogger logger, string locationKind, Location location);
+
+    [LoggerMessage(
+        EventId = (int)LocationEventIds.Resolved,
+        EventName = nameof(LocationEventIds.Resolved),
+        Level = LogLevel.Debug,
+        Message = "resolved {LocationKind} '{Location}' = '{Proxy}'")]
+    internal static partial void LogResolved(
+        this ILogger logger,
+        string locationKind,
+        Location location,
+        Proxy proxy);
+
+    [LoggerMessage(
+        EventId = (int)LocationEventIds.FailedToResolve,
+        EventName = nameof(LocationEventIds.FailedToResolve),
+        Level = LogLevel.Debug,
+        Message = "failed to resolve {LocationKind} '{Location}'")]
+    internal static partial void LogFailedToResolve(
+        this ILogger logger,
+        string locationKind,
+        Location location,
+        Exception? exception = null);
+}
+
 /// <summary>An implementation of <see cref="ILocationResolver"/> without a cache.</summary>
 internal class CacheLessLocationResolver : ILocationResolver
 {
@@ -165,37 +198,4 @@ internal class LogLocationResolverDecorator : ILocationResolver
             throw;
         }
     }
-}
-
-/// <summary>This class contains ILogger extension methods used by LogLocationResolverDecorator.</summary>
-internal static partial class LocatorLoggerExtensions
-{
-    [LoggerMessage(
-        EventId = (int)LocationEventIds.Resolving,
-        EventName = nameof(LocationEventIds.Resolving),
-        Level = LogLevel.Trace,
-        Message = "resolving {LocationKind} {Location}")]
-    internal static partial void LogResolving(this ILogger logger, string locationKind, Location location);
-
-    [LoggerMessage(
-        EventId = (int)LocationEventIds.Resolved,
-        EventName = nameof(LocationEventIds.Resolved),
-        Level = LogLevel.Debug,
-        Message = "resolved {LocationKind} '{Location}' = '{Proxy}'")]
-    internal static partial void LogResolved(
-        this ILogger logger,
-        string locationKind,
-        Location location,
-        Proxy proxy);
-
-    [LoggerMessage(
-        EventId = (int)LocationEventIds.FailedToResolve,
-        EventName = nameof(LocationEventIds.FailedToResolve),
-        Level = LogLevel.Debug,
-        Message = "failed to resolve {LocationKind} '{Location}'")]
-    internal static partial void LogFailedToResolve(
-        this ILogger logger,
-        string locationKind,
-        Location location,
-        Exception? exception = null);
 }

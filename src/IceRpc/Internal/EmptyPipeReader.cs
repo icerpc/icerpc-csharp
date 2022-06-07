@@ -10,7 +10,7 @@ namespace IceRpc.Internal
     /// practice this discrepancy should not be noticeable.</remarks>
     internal sealed class EmptyPipeReader : PipeReader
     {
-        /// <summary>The shared instance of the empty pipe reader.</summary>
+        /// <summary>Gets the shared instance of the empty pipe reader.</summary>
         internal static PipeReader Instance { get; } = new EmptyPipeReader();
 
         /// <summary>The ReadResult returned by all read methods.</summary>

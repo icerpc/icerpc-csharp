@@ -1,11 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Configure;
 using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
-using IceRpc.Tests;
+using IceRpc.Tests.Common;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System.Buffers;
@@ -53,7 +52,7 @@ public sealed class RetryInterceptorTests
         // Assert
         Assert.That(attempts, Is.EqualTo(2));
 
-        Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc"));
+        Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc.Retry"));
         Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(1));
         TestLoggerEntry entry = loggerFactory.Logger!.Entries[0];
         Assert.That(entry.State["RetryPolicy"], Is.EqualTo(RetryPolicy.Immediately));

@@ -26,10 +26,10 @@ namespace IceRpc.Transports.Internal
 
         public void Dispose()
         {
+            _exception ??= new ObjectDisposedException($"{typeof(ColocNetworkConnection)}");
+
             if (_state.TrySetFlag(State.Disposed))
             {
-                _exception ??= new ObjectDisposedException($"{typeof(ColocNetworkConnection)}");
-
                 if (_state.HasFlag(State.Reading))
                 {
                     _reader.CancelPendingRead();

@@ -8,10 +8,10 @@ namespace IceRpc.Internal
     /// protocol.</summary>
     internal interface IProtocolConnection : IDisposable
     {
-        /// <summary>This callback is called when the protocol connection wants to initiate shutdown.</summary>
+        /// <summary>Gets or sets the callback called by the protocol connection to initiate shutdown.</summary>
         Action<string>? InitiateShutdown { get; set; }
 
-        /// <summary>Returns the protocol implemented by this protocol connection.</summary>
+        /// <summary>Gets the protocol implemented by this protocol connection.</summary>
         Protocol Protocol { get; }
 
         /// <summary>Aborts the connection.</summary>
@@ -21,13 +21,14 @@ namespace IceRpc.Internal
 
         /// <summary>Accepts requests and returns once the connection is closed or the shutdown completes.</summary>
         /// <param name="connection">The connection of incoming requests created by this method.</param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         Task AcceptRequestsAsync(IConnection connection);
 
         /// <summary>Connects the protocol connection. The implementation should also connect the underlying network
         /// connection.</summary>
         /// <param name="isServer"><c>true</c> if the protocol connection is a server-side connection.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The network connection information</returns>
+        /// <returns>The network connection information.</returns>
         Task<NetworkConnectionInformation> ConnectAsync(bool isServer, CancellationToken cancel);
 
         /// <summary>Checks if the parameters of the provided endpoint are compatible with the network connection of
@@ -52,6 +53,7 @@ namespace IceRpc.Internal
         /// <summary>Shuts down gracefully the connection.</summary>
         /// <param name="message">The reason of the connection shutdown.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         Task ShutdownAsync(string message, CancellationToken cancel = default);
     }
 }

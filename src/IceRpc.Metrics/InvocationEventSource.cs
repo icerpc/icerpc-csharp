@@ -71,17 +71,6 @@ public sealed class InvocationEventSource : EventSource
         };
     }
 
-    /// <inheritdoc/>
-    protected override void Dispose(bool disposing)
-    {
-        _canceledRequestsCounter.Dispose();
-        _currentRequestsCounter.Dispose();
-        _failedRequestsCounter.Dispose();
-        _requestsPerSecondCounter.Dispose();
-        _totalRequestsCounter.Dispose();
-        base.Dispose(disposing);
-    }
-
     [NonEvent]
     internal void RequestStart(OutgoingRequest request)
     {
@@ -125,6 +114,17 @@ public sealed class InvocationEventSource : EventSource
         {
             RequestFailed(request.Proxy.Path, request.Operation, exception);
         }
+    }
+
+    /// <inheritdoc/>
+    protected override void Dispose(bool disposing)
+    {
+        _canceledRequestsCounter.Dispose();
+        _currentRequestsCounter.Dispose();
+        _failedRequestsCounter.Dispose();
+        _requestsPerSecondCounter.Dispose();
+        _totalRequestsCounter.Dispose();
+        base.Dispose(disposing);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

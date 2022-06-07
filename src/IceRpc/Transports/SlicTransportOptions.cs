@@ -8,7 +8,7 @@ namespace IceRpc.Transports
     /// <see cref="SlicServerTransport"/>.</summary>
     public sealed record class SlicTransportOptions
     {
-        /// <summary>Configures the bidirectional stream maximum count to limit the number of concurrent
+        /// <summary>Gets or sets the bidirectional stream maximum count to limit the number of concurrent
         /// bidirectional streams opened on a connection. When this limit is reached, trying to open a new
         /// bidirectional stream will be delayed until a bidirectional stream is closed. Since an
         /// bidirectional stream is opened for each two-way proxy invocation, the sending of the two-way
@@ -46,7 +46,7 @@ namespace IceRpc.Transports
                 throw new ArgumentException($"{nameof(MinimumSegmentSize)} can't be less than 1KB", nameof(value));
         }
 
-        /// <summary>The maximum packet size in bytes.</summary>
+        /// <summary>Gets or sets the maximum packet size in bytes.</summary>
         /// <value>The maximum packet size in bytes. It can't be less than 1KB and the default value is
         /// 32KB.</value>
         public int PacketMaxSize
@@ -75,11 +75,12 @@ namespace IceRpc.Transports
                     @$"{nameof(ResumeWriterThreshold)} can't be less than 1KB", nameof(value)) :
                 value > _pauseWriterThreshold ? throw new ArgumentException(
                     @$"{nameof(ResumeWriterThreshold)
-                        } can't be greater can't be greater than {nameof(PauseWriterThreshold)}", nameof(value)) :
+                        } can't be greater can't be greater than {nameof(PauseWriterThreshold)}",
+                    nameof(value)) :
                 value;
         }
 
-        /// <summary>Configures the unidirectional stream maximum count to limit the number of concurrent
+        /// <summary>Gets or sets the unidirectional stream maximum count to limit the number of concurrent
         /// unidirectional streams opened on a connection. When this limit is reached, trying to open a new
         /// unidirectional stream will be delayed until an unidirectional stream is closed. Since an
         /// unidirectional stream is opened for each one-way proxy invocation, the sending of the one-way
@@ -96,7 +97,7 @@ namespace IceRpc.Transports
         }
 
         private int _bidirectionalStreamMaxCount = 100;
-        private TimeSpan _idleTimeout;
+        private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
         private int _minimumSegmentSize = 4096;
         // The default packet size matches the SSL record maximum data size to avoid fragmentation of the Slic packet
         // when using SSL.

@@ -17,7 +17,7 @@ public class LoggerMiddleware : IDispatcher
     public LoggerMiddleware(IDispatcher next, ILoggerFactory loggerFactory)
     {
         _next = next;
-        _logger = loggerFactory.CreateLogger("IceRpc");
+        _logger = loggerFactory.CreateLogger("IceRpc.Logger");
     }
 
     /// <inheritdoc/>
@@ -29,10 +29,11 @@ public class LoggerMiddleware : IDispatcher
             OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
             if (!request.IsOneway)
             {
-                _logger.LogSendingResponse(request.Connection,
-                                           request.Path,
-                                           request.Operation,
-                                           response.ResultType);
+                _logger.LogSendingResponse(
+                    request.Connection,
+                    request.Path,
+                    request.Operation,
+                    response.ResultType);
             }
             return response;
         }

@@ -2,7 +2,7 @@
 
 using Microsoft.Extensions.Logging;
 
-namespace IceRpc.Tests;
+namespace IceRpc.Tests.Common;
 
 public sealed record TestLoggerEntry(
     LogLevel LogLevel,

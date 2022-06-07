@@ -7,8 +7,8 @@ namespace IceRpc.Transports
     /// <summary>Represents a network connection created by a multiplexed transport.</summary>
     public interface IMultiplexedNetworkConnection : INetworkConnection
     {
-        /// <summary>Enables or disables keep alive for the network connection. If enabled, the connection will ensure
-        /// that the peer doesn't close the connection when it's idle.</summary>
+        /// <summary>Gets or sets a value indicating whether keep alive for the network connection are enabled or not.
+        /// If enabled, the connection will ensure that the peer doesn't close the connection when it's idle.</summary>
         bool KeepAlive { get; set; }
 
         /// <summary>Aborts the connection. This will call <see cref="IMultiplexedStream.Abort"/> on each stream and

@@ -1,10 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Tests;
+using IceRpc.Slice;
+using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
-namespace IceRpc.Slice.Tests;
+namespace IceRpc.Tests.Slice;
 
 /// <summary>Test IPrx extension methods other than InvokeAsync.</summary>
 [Parallelizable(scope: ParallelScope.All)]
@@ -15,7 +16,7 @@ public class PrxTests
     {
         await using ServiceProvider provider = new ServiceCollection()
              .AddColocTest(new MyDerivedInterface())
-             .BuildServiceProvider();
+             .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var prx = MyBaseInterfacePrx.FromConnection(provider.GetRequiredService<ClientConnection>());
@@ -30,7 +31,7 @@ public class PrxTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyBaseInterface())
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
         var prx = MyBaseInterfacePrx.FromConnection(provider.GetRequiredService<ClientConnection>());

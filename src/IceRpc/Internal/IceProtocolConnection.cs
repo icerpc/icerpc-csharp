@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Configure;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
@@ -36,6 +35,7 @@ namespace IceRpc.Internal
         private readonly IDispatcher _dispatcher;
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         private readonly HashSet<CancellationTokenSource> _dispatches = new();
         private readonly AsyncSemaphore? _dispatchSemaphore;
         private TimeSpan _idleSinceTime;
@@ -235,6 +235,7 @@ namespace IceRpc.Internal
                         requestId = ++_nextRequestId;
                         responseCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
                         _invocations[requestId] = responseCompletionSource;
+                        _idleSinceTime = TimeSpan.MaxValue; // Disable idle timeout
                     }
                 }
 
@@ -422,7 +423,8 @@ namespace IceRpc.Internal
                 }
                 new EncapsulationHeader(
                     encapsulationSize: payloadSize + 6,
-                    encodingMajor, encodingMinor).Encode(ref encoder);
+                    encodingMajor,
+                    encodingMinor).Encode(ref encoder);
 
                 int frameSize = checked(encoder.EncodedByteCount + payloadSize);
                 SliceEncoder.EncodeInt32(frameSize, sizePlaceholder);
@@ -531,6 +533,59 @@ namespace IceRpc.Internal
             _payloadWriter = new IcePayloadPipeWriter(_networkConnectionWriter);
         }
 
+        /// <summary>Creates a pipe reader to simplify the reading of a request or response frame. The frame is read
+        /// fully and buffered into an internal pipe.</summary>
+        private static async ValueTask<PipeReader> CreateFrameReaderAsync(
+            int size,
+            SimpleNetworkConnectionReader networkConnectionReader,
+            MemoryPool<byte> pool,
+            int minimumSegmentSize,
+            CancellationToken cancel)
+        {
+            var pipe = new Pipe(new PipeOptions(
+                pool: pool,
+                minimumSegmentSize: minimumSegmentSize,
+                pauseWriterThreshold: 0,
+                writerScheduler: PipeScheduler.Inline));
+
+            try
+            {
+                await networkConnectionReader.FillBufferWriterAsync(
+                    pipe.Writer,
+                    size,
+                    cancel).ConfigureAwait(false);
+            }
+            catch
+            {
+                await pipe.Reader.CompleteAsync().ConfigureAwait(false);
+                throw;
+            }
+            finally
+            {
+                await pipe.Writer.CompleteAsync().ConfigureAwait(false);
+            }
+
+            return pipe.Reader;
+        }
+
+        /// <summary>Reads the full Ice payload from the given pipe reader.</summary>
+        private static async ValueTask<ReadOnlySequence<byte>> ReadFullPayloadAsync(
+            PipeReader payload,
+            CancellationToken cancel)
+        {
+            // We use ReadAtLeastAsync instead of ReadAsync to bypass the PauseWriterThreshold when the payload is
+            // backed by a Pipe.
+            ReadResult readResult = await payload.ReadAtLeastAsync(int.MaxValue, cancel).ConfigureAwait(false);
+
+            if (readResult.IsCanceled)
+            {
+                throw new OperationCanceledException();
+            }
+
+            return readResult.IsCompleted ? readResult.Buffer :
+                throw new ArgumentException("the payload size is greater than int.MaxValue", nameof(payload));
+        }
+
         private void CancelDispatches()
         {
             IEnumerable<CancellationTokenSource> dispatches;
@@ -570,44 +625,9 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <summary>Creates a pipe reader to simplify the reading of a request or response frame. The frame is read
-        /// fully and buffered into an internal pipe.</summary>
-        private static async ValueTask<PipeReader> CreateFrameReaderAsync(
-            int size,
-            SimpleNetworkConnectionReader networkConnectionReader,
-            MemoryPool<byte> pool,
-            int minimumSegmentSize,
-            CancellationToken cancel)
-        {
-            var pipe = new Pipe(new PipeOptions(
-                pool: pool,
-                minimumSegmentSize: minimumSegmentSize,
-                pauseWriterThreshold: 0,
-                writerScheduler: PipeScheduler.Inline));
-
-            try
-            {
-                await networkConnectionReader.FillBufferWriterAsync(
-                    pipe.Writer,
-                    size,
-                    cancel).ConfigureAwait(false);
-            }
-            catch
-            {
-                await pipe.Reader.CompleteAsync().ConfigureAwait(false);
-                throw;
-            }
-            finally
-            {
-                await pipe.Writer.CompleteAsync().ConfigureAwait(false);
-            }
-
-            return pipe.Reader;
-        }
-
         private void Monitor(bool isServer)
         {
-            TimeSpan now = TimeSpan.FromMilliseconds(Environment.TickCount64);
+            var now = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
             if (now - _idleSinceTime > _idleTimeout)
             {
@@ -657,24 +677,6 @@ namespace IceRpc.Internal
                     IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
                 }
             }
-        }
-
-        /// <summary>Reads the full Ice payload from the given pipe reader.</summary>
-        private static async ValueTask<ReadOnlySequence<byte>> ReadFullPayloadAsync(
-            PipeReader payload,
-            CancellationToken cancel)
-        {
-            // We use ReadAtLeastAsync instead of ReadAsync to bypass the PauseWriterThreshold when the payload is
-            // backed by a Pipe.
-            ReadResult readResult = await payload.ReadAtLeastAsync(int.MaxValue, cancel).ConfigureAwait(false);
-
-            if (readResult.IsCanceled)
-            {
-                throw new OperationCanceledException();
-            }
-
-            return readResult.IsCompleted ? readResult.Buffer :
-                throw new ArgumentException("the payload size is greater than int.MaxValue", nameof(payload));
         }
 
         /// <summary>Read incoming frames and returns on graceful connection shutdown.</summary>
@@ -897,6 +899,7 @@ namespace IceRpc.Internal
                     {
                         cancelDispatchSource = new();
                         _dispatches.Add(cancelDispatchSource);
+                        _idleSinceTime = TimeSpan.MaxValue; // Disable idle timeout
                     }
                 }
 
@@ -1114,7 +1117,6 @@ namespace IceRpc.Internal
                                     {
                                         _dispatchesAndInvocationsCompleted.TrySetResult();
                                     }
-
                                     _idleSinceTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
                                 }
                             }

@@ -7,7 +7,7 @@ namespace IceRpc.Slice
     [AttributeUsage(AttributeTargets.Method, Inherited = false)]
     public sealed class OperationAttribute : Attribute
     {
-        /// <summary>Retrieves the operation name.</summary>
+        /// <summary>Gets the operation name.</summary>
         /// <value>The operation name.</value>
         public string Value { get; }
 

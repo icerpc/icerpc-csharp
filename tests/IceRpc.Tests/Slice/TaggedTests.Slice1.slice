@@ -2,7 +2,7 @@
 
 encoding = 1;
 
-module IceRpc::Slice::Tagged::Slice1::Tests;
+module IceRpc::Tests::Slice::Tagged::Slice1;
 
 compact struct FixedLengthStruct
 {

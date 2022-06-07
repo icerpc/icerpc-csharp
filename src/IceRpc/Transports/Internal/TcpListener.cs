@@ -31,7 +31,6 @@ namespace IceRpc.Transports.Internal
 
             // We don't translate other exceptions since they are unexpected and the application code has no opportunity
             // to catch and handle them. They are only useful for the log decorator.
-
             return _serverConnectionDecorator(
 #pragma warning disable CA2000 // the caller will Dispose the connection and _serverConnectionDecorator never throws
                 new TcpServerNetworkConnection(acceptedSocket, Endpoint, _authenticationOptions));

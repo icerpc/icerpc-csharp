@@ -6,7 +6,7 @@ namespace IceRpc.Slice
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
     public sealed class SliceAttribute : Attribute
     {
-        /// <summary>The name of the file that contains the Slice definitions.</summary>
+        /// <summary>Gets the name of the file that contains the Slice definitions.</summary>
         public string SourceFileName { get; }
 
         /// <summary>Constructs a new instance of <see cref="SliceAttribute" />.</summary>

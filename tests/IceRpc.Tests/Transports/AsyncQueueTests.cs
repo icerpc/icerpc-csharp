@@ -3,7 +3,7 @@
 using IceRpc.Transports.Internal;
 using NUnit.Framework;
 
-namespace IceRpc.Transports.Tests;
+namespace IceRpc.Tests.Transports;
 
 [Parallelizable(scope: ParallelScope.All)]
 public class AsyncQueueTests

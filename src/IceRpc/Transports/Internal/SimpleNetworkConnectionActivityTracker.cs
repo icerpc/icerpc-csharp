@@ -1,10 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
-using System.Buffers;
-using System.Diagnostics;
-using System.IO.Pipelines;
-
 namespace IceRpc.Transports.Internal
 {
     /// <summary>A helper class to keep track of the last activity of a simple network connection.</summary>

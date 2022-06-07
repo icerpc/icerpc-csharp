@@ -6,9 +6,11 @@ using System.Net.Security;
 namespace IceRpc.Transports
 {
     /// <summary>Gives Connection the ability to create outgoing transport connections.</summary>
-    public interface IClientTransport<T> where T : INetworkConnection
+    /// <typeparam name="T">The type of the network connection used by the transport.</typeparam>
+    public interface IClientTransport<T>
+        where T : INetworkConnection
     {
-        /// <summary>Returns the transport's name.</summary>
+        /// <summary>Gets the transport's name.</summary>
         string Name { get; }
 
         /// <summary>Creates a new network connection to the remote endpoint.</summary>

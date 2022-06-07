@@ -17,7 +17,7 @@ public class LoggerInterceptor : IInvoker
     public LoggerInterceptor(IInvoker next, ILoggerFactory loggerFactory)
     {
         _next = next;
-        _logger = loggerFactory.CreateLogger("IceRpc");
+        _logger = loggerFactory.CreateLogger("IceRpc.Logger");
     }
 
     /// <inheritdoc/>
@@ -29,10 +29,11 @@ public class LoggerInterceptor : IInvoker
             IncomingResponse response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
             if (!request.IsOneway)
             {
-                _logger.LogReceivedResponse(request.Connection,
-                                            request.Proxy.Path,
-                                            request.Operation,
-                                            response.ResultType);
+                _logger.LogReceivedResponse(
+                    request.Connection,
+                    request.Proxy.Path,
+                    request.Operation,
+                    response.ResultType);
             }
             return response;
         }

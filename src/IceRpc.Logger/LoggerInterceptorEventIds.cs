@@ -6,9 +6,11 @@ namespace IceRpc.Logger;
 public enum LoggerInterceptorEventIds
 {
     /// <summary>The invocation of the request failed with an exception.</summary>
-    InvokeException = IceRpc.Internal.BaseEventIds.LoggerInterceptor,
+    InvokeException,
+
     /// <summary>Received a response.</summary>
     ReceivedResponse,
+
     /// <summary>A request is being sent.</summary>
     SendingRequest
 }

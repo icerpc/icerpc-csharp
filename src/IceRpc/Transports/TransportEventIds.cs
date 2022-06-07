@@ -6,7 +6,7 @@ namespace IceRpc.Transports
     public enum TransportEventIds
     {
         /// <summary>The listener failed to accept a connection.</summary>
-        ListenerAcceptFailed,
+        ListenerAcceptFailed = IceRpc.Internal.BaseEventIds.Transport,
 
         /// <summary>The listener starts listening for new connections.</summary>
         ListenerCreated,
@@ -24,7 +24,7 @@ namespace IceRpc.Transports
         MultiplexedStreamWrite,
 
         /// <summary>Connect on a network connection succeeded.</summary>
-        NetworkConnectionConnect = IceRpc.Internal.BaseEventIds.Transport,
+        NetworkConnectionConnect,
 
         /// <summary>Connect on a network connection failed.</summary>
         NetworkConnectionConnectFailed,

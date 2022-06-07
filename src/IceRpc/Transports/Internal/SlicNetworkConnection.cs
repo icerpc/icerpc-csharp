@@ -17,12 +17,19 @@ namespace IceRpc.Transports.Internal
         public bool KeepAlive { get; set; }
 
         internal bool IsAborted => _exception != null;
+
         internal bool IsServer { get; }
+
         internal int MinimumSegmentSize { get; }
+
         internal int PauseWriterThreshold { get; }
+
         internal int PeerPacketMaxSize { get; private set; }
+
         internal int PeerPauseWriterThreshold { get; private set; }
+
         internal MemoryPool<byte> Pool { get; }
+
         internal int ResumeWriterThreshold { get; }
 
         private readonly AsyncQueue<IMultiplexedStream> _acceptStreamQueue = new();
@@ -243,11 +250,7 @@ namespace IceRpc.Transports.Internal
             // Setup a timer to check for the connection idle time every IdleTimeout / 2 period.
             if (_idleTimeout != TimeSpan.MaxValue && _idleTimeout != Timeout.InfiniteTimeSpan)
             {
-                _timer = new Timer(
-                    value => Monitor(),
-                    null,
-                    _idleTimeout / 2,
-                    _idleTimeout / 2);
+                _timer = new Timer(_ => Monitor(), null, _idleTimeout / 2, _idleTimeout / 2);
             }
 
             // Start a task to read frames from the network connection.
@@ -604,7 +607,7 @@ namespace IceRpc.Transports.Internal
             {
                 // Abort the connection if there was no activity on the simple network connection for longer than the
                 // idle timeout.
-                Abort(new ConnectionAbortedException("connection timed out"));
+                Abort(new ConnectionAbortedException("idle connection"));
             }
             else if (!IsServer && idleTime > _idleTimeout / 4 && KeepAlive)
             {
@@ -643,7 +646,9 @@ namespace IceRpc.Transports.Internal
                     }
                     case FrameType.Ping:
                     {
-                        break; // Nothing to do.
+                        // Send back a pong frame to let the peer know that we're still alive.
+                        ValueTask _ = SendFrameAsync(stream: null, FrameType.Pong, null, default);
+                        break;
                     }
                     case FrameType.Stream:
                     case FrameType.StreamLast:

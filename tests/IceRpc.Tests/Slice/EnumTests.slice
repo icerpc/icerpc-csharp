@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Slice::Tests;
+module IceRpc::Tests::Slice;
 
 enum MyEnum
 {
@@ -30,4 +30,11 @@ enum MyEnumWithCustomEnumerators
     E2 = 4,
     E3 = 8,
     E4 = 16,
+}
+
+interface EnumOperatons
+{
+    opCheckedEnumSeq(p1: sequence<MyEnum>);
+    opCheckedEnumWithFixedLengthSeq(p1: sequence<MyFixedLengthEnum>);
+    opUncheckedEnumSeq(p1: sequence<MyUncheckedEnum>);
 }

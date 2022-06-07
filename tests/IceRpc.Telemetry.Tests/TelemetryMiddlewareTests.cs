@@ -2,7 +2,7 @@
 
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
-using IceRpc.Tests;
+using IceRpc.Tests.Common;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.Buffers;
@@ -28,7 +28,7 @@ public sealed class TelemetryMiddlewareTests
         // Add a mock activity listener that allows the activity source to create the dispatch activity.
         using var activitySource = new ActivitySource("Test Activity Source");
         using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
-        var sut = new TelemetryMiddleware(dispatcher, activitySource, NullLoggerFactory.Instance);
+        var sut = new TelemetryMiddleware(dispatcher, activitySource);
 
         var request = new IncomingRequest(InvalidConnection.IceRpc)
         {
@@ -92,7 +92,7 @@ public sealed class TelemetryMiddlewareTests
         // Add a mock activity listener that allows the activity source to create the dispatch activity.
         using var activitySource = new ActivitySource("Test Activity Source");
         using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
-        var sut = new TelemetryMiddleware(dispatcher, activitySource, NullLoggerFactory.Instance);
+        var sut = new TelemetryMiddleware(dispatcher, activitySource);
 
         // Create an incoming request that carries the encoded trace context
         var request = new IncomingRequest(InvalidConnection.IceRpc)
@@ -136,7 +136,7 @@ public sealed class TelemetryMiddlewareTests
         // Add a mock activity listener that allows the activity source to create the dispatch activity.
         using var activitySource = new ActivitySource("Test Activity Source");
         using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
-        var sut = new TelemetryMiddleware(dispatcher, activitySource, NullLoggerFactory.Instance);
+        var sut = new TelemetryMiddleware(dispatcher, activitySource);
 
         // Create an incoming request that carries an empty trace context field
         var request = new IncomingRequest(InvalidConnection.IceRpc)

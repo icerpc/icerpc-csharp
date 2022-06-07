@@ -47,7 +47,7 @@ namespace IceRpc.Transports.Internal
             ILogger logger) =>
             new LogMultiplexedNetworkConnectionDecorator(decoratee, endpoint, isServer, logger);
 
-        private LogMultiplexedNetworkConnectionDecorator(
+        internal LogMultiplexedNetworkConnectionDecorator(
             IMultiplexedNetworkConnection decoratee,
             Endpoint endpoint,
             bool isServer,
@@ -58,10 +58,15 @@ namespace IceRpc.Transports.Internal
     internal sealed class LogMultiplexedStreamDecorator : IMultiplexedStream
     {
         public long Id => _decoratee.Id;
+
         public PipeReader Input => _input ??= new LogMultiplexedStreamPipeReader(_decoratee.Input, this, _logger);
+
         public bool IsBidirectional => _decoratee.IsBidirectional;
+
         public bool IsRemote => _decoratee.IsRemote;
+
         public bool IsStarted => _decoratee.IsStarted;
+
         public PipeWriter Output => _output ??= new LogMultiplexedStreamPipeWriter(_decoratee.Output, this, _logger);
 
         private readonly IMultiplexedStream _decoratee;

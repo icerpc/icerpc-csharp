@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Slice::TypeIdAttributeTestNamespace
+module IceRpc::Tests::Slice::TypeIdAttributeTestNamespace
 {
     interface MyInterface {}
     exception MyException {}

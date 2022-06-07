@@ -1,12 +1,12 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
-using IceRpc.Internal;
 using IceRpc.Retry.Internal;
 using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 
 namespace IceRpc.Retry;
 
@@ -27,7 +27,7 @@ public class RetryInterceptor : IInvoker
     {
         _next = next;
         _options = options;
-        _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc");
+        _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc.Retry");
     }
 
     /// <inheritdoc/>
@@ -82,7 +82,7 @@ public class RetryInterceptor : IInvoker
                     {
                         // NoEndpointException is always considered non-retryable; it typically occurs because we
                         // removed endpoints from endpoinFeature.
-                        return response ?? throw ExceptionUtil.Throw(exception ?? ex);
+                        return response ?? throw RethrowException(exception ?? ex);
                     }
                     catch (OperationCanceledException)
                     {
@@ -151,12 +151,26 @@ public class RetryInterceptor : IInvoker
 
                 Debug.Assert(response != null || exception != null);
                 Debug.Assert(response == null || response.ResultType != ResultType.Success);
-                return response ?? throw ExceptionUtil.Throw(exception!);
+                return response ?? throw RethrowException(exception!);
             }
             finally
             {
+                // We want to leave request.Payload in a correct, usable state when we exit. Usually request.Payload
+                // will get completed by the caller, and we want this Complete call to flow through to the decoratee.
+                // If the payload is still readable (e.g. we received a non-retryable exception before reading anything
+                // or just after a Reset), an upstream interceptor may want to attempt another call that reads this
+                // payload and the now non-resettable decorator will provide the correct behavior. The decorator ensures
+                // that calls to AdvanceTo on the decoratee always receive ever-increasing examined values even after
+                // one or more Resets.
                 decorator.IsResettable = false;
             }
         }
+    }
+
+    private static Exception RethrowException(Exception ex)
+    {
+        ExceptionDispatchInfo.Throw(ex);
+        Debug.Assert(false);
+        return ex;
     }
 }

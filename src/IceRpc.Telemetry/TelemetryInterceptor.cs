@@ -14,21 +14,15 @@ namespace IceRpc.Telemetry;
 public class TelemetryInterceptor : IInvoker
 {
     private readonly IInvoker _next;
-    private readonly ILogger _logger;
     private readonly ActivitySource _activitySource;
 
     /// <summary>Constructs a telemetry interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
     /// <param name="activitySource">The <see cref="ActivitySource"/> used to start the request activity.</param>
-    /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
-    public TelemetryInterceptor(
-        IInvoker next,
-        ActivitySource activitySource,
-        ILoggerFactory loggerFactory)
+    public TelemetryInterceptor(IInvoker next, ActivitySource activitySource)
     {
         _next = next;
         _activitySource = activitySource;
-        _logger = loggerFactory.CreateLogger("IceRpc");
     }
 
     /// <inheritdoc/>
@@ -45,7 +39,8 @@ public class TelemetryInterceptor : IInvoker
             // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md#common-remote-procedure-call-conventions
             activity.Start();
 
-            request.Fields = request.Fields.With(RequestFieldKey.TraceContext,
+            request.Fields = request.Fields.With(
+                RequestFieldKey.TraceContext,
                 (ref SliceEncoder encoder) => WriteActivityContext(ref encoder, activity));
             return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
         }

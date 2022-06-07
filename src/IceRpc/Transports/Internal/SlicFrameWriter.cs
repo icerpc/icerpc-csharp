@@ -14,7 +14,7 @@ namespace IceRpc.Transports.Internal
             FrameType frameType,
             long? streamId,
             EncodeAction? encodeAction,
-            CancellationToken _)
+            CancellationToken cancel)
         {
             _writer.EncodeFrame(frameType, streamId, encodeAction);
 

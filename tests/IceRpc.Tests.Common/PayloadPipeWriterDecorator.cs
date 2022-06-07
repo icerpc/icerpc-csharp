@@ -2,7 +2,7 @@
 
 using System.IO.Pipelines;
 
-namespace IceRpc.Tests;
+namespace IceRpc.Tests.Common;
 
 /// <summary>A payload pipe writer decorator to check if the complete method is called.</summary>
 public sealed class PayloadPipeWriterDecorator : PipeWriter

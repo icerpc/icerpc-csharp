@@ -2,6 +2,8 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
+using IceRpc.Tests.Common;
+using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
@@ -54,7 +56,7 @@ public sealed class IceProtocolConnectionTests
         IServiceCollection services = new ServiceCollection().AddProtocolTest(Protocol.Ice);
 
         services
-            .AddOptions<ClientConnectionOptions>()
+            .AddOptions<ConnectionOptions>()
             .Configure(options => options.IdleTimeout =
                 idleOnClient ? TimeSpan.FromMilliseconds(500) : TimeSpan.MaxValue);
 
@@ -63,14 +65,14 @@ public sealed class IceProtocolConnectionTests
             .Configure(options => options.ConnectionOptions.IdleTimeout =
                 idleOnClient ? TimeSpan.MaxValue : TimeSpan.FromMilliseconds(500));
 
-        await using var serviceProvider = services.BuildServiceProvider();
+        await using var provider = services.BuildServiceProvider();
 
-        using var clientServerProtocolConnection =
-            await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.Ice);
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
         bool shutdownInitiated = false;
-        clientServerProtocolConnection.Client.InitiateShutdown = _ => shutdownInitiated = true;
-        clientServerProtocolConnection.Server.InitiateShutdown = _ => shutdownInitiated = true;
+        sut.Client.InitiateShutdown = _ => shutdownInitiated = true;
+        sut.Server.InitiateShutdown = _ => shutdownInitiated = true;
 
         // Act
         await Task.Delay(TimeSpan.FromSeconds(2));
@@ -122,16 +124,15 @@ public sealed class IceProtocolConnectionTests
             }
         });
 
-        var services = new ServiceCollection().AddProtocolTest(Protocol.Ice);
+        var services = new ServiceCollection().AddProtocolTest(Protocol.Ice, dispatcher);
         services.AddOptions<ServerOptions>().Configure(options =>
         {
             options.ConnectionOptions.Dispatcher = dispatcher;
             options.ConnectionOptions.MaxIceConcurrentDispatches = maxConcurrentDispatches;
         });
-
-        await using var serviceProvider = services.BuildServiceProvider();
-
-        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.Ice);
+        await using var provider = services.BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
         var request = new OutgoingRequest(new Proxy(Protocol.Ice));
         var responseTasks = new List<Task<IncomingResponse>>();
@@ -178,15 +179,15 @@ public sealed class IceProtocolConnectionTests
             });
 
         var services = new ServiceCollection().AddProtocolTest(Protocol.Ice);
-        services.AddOptions<ServerOptions>().Configure(
-            options =>
-            {
-                options.ConnectionOptions.Dispatcher = dispatcher;
-                options.ConnectionOptions.MaxIceConcurrentDispatches = 1;
-            });
-        await using var serviceProvider = services.BuildServiceProvider();
+        services.AddOptions<ServerOptions>().Configure(options =>
+        {
+            options.ConnectionOptions.Dispatcher = dispatcher;
+            options.ConnectionOptions.MaxIceConcurrentDispatches = 1;
+        });
+        await using var provider = services.BuildServiceProvider(validateScopes: true);
 
-        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.Ice);
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
         // Perform two invocations. The first blocks so the second won't be dispatched. It will block on the dispatch
         // semaphore.
@@ -216,11 +217,12 @@ public sealed class IceProtocolConnectionTests
         var dispatcher = new InlineDispatcher(
             (request, cancel) => throw new DispatchException(errorCode: errorCode));
 
-        await using var serviceProvider = new ServiceCollection()
+        await using var provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
-        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.Ice);
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
         var request = new OutgoingRequest(proxy);
 
         // Act
@@ -243,11 +245,12 @@ public sealed class IceProtocolConnectionTests
     {
         var dispatcher = new InlineDispatcher((request, cancel) => throw thrownException);
 
-        await using var serviceProvider = new ServiceCollection()
+        await using var provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
-            .BuildServiceProvider();
+            .BuildServiceProvider(validateScopes: true);
 
-        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.Ice);
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
         var request = new OutgoingRequest(new Proxy(Protocol.Ice));
 
         // Act
@@ -268,7 +271,7 @@ public sealed class IceProtocolConnectionTests
             .AddProtocolTest(Protocol.Ice, ConnectionOptions.DefaultDispatcher);
 
         services
-            .AddOptions<ClientConnectionOptions>()
+            .AddOptions<ConnectionOptions>()
             .Configure(options =>
             {
                 options.KeepAlive = keepAliveOnClient;
@@ -283,14 +286,14 @@ public sealed class IceProtocolConnectionTests
                 options.ConnectionOptions.IdleTimeout = TimeSpan.FromMilliseconds(500);
             });
 
-        await using var serviceProvider = services.BuildServiceProvider();
+        await using var provider = services.BuildServiceProvider();
 
-        using var clientServerProtocolConnection =
-            await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.Ice);
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
         bool shutdownInitiated = false;
-        clientServerProtocolConnection.Client.InitiateShutdown = _ => shutdownInitiated = true;
-        clientServerProtocolConnection.Server.InitiateShutdown = _ => shutdownInitiated = true;
+        sut.Client.InitiateShutdown = _ => shutdownInitiated = true;
+        sut.Server.InitiateShutdown = _ => shutdownInitiated = true;
 
         // Act
         await Task.Delay(TimeSpan.FromSeconds(2));
@@ -308,7 +311,7 @@ public sealed class IceProtocolConnectionTests
         IServiceCollection services = new ServiceCollection();
 
         services
-            .AddOptions<ClientConnectionOptions>()
+            .AddOptions<ConnectionOptions>()
             .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
 
         services
@@ -322,20 +325,18 @@ public sealed class IceProtocolConnectionTests
             return new OutgoingResponse(request);
         });
 
-        await using ServiceProvider serviceProvider = services
+        await using ServiceProvider provider = services
             .AddProtocolTest(Protocol.Ice, dispatcher)
             .BuildServiceProvider();
 
-        using var clientServerProtocolConnection =
-            await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.Ice);
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
         bool shutdownInitiated = false;
-        clientServerProtocolConnection.Client.InitiateShutdown = _ => shutdownInitiated = true;
-        clientServerProtocolConnection.Server.InitiateShutdown = _ => shutdownInitiated = true;
+        sut.Client.InitiateShutdown = _ => shutdownInitiated = true;
+        sut.Server.InitiateShutdown = _ => shutdownInitiated = true;
 
-        _ = clientServerProtocolConnection.Client.InvokeAsync(
-            new OutgoingRequest(new Proxy(Protocol.Ice)),
-            InvalidConnection.Ice);
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.Ice)), InvalidConnection.Ice);
         await start.WaitAsync();
 
         // Act
@@ -359,14 +360,15 @@ public sealed class IceProtocolConnectionTests
                     PayloadStream = payloadStreamDecorator
                 }));
 
-        await using var serviceProvider = new ServiceCollection()
+        await using var provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
-            .BuildServiceProvider();
-        using var clientServerProtocolConnection =
-            await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.Ice);
+            .BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
         // Act
-        _ = clientServerProtocolConnection.Client.InvokeAsync(
+        _ = sut.Client.InvokeAsync(
             new OutgoingRequest(new Proxy(Protocol.Ice)),
             InvalidConnection.Ice);
 
@@ -385,18 +387,19 @@ public sealed class IceProtocolConnectionTests
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
 
-        await using var serviceProvider = new ServiceCollection()
-            .AddProtocolTest(
-                Protocol.Ice,
-                new InlineDispatcher(async (request, cancel) =>
-                {
-                    start.Release();
-                    await hold.WaitAsync(cancel);
-                    return new OutgoingResponse(request);
-                }))
-            .BuildServiceProvider();
+        var dispatcher = new InlineDispatcher(async (request, cancel) =>
+        {
+            start.Release();
+            await hold.WaitAsync(cancel);
+            return new OutgoingResponse(request);
+        });
 
-        using var sut = await serviceProvider.GetClientServerProtocolConnectionAsync(Protocol.Ice);
+        await using var provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
         sut.Server.InitiateShutdown = message =>
             sut.Server.ShutdownAsync("");
