@@ -7,7 +7,6 @@
         <AnalysisMode>AllEnabledByDefault</AnalysisMode>
         <PackageVersion>$(IceRpcVersion)</PackageVersion>
         <Authors>ZeroC</Authors>
-        <PackageId>icerpc</PackageId>
         <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/zeroc-ice/icerpc-csharp</PackageProjectUrl>
         <PackageIcon>logo.png</PackageIcon>

@@ -7,7 +7,6 @@
         <AnalysisMode>AllEnabledByDefault</AnalysisMode>
         <PackageVersion>$(IceRpcVersion)</PackageVersion>
         <Authors>ZeroC</Authors>
-        <PackageId>icerpc.extensions.dependencyinjection</PackageId>
         <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/zeroc-ice/icerpc-csharp</PackageProjectUrl>
         <PackageIcon>logo.png</PackageIcon>
@@ -18,7 +17,7 @@
         <PackageTags>IceRPC</PackageTags>
     </PropertyGroup>
     <ItemGroup>
-      <ProjectReference Include="..\IceRpc\IceRpc.csproj" />
+        <ProjectReference Include="..\IceRpc\IceRpc.csproj" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
         <PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1" PrivateAssets="All" />
