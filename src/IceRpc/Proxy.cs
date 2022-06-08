@@ -487,7 +487,7 @@ namespace IceRpc
             return hash.ToHashCode();
         }
 
-        /// <summary>Converts this proxy into a string using the default URI format.</summary>
+        /// <summary>Converts this proxy into a string.</summary>
         public override string ToString()
         {
             if (Protocol == Protocol.Relative)
