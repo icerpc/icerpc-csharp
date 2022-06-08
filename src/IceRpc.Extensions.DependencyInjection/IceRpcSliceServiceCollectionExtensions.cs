@@ -23,17 +23,12 @@ public static class IceRpcSliceServiceCollectionExtensions
         services
             .AddSingleton<TPrx>(provider =>
             {
-               IInvoker invoker = provider.GetService<IInvoker>() ?? Proxy.DefaultInvoker;
+                IInvoker invoker = provider.GetService<IInvoker>() ?? Proxy.DefaultInvoker;
                 Proxy proxy;
                 if (proxyString.StartsWith('/'))
                 {
-                    IClientConnection? connection = provider.GetRequiredService<IClientConnection>();
-                    proxy = new Proxy(connection.Protocol)
-                    {
-                        Path = proxyString,
-                        Connection = connection,
-                        Invoker = invoker,
-                    };
+                    IClientConnection connection = provider.GetRequiredService<IClientConnection>();
+                    proxy = Proxy.FromConnection(connection, proxyString, invoker);
                 }
                 else
                 {
