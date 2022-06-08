@@ -3,7 +3,6 @@
 namespace IceRpc;
 
 /// <summary>The state of an IceRpc connection.</summary>
-// TODO: we should either remove this enum entirely or split it between ClientConnectionState and ServerConnectionState.
 public enum ConnectionState : byte
 {
     /// <summary>The connection is not connected. If will be connected on the first invocation or when <see
