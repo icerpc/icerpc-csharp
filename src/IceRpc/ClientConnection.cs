@@ -59,11 +59,11 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     private IProtocolConnection? _protocolConnection;
     private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
     private ConnectionState _state = ConnectionState.NotConnected;
+    private readonly CancellationTokenSource _shutdownCancellationSource = new();
 
     // The state task is assigned when the state is updated to Connecting or ShuttingDown. It's completed once the
     // state update completes. It's protected with _mutex.
     private Task? _stateTask;
-    private readonly CancellationTokenSource _shutdownCancellationSource = new();
 
     /// <summary>Constructs a client connection.</summary>
     /// <param name="options">The connection options.</param>
@@ -409,7 +409,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
     /// <summary>Closes the connection. Resources allocated for the connection are freed.</summary>
     /// <param name="exception">The optional exception responsible for the connection closure. A <c>null</c>
-    /// exception indicates a gracefull connection closure.</param>
+    /// exception indicates a graceful connection closure.</param>
     /// <param name="isResumable">If <c>true</c> and the connection is resumable, the connection state will be
     /// <see cref="ConnectionState.NotConnected"/> once this operation returns. Otherwise, it will the
     /// <see cref="ConnectionState.Closed"/> terminal state.</param>
