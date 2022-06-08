@@ -10,29 +10,6 @@ using System.Net.Security;
 
 namespace IceRpc
 {
-    /// <summary>The state of an IceRpc connection.</summary>
-    public enum ConnectionState : byte
-    {
-        /// <summary>The connection is not connected. If will be connected on the first invocation or when <see
-        /// cref="Connection.ConnectAsync(CancellationToken)"/> is called. A connection is in this state after creation
-        /// or if it's closed and resumable.</summary>
-        NotConnected,
-
-        /// <summary>The connection establishment is in progress.</summary>
-        Connecting,
-
-        /// <summary>The connection is active and can send and receive messages.</summary>
-        Active,
-
-        /// <summary>The connection is being gracefully shutdown. If the connection is resumable and the shutdown is
-        /// initiated by the peer, the connection will switch to the <see cref="NotConnected"/> state once the graceful
-        /// shutdown completes. It will switch to the <see cref="Closed"/> state otherwise.</summary>
-        ShuttingDown,
-
-        /// <summary>The connection is closed and it can't be resumed.</summary>
-        Closed
-    }
-
     /// <summary>Represents a connection used to send and receive requests and responses.</summary>
     public abstract class Connection : IConnection, IAsyncDisposable
     {
@@ -67,7 +44,6 @@ namespace IceRpc
 
         private readonly bool _isResumable;
         private readonly bool _isServer;
-        private readonly ILoggerFactory _loggerFactory;
 
         // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
         private readonly object _mutex = new();
@@ -85,9 +61,6 @@ namespace IceRpc
         // state update completes. It's protected with _mutex.
         private Task? _stateTask;
 
-        // TODO: move to the protocol implementation (#906)
-        private Timer? _timer;
-
         /// <summary>Constructs a client connection.</summary>
         /// <param name="options">The connection options.</param>
         /// <param name="isResumable">Specifies if the connection can be resumed after being closed.</param>
@@ -102,7 +75,6 @@ namespace IceRpc
             // TODO: replace _options by "splatted" properties.
             _options = options;
             _isResumable = isResumable;
-            _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
         }
 
         /// <summary>Aborts the connection. This methods switches the connection state to <see
@@ -190,100 +162,6 @@ namespace IceRpc
         /// <inheritdoc/>
         public override string ToString() => Endpoint.ToString();
 
-        /// <summary>Establishes the client connection.</summary>
-        /// <param name="multiplexedClientTransport">The transport used to create icerpc protocol connections.</param>
-        /// <param name="simpleClientTransport">The transport used to create ice protocol connections.</param>
-        /// <param name="authenticationOptions">The SSL client authentication options.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A task that indicates the completion of the connect operation.</returns>
-        /// <exception cref="ConnectionClosedException">Thrown if the connection is already closed.</exception>
-        protected async Task ConnectAsync(
-            IClientTransport<IMultiplexedNetworkConnection> multiplexedClientTransport,
-            IClientTransport<ISimpleNetworkConnection> simpleClientTransport,
-            SslClientAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel = default)
-        {
-            // Loop until the connection is active or connection establishment fails.
-            while (true)
-            {
-                Task? waitTask = null;
-                lock (_mutex)
-                {
-                    if (_state == ConnectionState.NotConnected)
-                    {
-                        Debug.Assert(_protocolConnection == null);
-
-                        _stateTask = Protocol == Protocol.Ice ?
-                            PerformConnectAsync(
-                                simpleClientTransport,
-                                IceProtocol.Instance.ProtocolConnectionFactory,
-                                LogSimpleNetworkConnectionDecorator.Decorate) :
-                            PerformConnectAsync(
-                                multiplexedClientTransport,
-                                IceRpcProtocol.Instance.ProtocolConnectionFactory,
-                                LogMultiplexedNetworkConnectionDecorator.Decorate);
-
-                        Debug.Assert(_state == ConnectionState.Connecting);
-                    }
-                    else if (_state == ConnectionState.Active)
-                    {
-                        return;
-                    }
-                    else
-                    {
-                        // ShuttingDown or Closed
-                        throw new ConnectionClosedException();
-                    }
-
-                    Debug.Assert(_stateTask != null);
-                    waitTask = _stateTask;
-                }
-
-                await waitTask.WaitAsync(cancel).ConfigureAwait(false);
-            }
-
-            Task PerformConnectAsync<T>(
-                IClientTransport<T> clientTransport,
-                IProtocolConnectionFactory<T> protocolConnectionFactory,
-                LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory)
-                    where T : INetworkConnection
-            {
-                // This is the composition root of client Connections, where we install log decorators when logging is
-                // enabled.
-
-                ILogger logger = _loggerFactory.CreateLogger("IceRpc.Client");
-
-                T networkConnection = clientTransport.CreateConnection(
-                    Endpoint,
-                    authenticationOptions,
-                    logger);
-
-                Action<Connection, Exception>? onClose = null;
-
-                // TODO: log level
-                if (logger.IsEnabled(LogLevel.Error))
-                {
-                    networkConnection = logDecoratorFactory(networkConnection, Endpoint, isServer: false, logger);
-
-                    protocolConnectionFactory =
-                        new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, logger);
-
-                    onClose = (connection, exception) =>
-                    {
-                        if (NetworkConnectionInformation is NetworkConnectionInformation connectionInformation)
-                        {
-                            using IDisposable scope = logger.StartClientConnectionScope(connectionInformation);
-                            logger.LogConnectionClosedReason(exception);
-                        }
-                    };
-                }
-
-                _state = ConnectionState.Connecting;
-
-                return ConnectAsync(networkConnection, protocolConnectionFactory, onClose);
-            }
-        }
-
         /// <summary>Constructs a server connection from an accepted network connection.</summary>
         private protected Connection(Endpoint endpoint, ConnectionOptions options, ILoggerFactory? loggerFactory)
         {
@@ -293,7 +171,6 @@ namespace IceRpc
             // TODO: "splat" _options
             _options = options;
             _state = ConnectionState.Connecting;
-            _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
         }
 
         /// <summary>Establishes a connection. This method is used for both client and server connections.</summary>
@@ -446,12 +323,6 @@ namespace IceRpc
 
                     _protocolConnection.Dispose();
                     _protocolConnection = null;
-                }
-
-                if (_timer != null)
-                {
-                    _timer.Dispose();
-                    _timer = null;
                 }
 
                 // A connection can be resumed if it's configured to be resumable and the operation that closed the

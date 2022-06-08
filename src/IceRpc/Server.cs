@@ -162,7 +162,7 @@ namespace IceRpc
                 _listener = listener;
                 Endpoint = listener.Endpoint;
 
-                Action<Connection, Exception>? onClose = null;
+                Action<IConnection, Exception>? onClose = null;
 
                 // TODO: log level
                 if (logger.IsEnabled(LogLevel.Error))
@@ -190,7 +190,7 @@ namespace IceRpc
             async Task AcceptAsync<T>(
                 IListener<T> listener,
                 IProtocolConnectionFactory<T> protocolConnectionFactory,
-                Action<Connection, Exception>? onClose)
+                Action<IConnection, Exception>? onClose)
                     where T : INetworkConnection
             {
                 // The common connection options, set through ServerOptions.
@@ -246,13 +246,13 @@ namespace IceRpc
                 }
             }
 
-            void RemoveOnClose(Connection connection, Exception exception)
+            void RemoveOnClose(IConnection connection, Exception exception)
             {
                 lock (_mutex)
                 {
                     if (_shutdownTask == null)
                     {
-                        _connections.Remove(connection);
+                        _connections.Remove((ServerConnection)connection);
                     }
                 }
             }
