@@ -81,16 +81,19 @@ public sealed class ProtocolConnectionTests
         services
             .AddOptions<ConnectionOptions>()
             .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
+        services
+            .AddOptions<ServerOptions>()
+            .Configure(options => options.ConnectionOptions.IdleTimeout = TimeSpan.FromMilliseconds(500));
 
         await using var provider = services.BuildServiceProvider();
 
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        bool isClientIdle = false;
-        bool isServerIdle = false;
-        sut.Client.OnIdle = () => isClientIdle = true;
-        sut.Server.OnIdle = () => isServerIdle = true;
+        bool isClientIdleCalled = false;
+        bool isServerIdleCalled = false;
+        sut.Client.OnIdle = () => isClientIdleCalled = true;
+        sut.Server.OnIdle = () => isServerIdleCalled = true;
 
         // Act
         await Task.Delay(TimeSpan.FromSeconds(2));
@@ -98,8 +101,8 @@ public sealed class ProtocolConnectionTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(isClientIdle, Is.True);
-            Assert.That(isServerIdle, Is.True);
+            Assert.That(isClientIdleCalled, Is.True);
+            Assert.That(isServerIdleCalled, Is.True);
         });
     }
 
