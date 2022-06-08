@@ -4,9 +4,9 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Logger;
 
-/// <summary>An interceptor that logs request and response messages using a logger with "IceRpc" category. When using
-/// in conjunction with the telemetry interceptor, it is best to install the logger interceptor after the telemetry
-/// interceptor, this way the logger can include the scopes created by the telemetry activities.</summary>
+/// <summary>An interceptor that logs request and response messages using a logger with the "IceRpc" category. When
+/// used in conjunction with the telemetry interceptor, install the logger interceptor after the telemetry interceptor,
+/// this way the logger can include the scopes created by the telemetry activities.</summary>
 public class LoggerInterceptor : IInvoker
 {
     private readonly ILogger _logger;
