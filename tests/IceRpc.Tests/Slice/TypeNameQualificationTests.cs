@@ -18,10 +18,11 @@ public class TypeNameQualificationTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new TypeNameQualification())
+            .AddIceRpcPrx<ITypeNameQualificationOperationsPrx, TypeNameQualificationOperationsPrx>()
             .BuildServiceProvider(validateScopes: true);
 
+        ITypeNameQualificationOperationsPrx prx = provider.GetRequiredService<ITypeNameQualificationOperationsPrx>();
         provider.GetRequiredService<Server>().Listen();
-        var prx = TypeNameQualificationOperationsPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
 
         var r = await prx.OpWithTypeNamesDefinedInMultipleModulesAsync(new Inner.S(10));
 
