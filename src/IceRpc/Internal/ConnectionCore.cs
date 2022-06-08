@@ -182,7 +182,7 @@ internal sealed class ConnectionCore
         IProtocolConnectionFactory<T> protocolConnectionFactory,
         LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory,
         ILoggerFactory loggerFactory,
-        SslClientAuthenticationOptions? authenticationOptions,
+        SslClientAuthenticationOptions? clientAuthenticationOptions,
         CancellationToken cancel) where T : INetworkConnection
     {
         // Loop until the connection is active or connection establishment fails.
@@ -195,9 +195,42 @@ internal sealed class ConnectionCore
                 {
                     Debug.Assert(_protocolConnection == null);
 
-                    _stateTask = PerformConnectAsync();
+                    // This is the composition root of client Connections, where we install log decorators when logging
+                    // is enabled.
 
-                    Debug.Assert(_state == ConnectionState.Connecting);
+                    ILogger logger = loggerFactory.CreateLogger("IceRpc.Client");
+
+                    T networkConnection = clientTransport.CreateConnection(
+                        clientConnection.RemoteEndpoint,
+                        clientAuthenticationOptions,
+                        logger);
+
+                    Action<IConnection, Exception>? onClose = null;
+
+                    // TODO: log level
+                    if (logger.IsEnabled(LogLevel.Error))
+                    {
+                        networkConnection = logDecoratorFactory(
+                            networkConnection,
+                            clientConnection.RemoteEndpoint,
+                            isServer: false,
+                            logger);
+
+                        protocolConnectionFactory =
+                            new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, logger);
+
+                        onClose = (connection, exception) =>
+                        {
+                            if (NetworkConnectionInformation is NetworkConnectionInformation connectionInformation)
+                            {
+                                using IDisposable scope = logger.StartClientConnectionScope(connectionInformation);
+                                logger.LogConnectionClosedReason(exception);
+                            }
+                        };
+                    }
+
+                    _state = ConnectionState.Connecting;
+                    _stateTask = ConnectAsync(clientConnection, networkConnection, protocolConnectionFactory, onClose);
                 }
                 else if (_state == ConnectionState.Active)
                 {
@@ -214,47 +247,6 @@ internal sealed class ConnectionCore
             }
 
             await waitTask.WaitAsync(cancel).ConfigureAwait(false);
-        }
-
-        Task PerformConnectAsync()
-        {
-            // This is the composition root of client Connections, where we install log decorators when logging is
-            // enabled.
-
-            ILogger logger = loggerFactory.CreateLogger("IceRpc.Client");
-
-            T networkConnection = clientTransport.CreateConnection(
-                clientConnection.RemoteEndpoint,
-                authenticationOptions,
-                logger);
-
-            Action<IConnection, Exception>? onClose = null;
-
-            // TODO: log level
-            if (logger.IsEnabled(LogLevel.Error))
-            {
-                networkConnection = logDecoratorFactory(
-                    networkConnection,
-                    clientConnection.RemoteEndpoint,
-                    isServer: false,
-                    logger);
-
-                protocolConnectionFactory =
-                    new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, logger);
-
-                onClose = (connection, exception) =>
-                {
-                    if (NetworkConnectionInformation is NetworkConnectionInformation connectionInformation)
-                    {
-                        using IDisposable scope = logger.StartClientConnectionScope(connectionInformation);
-                        logger.LogConnectionClosedReason(exception);
-                    }
-                };
-            }
-
-            _state = ConnectionState.Connecting;
-
-            return ConnectAsync(clientConnection, networkConnection, protocolConnectionFactory, onClose);
         }
     }
 
