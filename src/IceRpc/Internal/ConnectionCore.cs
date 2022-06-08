@@ -6,7 +6,7 @@ using System.Diagnostics;
 namespace IceRpc.Internal;
 
 /// <summary>Code common to client and server connections.</summary>
-internal class CommonConnection
+internal class ConnectionCore
 {
     internal bool IsInvocable => State < ConnectionState.ShuttingDown;
 
@@ -24,8 +24,6 @@ internal class CommonConnection
         }
     }
 
-    internal IProtocolConnection? ProtocolConnection;
-
     private readonly CancellationTokenSource _connectCancellationSource = new();
 
     private readonly bool _isResumable;
@@ -40,6 +38,8 @@ internal class CommonConnection
     // TODO: replace this field by individual fields
     private readonly ConnectionOptions _options;
 
+    private IProtocolConnection? _protocolConnection;
+
     private readonly CancellationTokenSource _shutdownCancellationSource = new();
 
     private ConnectionState _state = ConnectionState.NotConnected;
@@ -48,7 +48,7 @@ internal class CommonConnection
     // state update completes. It's protected with _mutex.
     private Task? _stateTask;
 
-    internal CommonConnection(ConnectionState state, bool isServer, ConnectionOptions options, bool isResumable)
+    internal ConnectionCore(ConnectionState state, bool isServer, ConnectionOptions options, bool isResumable)
     {
         _isServer = isServer;
         _isResumable = isResumable;
@@ -70,8 +70,7 @@ internal class CommonConnection
         IConnection connection,
         T networkConnection,
         IProtocolConnectionFactory<T> protocolConnectionFactory,
-        Action<IConnection, Exception>? onClose)
-            where T : INetworkConnection
+        Action<IConnection, Exception>? onClose) where T : INetworkConnection
     {
         using var connectTimeoutCancellationSource = new CancellationTokenSource(_options.ConnectTimeout);
         using var connectCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(
@@ -122,16 +121,16 @@ internal class CommonConnection
                 }
 
                 _stateTask = null;
-                ProtocolConnection = protocolConnection;
+                _protocolConnection = protocolConnection;
                 _onClose = onClose;
 
                 // Switch the connection to the ShuttingDown state as soon as the protocol receives a notification
                 // that peer initiated shutdown. This is in particular useful for the connection pool to not return
                 // a connection which is being shutdown.
-                ProtocolConnection.OnShutdown = message => InitiateShutdown(connection, message);
+                _protocolConnection.OnShutdown = message => InitiateShutdown(connection, message);
 
                 // Also initiate shutdown if the protocol connection is idle.
-                ProtocolConnection.OnIdle = () => InitiateShutdown(connection, "idle connection");
+                _protocolConnection.OnIdle = () => InitiateShutdown(connection, "idle connection");
 
                 // Start accepting requests. _protocolConnection might be updated before the task is ran so it's
                 // important to use protocolConnection here.
@@ -178,7 +177,7 @@ internal class CommonConnection
         {
             if (_state == ConnectionState.Active)
             {
-                return ProtocolConnection!;
+                return _protocolConnection!;
             }
             else if (_state > ConnectionState.Active)
             {
@@ -241,7 +240,7 @@ internal class CommonConnection
                 _state = ConnectionState.ShuttingDown;
                 _stateTask = ShutdownAsyncCore(
                     connection,
-                    ProtocolConnection!,
+                    _protocolConnection!,
                     message,
                     isResumable,
                     _shutdownCancellationSource.Token);
@@ -281,7 +280,7 @@ internal class CommonConnection
                 Debug.Assert(_state == ConnectionState.ShuttingDown);
                 _stateTask = ShutdownAsyncCore(
                     connection,
-                    ProtocolConnection!,
+                    _protocolConnection!,
                     message,
                     isResumable,
                     _shutdownCancellationSource.Token);
@@ -345,20 +344,20 @@ internal class CommonConnection
         {
             if (_state == ConnectionState.NotConnected ||
                 _state == ConnectionState.Closed ||
-                (protocolConnection != null && ProtocolConnection != protocolConnection))
+                (protocolConnection != null && _protocolConnection != protocolConnection))
             {
                 return;
             }
 
-            if (ProtocolConnection != null)
+            if (_protocolConnection != null)
             {
                 if (exception != null)
                 {
-                    ProtocolConnection.Abort(exception);
+                    _protocolConnection.Abort(exception);
                 }
 
-                ProtocolConnection.Dispose();
-                ProtocolConnection = null;
+                _protocolConnection.Dispose();
+                _protocolConnection = null;
             }
 
             // A connection can be resumed if it's configured to be resumable and the operation that closed the
@@ -401,7 +400,7 @@ internal class CommonConnection
                 _state = ConnectionState.ShuttingDown;
                 _stateTask = ShutdownAsyncCore(
                     connection,
-                    ProtocolConnection!,
+                    _protocolConnection!,
                     message,
                     isResumable: true,
                     _shutdownCancellationSource.Token);

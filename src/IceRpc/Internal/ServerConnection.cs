@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
-using System.Diagnostics;
 
 namespace IceRpc.Internal;
 
@@ -9,15 +8,15 @@ namespace IceRpc.Internal;
 internal class ServerConnection : IConnection, IAsyncDisposable
 {
     /// <inheritdoc/>
-    public bool IsInvocable => Common.IsInvocable;
+    public bool IsInvocable => Core.IsInvocable;
 
     /// <inheritdoc/>
-    public NetworkConnectionInformation? NetworkConnectionInformation => Common.NetworkConnectionInformation;
+    public NetworkConnectionInformation? NetworkConnectionInformation => Core.NetworkConnectionInformation;
 
     /// <inheritdoc/>
     public Protocol Protocol { get; }
 
-    internal CommonConnection Common { get; }
+    internal ConnectionCore Core { get; }
 
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
@@ -29,18 +28,18 @@ internal class ServerConnection : IConnection, IAsyncDisposable
 
     /// <inheritdoc/>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
-        Common.InvokeAsync(this, request, cancel);
+        Core.InvokeAsync(this, request, cancel);
 
     /// <summary>Constructs a server connection from an accepted network connection.</summary>
     internal ServerConnection(Protocol protocol, ConnectionOptions options)
     {
         Protocol = protocol;
-        Common = new CommonConnection(ConnectionState.Connecting, isServer: true, options, isResumable: false);
+        Core = new ConnectionCore(ConnectionState.Connecting, isServer: true, options, isResumable: false);
     }
 
     /// <summary>Aborts the connection. This method switches the connection state to <see
     /// cref="ConnectionState.Closed"/>.</summary>
-    internal void Abort() => Common.Abort(this);
+    internal void Abort() => Core.Abort(this);
 
     /// <summary>Establishes a connection.</summary>
     /// <param name="networkConnection">The underlying network connection.</param>
@@ -50,7 +49,7 @@ internal class ServerConnection : IConnection, IAsyncDisposable
         T networkConnection,
         IProtocolConnectionFactory<T> protocolConnectionFactory,
         Action<IConnection, Exception>? onClose) where T : INetworkConnection =>
-        Common.ConnectAsync(this, networkConnection, protocolConnectionFactory, onClose);
+        Core.ConnectAsync(this, networkConnection, protocolConnectionFactory, onClose);
 
     /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
     /// canceled. Shutdown cancellation can lead to a speedier shutdown if dispatch are cancelable.</summary>
@@ -62,5 +61,5 @@ internal class ServerConnection : IConnection, IAsyncDisposable
     /// <param name="message">The message transmitted to the peer (when using the IceRPC protocol).</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     internal Task ShutdownAsync(string message, CancellationToken cancel = default) =>
-        Common.ShutdownAsync(this, message, isResumable: false, cancel);
+        Core.ShutdownAsync(this, message, isResumable: false, cancel);
 }
