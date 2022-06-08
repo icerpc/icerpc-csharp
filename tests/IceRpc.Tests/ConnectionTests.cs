@@ -12,66 +12,6 @@ namespace IceRpc.Tests;
 [Parallelizable(ParallelScope.All)]
 public class ConnectionTests
 {
-    /// <summary>Verifies that a connection is closed after being idle.</summary>
-    [Test]
-    public async Task Close_on_idle(
-        [Values(true, false)] bool idleOnClient,
-        [Values("ice", "icerpc")] string protocol)
-    {
-        // Arrange
-        using var start = new SemaphoreSlim(0);
-        using var hold = new SemaphoreSlim(0);
-
-        IServiceCollection services = new ServiceCollection();
-
-        services
-            .AddOptions<TcpServerTransportOptions>()
-            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
-
-        services
-            .AddOptions<TcpClientTransportOptions>()
-            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
-
-        IConnection? serverConnection = null;
-        var dispatcher = new InlineDispatcher(async (request, cancel) =>
-        {
-            serverConnection = request.Connection;
-            start.Release();
-            await hold.WaitAsync(cancel);
-            return new OutgoingResponse(request);
-        });
-
-        var serverConnectionClosed = new TaskCompletionSource();
-        var clientConnectionClosed = new TaskCompletionSource();
-
-        services.AddTcpTest(dispatcher, Protocol.FromString(protocol));
-
-        services
-            .AddOptions<ClientConnectionOptions>()
-            .Configure(options => options.OnClose = (_, _) => clientConnectionClosed.SetResult());
-
-        services
-            .AddOptions<ServerOptions>()
-            .Configure(options => options.ConnectionOptions.OnClose = (_, _) => serverConnectionClosed.SetResult());
-
-        await using var provider = services.BuildServiceProvider(validateScopes: true);
-
-        var server = provider.GetRequiredService<Server>();
-        server.Listen();
-        var clientConnection = provider.GetRequiredService<ClientConnection>();
-        var proxy = Proxy.FromConnection(clientConnection, "/foo");
-
-        var invokeTask = proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
-        await start.WaitAsync();
-
-        // Act
-        hold.Release(); // let the connection idle
-
-        // Assert
-        Assert.That(async () => await serverConnectionClosed.Task, Throws.Nothing);
-        Assert.That(async () => await clientConnectionClosed.Task, Throws.Nothing);
-    }
-
     /// <summary>Verifies that aborting the connection aborts the invocations.</summary>
     [Test]
     public async Task Aborting_the_client_connection_aborts_the_invocations([Values("ice", "icerpc")] string protocol)
@@ -214,12 +154,12 @@ public class ConnectionTests
         IServiceCollection services = new ServiceCollection();
 
         services
-            .AddOptions<TcpServerTransportOptions>()
+            .AddOptions<ClientConnectionOptions>()
             .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
 
         services
-            .AddOptions<TcpClientTransportOptions>()
-            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
+            .AddOptions<ServerOptions>()
+            .Configure(options => options.ConnectionOptions.IdleTimeout = TimeSpan.FromMilliseconds(500));
 
         await using ServiceProvider provider = services
             .AddTcpTest(
@@ -251,21 +191,17 @@ public class ConnectionTests
         // Arrange
         IServiceCollection services = new ServiceCollection();
 
-        services
-            .AddOptions<TcpServerTransportOptions>()
-            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
-
-        services
-            .AddOptions<TcpClientTransportOptions>()
-            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
-
         services.AddTcpTest(
             new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
             Protocol.FromString(protocol));
 
         services
             .AddOptions<ClientConnectionOptions>()
-            .Configure(options => options.IsResumable = true);
+            .Configure(options =>
+            {
+                options.IsResumable = true;
+                options.IdleTimeout = TimeSpan.FromMilliseconds(500);
+            });
 
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
@@ -381,89 +317,6 @@ public class ConnectionTests
         // Assert
         Assert.That(networkConnectionInformation, Is.Null);
         Assert.That(connection.NetworkConnectionInformation, Is.Not.Null);
-    }
-
-    [Test]
-    public async Task Keep_alive_on_idle(
-        [Values("ice", "icerpc")] string protocol,
-        [Values(true, false)] bool keepAliveOnClient)
-    {
-        // Arrange
-        IServiceCollection services = new ServiceCollection();
-
-        services
-            .AddOptions<TcpServerTransportOptions>()
-            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
-
-        services
-            .AddOptions<TcpClientTransportOptions>()
-            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
-
-        services.AddTcpTest(ConnectionOptions.DefaultDispatcher, Protocol.FromString(protocol));
-
-        services
-            .AddOptions<ClientConnectionOptions>()
-            .Configure(options => options.KeepAlive = keepAliveOnClient);
-
-        services
-            .AddOptions<ServerOptions>()
-            .Configure(options => options.ConnectionOptions.KeepAlive = !keepAliveOnClient);
-
-        await using var provider = services.BuildServiceProvider(validateScopes: true);
-
-        var server = provider.GetRequiredService<Server>();
-        server.Listen();
-        var clientConnection = provider.GetRequiredService<ClientConnection>();
-
-        // Act
-        await clientConnection.ConnectAsync();
-
-        // Assert
-        await Task.Delay(TimeSpan.FromSeconds(2));
-        Assert.That(clientConnection.State, Is.EqualTo(ConnectionState.Active));
-    }
-
-    [Test]
-    public async Task Keep_alive_on_invocation([Values("ice", "icerpc")] string protocol)
-    {
-        // Arrange
-        using var start = new SemaphoreSlim(0);
-        using var hold = new SemaphoreSlim(0);
-        IServiceCollection services = new ServiceCollection();
-
-        services
-            .AddOptions<TcpServerTransportOptions>()
-            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
-
-        services
-            .AddOptions<TcpClientTransportOptions>()
-            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
-
-        var dispatcher = new InlineDispatcher(async (request, cancel) =>
-        {
-            start.Release();
-            await hold.WaitAsync(CancellationToken.None);
-            return new OutgoingResponse(request);
-        });
-
-        await using ServiceProvider provider = services
-            .AddTcpTest(dispatcher, Protocol.FromString(protocol))
-            .BuildServiceProvider(validateScopes: true);
-
-        var server = provider.GetRequiredService<Server>();
-        server.Listen();
-        var clientConnection = provider.GetRequiredService<ClientConnection>();
-        var proxy = ServicePrx.FromConnection(clientConnection, "/path");
-        var pingTask = proxy.IcePingAsync();
-        await start.WaitAsync();
-
-        // Act
-        await Task.Delay(TimeSpan.FromSeconds(2));
-
-        // Assert
-        Assert.That(clientConnection.State, Is.EqualTo(ConnectionState.Active));
-        hold.Release();
-        Assert.That(async () => await pingTask, Throws.Nothing);
     }
 
     [Test]

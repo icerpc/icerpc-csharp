@@ -50,25 +50,6 @@ namespace IceRpc.Internal
         internal static partial void LogConnectionClosedReason(this ILogger logger, Exception exception);
 
         [LoggerMessage(
-            EventId = (int)ConnectionEventIds.CreateProtocolConnection,
-            EventName = nameof(ConnectionEventIds.CreateProtocolConnection),
-            Level = LogLevel.Information,
-            Message = "{Protocol} connection established " +
-                "(LocalEndPoint={LocalEndPoint}, RemoteEndPoint={RemoteEndPoint})")]
-        internal static partial void LogCreateProtocolConnection(
-            this ILogger logger,
-            Protocol protocol,
-            EndPoint localEndPoint,
-            EndPoint remoteEndPoint);
-
-        [LoggerMessage(
-            EventId = (int)ConnectionEventIds.Ping,
-            EventName = nameof(ConnectionEventIds.Ping),
-            Level = LogLevel.Debug,
-            Message = "sent ping")]
-        internal static partial void LogPing(this ILogger logger);
-
-        [LoggerMessage(
             EventId = (int)ConnectionEventIds.ProtocolConnectionAbort,
             EventName = nameof(ConnectionEventIds.ProtocolConnectionAbort),
             Level = LogLevel.Information,
@@ -77,6 +58,18 @@ namespace IceRpc.Internal
             this ILogger logger,
             Protocol protocol,
             Exception exception);
+
+        [LoggerMessage(
+            EventId = (int)ConnectionEventIds.ProtocolConnectionConnect,
+            EventName = nameof(ConnectionEventIds.ProtocolConnectionConnect),
+            Level = LogLevel.Information,
+            Message = "{Protocol} connection established " +
+                "(LocalEndPoint={LocalEndPoint}, RemoteEndPoint={RemoteEndPoint})")]
+        internal static partial void LogProtocolConnectionConnect(
+            this ILogger logger,
+            Protocol protocol,
+            EndPoint localEndPoint,
+            EndPoint remoteEndPoint);
 
         [LoggerMessage(
             EventId = (int)ConnectionEventIds.ProtocolConnectionDispose,

@@ -21,19 +21,15 @@ namespace IceRpc.Transports.Internal
         public Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
         {
             var colocEndPoint = new ColocEndPoint(_endpoint);
-            return Task.FromResult(new NetworkConnectionInformation(
-                colocEndPoint,
-                colocEndPoint,
-                TimeSpan.MaxValue,
-                null));
+            return Task.FromResult(new NetworkConnectionInformation(colocEndPoint, colocEndPoint, null));
         }
 
         public void Dispose()
         {
+            _exception ??= new ObjectDisposedException($"{typeof(ColocNetworkConnection)}");
+
             if (_state.TrySetFlag(State.Disposed))
             {
-                _exception ??= new ObjectDisposedException($"{typeof(ColocNetworkConnection)}");
-
                 if (_state.HasFlag(State.Reading))
                 {
                     _reader.CancelPendingRead();

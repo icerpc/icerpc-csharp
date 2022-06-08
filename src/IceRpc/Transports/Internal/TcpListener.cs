@@ -12,7 +12,6 @@ namespace IceRpc.Transports.Internal
         public Endpoint Endpoint { get; }
 
         private readonly SslServerAuthenticationOptions? _authenticationOptions;
-        private readonly TimeSpan _idleTimeout;
         private readonly Func<TcpServerNetworkConnection, ISimpleNetworkConnection> _serverConnectionDecorator;
         private readonly Socket _socket;
 
@@ -34,7 +33,7 @@ namespace IceRpc.Transports.Internal
             // to catch and handle them. They are only useful for the log decorator.
             return _serverConnectionDecorator(
 #pragma warning disable CA2000 // the caller will Dispose the connection and _serverConnectionDecorator never throws
-                new TcpServerNetworkConnection(acceptedSocket, Endpoint, _idleTimeout, _authenticationOptions));
+                new TcpServerNetworkConnection(acceptedSocket, Endpoint, _authenticationOptions));
 #pragma warning restore CA2000
         }
 
@@ -55,8 +54,6 @@ namespace IceRpc.Transports.Internal
                 throw new NotSupportedException(
                     $"endpoint '{endpoint}' cannot accept connections because it has a DNS name");
             }
-
-            _idleTimeout = options.IdleTimeout;
 
             _serverConnectionDecorator = serverConnectionDecorator;
 

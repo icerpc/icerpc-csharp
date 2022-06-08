@@ -313,7 +313,6 @@ public class TcpTransportTests
         var networkConnectionInformation = await connectTask;
 
         // Assert
-        Assert.That(networkConnectionInformation.IdleTimeout, Is.EqualTo(TimeSpan.FromSeconds(60)));
         Assert.That(networkConnectionInformation.LocalEndPoint, Is.TypeOf<IPEndPoint>());
         Assert.That(networkConnectionInformation.LocalEndPoint.AddressFamily, Is.EqualTo(AddressFamily.InterNetworkV6));
         var endPoint = (IPEndPoint)networkConnectionInformation.LocalEndPoint;

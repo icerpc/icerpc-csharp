@@ -12,31 +12,9 @@ namespace IceRpc.Internal
 {
     internal sealed class IceRpcProtocolConnection : IProtocolConnection
     {
-        public bool HasDispatchesInProgress
-        {
-            get
-            {
-                lock (_mutex)
-                {
-                    return _cancelDispatchSources.Count > 0;
-                }
-            }
-        }
+        public Action? OnIdle { get; set; }
 
-        public bool HasInvocationsInProgress
-        {
-            get
-            {
-                lock (_mutex)
-                {
-                    return _invocationCount > 0;
-                }
-            }
-        }
-
-        public TimeSpan LastActivity => _networkConnection.LastActivity;
-
-        public Action<string>? PeerShutdownInitiated { get; set; }
+        public Action<string>? OnShutdown { get; set; }
 
         public Protocol Protocol => Protocol.IceRpc;
 
@@ -49,6 +27,7 @@ namespace IceRpc.Internal
         private int _headerSizeLength = 2;
         private int _invocationCount;
         private bool _isDisposed;
+        private readonly TimeSpan _idleTimeout;
         private bool _isShuttingDown;
         private long _lastRemoteBidirectionalStreamId = -1;
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
@@ -58,13 +37,12 @@ namespace IceRpc.Internal
         private readonly object _mutex = new();
         private readonly IMultiplexedNetworkConnection _networkConnection;
         private IMultiplexedStream? _remoteControlStream;
-
         private readonly HashSet<IMultiplexedStream> _streams = new();
-
         private readonly TaskCompletionSource _streamsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         private TaskCompletionSource<IceRpcGoAway>? _waitForGoAwayFrame;
+        private readonly Timer _timer;
 
         public void Abort(Exception exception)
         {
@@ -78,6 +56,7 @@ namespace IceRpc.Internal
             }
 
             _networkConnection.Abort(exception);
+            _timer.Dispose();
 
             _ = AbortCoreAsync();
 
@@ -157,6 +136,12 @@ namespace IceRpc.Internal
                                 _lastRemoteUnidirectionalStreamId = stream.Id;
                             }
 
+                            if (_streams.Count == 0)
+                            {
+                                // Disable idle check
+                                _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                            }
+
                             _streams.Add(stream);
 
                             stream.OnShutdown(() =>
@@ -165,11 +150,19 @@ namespace IceRpc.Internal
                                 {
                                     _streams.Remove(stream);
 
-                                    // If no more streams and shutting down, we can set the _streamsCompleted task
-                                    // completion source as completed to allow shutdown to progress.
-                                    if (_isShuttingDown && _streams.Count == 0)
+                                    if (_streams.Count == 0)
                                     {
-                                        _streamsCompleted.SetResult();
+                                        if (_isShuttingDown)
+                                        {
+                                            // If shutting down, we can set the _streamsCompleted task completion source
+                                            // as completed to allow shutdown to progress.
+                                            _streamsCompleted.SetResult();
+                                        }
+                                        else
+                                        {
+                                            // Enable idle check
+                                            _timer.Change(_idleTimeout, _idleTimeout);
+                                        }
                                     }
 
                                     _cancelDispatchSources.Remove(cancelDispatchSource);
@@ -412,6 +405,46 @@ namespace IceRpc.Internal
             }
         }
 
+        public async Task<NetworkConnectionInformation> ConnectAsync(bool isServer, CancellationToken cancel)
+        {
+            // Connect the network connection.
+            NetworkConnectionInformation networkConnectionInformation =
+                await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+
+            // Create the control stream and send the protocol Settings frame
+            _controlStream = _networkConnection.CreateStream(false);
+
+            var settings = new IceRpcSettings(
+                _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
+                    ImmutableDictionary<IceRpcSettingKey, ulong>.Empty :
+                    new Dictionary<IceRpcSettingKey, ulong>
+                    {
+                        [IceRpcSettingKey.MaxHeaderSize] = (ulong)_maxLocalHeaderSize
+                    });
+
+            await SendControlFrameAsync(
+                IceRpcControlFrameType.Settings,
+                (ref SliceEncoder encoder) => settings.Encode(ref encoder),
+                cancel).ConfigureAwait(false);
+
+            // Wait for the remote control stream to be accepted and read the protocol Settings frame
+            _remoteControlStream = await _networkConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
+
+            await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.Settings, cancel).ConfigureAwait(false);
+            await ReceiveSettingsFrameBody(cancel).ConfigureAwait(false);
+
+            _waitForGoAwayFrame = new TaskCompletionSource<IceRpcGoAway>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+
+            // Start a task to wait to receive the go away frame to initiate shutdown.
+            var waitForGoAwayTask = Task.Run(() => WaitForGoAwayAsync(), CancellationToken.None);
+
+            // Enable the idle check.
+            _timer.Change(_idleTimeout, _idleTimeout);
+
+            return networkConnectionInformation;
+        }
+
         public void Dispose() => Abort(new ConnectionClosedException());
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
@@ -444,6 +477,12 @@ namespace IceRpc.Internal
                         }
                         else
                         {
+                            if (_streams.Count == 0)
+                            {
+                                // Disable idle check
+                                _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                            }
+
                             _streams.Add(stream);
                             ++_invocationCount;
 
@@ -455,11 +494,18 @@ namespace IceRpc.Internal
 
                                     _streams.Remove(stream);
 
-                                    // If no more streams and shutting down, we can set the _streamsCompleted task
-                                    // completion source as completed to allow shutdown to progress.
-                                    if (_isShuttingDown && _streams.Count == 0)
+                                    if (_streams.Count == 0)
                                     {
-                                        _streamsCompleted.SetResult();
+                                        if (_isShuttingDown)
+                                        {
+                                            // If shutting down, we can set the _streamsCompleted task completion source
+                                            // as completed to allow shutdown to progress.
+                                            _streamsCompleted.SetResult();
+                                        }
+                                        else
+                                        {
+                                            _timer.Change(_idleTimeout, _idleTimeout);
+                                        }
                                     }
                                 }
                             });
@@ -601,9 +647,6 @@ namespace IceRpc.Internal
             }
         }
 
-        public Task PingAsync(CancellationToken cancel) =>
-            SendControlFrameAsync(IceRpcControlFrameType.Ping, encodeAction: null, cancel).AsTask();
-
         public async Task ShutdownAsync(string message, CancellationToken cancel)
         {
             if (_waitForGoAwayFrame == null)
@@ -729,38 +772,10 @@ namespace IceRpc.Internal
         {
             _networkConnection = networkConnection;
             _dispatcher = options.Dispatcher;
+            _idleTimeout = options.IdleTimeout;
             _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
-        }
 
-        internal async Task ConnectAsync(CancellationToken cancel)
-        {
-            // Create the control stream and send the protocol Settings frame
-            _controlStream = _networkConnection.CreateStream(false);
-
-            var settings = new IceRpcSettings(
-                _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
-                    ImmutableDictionary<IceRpcSettingKey, ulong>.Empty :
-                    new Dictionary<IceRpcSettingKey, ulong>
-                    {
-                        [IceRpcSettingKey.MaxHeaderSize] = (ulong)_maxLocalHeaderSize
-                    });
-
-            await SendControlFrameAsync(
-                IceRpcControlFrameType.Settings,
-                (ref SliceEncoder encoder) => settings.Encode(ref encoder),
-                cancel).ConfigureAwait(false);
-
-            // Wait for the remote control stream to be accepted and read the protocol Settings frame
-            _remoteControlStream = await _networkConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
-
-            await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.Settings, cancel).ConfigureAwait(false);
-            await ReceiveSettingsFrameBody(cancel).ConfigureAwait(false);
-
-            _waitForGoAwayFrame = new TaskCompletionSource<IceRpcGoAway>(
-                TaskCreationOptions.RunContinuationsAsynchronously);
-
-            // Start a task to wait to receive the go away frame to initiate shutdown.
-            _ = Task.Run(() => WaitForGoAwayAsync(), CancellationToken.None);
+            _timer = new Timer(_ => OnIdle?.Invoke(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }
 
         private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeFieldDictionary<TKey>(
@@ -951,7 +966,6 @@ namespace IceRpc.Internal
             IceRpcControlFrameType expectedFrameType,
             CancellationToken cancel)
         {
-            Debug.Assert(expectedFrameType != IceRpcControlFrameType.Ping);
             PipeReader input = _remoteControlStream!.Input;
 
             while (true)
@@ -968,11 +982,6 @@ namespace IceRpc.Internal
 
                 IceRpcControlFrameType frameType = readResult.Buffer.FirstSpan[0].AsIceRpcControlFrameType();
                 input.AdvanceTo(readResult.Buffer.GetPosition(1));
-
-                if (frameType == IceRpcControlFrameType.Ping)
-                {
-                    continue;
-                }
 
                 if (frameType != expectedFrameType)
                 {
@@ -1106,7 +1115,7 @@ namespace IceRpc.Internal
                 _waitForGoAwayFrame.SetResult(goAwayFrame);
 
                 // Call the peer shutdown initiated callback.
-                PeerShutdownInitiated?.Invoke(goAwayFrame.Message);
+                OnShutdown?.Invoke(goAwayFrame.Message);
             }
             catch (Exception exception)
             {

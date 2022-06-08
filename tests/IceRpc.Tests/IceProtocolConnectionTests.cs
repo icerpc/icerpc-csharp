@@ -225,7 +225,7 @@ public sealed class IceProtocolConnectionTests
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
         var exception = await response.DecodeFailureAsync(request) as DispatchException;
         Assert.That(exception, Is.Not.Null);
-        Assert.That(exception.ErrorCode, Is.EqualTo(errorCode));
+        Assert.That(exception!.ErrorCode, Is.EqualTo(errorCode));
     }
 
     /// <summary>Ensures that the response payload stream is completed even if the Ice protocol doesn't support
@@ -282,7 +282,7 @@ public sealed class IceProtocolConnectionTests
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        sut.Server.PeerShutdownInitiated = message =>
+        sut.Server.OnShutdown = message =>
             sut.Server.ShutdownAsync("");
 
         var invokeTask = sut.Client.InvokeAsync(

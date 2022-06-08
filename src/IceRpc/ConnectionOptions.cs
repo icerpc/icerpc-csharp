@@ -35,13 +35,16 @@ namespace IceRpc
         /// <value>The dispatcher that dispatches requests received by this connection.</value>
         public IDispatcher Dispatcher { get; set; } = DefaultDispatcher;
 
-        /// <summary>Gets or sets a value indicating whether the connection is kept alive. If a connection is kept
-        /// alive, the connection monitoring will send keep alive frames to ensure the peer doesn't close the
-        /// connection in the period defined by its idle timeout. How often keep alive frames are sent depends on the
-        /// peer's IdleTimeout configuration.</summary>
-        /// <value><c>true</c>to enable connection keep alive. <c>false</c> to disable it. The default is <c>false</c>.
-        /// </value>
-        public bool KeepAlive { get; set; }
+        /// <summary>Gets or sets the idle timeout. This timeout is used to gracefully shutdown the connection if it's
+        /// idle for longer than this timeout. A connection is considered idle when there's no invocations or dispatches
+        /// in progress.</summary>
+        /// <value>The connection idle timeout value. The default is 60s.</value>
+        public TimeSpan IdleTimeout
+        {
+            get => _idleTimeout;
+            set => _idleTimeout = value != TimeSpan.Zero ? value :
+                throw new ArgumentException($"0 is not a valid value for {nameof(IdleTimeout)}", nameof(value));
+        }
 
         /// <summary>Gets or sets the maximum number of requests that an ice connection can dispatch concurrently.
         /// </summary>
@@ -85,10 +88,9 @@ namespace IceRpc
 
         private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
         private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
-
         private int _iceConcurrentDispatches = 100;
+        private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
         private int _maxIceFrameSize = 1024 * 1024;
-
         private int _maxIceRpcHeaderSize = DefaultMaxIceRpcHeaderSize;
 
         internal static int IceRpcCheckMaxHeaderSize(long value) => value is >= 63 and <= 1_048_575 ? (int)value :

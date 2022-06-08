@@ -14,10 +14,6 @@ namespace IceRpc.Transports.Internal
     /// top of a <see cref="ISimpleNetworkConnection"/>.</summary>
     internal class SlicNetworkConnection : IMultiplexedNetworkConnection
     {
-        public TimeSpan LastActivity => _simpleNetworkConnectionActivityTracker.LastActivity;
-
-        internal TimeSpan IdleTimeout { get; set; }
-
         internal bool IsAborted => _exception != null;
 
         internal bool IsServer { get; }
@@ -39,6 +35,7 @@ namespace IceRpc.Transports.Internal
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly int _bidirectionalMaxStreams;
         private Exception? _exception;
+        private TimeSpan _idleTimeout;
         private long _lastRemoteBidirectionalStreamId = -1;
         private long _lastRemoteUnidirectionalStreamId = -1;
         // _mutex ensure the assignment of _lastRemoteXxx members and the addition of the stream to _streams is
@@ -51,10 +48,10 @@ namespace IceRpc.Transports.Internal
         private TaskCompletionSource? _readFramesTaskCompletionSource;
         private readonly ISlicFrameReader _reader;
         private readonly ISimpleNetworkConnection _simpleNetworkConnection;
-        private readonly SimpleNetworkConnectionActivityTracker _simpleNetworkConnectionActivityTracker = new();
         private readonly SimpleNetworkConnectionReader _simpleNetworkConnectionReader;
         private readonly SimpleNetworkConnectionWriter _simpleNetworkConnectionWriter;
         private readonly ConcurrentDictionary<long, SlicMultiplexedStream> _streams = new();
+        private Timer? _timer;
         private readonly int _unidirectionalMaxStreams;
         private int _unidirectionalStreamCount;
         private AsyncSemaphore? _unidirectionalStreamSemaphore;
@@ -87,6 +84,8 @@ namespace IceRpc.Transports.Internal
             }
 
             _acceptStreamQueue.TryComplete(_exception);
+
+            _timer?.Dispose();
 
             // Release remaining resources in the background.
             _ = AbortCoreAsync();
@@ -123,19 +122,15 @@ namespace IceRpc.Transports.Internal
             NetworkConnectionInformation information = await _simpleNetworkConnection.ConnectAsync(
                 cancel).ConfigureAwait(false);
 
-            // The initial Slic idle timeout is the simple connection idle timeout.
-            IdleTimeout = information.IdleTimeout;
+            TimeSpan peerIdleTimeout = TimeSpan.MaxValue;
 
             // Initialize the Slic connection.
-            FrameType type;
-            int dataSize;
-
             if (IsServer)
             {
                 // Read the Initialize frame sent by the client.
                 uint version;
                 InitializeBody? initializeBody;
-                (type, dataSize, _) = await _reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+                (FrameType type, int dataSize, _) = await _reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
 
                 if (dataSize == 0)
                 {
@@ -190,19 +185,20 @@ namespace IceRpc.Transports.Internal
                     throw new NotSupportedException(
                         $"unknown application protocol '{initializeBody.Value.ApplicationProtocolName}'", ex);
                 }
+
                 SetParameters(initializeBody.Value.Parameters);
 
                 // Write back an InitializeAck frame.
                 await SendFrameAsync(
                     stream: null,
                     FrameType.InitializeAck,
-                    new InitializeAckBody(GetParameters()).Encode,
+                    new InitializeAckBody(GetParameters(_idleTimeout)).Encode,
                     cancel).ConfigureAwait(false);
             }
             else
             {
                 // Write the Initialize frame.
-                var initializeBody = new InitializeBody(Protocol.IceRpc.Name, GetParameters());
+                var initializeBody = new InitializeBody(Protocol.IceRpc.Name, GetParameters(_idleTimeout));
                 await SendFrameAsync(
                     stream: null,
                     FrameType.Initialize,
@@ -214,7 +210,7 @@ namespace IceRpc.Transports.Internal
                     cancel).ConfigureAwait(false);
 
                 // Read back either the InitializeAck or Version frame.
-                (type, dataSize, _) = await _reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+                (FrameType type, int dataSize, _) = await _reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
 
                 switch (type)
                 {
@@ -240,6 +236,12 @@ namespace IceRpc.Transports.Internal
                     default:
                         throw new InvalidDataException($"unexpected Slic frame '{type}'");
                 }
+            }
+
+            // Setup a timer to check for the connection idle time every IdleTimeout / 2 period.
+            if (_idleTimeout != Timeout.InfiniteTimeSpan)
+            {
+                _timer = new Timer(_ => Monitor(), null, _idleTimeout / 2, _idleTimeout / 2);
             }
 
             // Start a task to read frames from the network connection.
@@ -278,7 +280,7 @@ namespace IceRpc.Transports.Internal
                 },
                 CancellationToken.None);
 
-            return information with { IdleTimeout = IdleTimeout };
+            return information;
         }
 
         public IMultiplexedStream CreateStream(bool bidirectional) =>
@@ -327,6 +329,7 @@ namespace IceRpc.Transports.Internal
             Pool = slicOptions.Pool;
             MinimumSegmentSize = slicOptions.MinimumSegmentSize;
 
+            _idleTimeout = slicOptions.IdleTimeout;
             _packetMaxSize = slicOptions.PacketMaxSize;
             _bidirectionalMaxStreams = slicOptions.BidirectionalStreamMaxCount;
             _unidirectionalMaxStreams = slicOptions.UnidirectionalStreamMaxCount;
@@ -334,13 +337,11 @@ namespace IceRpc.Transports.Internal
 
             _simpleNetworkConnectionWriter = new SimpleNetworkConnectionWriter(
                 simpleNetworkConnection,
-                _simpleNetworkConnectionActivityTracker,
                 slicOptions.Pool,
                 slicOptions.MinimumSegmentSize);
 
             _simpleNetworkConnectionReader = new SimpleNetworkConnectionReader(
                 simpleNetworkConnection,
-                _simpleNetworkConnectionActivityTracker,
                 slicOptions.Pool,
                 slicOptions.MinimumSegmentSize);
 
@@ -560,7 +561,7 @@ namespace IceRpc.Transports.Internal
             return new FlushResult(isCanceled: false, isCompleted: false);
         }
 
-        private Dictionary<int, IList<byte>> GetParameters()
+        private Dictionary<int, IList<byte>> GetParameters(TimeSpan idleTimeout)
         {
             var parameters = new List<KeyValuePair<int, IList<byte>>>
             {
@@ -570,9 +571,9 @@ namespace IceRpc.Transports.Internal
                 EncodeParameter(ParameterKey.PauseWriterThreshold, (ulong)PauseWriterThreshold)
             };
 
-            if (IdleTimeout != TimeSpan.MaxValue && IdleTimeout != Timeout.InfiniteTimeSpan)
+            if (idleTimeout != Timeout.InfiniteTimeSpan)
             {
-                parameters.Add(EncodeParameter(ParameterKey.IdleTimeout, (ulong)IdleTimeout.TotalMilliseconds));
+                parameters.Add(EncodeParameter(ParameterKey.IdleTimeout, (ulong)idleTimeout.TotalMilliseconds));
             }
             return new Dictionary<int, IList<byte>>(parameters);
 
@@ -582,6 +583,29 @@ namespace IceRpc.Transports.Internal
                 byte[] buffer = new byte[sizeLength];
                 SliceEncoder.EncodeVarUInt62(value, buffer);
                 return new((int)key, buffer);
+            }
+        }
+
+        private void Monitor()
+        {
+            var now = TimeSpan.FromMilliseconds(Environment.TickCount64);
+
+            // Check if data was received since the last idle timeout. If the connection is idle, a ping frame is sent
+            // by the client side. The server side can count on the receive of the ping frame to defer the idle timeout.
+            // The client side can rely on the receive of pong frame from the server side to defer the idle timeout.
+            TimeSpan idleTime = now - _simpleNetworkConnectionReader.IdleSinceTime;
+
+            if (idleTime > _idleTimeout)
+            {
+                Abort(new ConnectionAbortedException(
+                    $"network connection has been idle for longer than {nameof(SlicTransportOptions.IdleTimeout)}"));
+            }
+            else if (!IsServer && idleTime > _idleTimeout / 4)
+            {
+                // If the connection has been idle for more than idleTimeout / 4, send a ping frame to keep alive the
+                // connection. Given that Monitor is called every idleTimeout / 2 period, this shouldn't send more than
+                // two ping frames during an idle timeout period.
+                ValueTask _ = SendFrameAsync(stream: null, FrameType.Ping, null, default);
             }
         }
 
@@ -610,6 +634,17 @@ namespace IceRpc.Transports.Internal
 
                         // Graceful connection shutdown, we're done.
                         return closeBody.ApplicationProtocolErrorCode;
+                    }
+                    case FrameType.Ping:
+                    {
+                        // Send back a pong frame to let the peer know that we're still alive.
+                        ValueTask _ = SendFrameAsync(stream: null, FrameType.Pong, null, default);
+                        break;
+                    }
+                    case FrameType.Pong:
+                    {
+                        // Nothing to do, the simple network connection reader keeps track of the last activity time.
+                        break;
                     }
                     case FrameType.Stream:
                     case FrameType.StreamLast:
@@ -864,7 +899,6 @@ namespace IceRpc.Transports.Internal
                 }
                 else if (key == ParameterKey.IdleTimeout)
                 {
-                    // Use the smallest idle timeout.
                     peerIdleTimeout = TimeSpan.FromMilliseconds(value);
                 }
                 else if (key == ParameterKey.PacketMaxSize)
@@ -893,15 +927,15 @@ namespace IceRpc.Transports.Internal
                 throw new InvalidDataException("missing MaxUnidirectionalStreams Slic connection parameter");
             }
 
-            peerIdleTimeout ??= TimeSpan.MaxValue;
-            if (IdleTimeout == Timeout.InfiniteTimeSpan || peerIdleTimeout < IdleTimeout)
-            {
-                IdleTimeout = peerIdleTimeout.Value;
-            }
-
             if (PeerPacketMaxSize < 1024)
             {
                 throw new InvalidDataException($"invalid PacketMaxSize={PeerPacketMaxSize} Slic connection parameter");
+            }
+
+            // Use the smallest idle timeout.
+            if (peerIdleTimeout is TimeSpan peerIdleTimeoutValue && peerIdleTimeoutValue < _idleTimeout)
+            {
+                _idleTimeout = peerIdleTimeoutValue;
             }
         }
     }

@@ -4,7 +4,8 @@ using System.Security.Authentication;
 
 namespace IceRpc.Transports
 {
-    /// <summary>A network connection represents a transport-level connection used to exchange data as bytes.</summary>
+    /// <summary>A network connection represents a transport-level connection used to exchange data as bytes.  The
+    /// IceRPC core calls <see cref="ConnectAsync"/> before calling other methods.</summary>
     public interface INetworkConnection : IDisposable
     {
         /// <summary>Connects this network connection.</summary>

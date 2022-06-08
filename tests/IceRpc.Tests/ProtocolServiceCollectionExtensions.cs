@@ -94,27 +94,18 @@ internal class ClientServerProtocolConnection<T> : IClientServerProtocolConnecti
 
     public async Task ConnectAsync(bool accept = true)
     {
-        T clientNetworkConnection = _clientTransport.CreateConnection(_listener.Endpoint, null, NullLogger.Instance);
-        var connectTask = clientNetworkConnection.ConnectAsync(CancellationToken.None);
-        T serverNetworkConnection = await _listener.AcceptAsync();
-        await serverNetworkConnection.ConnectAsync(CancellationToken.None);
-        await connectTask;
+        IProtocolConnection clientProtocolConnection = _protocolConnectionFactory.CreateConnection(
+            _clientTransport.CreateConnection(_listener.Endpoint, null, NullLogger.Instance),
+            _clientConnectionOptions);
+        Task clientTask = clientProtocolConnection.ConnectAsync(isServer: false, CancellationToken.None);
 
-        var serverTask = _protocolConnectionFactory.CreateProtocolConnectionAsync(
-            serverNetworkConnection,
-            networkConnectionInformation: new(),
-            true,
-            _serverOptions.ConnectionOptions,
-            CancellationToken.None);
+        IProtocolConnection serverProtocolConnection = _protocolConnectionFactory.CreateConnection(
+            await _listener.AcceptAsync(),
+            _serverOptions.ConnectionOptions);
+        Task serverTask = serverProtocolConnection.ConnectAsync(isServer: true, CancellationToken.None);
 
-        IProtocolConnection clientProtocolConnection = await _protocolConnectionFactory.CreateProtocolConnectionAsync(
-            clientNetworkConnection,
-            networkConnectionInformation: new(),
-            false,
-            _clientConnectionOptions,
-            CancellationToken.None);
-
-        IProtocolConnection serverProtocolConnection = await serverTask;
+        await clientTask;
+        await serverTask;
 
         _client = clientProtocolConnection;
         _server = serverProtocolConnection;

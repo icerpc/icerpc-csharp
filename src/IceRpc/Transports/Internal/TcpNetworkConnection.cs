@@ -209,8 +209,6 @@ namespace IceRpc.Transports.Internal
 
         private bool _connected;
 
-        private readonly TimeSpan _idleTimeout;
-
         private SslStream? _sslStream;
 
         public override async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
@@ -237,7 +235,6 @@ namespace IceRpc.Transports.Internal
                 return new NetworkConnectionInformation(
                     localEndPoint: Socket.LocalEndPoint!,
                     remoteEndPoint: Socket.RemoteEndPoint!,
-                    _idleTimeout,
                     _sslStream?.RemoteCertificate);
             }
             catch when (disposed == 1)
@@ -302,8 +299,6 @@ namespace IceRpc.Transports.Internal
                 Socket.Dispose();
                 throw new TransportException(ex);
             }
-
-            _idleTimeout = options.IdleTimeout;
         }
     }
 
@@ -315,7 +310,6 @@ namespace IceRpc.Transports.Internal
 
         private readonly SslServerAuthenticationOptions? _authenticationOptions;
         private bool _connected;
-        private readonly TimeSpan _idleTimeout;
         private readonly Endpoint _localEndpoint;
         private SslStream? _sslStream;
 
@@ -340,7 +334,6 @@ namespace IceRpc.Transports.Internal
                 return new NetworkConnectionInformation(
                     localEndPoint: Socket.LocalEndPoint!,
                     remoteEndPoint: Socket.RemoteEndPoint!,
-                    _idleTimeout,
                     _sslStream?.RemoteCertificate);
             }
             catch when (disposed == 1)
@@ -367,12 +360,10 @@ namespace IceRpc.Transports.Internal
         internal TcpServerNetworkConnection(
             Socket socket,
             Endpoint localEndpoint,
-            TimeSpan idleTimeout,
             SslServerAuthenticationOptions? authenticationOptions)
         {
             Socket = socket;
             _authenticationOptions = authenticationOptions;
-            _idleTimeout = idleTimeout;
             _localEndpoint = localEndpoint;
         }
     }

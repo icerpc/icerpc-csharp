@@ -67,7 +67,11 @@ namespace IceRpc
 
         /// <inheritdoc/>
         public override Task ConnectAsync(CancellationToken cancel = default) =>
-            ConnectAsync(_multiplexedClientTransport, _simpleClientTransport, _options.ClientAuthenticationOptions, cancel);
+            ConnectAsync(
+                _multiplexedClientTransport,
+                _simpleClientTransport,
+                _options.ClientAuthenticationOptions,
+                cancel);
 
         /// <summary>Checks if the parameters of the provided endpoint are compatible with this client connection.
         /// Compatible means a client could reuse this client connection instead of establishing a new client

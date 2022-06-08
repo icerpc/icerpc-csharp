@@ -9,23 +9,38 @@ enum FrameType : uint8
 {
     /// The initialization frame is sent by the client-side Slic connection on connection establishment.
     Initialize = 1,
+
     /// The initialize acknowledgment is sent by the server-side Slic connection after receiving an initialize
     /// frame.
     InitializeAck,
+
     /// The Slic versions supported by the server if the version from the Initialize frame is not supported.
     Version,
+
     /// The close frame is sent by the peer when it closes the connection.
     Close,
+
+    /// The ping frame is sent to check the liveliness of the connection.
+    Ping,
+
+    /// The pong frame is sent back after receiving a ping frame.
+    Pong,
+
     /// The stream frame is sent send data over a Slic stream.
     Stream,
+
     /// The last stream frame is the last frame used to send data over a Slic stream.
     StreamLast,
+
     /// The stream reset frame terminates the stream.
     StreamReset,
+
     /// The stream consumed frame is sent to increase the peer's send credit.
     StreamConsumed,
+
     /// The stream stop sending frame is sent to notify the peer it should stop sending data.
     StreamStopSending,
+
     /// The unidirectional stream released frame notifies the stream initiator that the remote side released the
     /// stream.
     UnidirectionalStreamReleased,

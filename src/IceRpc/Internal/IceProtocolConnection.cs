@@ -13,31 +13,9 @@ namespace IceRpc.Internal
 {
     internal sealed class IceProtocolConnection : IProtocolConnection
     {
-        public bool HasDispatchesInProgress
-        {
-            get
-            {
-                lock (_mutex)
-                {
-                    return _dispatches.Count > 0;
-                }
-            }
-        }
+        public Action? OnIdle { get; set; }
 
-        public bool HasInvocationsInProgress
-        {
-            get
-            {
-                lock (_mutex)
-                {
-                    return _invocations.Count > 0;
-                }
-            }
-        }
-
-        public TimeSpan LastActivity => _networkConnectionActivityTracker.LastActivity;
-
-        public Action<string>? PeerShutdownInitiated { get; set; }
+        public Action<string>? OnShutdown { get; set; }
 
         public Protocol Protocol => Protocol.Ice;
 
@@ -62,6 +40,8 @@ namespace IceRpc.Internal
 
         private readonly HashSet<CancellationTokenSource> _dispatches = new();
         private readonly AsyncSemaphore? _dispatchSemaphore;
+        private long _idleSinceTime;
+        private readonly TimeSpan _idleTimeout;
         private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
         private bool _isAborted;
         private bool _isShutdown;
@@ -72,7 +52,6 @@ namespace IceRpc.Internal
 
         private readonly object _mutex = new();
         private readonly ISimpleNetworkConnection _networkConnection;
-        private readonly SimpleNetworkConnectionActivityTracker _networkConnectionActivityTracker = new();
         private readonly SimpleNetworkConnectionReader _networkConnectionReader;
         private readonly SimpleNetworkConnectionWriter _networkConnectionWriter;
         private int _nextRequestId;
@@ -80,6 +59,7 @@ namespace IceRpc.Internal
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly CancellationTokenSource _readCancelSource = new();
         private TaskCompletionSource? _readFramesTaskCompletionSource;
+        private Timer? _timer;
         private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
         public void Abort(Exception exception)
@@ -110,6 +90,8 @@ namespace IceRpc.Internal
             _dispatchesAndInvocationsCompleted.TrySetException(exception);
 
             _readCancelSource.Dispose();
+
+            _timer?.Dispose();
 
             // Release remaining resources in the background.
             _ = AbortCoreAsync();
@@ -149,6 +131,62 @@ namespace IceRpc.Internal
             finally
             {
                 _readFramesTaskCompletionSource?.SetResult();
+            }
+        }
+
+        public async Task<NetworkConnectionInformation> ConnectAsync(bool isServer, CancellationToken cancel)
+        {
+            // Connect the network connection.
+            NetworkConnectionInformation networkConnectionInformation =
+                await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+
+            if (isServer)
+            {
+                EncodeValidateConnectionFrame(_networkConnectionWriter);
+
+                // The flush can't be canceled because it would lead to the writing of an incomplete frame.
+                await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            else
+            {
+                ReadOnlySequence<byte> buffer = await _networkConnectionReader.ReadAtLeastAsync(
+                    IceDefinitions.PrologueSize,
+                    cancel).ConfigureAwait(false);
+
+                (IcePrologue validateConnectionFrame, long consumed) = DecodeValidateConnectionFrame(buffer);
+                _networkConnectionReader.AdvanceTo(buffer.GetPosition(consumed), buffer.End);
+
+                IceDefinitions.CheckPrologue(validateConnectionFrame);
+                if (validateConnectionFrame.FrameSize != IceDefinitions.PrologueSize)
+                {
+                    throw new InvalidDataException(
+                        $"received Ice frame with only '{validateConnectionFrame.FrameSize}' bytes");
+                }
+                if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
+                {
+                    throw new InvalidDataException(
+                        @$"expected '{nameof(IceFrameType.ValidateConnection)
+                        }' frame but received frame type '{validateConnectionFrame.FrameType}'");
+                }
+            }
+
+            if (_idleTimeout != Timeout.InfiniteTimeSpan)
+            {
+                _timer = new Timer(_ => Monitor(), null, _idleTimeout / 2, _idleTimeout / 2);
+            }
+
+            return networkConnectionInformation;
+
+            static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
+            {
+                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
+                IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
+            }
+
+            static (IcePrologue, long) DecodeValidateConnectionFrame(ReadOnlySequence<byte> buffer)
+            {
+                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
+                return (new IcePrologue(ref decoder), decoder.Consumed);
             }
         }
 
@@ -197,6 +235,7 @@ namespace IceRpc.Internal
                         requestId = ++_nextRequestId;
                         responseCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
                         _invocations[requestId] = responseCompletionSource;
+                        _idleSinceTime = long.MaxValue; // Disable idle timeout
                     }
                 }
 
@@ -327,10 +366,16 @@ namespace IceRpc.Internal
                 {
                     if (_invocations.Remove(requestId))
                     {
-                        // If no more invocations or dispatches and shutting down, shutdown can complete.
-                        if (_isShuttingDown && _invocations.Count == 0 && _dispatches.Count == 0)
+                        if (_invocations.Count == 0 && _dispatches.Count == 0)
                         {
-                            _dispatchesAndInvocationsCompleted.TrySetResult();
+                            if (_isShuttingDown)
+                            {
+                                _dispatchesAndInvocationsCompleted.TrySetResult();
+                            }
+                            else
+                            {
+                                _idleSinceTime = Environment.TickCount64;
+                            }
                         }
                     }
                 }
@@ -391,27 +436,6 @@ namespace IceRpc.Internal
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             _networkConnection.HasCompatibleParams(remoteEndpoint);
-
-        public async Task PingAsync(CancellationToken cancel)
-        {
-            await _writeSemaphore.EnterAsync(cancel).ConfigureAwait(false);
-            try
-            {
-                EncodeValidateConnectionFrame(_networkConnectionWriter);
-                // The flush can't be canceled because it would lead to the writing of an incomplete frame.
-                await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-            }
-            finally
-            {
-                _writeSemaphore.Release();
-            }
-
-            static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
-            {
-                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
-                IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
-            }
-        }
 
         public async Task ShutdownAsync(string message, CancellationToken cancel)
         {
@@ -477,6 +501,9 @@ namespace IceRpc.Internal
         {
             _dispatcher = options.Dispatcher;
             _maxFrameSize = options.MaxIceFrameSize;
+            _idleTimeout = options.IdleTimeout;
+
+            _idleSinceTime = Environment.TickCount64;
 
             if (options.MaxIceConcurrentDispatches > 0)
             {
@@ -486,7 +513,7 @@ namespace IceRpc.Internal
             }
 
             // TODO: get the pool and minimum segment size from an option class, but which one? The Slic connection gets
-            // these from SlicOptions but another option could be to add Pool/MinimunSegmentSize on
+            // these from SlicOptions but another option could be to add Pool/MinimumSegmentSize on
             // ConnectionOptions/ServerOptions. These properties would be used by:
             // - the multiplexed transport implementations
             // - the Ice protocol connection
@@ -496,61 +523,14 @@ namespace IceRpc.Internal
             _networkConnection = simpleNetworkConnection;
             _networkConnectionWriter = new SimpleNetworkConnectionWriter(
                 simpleNetworkConnection,
-                _networkConnectionActivityTracker,
                 _memoryPool,
                 _minimumSegmentSize);
             _networkConnectionReader = new SimpleNetworkConnectionReader(
                 simpleNetworkConnection,
-                _networkConnectionActivityTracker,
                 _memoryPool,
                 _minimumSegmentSize);
 
             _payloadWriter = new IcePayloadPipeWriter(_networkConnectionWriter);
-        }
-
-        internal async Task ConnectAsync(bool isServer, CancellationToken cancel)
-        {
-            if (isServer)
-            {
-                EncodeValidateConnectionFrame(_networkConnectionWriter);
-
-                // The flush can't be canceled because it would lead to the writing of an incomplete frame.
-                await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-            }
-            else
-            {
-                ReadOnlySequence<byte> buffer = await _networkConnectionReader.ReadAtLeastAsync(
-                    IceDefinitions.PrologueSize,
-                    cancel).ConfigureAwait(false);
-
-                (IcePrologue validateConnectionFrame, long consumed) = DecodeValidateConnectionFrame(buffer);
-                _networkConnectionReader.AdvanceTo(buffer.GetPosition(consumed), buffer.End);
-
-                IceDefinitions.CheckPrologue(validateConnectionFrame);
-                if (validateConnectionFrame.FrameSize != IceDefinitions.PrologueSize)
-                {
-                    throw new InvalidDataException(
-                        $"received Ice frame with only '{validateConnectionFrame.FrameSize}' bytes");
-                }
-                if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
-                {
-                    throw new InvalidDataException(
-                        @$"expected '{nameof(IceFrameType.ValidateConnection)
-                        }' frame but received frame type '{validateConnectionFrame.FrameType}'");
-                }
-            }
-
-            static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
-            {
-                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
-                IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
-            }
-
-            static (IcePrologue, long) DecodeValidateConnectionFrame(ReadOnlySequence<byte> buffer)
-            {
-                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
-                return (new IcePrologue(ref decoder), decoder.Consumed);
-            }
         }
 
         /// <summary>Creates a pipe reader to simplify the reading of a request or response frame. The frame is read
@@ -645,6 +625,66 @@ namespace IceRpc.Internal
             }
         }
 
+        private void Monitor()
+        {
+            var now = TimeSpan.FromMilliseconds(Environment.TickCount64);
+
+            // Like Ice, the idle timeout serves two purposes. It's used to close idle connections and it's also used to
+            // check the connection's health. It basically combines the icerpc protocol idle timeout and the Slic
+            // timeout functionality. IceRpc only provides an IdleTimeout option where Ice provides many more knobs to
+            // specify when the ping should be sent and expected. We keep it simple here to match the icerpc protocol
+            // implementation.
+
+            if (now - TimeSpan.FromMilliseconds(_idleSinceTime) > _idleTimeout)
+            {
+                // Graceful shutdown if the connection is idle.
+                OnIdle?.Invoke();
+            }
+            else
+            {
+                // Check the connection's health.
+                TimeSpan idleTime = now - _networkConnectionReader.IdleSinceTime;
+                if (idleTime > _idleTimeout)
+                {
+                    Abort(new ConnectionAbortedException(
+                        $"network connection has been idle for longer than {nameof(ConnectionOptions.IdleTimeout)}"));
+                }
+                else if (idleTime > _idleTimeout / 4)
+                {
+                    // If the connection has been idle for more than idleTimeout / 4, send a ping frame to keep alive
+                    // the connection. Given that Monitor is called every idleTimeout / 2 period, this shouldn't send
+                    // more than two ping frames during an idle timeout period. There's no Pong frame with the ice
+                    // protocol. We instead rely on the peer to also send a ping frame within the same idle timeout.
+                    // So unlike Slic, both the client and server side are responsible for sending ping frames.
+                    _ = PingAsync();
+                }
+            }
+
+            async Task PingAsync()
+            {
+                // Not using a cancellation token is fine here since this is performed in the background. The async
+                // calls will eventually return if the connection is dead.
+
+                await _writeSemaphore.EnterAsync(CancellationToken.None).ConfigureAwait(false);
+                try
+                {
+                    EncodeValidateConnectionFrame(_networkConnectionWriter);
+                    // The flush can't be canceled because it would lead to the writing of an incomplete frame.
+                    await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                }
+                finally
+                {
+                    _writeSemaphore.Release();
+                }
+
+                static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
+                {
+                    var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
+                    IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
+                }
+            }
+        }
+
         /// <summary>Read incoming frames and returns on graceful connection shutdown.</summary>
         /// <param name="connection">The connection assigned to <see cref="IncomingFrame.Connection"/>.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -697,7 +737,7 @@ namespace IceRpc.Internal
                         }
 
                         // Call the peer shutdown initiated callback.
-                        PeerShutdownInitiated?.Invoke("connection shutdown by peer");
+                        OnShutdown?.Invoke("connection shutdown by peer");
                         return;
                     }
 
@@ -865,6 +905,7 @@ namespace IceRpc.Internal
                     {
                         cancelDispatchSource = new();
                         _dispatches.Add(cancelDispatchSource);
+                        _idleSinceTime = long.MaxValue; // Disable idle timeout
                     }
                 }
 
@@ -1076,10 +1117,16 @@ namespace IceRpc.Internal
                             // Dispatch is done, remove the cancellation token source for the dispatch.
                             if (_dispatches.Remove(cancelDispatchSource))
                             {
-                                // If no more invocations or dispatches and shutting down, shutdown can complete.
-                                if (_isShuttingDown && _invocations.Count == 0 && _dispatches.Count == 0)
+                                if (_invocations.Count == 0 && _dispatches.Count == 0)
                                 {
-                                    _dispatchesAndInvocationsCompleted.TrySetResult();
+                                    if (_isShuttingDown)
+                                    {
+                                        _dispatchesAndInvocationsCompleted.TrySetResult();
+                                    }
+                                    else
+                                    {
+                                        _idleSinceTime = Environment.TickCount64;
+                                    }
                                 }
                             }
                         }
@@ -1133,7 +1180,7 @@ namespace IceRpc.Internal
                     var requestHeader = new IceRequestHeader(ref decoder);
 
                     Pipe? contextPipe = null;
-                    var pos = decoder.Consumed;
+                    long pos = decoder.Consumed;
                     int count = decoder.DecodeSize();
                     if (count > 0)
                     {

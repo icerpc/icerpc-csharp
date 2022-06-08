@@ -1,23 +1,18 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
+
 namespace IceRpc.Internal
 {
     /// <summary>A protocol connection enables communication over a network connection using either the ice or icerpc
     /// protocol.</summary>
     internal interface IProtocolConnection : IDisposable
     {
-        /// <summary>Gets a value indicating whether dispatches are in progress or not.</summary>
-        bool HasDispatchesInProgress { get; }
+        /// <summary>Gets or sets the callback called by the protocol connection when the connection is idle.</summary>
+        public Action? OnIdle { get; set; }
 
-        /// <summary>Gets a value indicating whether invocations are in progress or not.</summary>
-        bool HasInvocationsInProgress { get; }
-
-        /// <summary>Gets the time elapsed since the last activity of the connection.</summary>
-        TimeSpan LastActivity { get; }
-
-        /// <summary>Gets or sets the action that is executed when the protocol connection is notified of the peer
-        /// shutdown.</summary>
-        Action<string>? PeerShutdownInitiated { get; set; }
+        /// <summary>Gets or sets the callback called by the protocol connection to initiate shutdown.</summary>
+        Action<string>? OnShutdown { get; set; }
 
         /// <summary>Gets the protocol implemented by this protocol connection.</summary>
         Protocol Protocol { get; }
@@ -31,6 +26,13 @@ namespace IceRpc.Internal
         /// <param name="connection">The connection of incoming requests created by this method.</param>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         Task AcceptRequestsAsync(IConnection connection);
+
+        /// <summary>Connects the protocol connection. The implementation should also connect the underlying network
+        /// connection.</summary>
+        /// <param name="isServer"><c>true</c> if the protocol connection is a server-side connection.</param>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        /// <returns>The network connection information.</returns>
+        Task<NetworkConnectionInformation> ConnectAsync(bool isServer, CancellationToken cancel);
 
         /// <summary>Checks if the parameters of the provided endpoint are compatible with the network connection of
         /// this protocol connection. Compatible means a client could reuse the network connection instead of
@@ -50,11 +52,6 @@ namespace IceRpc.Internal
             OutgoingRequest request,
             IConnection connection,
             CancellationToken cancel = default);
-
-        /// <summary>Sends a ping frame to defer the idle timeout.</summary>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        Task PingAsync(CancellationToken cancel = default);
 
         /// <summary>Shuts down gracefully the connection.</summary>
         /// <param name="message">The reason of the connection shutdown.</param>

@@ -238,12 +238,83 @@ public abstract class MultiplexedTransportConformanceTests
         await stream.Input.CompleteAsync();
     }
 
+    /// <summary>Verifies that the setting of idle timeout causes the abort of the connection when it's idle.</summary>
+    [Test]
+    public async Task Connection_with_no_idle_timeout_is_not_aborted_when_idle()
+    {
+        // Arrange
+        IServiceCollection services = CreateServiceCollection();
+
+        services.AddOptions<SlicTransportOptions>("server").Configure(
+            options => options.IdleTimeout = Timeout.InfiniteTimeSpan);
+        services.AddOptions<SlicTransportOptions>("client").Configure(
+            options => options.IdleTimeout = Timeout.InfiniteTimeSpan);
+
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
+        var clientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
+        using var clientConnection = clientTransport.CreateConnection(listener.Endpoint, null, NullLogger.Instance);
+
+        var connectTask = clientConnection.ConnectAsync(default);
+        using var serverConnection = await listener.AcceptAsync();
+
+        _ = await serverConnection.ConnectAsync(default);
+        _ = await connectTask;
+
+        ValueTask<IMultiplexedStream> acceptTask = serverConnection.AcceptStreamAsync(default);
+
+        // Act
+        await Task.Delay(TimeSpan.FromSeconds(2));
+
+        // Assert
+        Assert.That(acceptTask.IsCompleted, Is.False);
+    }
+
+    /// <summary>Verifies that the setting of idle timeout causes the abort of the connection when it's idle.</summary>
+    [Test]
+    public async Task Connection_with_idle_timeout_is_not_aborted_when_idle(
+        [Values(true, false)] bool serverIdleTimeout)
+    {
+        // Arrange
+        IServiceCollection services = CreateServiceCollection();
+
+        var idleTimeout = TimeSpan.FromMilliseconds(500);
+        if (serverIdleTimeout)
+        {
+            services.AddOptions<SlicTransportOptions>("server").Configure(options => options.IdleTimeout = idleTimeout);
+        }
+        else
+        {
+            services.AddOptions<SlicTransportOptions>("client").Configure(options => options.IdleTimeout = idleTimeout);
+        }
+
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
+        var clientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
+        using var clientConnection = clientTransport.CreateConnection(listener.Endpoint, null, NullLogger.Instance);
+
+        var connectTask = clientConnection.ConnectAsync(default);
+        using var serverConnection = await listener.AcceptAsync();
+
+        _ = await serverConnection.ConnectAsync(default);
+        _ = await connectTask;
+
+        ValueTask<IMultiplexedStream> acceptTask = serverConnection.AcceptStreamAsync(default);
+
+        // Act
+        await Task.Delay(TimeSpan.FromSeconds(2));
+
+        // Assert
+        Assert.That(acceptTask.IsCompleted, Is.False);
+    }
+
     /// <summary>Verifies that disposing the connection aborts the streams.</summary>
     /// <param name="disposeServer">Whether to dispose the server connection or the client connection.
     /// </param>
     [Test]
-    public async Task Disposing_the_connection_aborts_the_streams(
-        [Values(true, false)] bool disposeServer)
+    public async Task Disposing_the_connection_aborts_the_streams([Values(true, false)] bool disposeServer)
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -983,6 +1054,7 @@ public record class MultiplexedTransportOptions
 {
     public int? BidirectionalStreamMaxCount { get; set; }
     public int? UnidirectionalStreamMaxCount { get; set; }
+    public TimeSpan? IdleTimeout { get; set; }
 }
 
 public static class MultiplexedTransportServiceCollectionExtensions
@@ -990,17 +1062,19 @@ public static class MultiplexedTransportServiceCollectionExtensions
     public static IServiceCollection AddTransportOptions(
         this IServiceCollection serviceCollection,
         int? bidirectionalStreamMaxCount = null,
-        int? unidirectionalStreamMaxCount = null)
+        int? unidirectionalStreamMaxCount = null,
+        TimeSpan? idleTimeout = null)
     {
         return serviceCollection.AddSingleton(_ => new MultiplexedTransportOptions
         {
             BidirectionalStreamMaxCount = bidirectionalStreamMaxCount,
-            UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount
+            UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount,
+            IdleTimeout = idleTimeout
         });
     }
 
     public static IServiceCollection AddMultiplexedTransportTest(this IServiceCollection services) =>
-        services.AddSingleton<IMultiplexedNetworkConnection>(provider =>
+        services.AddSingleton(provider =>
         {
             var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
             var clientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
