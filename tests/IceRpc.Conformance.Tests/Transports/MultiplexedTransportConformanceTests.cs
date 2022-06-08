@@ -246,9 +246,9 @@ public abstract class MultiplexedTransportConformanceTests
         IServiceCollection services = CreateServiceCollection();
 
         services.AddOptions<SlicTransportOptions>("server").Configure(
-            options => options.IdleTimeout = TimeSpan.MaxValue);
+            options => options.IdleTimeout = Timeout.InfiniteTimeSpan);
         services.AddOptions<SlicTransportOptions>("client").Configure(
-            options => options.IdleTimeout = TimeSpan.MaxValue);
+            options => options.IdleTimeout = Timeout.InfiniteTimeSpan);
 
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 

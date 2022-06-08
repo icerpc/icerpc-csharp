@@ -36,7 +36,8 @@ namespace IceRpc
         public IDispatcher Dispatcher { get; set; } = DefaultDispatcher;
 
         /// <summary>Gets or sets the idle timeout. This timeout is used to gracefully shutdown the connection if it's
-        /// idle for longer than this timeout.</summary>
+        /// idle for longer than this timeout. A connection is considered idle when there's no invocations or dispatches
+        /// in progress.</summary>
         /// <value>The connection idle timeout value. The default is 60s.</value>
         public TimeSpan IdleTimeout
         {

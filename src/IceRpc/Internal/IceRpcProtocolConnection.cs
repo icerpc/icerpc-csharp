@@ -12,7 +12,9 @@ namespace IceRpc.Internal
 {
     internal sealed class IceRpcProtocolConnection : IProtocolConnection
     {
-        public Action<string>? InitiateShutdown { get; set; }
+        public Action? OnIdle { get; set; }
+
+        public Action<string>? OnShutdown { get; set; }
 
         public Protocol Protocol => Protocol.IceRpc;
 
@@ -146,13 +148,15 @@ namespace IceRpc.Internal
 
                                     if (_streams.Count == 0)
                                     {
-                                        _idleSinceTime = Environment.TickCount64;
-
                                         if (_isShuttingDown)
                                         {
                                             // If shutting down, we can set the _streamsCompleted task completion source
                                             // as completed to allow shutdown to progress.
                                             _streamsCompleted.SetResult();
+                                        }
+                                        else
+                                        {
+                                            _idleSinceTime = Environment.TickCount64;
                                         }
                                     }
 
@@ -432,7 +436,7 @@ namespace IceRpc.Internal
 
             // Setup the idle timeout timer to gracefully shutdown the connection when it becomes idle (no more
             // invocations or dispatches within the idle timeout period).
-            if (_idleTimeout != TimeSpan.MaxValue && _idleTimeout != Timeout.InfiniteTimeSpan)
+            if (_idleTimeout != Timeout.InfiniteTimeSpan)
             {
                 _timer = new Timer(
                     _ =>
@@ -440,7 +444,7 @@ namespace IceRpc.Internal
                         var now = TimeSpan.FromMilliseconds(Environment.TickCount64);
                         if (now - TimeSpan.FromMilliseconds(_idleSinceTime) > _idleTimeout)
                         {
-                            InitiateShutdown?.Invoke("connection idle");
+                            OnIdle?.Invoke();
                         }
                     },
                     null,
@@ -497,13 +501,15 @@ namespace IceRpc.Internal
 
                                     if (_streams.Count == 0)
                                     {
-                                        _idleSinceTime = Environment.TickCount64;
-
                                         if (_isShuttingDown)
                                         {
                                             // If shutting down, we can set the _streamsCompleted task completion source
                                             // as completed to allow shutdown to progress.
                                             _streamsCompleted.SetResult();
+                                        }
+                                        else
+                                        {
+                                            _idleSinceTime = Environment.TickCount64;
                                         }
                                     }
                                 }
@@ -1114,7 +1120,7 @@ namespace IceRpc.Internal
                 _waitForGoAwayFrame.SetResult(goAwayFrame);
 
                 // Call the peer shutdown initiated callback.
-                InitiateShutdown?.Invoke(goAwayFrame.Message);
+                OnShutdown?.Invoke(goAwayFrame.Message);
             }
             catch (Exception exception)
             {

@@ -186,7 +186,7 @@ namespace IceRpc.Transports.Internal
                         $"unknown application protocol '{initializeBody.Value.ApplicationProtocolName}'", ex);
                 }
 
-                peerIdleTimeout = SetParameters(initializeBody.Value.Parameters);
+                SetParameters(initializeBody.Value.Parameters);
 
                 // Write back an InitializeAck frame.
                 await SendFrameAsync(
@@ -220,7 +220,7 @@ namespace IceRpc.Transports.Internal
                             (ref SliceDecoder decoder) => new InitializeAckBody(ref decoder),
                             cancel).ConfigureAwait(false);
 
-                        peerIdleTimeout = SetParameters(initializeAckBody.Parameters);
+                        SetParameters(initializeAckBody.Parameters);
                         break;
 
                     case FrameType.Version:
@@ -238,14 +238,8 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            // Use the smallest idle timeout.
-            if (peerIdleTimeout < _idleTimeout)
-            {
-                _idleTimeout = peerIdleTimeout;
-            }
-
             // Setup a timer to check for the connection idle time every IdleTimeout / 2 period.
-            if (_idleTimeout != TimeSpan.MaxValue && _idleTimeout != Timeout.InfiniteTimeSpan)
+            if (_idleTimeout != Timeout.InfiniteTimeSpan)
             {
                 _timer = new Timer(_ => Monitor(), null, _idleTimeout / 2, _idleTimeout / 2);
             }
@@ -577,7 +571,7 @@ namespace IceRpc.Transports.Internal
                 EncodeParameter(ParameterKey.PauseWriterThreshold, (ulong)PauseWriterThreshold)
             };
 
-            if (idleTimeout != TimeSpan.MaxValue && idleTimeout != Timeout.InfiniteTimeSpan)
+            if (idleTimeout != Timeout.InfiniteTimeSpan)
             {
                 parameters.Add(EncodeParameter(ParameterKey.IdleTimeout, (ulong)idleTimeout.TotalMilliseconds));
             }
@@ -594,15 +588,17 @@ namespace IceRpc.Transports.Internal
 
         private void Monitor()
         {
+            var now = TimeSpan.FromMilliseconds(Environment.TickCount64);
+
             // Check if data was received since the last idle timeout. If the connection is idle, a ping frame is sent
             // by the client side. The server side can count on the receive of the ping frame to defer the idle timeout.
-            // And the client side can rely on the receive of pong frame from the server side to defer the idle timeout.
-            TimeSpan idleTime =
-                TimeSpan.FromMilliseconds(Environment.TickCount64) - _simpleNetworkConnectionReader.LastActivity;
+            // The client side can rely on the receive of pong frame from the server side to defer the idle timeout.
+            TimeSpan idleTime = now - _simpleNetworkConnectionReader.IdleSinceTime;
 
             if (idleTime > _idleTimeout)
             {
-                Abort(new ConnectionAbortedException("idle connection"));
+                Abort(new ConnectionAbortedException(
+                    $"network connection has been idle for longer than {nameof(SlicTransportOptions.IdleTimeout)}"));
             }
             else if (!IsServer && idleTime > _idleTimeout / 4)
             {
@@ -887,7 +883,7 @@ namespace IceRpc.Transports.Internal
             return decodedFrame;
         }
 
-        private TimeSpan SetParameters(IDictionary<int, IList<byte>> parameters)
+        private void SetParameters(IDictionary<int, IList<byte>> parameters)
         {
             TimeSpan? peerIdleTimeout = null;
 
@@ -936,7 +932,11 @@ namespace IceRpc.Transports.Internal
                 throw new InvalidDataException($"invalid PacketMaxSize={PeerPacketMaxSize} Slic connection parameter");
             }
 
-            return peerIdleTimeout ?? TimeSpan.MaxValue;
+            // Use the smallest idle timeout.
+            if (peerIdleTimeout is TimeSpan peerIdleTimeoutValue && peerIdleTimeoutValue < _idleTimeout)
+            {
+                _idleTimeout = peerIdleTimeoutValue;
+            }
         }
     }
 }

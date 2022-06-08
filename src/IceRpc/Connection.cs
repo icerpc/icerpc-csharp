@@ -361,7 +361,10 @@ namespace IceRpc
                     // Switch the connection to the ShuttingDown state as soon as the protocol receives a notification
                     // that peer initiated shutdown. This is in particular useful for the connection pool to not return
                     // a connection which is being shutdown.
-                    _protocolConnection.InitiateShutdown = InitiateShutdown;
+                    _protocolConnection.OnShutdown = InitiateShutdown;
+
+                    // Also initiate shutdown if the protocol connection is idle.
+                    _protocolConnection.OnIdle = () => InitiateShutdown("idle connection");
 
                     // Start accepting requests. _protocolConnection might be updated before the task is ran so it's
                     // important to use protocolConnection here.

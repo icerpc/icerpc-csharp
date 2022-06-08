@@ -71,9 +71,9 @@ public sealed class ProtocolConnectionTests
         Assert.DoesNotThrowAsync(() => serverAcceptRequestsTask);
     }
 
-    /// <summary>Verifies that a connection is closed after being idle.</summary>
+    /// <summary>Verifies that the OnIdle callback is called when idle.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    public async Task Close_on_idle(Protocol protocol)
+    public async Task OnIdle_is_called_when_idle(Protocol protocol)
     {
         // Arrange
         IServiceCollection services = new ServiceCollection().AddProtocolTest(protocol);
@@ -87,15 +87,15 @@ public sealed class ProtocolConnectionTests
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        bool shutdownInitiated = false;
-        sut.Client.InitiateShutdown = _ => shutdownInitiated = true;
-        sut.Server.InitiateShutdown = _ => shutdownInitiated = true;
+        bool isIdle = false;
+        sut.Client.OnIdle = () => isIdle = true;
+        sut.Server.OnIdle = () => isIdle = true;
 
         // Act
         await Task.Delay(TimeSpan.FromSeconds(2));
 
         // Assert
-        Assert.That(shutdownInitiated, Is.True);
+        Assert.That(isIdle, Is.True);
     }
 
     /// <summary>Verifies that calling ShutdownAsync with a canceled token results in the cancellation of the the
@@ -122,7 +122,7 @@ public sealed class ProtocolConnectionTests
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        sut.Client.InitiateShutdown += (message) => sut.Client.ShutdownAsync("shutdown", default);
+        sut.Client.OnShutdown += (message) => sut.Client.ShutdownAsync("shutdown", default);
         var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
         await start.WaitAsync(); // Wait for the dispatch to start
 
@@ -448,7 +448,7 @@ public sealed class ProtocolConnectionTests
         IProtocolConnection connection2 = connectionType == ConnectionType.Client ? sut.Client : sut.Server;
 
         var shutdownInitiatedCalled = new TaskCompletionSource<string>();
-        connection2.InitiateShutdown = message =>
+        connection2.OnShutdown = message =>
         {
             shutdownInitiatedCalled.SetResult(message);
             _ = connection2.ShutdownAsync("");
@@ -604,7 +604,7 @@ public sealed class ProtocolConnectionTests
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        sut.Client.InitiateShutdown = message => _ = sut.Client.ShutdownAsync(message);
+        sut.Client.OnShutdown = message => _ = sut.Client.ShutdownAsync(message);
         var invokeTask1 = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
         await start.WaitAsync(); // Wait for the dispatch to start
 

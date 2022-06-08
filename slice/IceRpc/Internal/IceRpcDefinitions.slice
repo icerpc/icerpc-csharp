@@ -12,7 +12,7 @@ enum IceRpcControlFrameType : uint8
     Settings = 0,
 
     /// The GoAway frame is sent to notify the peer that the connection is being shutdown. The shutdown initiator
-    /// sends it as soon as the connection is shutdown. The receiver sends back a go away frame in return.
+    /// sends it as soon as the connection is shutdown. The receiver sends back a GoAway frame in return.
     GoAway = 1,
 }
 

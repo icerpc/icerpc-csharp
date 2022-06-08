@@ -13,7 +13,9 @@ namespace IceRpc.Internal
 {
     internal sealed class IceProtocolConnection : IProtocolConnection
     {
-        public Action<string>? InitiateShutdown { get; set; }
+        public Action? OnIdle { get; set; }
+
+        public Action<string>? OnShutdown { get; set; }
 
         public Protocol Protocol => Protocol.Ice;
 
@@ -168,7 +170,7 @@ namespace IceRpc.Internal
                 }
             }
 
-            if (_idleTimeout != TimeSpan.MaxValue && _idleTimeout != Timeout.InfiniteTimeSpan)
+            if (_idleTimeout != Timeout.InfiniteTimeSpan)
             {
                 _timer = new Timer(_ => Monitor(), null, _idleTimeout / 2, _idleTimeout / 2);
             }
@@ -370,7 +372,10 @@ namespace IceRpc.Internal
                             {
                                 _dispatchesAndInvocationsCompleted.TrySetResult();
                             }
-                            _idleSinceTime = Environment.TickCount64;
+                            else
+                            {
+                                _idleSinceTime = Environment.TickCount64;
+                            }
                         }
                     }
                 }
@@ -633,22 +638,24 @@ namespace IceRpc.Internal
             if (now - TimeSpan.FromMilliseconds(_idleSinceTime) > _idleTimeout)
             {
                 // Graceful shutdown if the connection is idle.
-                InitiateShutdown?.Invoke("idle connection");
+                OnIdle?.Invoke();
             }
             else
             {
                 // Check the connection's health.
-                TimeSpan idleTime = now - _networkConnectionReader.LastActivity;
+                TimeSpan idleTime = now - _networkConnectionReader.IdleSinceTime;
                 if (idleTime > _idleTimeout)
                 {
-                    Abort(new ConnectionAbortedException("idle connection"));
+                    Abort(new ConnectionAbortedException(
+                        $"network connection has been idle for longer than {nameof(ConnectionOptions.IdleTimeout)}"));
                 }
                 else if (idleTime > _idleTimeout / 4)
                 {
                     // If the connection has been idle for more than idleTimeout / 4, send a ping frame to keep alive
                     // the connection. Given that Monitor is called every idleTimeout / 2 period, this shouldn't send
-                    // more than two ping frames during an idle timeout period. Unlike Slic, both end send ping frames.
-                    // It's therefore important that both side of the connection use the same idle timeout.
+                    // more than two ping frames during an idle timeout period. There's no Pong frame with the ice
+                    // protocol. We instead rely on the peer to also send a ping frame within the same idle timeout.
+                    // So unlike Slic, both the client and server side are responsible for sending ping frames.
                     _ = PingAsync();
                 }
             }
@@ -730,7 +737,7 @@ namespace IceRpc.Internal
                         }
 
                         // Call the peer shutdown initiated callback.
-                        InitiateShutdown?.Invoke("connection shutdown by peer");
+                        OnShutdown?.Invoke("connection shutdown by peer");
                         return;
                     }
 
@@ -1116,7 +1123,10 @@ namespace IceRpc.Internal
                                     {
                                         _dispatchesAndInvocationsCompleted.TrySetResult();
                                     }
-                                    _idleSinceTime = Environment.TickCount64;
+                                    else
+                                    {
+                                        _idleSinceTime = Environment.TickCount64;
+                                    }
                                 }
                             }
                         }

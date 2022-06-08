@@ -282,7 +282,7 @@ public sealed class IceProtocolConnectionTests
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        sut.Server.InitiateShutdown = message =>
+        sut.Server.OnShutdown = message =>
             sut.Server.ShutdownAsync("");
 
         var invokeTask = sut.Client.InvokeAsync(
