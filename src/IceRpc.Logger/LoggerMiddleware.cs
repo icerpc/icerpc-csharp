@@ -4,8 +4,9 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Logger;
 
-/// <summary>A middleware that logs requests and responses messages using a logger with "IceRpc" category.
-/// </summary>
+/// <summary>A middleware that logs requests and responses messages using a logger with "IceRpc" category. When using
+/// in conjunction with the telemetry middleware, it is best to install the logger middleware after the telemetry
+/// middleware, this way the logger can include the scopes created by the telemetry activities.</summary>
 public class LoggerMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;
