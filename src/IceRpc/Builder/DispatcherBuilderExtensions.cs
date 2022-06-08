@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
+using IceRpc.Slice;
 
 namespace IceRpc.Builder;
 
@@ -31,4 +32,14 @@ public static class DispatcherBuilderExtensions
             request.Features = request.Features.With(feature);
             return next.DispatchAsync(request, cancel);
         }));
+
+    /// <summary>Registers a route to a service that uses the service default path as the route path. If there is
+    /// an existing route at the same path, it is replaced.</summary>
+    /// <typeparam name="TService">The service type used to get the default path.</typeparam>
+    /// <typeparam name="TServiceImpl">The type of the DI service that will handle the requests. The implementation of this
+    /// service must implement <see cref="IDispatcher"/>.</typeparam>
+    /// <param name="builder">The builder being configured.</param>
+    /// <returns>This builder.</returns>
+    public static IDispatcherBuilder Map<TService, TServiceImpl>(this IDispatcherBuilder builder) where TServiceImpl : notnull =>
+        builder.Map<TServiceImpl>(typeof(TService).GetDefaultPath());
 }
