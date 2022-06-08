@@ -31,7 +31,7 @@ namespace IceRpc
         /// cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
         public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
-        private readonly HashSet<Connection> _connections = new();
+        private readonly HashSet<ServerConnection> _connections = new();
 
         private IListener? _listener;
 
@@ -224,7 +224,7 @@ namespace IceRpc
 
                     // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                    var connection = new ServerConnection(Endpoint, connectionOptions, _loggerFactory);
+                    var connection = new ServerConnection(Endpoint.Protocol, connectionOptions);
 #pragma warning restore CA2000
 
                     lock (_mutex)

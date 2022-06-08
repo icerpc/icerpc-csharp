@@ -279,7 +279,7 @@ public class ProxyTests
     public async Task From_connection_with_a_server_connection()
     {
         // Arrange
-        await using var serverConnection = new Internal.ServerConnection(new Endpoint(Protocol.IceRpc), new ConnectionOptions(), null);
+        await using var serverConnection = new Internal.ServerConnection(Protocol.IceRpc, new ConnectionOptions());
 
         // Act
         var proxy = Proxy.FromConnection(serverConnection, "/");

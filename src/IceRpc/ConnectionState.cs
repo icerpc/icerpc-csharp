@@ -7,7 +7,7 @@ namespace IceRpc;
 public enum ConnectionState : byte
 {
     /// <summary>The connection is not connected. If will be connected on the first invocation or when <see
-    /// cref="Connection.ConnectAsync(CancellationToken)"/> is called. A connection is in this state after creation
+    /// cref="ClientConnection.ConnectAsync(CancellationToken)"/> is called. A connection is in this state after creation
     /// or if it's closed and resumable.</summary>
     NotConnected,
 
