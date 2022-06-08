@@ -60,7 +60,7 @@ public static class Program
 
                 services
                     .AddSingleton(_ => new ActivitySource("IceRpc"))
-                    .AddIceRpcInvoker(builder => builder.UseLogger().UseTelemetry())
+                    .AddIceRpcInvoker(builder => builder.UseTelemetry().UseLogger())
                     .AddIceRpcClientConnection()
                     .AddIceRpcPrx<IHelloPrx, HelloPrx>();
             });

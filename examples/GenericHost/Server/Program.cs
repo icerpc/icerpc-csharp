@@ -51,8 +51,8 @@ public static class Program
                 // Add a server and configure the dispatcher using a dispatcher builder
                 services.AddIceRpcServer(
                     builder => builder
-                        .UseLogger()
                         .UseTelemetry()
+                        .UseLogger()
                         .Map<IHello>());
             });
 
