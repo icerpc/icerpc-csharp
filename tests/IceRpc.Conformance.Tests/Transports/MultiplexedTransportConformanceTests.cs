@@ -1054,6 +1054,7 @@ public record class MultiplexedTransportOptions
 {
     public int? BidirectionalStreamMaxCount { get; set; }
     public int? UnidirectionalStreamMaxCount { get; set; }
+    public TimeSpan? IdleTimeout { get; set; }
 }
 
 public static class MultiplexedTransportServiceCollectionExtensions
@@ -1061,17 +1062,19 @@ public static class MultiplexedTransportServiceCollectionExtensions
     public static IServiceCollection AddTransportOptions(
         this IServiceCollection serviceCollection,
         int? bidirectionalStreamMaxCount = null,
-        int? unidirectionalStreamMaxCount = null)
+        int? unidirectionalStreamMaxCount = null,
+        TimeSpan? idleTimeout = null)
     {
         return serviceCollection.AddSingleton(_ => new MultiplexedTransportOptions
         {
             BidirectionalStreamMaxCount = bidirectionalStreamMaxCount,
-            UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount
+            UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount,
+            IdleTimeout = idleTimeout
         });
     }
 
     public static IServiceCollection AddMultiplexedTransportTest(this IServiceCollection services) =>
-        services.AddSingleton<IMultiplexedNetworkConnection>(provider =>
+        services.AddSingleton(provider =>
         {
             var listener = provider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
             var clientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();

@@ -66,6 +66,11 @@ public class SlicConformanceTests : MultiplexedTransportConformanceTests
             {
                 options.UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount;
             }
+
+            if (multiplexedTransportOptions.IdleTimeout is TimeSpan idleTimeout)
+            {
+                options.IdleTimeout = idleTimeout;
+            }
         }
     }
 }

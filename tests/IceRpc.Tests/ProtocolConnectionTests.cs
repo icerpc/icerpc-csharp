@@ -87,15 +87,20 @@ public sealed class ProtocolConnectionTests
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        bool isIdle = false;
-        sut.Client.OnIdle = () => isIdle = true;
-        sut.Server.OnIdle = () => isIdle = true;
+        bool isClientIdle = false;
+        bool isServerIdle = false;
+        sut.Client.OnIdle = () => isClientIdle = true;
+        sut.Server.OnIdle = () => isServerIdle = true;
 
         // Act
         await Task.Delay(TimeSpan.FromSeconds(2));
 
         // Assert
-        Assert.That(isIdle, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(isClientIdle, Is.True);
+            Assert.That(isServerIdle, Is.True);
+        });
     }
 
     /// <summary>Verifies that calling ShutdownAsync with a canceled token results in the cancellation of the the
