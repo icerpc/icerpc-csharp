@@ -23,18 +23,11 @@ public static class IceRpcSliceServiceCollectionExtensions
         services
             .AddSingleton<TPrx>(provider =>
             {
-                IClientConnection? connection = provider.GetService<IClientConnection>();
-                IInvoker invoker = provider.GetService<IInvoker>() ?? Proxy.DefaultInvoker;
-
+               IInvoker invoker = provider.GetService<IInvoker>() ?? Proxy.DefaultInvoker;
                 Proxy proxy;
                 if (proxyString.StartsWith('/'))
                 {
-                    if (connection == null)
-                    {
-                        throw new InvalidOperationException(
-                            $"could not find an {nameof(IClientConnection)} service in the service container");
-                    }
-
+                    IClientConnection? connection = provider.GetRequiredService<IClientConnection>();
                     proxy = new Proxy(connection.Protocol)
                     {
                         Path = proxyString,
@@ -45,7 +38,7 @@ public static class IceRpcSliceServiceCollectionExtensions
                 else
                 {
                     proxy = Proxy.Parse(proxyString, invoker);
-                    proxy.Connection = connection;
+                    proxy.Connection = provider.GetService<IClientConnection>();
                 }
 
                 return new TPrxImplementation
