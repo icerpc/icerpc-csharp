@@ -27,7 +27,6 @@ namespace IceRpc.Internal
         private int _headerSizeLength = 2;
         private int _invocationCount;
         private bool _isDisposed;
-        private long _idleSinceTime;
         private readonly TimeSpan _idleTimeout;
         private bool _isShuttingDown;
         private long _lastRemoteBidirectionalStreamId = -1;
@@ -43,7 +42,7 @@ namespace IceRpc.Internal
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         private TaskCompletionSource<IceRpcGoAway>? _waitForGoAwayFrame;
-        private Timer? _timer;
+        private readonly Timer _timer;
 
         public void Abort(Exception exception)
         {
@@ -57,7 +56,7 @@ namespace IceRpc.Internal
             }
 
             _networkConnection.Abort(exception);
-            _timer?.Dispose();
+            _timer.Dispose();
 
             _ = AbortCoreAsync();
 
@@ -137,8 +136,13 @@ namespace IceRpc.Internal
                                 _lastRemoteUnidirectionalStreamId = stream.Id;
                             }
 
+                            if (_streams.Count == 0)
+                            {
+                                // Disable idle check
+                                _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                            }
+
                             _streams.Add(stream);
-                            _idleSinceTime = long.MaxValue; // Disable idle timeout.
 
                             stream.OnShutdown(() =>
                             {
@@ -156,7 +160,8 @@ namespace IceRpc.Internal
                                         }
                                         else
                                         {
-                                            _idleSinceTime = Environment.TickCount64;
+                                            // Enable idle check
+                                            _timer.Change(_idleTimeout, _idleTimeout);
                                         }
                                     }
 
@@ -434,23 +439,8 @@ namespace IceRpc.Internal
             // Start a task to wait to receive the go away frame to initiate shutdown.
             var waitForGoAwayTask = Task.Run(() => WaitForGoAwayAsync(), CancellationToken.None);
 
-            // Setup the idle timeout timer to gracefully shutdown the connection when it becomes idle (no more
-            // invocations or dispatches within the idle timeout period).
-            if (_idleTimeout != Timeout.InfiniteTimeSpan)
-            {
-                _timer = new Timer(
-                    _ =>
-                    {
-                        var now = TimeSpan.FromMilliseconds(Environment.TickCount64);
-                        if (now - TimeSpan.FromMilliseconds(_idleSinceTime) > _idleTimeout)
-                        {
-                            OnIdle?.Invoke();
-                        }
-                    },
-                    null,
-                    _idleTimeout,
-                    _idleTimeout);
-            }
+            // Enable the idle check.
+            _timer.Change(_idleTimeout, _idleTimeout);
 
             return networkConnectionInformation;
         }
@@ -487,8 +477,13 @@ namespace IceRpc.Internal
                         }
                         else
                         {
+                            if (_streams.Count == 0)
+                            {
+                                // Disable idle check
+                                _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                            }
+
                             _streams.Add(stream);
-                            _idleSinceTime = long.MaxValue; // Disable idle timeout.
                             ++_invocationCount;
 
                             stream.OnShutdown(() =>
@@ -509,7 +504,7 @@ namespace IceRpc.Internal
                                         }
                                         else
                                         {
-                                            _idleSinceTime = Environment.TickCount64;
+                                            _timer.Change(_idleTimeout, _idleTimeout);
                                         }
                                     }
                                 }
@@ -780,7 +775,7 @@ namespace IceRpc.Internal
             _idleTimeout = options.IdleTimeout;
             _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
 
-            _idleSinceTime = Environment.TickCount64;
+            _timer = new Timer(_ => OnIdle?.Invoke(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }
 
         private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeFieldDictionary<TKey>(
