@@ -1,7 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Net.Security;
 
 namespace IceRpc.Internal;
 
@@ -170,6 +173,96 @@ internal class ConnectionCore
             throw;
         }
     }
+
+    /// <summary>Establishes the client connection.</summary>
+    /// <exception cref="ConnectionClosedException">Thrown if the connection is already closed.</exception>
+    internal async Task ConnectClientAsync<T>(
+        IClientConnection connection,
+        IClientTransport<T> clientTransport,
+        IProtocolConnectionFactory<T> protocolConnectionFactory,
+        LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory,
+        ILoggerFactory loggerFactory,
+        SslClientAuthenticationOptions? authenticationOptions,
+        CancellationToken cancel) where T : INetworkConnection
+    {
+        // Loop until the connection is active or connection establishment fails.
+        while (true)
+        {
+            Task? waitTask = null;
+            lock (_mutex)
+            {
+                if (_state == ConnectionState.NotConnected)
+                {
+                    Debug.Assert(_protocolConnection == null);
+
+                    _stateTask = PerformConnectAsync();
+
+                    Debug.Assert(_state == ConnectionState.Connecting);
+                }
+                else if (_state == ConnectionState.Active)
+                {
+                    return;
+                }
+                else
+                {
+                    // ShuttingDown or Closed
+                    throw new ConnectionClosedException();
+                }
+
+                Debug.Assert(_stateTask != null);
+                waitTask = _stateTask;
+            }
+
+            await waitTask.WaitAsync(cancel).ConfigureAwait(false);
+        }
+
+        Task PerformConnectAsync()
+        {
+            // This is the composition root of client Connections, where we install log decorators when logging is
+            // enabled.
+
+            ILogger logger = loggerFactory.CreateLogger("IceRpc.Client");
+
+            T networkConnection = clientTransport.CreateConnection(
+                connection.RemoteEndpoint,
+                authenticationOptions,
+                logger);
+
+            Action<IConnection, Exception>? onClose = null;
+
+            // TODO: log level
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                networkConnection = logDecoratorFactory(
+                    networkConnection,
+                    connection.RemoteEndpoint,
+                    isServer: false,
+                    logger);
+
+                protocolConnectionFactory =
+                    new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, logger);
+
+                onClose = (connection, exception) =>
+                {
+                    if (NetworkConnectionInformation is NetworkConnectionInformation connectionInformation)
+                    {
+                        using IDisposable scope = logger.StartClientConnectionScope(connectionInformation);
+                        logger.LogConnectionClosedReason(exception);
+                    }
+                };
+            }
+
+            _state = ConnectionState.Connecting;
+
+            return ConnectAsync(connection, networkConnection, protocolConnectionFactory, onClose);
+        }
+    }
+
+    internal bool HasCompatibleParams(Endpoint remoteEndpoint) =>
+        !_isServer &&
+        IsInvocable &&
+        _protocolConnection is IProtocolConnection protocolConnection &&
+        protocolConnection.HasCompatibleParams(remoteEndpoint);
 
     internal IProtocolConnection? GetProtocolConnection()
     {
