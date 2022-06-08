@@ -178,7 +178,7 @@ public class LocatorEndpointFinderTests
             await _semaphore.WaitAsync(cancel);
             Interlocked.Increment(ref Count);
 
-            return Proxy.Parse("dummy:tcp -h localhost -p 10000", format: IceProxyFormat.Unicode);
+            return Proxy.Parse("dummy://localhost:10000");
         }
     }
 

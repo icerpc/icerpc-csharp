@@ -222,7 +222,6 @@ public static class PrxExtensions
     /// <summary>Converts this Prx struct into a string using a specific format.</summary>
     /// <typeparam name="TPrx">The type of source Prx struct.</typeparam>
     /// <param name="prx">The Prx struct.</param>
-    /// <param name="format">The proxy format.</param>
-    public static string ToString<TPrx>(this TPrx prx, IProxyFormat format) where TPrx : struct, IPrx =>
-        format.ToString(prx.Proxy);
+    public static string ToString<TPrx>(this TPrx prx) where TPrx : struct, IPrx =>
+        prx.Proxy.ToString();
 }
