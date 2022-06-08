@@ -5,7 +5,7 @@ using IceRpc.Transports;
 namespace IceRpc.Internal;
 
 /// <summary>A connection created by a <see cref="Server"/>.</summary>
-internal class ServerConnection : IConnection, IAsyncDisposable
+internal sealed class ServerConnection : IConnection, IAsyncDisposable
 {
     /// <inheritdoc/>
     public bool IsInvocable => _core.IsInvocable;
@@ -37,8 +37,8 @@ internal class ServerConnection : IConnection, IAsyncDisposable
         _core = new ConnectionCore(ConnectionState.Connecting, isServer: true, options, isResumable: false);
     }
 
-    /// <summary>Aborts the connection. This method switches the connection state to <see
-    /// cref="ConnectionState.Closed"/>.</summary>
+    /// <summary>Aborts the connection. This method switches the connection state to
+    /// <see cref="ConnectionState.Closed"/>.</summary>
     internal void Abort() => _core.Abort(this);
 
     /// <summary>Establishes a connection.</summary>

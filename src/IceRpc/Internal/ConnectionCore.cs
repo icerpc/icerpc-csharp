@@ -9,7 +9,7 @@ using System.Net.Security;
 namespace IceRpc.Internal;
 
 /// <summary>Code common to client and server connections.</summary>
-internal class ConnectionCore
+internal sealed class ConnectionCore
 {
     internal bool IsInvocable => State < ConnectionState.ShuttingDown;
 
@@ -64,7 +64,7 @@ internal class ConnectionCore
     internal void Abort(IConnection connection) =>
         Close(connection, new ConnectionAbortedException(), isResumable: false);
 
-    /// <summary>Establishes a connection. This method is used for both client and server connections.</summary>
+    /// <summary>Establishes a connection.</summary>
     /// <param name="connection">The connection being connected.</param>
     /// <param name="networkConnection">The underlying network connection.</param>
     /// <param name="protocolConnectionFactory">The protocol connection factory.</param>
@@ -177,7 +177,7 @@ internal class ConnectionCore
     /// <summary>Establishes the client connection.</summary>
     /// <exception cref="ConnectionClosedException">Thrown if the connection is already closed.</exception>
     internal async Task ConnectClientAsync<T>(
-        IClientConnection connection,
+        IClientConnection clientConnection,
         IClientTransport<T> clientTransport,
         IProtocolConnectionFactory<T> protocolConnectionFactory,
         LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory,
@@ -224,7 +224,7 @@ internal class ConnectionCore
             ILogger logger = loggerFactory.CreateLogger("IceRpc.Client");
 
             T networkConnection = clientTransport.CreateConnection(
-                connection.RemoteEndpoint,
+                clientConnection.RemoteEndpoint,
                 authenticationOptions,
                 logger);
 
@@ -235,7 +235,7 @@ internal class ConnectionCore
             {
                 networkConnection = logDecoratorFactory(
                     networkConnection,
-                    connection.RemoteEndpoint,
+                    clientConnection.RemoteEndpoint,
                     isServer: false,
                     logger);
 
@@ -254,15 +254,9 @@ internal class ConnectionCore
 
             _state = ConnectionState.Connecting;
 
-            return ConnectAsync(connection, networkConnection, protocolConnectionFactory, onClose);
+            return ConnectAsync(clientConnection, networkConnection, protocolConnectionFactory, onClose);
         }
     }
-
-    internal bool HasCompatibleParams(Endpoint remoteEndpoint) =>
-        !_isServer &&
-        IsInvocable &&
-        _protocolConnection is IProtocolConnection protocolConnection &&
-        protocolConnection.HasCompatibleParams(remoteEndpoint);
 
     internal IProtocolConnection? GetProtocolConnection()
     {
@@ -282,6 +276,12 @@ internal class ConnectionCore
             }
         }
     }
+
+    internal bool HasCompatibleParams(Endpoint remoteEndpoint) =>
+        !_isServer &&
+        IsInvocable &&
+        _protocolConnection is IProtocolConnection protocolConnection &&
+        protocolConnection.HasCompatibleParams(remoteEndpoint);
 
     internal async Task<IncomingResponse> InvokeAsync(
         IConnection connection,
