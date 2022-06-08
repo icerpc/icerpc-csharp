@@ -35,11 +35,10 @@ public static class DispatcherBuilderExtensions
 
     /// <summary>Registers a route to a service that uses the service default path as the route path. If there is
     /// an existing route at the same path, it is replaced.</summary>
-    /// <typeparam name="TService">The service type used to get the default path.</typeparam>
-    /// <typeparam name="TServiceImpl">The type of the DI service that will handle the requests. The implementation of this
+    /// <typeparam name="TService">The type of the DI service that will handle the requests. The implementation of this
     /// service must implement <see cref="IDispatcher"/>.</typeparam>
     /// <param name="builder">The builder being configured.</param>
     /// <returns>This builder.</returns>
-    public static IDispatcherBuilder Map<TService, TServiceImpl>(this IDispatcherBuilder builder) where TServiceImpl : notnull =>
-        builder.Map<TServiceImpl>(typeof(TService).GetDefaultPath());
+    public static IDispatcherBuilder Map<TService>(this IDispatcherBuilder builder) where TService : notnull =>
+        builder.Map<TService>(typeof(TService).GetDefaultPath());
 }

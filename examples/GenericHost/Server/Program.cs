@@ -53,7 +53,7 @@ public static class Program
                     builder => builder
                         .UseLogger()
                         .UseTelemetry()
-                        .Map<IHello, Hello>());
+                        .Map<IHello>());
             });
 
     /// <summary>The server hosted service is ran and managed by the .NET Generic Host</summary>
