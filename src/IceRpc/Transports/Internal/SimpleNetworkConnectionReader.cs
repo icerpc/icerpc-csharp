@@ -11,27 +11,63 @@ namespace IceRpc.Transports.Internal
     /// is not a PipeReader.</summary>
     internal class SimpleNetworkConnectionReader : IDisposable
     {
-        /// <summary>Gets or sets a callback which is called when data is read on the underlying simple network
-        /// connection.</summary>
-        internal Action? OnRead { get; set; }
+        internal TimeSpan IdleTimeout
+        {
+            get
+            {
+                lock (_mutex)
+                {
+                    return _idleTimeout;
+                }
+            }
 
-        internal Action PingAction { get; set; }
-        internal Action AbortAction { get; set; }
+            set
+            {
+                lock (_mutex)
+                {
+                    _idleTimeout = value;
+
+                    if (_idleTimeout == Timeout.InfiniteTimeSpan)
+                    {
+                        _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                    }
+                    else
+                    {
+                        _deferIdleTimeout();
+                    }
+                }
+            }
+        }
 
         private readonly ISimpleNetworkConnection _connection;
+        private readonly Action _deferIdleTimeout;
+        private TimeSpan _idleTimeout;
+        private bool _isDisposed;
+        private readonly object _mutex = new();
         private readonly Pipe _pipe;
+        private readonly Timer _idleTimeoutTimer;
 
         public void Dispose()
         {
+            lock (_mutex)
+            {
+                if (_isDisposed)
+                {
+                    return;
+                }
+                _isDisposed = true;
+            }
+
             _pipe.Writer.Complete();
             _pipe.Reader.Complete();
+            _idleTimeoutTimer.Dispose();
         }
 
         internal SimpleNetworkConnectionReader(
             ISimpleNetworkConnection connection,
             MemoryPool<byte> pool,
             int minimumSegmentSize,
-            Action pingAction,
+            Action? pingAction,
             Action abortAction)
         {
             _connection = connection;
@@ -40,6 +76,70 @@ namespace IceRpc.Transports.Internal
                 minimumSegmentSize: minimumSegmentSize,
                 pauseWriterThreshold: 0,
                 writerScheduler: PipeScheduler.Inline));
+
+            if (pingAction == null)
+            {
+                // Setup a timer to check if the connection is idle for longer than the idle timeout.
+                _idleTimeoutTimer = new Timer(_ => abortAction());
+
+                // Setup the defer idle timeout action.
+                _deferIdleTimeout = () =>
+                    {
+                        lock (_mutex)
+                        {
+                            if (!_isDisposed)
+                            {
+                                _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
+                            }
+                        }
+                    };
+            }
+            else
+            {
+                // Pings are sent every IdleTimeout / 2 after the idle timeout is deferred.
+                bool sendPing = true;
+                _idleTimeoutTimer = new Timer(
+                    _ =>
+                    {
+                        Action? action;
+                        lock (_mutex)
+                        {
+                            if (_isDisposed)
+                            {
+                                // Nothing to do.
+                                action = null;
+                            }
+                            else if (sendPing)
+                            {
+                                // The next time the callback is called, the connection will be aborted if the idle
+                                // timeout hasn't been deferred since.
+                                _idleTimeoutTimer!.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
+                                action = pingAction;
+                                sendPing = false;
+                            }
+                            else
+                            {
+                                action = abortAction;
+                            }
+                        }
+
+                        action?.Invoke();
+                    });
+
+                // Setup the defer idle timeout action.
+                _deferIdleTimeout = () =>
+                    {
+                        lock (_mutex)
+                        {
+                            if (!_isDisposed)
+                            {
+                                // The next timer call will occur on idleTimeout / 2 and it will send a ping frame.
+                                sendPing = true;
+                                _idleTimeoutTimer.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
+                            }
+                        }
+                    };
+            }
         }
 
         internal void AdvanceTo(SequencePosition consumed) => _pipe.Reader.AdvanceTo(consumed);
@@ -98,7 +198,7 @@ namespace IceRpc.Transports.Internal
                     bufferWriter.Advance(read);
                     byteCount -= read;
 
-                    OnRead?.Invoke();
+                    _deferIdleTimeout.Invoke();
 
                     if (byteCount > 0 && read == 0)
                     {
@@ -139,7 +239,7 @@ namespace IceRpc.Transports.Internal
                 _pipe.Writer.Advance(read);
                 minimumSize -= read;
 
-                OnRead?.Invoke();
+                _deferIdleTimeout.Invoke();
 
                 if (minimumSize > 0 && read == 0)
                 {

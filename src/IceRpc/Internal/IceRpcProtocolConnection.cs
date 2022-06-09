@@ -28,7 +28,7 @@ namespace IceRpc.Internal
         private int _invocationCount;
         private bool _isAborted;
         private readonly TimeSpan _idleTimeout;
-        private readonly Timer? _idleTimeoutTimer;
+        private Timer? _idleTimeoutTimer;
         private bool _isShuttingDown;
         private long _lastRemoteBidirectionalStreamId = -1;
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
@@ -138,7 +138,7 @@ namespace IceRpc.Internal
 
                             if (_streams.Count == 0)
                             {
-                                // Disable idle check
+                                // Disable the idle check
                                 _idleTimeoutTimer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
                             }
 
@@ -160,7 +160,7 @@ namespace IceRpc.Internal
                                         }
                                         else if (!_isAborted)
                                         {
-                                            // Enable idle check
+                                            // Enable the idle check.
                                             _idleTimeoutTimer?.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
                                         }
                                     }
@@ -439,8 +439,11 @@ namespace IceRpc.Internal
             // Start a task to wait to receive the go away frame to initiate shutdown.
             var waitForGoAwayTask = Task.Run(() => WaitForGoAwayAsync(), CancellationToken.None);
 
-            // Enable the idle check.
-            _idleTimeoutTimer?.Change(_idleTimeout, _idleTimeout);
+            // Start the idle timeout timer if a non-infinite idle timeout is set.
+            if (_idleTimeout != Timeout.InfiniteTimeSpan)
+            {
+                _idleTimeoutTimer = new Timer(_ => OnIdle?.Invoke(), null, _idleTimeout, Timeout.InfiniteTimeSpan);
+            }
 
             return networkConnectionInformation;
         }
@@ -479,7 +482,7 @@ namespace IceRpc.Internal
                         {
                             if (_streams.Count == 0)
                             {
-                                // Disable idle check
+                                // Disable the idle check.
                                 _idleTimeoutTimer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
                             }
 
@@ -504,6 +507,7 @@ namespace IceRpc.Internal
                                         }
                                         else if (!_isAborted)
                                         {
+                                            // Enable the idle check.
                                             _idleTimeoutTimer?.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
                                         }
                                     }
@@ -774,11 +778,6 @@ namespace IceRpc.Internal
             _dispatcher = options.Dispatcher;
             _idleTimeout = options.IdleTimeout;
             _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
-
-            if (_idleTimeout != Timeout.InfiniteTimeSpan)
-            {
-                _idleTimeoutTimer = new Timer(_ => OnIdle?.Invoke());
-            }
         }
 
         private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeFieldDictionary<TKey>(
