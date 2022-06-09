@@ -7,8 +7,8 @@ using System.Net.Security;
 
 namespace IceRpc;
 
-/// <summary>Represents a client connection used to send and receive requests and responses. This client connection
-/// can be reconnected when the connection is closed by the server or the underlying transport.</summary>
+/// <summary>Represents a client connection used to send and receive requests and responses. This client connection is
+/// reconnected automatically when its underlying connection is closed by the server or the transport.</summary>
 public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposable
 {
     /// <inheritdoc/>
@@ -35,6 +35,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
        Justification = "correctly disposed by DisposeAsync, Abort and ShutdownAsync")]
     private ClientConnection _clientConnection;
 
+    // Set to true by calls to Abort, DisposeAsync or ShutdownAsync on this instance.
     private volatile bool _isClosed;
 
     private readonly ILoggerFactory? _loggerFactory;

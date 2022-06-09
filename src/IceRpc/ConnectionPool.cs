@@ -210,7 +210,6 @@ namespace IceRpc
 
                 if (connection == null)
                 {
-                    // Connections from the connection pool are not resumable.
                     connection = new ClientConnection(
                         _connectionPoolOptions.ClientConnectionOptions with
                         {
