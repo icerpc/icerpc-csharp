@@ -36,6 +36,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     public ConnectionState State => _core.State;
 
     private readonly SslClientAuthenticationOptions? _clientAuthenticationOptions;
+
     private readonly ConnectionCore _core;
 
     private readonly ILoggerFactory _loggerFactory;
@@ -74,11 +75,11 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <summary>Constructs a client connection with the specified remote endpoint and  authentication options.
     /// All other properties have their default values.</summary>
     /// <param name="endpoint">The connection remote endpoint.</param>
-    /// <param name="authenticationOptions">The client authentication options.</param>
-    public ClientConnection(Endpoint endpoint, SslClientAuthenticationOptions? authenticationOptions = null)
+    /// <param name="clientAuthenticationOptions">The client authentication options.</param>
+    public ClientConnection(Endpoint endpoint, SslClientAuthenticationOptions? clientAuthenticationOptions = null)
         : this(new ClientConnectionOptions
         {
-            ClientAuthenticationOptions = authenticationOptions,
+            ClientAuthenticationOptions = clientAuthenticationOptions,
             RemoteEndpoint = endpoint
         })
     {
@@ -112,12 +113,9 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             cancel);
 
     /// <inheritdoc/>
-    public async ValueTask DisposeAsync()
-    {
+    public ValueTask DisposeAsync() =>
         // Perform a speedy graceful shutdown by canceling invocations and dispatches in progress.
-        await ShutdownAsync("connection disposed", new CancellationToken(canceled: true)).ConfigureAwait(false);
-        GC.SuppressFinalize(this);
-    }
+        new(ShutdownAsync("connection disposed", new CancellationToken(canceled: true)));
 
     /// <summary>Checks if the parameters of the provided endpoint are compatible with this client connection.
     /// Compatible means a client could reuse this client connection instead of establishing a new client
@@ -132,8 +130,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        IProtocolConnection? protocolConnection = _core.GetProtocolConnection();
-        if (protocolConnection == null)
+        if (State != ConnectionState.Active)
         {
             await ConnectAsync(cancel).ConfigureAwait(false);
         }

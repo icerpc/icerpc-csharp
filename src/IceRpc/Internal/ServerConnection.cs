@@ -19,12 +19,9 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
     private readonly ConnectionCore _core;
 
     /// <inheritdoc/>
-    public async ValueTask DisposeAsync()
-    {
+    public ValueTask DisposeAsync() =>
         // Perform a speedy graceful shutdown by canceling invocations and dispatches in progress.
-        await ShutdownAsync("connection disposed", new CancellationToken(canceled: true)).ConfigureAwait(false);
-        GC.SuppressFinalize(this);
-    }
+        new(ShutdownAsync("connection disposed", new CancellationToken(canceled: true)));
 
     /// <inheritdoc/>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
