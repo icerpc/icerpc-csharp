@@ -17,12 +17,11 @@ Console.CancelKeyPress += (sender, eventArgs) =>
 
 static async IAsyncEnumerable<int> GetDataAsync([EnumeratorCancellation] CancellationToken cancel)
 {
-    // Generate the nth fibonacci number
     int n = 0;
     // Continuously generating data to stream to the server
     while (!cancel.IsCancellationRequested)
     {
-        yield return n;
+        yield return n++;
         await Task.Delay(TimeSpan.FromSeconds(1), cancel);
         n++;
     }
