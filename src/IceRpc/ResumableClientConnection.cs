@@ -2,6 +2,7 @@
 
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 using System.Net.Security;
 
 namespace IceRpc;
@@ -59,7 +60,16 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
         IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
     {
-        _options = options;
+        Action<IConnection, Exception?> onClose = (clientConnection, exception) =>
+        {
+            if (!_isClosed && exception is ConnectionClosedException or ConnectionLostException)
+            {
+                RefreshClientConnection((ClientConnection)clientConnection);
+            }
+        };
+        onClose += options.OnClose;
+
+        _options = options with { OnClose = onClose };
         _multiplexedClientTransport = multiplexedClientTransport;
         _simpleClientTransport = simpleClientTransport;
         _loggerFactory = loggerFactory;
@@ -98,6 +108,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
     {
         while (true)
         {
+            // make a copy of the client connection we're trying with
             ClientConnection clientConnection = _clientConnection;
 
             try
@@ -120,23 +131,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
                 }
                 else
                 {
-                    bool disposeOldConnection = false;
-                    lock (_mutex)
-                    {
-                        // We only create a new connection and assign it to _clientConnection if we tried with
-                        // _clientConnection. If false, another thread could has done the same and we want to retry
-                        // with the new _clientConnection.
-                        if (clientConnection == _clientConnection)
-                        {
-                            _clientConnection = CreateClientConnection();
-                            disposeOldConnection = true;
-                        }
-                    }
-                    if (disposeOldConnection)
-                    {
-                        await clientConnection.DisposeAsync().ConfigureAwait(false);
-                    }
-
+                    RefreshClientConnection(clientConnection);
                     // and try again
                 }
             }
@@ -151,9 +146,9 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        // TODO: refactor to avoid duplication with ConnectAsync code
         while (true)
         {
+            // make a copy of the client connection we're trying with
             ClientConnection clientConnection = _clientConnection;
 
             try
@@ -168,26 +163,11 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
                 }
                 else
                 {
-                    bool disposeOldConnection = false;
-                    lock (_mutex)
-                    {
-                        // We only create a new connection and assign it to _clientConnection if we tried with
-                        // _clientConnection. If false, another thread could has done the same and we want to retry
-                        // with the new _clientConnection.
-                        if (clientConnection == _clientConnection)
-                        {
-                            _clientConnection = CreateClientConnection();
-                            disposeOldConnection = true;
-                        }
-                    }
-                    if (disposeOldConnection)
-                    {
-                        await clientConnection.DisposeAsync().ConfigureAwait(false);
-                    }
-
+                    RefreshClientConnection(clientConnection);
                     // and try again
                 }
             }
+            // for retries on other exceptions, the application should use a retry interceptor
         }
     }
 
@@ -210,4 +190,25 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
     // immediately replace it with a fresh connection.
     private ClientConnection CreateClientConnection() =>
         new(_options, _loggerFactory, _multiplexedClientTransport, _simpleClientTransport);
+
+    private void RefreshClientConnection(ClientConnection clientConnection)
+    {
+        Debug.Assert(!_isClosed);
+
+        bool disposeOldConnection = false;
+        lock (_mutex)
+        {
+            // We only create a new connection and assign it to _clientConnection if it matches the clientConnection we
+            // just tried. If it's another connection, another thread has already called RefreshClientConnection.
+            if (clientConnection == _clientConnection)
+            {
+                _clientConnection = CreateClientConnection();
+                disposeOldConnection = true;
+            }
+        }
+        if (disposeOldConnection)
+        {
+            _ = clientConnection.ShutdownAsync();
+        }
+    }
 }
