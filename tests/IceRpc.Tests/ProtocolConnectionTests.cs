@@ -143,10 +143,10 @@ public sealed class ProtocolConnectionTests
         {
             Assert.That(
                 TimeSpan.FromMilliseconds(clientIdleCalledTime),
-                Is.GreaterThan(TimeSpan.FromMilliseconds(500)).And.LessThan(TimeSpan.FromSeconds(1)));
+                Is.GreaterThan(TimeSpan.FromMilliseconds(490)).And.LessThan(TimeSpan.FromSeconds(1)));
             Assert.That(
                 TimeSpan.FromMilliseconds(serverIdleCalledTime),
-                Is.GreaterThan(TimeSpan.FromMilliseconds(500)).And.LessThan(TimeSpan.FromSeconds(1)));
+                Is.GreaterThan(TimeSpan.FromMilliseconds(490)).And.LessThan(TimeSpan.FromSeconds(1)));
         });
     }
 
