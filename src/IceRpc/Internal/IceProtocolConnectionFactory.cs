@@ -14,17 +14,17 @@ namespace IceRpc.Internal
             ConnectionOptions connectionOptions,
             CancellationToken cancel)
         {
-            var connection = new IceProtocolConnection(networkConnection, connectionOptions);
+            var protocolConnection = new IceProtocolConnection(networkConnection, connectionOptions);
             try
             {
-                await connection.ConnectAsync(isServer, cancel).ConfigureAwait(false);
+                await protocolConnection.ConnectAsync(isServer, cancel).ConfigureAwait(false);
             }
             catch
             {
-                connection.Dispose();
+                protocolConnection.Dispose();
                 throw;
             }
-            return connection;
+            return protocolConnection;
         }
     }
 }
