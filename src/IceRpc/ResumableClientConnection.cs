@@ -10,8 +10,8 @@ using System.Net.Security;
 namespace IceRpc;
 
 /// <summary>Represents a client connection used to send and receive requests and responses. This client connection
-/// cannot be reconnected after being closed.</summary>
-public sealed class ClientConnection : IClientConnection, IAsyncDisposable
+/// can be reconnected when the connection is closed by the server or the underlying transport.</summary>
+public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposable
 {
     /// <summary>Gets the default client transport for icerpc protocol connections.</summary>
     public static IClientTransport<IMultiplexedNetworkConnection> DefaultMultiplexedClientTransport { get; } =
@@ -46,20 +46,20 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
     private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
 
-    /// <summary>Constructs a client connection.</summary>
-    /// <param name="options">The connection options.</param>
+    /// <summary>Constructs a resumable client connection.</summary>
+    /// <param name="options">The client connection options.</param>
     /// <param name="loggerFactory">The logger factory used to create loggers to log connection-related activities.
     /// </param>
     /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol connections.
     /// </param>
     /// <param name="simpleClientTransport">The simple transport used to create ice protocol connections.</param>
-    public ClientConnection(
+    public ResumableClientConnection(
         ClientConnectionOptions options,
         ILoggerFactory? loggerFactory = null,
         IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
         IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
     {
-        _core = new ConnectionCore(ConnectionState.NotConnected, options, isResumable: false);
+        _core = new ConnectionCore(ConnectionState.NotConnected, options, isResumable: true);
 
         _clientAuthenticationOptions = options.ClientAuthenticationOptions;
 
@@ -73,11 +73,13 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
     }
 
-    /// <summary>Constructs a client connection with the specified remote endpoint and  authentication options.
+    /// <summary>Constructs a resumable client connection with the specified remote endpoint and  authentication options.
     /// All other properties have their default values.</summary>
     /// <param name="endpoint">The connection remote endpoint.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
-    public ClientConnection(Endpoint endpoint, SslClientAuthenticationOptions? clientAuthenticationOptions = null)
+    public ResumableClientConnection(
+        Endpoint endpoint,
+        SslClientAuthenticationOptions? clientAuthenticationOptions = null)
         : this(new ClientConnectionOptions
         {
             ClientAuthenticationOptions = clientAuthenticationOptions,
