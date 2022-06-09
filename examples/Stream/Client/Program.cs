@@ -4,12 +4,7 @@ using Demo;
 using IceRpc;
 using System.Runtime.CompilerServices;
 
-var options = new ClientConnectionOptions
-{
-    RemoteEndpoint = "icerpc://127.0.0.1",
-};
-
-await using var connection = new ClientConnection(options);
+await using var connection = new ClientConnection("icerpc://127.0.0.1");
 INumberStreamPrx numberStreamPrx = NumberStreamPrx.FromConnection(connection);
 
 // Shuts down the client on Ctrl+C or Ctrl+Break

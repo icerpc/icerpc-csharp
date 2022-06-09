@@ -14,7 +14,10 @@ public class NumberStream : Service, INumberStream
         _cancellationToken = cancellationToken;
     }
 
-    public async ValueTask StreamNumbersAsync(IAsyncEnumerable<int> numbers, IFeatureCollection features, CancellationToken cancel)
+    public async ValueTask StreamNumbersAsync(
+        IAsyncEnumerable<int> numbers,
+        IFeatureCollection features,
+        CancellationToken cancel)
     {
         using var cancellationSource = CancellationTokenSource.CreateLinkedTokenSource(cancel, _cancellationToken);
         await foreach (var number in numbers.WithCancellation(cancellationSource.Token))
