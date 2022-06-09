@@ -477,8 +477,12 @@ namespace IceRpc.Internal
             _payloadWriter = new IcePayloadPipeWriter(_networkConnectionWriter);
         }
 
-        internal async Task ConnectAsync(bool isServer, CancellationToken cancel)
+        internal async Task<NetworkConnectionInformation> ConnectAsync(bool isServer, CancellationToken cancel)
         {
+            // Connect the network connection
+            NetworkConnectionInformation networkConnectionInformation =
+                await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+
             if (isServer)
             {
                 EncodeValidateConnectionFrame(_networkConnectionWriter);
@@ -512,6 +516,8 @@ namespace IceRpc.Internal
             {
                 _timer = new Timer(_ => Monitor(), null, _idleTimeout / 2, _idleTimeout / 2);
             }
+
+            return networkConnectionInformation;
 
             static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
             {

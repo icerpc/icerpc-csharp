@@ -12,31 +12,26 @@ namespace IceRpc.Internal
         private readonly IProtocolConnectionFactory<T> _decoratee;
         private readonly ILogger _logger;
 
-        async Task<IProtocolConnection> IProtocolConnectionFactory<T>.CreateConnectionAsync(
+        async Task<(IProtocolConnection, NetworkConnectionInformation)> IProtocolConnectionFactory<T>.CreateConnectionAsync(
             T networkConnection,
-            NetworkConnectionInformation networkConnectionInformation,
             bool isServer,
             ConnectionOptions connectionOptions,
             CancellationToken cancel)
         {
-            IProtocolConnection connection = new LogProtocolConnectionDecorator(
+            (IProtocolConnection connection, NetworkConnectionInformation information) =
                 await _decoratee.CreateConnectionAsync(
                     networkConnection,
-                    networkConnectionInformation,
                     isServer,
                     connectionOptions,
-                    cancel).ConfigureAwait(false),
-                networkConnectionInformation,
-                isServer,
-                _logger);
+                    cancel).ConfigureAwait(false);
 
-            using IDisposable scope = _logger.StartConnectionScope(networkConnectionInformation, isServer);
+            using IDisposable scope = _logger.StartConnectionScope(information, isServer);
             _logger.LogProtocolConnectionConnect(
                 connection.Protocol,
-                networkConnectionInformation.LocalEndPoint,
-                networkConnectionInformation.RemoteEndPoint);
+                information.LocalEndPoint,
+                information.RemoteEndPoint);
 
-            return connection;
+            return (new LogProtocolConnectionDecorator(connection, information, isServer, _logger), information);
         }
 
         internal LogProtocolConnectionFactoryDecorator(IProtocolConnectionFactory<T> decoratee, ILogger logger)

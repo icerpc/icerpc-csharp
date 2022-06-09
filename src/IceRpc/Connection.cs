@@ -317,26 +317,15 @@ namespace IceRpc
                 // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
                 await Task.Yield();
 
-                // Connect the network connection.
-                NetworkConnectionInformation = await networkConnection.ConnectAsync(
-                    cancel).ConfigureAwait(false);
-
-                // Create the protocol connection.
-                IProtocolConnection protocolConnection;
-                try
-                {
-                    protocolConnection = await protocolConnectionFactory.CreateConnectionAsync(
-                      networkConnection,
-                      NetworkConnectionInformation.Value,
-                      _isServer,
-                      _options,
-                      cancel).ConfigureAwait(false);
-                }
-                catch
-                {
-                    networkConnection.Dispose();
-                    throw;
-                }
+                // Create the protocol connection. The protocol connection owns the network connection and is
+                // responsible for its disposal. If the protocol connection establishment fails, the network connection
+                // is disposed.
+                (IProtocolConnection protocolConnection, NetworkConnectionInformation) =
+                    await protocolConnectionFactory.CreateConnectionAsync(
+                        networkConnection,
+                        _isServer,
+                        _options,
+                        cancel).ConfigureAwait(false);
 
                 lock (_mutex)
                 {

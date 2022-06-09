@@ -94,39 +94,27 @@ internal class ClientServerProtocolConnection<T> : IClientServerProtocolConnecti
 
     public async Task ConnectAsync(bool accept = true)
     {
-        Task<IProtocolConnection> clientProtocolConnectionTask = CreateProtocolConnectionAsync(
-            _clientTransport.CreateConnection(_listener.Endpoint, null, NullLogger.Instance),
-            isServer: false,
-            _clientConnectionOptions);
+        Task<(IProtocolConnection, NetworkConnectionInformation)> clientProtocolConnectionTask =
+            _protocolConnectionFactory.CreateConnectionAsync(
+                _clientTransport.CreateConnection(_listener.Endpoint, null, NullLogger.Instance),
+                isServer: false,
+                _clientConnectionOptions,
+                CancellationToken.None);
 
-        Task<IProtocolConnection> serverProtocolConnectionTask = CreateProtocolConnectionAsync(
-            await _listener.AcceptAsync(),
-            isServer: true,
-            _serverOptions.ConnectionOptions);
+        Task<(IProtocolConnection, NetworkConnectionInformation)> serverProtocolConnectionTask =
+            _protocolConnectionFactory.CreateConnectionAsync(
+                await _listener.AcceptAsync(),
+                isServer: true,
+                _serverOptions.ConnectionOptions,
+                CancellationToken.None);
 
-        _client = await clientProtocolConnectionTask;
-        _server = await serverProtocolConnectionTask;
+        (_client, _) = await clientProtocolConnectionTask;
+        (_server, _) = await serverProtocolConnectionTask;
 
         if (accept)
         {
             _ = _client.AcceptRequestsAsync(_connection);
             _ = _server.AcceptRequestsAsync(_connection);
-        }
-
-        async Task<IProtocolConnection> CreateProtocolConnectionAsync(
-            T networkConnection,
-            bool isServer,
-            ConnectionOptions options)
-        {
-            NetworkConnectionInformation networkConnectionInformation = await networkConnection.ConnectAsync(
-                CancellationToken.None);
-
-            return await _protocolConnectionFactory.CreateConnectionAsync(
-                networkConnection,
-                networkConnectionInformation,
-                isServer,
-                options,
-                CancellationToken.None);
         }
     }
 

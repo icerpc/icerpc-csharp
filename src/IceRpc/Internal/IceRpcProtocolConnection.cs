@@ -738,8 +738,12 @@ namespace IceRpc.Internal
             _timer = new Timer(_ => OnIdle?.Invoke(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }
 
-        public async Task ConnectAsync(CancellationToken cancel)
+        internal async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
         {
+            // Connect the network connection
+            NetworkConnectionInformation networkConnectionInformation =
+                await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+
             _controlStream = _networkConnection.CreateStream(false);
 
             var settings = new IceRpcSettings(
@@ -769,6 +773,8 @@ namespace IceRpc.Internal
 
             // Enable the idle check.
             _timer.Change(_idleTimeout, _idleTimeout);
+
+            return networkConnectionInformation;
         }
 
         private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeFieldDictionary<TKey>(
