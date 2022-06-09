@@ -30,4 +30,4 @@ The trace information should now be available in the Zipkin local service:
 
  - http://localhost:9411/zipkin
 
-[Zipkin](./zipkin.png)
+![Zipkin](./zipkin.png)
