@@ -64,6 +64,9 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         {
             if (!_isClosed && exception is ConnectionClosedException or ConnectionLostException)
             {
+                // We refresh the client connection immediately (without connecting it). This way, the next InvokeAsync
+                // can succeed with the new connection; otherwise, when the exception is ConnectionLostException, it's
+                // not safe to retry the InvokeAsync unless the request is idempotent.
                 RefreshClientConnection((ClientConnection)clientConnection);
             }
         };
@@ -74,7 +77,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         _simpleClientTransport = simpleClientTransport;
         _loggerFactory = loggerFactory;
 
-        _clientConnection = CreateClientConnection();
+        _clientConnection = new(_options, _loggerFactory, _multiplexedClientTransport, _simpleClientTransport);
     }
 
     /// <summary>Constructs a resumable client connection with the specified remote endpoint and client authentication
@@ -186,28 +189,25 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         return _clientConnection.ShutdownAsync(message, cancel);
     }
 
-    // TODO: we need to register a callback with the client connection to be notified when it dies so that we can
-    // immediately replace it with a fresh connection.
-    private ClientConnection CreateClientConnection() =>
-        new(_options, _loggerFactory, _multiplexedClientTransport, _simpleClientTransport);
-
     private void RefreshClientConnection(ClientConnection clientConnection)
     {
         Debug.Assert(!_isClosed);
 
-        bool disposeOldConnection = false;
+        bool closeOldConnection = false;
         lock (_mutex)
         {
             // We only create a new connection and assign it to _clientConnection if it matches the clientConnection we
             // just tried. If it's another connection, another thread has already called RefreshClientConnection.
             if (clientConnection == _clientConnection)
             {
-                _clientConnection = CreateClientConnection();
-                disposeOldConnection = true;
+                _clientConnection = new(_options, _loggerFactory, _multiplexedClientTransport, _simpleClientTransport);
+                closeOldConnection = true;
             }
         }
-        if (disposeOldConnection)
+        if (closeOldConnection)
         {
+            // We call ShutdownAsync and not Abort in case we're in the middle of a graceful shutdown initiated by the
+            // server.
             _ = clientConnection.ShutdownAsync();
         }
     }
