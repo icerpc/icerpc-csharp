@@ -220,10 +220,12 @@ public class ConnectionTests
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
         // Act/Assert
+        // TODO: add/use OnDisconnect action
         while (connection.State != ConnectionState.NotConnected)
         {
             await Task.Delay(TimeSpan.FromMilliseconds(100));
         }
+        await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
     }
 
     [Test]
@@ -258,6 +260,7 @@ public class ConnectionTests
         {
             await Task.Delay(TimeSpan.FromMilliseconds(100));
         }
+        await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
     }
 
     [Test]
@@ -293,6 +296,7 @@ public class ConnectionTests
         {
             await Task.Delay(TimeSpan.FromMilliseconds(100));
         }
+        await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
     }
 
     [Test]
