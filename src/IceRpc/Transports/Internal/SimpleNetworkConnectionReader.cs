@@ -11,10 +11,14 @@ namespace IceRpc.Transports.Internal
     /// is not a PipeReader.</summary>
     internal class SimpleNetworkConnectionReader : IDisposable
     {
-        internal TimeSpan IdleSinceTime => TimeSpan.FromMilliseconds(_idleSinceTime);
+        /// <summary>Gets or sets a callback which is called when data is read on the underlying simple network
+        /// connection.</summary>
+        internal Action? OnRead { get; set; }
+
+        internal Action PingAction { get; set; }
+        internal Action AbortAction { get; set; }
 
         private readonly ISimpleNetworkConnection _connection;
-        private long _idleSinceTime = Environment.TickCount64;
         private readonly Pipe _pipe;
 
         public void Dispose()
@@ -26,7 +30,9 @@ namespace IceRpc.Transports.Internal
         internal SimpleNetworkConnectionReader(
             ISimpleNetworkConnection connection,
             MemoryPool<byte> pool,
-            int minimumSegmentSize)
+            int minimumSegmentSize,
+            Action pingAction,
+            Action abortAction)
         {
             _connection = connection;
             _pipe = new Pipe(new PipeOptions(
@@ -92,7 +98,7 @@ namespace IceRpc.Transports.Internal
                     bufferWriter.Advance(read);
                     byteCount -= read;
 
-                    Interlocked.Exchange(ref _idleSinceTime, Environment.TickCount64);
+                    OnRead?.Invoke();
 
                     if (byteCount > 0 && read == 0)
                     {
@@ -133,7 +139,7 @@ namespace IceRpc.Transports.Internal
                 _pipe.Writer.Advance(read);
                 minimumSize -= read;
 
-                Interlocked.Exchange(ref _idleSinceTime, Environment.TickCount64);
+                OnRead?.Invoke();
 
                 if (minimumSize > 0 && read == 0)
                 {

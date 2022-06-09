@@ -26,8 +26,9 @@ namespace IceRpc.Internal
         // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
         private int _headerSizeLength = 2;
         private int _invocationCount;
-        private bool _isDisposed;
+        private bool _isAborted;
         private readonly TimeSpan _idleTimeout;
+        private readonly Timer? _idleTimeoutTimer;
         private bool _isShuttingDown;
         private long _lastRemoteBidirectionalStreamId = -1;
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
@@ -42,21 +43,20 @@ namespace IceRpc.Internal
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         private TaskCompletionSource<IceRpcGoAway>? _waitForGoAwayFrame;
-        private readonly Timer _timer;
 
         public void Abort(Exception exception)
         {
             lock (_mutex)
             {
-                if (_isDisposed)
+                if (_isAborted)
                 {
                     return;
                 }
-                _isDisposed = true;
+                _isAborted = true;
             }
 
             _networkConnection.Abort(exception);
-            _timer.Dispose();
+            _idleTimeoutTimer?.Dispose();
 
             _ = AbortCoreAsync();
 
@@ -118,7 +118,7 @@ namespace IceRpc.Internal
                         {
                             throw IceRpcStreamError.ConnectionShutdownByPeer.ToException();
                         }
-                        else if (_isDisposed)
+                        else if (_isAborted)
                         {
                             throw new ConnectionClosedException();
                         }
@@ -139,7 +139,7 @@ namespace IceRpc.Internal
                             if (_streams.Count == 0)
                             {
                                 // Disable idle check
-                                _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                                _idleTimeoutTimer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
                             }
 
                             _streams.Add(stream);
@@ -158,10 +158,10 @@ namespace IceRpc.Internal
                                             // as completed to allow shutdown to progress.
                                             _streamsCompleted.SetResult();
                                         }
-                                        else
+                                        else if (!_isAborted)
                                         {
                                             // Enable idle check
-                                            _timer.Change(_idleTimeout, _idleTimeout);
+                                            _idleTimeoutTimer?.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
                                         }
                                     }
 
@@ -170,7 +170,7 @@ namespace IceRpc.Internal
 
                                 // If the stream is shutdown because the connection is aborted, make sure to cancel
                                 // the dispatch.
-                                if (_isDisposed)
+                                if (_isAborted)
                                 {
                                     cancelDispatchSource.Cancel();
                                 }
@@ -440,7 +440,7 @@ namespace IceRpc.Internal
             var waitForGoAwayTask = Task.Run(() => WaitForGoAwayAsync(), CancellationToken.None);
 
             // Enable the idle check.
-            _timer.Change(_idleTimeout, _idleTimeout);
+            _idleTimeoutTimer?.Change(_idleTimeout, _idleTimeout);
 
             return networkConnectionInformation;
         }
@@ -471,7 +471,7 @@ namespace IceRpc.Internal
                 {
                     lock (_mutex)
                     {
-                        if (_isShuttingDown || _isDisposed)
+                        if (_isShuttingDown || _isAborted)
                         {
                             throw new ConnectionClosedException();
                         }
@@ -480,7 +480,7 @@ namespace IceRpc.Internal
                             if (_streams.Count == 0)
                             {
                                 // Disable idle check
-                                _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                                _idleTimeoutTimer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
                             }
 
                             _streams.Add(stream);
@@ -502,9 +502,9 @@ namespace IceRpc.Internal
                                             // as completed to allow shutdown to progress.
                                             _streamsCompleted.SetResult();
                                         }
-                                        else
+                                        else if (!_isAborted)
                                         {
-                                            _timer.Change(_idleTimeout, _idleTimeout);
+                                            _idleTimeoutTimer?.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
                                         }
                                     }
                                 }
@@ -775,7 +775,10 @@ namespace IceRpc.Internal
             _idleTimeout = options.IdleTimeout;
             _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
 
-            _timer = new Timer(_ => OnIdle?.Invoke(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            if (_idleTimeout != Timeout.InfiniteTimeSpan)
+            {
+                _idleTimeoutTimer = new Timer(_ => OnIdle?.Invoke());
+            }
         }
 
         private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeFieldDictionary<TKey>(

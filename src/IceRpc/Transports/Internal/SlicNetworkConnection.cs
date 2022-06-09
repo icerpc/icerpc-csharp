@@ -36,6 +36,7 @@ namespace IceRpc.Transports.Internal
         private readonly int _bidirectionalMaxStreams;
         private Exception? _exception;
         private TimeSpan _idleTimeout;
+        private readonly Timer? _idleTimeoutTimer;
         private long _lastRemoteBidirectionalStreamId = -1;
         private long _lastRemoteUnidirectionalStreamId = -1;
         // _mutex ensure the assignment of _lastRemoteXxx members and the addition of the stream to _streams is
@@ -51,7 +52,6 @@ namespace IceRpc.Transports.Internal
         private readonly SimpleNetworkConnectionReader _simpleNetworkConnectionReader;
         private readonly SimpleNetworkConnectionWriter _simpleNetworkConnectionWriter;
         private readonly ConcurrentDictionary<long, SlicMultiplexedStream> _streams = new();
-        private Timer? _timer;
         private readonly int _unidirectionalMaxStreams;
         private int _unidirectionalStreamCount;
         private AsyncSemaphore? _unidirectionalStreamSemaphore;
@@ -85,7 +85,7 @@ namespace IceRpc.Transports.Internal
 
             _acceptStreamQueue.TryComplete(_exception);
 
-            _timer?.Dispose();
+            _idleTimeoutTimer?.Dispose();
 
             // Release remaining resources in the background.
             _ = AbortCoreAsync();
@@ -238,11 +238,8 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            // Setup a timer to check for the connection idle time every IdleTimeout / 2 period.
-            if (_idleTimeout != Timeout.InfiniteTimeSpan)
-            {
-                _timer = new Timer(_ => Monitor(), null, _idleTimeout / 2, _idleTimeout / 2);
-            }
+            // Start the idle timeout timer if set.
+            _idleTimeoutTimer?.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
 
             // Start a task to read frames from the network connection.
             _ = Task.Run(
@@ -366,6 +363,88 @@ namespace IceRpc.Transports.Internal
             {
                 _nextBidirectionalId = 0;
                 _nextUnidirectionalId = 2;
+            }
+
+            if (_idleTimeout != Timeout.InfiniteTimeSpan)
+            {
+                if (IsServer)
+                {
+                    // Setup a timer to check if the connection is idle for longer than the idle timeout.
+                    _idleTimeoutTimer = new Timer(
+                        _ =>
+                        {
+                            // The connection has been idle for longer than the idle timeout time.
+                            Abort(new ConnectionAbortedException(
+                                @$"network connection has been idle for longer than {
+                                    nameof(SlicTransportOptions.IdleTimeout)}"));
+                        });
+
+                    // Start the timer and defer the idle timeout when data is received.
+                    _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
+                    _simpleNetworkConnectionReader.OnRead = () =>
+                        {
+                            lock (_mutex)
+                            {
+                                if (_exception == null)
+                                {
+                                    _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
+                                }
+                            }
+                        };
+                }
+                else
+                {
+                    int sendPing = 0;
+                    _idleTimeoutTimer = new Timer(
+                        _ =>
+                        {
+                            bool abort = false;
+                            lock (_mutex)
+                            {
+                                if (_exception != null)
+                                {
+                                    // Nothing to do, the connection is aborted already.
+                                }
+                                else if (Interlocked.CompareExchange(ref sendPing, 0, 1) == 1)
+                                {
+                                    // The next time the callback is called, the connection will be aborted if the idle
+                                    // timeout hasn't been deferred in the meantime (it will set sendPing = 1 in this
+                                    // case)
+                                    _idleTimeoutTimer!.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
+                                }
+                                else
+                                {
+                                    abort = true;
+                                }
+                            }
+
+                            if (abort)
+                            {
+                                // The connection has been idle for longer than the idle timeout, abort it.
+                                Abort(new ConnectionAbortedException(
+                                    @$"network connection has been idle for longer than {
+                                        nameof(SlicTransportOptions.IdleTimeout)}"));
+                            }
+                            else
+                            {
+                                ValueTask sendPingTask = SendFrameAsync(stream: null, FrameType.Ping, null, default);
+                            }
+                        });
+
+                    _simpleNetworkConnectionReader.OnRead = () =>
+                        {
+                            // Defer the timeout. The next timer call will occur on idle timeout / 2 and it will send a
+                            // ping frame.
+                            Interlocked.Exchange(ref sendPing, 1);
+                            lock (_mutex)
+                            {
+                                if (_exception == null)
+                                {
+                                    _idleTimeoutTimer.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
+                                }
+                            }
+                        };
+                }
             }
         }
 
@@ -583,29 +662,6 @@ namespace IceRpc.Transports.Internal
                 byte[] buffer = new byte[sizeLength];
                 SliceEncoder.EncodeVarUInt62(value, buffer);
                 return new((int)key, buffer);
-            }
-        }
-
-        private void Monitor()
-        {
-            var now = TimeSpan.FromMilliseconds(Environment.TickCount64);
-
-            // Check if data was received since the last idle timeout. If the connection is idle, a ping frame is sent
-            // by the client side. The server side can count on the receive of the ping frame to defer the idle timeout.
-            // The client side can rely on the receive of pong frame from the server side to defer the idle timeout.
-            TimeSpan idleTime = now - _simpleNetworkConnectionReader.IdleSinceTime;
-
-            if (idleTime > _idleTimeout)
-            {
-                Abort(new ConnectionAbortedException(
-                    $"network connection has been idle for longer than {nameof(SlicTransportOptions.IdleTimeout)}"));
-            }
-            else if (!IsServer && idleTime > _idleTimeout / 4)
-            {
-                // If the connection has been idle for more than idleTimeout / 4, send a ping frame to keep alive the
-                // connection. Given that Monitor is called every idleTimeout / 2 period, this shouldn't send more than
-                // two ping frames during an idle timeout period.
-                ValueTask _ = SendFrameAsync(stream: null, FrameType.Ping, null, default);
             }
         }
 

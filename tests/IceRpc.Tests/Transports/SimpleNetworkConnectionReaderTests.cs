@@ -16,7 +16,7 @@ public class SimpleNetworkConnectionReaderTests
 
     /// <summary>Verifies that reading from the connection updates its last activity property.</summary>
     [Test]
-    public async Task Read_updates_last_activity()
+    public async Task Read_calls_OnRead()
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
@@ -39,16 +39,13 @@ public class SimpleNetworkConnectionReaderTests
 
         await serverConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
 
-        TimeSpan lastActivity = reader.IdleSinceTime;
-        var delay = TimeSpan.FromMilliseconds(2);
-        await Task.Delay(delay);
+        bool onReadCalled = false;
+        reader.OnRead = () => onReadCalled = true;
 
         // Act
         await reader.ReadAsync(default);
 
         // Assert
-        Assert.That(
-            reader.IdleSinceTime,
-            Is.GreaterThanOrEqualTo(delay + lastActivity).Or.EqualTo(TimeSpan.Zero));
+        Assert.That(onReadCalled, Is.True);
     }
 }
