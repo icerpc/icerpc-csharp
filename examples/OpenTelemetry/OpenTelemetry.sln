@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Client", "Client\Client.csp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HelloServer", "HelloServer\HelloServer.csproj", "{150BD826-CE17-4705-AB1E-87EF74907111}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CustomerServer ", "CustomerServer\CustomerServer.csproj", "{B6D9EC69-928D-45A8-99C0-5682D50A78D5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CRMServer ", "CRMServer\CRMServer.csproj", "{B6D9EC69-928D-45A8-99C0-5682D50A78D5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

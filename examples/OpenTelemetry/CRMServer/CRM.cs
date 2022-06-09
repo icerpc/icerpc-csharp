@@ -5,17 +5,17 @@ using IceRpc.Slice;
 
 namespace Demo;
 
-public class CustomerList : Service, ICustomerList
+public class CRM : Service, ICRM
 {
-    private readonly List<string> _customerList = new();
+    private readonly List<string> _customers = new();
 
     public ValueTask<bool> TryAddCustomerAsync(string name, IFeatureCollection features, CancellationToken cancel)
     {
-        if (_customerList.Contains(name))
+        if (_customers.Contains(name))
         {
             return new(false);
         }
-        _customerList.Add(name);
+        _customers.Add(name);
         return new(true);
     }
 }

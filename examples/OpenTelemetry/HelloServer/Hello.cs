@@ -7,15 +7,14 @@ namespace Demo;
 
 public class Hello : Service, IHello
 {
+    private readonly ICRMPrx _crm;
 
-    ICustomerListPrx _customerList;
-
-    public Hello(ICustomerListPrx customerList) => _customerList = customerList;
+    public Hello(ICRMPrx crm) => _crm = crm;
 
     public async ValueTask<string> SayHelloAsync(string name, IFeatureCollection features, CancellationToken cancel)
     {
         Console.WriteLine($"{name} says hello!");
-        if (await _customerList.TryAddCustomerAsync(name, features, cancel))
+        if (await _crm.TryAddCustomerAsync(name, features, cancel))
         {
             return $"Hello, {name}!";
         }
