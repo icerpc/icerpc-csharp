@@ -194,13 +194,13 @@ namespace IceRpc.Transports.Internal
                 await SendFrameAsync(
                     stream: null,
                     FrameType.InitializeAck,
-                    new InitializeAckBody(GetParameters(_localIdleTimeout)).Encode,
+                    new InitializeAckBody(GetParameters()).Encode,
                     cancel).ConfigureAwait(false);
             }
             else
             {
                 // Write the Initialize frame.
-                var initializeBody = new InitializeBody(Protocol.IceRpc.Name, GetParameters(_localIdleTimeout));
+                var initializeBody = new InitializeBody(Protocol.IceRpc.Name, GetParameters());
                 await SendFrameAsync(
                     stream: null,
                     FrameType.Initialize,
@@ -571,7 +571,7 @@ namespace IceRpc.Transports.Internal
             return new FlushResult(isCanceled: false, isCompleted: false);
         }
 
-        private Dictionary<int, IList<byte>> GetParameters(TimeSpan idleTimeout)
+        private Dictionary<int, IList<byte>> GetParameters()
         {
             var parameters = new List<KeyValuePair<int, IList<byte>>>
             {
@@ -581,9 +581,9 @@ namespace IceRpc.Transports.Internal
                 EncodeParameter(ParameterKey.PauseWriterThreshold, (ulong)PauseWriterThreshold)
             };
 
-            if (idleTimeout != Timeout.InfiniteTimeSpan)
+            if (_localIdleTimeout != Timeout.InfiniteTimeSpan)
             {
-                parameters.Add(EncodeParameter(ParameterKey.IdleTimeout, (ulong)idleTimeout.TotalMilliseconds));
+                parameters.Add(EncodeParameter(ParameterKey.IdleTimeout, (ulong)_localIdleTimeout.TotalMilliseconds));
             }
             return new Dictionary<int, IList<byte>>(parameters);
 

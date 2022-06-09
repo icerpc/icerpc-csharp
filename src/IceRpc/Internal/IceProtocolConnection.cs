@@ -174,7 +174,6 @@ namespace IceRpc.Internal
                 }
             }
 
-            // Start the idle timeout timer if a non-infinite idle timeout is set.
             if (_idleTimeout != Timeout.InfiniteTimeSpan)
             {
                 _idleTimeoutTimer = new Timer(_ => OnIdle?.Invoke(), null, _idleTimeout, Timeout.InfiniteTimeSpan);

@@ -138,7 +138,7 @@ namespace IceRpc.Internal
 
                             if (_streams.Count == 0)
                             {
-                                // Disable the idle check
+                                // Disable the idle check.
                                 _idleTimeoutTimer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
                             }
 
@@ -439,7 +439,6 @@ namespace IceRpc.Internal
             // Start a task to wait to receive the go away frame to initiate shutdown.
             var waitForGoAwayTask = Task.Run(() => WaitForGoAwayAsync(), CancellationToken.None);
 
-            // Start the idle timeout timer if a non-infinite idle timeout is set.
             if (_idleTimeout != Timeout.InfiniteTimeSpan)
             {
                 _idleTimeoutTimer = new Timer(_ => OnIdle?.Invoke(), null, _idleTimeout, Timeout.InfiniteTimeSpan);
