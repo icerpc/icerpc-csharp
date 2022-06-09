@@ -28,6 +28,14 @@ internal class DispatcherBuilder : IDispatcherBuilder
     }
 
     /// <inheritdoc/>
+    public void Route(string prefix, Action<IDispatcherBuilder> configure)
+    {
+        var subRouterBuilder = new DispatcherBuilder(ServiceProvider);
+        configure(subRouterBuilder);
+        _router.Mount(prefix, subRouterBuilder._router);
+    }
+
+    /// <inheritdoc/>
     public IDispatcherBuilder Use(Func<IDispatcher, IDispatcher> middleware)
     {
         _router.Use(middleware);

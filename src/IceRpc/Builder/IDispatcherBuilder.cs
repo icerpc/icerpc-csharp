@@ -29,6 +29,12 @@ public interface IDispatcherBuilder
     /// <returns>This builder.</returns>
     IDispatcherBuilder Mount<TService>(string prefix) where TService : notnull;
 
+    /// <summary>Creates a sub-router, configures this sub-router and mounts it (with <see cref="Mount"/>) at the
+    /// given <c>prefix</c>.</summary>
+    /// <param name="prefix">The prefix of the route to the sub-router.</param>
+    /// <param name="configure">A delegate that configures the new sub-router.</param>
+    void Route(string prefix, Action<IDispatcherBuilder> configure);
+
     /// <summary>Registers a middleware.</summary>
     /// <param name="middleware">The middleware to register.</param>
     /// <returns>This builder.</returns>
