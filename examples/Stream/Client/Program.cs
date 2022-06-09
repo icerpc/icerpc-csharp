@@ -1,3 +1,5 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
 using Demo;
 using IceRpc;
 using System.Runtime.CompilerServices;
@@ -20,23 +22,12 @@ Console.CancelKeyPress += (sender, eventArgs) =>
 
 static async IAsyncEnumerable<int> GetDataAsync([EnumeratorCancellation] CancellationToken cancel)
 {
-    await Task.Yield();
-
     // Generate the nth fibonacci number
     int n = 0;
-    static int NthFibonacciNumber(int n)
-    {
-        if ((n == 0) || (n == 1)) return n;
-        else
-        {
-            return (NthFibonacciNumber(n - 1) + NthFibonacciNumber(n - 2));
-        }
-    }
-
     // Continuously generating data to stream to the server
     while (!cancel.IsCancellationRequested)
     {
-        yield return NthFibonacciNumber(n);
+        yield return n;
         await Task.Delay(TimeSpan.FromSeconds(1), cancel);
         n++;
     }

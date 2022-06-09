@@ -1,3 +1,5 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
 using IceRpc.Features;
 using IceRpc.Slice;
 
@@ -15,19 +17,9 @@ public class NumberStream : Service, INumberStream
     public async ValueTask StreamNumbersAsync(IAsyncEnumerable<int> numbers, IFeatureCollection features, CancellationToken cancel)
     {
         using var cancellationSource = CancellationTokenSource.CreateLinkedTokenSource(cancel, _cancellationToken);
-        cancel = cancellationSource.Token;
-
-        IAsyncEnumerator<int> enumerator = numbers.GetAsyncEnumerator(cancel);
-        try
+        await foreach (var number in numbers.WithCancellation(cancellationSource.Token))
         {
-            while (await enumerator.MoveNextAsync() && !cancel.IsCancellationRequested)
-            {
-                Console.WriteLine($"{enumerator.Current}");
-            }
-        }
-        finally
-        {
-            await enumerator.DisposeAsync();
+            Console.WriteLine($"{number}");
         }
     }
 }
