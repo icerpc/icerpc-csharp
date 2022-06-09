@@ -11,7 +11,7 @@ internal class DispatcherBuilder : IDispatcherBuilder
     /// <inheritdoc/>
     public IServiceProvider ServiceProvider { get; }
 
-    private readonly Router _router = new();
+    private readonly Router _router;
 
     /// <inheritdoc/>
     public IDispatcherBuilder Map<TService>(string path) where TService : notnull
@@ -30,9 +30,11 @@ internal class DispatcherBuilder : IDispatcherBuilder
     /// <inheritdoc/>
     public void Route(string prefix, Action<IDispatcherBuilder> configure)
     {
-        var subRouterBuilder = new DispatcherBuilder(ServiceProvider);
-        configure(subRouterBuilder);
-        _router.Mount(prefix, subRouterBuilder._router);
+        _router.Route(prefix, router =>
+        {
+            var subRouterBuilder = new DispatcherBuilder(router, ServiceProvider);
+            configure(subRouterBuilder);
+        });
     }
 
     /// <inheritdoc/>
