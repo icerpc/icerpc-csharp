@@ -1,4 +1,5 @@
-Hello illustrates how to make an asynchronous invocation and wait for the reply.
+HelloSecure is an example application showing how to make an asynchronous invocation and wait for the reply using a
+secured TLS connection.
 
 For build instructions checks the top-level [README.md](../../README.md).
 
