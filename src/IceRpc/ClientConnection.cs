@@ -59,7 +59,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
         IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
     {
-        _core = new ConnectionCore(ConnectionState.NotConnected, options, isResumable: false);
+        _core = new ConnectionCore(ConnectionState.NotConnected, options);
 
         _clientAuthenticationOptions = options.ClientAuthenticationOptions;
 
@@ -148,5 +148,5 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <param name="message">The message transmitted to the peer (when using the IceRPC protocol).</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     public Task ShutdownAsync(string message, CancellationToken cancel = default) =>
-        _core.ShutdownAsync(this, message, isResumable: false, cancel);
+        _core.ShutdownAsync(this, message, cancel);
 }

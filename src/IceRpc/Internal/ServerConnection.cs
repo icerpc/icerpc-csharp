@@ -31,7 +31,7 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
     internal ServerConnection(Protocol protocol, ConnectionOptions options)
     {
         Protocol = protocol;
-        _core = new ConnectionCore(ConnectionState.Connecting, options, isResumable: false);
+        _core = new ConnectionCore(ConnectionState.Connecting, options);
     }
 
     /// <summary>Aborts the connection. This method switches the connection state to
@@ -58,5 +58,5 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
     /// <param name="message">The message transmitted to the peer (when using the IceRPC protocol).</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     internal Task ShutdownAsync(string message, CancellationToken cancel = default) =>
-        _core.ShutdownAsync(this, message, isResumable: false, cancel);
+        _core.ShutdownAsync(this, message, cancel);
 }
