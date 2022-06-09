@@ -4,5 +4,5 @@ module Demo;
 
 interface NumberStream
 {
-    streamNumbers(numbers: stream int32);
+    streamData(numbers: stream int32);
 }

@@ -12,11 +12,11 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
-    <SliceCompile Include="../Stream.slice" />
+    <SliceCompile Include="../NumberStream.slice" />
     <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview4" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
-    <Compile Update="generated\Stream.cs">
-      <SliceCompileSource>../Stream.slice</SliceCompileSource>
+    <Compile Update="generated\NumberStream.cs">
+      <SliceCompileSource>../NumberStream.slice</SliceCompileSource>
     </Compile>
   </ItemGroup>
 </Project>

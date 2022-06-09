@@ -14,7 +14,7 @@ public class NumberStream : Service, INumberStream
         _cancellationToken = cancellationToken;
     }
 
-    public async ValueTask StreamNumbersAsync(
+    public async ValueTask StreamDataAsync(
         IAsyncEnumerable<int> numbers,
         IFeatureCollection features,
         CancellationToken cancel)

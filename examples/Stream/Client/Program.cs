@@ -4,9 +4,6 @@ using Demo;
 using IceRpc;
 using System.Runtime.CompilerServices;
 
-await using var connection = new ClientConnection("icerpc://127.0.0.1");
-INumberStreamPrx numberStreamPrx = NumberStreamPrx.FromConnection(connection);
-
 // Shuts down the client on Ctrl+C or Ctrl+Break
 using var cancellationSource = new CancellationTokenSource();
 Console.CancelKeyPress += (sender, eventArgs) =>
@@ -15,6 +12,22 @@ Console.CancelKeyPress += (sender, eventArgs) =>
     cancellationSource.Cancel();
 };
 
+// Establish the connection to the server
+await using var connection = new ClientConnection("icerpc://127.0.0.1");
+INumberStreamPrx numberStreamPrx = NumberStreamPrx.FromConnection(connection);
+
+// Continues to stream data until either the client or server are shut down
+Console.WriteLine("Client is streaming data...");
+try
+{
+    await numberStreamPrx.StreamDataAsync(GetDataAsync(cancellationSource.Token));
+}
+catch (System.OperationCanceledException ex)
+{
+    Console.WriteLine($"Client streaming data was cancelled: {ex.Message}");
+}
+
+// Generates data to be streamed
 static async IAsyncEnumerable<int> GetDataAsync([EnumeratorCancellation] CancellationToken cancel)
 {
     int n = 0;
@@ -23,10 +36,5 @@ static async IAsyncEnumerable<int> GetDataAsync([EnumeratorCancellation] Cancell
     {
         yield return n++;
         await Task.Delay(TimeSpan.FromSeconds(1), cancel);
-        n++;
     }
 }
-
-Console.WriteLine("Client is streaming data...");
-
-await numberStreamPrx.StreamNumbersAsync(GetDataAsync(cancellationSource.Token));
