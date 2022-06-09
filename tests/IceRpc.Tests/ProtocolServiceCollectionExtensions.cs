@@ -94,26 +94,39 @@ internal class ClientServerProtocolConnection<T> : IClientServerProtocolConnecti
 
     public async Task ConnectAsync(bool accept = true)
     {
-        IProtocolConnection clientProtocolConnection = _protocolConnectionFactory.CreateConnection(
+        Task<IProtocolConnection> clientProtocolConnectionTask = CreateProtocolConnectionAsync(
             _clientTransport.CreateConnection(_listener.Endpoint, null, NullLogger.Instance),
+            isServer: false,
             _clientConnectionOptions);
-        Task clientTask = clientProtocolConnection.ConnectAsync(isServer: false, CancellationToken.None);
 
-        IProtocolConnection serverProtocolConnection = _protocolConnectionFactory.CreateConnection(
+        Task<IProtocolConnection> serverProtocolConnectionTask = CreateProtocolConnectionAsync(
             await _listener.AcceptAsync(),
+            isServer: true,
             _serverOptions.ConnectionOptions);
-        Task serverTask = serverProtocolConnection.ConnectAsync(isServer: true, CancellationToken.None);
 
-        await clientTask;
-        await serverTask;
-
-        _client = clientProtocolConnection;
-        _server = serverProtocolConnection;
+        _client = await clientProtocolConnectionTask;
+        _server = await serverProtocolConnectionTask;
 
         if (accept)
         {
             _ = _client.AcceptRequestsAsync(_connection);
             _ = _server.AcceptRequestsAsync(_connection);
+        }
+
+        async Task<IProtocolConnection> CreateProtocolConnectionAsync(
+            T networkConnection,
+            bool isServer,
+            ConnectionOptions options)
+        {
+            NetworkConnectionInformation networkConnectionInformation = await networkConnection.ConnectAsync(
+                CancellationToken.None);
+
+            return await _protocolConnectionFactory.CreateConnectionAsync(
+                networkConnection,
+                networkConnectionInformation,
+                isServer,
+                options,
+                CancellationToken.None);
         }
     }
 

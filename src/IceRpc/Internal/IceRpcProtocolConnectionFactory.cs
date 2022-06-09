@@ -7,9 +7,24 @@ namespace IceRpc.Internal
     /// <summary>Creates an icerpc protocol connection from a multiplexed network connection.</summary>
     internal class IceRpcProtocolConnectionFactory : IProtocolConnectionFactory<IMultiplexedNetworkConnection>
     {
-        public IProtocolConnection CreateConnection(
+        public async Task<IProtocolConnection> CreateConnectionAsync(
             IMultiplexedNetworkConnection networkConnection,
-            ConnectionOptions connectionOptions) =>
-            new IceRpcProtocolConnection(networkConnection, connectionOptions);
+            NetworkConnectionInformation networkConnectionInformation,
+            bool isServer,
+            ConnectionOptions connectionOptions,
+            CancellationToken cancel)
+        {
+            var connection = new IceRpcProtocolConnection(networkConnection, connectionOptions);
+            try
+            {
+                await connection.ConnectAsync(cancel).ConfigureAwait(false);
+            }
+            catch
+            {
+                connection.Dispose();
+                throw;
+            }
+            return connection;
+        }
     }
 }

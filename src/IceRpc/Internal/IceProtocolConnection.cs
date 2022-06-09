@@ -134,62 +134,6 @@ namespace IceRpc.Internal
             }
         }
 
-        public async Task<NetworkConnectionInformation> ConnectAsync(bool isServer, CancellationToken cancel)
-        {
-            // Connect the network connection.
-            NetworkConnectionInformation networkConnectionInformation =
-                await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
-
-            if (isServer)
-            {
-                EncodeValidateConnectionFrame(_networkConnectionWriter);
-
-                // The flush can't be canceled because it would lead to the writing of an incomplete frame.
-                await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-            }
-            else
-            {
-                ReadOnlySequence<byte> buffer = await _networkConnectionReader.ReadAtLeastAsync(
-                    IceDefinitions.PrologueSize,
-                    cancel).ConfigureAwait(false);
-
-                (IcePrologue validateConnectionFrame, long consumed) = DecodeValidateConnectionFrame(buffer);
-                _networkConnectionReader.AdvanceTo(buffer.GetPosition(consumed), buffer.End);
-
-                IceDefinitions.CheckPrologue(validateConnectionFrame);
-                if (validateConnectionFrame.FrameSize != IceDefinitions.PrologueSize)
-                {
-                    throw new InvalidDataException(
-                        $"received Ice frame with only '{validateConnectionFrame.FrameSize}' bytes");
-                }
-                if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
-                {
-                    throw new InvalidDataException(
-                        @$"expected '{nameof(IceFrameType.ValidateConnection)
-                        }' frame but received frame type '{validateConnectionFrame.FrameType}'");
-                }
-            }
-
-            if (_idleTimeout != Timeout.InfiniteTimeSpan)
-            {
-                _timer = new Timer(_ => Monitor(), null, _idleTimeout / 2, _idleTimeout / 2);
-            }
-
-            return networkConnectionInformation;
-
-            static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
-            {
-                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
-                IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
-            }
-
-            static (IcePrologue, long) DecodeValidateConnectionFrame(ReadOnlySequence<byte> buffer)
-            {
-                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
-                return (new IcePrologue(ref decoder), decoder.Consumed);
-            }
-        }
-
         public void Dispose() => Abort(new ConnectionClosedException());
 
         public async Task<IncomingResponse> InvokeAsync(
@@ -531,6 +475,55 @@ namespace IceRpc.Internal
                 _minimumSegmentSize);
 
             _payloadWriter = new IcePayloadPipeWriter(_networkConnectionWriter);
+        }
+
+        internal async Task ConnectAsync(bool isServer, CancellationToken cancel)
+        {
+            if (isServer)
+            {
+                EncodeValidateConnectionFrame(_networkConnectionWriter);
+
+                // The flush can't be canceled because it would lead to the writing of an incomplete frame.
+                await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            else
+            {
+                ReadOnlySequence<byte> buffer = await _networkConnectionReader.ReadAtLeastAsync(
+                    IceDefinitions.PrologueSize,
+                    cancel).ConfigureAwait(false);
+
+                (IcePrologue validateConnectionFrame, long consumed) = DecodeValidateConnectionFrame(buffer);
+                _networkConnectionReader.AdvanceTo(buffer.GetPosition(consumed), buffer.End);
+
+                IceDefinitions.CheckPrologue(validateConnectionFrame);
+                if (validateConnectionFrame.FrameSize != IceDefinitions.PrologueSize)
+                {
+                    throw new InvalidDataException(
+                        $"received Ice frame with only '{validateConnectionFrame.FrameSize}' bytes");
+                }
+                if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
+                {
+                    throw new InvalidDataException(
+                        @$"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'");
+                }
+            }
+
+            if (_idleTimeout != Timeout.InfiniteTimeSpan)
+            {
+                _timer = new Timer(_ => Monitor(), null, _idleTimeout / 2, _idleTimeout / 2);
+            }
+
+            static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
+            {
+                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
+                IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
+            }
+
+            static (IcePrologue, long) DecodeValidateConnectionFrame(ReadOnlySequence<byte> buffer)
+            {
+                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
+                return (new IcePrologue(ref decoder), decoder.Consumed);
+            }
         }
 
         /// <summary>Creates a pipe reader to simplify the reading of a request or response frame. The frame is read
