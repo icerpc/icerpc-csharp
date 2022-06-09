@@ -28,14 +28,8 @@ internal class DispatcherBuilder : IDispatcherBuilder
     }
 
     /// <inheritdoc/>
-    public void Route(string prefix, Action<IDispatcherBuilder> configure)
-    {
-        _router.Route(prefix, router =>
-        {
-            var subRouterBuilder = new DispatcherBuilder(router, ServiceProvider);
-            configure(subRouterBuilder);
-        });
-    }
+    public void Route(string prefix, Action<IDispatcherBuilder> configure) =>
+        _router.Route(prefix, router => configure(new DispatcherBuilder(router, ServiceProvider)));
 
     /// <inheritdoc/>
     public IDispatcherBuilder Use(Func<IDispatcher, IDispatcher> middleware)
@@ -44,7 +38,16 @@ internal class DispatcherBuilder : IDispatcherBuilder
         return this;
     }
 
-    internal DispatcherBuilder(IServiceProvider provider) => ServiceProvider = provider;
+    internal DispatcherBuilder(IServiceProvider provider)
+        : this(new Router(), provider)
+    {
+    }
+
+    private DispatcherBuilder(Router router, IServiceProvider provider)
+    {
+        _router = router;
+        ServiceProvider = provider;
+    }
 
     internal IDispatcher Build() => new InlineDispatcher(async (request, cancel) =>
     {
