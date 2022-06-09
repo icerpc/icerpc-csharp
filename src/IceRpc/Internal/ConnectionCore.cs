@@ -31,8 +31,6 @@ internal sealed class ConnectionCore
 
     private readonly bool _isResumable;
 
-    private readonly bool _isServer;
-
     // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
     private readonly object _mutex = new();
 
@@ -51,9 +49,8 @@ internal sealed class ConnectionCore
     // state update completes. It's protected with _mutex.
     private Task? _stateTask;
 
-    internal ConnectionCore(ConnectionState state, bool isServer, ConnectionOptions options, bool isResumable)
+    internal ConnectionCore(ConnectionState state, ConnectionOptions options, bool isResumable)
     {
-        _isServer = isServer;
         _isResumable = isResumable;
         _state = state;
         _options = options;
@@ -66,11 +63,14 @@ internal sealed class ConnectionCore
 
     /// <summary>Establishes a connection.</summary>
     /// <param name="connection">The connection being connected.</param>
+    /// <param name="isServer">When true, the connection is a server connection; when false, it's a client connection.
+    /// </param>
     /// <param name="networkConnection">The underlying network connection.</param>
     /// <param name="protocolConnectionFactory">The protocol connection factory.</param>
     /// <param name="onClose">An action to execute when the connection is closed.</param>
     internal async Task ConnectAsync<T>(
         IConnection connection,
+        bool isServer,
         T networkConnection,
         IProtocolConnectionFactory<T> protocolConnectionFactory,
         Action<IConnection, Exception>? onClose) where T : INetworkConnection
@@ -95,7 +95,7 @@ internal sealed class ConnectionCore
             {
                 // Connect the protocol connection.
                 NetworkConnectionInformation = await protocolConnection.ConnectAsync(
-                    _isServer,
+                    isServer,
                     cancel).ConfigureAwait(false);
             }
             catch
@@ -230,7 +230,12 @@ internal sealed class ConnectionCore
                     }
 
                     _state = ConnectionState.Connecting;
-                    _stateTask = ConnectAsync(clientConnection, networkConnection, protocolConnectionFactory, onClose);
+                    _stateTask = ConnectAsync(
+                        clientConnection,
+                        isServer: false,
+                        networkConnection,
+                        protocolConnectionFactory,
+                        onClose);
                 }
                 else if (_state == ConnectionState.Active)
                 {
@@ -270,7 +275,6 @@ internal sealed class ConnectionCore
     }
 
     internal bool HasCompatibleParams(Endpoint remoteEndpoint) =>
-        !_isServer &&
         IsInvocable &&
         _protocolConnection is IProtocolConnection protocolConnection &&
         protocolConnection.HasCompatibleParams(remoteEndpoint);
