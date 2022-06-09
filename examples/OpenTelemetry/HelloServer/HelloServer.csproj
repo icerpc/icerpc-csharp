@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <AssemblyName>client</AssemblyName>
+    <AssemblyName>server</AssemblyName>
     <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -12,7 +12,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
-    <SliceCompile Include="../HelloService.slice" />
+    <SliceCompile Include="../HelloService.slice;../CustomerService.slice" />
     <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview4" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.Telemetry" Version="$(IceRpcVersion)" />

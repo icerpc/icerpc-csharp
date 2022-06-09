@@ -15,19 +15,18 @@ var pipeline = new Pipeline().UseTelemetry(activitySource);
 // Create an dispatch pipeline that uses the telemetry middleware.
 var router = new Router().UseTelemetry(activitySource);
 
-// Configure OpenTelemetry trace provider to subscribe to the activity source used by IceRpc telemetry interceptor
-// and middleware, and to export the traces to Zipkin service.
+// Configure OpenTelemetry trace provider to subscribe to the activity source used by the IceRpc telemetry interceptor
+// and middleware, and to export the traces to the Zipkin service.
 using var tracerProvider = Sdk.CreateTracerProviderBuilder()
    .AddSource(activitySource.Name)
    .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("Hello Server"))
    .AddZipkinExporter()
    .Build();
 
-await using var connection = new ClientConnection("icerpc://127.0.0.1");
-IHelloPrx hello = HelloPrx.FromConnection(connection, "/backend", pipeline);
+await using var connection = new ClientConnection("icerpc://127.0.0.1:20001");
+ICustomerListPrx customerList = CustomerListPrx.FromConnection(connection, "/customers", pipeline);
 
-router.Map("/hello", new Forwarder(hello));
-router.Map("/backend", new Hello());
+router.Map("/hello", new Hello(customerList));
 
 await using var server = new Server(router);
 

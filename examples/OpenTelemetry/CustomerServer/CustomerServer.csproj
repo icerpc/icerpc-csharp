@@ -12,13 +12,10 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
-    <SliceCompile Include="../Hello.slice" />
+    <SliceCompile Include="../CustomerService.slice" />
     <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview4" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.Telemetry" Version="$(IceRpcVersion)" />
     <PackageReference Include="OpenTelemetry.Exporter.Zipkin" Version="1.3.0" />
-    <Compile Update="generated\Hello.cs">
-      <SliceCompileSource>../Hello.slice</SliceCompileSource>
-    </Compile>
   </ItemGroup>
 </Project>
