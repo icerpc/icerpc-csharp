@@ -77,7 +77,7 @@ public class ProxyTests
         }
     }
 
-    /// <summary>A collection of proxy strings that are invalid for the the URI proxy format.</summary>
+    /// <summary>A collection of proxy strings that are invalid.</summary>
     private static readonly string[] _invalidUriFormatProxies = new string[]
         {
             "",
@@ -98,7 +98,7 @@ public class ProxyTests
             "ice:/path?adapter-id=foo&foo", // extra parameter
         };
 
-    /// <summary>A collection of proxy strings that are valid for the URI proxy format, with its expected path and
+    /// <summary>A collection of proxy strings that are valid, with its expected path and
     /// fragment.</summary>
     private static readonly (string Str, string Path, string Fragment)[] _validUriFormatProxies = new (string, string, string)[]
         {
@@ -232,7 +232,6 @@ public class ProxyTests
 
     /// <summary>Verifies that a proxy can be converted into a string using any of the supported formats.</summary>
     /// <param name="str">The string used to create the source proxy.</param>
-    /// <param name="format">The proxy format for the string conversion.</param>
     [Test, TestCaseSource(nameof(ProxyToStringSource))]
     public void Convert_a_proxy_to_a_string(string str)
     {
