@@ -884,14 +884,14 @@ namespace IceRpc.Internal
                     }
                     else
                     {
-                        cancelDispatchSource = new();
-                        _dispatches.Add(cancelDispatchSource);
-
                         if (_invocations.Count == 0 && _dispatches.Count == 0)
                         {
                             // Disable idle check
                             _idleTimeoutTimer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
                         }
+
+                        cancelDispatchSource = new();
+                        _dispatches.Add(cancelDispatchSource);
                     }
                 }
 
