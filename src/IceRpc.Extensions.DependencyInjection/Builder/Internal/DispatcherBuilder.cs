@@ -11,7 +11,7 @@ internal class DispatcherBuilder : IDispatcherBuilder
     /// <inheritdoc/>
     public IServiceProvider ServiceProvider { get; }
 
-    private readonly Router _router = new();
+    private readonly Router _router;
 
     /// <inheritdoc/>
     public IDispatcherBuilder Map<TService>(string path) where TService : notnull
@@ -28,13 +28,26 @@ internal class DispatcherBuilder : IDispatcherBuilder
     }
 
     /// <inheritdoc/>
+    public void Route(string prefix, Action<IDispatcherBuilder> configure) =>
+        _router.Route(prefix, router => configure(new DispatcherBuilder(router, ServiceProvider)));
+
+    /// <inheritdoc/>
     public IDispatcherBuilder Use(Func<IDispatcher, IDispatcher> middleware)
     {
         _router.Use(middleware);
         return this;
     }
 
-    internal DispatcherBuilder(IServiceProvider provider) => ServiceProvider = provider;
+    internal DispatcherBuilder(IServiceProvider provider)
+        : this(new Router(), provider)
+    {
+    }
+
+    private DispatcherBuilder(Router router, IServiceProvider provider)
+    {
+        _router = router;
+        ServiceProvider = provider;
+    }
 
     internal IDispatcher Build() => new InlineDispatcher(async (request, cancel) =>
     {
