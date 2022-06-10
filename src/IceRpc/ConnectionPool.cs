@@ -213,12 +213,13 @@ namespace IceRpc
                     connection = new ClientConnection(
                         _connectionPoolOptions.ClientConnectionOptions with
                         {
-                            OnClose = RemoveOnClose + _connectionPoolOptions.ClientConnectionOptions.OnClose,
                             RemoteEndpoint = endpoint
                         },
                         _loggerFactory,
                         _multiplexedClientTransport,
                         _simpleClientTransport);
+
+                    connection.OnClose(RemoveOnClose);
 
                     if (!_connections.TryGetValue(endpoint, out connections))
                     {
@@ -231,7 +232,7 @@ namespace IceRpc
             await connection.ConnectAsync(cancel).ConfigureAwait(false);
             return connection;
 
-            void RemoveOnClose(IConnection connection, Exception exception)
+            void RemoveOnClose(IConnection connection, Exception? exception)
             {
                 var clientConnection = (ClientConnection)connection;
 

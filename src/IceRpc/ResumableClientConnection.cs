@@ -63,21 +63,12 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
         IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
     {
-        Action<IConnection, Exception?> onClose = (clientConnection, _) =>
-        {
-            if (!_isClosed)
-            {
-                RefreshClientConnection((ClientConnection)clientConnection);
-            }
-        };
-        onClose += options.OnClose;
-
-        _options = options with { OnClose = onClose };
+        _options = options;
         _multiplexedClientTransport = multiplexedClientTransport;
         _simpleClientTransport = simpleClientTransport;
         _loggerFactory = loggerFactory;
 
-        _clientConnection = new(_options, _loggerFactory, _multiplexedClientTransport, _simpleClientTransport);
+        _clientConnection = CreateClientConnection();
     }
 
     /// <summary>Constructs a resumable client connection with the specified remote endpoint and client authentication
@@ -151,6 +142,10 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         // for retries on other exceptions, the application should use a retry interceptor
     }
 
+    /// <inheritdoc/>
+    // TODO: not correct
+    public void OnClose(Action<IConnection, Exception> callback) => _clientConnection.OnClose(callback);
+
     /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
     /// canceled. Shutdown cancellation can lead to a speedier shutdown if dispatch are cancelable.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -166,6 +161,27 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         return _clientConnection.ShutdownAsync(message, cancel);
     }
 
+    private ClientConnection CreateClientConnection()
+    {
+        var clientConnection = new ClientConnection(
+            _options,
+            _loggerFactory,
+            _multiplexedClientTransport,
+            _simpleClientTransport);
+
+        clientConnection.OnClose(OnClose);
+
+        void OnClose(IConnection connection, Exception exception)
+        {
+            if (!_isClosed)
+            {
+                RefreshClientConnection((ClientConnection)clientConnection);
+            }
+        }
+
+        return clientConnection;
+    }
+
     private void RefreshClientConnection(ClientConnection clientConnection)
     {
         bool closeOldConnection = false;
@@ -175,7 +191,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
             // just tried. If it's another connection, another thread has already called RefreshClientConnection.
             if (clientConnection == _clientConnection)
             {
-                _clientConnection = new(_options, _loggerFactory, _multiplexedClientTransport, _simpleClientTransport);
+                _clientConnection = CreateClientConnection();
                 closeOldConnection = true;
             }
         }

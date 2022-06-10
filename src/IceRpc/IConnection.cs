@@ -17,6 +17,12 @@ public interface IConnection
     /// </summary>
     NetworkConnectionInformation? NetworkConnectionInformation { get; }
 
+    /// <summary>Adds a callback that will be executed when the closure of this connection is initiated. If the
+    /// connection is already closed or closing, this callback is executed after all callbacks already in progress
+    /// (if any) have completed.</summary>
+    /// <param name="callback">The callback to execute. It must not block or throw any exception.</param>
+    void OnClose(Action<IConnection, Exception> callback);
+
     /// <summary>Gets the protocol of this connection.</summary>
     Protocol Protocol { get; }
 
