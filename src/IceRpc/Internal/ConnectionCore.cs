@@ -29,8 +29,6 @@ internal sealed class ConnectionCore
 
     private readonly CancellationTokenSource _connectCancellationSource = new();
 
-    private readonly bool _isResumable;
-
     // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
     private readonly object _mutex = new();
 
@@ -49,16 +47,11 @@ internal sealed class ConnectionCore
     // state update completes. It's protected with _mutex.
     private Task? _stateTask;
 
-    internal ConnectionCore(ConnectionOptions options, bool isResumable)
-    {
-        _isResumable = isResumable;
-        _options = options;
-    }
+    internal ConnectionCore(ConnectionOptions options) => _options = options;
 
     /// <summary>Aborts the connection. This methods switches the connection state to <see
     /// cref="ConnectionState.Closed"/>.</summary>
-    internal void Abort(IConnection connection) =>
-        Close(connection, new ConnectionAbortedException(), isResumable: false);
+    internal void Abort(IConnection connection) => Close(connection, new ConnectionAbortedException());
 
     /// <summary>Establishes a connection.</summary>
     /// <param name="connection">The connection being connected.</param>
@@ -141,7 +134,7 @@ internal sealed class ConnectionCore
                     }
                     finally
                     {
-                        Close(connection, exception, isResumable: true, protocolConnection);
+                        Close(connection, exception, protocolConnection);
                     }
                 });
             }
@@ -149,7 +142,7 @@ internal sealed class ConnectionCore
         catch (OperationCanceledException) when (connectTimeoutCancellationSource.IsCancellationRequested)
         {
             var exception = new ConnectTimeoutException();
-            Close(connection, exception, isResumable: true);
+            Close(connection, exception);
             throw exception;
         }
         catch (OperationCanceledException) when (_connectCancellationSource.IsCancellationRequested)
@@ -160,7 +153,7 @@ internal sealed class ConnectionCore
         }
         catch (Exception exception)
         {
-            Close(connection, exception, isResumable: true);
+            Close(connection, exception);
             throw;
         }
     }
@@ -176,74 +169,70 @@ internal sealed class ConnectionCore
         SslClientAuthenticationOptions? clientAuthenticationOptions,
         CancellationToken cancel) where T : INetworkConnection
     {
-        // Loop until the connection is active or connection establishment fails.
-        while (true)
+        Task? waitTask = null;
+        lock (_mutex)
         {
-            Task? waitTask = null;
-            lock (_mutex)
+            if (_state == ConnectionState.NotConnected)
             {
-                if (_state == ConnectionState.NotConnected)
+                Debug.Assert(_protocolConnection == null);
+
+                // This is the composition root of client Connections, where we install log decorators when logging
+                // is enabled.
+
+                ILogger logger = loggerFactory.CreateLogger("IceRpc.Client");
+
+                T networkConnection = clientTransport.CreateConnection(
+                    clientConnection.RemoteEndpoint,
+                    clientAuthenticationOptions,
+                    logger);
+
+                Action<IConnection, Exception>? onClose = null;
+
+                // TODO: log level
+                if (logger.IsEnabled(LogLevel.Error))
                 {
-                    Debug.Assert(_protocolConnection == null);
-
-                    // This is the composition root of client Connections, where we install log decorators when logging
-                    // is enabled.
-
-                    ILogger logger = loggerFactory.CreateLogger("IceRpc.Client");
-
-                    T networkConnection = clientTransport.CreateConnection(
+                    networkConnection = logDecoratorFactory(
+                        networkConnection,
                         clientConnection.RemoteEndpoint,
-                        clientAuthenticationOptions,
+                        isServer: false,
                         logger);
 
-                    Action<IConnection, Exception>? onClose = null;
+                    protocolConnectionFactory =
+                        new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, logger);
 
-                    // TODO: log level
-                    if (logger.IsEnabled(LogLevel.Error))
+                    onClose = (connection, exception) =>
                     {
-                        networkConnection = logDecoratorFactory(
-                            networkConnection,
-                            clientConnection.RemoteEndpoint,
-                            isServer: false,
-                            logger);
-
-                        protocolConnectionFactory =
-                            new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, logger);
-
-                        onClose = (connection, exception) =>
+                        if (NetworkConnectionInformation is NetworkConnectionInformation connectionInformation)
                         {
-                            if (NetworkConnectionInformation is NetworkConnectionInformation connectionInformation)
-                            {
-                                using IDisposable scope = logger.StartClientConnectionScope(connectionInformation);
-                                logger.LogConnectionClosedReason(exception);
-                            }
-                        };
-                    }
-
-                    _state = ConnectionState.Connecting;
-                    _stateTask = ConnectAsync(
-                        clientConnection,
-                        isServer: false,
-                        networkConnection,
-                        protocolConnectionFactory,
-                        onClose);
-                }
-                else if (_state == ConnectionState.Active)
-                {
-                    return;
-                }
-                else
-                {
-                    // ShuttingDown or Closed
-                    throw new ConnectionClosedException();
+                            using IDisposable scope = logger.StartClientConnectionScope(connectionInformation);
+                            logger.LogConnectionClosedReason(exception);
+                        }
+                    };
                 }
 
-                Debug.Assert(_stateTask != null);
-                waitTask = _stateTask;
+                _state = ConnectionState.Connecting;
+                _stateTask = ConnectAsync(
+                    clientConnection,
+                    isServer: false,
+                    networkConnection,
+                    protocolConnectionFactory,
+                    onClose);
+            }
+            else if (_state == ConnectionState.Active)
+            {
+                return;
+            }
+            else
+            {
+                // ShuttingDown or Closed
+                throw new ConnectionClosedException();
             }
 
-            await waitTask.WaitAsync(cancel).ConfigureAwait(false);
+            Debug.Assert(_stateTask != null);
+            waitTask = _stateTask;
         }
+
+        await waitTask.WaitAsync(cancel).ConfigureAwait(false);
     }
 
     /// <summary>Connects a server connection.</summary>
@@ -290,7 +279,7 @@ internal sealed class ConnectionCore
             // If the network connection is lost while sending the request, we close the connection now instead of
             // waiting for AcceptRequestsAsync to throw. It's necessary to ensure that the next InvokeAsync will
             // fail with ConnectionClosedException and won't be retried on this connection.
-            Close(connection, exception, isResumable: true, protocolConnection);
+            Close(connection, exception, protocolConnection);
             throw;
         }
         catch (ConnectionClosedException exception)
@@ -323,11 +312,7 @@ internal sealed class ConnectionCore
         }
     }
 
-    internal async Task ShutdownAsync(
-        IConnection connection,
-        string message,
-        bool isResumable,
-        CancellationToken cancel)
+    internal async Task ShutdownAsync(IConnection connection, string message, CancellationToken cancel)
     {
         Task? shutdownTask = null;
         Task? connectTask = null;
@@ -345,7 +330,6 @@ internal sealed class ConnectionCore
                     connection,
                     _protocolConnection!,
                     message,
-                    isResumable,
                     _shutdownCancellationSource.Token);
                 shutdownTask = _stateTask;
             }
@@ -385,7 +369,6 @@ internal sealed class ConnectionCore
                     connection,
                     _protocolConnection!,
                     message,
-                    isResumable,
                     _shutdownCancellationSource.Token);
                 shutdownTask = _stateTask;
             }
@@ -411,7 +394,7 @@ internal sealed class ConnectionCore
         }
         else
         {
-            Close(connection, new ConnectionClosedException(), isResumable);
+            Close(connection, new ConnectionClosedException());
         }
     }
 
@@ -419,28 +402,20 @@ internal sealed class ConnectionCore
     /// <param name="connection">The connection being closed.</param>
     /// <param name="exception">The optional exception responsible for the connection closure. A <c>null</c>
     /// exception indicates a graceful connection closure.</param>
-    /// <param name="isResumable">If <c>true</c> and the connection is resumable, the connection state will be
-    /// <see cref="ConnectionState.NotConnected"/> once this operation returns. Otherwise, it will the
-    /// <see cref="ConnectionState.Closed"/> terminal state.</param>
     /// <param name="protocolConnection">If not <c>null</c>, the connection closure will only be performed if the
     /// protocol connection matches.</param>
     private void Close(
         IConnection connection,
         Exception? exception,
-        bool isResumable,
         IProtocolConnection? protocolConnection = null)
     {
-        if (!isResumable)
+        // Make sure connection establishment is canceled.
+        try
         {
-            // If the closure is triggered by an non-resumable operation, make sure connection establishment is
-            // canceled.
-            try
-            {
-                _connectCancellationSource.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-            }
+            _connectCancellationSource.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
         }
 
         lock (_mutex)
@@ -463,33 +438,25 @@ internal sealed class ConnectionCore
                 _protocolConnection = null;
             }
 
-            // A connection can be resumed if it's configured to be resumable and the operation that closed the
-            // connection allows it (explicit shutdown or abort don't allow the connection to be resumed).
-            _state = _isResumable && isResumable ? ConnectionState.NotConnected : ConnectionState.Closed;
+            _state = ConnectionState.Closed;
             _stateTask = null;
 
-            if (_state == ConnectionState.Closed)
-            {
-                // Time to get rid of disposable resources if the connection is in the closed state.
-                _shutdownCancellationSource.Dispose();
-                _connectCancellationSource.Dispose();
-            }
+            // Time to get rid of disposable resources
+            _shutdownCancellationSource.Dispose();
+            _connectCancellationSource.Dispose();
         }
 
         // Raise the Closed event, this will call user code so we shouldn't hold the mutex.
-        if (State == ConnectionState.Closed)
+        try
         {
-            try
-            {
-                // TODO: pass a null exception instead? See issue #1100.
-                (_onClose + _options?.OnClose)?.Invoke(
-                    connection,
-                    exception ?? new ConnectionClosedException());
-            }
-            catch
-            {
-                // Ignore, on close actions shouldn't raise exceptions.
-            }
+            // TODO: pass a null exception instead? See issue #1100.
+            (_onClose + _options?.OnClose)?.Invoke(
+                connection,
+                exception ?? new ConnectionClosedException());
+        }
+        catch
+        {
+            // Ignore, on close actions shouldn't raise exceptions.
         }
     }
 
@@ -505,7 +472,6 @@ internal sealed class ConnectionCore
                     connection,
                     _protocolConnection!,
                     message,
-                    isResumable: true,
                     _shutdownCancellationSource.Token);
             }
         }
@@ -515,7 +481,6 @@ internal sealed class ConnectionCore
         IConnection connection,
         IProtocolConnection protocolConnection,
         string message,
-        bool isResumable,
         CancellationToken cancel)
     {
         // Yield before continuing to ensure the code below isn't executed with the mutex locked and that _stateTask
@@ -540,7 +505,7 @@ internal sealed class ConnectionCore
         finally
         {
             cancelCloseTimeoutSource.Cancel();
-            Close(connection, exception, isResumable);
+            Close(connection, exception);
         }
 
         async Task CloseOnTimeoutAsync(CancellationToken cancel)
@@ -548,7 +513,7 @@ internal sealed class ConnectionCore
             try
             {
                 await Task.Delay(_options.CloseTimeout, cancel).ConfigureAwait(false);
-                Close(connection, new ConnectionAbortedException("shutdown timed out"), isResumable, protocolConnection);
+                Close(connection, new ConnectionAbortedException("shutdown timed out"), protocolConnection);
             }
             catch (OperationCanceledException)
             {

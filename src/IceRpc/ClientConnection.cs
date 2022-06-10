@@ -9,7 +9,8 @@ using System.Net.Security;
 
 namespace IceRpc;
 
-/// <summary>Represents a client connection used to send and receive requests and responses.</summary>
+/// <summary>Represents a client connection used to send and receive requests and responses. This client connection
+/// cannot be reconnected after being closed.</summary>
 public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 {
     /// <summary>Gets the default client transport for icerpc protocol connections.</summary>
@@ -58,7 +59,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
         IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
     {
-        _core = new ConnectionCore(options, options.IsResumable);
+        _core = new ConnectionCore(options);
 
         _clientAuthenticationOptions = options.ClientAuthenticationOptions;
 
@@ -147,5 +148,5 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <param name="message">The message transmitted to the peer (when using the IceRPC protocol).</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     public Task ShutdownAsync(string message, CancellationToken cancel = default) =>
-        _core.ShutdownAsync(this, message, isResumable: false, cancel);
+        _core.ShutdownAsync(this, message, cancel);
 }

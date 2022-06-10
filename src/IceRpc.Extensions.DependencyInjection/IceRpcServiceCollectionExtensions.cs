@@ -69,6 +69,20 @@ public static class IceRpcServiceCollectionExtensions
                 return builder.Build();
             });
 
+    /// <summary>Adds <see cref="ResumableClientConnection"/> and <see cref="IClientConnection"/> singleton to this service
+    /// collection.</summary>
+    /// <param name="services">The service collection to add services to.</param>
+    public static IServiceCollection AddIceRpcResumableClientConnection(this IServiceCollection services) =>
+        services
+            .TryAddIceRpcClientTransport()
+            .AddSingleton<ResumableClientConnection>(provider =>
+                new ResumableClientConnection(
+                    provider.GetRequiredService<IOptions<ClientConnectionOptions>>().Value,
+                    loggerFactory: provider.GetService<ILoggerFactory>(),
+                    provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
+                    provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()))
+            .AddSingleton<IClientConnection>(provider => provider.GetRequiredService<ResumableClientConnection>());
+
     /// <summary>Adds a <see cref="Server"/> to this service collection.</summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="optionsName">The name of the ServerOptions instance.</param>

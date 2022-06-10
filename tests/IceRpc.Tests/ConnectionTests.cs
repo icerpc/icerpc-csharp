@@ -203,33 +203,33 @@ public class ConnectionTests
             new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
             Protocol.FromString(protocol));
 
+        services.AddIceRpcResumableClientConnection(); // overwrites AddIceRpcClientConnection from AddTcpTest
+
         services
             .AddOptions<ClientConnectionOptions>()
-            .Configure(options =>
-            {
-                options.IsResumable = true;
-                options.IdleTimeout = TimeSpan.FromMilliseconds(500);
-            });
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
 
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
         var server = provider.GetRequiredService<Server>();
         server.Listen();
-        var connection = provider.GetRequiredService<ClientConnection>();
+        var connection = provider.GetRequiredService<ResumableClientConnection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
 
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
         // Act/Assert
+        // TODO: add/use OnDisconnect action
         while (connection.State != ConnectionState.NotConnected)
         {
             await Task.Delay(TimeSpan.FromMilliseconds(100));
         }
+        await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
     }
 
     [Test]
-    public async Task Resumable_connection_can_reconnect_after_gracefull_peer_shutdown(
+    public async Task Resumable_connection_can_reconnect_after_graceful_peer_shutdown(
         [Values("ice", "icerpc")] string protocol)
     {
         // Arrange
@@ -242,14 +242,12 @@ public class ConnectionTests
             }),
             Protocol.FromString(protocol));
 
-        services
-            .AddOptions<ClientConnectionOptions>()
-            .Configure(options => options.IsResumable = true);
+        services.AddIceRpcResumableClientConnection(); // overwrites AddIceRpcClientConnection from AddColocTest
 
         await using var provider = services.BuildServiceProvider(validateScopes: true);
         var server = provider.GetRequiredService<Server>();
         server.Listen();
-        var connection = provider.GetRequiredService<ClientConnection>();
+        var connection = provider.GetRequiredService<ResumableClientConnection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
@@ -262,6 +260,7 @@ public class ConnectionTests
         {
             await Task.Delay(TimeSpan.FromMilliseconds(100));
         }
+        await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
     }
 
     [Test]
@@ -279,14 +278,12 @@ public class ConnectionTests
             }),
             Protocol.FromString(protocol));
 
-        services
-            .AddOptions<ClientConnectionOptions>()
-            .Configure(options => options.IsResumable = true);
+        services.AddIceRpcResumableClientConnection(); // overwrites AddIceRpcClientConnection from AddColocTest
 
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
-        var connection = provider.GetRequiredService<ClientConnection>();
+        var connection = provider.GetRequiredService<ResumableClientConnection>();
 
         var proxy = Proxy.FromConnection(connection, "/foo");
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
@@ -299,6 +296,7 @@ public class ConnectionTests
         {
             await Task.Delay(TimeSpan.FromMilliseconds(100));
         }
+        await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
     }
 
     [Test]
@@ -309,14 +307,12 @@ public class ConnectionTests
             new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
             Protocol.FromString(protocol));
 
-        services
-            .AddOptions<ClientConnectionOptions>()
-            .Configure(options => options.IsResumable = true);
+        services.AddIceRpcResumableClientConnection(); // overwrites AddIceRpcClientConnection from AddColocTest
 
         await using var provider = services.BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
-        var connection = provider.GetRequiredService<ClientConnection>();
+        var connection = provider.GetRequiredService<ResumableClientConnection>();
         var networkConnectionInformation = connection.NetworkConnectionInformation;
 
         // Act
