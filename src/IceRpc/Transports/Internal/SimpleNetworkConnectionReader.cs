@@ -12,12 +12,12 @@ namespace IceRpc.Transports.Internal
     internal class SimpleNetworkConnectionReader : IDisposable
     {
         private readonly ISimpleNetworkConnection _connection;
-        private readonly Action _deferIdleTimeout;
         private TimeSpan _idleTimeout;
+        private readonly Timer _idleTimeoutTimer;
         private bool _isDisposed;
+        private readonly Timer? _keepAliveTimer;
         private readonly object _mutex = new();
         private readonly Pipe _pipe;
-        private readonly Timer _idleTimeoutTimer;
 
         public void Dispose()
         {
@@ -33,6 +33,7 @@ namespace IceRpc.Transports.Internal
             _pipe.Writer.Complete();
             _pipe.Reader.Complete();
             _idleTimeoutTimer.Dispose();
+            _keepAliveTimer?.Dispose();
         }
 
         internal SimpleNetworkConnectionReader(
@@ -49,68 +50,28 @@ namespace IceRpc.Transports.Internal
                 pauseWriterThreshold: 0,
                 writerScheduler: PipeScheduler.Inline));
 
-            if (pingAction == null)
-            {
-                // Setup a timer to check if the connection is idle for longer than the idle timeout.
-                _idleTimeoutTimer = new Timer(_ => abortAction());
+            // Setup a timer to abort the connection if it's idle for longer than the idle timeout.
+            _idleTimeoutTimer = new Timer(_ => abortAction());
 
-                // Setup the defer idle timeout action.
-                _deferIdleTimeout = () =>
-                    {
-                        lock (_mutex)
-                        {
-                            if (!_isDisposed)
-                            {
-                                _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
-                            }
-                        }
-                    };
-            }
-            else
+            if (pingAction != null)
             {
-                // Pings are sent every IdleTimeout / 2 after the idle timeout is deferred.
-                bool sendPing = true;
-                _idleTimeoutTimer = new Timer(
+                _keepAliveTimer = new Timer(
                     _ =>
                     {
-                        Action? action;
                         lock (_mutex)
                         {
                             if (_isDisposed)
                             {
-                                // Nothing to do.
-                                action = null;
+                                return;
                             }
-                            else if (sendPing)
-                            {
-                                // The next time the callback is called, the connection will be aborted if the idle
-                                // timeout hasn't been deferred since.
-                                _idleTimeoutTimer!.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
-                                action = pingAction;
-                                sendPing = false;
-                            }
-                            else
-                            {
-                                action = abortAction;
-                            }
+
+                            // Postpone the idle timeout.
+                            _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
                         }
 
-                        action?.Invoke();
+                        // Send a ping to ensure the connection is kept alive.
+                        pingAction.Invoke();
                     });
-
-                // Setup the defer idle timeout action.
-                _deferIdleTimeout = () =>
-                    {
-                        lock (_mutex)
-                        {
-                            if (!_isDisposed)
-                            {
-                                // The next timer call will occur on idleTimeout / 2 and it will send a ping frame.
-                                sendPing = true;
-                                _idleTimeoutTimer.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
-                            }
-                        }
-                    };
             }
         }
 
@@ -170,7 +131,7 @@ namespace IceRpc.Transports.Internal
                     bufferWriter.Advance(read);
                     byteCount -= read;
 
-                    _deferIdleTimeout.Invoke();
+                    ResetTimers();
 
                     if (byteCount > 0 && read == 0)
                     {
@@ -211,7 +172,7 @@ namespace IceRpc.Transports.Internal
                 _pipe.Writer.Advance(read);
                 minimumSize -= read;
 
-                _deferIdleTimeout.Invoke();
+                ResetTimers();
 
                 if (minimumSize > 0 && read == 0)
                 {
@@ -233,15 +194,18 @@ namespace IceRpc.Transports.Internal
         {
             lock (_mutex)
             {
+                if (_isDisposed)
+                {
+                    return;
+                }
+
                 _idleTimeout = idleTimeout;
 
-                if (_idleTimeout == Timeout.InfiniteTimeSpan)
+                _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
+
+                if (_idleTimeout != Timeout.InfiniteTimeSpan)
                 {
-                    _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-                }
-                else
-                {
-                    _deferIdleTimeout();
+                    _keepAliveTimer?.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
                 }
             }
         }
@@ -258,6 +222,19 @@ namespace IceRpc.Transports.Internal
             {
                 buffer = default;
                 return false;
+            }
+        }
+
+        private void ResetTimers()
+        {
+            lock (_mutex)
+            {
+                if (!_isDisposed)
+                {
+                    // Postpone the idle timeout and the next ping to keep alive the connection.
+                    _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
+                    _keepAliveTimer?.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
+                }
             }
         }
     }
