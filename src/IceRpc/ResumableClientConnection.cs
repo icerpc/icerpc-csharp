@@ -112,21 +112,20 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
     /// <exception cref="ConnectionClosedException">Thrown if the connection was closed by this client.</exception>
     public async Task ConnectAsync(CancellationToken cancel = default)
     {
-        while (true)
-        {
-            // make a copy of the client connection we're trying with
-            ClientConnection clientConnection = _clientConnection;
+        // make a copy of the client connection we're trying with
+        ClientConnection clientConnection = _clientConnection;
 
-            try
-            {
-                await clientConnection.ConnectAsync(cancel).ConfigureAwait(false);
-                return;
-            }
-            catch (ConnectionClosedException) when (!_isClosed)
-            {
-                RefreshClientConnection(clientConnection);
-                // and try again
-            }
+        try
+        {
+            await clientConnection.ConnectAsync(cancel).ConfigureAwait(false);
+            return;
+        }
+        catch (ConnectionClosedException) when (!_isClosed)
+        {
+            RefreshClientConnection(clientConnection);
+
+            // try again with the latest _clientConnection
+            await _clientConnection.ConnectAsync(cancel).ConfigureAwait(false);
         }
     }
 
@@ -138,22 +137,21 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        while (true)
-        {
-            // make a copy of the client connection we're trying with
-            ClientConnection clientConnection = _clientConnection;
+        // make a copy of the client connection we're trying with
+        ClientConnection clientConnection = _clientConnection;
 
-            try
-            {
-                return await clientConnection.InvokeAsync(request, cancel).ConfigureAwait(false);
-            }
-            catch (ConnectionClosedException) when (!_isClosed)
-            {
-                RefreshClientConnection(clientConnection);
-                // and try again
-            }
-            // for retries on other exceptions, the application should use a retry interceptor
+        try
+        {
+            return await clientConnection.InvokeAsync(request, cancel).ConfigureAwait(false);
         }
+        catch (ConnectionClosedException) when (!_isClosed)
+        {
+            RefreshClientConnection(clientConnection);
+
+            // try again with the latest _clientConnection
+            return await _clientConnection.InvokeAsync(request, cancel).ConfigureAwait(false);
+        }
+        // for retries on other exceptions, the application should use a retry interceptor
     }
 
     /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
