@@ -522,7 +522,7 @@ namespace IceRpc.Internal
             // Wait for the network connection establishment to set the idle timeout. The network connection
             // ConnectAsync implementation would need otherwise to deal with thread safety if Dispose is called
             // concurrently.
-            _networkConnectionReader.IdleTimeout = _idleTimeout;
+            _networkConnectionReader.SetIdleTimeout(_idleTimeout);
 
             if (isServer)
             {

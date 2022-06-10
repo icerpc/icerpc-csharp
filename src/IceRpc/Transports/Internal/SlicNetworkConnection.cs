@@ -122,7 +122,7 @@ namespace IceRpc.Transports.Internal
             // Wait for the network connection establishment to set the idle timeout. The network connection
             // ConnectAsync implementation would need to deal with thread safety otherwise if Dispose is called
             // concurrently.
-            _simpleNetworkConnectionReader.IdleTimeout = _localIdleTimeout;
+            _simpleNetworkConnectionReader.SetIdleTimeout(_localIdleTimeout);
 
             TimeSpan peerIdleTimeout = TimeSpan.MaxValue;
 
@@ -922,7 +922,7 @@ namespace IceRpc.Transports.Internal
             // Use the smallest idle timeout.
             if (peerIdleTimeout is TimeSpan peerIdleTimeoutValue && peerIdleTimeoutValue < _localIdleTimeout)
             {
-                _simpleNetworkConnectionReader.IdleTimeout = peerIdleTimeoutValue;
+                _simpleNetworkConnectionReader.SetIdleTimeout(peerIdleTimeoutValue);
             }
         }
     }

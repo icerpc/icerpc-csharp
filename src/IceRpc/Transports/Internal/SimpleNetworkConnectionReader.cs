@@ -11,34 +11,6 @@ namespace IceRpc.Transports.Internal
     /// is not a PipeReader.</summary>
     internal class SimpleNetworkConnectionReader : IDisposable
     {
-        internal TimeSpan IdleTimeout
-        {
-            get
-            {
-                lock (_mutex)
-                {
-                    return _idleTimeout;
-                }
-            }
-
-            set
-            {
-                lock (_mutex)
-                {
-                    _idleTimeout = value;
-
-                    if (_idleTimeout == Timeout.InfiniteTimeSpan)
-                    {
-                        _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-                    }
-                    else
-                    {
-                        _deferIdleTimeout();
-                    }
-                }
-            }
-        }
-
         private readonly ISimpleNetworkConnection _connection;
         private readonly Action _deferIdleTimeout;
         private TimeSpan _idleTimeout;
@@ -255,6 +227,23 @@ namespace IceRpc.Transports.Internal
             _pipe.Reader.TryRead(out readResult);
             Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled && !readResult.Buffer.IsEmpty);
             return readResult.Buffer;
+        }
+
+        internal void SetIdleTimeout(TimeSpan idleTimeout)
+        {
+            lock (_mutex)
+            {
+                _idleTimeout = idleTimeout;
+
+                if (_idleTimeout == Timeout.InfiniteTimeSpan)
+                {
+                    _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                }
+                else
+                {
+                    _deferIdleTimeout();
+                }
+            }
         }
 
         internal bool TryRead(out ReadOnlySequence<byte> buffer)

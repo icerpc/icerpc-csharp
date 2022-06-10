@@ -38,7 +38,7 @@ public class SimpleNetworkConnectionReaderTests
             4096,
             pingAction: () => ++pingCount,
             abortAction: () => {});
-        reader.IdleTimeout = TimeSpan.FromMilliseconds(500);
+        reader.SetIdleTimeout(TimeSpan.FromMilliseconds(500));
 
         // Act
         for (int i = 0; i < 3; ++i)
@@ -80,7 +80,7 @@ public class SimpleNetworkConnectionReaderTests
             4096,
             pingAction: () => {},
             abortAction: () => abortCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64));
-        reader.IdleTimeout = TimeSpan.FromMilliseconds(500);
+        reader.SetIdleTimeout(TimeSpan.FromMilliseconds(500));
 
         // Act
         await Task.Delay(TimeSpan.FromSeconds(1));
@@ -113,7 +113,7 @@ public class SimpleNetworkConnectionReaderTests
             4096,
             pingAction: () => {},
             abortAction: () => abortCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64));
-        reader.IdleTimeout = TimeSpan.FromMilliseconds(500);
+        reader.SetIdleTimeout(TimeSpan.FromMilliseconds(500));
 
         // Write and read data to defer the idle timeout
         await serverConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
