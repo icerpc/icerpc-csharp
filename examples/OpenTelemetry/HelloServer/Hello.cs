@@ -1,0 +1,26 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+using IceRpc.Features;
+using IceRpc.Slice;
+
+namespace Demo;
+
+public class Hello : Service, IHello
+{
+    private readonly ICRMPrx _crm;
+
+    public Hello(ICRMPrx crm) => _crm = crm;
+
+    public async ValueTask<string> SayHelloAsync(string name, IFeatureCollection features, CancellationToken cancel)
+    {
+        Console.WriteLine($"{name} says hello!");
+        if (await _crm.TryAddCustomerAsync(name, features, cancel))
+        {
+            return $"Hello, {name}!";
+        }
+        else
+        {
+            return $"Welcome back, {name}!";
+        }
+    }
+}

@@ -47,11 +47,7 @@ internal sealed class ConnectionCore
     // state update completes. It's protected with _mutex.
     private Task? _stateTask;
 
-    internal ConnectionCore(ConnectionState state, ConnectionOptions options)
-    {
-        _state = state;
-        _options = options;
-    }
+    internal ConnectionCore(ConnectionOptions options) => _options = options;
 
     /// <summary>Aborts the connection. This methods switches the connection state to <see
     /// cref="ConnectionState.Closed"/>.</summary>
@@ -64,6 +60,7 @@ internal sealed class ConnectionCore
     /// <param name="networkConnection">The underlying network connection.</param>
     /// <param name="protocolConnectionFactory">The protocol connection factory.</param>
     /// <param name="onClose">An action to execute when the connection is closed.</param>
+    // TODO: make private
     internal async Task ConnectAsync<T>(
         IConnection connection,
         bool isServer,
@@ -82,23 +79,14 @@ internal sealed class ConnectionCore
             // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
             await Task.Yield();
 
-            // Create the protocol connection.
-            IProtocolConnection protocolConnection = protocolConnectionFactory.CreateConnection(
-                networkConnection,
-                _options);
-
-            try
-            {
-                // Connect the protocol connection.
-                NetworkConnectionInformation = await protocolConnection.ConnectAsync(
+            // Create the protocol connection. The protocol connection owns the network connection and is responsible
+            // for its disposal. If the protocol connection establishment fails, the network connection is disposed.
+            (IProtocolConnection protocolConnection, NetworkConnectionInformation) =
+                await protocolConnectionFactory.CreateConnectionAsync(
+                    networkConnection,
                     isServer,
+                    _options,
                     cancel).ConfigureAwait(false);
-            }
-            catch
-            {
-                protocolConnection.Dispose();
-                throw;
-            }
 
             lock (_mutex)
             {
@@ -247,22 +235,26 @@ internal sealed class ConnectionCore
         await waitTask.WaitAsync(cancel).ConfigureAwait(false);
     }
 
-    internal IProtocolConnection? GetProtocolConnection()
+    /// <summary>Connects a server connection.</summary>
+    internal Task ConnectServerAsync<T>(
+        IConnection connection,
+        T networkConnection,
+        IProtocolConnectionFactory<T> protocolConnectionFactory,
+        Action<IConnection, Exception>? onClose) where T : INetworkConnection
     {
         lock (_mutex)
         {
-            if (_state == ConnectionState.Active)
-            {
-                return _protocolConnection!;
-            }
-            else if (_state > ConnectionState.Active)
-            {
-                throw new ConnectionClosedException();
-            }
-            else
-            {
-                return null;
-            }
+            Debug.Assert(_state == ConnectionState.NotConnected);
+            _state = ConnectionState.Connecting;
+
+            _stateTask = ConnectAsync(
+                connection,
+                isServer: true,
+                networkConnection,
+                protocolConnectionFactory,
+                onClose);
+
+            return _stateTask;
         }
     }
 
@@ -298,6 +290,25 @@ internal sealed class ConnectionCore
             // this connection.
             InitiateShutdown(connection, exception.Message);
             throw;
+        }
+
+        IProtocolConnection? GetProtocolConnection()
+        {
+            lock (_mutex)
+            {
+                if (_state == ConnectionState.Active)
+                {
+                    return _protocolConnection!;
+                }
+                else if (_state > ConnectionState.Active)
+                {
+                    throw new ConnectionClosedException();
+                }
+                else
+                {
+                    return null;
+                }
+            }
         }
     }
 

@@ -23,8 +23,8 @@ namespace IceRpc.Internal
         Protocol IProtocolConnection.Protocol => _decoratee.Protocol;
 
         private readonly IProtocolConnection _decoratee;
-        private NetworkConnectionInformation _information;
-        private bool _isServer;
+        private readonly NetworkConnectionInformation _information;
+        private readonly bool _isServer;
         private readonly ILogger _logger;
 
         public void Abort(Exception exception)
@@ -39,22 +39,6 @@ namespace IceRpc.Internal
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             _logger.LogAcceptRequests();
             await _decoratee.AcceptRequestsAsync(connection).ConfigureAwait(false);
-        }
-
-        async Task<NetworkConnectionInformation> IProtocolConnection.ConnectAsync(
-            bool isServer,
-            CancellationToken cancel)
-        {
-            _isServer = isServer;
-            _information = await _decoratee.ConnectAsync(isServer, cancel).ConfigureAwait(false);
-
-            using IDisposable scope = _logger.StartConnectionScope(_information, isServer);
-            _logger.LogProtocolConnectionConnect(
-                _decoratee.Protocol,
-                _information.LocalEndPoint,
-                _information.RemoteEndPoint);
-
-            return _information;
         }
 
         void IDisposable.Dispose()
@@ -99,9 +83,15 @@ namespace IceRpc.Internal
             _logger.LogProtocolConnectionShutdown(_decoratee.Protocol, message);
         }
 
-        internal LogProtocolConnectionDecorator(IProtocolConnection decoratee, ILogger logger)
+        internal LogProtocolConnectionDecorator(
+            IProtocolConnection decoratee,
+            NetworkConnectionInformation networkConnectionInformation,
+            bool isServer,
+            ILogger logger)
         {
             _decoratee = decoratee;
+            _isServer = isServer;
+            _information = networkConnectionInformation;
             _logger = logger;
         }
     }
