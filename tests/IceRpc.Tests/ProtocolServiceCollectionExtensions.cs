@@ -94,21 +94,22 @@ internal class ClientServerProtocolConnection<T> : IClientServerProtocolConnecti
 
     public async Task ConnectAsync(bool accept = true)
     {
-        IProtocolConnection clientProtocolConnection = _protocolConnectionFactory.CreateConnection(
-            _clientTransport.CreateConnection(_listener.Endpoint, null, NullLogger.Instance),
-            _clientConnectionOptions);
-        Task clientTask = clientProtocolConnection.ConnectAsync(isServer: false, CancellationToken.None);
+        Task<(IProtocolConnection, NetworkConnectionInformation)> clientProtocolConnectionTask =
+            _protocolConnectionFactory.CreateConnectionAsync(
+                _clientTransport.CreateConnection(_listener.Endpoint, null, NullLogger.Instance),
+                isServer: false,
+                _clientConnectionOptions,
+                CancellationToken.None);
 
-        IProtocolConnection serverProtocolConnection = _protocolConnectionFactory.CreateConnection(
-            await _listener.AcceptAsync(),
-            _serverOptions.ConnectionOptions);
-        Task serverTask = serverProtocolConnection.ConnectAsync(isServer: true, CancellationToken.None);
+        Task<(IProtocolConnection, NetworkConnectionInformation)> serverProtocolConnectionTask =
+            _protocolConnectionFactory.CreateConnectionAsync(
+                await _listener.AcceptAsync(),
+                isServer: true,
+                _serverOptions.ConnectionOptions,
+                CancellationToken.None);
 
-        await clientTask;
-        await serverTask;
-
-        _client = clientProtocolConnection;
-        _server = serverProtocolConnection;
+        (_client, _) = await clientProtocolConnectionTask;
+        (_server, _) = await serverProtocolConnectionTask;
 
         if (accept)
         {

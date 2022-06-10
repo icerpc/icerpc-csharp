@@ -4,6 +4,7 @@ using IceRpc.Internal;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 
 namespace IceRpc
 {
@@ -236,25 +237,56 @@ namespace IceRpc
         /// <summary>Creates a proxy from a string and an invoker.</summary>
         /// <param name="s">The string to parse.</param>
         /// <param name="invoker">The invoker of the new proxy.</param>
-        /// <param name="format">The proxy format to use for parsing. <c>null</c> is equivalent to
-        /// <see cref="UriProxyFormat.Instance"/>.</param>
         /// <returns>The parsed proxy.</returns>
-        public static Proxy Parse(string s, IInvoker? invoker = null, IProxyFormat? format = null) =>
-            (format ?? UriProxyFormat.Instance).Parse(s, invoker);
+        public static Proxy Parse(string s, IInvoker? invoker = null)
+        {
+            Proxy proxy;
+
+            try
+            {
+                proxy = s.StartsWith('/') ? FromPath(s) : new Proxy(new Uri(s, UriKind.Absolute));
+            }
+            catch (ArgumentException ex)
+            {
+                throw new FormatException($"cannot parse URI '{s}'", ex);
+            }
+
+            if (invoker != null)
+            {
+                try
+                {
+                    proxy.Invoker = invoker;
+                }
+                catch (InvalidOperationException ex)
+                {
+                    throw new ArgumentException($"cannot set invoker on proxy '{proxy}'", ex);
+                }
+            }
+
+            return proxy;
+        }
 
         /// <summary>Tries to create a proxy from a string and invoker.</summary>
         /// <param name="s">The string to parse.</param>
         /// <param name="invoker">The invoker. <c>null</c> is equivalent to <see cref="DefaultInvoker"/>.</param>
-        /// <param name="format">The proxy format to use for parsing. <c>null</c> is equivalent to
-        /// <see cref="UriProxyFormat.Instance"/>.</param>
         /// <param name="proxy">The parsed proxy.</param>
         /// <returns><c>true</c> when the string is parsed successfully; otherwise, <c>false</c>.</returns>
         public static bool TryParse(
             string s,
             IInvoker? invoker,
-            IProxyFormat? format,
-            [NotNullWhen(true)] out Proxy? proxy) =>
-            (format ?? UriProxyFormat.Instance).TryParse(s, invoker, out proxy);
+            [NotNullWhen(true)] out Proxy? proxy)
+        {
+            try
+            {
+                proxy = Parse(s, invoker);
+                return true;
+            }
+            catch (FormatException)
+            {
+                proxy = null;
+                return false;
+            }
+        }
 
         /// <summary>Constructs a proxy from a protocol.</summary>
         /// <param name="protocol">The protocol.</param>
@@ -455,11 +487,81 @@ namespace IceRpc
             return hash.ToHashCode();
         }
 
-        /// <summary>Converts this proxy into a string using the default URI format.</summary>
-        public override string ToString() => ToString(UriProxyFormat.Instance);
+        /// <summary>Converts this proxy into a string.</summary>
+        public override string ToString()
+        {
+            if (Protocol == Protocol.Relative)
+            {
+                return Path;
+            }
+            else if (OriginalUri is Uri uri)
+            {
+                return uri.ToString();
+            }
 
-        /// <summary>Converts this proxy into a string using a specific format.</summary>
-        public string ToString(IProxyFormat format) => format.ToString(this);
+            // else, construct a string with a string builder.
+
+            var sb = new StringBuilder();
+            bool firstOption = true;
+
+            if (Endpoint is Endpoint endpoint)
+            {
+                sb.AppendEndpoint(endpoint, Path);
+                firstOption = endpoint.Params.Count == 0;
+            }
+            else
+            {
+                sb.Append(Protocol);
+                sb.Append(':');
+                sb.Append(Path);
+            }
+
+            if (AltEndpoints.Count > 0)
+            {
+                StartQueryOption(sb, ref firstOption);
+                sb.Append("alt-endpoint=");
+                for (int i = 0; i < AltEndpoints.Count; ++i)
+                {
+                    if (i > 0)
+                    {
+                        sb.Append(',');
+                    }
+                    sb.AppendEndpoint(AltEndpoints[i], path: "", includeScheme: false, paramSeparator: '$');
+                }
+            }
+
+            foreach ((string name, string value) in Params)
+            {
+                StartQueryOption(sb, ref firstOption);
+                sb.Append(name);
+                if (value.Length > 0)
+                {
+                    sb.Append('=');
+                    sb.Append(value);
+                }
+            }
+
+            if (Fragment.Length > 0)
+            {
+                sb.Append('#');
+                sb.Append(Fragment);
+            }
+
+            return sb.ToString();
+
+            static void StartQueryOption(StringBuilder sb, ref bool firstOption)
+            {
+                if (firstOption)
+                {
+                    sb.Append('?');
+                    firstOption = false;
+                }
+                else
+                {
+                    sb.Append('&');
+                }
+            }
+        }
 
         /// <summary>Converts this proxy into a Uri.</summary>
         public Uri ToUri() =>

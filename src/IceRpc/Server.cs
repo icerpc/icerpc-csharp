@@ -31,7 +31,7 @@ namespace IceRpc
         /// cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
         public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
-        private readonly HashSet<Connection> _connections = new();
+        private readonly HashSet<ServerConnection> _connections = new();
 
         private IListener? _listener;
 
@@ -162,7 +162,7 @@ namespace IceRpc
                 _listener = listener;
                 Endpoint = listener.Endpoint;
 
-                Action<Connection, Exception>? onClose = null;
+                Action<IConnection, Exception>? onClose = null;
 
                 // TODO: log level
                 if (logger.IsEnabled(LogLevel.Error))
@@ -190,7 +190,7 @@ namespace IceRpc
             async Task AcceptAsync<T>(
                 IListener<T> listener,
                 IProtocolConnectionFactory<T> protocolConnectionFactory,
-                Action<Connection, Exception>? onClose)
+                Action<IConnection, Exception>? onClose)
                     where T : INetworkConnection
             {
                 // The common connection options, set through ServerOptions.
@@ -224,7 +224,7 @@ namespace IceRpc
 
                     // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                    var connection = new ServerConnection(Endpoint, connectionOptions, _loggerFactory);
+                    var connection = new ServerConnection(Endpoint.Protocol, connectionOptions);
 #pragma warning restore CA2000
 
                     lock (_mutex)
@@ -246,13 +246,13 @@ namespace IceRpc
                 }
             }
 
-            void RemoveOnClose(Connection connection, Exception exception)
+            void RemoveOnClose(IConnection connection, Exception exception)
             {
                 lock (_mutex)
                 {
                     if (_shutdownTask == null)
                     {
-                        _connections.Remove(connection);
+                        _connections.Remove((ServerConnection)connection);
                     }
                 }
             }

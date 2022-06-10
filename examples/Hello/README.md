@@ -1,6 +1,6 @@
 This example application illustrates how make an asynchronous invocation and wait for the reply.
 
-For build instructions checks the top-level [README.md](../../README.md).
+For build instructions check the top-level [README.md](../../README.md).
 
 First start the Server program:
 ```

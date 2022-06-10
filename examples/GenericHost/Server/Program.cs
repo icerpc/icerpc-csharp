@@ -46,14 +46,14 @@ public static class Program
                         };
                     });
 
-                services.AddSingleton<Hello>();
+                services.AddSingleton<IHello>(new Hello());
 
                 // Add a server and configure the dispatcher using a dispatcher builder
                 services.AddIceRpcServer(
                     builder => builder
-                        .UseLogger()
                         .UseTelemetry()
-                        .Map<Hello>("/hello"));
+                        .UseLogger()
+                        .Map<IHello>());
             });
 
     /// <summary>The server hosted service is ran and managed by the .NET Generic Host</summary>
