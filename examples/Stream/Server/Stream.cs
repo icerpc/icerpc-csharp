@@ -19,10 +19,22 @@ public class NumberStream : Service, INumberStream
         IFeatureCollection features,
         CancellationToken cancel)
     {
+        // Combine the IceRpc cancellation token with the local cancellation token used for handling Ctrl+C or
+        // Ctrl+Break events. This is used to notify the client that the server is shutting down.
         using var cancellationSource = CancellationTokenSource.CreateLinkedTokenSource(cancel, _cancellationToken);
+        uint count = 0;
         await foreach (var number in numbers.WithCancellation(cancellationSource.Token))
         {
-            Console.WriteLine($"{number}");
+            // After receiving 10 numbers, cancel the stream
+            if (count == 10)
+            {
+                cancellationSource.Cancel();
+            }
+            else
+            {
+                Console.WriteLine($"{number}");
+            }
+            count++;
         }
     }
 }
