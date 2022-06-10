@@ -30,6 +30,7 @@ namespace IceRpc.Internal
         private readonly TimeSpan _idleTimeout;
         private Timer? _idleTimeoutTimer;
         private bool _isShuttingDown;
+        private bool _isShuttingDownOnIdle;
         private long _lastRemoteBidirectionalStreamId = -1;
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
         private long _lastRemoteUnidirectionalStreamId = -1;
@@ -620,7 +621,7 @@ namespace IceRpc.Internal
             {
                 // Mark the connection as shutting down to prevent further requests from being accepted. Shutdown might
                 // already be initiated if both side initiated shutdown at the same time.
-                if (!_isShuttingDown)
+                if (!_isShuttingDown || _isShuttingDownOnIdle)
                 {
                     _isShuttingDown = true;
                     if (_streams.Count == 0)
@@ -772,7 +773,29 @@ namespace IceRpc.Internal
 
             if (_idleTimeout != Timeout.InfiniteTimeSpan)
             {
-                _idleTimeoutTimer = new Timer(_ => OnIdle?.Invoke(), null, _idleTimeout, Timeout.InfiniteTimeSpan);
+                _idleTimeoutTimer = new Timer(
+                    _ =>
+                    {
+                        bool isIdle = false;
+                        lock (_mutex)
+                        {
+                            if (!_isShuttingDown && _streams.Count == 0)
+                            {
+                                // Prevent new invocations or dispatches to be processed at this point.
+                                _isShuttingDown = true;
+                                _isShuttingDownOnIdle = true;
+                                isIdle = true;
+                            }
+                        }
+
+                        if (isIdle)
+                        {
+                            OnIdle?.Invoke();
+                        }
+                    },
+                    null,
+                    _idleTimeout,
+                    Timeout.InfiniteTimeSpan);
             }
 
             return networkConnectionInformation;

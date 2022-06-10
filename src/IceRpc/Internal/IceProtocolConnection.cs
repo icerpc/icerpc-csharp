@@ -46,6 +46,7 @@ namespace IceRpc.Internal
         private bool _isAborted;
         private bool _isShutdown;
         private bool _isShuttingDown;
+        private bool _isShuttingDownOnIdle;
         private readonly int _maxFrameSize;
         private readonly MemoryPool<byte> _memoryPool;
         private readonly int _minimumSegmentSize;
@@ -393,7 +394,7 @@ namespace IceRpc.Internal
             bool alreadyShuttingDown = false;
             lock (_mutex)
             {
-                if (_isShuttingDown)
+                if (_isShuttingDown && !_isShuttingDownOnIdle)
                 {
                     alreadyShuttingDown = true;
                 }
@@ -555,7 +556,30 @@ namespace IceRpc.Internal
 
             if (_idleTimeout != Timeout.InfiniteTimeSpan)
             {
-                _idleTimeoutTimer = new Timer(_ => OnIdle?.Invoke(), null, _idleTimeout, Timeout.InfiniteTimeSpan);
+                _idleTimeoutTimer = new Timer(
+                    _ =>
+                    {
+                        bool isIdle = false;
+                        lock (_mutex)
+                        {
+                            if (!_isShuttingDown && _invocations.Count == 0 && _dispatches.Count == 0)
+                            {
+                                // Prevent new invocations or dispatches to be processed at this point.
+                                _isShuttingDown = true;
+                                _isShuttingDownOnIdle = true;
+                                _dispatchesAndInvocationsCompleted.SetResult();
+                                isIdle = true;
+                            }
+                        }
+
+                        if (isIdle)
+                        {
+                            OnIdle?.Invoke();
+                        }
+                    },
+                    null,
+                    _idleTimeout,
+                    Timeout.InfiniteTimeSpan);
             }
 
             return networkConnectionInformation;
