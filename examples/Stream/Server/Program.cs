@@ -4,14 +4,13 @@ using Demo;
 using IceRpc;
 
 using var cancellationSource = new CancellationTokenSource();
-await using var server = new Server(new NumberStream(cancellationSource.Token));
+await using var server = new Server(new NumberStream());
 
 // Shuts down the server on Ctrl+C or Ctrl+Break
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
     eventArgs.Cancel = true;
-    cancellationSource.Cancel();
-    _ = server.ShutdownAsync();
+    _ = server.ShutdownAsync(new CancellationToken(canceled: true));
 };
 
 // Start the server
