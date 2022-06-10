@@ -29,6 +29,7 @@ public class NumberStream : Service, INumberStream
             if (count == 10)
             {
                 cancellationSource.Cancel();
+                break;
             }
             else
             {

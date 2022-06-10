@@ -12,14 +12,14 @@ INumberStreamPrx numberStreamPrx = NumberStreamPrx.FromConnection(connection);
 Console.WriteLine("Client is streaming data...");
 try
 {
-    foreach (var index in Enumerable.Range(0, 3))
+    foreach (int index in Enumerable.Range(0, 3))
     {
         // A `default` cancellation token is passed into `GetDataAsync` since IceRpc will override the token via the
         // `[EnumeratorCancellation]` attribute
-        await numberStreamPrx.StreamDataAsync(GetDataAsync(default, index * 10));
-    };
+        await numberStreamPrx.StreamDataAsync(GetDataAsync(index * 10, default));
+    }
 }
-catch (System.OperationCanceledException ex)
+catch (OperationCanceledException ex)
 {
     Console.WriteLine($"Operation Canceled Exception: {ex.Message}");
 }
@@ -29,9 +29,9 @@ Console.WriteLine("Client has finished streaming data.");
 
 // This method has a `CancellationToken` parameter, which uses the `[EnumeratorCancellation]` attribute. IceRpc will
 // automatically override the `CancellationToken` via this attribute when the server cancels the stream.
-static async IAsyncEnumerable<int> GetDataAsync([EnumeratorCancellation] CancellationToken cancel, int n)
+static async IAsyncEnumerable<int> GetDataAsync(int n, [EnumeratorCancellation] CancellationToken cancel)
 {
-    // If the client or server cancels the stream it is important to prevent GetDataAsync from leaking. When the
+    // If the service or server cancels the stream it is important to prevent GetDataAsync from leaking. When the
     // cancellation token is canceled, `Task.Delay(TimeSpan.FromSeconds(1), cancel);` will throw an
     // OperationCanceledException that can be used to break from the while loop.
     while (true)
@@ -43,6 +43,7 @@ static async IAsyncEnumerable<int> GetDataAsync([EnumeratorCancellation] Cancell
         }
         catch (OperationCanceledException)
         {
+            Console.WriteLine("The operation has been canceled by the server.");
             yield break;
         }
     }
