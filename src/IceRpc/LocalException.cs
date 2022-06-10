@@ -61,7 +61,7 @@ namespace IceRpc
     {
         /// <summary>Constructs a new instance of the <see cref="ConnectionClosedException"/> class.</summary>
         public ConnectionClosedException()
-            : base($"{typeof(Connection)}", "cannot access closed connection")
+            : base($"{typeof(IConnection)}", "cannot access closed connection")
         {
         }
 
@@ -69,7 +69,7 @@ namespace IceRpc
         /// error message.</summary>
         /// <param name="message">The message that describes the error.</param>
         public ConnectionClosedException(string message)
-            : base($"{typeof(Connection)}", message)
+            : base($"{typeof(IConnection)}", message)
         {
         }
 

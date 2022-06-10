@@ -9,16 +9,16 @@ namespace IceRpc
     {
         /// <summary>Gets or sets the SSL client authentication options.</summary>
         /// <value>The SSL client authentication options. When not null,
-        /// <see cref="Connection.ConnectAsync(CancellationToken)"/> will either establish a secure connection or fail.
-        /// </value>
+        /// <see cref="ClientConnection.ConnectAsync(CancellationToken)"/> will either establish a secure connection or
+        /// fail.</value>
         public SslClientAuthenticationOptions? ClientAuthenticationOptions { get; set; }
 
         /// <summary>Gets or sets a value indicating whether or not the connection can be resumed after being closed.
         /// </summary>
         /// <value>When <c>true</c>, the connection will be re-established by the next call to
-        /// <see cref="Connection.ConnectAsync(CancellationToken)"/> or the next invocation. The
-        /// <see cref="Connection.State"/> is always switched back to <see cref="ConnectionState.NotConnected"/> after
-        /// the connection closure. When <c>false</c>, the <see cref="Connection.State"/> is
+        /// <see cref="ClientConnection.ConnectAsync(CancellationToken)"/> or the next invocation. The
+        /// <see cref="ClientConnection.State"/> is always switched back to <see cref="ConnectionState.NotConnected"/>
+        /// after the connection closure. When <c>false</c>, the <see cref="ClientConnection.State"/> is
         /// <see cref="ConnectionState.Closed"/> once the connection is closed and the connection won't be resumed. The
         /// default value is <c>false</c>.</value>
         public bool IsResumable { get; set; }

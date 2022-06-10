@@ -66,17 +66,6 @@ namespace IceRpc
             _exactMatchRoutes[path] = dispatcher;
         }
 
-        /// <summary>Registers a route to a service that uses the service default path as the route path. If there is
-        /// an existing route at the same path, it is replaced.</summary>
-        /// <typeparam name="TService">The service type used to get the default path.</typeparam>
-        /// <param name="service">The target service of this route.</param>
-        /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync"/> was already
-        /// called on this router.</exception>
-        /// <seealso cref="Mount"/>
-        public void Map<TService>(IDispatcher service)
-            where TService : class =>
-            Map(typeof(TService).GetDefaultPath(), service);
-
         /// <summary>Registers a route with a prefix. If there is an existing route at the same prefix, it is replaced.
         /// </summary>
         /// <param name="prefix">The prefix of this route. This prefix will be compared with the start of the path of
@@ -96,21 +85,6 @@ namespace IceRpc
             Proxy.CheckPath(prefix);
             prefix = NormalizePrefix(prefix);
             _prefixMatchRoutes[prefix] = dispatcher;
-        }
-
-        /// <summary>Creates a sub-router, configures this sub-router and mounts it (with <see cref="Mount"/>) at the
-        /// given <c>prefix</c>.</summary>
-        /// <param name="prefix">The prefix of the route to the sub-router.</param>
-        /// <param name="configure">A delegate that configures the new sub-router.</param>
-        /// <returns>The new sub-router.</returns>
-        /// <exception cref="FormatException">Thrown if <paramref name="prefix"/> is not a valid path.</exception>
-        public Router Route(string prefix, Action<Router> configure)
-        {
-            Proxy.CheckPath(prefix);
-            var subRouter = new Router($"{AbsolutePrefix}{prefix}");
-            configure(subRouter);
-            Mount(prefix, subRouter);
-            return subRouter;
         }
 
         /// <summary>Installs a middleware in this router. A middleware must be installed before calling
