@@ -2,7 +2,7 @@
 
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
-using System.Diagnostics;
+
 using System.Net.Security;
 
 namespace IceRpc;
@@ -25,9 +25,11 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
 
     /// <summary>Gets the state of the connection.</summary>
     public ConnectionState State =>
-        _clientConnection.State is ConnectionState state &&
-        state == ConnectionState.Closed &&
-        !_isClosed ? ConnectionState.NotConnected : state;
+        _clientConnection.State switch
+        {
+            ConnectionState.Closed when !_isClosed => ConnectionState.NotConnected,
+            ConnectionState state => state
+        };
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
        "Usage",
@@ -120,24 +122,10 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
                 await clientConnection.ConnectAsync(cancel).ConfigureAwait(false);
                 return;
             }
-            catch (Exception exception) when (exception is ConnectionLostException or ConnectionClosedException)
+            catch (ConnectionClosedException) when (!_isClosed)
             {
-                if (_isClosed)
-                {
-                    if (exception is ConnectionClosedException)
-                    {
-                        throw;
-                    }
-                    else
-                    {
-                        throw new ConnectionClosedException();
-                    }
-                }
-                else
-                {
-                    RefreshClientConnection(clientConnection);
-                    // and try again
-                }
+                RefreshClientConnection(clientConnection);
+                // and try again
             }
         }
     }
@@ -159,17 +147,10 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
             {
                 return await clientConnection.InvokeAsync(request, cancel).ConfigureAwait(false);
             }
-            catch (ConnectionClosedException)
+            catch (ConnectionClosedException) when (!_isClosed)
             {
-                if (_isClosed)
-                {
-                    throw;
-                }
-                else
-                {
-                    RefreshClientConnection(clientConnection);
-                    // and try again
-                }
+                RefreshClientConnection(clientConnection);
+                // and try again
             }
             // for retries on other exceptions, the application should use a retry interceptor
         }
@@ -192,8 +173,6 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
 
     private void RefreshClientConnection(ClientConnection clientConnection)
     {
-        Debug.Assert(!_isClosed);
-
         bool closeOldConnection = false;
         lock (_mutex)
         {
