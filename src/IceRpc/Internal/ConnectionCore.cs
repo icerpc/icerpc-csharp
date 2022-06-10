@@ -33,6 +33,7 @@ internal sealed class ConnectionCore
     private readonly object _mutex = new();
 
     private Action<IConnection, Exception>? _onClose;
+    private Task? _onCloseTask;
 
     // TODO: replace this field by individual fields
     private readonly ConnectionOptions _options;
@@ -195,14 +196,16 @@ internal sealed class ConnectionCore
                     protocolConnectionFactory =
                         new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, logger);
 
-                    _onClose += (connection, exception) =>
-                    {
-                        if (NetworkConnectionInformation is NetworkConnectionInformation connectionInformation)
+                    OnClose(
+                        clientConnection,
+                        (connection, exception) =>
                         {
-                            using IDisposable scope = logger.StartClientConnectionScope(connectionInformation);
-                            logger.LogConnectionClosedReason(exception);
-                        }
-                    };
+                            if (NetworkConnectionInformation is NetworkConnectionInformation connectionInformation)
+                            {
+                                using IDisposable scope = logger.StartClientConnectionScope(connectionInformation);
+                                logger.LogConnectionClosedReason(exception);
+                            }
+                        });
                 }
 
                 _state = ConnectionState.Connecting;
@@ -304,7 +307,34 @@ internal sealed class ConnectionCore
         }
     }
 
-    internal void OnClose(Action<IConnection, Exception> callback) => _onClose += callback; // temporary
+    internal void OnClose(IConnection connection, Action<IConnection, Exception> callback)
+    {
+        bool executeCallback = false;
+
+        lock (_mutex)
+        {
+            if (_onCloseTask == null)
+            {
+                // The task did not execute yet.
+                _onClose += callback;
+            }
+            else if (_onCloseTask.IsCompleted)
+            {
+                // We execute this callback immediately and synchronously outside the mutex
+                executeCallback = true;
+            }
+            else
+            {
+                // The callback executor will pick-up the additional callback(s) when it's done
+                _onClose += callback;
+            }
+        }
+
+        if (executeCallback)
+        {
+            callback(connection, new ConnectionClosedException());
+        }
+    }
 
     internal async Task ShutdownAsync(IConnection connection, string message, CancellationToken cancel)
     {
@@ -412,6 +442,8 @@ internal sealed class ConnectionCore
         {
         }
 
+        Task onCloseTask = InvokeOnClose(connection, exception);
+
         lock (_mutex)
         {
             if (_state == ConnectionState.NotConnected ||
@@ -440,15 +472,60 @@ internal sealed class ConnectionCore
             _connectCancellationSource.Dispose();
         }
 
-        // Raise the Closed event, this will call user code so we shouldn't hold the mutex.
-        try
+        // TODO: is there a nicer way to wait for the onClose callbacks to complete?
+        onCloseTask.GetAwaiter().GetResult();
+    }
+
+    private Task InvokeOnClose(IConnection connection, Exception? exception)
+    {
+        lock (_mutex)
         {
-            // TODO: pass a null exception instead? See issue #1100.
-            _onClose?.Invoke(connection, exception ?? new ConnectionClosedException());
+            // Send OnClose notifications even if the connection was never connected
+
+            if (_onCloseTask == null)
+            {
+                if (_onClose == null)
+                {
+                    _onCloseTask = Task.CompletedTask; // nothing to do
+                }
+                else
+                {
+                    Action<IConnection, Exception> onClose = _onClose;
+                    _onClose = null;
+                    _onCloseTask = Task.Run(() => Invoke(onClose));
+                }
+            }
+            return _onCloseTask;
         }
-        catch
+
+        void Invoke(Action<IConnection, Exception> onClose)
         {
-            // Ignore, on close actions shouldn't raise exceptions.
+            while (true)
+            {
+                try
+                {
+                    // TODO: pass a null exception instead? See issue #1100.
+                    onClose(connection, exception ?? new ConnectionClosedException());
+                }
+                catch
+                {
+                    // ignored, bug in the onClose callback
+                }
+
+                lock (_mutex)
+                {
+                    if (_onClose != null)
+                    {
+                        onClose = _onClose;
+                        _onClose = null;
+                        // and continue
+                    }
+                    else
+                    {
+                        break; // done
+                    }
+                }
+            }
         }
     }
 
@@ -475,6 +552,8 @@ internal sealed class ConnectionCore
         string message,
         CancellationToken cancel)
     {
+        InvokeOnClose(connection, exception: null); // graceful shutdown
+
         // Yield before continuing to ensure the code below isn't executed with the mutex locked and that _stateTask
         // is assigned before any synchronous continuations are ran.
         await Task.Yield();

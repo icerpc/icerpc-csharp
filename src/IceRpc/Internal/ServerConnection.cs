@@ -28,7 +28,7 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
         _core.InvokeAsync(this, request, cancel);
 
     /// <inheritdoc/>
-    public void OnClose(Action<IConnection, Exception> callback) => _core.OnClose(callback);
+    public void OnClose(Action<IConnection, Exception> callback) => _core.OnClose(this, callback);
 
     /// <summary>Constructs a server connection from an accepted network connection.</summary>
     internal ServerConnection(Protocol protocol, ConnectionOptions options)

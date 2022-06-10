@@ -139,7 +139,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     }
 
     /// <inheritdoc/>
-    public void OnClose(Action<IConnection, Exception> callback) => _core.OnClose(callback);
+    public void OnClose(Action<IConnection, Exception> callback) => _core.OnClose(this, callback);
 
     /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
     /// canceled. Shutdown cancellation can lead to a speedier shutdown if dispatch are cancelable.</summary>
