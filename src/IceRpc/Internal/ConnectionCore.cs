@@ -86,23 +86,14 @@ internal sealed class ConnectionCore
             // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
             await Task.Yield();
 
-            // Create the protocol connection.
-            IProtocolConnection protocolConnection = protocolConnectionFactory.CreateConnection(
-                networkConnection,
-                _options);
-
-            try
-            {
-                // Connect the protocol connection.
-                NetworkConnectionInformation = await protocolConnection.ConnectAsync(
+            // Create the protocol connection. The protocol connection owns the network connection and is responsible
+            // for its disposal. If the protocol connection establishment fails, the network connection is disposed.
+            (IProtocolConnection protocolConnection, NetworkConnectionInformation) =
+                await protocolConnectionFactory.CreateConnectionAsync(
+                    networkConnection,
                     isServer,
+                    _options,
                     cancel).ConfigureAwait(false);
-            }
-            catch
-            {
-                protocolConnection.Dispose();
-                throw;
-            }
 
             lock (_mutex)
             {

@@ -7,9 +7,25 @@ namespace IceRpc.Internal
     /// <summary>Creates an ice protocol connection from a simple network connection.</summary>
     internal class IceProtocolConnectionFactory : IProtocolConnectionFactory<ISimpleNetworkConnection>
     {
-        public IProtocolConnection CreateConnection(
+        public async Task<(IProtocolConnection, NetworkConnectionInformation)> CreateConnectionAsync(
             ISimpleNetworkConnection networkConnection,
-            ConnectionOptions connectionOptions) =>
-            new IceProtocolConnection(networkConnection, connectionOptions);
+            bool isServer,
+            ConnectionOptions connectionOptions,
+            CancellationToken cancel)
+        {
+            var protocolConnection = new IceProtocolConnection(networkConnection, connectionOptions);
+            try
+            {
+                NetworkConnectionInformation networkConnectionInformation = await protocolConnection.ConnectAsync(
+                    isServer,
+                    cancel).ConfigureAwait(false);
+                return (protocolConnection, networkConnectionInformation);
+            }
+            catch
+            {
+                protocolConnection.Dispose();
+                throw;
+            }
+        }
     }
 }

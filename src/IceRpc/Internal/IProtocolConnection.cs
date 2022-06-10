@@ -27,13 +27,6 @@ namespace IceRpc.Internal
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         Task AcceptRequestsAsync(IConnection connection);
 
-        /// <summary>Connects the protocol connection. The implementation should also connect the underlying network
-        /// connection.</summary>
-        /// <param name="isServer"><c>true</c> if the protocol connection is a server-side connection.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The network connection information.</returns>
-        Task<NetworkConnectionInformation> ConnectAsync(bool isServer, CancellationToken cancel);
-
         /// <summary>Checks if the parameters of the provided endpoint are compatible with the network connection of
         /// this protocol connection. Compatible means a client could reuse the network connection instead of
         /// establishing a new network connection.</summary>
