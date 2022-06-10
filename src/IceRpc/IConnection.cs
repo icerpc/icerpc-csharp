@@ -18,8 +18,8 @@ public interface IConnection
     NetworkConnectionInformation? NetworkConnectionInformation { get; }
 
     /// <summary>Adds a callback that will be executed when the closure of this connection is initiated. If the
-    /// connection is already closed or closing, this callback is executed after all callbacks already in progress
-    /// (if any) have completed.</summary>
+    /// connection is already shutting down or closed, this callback is executed immediately with this connection and
+    /// an instance of <see cref="ConnectionClosedException"/>.</summary>
     /// <param name="callback">The callback to execute. It must not block or throw any exception.</param>
     void OnClose(Action<IConnection, Exception> callback);
 

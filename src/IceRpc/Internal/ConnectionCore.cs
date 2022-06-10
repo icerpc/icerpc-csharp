@@ -33,7 +33,6 @@ internal sealed class ConnectionCore
     private readonly object _mutex = new();
 
     private Action<IConnection, Exception>? _onClose;
-    private Task? _onCloseTask;
 
     // TODO: replace this field by individual fields
     private readonly ConnectionOptions _options;
@@ -132,7 +131,7 @@ internal sealed class ConnectionCore
                     }
                     finally
                     {
-                        Close(connection, exception, protocolConnection);
+                        Close(connection, exception);
                     }
                 });
             }
@@ -274,7 +273,7 @@ internal sealed class ConnectionCore
             // If the network connection is lost while sending the request, we close the connection now instead of
             // waiting for AcceptRequestsAsync to throw. It's necessary to ensure that the next InvokeAsync will
             // fail with ConnectionClosedException and won't be retried on this connection.
-            Close(connection, exception, protocolConnection);
+            Close(connection, exception);
             throw;
         }
         catch (ConnectionClosedException exception)
@@ -313,19 +312,12 @@ internal sealed class ConnectionCore
 
         lock (_mutex)
         {
-            if (_onCloseTask == null)
+            if (_state >= ConnectionState.ShuttingDown)
             {
-                // The task did not execute yet.
-                _onClose += callback;
-            }
-            else if (_onCloseTask.IsCompleted)
-            {
-                // We execute this callback immediately and synchronously outside the mutex
                 executeCallback = true;
             }
             else
             {
-                // The callback executor will pick-up the additional callback(s) when it's done
                 _onClose += callback;
             }
         }
@@ -426,12 +418,7 @@ internal sealed class ConnectionCore
     /// <param name="connection">The connection being closed.</param>
     /// <param name="exception">The optional exception responsible for the connection closure. A <c>null</c>
     /// exception indicates a graceful connection closure.</param>
-    /// <param name="protocolConnection">If not <c>null</c>, the connection closure will only be performed if the
-    /// protocol connection matches.</param>
-    private void Close(
-        IConnection connection,
-        Exception? exception,
-        IProtocolConnection? protocolConnection = null)
+    private void Close(IConnection connection, Exception? exception)
     {
         // Make sure connection establishment is canceled.
         try
@@ -442,17 +429,10 @@ internal sealed class ConnectionCore
         {
         }
 
-        Task onCloseTask = InvokeOnClose(connection, exception);
+        InvokeOnClose(connection, exception);
 
         lock (_mutex)
         {
-            if (_state == ConnectionState.NotConnected ||
-                _state == ConnectionState.Closed ||
-                (protocolConnection != null && _protocolConnection != protocolConnection))
-            {
-                return;
-            }
-
             if (_protocolConnection != null)
             {
                 if (exception != null)
@@ -463,69 +443,12 @@ internal sealed class ConnectionCore
                 _protocolConnection.Dispose();
                 _protocolConnection = null;
             }
-
             _state = ConnectionState.Closed;
             _stateTask = null;
 
             // Time to get rid of disposable resources
             _shutdownCancellationSource.Dispose();
             _connectCancellationSource.Dispose();
-        }
-
-        // TODO: is there a nicer way to wait for the onClose callbacks to complete?
-        onCloseTask.GetAwaiter().GetResult();
-    }
-
-    private Task InvokeOnClose(IConnection connection, Exception? exception)
-    {
-        lock (_mutex)
-        {
-            // Send OnClose notifications even if the connection was never connected
-
-            if (_onCloseTask == null)
-            {
-                if (_onClose == null)
-                {
-                    _onCloseTask = Task.CompletedTask; // nothing to do
-                }
-                else
-                {
-                    Action<IConnection, Exception> onClose = _onClose;
-                    _onClose = null;
-                    _onCloseTask = Task.Run(() => Invoke(onClose));
-                }
-            }
-            return _onCloseTask;
-        }
-
-        void Invoke(Action<IConnection, Exception> onClose)
-        {
-            while (true)
-            {
-                try
-                {
-                    // TODO: pass a null exception instead? See issue #1100.
-                    onClose(connection, exception ?? new ConnectionClosedException());
-                }
-                catch
-                {
-                    // ignored, bug in the onClose callback
-                }
-
-                lock (_mutex)
-                {
-                    if (_onClose != null)
-                    {
-                        onClose = _onClose;
-                        _onClose = null;
-                        // and continue
-                    }
-                    else
-                    {
-                        break; // done
-                    }
-                }
-            }
         }
     }
 
@@ -546,17 +469,37 @@ internal sealed class ConnectionCore
         }
     }
 
+    private void InvokeOnClose(IConnection connection, Exception? exception)
+    {
+        Action<IConnection, Exception>? onClose;
+
+        lock (_mutex)
+        {
+            if (_state < ConnectionState.ShuttingDown)
+            {
+                // Subsequent calls to OnClose must execute their callback immediately.
+                _state = ConnectionState.ShuttingDown;
+            }
+
+            onClose = _onClose;
+            _onClose = null; // clear _onClose because we want to execute it only once
+        }
+
+        // Execute callbacks (if any) outside lock
+        onClose?.Invoke(connection, exception ?? new ConnectionClosedException());
+    }
+
     private async Task ShutdownAsyncCore(
         IConnection connection,
         IProtocolConnection protocolConnection,
         string message,
         CancellationToken cancel)
     {
-        InvokeOnClose(connection, exception: null); // graceful shutdown
-
         // Yield before continuing to ensure the code below isn't executed with the mutex locked and that _stateTask
         // is assigned before any synchronous continuations are ran.
         await Task.Yield();
+
+        InvokeOnClose(connection, exception: null);
 
         using var cancelCloseTimeoutSource = new CancellationTokenSource();
         _ = CloseOnTimeoutAsync(cancelCloseTimeoutSource.Token);
@@ -584,7 +527,7 @@ internal sealed class ConnectionCore
             try
             {
                 await Task.Delay(_options.CloseTimeout, cancel).ConfigureAwait(false);
-                Close(connection, new ConnectionAbortedException("shutdown timed out"), protocolConnection);
+                Close(connection, new ConnectionAbortedException("shutdown timed out"));
             }
             catch (OperationCanceledException)
             {
