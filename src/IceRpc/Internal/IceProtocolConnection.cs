@@ -737,6 +737,11 @@ namespace IceRpc.Internal
 
                         // Call the peer shutdown initiated callback.
                         OnShutdown?.Invoke("connection shutdown by peer");
+
+                        // Abort the connection now. The peer expects the connection to be closed after the close
+                        // connection frame is received.
+                        Abort(new ConnectionClosedException("connection shutdown by peer"));
+
                         return;
                     }
 
