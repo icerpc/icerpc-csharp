@@ -31,7 +31,7 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
     internal ServerConnection(Protocol protocol, ConnectionOptions options)
     {
         Protocol = protocol;
-        _core = new ConnectionCore(ConnectionState.Connecting, options, isResumable: false);
+        _core = new ConnectionCore(options, isResumable: false);
     }
 
     /// <summary>Aborts the connection. This method switches the connection state to

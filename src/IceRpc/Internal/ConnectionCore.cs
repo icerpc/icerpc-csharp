@@ -49,10 +49,9 @@ internal sealed class ConnectionCore
     // state update completes. It's protected with _mutex.
     private Task? _stateTask;
 
-    internal ConnectionCore(ConnectionState state, ConnectionOptions options, bool isResumable)
+    internal ConnectionCore(ConnectionOptions options, bool isResumable)
     {
         _isResumable = isResumable;
-        _state = state;
         _options = options;
     }
 
@@ -256,7 +255,8 @@ internal sealed class ConnectionCore
     {
         lock (_mutex)
         {
-            Debug.Assert(_state == ConnectionState.Connecting);
+            Debug.Assert(_state == ConnectionState.NotConnected);
+            _state = ConnectionState.Connecting;
 
             _stateTask = ConnectAsync(
                 connection,

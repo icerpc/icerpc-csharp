@@ -58,7 +58,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
         IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
     {
-        _core = new ConnectionCore(ConnectionState.NotConnected, options, options.IsResumable);
+        _core = new ConnectionCore(options, options.IsResumable);
 
         _clientAuthenticationOptions = options.ClientAuthenticationOptions;
 
