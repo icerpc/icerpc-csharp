@@ -21,12 +21,13 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
         builder.AddConsole();
     });
 
+// Setup the invocation pipeline with the retry, binder and logger interceptors, the retry interceptor is always
+// configured before the binder interceptor, this allows the retry interceptor to influence the endpoints used by
+// the binder interceptor.
 var pipeline = new Pipeline()
     .UseRetry(
-        new RetryOptions
-        {
-            MaxAttempts = 5
-        },
+        // Retry up to 5 attempts before giving up
+        new RetryOptions { MaxAttempts = 5 },
         loggerFactory)
     .UseBinder(connectionProvider: connectionPool)
     .UseLogger(loggerFactory);

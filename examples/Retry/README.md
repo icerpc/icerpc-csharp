@@ -2,7 +2,7 @@ This application ilustrate how to use IceRpc retry interceptor to retry failed i
 resilent to failures.
 
 The server is configured to randomly fail, and the client will automatically retry failed invocations up to the configured
-max retries.
+max attemps.
 
 First start two instances Server program:
 ```
