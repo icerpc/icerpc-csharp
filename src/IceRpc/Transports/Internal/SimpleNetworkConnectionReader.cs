@@ -40,8 +40,8 @@ namespace IceRpc.Transports.Internal
             ISimpleNetworkConnection connection,
             MemoryPool<byte> pool,
             int minimumSegmentSize,
-            Action? pingAction,
-            Action abortAction)
+            Action abortAction,
+            Action? keepAliveAction)
         {
             _connection = connection;
             _pipe = new Pipe(new PipeOptions(
@@ -53,7 +53,7 @@ namespace IceRpc.Transports.Internal
             // Setup a timer to abort the connection if it's idle for longer than the idle timeout.
             _idleTimeoutTimer = new Timer(_ => abortAction());
 
-            if (pingAction != null)
+            if (keepAliveAction != null)
             {
                 _keepAliveTimer = new Timer(
                     _ =>
@@ -69,8 +69,8 @@ namespace IceRpc.Transports.Internal
                             _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
                         }
 
-                        // Send a ping to ensure the connection is kept alive.
-                        pingAction.Invoke();
+                        // Keep alive the connection.
+                        keepAliveAction.Invoke();
                     });
             }
         }
@@ -231,7 +231,7 @@ namespace IceRpc.Transports.Internal
             {
                 if (!_isDisposed)
                 {
-                    // Postpone the idle timeout and the next ping to keep alive the connection.
+                    // Postpone the idle timeout and keep alive the connection.
                     _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
                     _keepAliveTimer?.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
                 }

@@ -336,24 +336,24 @@ namespace IceRpc.Transports.Internal
                 slicOptions.Pool,
                 slicOptions.MinimumSegmentSize);
 
-            Action? pingAction = null;
+            Action? keepAliveAction = null;
             if (!IsServer)
             {
-                // Only client connections send ping frames when idle.
-                pingAction = () => SendFrameAsync(stream: null, FrameType.Ping, null, default).AsTask();
+                // Only client connections send ping frames when idle to keep alive the connection.
+                keepAliveAction = () => SendFrameAsync(stream: null, FrameType.Ping, null, default).AsTask();
             }
 
             _simpleNetworkConnectionReader = new SimpleNetworkConnectionReader(
                 simpleNetworkConnection,
                 slicOptions.Pool,
                 slicOptions.MinimumSegmentSize,
-                pingAction,
                 abortAction: () =>
                 {
                     // The connection has been idle for longer than the idle timeout time, abort it.
                     Abort(new ConnectionAbortedException(
                         $"Slic connection has been idle for longer than {nameof(SlicTransportOptions.IdleTimeout)}"));
-                });
+                },
+                keepAliveAction);
 
             var writer = new SlicFrameWriter(_simpleNetworkConnectionWriter);
             var reader = new SlicFrameReader(_simpleNetworkConnectionReader);
