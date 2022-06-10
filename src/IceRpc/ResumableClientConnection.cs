@@ -63,13 +63,10 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
         IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
     {
-        Action<IConnection, Exception?> onClose = (clientConnection, exception) =>
+        Action<IConnection, Exception?> onClose = (clientConnection, _) =>
         {
-            if (!_isClosed && exception is ConnectionClosedException or ConnectionLostException)
+            if (!_isClosed)
             {
-                // We refresh the client connection immediately (without connecting it). This way, the next InvokeAsync
-                // can succeed with the new connection; otherwise, when the exception is ConnectionLostException, it's
-                // not safe to retry the InvokeAsync unless the request is idempotent.
                 RefreshClientConnection((ClientConnection)clientConnection);
             }
         };
