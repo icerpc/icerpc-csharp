@@ -6,6 +6,7 @@ First start the Server program:
 ```
 dotnet run --project Server/Server.csproj
 ```
+
 In a separate window, start the Client program:
 ```
 dotnet run --project Client/Client.csproj
