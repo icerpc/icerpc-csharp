@@ -49,10 +49,9 @@ internal sealed class ConnectionCore
     // state update completes. It's protected with _mutex.
     private Task? _stateTask;
 
-    internal ConnectionCore(ConnectionState state, ConnectionOptions options, bool isResumable)
+    internal ConnectionCore(ConnectionOptions options, bool isResumable)
     {
         _isResumable = isResumable;
-        _state = state;
         _options = options;
     }
 
@@ -68,6 +67,7 @@ internal sealed class ConnectionCore
     /// <param name="networkConnection">The underlying network connection.</param>
     /// <param name="protocolConnectionFactory">The protocol connection factory.</param>
     /// <param name="onClose">An action to execute when the connection is closed.</param>
+    // TODO: make private
     internal async Task ConnectAsync<T>(
         IConnection connection,
         bool isServer,
@@ -246,22 +246,26 @@ internal sealed class ConnectionCore
         }
     }
 
-    internal IProtocolConnection? GetProtocolConnection()
+    /// <summary>Connects a server connection.</summary>
+    internal Task ConnectServerAsync<T>(
+        IConnection connection,
+        T networkConnection,
+        IProtocolConnectionFactory<T> protocolConnectionFactory,
+        Action<IConnection, Exception>? onClose) where T : INetworkConnection
     {
         lock (_mutex)
         {
-            if (_state == ConnectionState.Active)
-            {
-                return _protocolConnection!;
-            }
-            else if (_state > ConnectionState.Active)
-            {
-                throw new ConnectionClosedException();
-            }
-            else
-            {
-                return null;
-            }
+            Debug.Assert(_state == ConnectionState.NotConnected);
+            _state = ConnectionState.Connecting;
+
+            _stateTask = ConnectAsync(
+                connection,
+                isServer: true,
+                networkConnection,
+                protocolConnectionFactory,
+                onClose);
+
+            return _stateTask;
         }
     }
 
@@ -297,6 +301,25 @@ internal sealed class ConnectionCore
             // this connection.
             InitiateShutdown(connection, exception.Message);
             throw;
+        }
+
+        IProtocolConnection? GetProtocolConnection()
+        {
+            lock (_mutex)
+            {
+                if (_state == ConnectionState.Active)
+                {
+                    return _protocolConnection!;
+                }
+                else if (_state > ConnectionState.Active)
+                {
+                    throw new ConnectionClosedException();
+                }
+                else
+                {
+                    return null;
+                }
+            }
         }
     }
 

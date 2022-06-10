@@ -31,7 +31,7 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
     internal ServerConnection(Protocol protocol, ConnectionOptions options)
     {
         Protocol = protocol;
-        _core = new ConnectionCore(ConnectionState.Connecting, options, isResumable: false);
+        _core = new ConnectionCore(options, isResumable: false);
     }
 
     /// <summary>Aborts the connection. This method switches the connection state to
@@ -46,7 +46,7 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
         T networkConnection,
         IProtocolConnectionFactory<T> protocolConnectionFactory,
         Action<IConnection, Exception>? onClose) where T : INetworkConnection =>
-        _core.ConnectAsync(this, isServer: true, networkConnection, protocolConnectionFactory, onClose);
+        _core.ConnectServerAsync(this, networkConnection, protocolConnectionFactory, onClose);
 
     /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
     /// canceled. Shutdown cancellation can lead to a speedier shutdown if dispatch are cancelable.</summary>
