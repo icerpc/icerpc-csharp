@@ -280,6 +280,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
                     bool removed = _pendingConnections.Remove(endpoint);
                     Debug.Assert(removed);
                     _activeConnections.Add(endpoint, connection);
+                    connection.OnClose(RemoveFromActive); // schedule removal after addition
                 }
                 else
                 {
@@ -287,7 +288,6 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
                     throw new ObjectDisposedException($"{typeof(ConnectionPool)}");
                 }
             }
-            connection.OnClose(RemoveFromActive); // schedule removal after addition, outside lock
         }
         return connection;
 

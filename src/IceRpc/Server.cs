@@ -236,8 +236,8 @@ namespace IceRpc
                         }
 
                         _ = _connections.Add(connection);
+                        connection.OnClose(RemoveFromCollection); // schedule removal after addition
                     }
-                    connection.OnClose(RemoveFromCollection); // schedule removal _after_ Add, outside lock
 
                     // We don't wait for the connection to be activated. This could take a while for some transports
                     // such as TLS based transports where the handshake requires few round trips between the client
