@@ -216,7 +216,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
     private async ValueTask<ClientConnection> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
     {
         ClientConnection? connection = null;
-        bool newConnection = false;
+        bool created = false;
 
         lock (_mutex)
         {
@@ -246,7 +246,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
                     _multiplexedClientTransport,
                     _simpleClientTransport);
 
-                newConnection = true;
+                created = true;
                 _pendingConnections.Add(endpoint, connection);
             }
         }
@@ -256,7 +256,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
             // Make sure this connection/endpoint are actually usable.
             await connection.ConnectAsync(cancel).ConfigureAwait(false);
         }
-        catch when (newConnection)
+        catch when (created)
         {
             lock (_mutex)
             {
@@ -270,7 +270,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
             throw;
         }
 
-        if (newConnection)
+        if (created)
         {
             lock (_mutex)
             {
