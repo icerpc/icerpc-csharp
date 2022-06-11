@@ -3,15 +3,22 @@
 using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace IceRpc;
 
 /// <summary>A connection pool manages a pool of client connections and is a client connection provider.</summary>
 public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
 {
-    private readonly Dictionary<Endpoint, ClientConnection> _connections = new(EndpointComparer.ParameterLess);
+    // Connected connections that can be returned immediately
+    private readonly Dictionary<Endpoint, ClientConnection> _activeConnections = new(EndpointComparer.ParameterLess);
+
     private readonly ILoggerFactory? _loggerFactory;
     private readonly IClientTransport<IMultiplexedNetworkConnection> _multiplexedClientTransport;
+
+    // New connections in the process of connecting. They can be returned only after ConnectAsync succeeds.
+    private readonly Dictionary<Endpoint, ClientConnection> _pendingConnections = new(EndpointComparer.ParameterLess);
+
     private readonly ConnectionPoolOptions _options;
     private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
 
@@ -40,7 +47,8 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
     }
 
     /// <summary>Constructs a connection pool.</summary>
-    /// <param name="clientConnectionOptions">The client connection options for connections created by this pool.</param>
+    /// <param name="clientConnectionOptions">The client connection options for connections created by this pool.
+    /// </param>
     public ConnectionPool(ClientConnectionOptions clientConnectionOptions)
         : this(new ConnectionPoolOptions { ClientConnectionOptions = clientConnectionOptions })
     {
@@ -65,12 +73,12 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
             ClientConnection? connection = null;
             lock (_mutex)
             {
-                connection = GetCachedConnection(endpoint);
+                connection = GetActiveConnection(endpoint);
                 if (connection == null)
                 {
                     foreach (Endpoint altEndpoint in altEndpoints)
                     {
-                        connection = GetCachedConnection(altEndpoint);
+                        connection = GetActiveConnection(altEndpoint);
                         if (connection != null)
                         {
                             break; // foreach
@@ -84,9 +92,24 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
             }
         }
 
-        return CreateConnectionAsync();
+        return GetOrCreateAsync();
 
-        async ValueTask<IClientConnection> CreateConnectionAsync()
+        ClientConnection? GetActiveConnection(Endpoint endpoint)
+        {
+            if (_activeConnections.TryGetValue(endpoint, out ClientConnection? connection))
+            {
+                CheckEndpoint(endpoint);
+                return connection;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        // Retrieve a pending connection and wait for its ConnectAsync to complete successfully, or create and connect
+        // a brand new connection.
+        async ValueTask<IClientConnection> GetOrCreateAsync()
         {
             try
             {
@@ -119,19 +142,6 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
 
                 throw exceptionList == null ?
                     ExceptionUtil.Throw(ex) : new AggregateException(exceptionList);
-            }
-        }
-
-        ClientConnection? GetCachedConnection(Endpoint endpoint)
-        {
-            if (_connections.TryGetValue(endpoint, out ClientConnection? connection))
-            {
-                CheckEndpoint(endpoint);
-                return connection;
-            }
-            else
-            {
-                return null;
             }
         }
     }
@@ -171,9 +181,9 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
             {
                 CancellationToken cancel = _shutdownCancelSource!.Token;
 
-                // Shutdown all connections managed by this pool.
+                // Shut down all connections managed by this pool.
                 await Task.WhenAll(
-                    _connections.Values.Select(connection =>
+                    _pendingConnections.Values.Concat(_activeConnections.Values).Select(connection =>
                         connection.ShutdownAsync("connection pool shutdown", cancel))).ConfigureAwait(false);
             }
             finally
@@ -183,6 +193,9 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
         }
     }
 
+    /// <summary>Checks with the protocol-dependent transport if this endpoint has valid parameters. We call this method
+    /// when it appears we can reuse an active or pending connection based on a parameterless endpoint match.</summary>
+    /// <param name="endpoint">The endpoint to check.</param>
     private void CheckEndpoint(Endpoint endpoint)
     {
         bool isValid = endpoint.Protocol == Protocol.Ice ?
@@ -195,9 +208,16 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
         }
     }
 
+    /// <summary>Creates a connection and attempts to connect this connection unless there is an active or pending
+    /// connection for the desired endpoint.</summary>
+    /// <param name="endpoint">The endpoint of the server.</param>
+    /// <param name="cancel">The cancellation token.</param>
+    /// <returns>A connected connection.</returns>
     private async ValueTask<ClientConnection> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
     {
         ClientConnection? connection = null;
+        bool newConnection = false;
+
         lock (_mutex)
         {
             if (_shutdownTask != null)
@@ -205,11 +225,15 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
                 throw new ObjectDisposedException($"{typeof(ConnectionPool)}");
             }
 
-            // Check if there is a connected or just inserted connection that we can use according to the endpoint
-            // settings.
-            if (_connections.TryGetValue(endpoint, out connection))
+            if (_activeConnections.TryGetValue(endpoint, out connection))
             {
                 CheckEndpoint(endpoint);
+                return connection;
+            }
+            else if (_pendingConnections.TryGetValue(endpoint, out connection))
+            {
+                CheckEndpoint(endpoint);
+                // and call ConnectAsync on this connection after the if block.
             }
             else
             {
@@ -222,25 +246,61 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
                     _multiplexedClientTransport,
                     _simpleClientTransport);
 
-                connection.OnClose(RemoveOnClose);
-                _connections.Add(endpoint, connection);
+                newConnection = true;
+                _pendingConnections.Add(endpoint, connection);
             }
         }
 
-        // We call connect to make sure this connection/endpoint are actually usable.
-        await connection.ConnectAsync(cancel).ConfigureAwait(false);
-        return connection;
-
-        void RemoveOnClose(IConnection connection, Exception? exception)
+        try
         {
-            var clientConnection = (ClientConnection)connection;
-
+            // Make sure this connection/endpoint are actually usable.
+            await connection.ConnectAsync(cancel).ConfigureAwait(false);
+        }
+        catch when (newConnection)
+        {
             lock (_mutex)
             {
-                // _connections is immutable after shutdown
+                // _pendingConnections are immutable after shutdown
                 if (_shutdownTask == null)
                 {
-                    _ = _connections.Remove(clientConnection.RemoteEndpoint);
+                    bool removed = _pendingConnections.Remove(endpoint);
+                    Debug.Assert(removed);
+                }
+            }
+            throw;
+        }
+
+        if (newConnection)
+        {
+            lock (_mutex)
+            {
+                if (_shutdownTask == null)
+                {
+                    // "move" from pending to active
+                    bool removed = _pendingConnections.Remove(endpoint);
+                    Debug.Assert(removed);
+                    _activeConnections.Add(endpoint, connection);
+                }
+                else
+                {
+                    // since connection is in _pendingConnections, ShutdownAsync is cleaning up this connection.
+                    throw new ObjectDisposedException($"{typeof(ConnectionPool)}");
+                }
+            }
+            connection.OnClose(RemoveFromActive); // schedule removal after addition, outside lock
+        }
+        return connection;
+
+        void RemoveFromActive(IConnection connection, Exception exception)
+        {
+            lock (_mutex)
+            {
+                // _activeConnections are immutable after shutdown
+                if (_shutdownTask == null)
+                {
+                    var clientConnection = (ClientConnection)connection;
+                    bool removed = _activeConnections.Remove(clientConnection.RemoteEndpoint);
+                    Debug.Assert(removed);
                 }
             }
         }
