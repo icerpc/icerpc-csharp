@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 namespace IceRpc;
 
 /// <summary>A connection pool manages a pool of client connections and is a client connection provider.</summary>
-public sealed partial class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
+public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
 {
     private readonly Dictionary<Endpoint, ClientConnection> _connections = new(EndpointComparer.ParameterLess);
     private readonly ILoggerFactory? _loggerFactory;
@@ -218,7 +218,7 @@ public sealed partial class ConnectionPool : IClientConnectionProvider, IAsyncDi
                 throw new ObjectDisposedException($"{typeof(ConnectionPool)}");
             }
 
-            // Check if there is an active or pending connection that we can use according to the endpoint
+            // Check if there is a connected or just inserted connection that we can use according to the endpoint
             // settings.
             if (_connections.TryGetValue(endpoint, out connection))
             {
@@ -239,6 +239,8 @@ public sealed partial class ConnectionPool : IClientConnectionProvider, IAsyncDi
                 _connections.Add(endpoint, connection);
             }
         }
+
+        // We call connect to make sure this connection/endpoint are actually usable.
         await connection.ConnectAsync(cancel).ConfigureAwait(false);
         return connection;
 
