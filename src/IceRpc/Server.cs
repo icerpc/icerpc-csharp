@@ -5,6 +5,7 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Diagnostics;
 using System.Net.Security;
 
 namespace IceRpc
@@ -221,7 +222,10 @@ namespace IceRpc
                     var connection = new ServerConnection(Endpoint.Protocol, _options.ConnectionOptions);
 #pragma warning restore CA2000
 
-                    connection.OnClose(RemoveOnClose + onClose);
+                    if (onClose != null)
+                    {
+                        connection.OnClose(onClose);
+                    }
 
                     lock (_mutex)
                     {
@@ -233,6 +237,7 @@ namespace IceRpc
 
                         _ = _connections.Add(connection);
                     }
+                    connection.OnClose(RemoveFromCollection); // schedule removal _after_ Add, outside lock
 
                     // We don't wait for the connection to be activated. This could take a while for some transports
                     // such as TLS based transports where the handshake requires few round trips between the client
@@ -242,13 +247,14 @@ namespace IceRpc
                 }
             }
 
-            void RemoveOnClose(IConnection connection, Exception exception)
+            void RemoveFromCollection(IConnection connection, Exception exception)
             {
                 lock (_mutex)
                 {
                     if (_shutdownTask == null)
                     {
-                        _connections.Remove((ServerConnection)connection);
+                        bool removed = _connections.Remove((ServerConnection)connection);
+                        Debug.Assert(removed);
                     }
                 }
             }
