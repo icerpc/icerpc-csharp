@@ -139,7 +139,6 @@ namespace IceRpc
                 _connections.TryGetValue(endpoint, out List<ClientConnection>? connections) &&
                 connections.FirstOrDefault(
                     connection =>
-                        connection.HasCompatibleParams(endpoint) &&
                         connection.State <= ConnectionState.Active) is ClientConnection connection ? connection : null;
         }
 

@@ -289,9 +289,6 @@ namespace IceRpc.Transports.Internal
 
         public void Dispose() => Abort(new ConnectionClosedException());
 
-        public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
-            _simpleNetworkConnection.HasCompatibleParams(remoteEndpoint);
-
         public async Task ShutdownAsync(ulong applicationErrorCode, CancellationToken cancel)
         {
             // Send the close frame.

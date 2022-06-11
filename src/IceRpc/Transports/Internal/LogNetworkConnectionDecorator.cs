@@ -56,8 +56,6 @@ namespace IceRpc.Transports.Internal
             // We don't emit a log when closing a connection that was not connected.
         }
 
-        public bool HasCompatibleParams(Endpoint remoteEndpoint) => _decoratee.HasCompatibleParams(remoteEndpoint);
-
         public override string? ToString() => _decoratee.ToString();
 
         internal LogNetworkConnectionDecorator(

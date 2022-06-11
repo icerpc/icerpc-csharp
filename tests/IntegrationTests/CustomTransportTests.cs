@@ -15,6 +15,8 @@ public class CustomClientTransport : IClientTransport<IMultiplexedNetworkConnect
     private readonly IClientTransport<IMultiplexedNetworkConnection> _transport =
         new SlicClientTransport(new TcpClientTransport());
 
+    public bool CheckParams(Endpoint endpoint) => true;
+
     public IMultiplexedNetworkConnection CreateConnection(
         Endpoint remoteEndpoint,
         SslClientAuthenticationOptions? authenticationOptions,

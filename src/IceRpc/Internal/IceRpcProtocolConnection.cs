@@ -407,9 +407,6 @@ namespace IceRpc.Internal
 
         public void Dispose() => Abort(new ConnectionClosedException());
 
-        public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
-            _networkConnection.HasCompatibleParams(remoteEndpoint);
-
         public async Task<IncomingResponse> InvokeAsync(
             OutgoingRequest request,
             IConnection connection,

@@ -27,8 +27,8 @@ namespace IceRpc.Transports
             ServerTransport = new ColocServerTransport(listeners);
         }
 
-        internal static bool CheckEndpointParams(ImmutableDictionary<string, string> endpointParams) =>
-            endpointParams.TryGetValue("transport", out string? transportValue) ?
-                transportValue == Name && endpointParams.Count == 1 : endpointParams.Count == 0;
+        internal static bool CheckParams(Endpoint endpoint) =>
+            endpoint.Params.TryGetValue("transport", out string? transportValue) ?
+                transportValue == Name && endpoint.Params.Count == 1 : endpoint.Params.Count == 0;
     }
 }
