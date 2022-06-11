@@ -102,24 +102,12 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
                     {
                         return await ConnectAsync(altEndpoint, cancel).ConfigureAwait(false);
                     }
-                    catch (UnknownTransportException)
-                    {
-                        // ignored, continue for loop
-                    }
                     catch (Exception altEx)
                     {
                         if (exceptionList == null)
                         {
-                            if (ex is UnknownTransportException)
-                            {
-                                // keep in ex the first exception that is not an UnknownTransportException
-                                ex = altEx;
-                            }
-                            else
-                            {
-                                // we have at least 2 exceptions that are not UnknownTransportException
-                                exceptionList = new List<Exception> { ex, altEx };
-                            }
+                            // we have at least 2 exceptions
+                            exceptionList = new List<Exception> { ex, altEx };
                         }
                         else
                         {
@@ -130,8 +118,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
                 }
 
                 throw exceptionList == null ?
-                    (ex is UnknownTransportException ? new NoEndpointException() : ExceptionUtil.Throw(ex)) :
-                    new AggregateException(exceptionList);
+                    ExceptionUtil.Throw(ex) : new AggregateException(exceptionList);
             }
         }
 
