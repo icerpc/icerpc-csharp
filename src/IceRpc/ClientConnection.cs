@@ -35,9 +35,9 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
     private readonly SslClientAuthenticationOptions? _clientAuthenticationOptions;
 
-    // _connectRequires remains true as long as ConnectAsync has not returned. If ConnectAsync fails, another call to
-    // ConnectAsync will fail immediately, so there is no reason to call ConnectAsync again once _connectRequired is
-    // false.
+    // _connectRequired remains true as long as ConnectAsync has not returned successfully. Once _connectRequired is
+    // false, the connection is active, shutting down or closed, and calling ConnectAsync again on this connection is
+    // not necessary or useful.
     private volatile bool _connectRequired = true;
 
     private readonly ConnectionCore _core;
@@ -97,35 +97,29 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <exception cref="ConnectionClosedException">Thrown if the connection is already closed.</exception>
     public async Task ConnectAsync(CancellationToken cancel = default)
     {
-        try
+        if (Protocol == Protocol.Ice)
         {
-            if (Protocol == Protocol.Ice)
-            {
-                await _core.ConnectClientAsync(
-                    this,
-                    _simpleClientTransport,
-                    IceProtocol.Instance.ProtocolConnectionFactory,
-                    LogSimpleNetworkConnectionDecorator.Decorate,
-                    _loggerFactory,
-                    _clientAuthenticationOptions,
-                    cancel).ConfigureAwait(false);
-            }
-            else
-            {
-                await _core.ConnectClientAsync(
-                    this,
-                    _multiplexedClientTransport,
-                    IceRpcProtocol.Instance.ProtocolConnectionFactory,
-                    LogMultiplexedNetworkConnectionDecorator.Decorate,
-                    _loggerFactory,
-                    _clientAuthenticationOptions,
-                    cancel).ConfigureAwait(false);
-            }
+            await _core.ConnectClientAsync(
+                this,
+                _simpleClientTransport,
+                IceProtocol.Instance.ProtocolConnectionFactory,
+                LogSimpleNetworkConnectionDecorator.Decorate,
+                _loggerFactory,
+                _clientAuthenticationOptions,
+                cancel).ConfigureAwait(false);
         }
-        finally
+        else
         {
-            _connectRequired = false;
+            await _core.ConnectClientAsync(
+                this,
+                _multiplexedClientTransport,
+                IceRpcProtocol.Instance.ProtocolConnectionFactory,
+                LogMultiplexedNetworkConnectionDecorator.Decorate,
+                _loggerFactory,
+                _clientAuthenticationOptions,
+                cancel).ConfigureAwait(false);
         }
+        _connectRequired = false;
     }
 
     /// <inheritdoc/>
