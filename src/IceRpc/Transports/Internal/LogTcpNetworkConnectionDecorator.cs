@@ -36,9 +36,6 @@ namespace IceRpc.Transports.Internal
 
         void IDisposable.Dispose() => _decoratee.Dispose();
 
-        public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
-            _decoratee.HasCompatibleParams(remoteEndpoint);
-
         public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel) =>
             _decoratee.ReadAsync(buffer, cancel);
 

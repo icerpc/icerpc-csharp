@@ -33,6 +33,9 @@ namespace IceRpc.Transports
         public TcpClientTransport(TcpClientTransportOptions options) => _options = options;
 
         /// <inheritdoc/>
+        public bool CheckParams(Endpoint endpoint) => CheckParams(endpoint, out _);
+
+        /// <inheritdoc/>
         public ISimpleNetworkConnection CreateConnection(
             Endpoint remoteEndpoint,
             SslClientAuthenticationOptions? authenticationOptions,
@@ -41,7 +44,7 @@ namespace IceRpc.Transports
             // This is the composition root of the tcp client transport, where we install log decorators when logging
             // is enabled.
 
-            if (!CheckEndpointParams(remoteEndpoint.Params, out string? remoteEndpointTransport))
+            if (!CheckParams(remoteEndpoint, out string? remoteEndpointTransport))
             {
                 throw new FormatException($"cannot create a TCP connection to endpoint '{remoteEndpoint}'");
             }
@@ -75,13 +78,11 @@ namespace IceRpc.Transports
         /// <summary>Checks the parameters of a tcp endpoint and returns the value of the transport parameter. The "t"
         /// and "z" parameters are supported and ignored for compatibility with ZeroC Ice.</summary>
         /// <returns><c>true</c> when the endpoint parameters are valid; otherwise, <c>false</c>.</returns>
-        internal static bool CheckEndpointParams(
-            ImmutableDictionary<string, string> endpointParams,
-            out string? transportValue)
+        internal static bool CheckParams(Endpoint endpoint, out string? transportValue)
         {
             transportValue = null;
 
-            foreach ((string name, string value) in endpointParams)
+            foreach ((string name, string value) in endpoint.Params)
             {
                 switch (name)
                 {

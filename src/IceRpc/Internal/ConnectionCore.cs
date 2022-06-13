@@ -252,11 +252,6 @@ internal sealed class ConnectionCore
         }
     }
 
-    internal bool HasCompatibleParams(Endpoint remoteEndpoint) =>
-        IsInvocable &&
-        _protocolConnection is IProtocolConnection protocolConnection &&
-        protocolConnection.HasCompatibleParams(remoteEndpoint);
-
     internal async Task<IncomingResponse> InvokeAsync(
         IConnection connection,
         OutgoingRequest request,

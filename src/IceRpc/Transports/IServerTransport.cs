@@ -18,10 +18,7 @@ namespace IceRpc.Transports
         /// <param name="logger">The logger created by IceRPC. IceRPC uses this logger to log calls to all Transport
         /// APIs it calls. The transport implementation can use this logger to log implementation-specific details
         /// within the log scopes created by IceRPC.</param>
-        /// <returns>The new network connection. This connection is not yet connected.</returns>
         /// <returns>The new listener.</returns>
-        /// <exception cref="UnknownTransportException">Thrown if this server transport does not support the endpoint's
-        /// transport.</exception>
         IListener<T> Listen(Endpoint endpoint, SslServerAuthenticationOptions? authenticationOptions, ILogger logger);
     }
 }
