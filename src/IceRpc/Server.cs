@@ -250,7 +250,7 @@ namespace IceRpc
                 }
             }
 
-            // Remove the connection from the _connections once shutdown completes
+            // Remove the connection from _connections once shutdown completes
             async Task RemoveFromCollectionAsync(IConnection connection)
             {
                 var serverConnection = (ServerConnection)connection;
