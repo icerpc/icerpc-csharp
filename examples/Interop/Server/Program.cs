@@ -1,18 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using var communicator = Ice.Util.initialize(ref args);
+using Ice;
 
-// Destroy the communicator on Ctrl+C or Ctrl+Break
-Console.CancelKeyPress += (sender, eventArgs) => communicator.destroy();
+using Communicator communicator = Util.initialize(ref args);
 
-if (args.Length > 0)
-{
-    Console.Error.WriteLine("too many arguments");
-}
-else
-{
-    var adapter = communicator.createObjectAdapterWithEndpoints("Hello", "tcp -p 10000");
-    adapter.add(new Demo.HelloI(), Ice.Util.stringToIdentity("hello"));
-    adapter.activate();
-    communicator.waitForShutdown();
-}
+// Shuts down the server on Ctrl+C
+Console.CancelKeyPress += (sender, eventArgs) => communicator.shutdown();
+
+ObjectAdapter adapter = communicator.createObjectAdapterWithEndpoints("Hello", "tcp -p 10000");
+adapter.add(new Demo.HelloI(), Util.stringToIdentity("hello"));
+adapter.activate();
+communicator.waitForShutdown();
