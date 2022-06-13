@@ -22,7 +22,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         new TcpClientTransport();
 
     /// <inheritdoc/>
-    public bool IsInvocable => _core.IsInvocable;
+    public bool IsInvocable => _isInvocable;
 
     /// <inheritdoc/>
     public NetworkConnectionInformation? NetworkConnectionInformation => _core.NetworkConnectionInformation;
@@ -41,6 +41,8 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     private volatile bool _connectRequired = true;
 
     private readonly ConnectionCore _core;
+
+    private volatile bool _isInvocable = true;
 
     private readonly ILoggerFactory _loggerFactory;
 
@@ -62,6 +64,11 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
     {
         _core = new ConnectionCore(options);
+        _core.OnClose(this, static (connection, exception) =>
+        {
+            var clientConnection = (ClientConnection)connection;
+            clientConnection._isInvocable = false;
+        });
 
         _clientAuthenticationOptions = options.ClientAuthenticationOptions;
 

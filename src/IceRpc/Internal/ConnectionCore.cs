@@ -30,17 +30,6 @@ internal sealed class ConnectionCore
         Closed
     }
 
-    internal bool IsInvocable
-    {
-        get
-        {
-            lock (_mutex)
-            {
-                return _state < ConnectionState.ShuttingDown;
-            }
-        }
-    }
-
     internal NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
 
     private readonly CancellationTokenSource _connectCancellationSource = new();

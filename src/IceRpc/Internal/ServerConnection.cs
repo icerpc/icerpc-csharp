@@ -8,7 +8,7 @@ namespace IceRpc.Internal;
 internal sealed class ServerConnection : IConnection, IAsyncDisposable
 {
     /// <inheritdoc/>
-    public bool IsInvocable => _core.IsInvocable;
+    public bool IsInvocable => _isInvocable;
 
     /// <inheritdoc/>
     public NetworkConnectionInformation? NetworkConnectionInformation => _core.NetworkConnectionInformation;
@@ -17,6 +17,8 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
     public Protocol Protocol { get; }
 
     private readonly ConnectionCore _core;
+
+    private volatile bool _isInvocable = true;
 
     /// <inheritdoc/>
     public ValueTask DisposeAsync() =>
@@ -35,6 +37,11 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
     {
         Protocol = protocol;
         _core = new ConnectionCore(options);
+        _core.OnClose(this, static (connection, exception) =>
+        {
+            var serverConnection = (ServerConnection)connection;
+            serverConnection._isInvocable = false;
+        });
     }
 
     /// <summary>Aborts the connection.</summary>
