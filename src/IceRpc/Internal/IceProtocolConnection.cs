@@ -170,7 +170,7 @@ namespace IceRpc.Internal
                 {
                     lock (_mutex)
                     {
-                        if (_isShuttingDown || _isAborted)
+                        if (_isShuttingDown || _isShuttingDownOnIdle || _isAborted)
                         {
                             throw new ConnectionClosedException();
                         }
@@ -392,7 +392,7 @@ namespace IceRpc.Internal
             bool alreadyShuttingDown = false;
             lock (_mutex)
             {
-                if (_isShuttingDown && !_isShuttingDownOnIdle)
+                if (_isShuttingDown)
                 {
                     alreadyShuttingDown = true;
                 }
@@ -559,23 +559,16 @@ namespace IceRpc.Internal
                 _idleTimeoutTimer = new Timer(
                     _ =>
                     {
-                        bool isIdle = false;
                         lock (_mutex)
                         {
-                            if (!_isShuttingDown && _invocations.Count == 0 && _dispatches.Count == 0)
+                            if (_invocations.Count == 0 && _dispatches.Count == 0)
                             {
-                                // Prevent new invocations or dispatches to be processed at this point.
-                                _isShuttingDown = true;
-                                _isShuttingDownOnIdle = true;
-                                _dispatchesAndInvocationsCompleted.SetResult();
-                                isIdle = true;
+                                return; // The connection is no longer idle.
                             }
+                            _isShuttingDownOnIdle = true;
                         }
 
-                        if (isIdle)
-                        {
-                            _onIdle.Invoke();
-                        }
+                        _onIdle.Invoke();
                     },
                     null,
                     _idleTimeout,
@@ -906,7 +899,7 @@ namespace IceRpc.Internal
                 bool isClosed = false;
                 lock (_mutex)
                 {
-                    if (_isShuttingDown || _isAborted)
+                    if (_isShuttingDown || _isShuttingDownOnIdle || _isAborted)
                     {
                         isClosed = true;
                     }
