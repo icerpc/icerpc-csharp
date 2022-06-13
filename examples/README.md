@@ -13,7 +13,7 @@ HelloSecure is an example application that shows how to configure client and ser
 connections. It also shows how to make an asynchronous invocation and wait for a reply.
 ## [Bidir](./Bidir/)
 
-This example application illustrates how make bidirectional calls.
+This example application illustrates how to make bidirectional calls.
 
 ## [GenericHost](./GenericHost/)
 

@@ -1,6 +1,6 @@
-This example shows how to use dependency injection and the .NET Generic Host with IceRpc client and server applications.
+This example shows how to use dependency injection and the .NET Generic Host with IceRPC client and server applications.
 
-For build instructions checks the top-level [README.md](../../README.md).
+For build instructions check the top-level [README.md](../../README.md).
 
 First start the Server program:
 

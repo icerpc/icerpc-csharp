@@ -1,7 +1,7 @@
 HelloSecure is an example application showing how to make an asynchronous invocation and wait for the reply using a
-secured TLS connection.
+secure TLS connection.
 
-For build instructions checks the top-level [README.md](../../README.md).
+For build instructions check the top-level [README.md](../../README.md).
 
 First start the Server program:
 
