@@ -41,13 +41,6 @@ namespace IceRpc.Internal
             await _decoratee.AcceptRequestsAsync(connection).ConfigureAwait(false);
         }
 
-        void IDisposable.Dispose()
-        {
-            using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
-            _decoratee.Dispose();
-            _logger.LogProtocolConnectionDispose(_decoratee.Protocol);
-        }
-
         async Task<IncomingResponse> IProtocolConnection.InvokeAsync(
             OutgoingRequest request,
             IConnection connection,

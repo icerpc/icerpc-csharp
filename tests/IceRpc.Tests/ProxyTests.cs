@@ -278,7 +278,7 @@ public class ProxyTests
     public async Task From_connection_with_a_server_connection()
     {
         // Arrange
-        await using var serverConnection = new Internal.ServerConnection(Protocol.IceRpc, new ConnectionOptions());
+        var serverConnection = new Internal.ServerConnection(Protocol.IceRpc, new ConnectionOptions());
 
         // Act
         var proxy = Proxy.FromConnection(serverConnection, "/");
@@ -290,6 +290,9 @@ public class ProxyTests
             Assert.That(proxy.Connection, Is.EqualTo(serverConnection));
             Assert.That(proxy.Endpoint, Is.Null);
         });
+
+        // Cleanup
+        await serverConnection.ShutdownAsync();
     }
 
     /// <summary>Verifies that a proxy created from a path has the expected protocol, path and endpoint properties.
