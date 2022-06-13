@@ -561,7 +561,7 @@ namespace IceRpc.Internal
                     {
                         lock (_mutex)
                         {
-                            if (_invocations.Count == 0 && _dispatches.Count == 0)
+                            if (_invocations.Count > 0 || _dispatches.Count > 0)
                             {
                                 return; // The connection is no longer idle.
                             }

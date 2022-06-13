@@ -49,7 +49,6 @@ public sealed class ProtocolConnectionTests
     /// <summary>Ensures that AcceptRequestsAsync returns successfully when the connection is gracefully
     /// shutdown.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    [Repeat(1000)]
     public async Task AcceptRequests_returns_successfully_on_graceful_shutdown(Protocol protocol)
     {
         // Arrange
