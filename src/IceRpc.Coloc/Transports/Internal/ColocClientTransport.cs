@@ -16,6 +16,9 @@ namespace IceRpc.Transports.Internal
         private readonly ConcurrentDictionary<Endpoint, ColocListener> _listeners;
 
         /// <inheritdoc/>
+        public bool CheckParams(Endpoint endpoint) => ColocTransport.CheckParams(endpoint);
+
+        /// <inheritdoc/>
         ISimpleNetworkConnection IClientTransport<ISimpleNetworkConnection>.CreateConnection(
             Endpoint remoteEndpoint,
             SslClientAuthenticationOptions? authenticationOptions,
@@ -26,7 +29,7 @@ namespace IceRpc.Transports.Internal
                 throw new NotSupportedException("cannot create a secure Coloc connection");
             }
 
-            if (!ColocTransport.CheckEndpointParams(remoteEndpoint.Params))
+            if (!CheckParams(remoteEndpoint))
             {
                 throw new FormatException($"cannot create a Coloc connection to endpoint '{remoteEndpoint}'");
             }
