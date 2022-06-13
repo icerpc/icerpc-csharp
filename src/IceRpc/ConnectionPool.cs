@@ -16,10 +16,11 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
     private readonly ILoggerFactory? _loggerFactory;
     private readonly IClientTransport<IMultiplexedNetworkConnection> _multiplexedClientTransport;
 
+    private readonly ConnectionPoolOptions _options;
+
     // New connections in the process of connecting. They can be returned only after ConnectAsync succeeds.
     private readonly Dictionary<Endpoint, ClientConnection> _pendingConnections = new(EndpointComparer.ParameterLess);
 
-    private readonly ConnectionPoolOptions _options;
     private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
 
     private readonly object _mutex = new();
@@ -127,21 +128,13 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
                     }
                     catch (Exception altEx)
                     {
-                        if (exceptionList == null)
-                        {
-                            // we have at least 2 exceptions
-                            exceptionList = new List<Exception> { ex, altEx };
-                        }
-                        else
-                        {
-                            exceptionList.Add(altEx);
-                        }
+                        exceptionList ??= new List<Exception> { ex };
+                        exceptionList.Add(altEx);
                         // and keep trying
                     }
                 }
 
-                throw exceptionList == null ?
-                    ExceptionUtil.Throw(ex) : new AggregateException(exceptionList);
+                throw exceptionList == null ? ExceptionUtil.Throw(ex) : new AggregateException(exceptionList);
             }
         }
     }
@@ -163,7 +156,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
         {
             try
             {
-                _shutdownCancelSource!.Cancel();
+                _shutdownCancelSource.Cancel();
             }
             catch (ObjectDisposedException)
             {
@@ -179,7 +172,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
             await Task.Yield();
             try
             {
-                CancellationToken cancel = _shutdownCancelSource!.Token;
+                CancellationToken cancel = _shutdownCancelSource.Token;
 
                 // Shut down all connections managed by this pool.
                 await Task.WhenAll(
@@ -188,7 +181,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
             }
             finally
             {
-                _shutdownCancelSource!.Dispose();
+                _shutdownCancelSource.Dispose();
             }
         }
     }
@@ -204,7 +197,8 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
 
         if (!isValid)
         {
-            throw new FormatException($"cannot establish client connection using endpoint '{endpoint}'");
+            throw new FormatException(
+                $"cannot establish a client connection to endpoint '{endpoint}': one or more parameters are invalid");
         }
     }
 
@@ -260,7 +254,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
         {
             lock (_mutex)
             {
-                // _pendingConnections are immutable after shutdown
+                // the _pendingConnections collection is immutable after shutdown
                 if (_shutdownTask == null)
                 {
                     bool removed = _pendingConnections.Remove(endpoint);
@@ -295,7 +289,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
         {
             lock (_mutex)
             {
-                // _activeConnections are immutable after shutdown
+                // the _activeConnections collection is immutable after shutdown
                 if (_shutdownTask == null)
                 {
                     var clientConnection = (ClientConnection)connection;
