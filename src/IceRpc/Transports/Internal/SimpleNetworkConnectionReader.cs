@@ -11,22 +11,38 @@ namespace IceRpc.Transports.Internal
     /// is not a PipeReader.</summary>
     internal class SimpleNetworkConnectionReader : IDisposable
     {
-        internal TimeSpan IdleSinceTime => TimeSpan.FromMilliseconds(_idleSinceTime);
-
         private readonly ISimpleNetworkConnection _connection;
-        private long _idleSinceTime = Environment.TickCount64;
+        private TimeSpan _idleTimeout;
+        private readonly Timer _idleTimeoutTimer;
+        private bool _isDisposed;
+        private readonly Timer? _keepAliveTimer;
+        private readonly object _mutex = new();
+        private TimeSpan _nextIdleTime;
         private readonly Pipe _pipe;
 
         public void Dispose()
         {
+            lock (_mutex)
+            {
+                if (_isDisposed)
+                {
+                    return;
+                }
+                _isDisposed = true;
+            }
+
             _pipe.Writer.Complete();
             _pipe.Reader.Complete();
+            _idleTimeoutTimer.Dispose();
+            _keepAliveTimer?.Dispose();
         }
 
         internal SimpleNetworkConnectionReader(
             ISimpleNetworkConnection connection,
             MemoryPool<byte> pool,
-            int minimumSegmentSize)
+            int minimumSegmentSize,
+            Action<Exception> abortAction,
+            Action? keepAliveAction)
         {
             _connection = connection;
             _pipe = new Pipe(new PipeOptions(
@@ -34,6 +50,51 @@ namespace IceRpc.Transports.Internal
                 minimumSegmentSize: minimumSegmentSize,
                 pauseWriterThreshold: 0,
                 writerScheduler: PipeScheduler.Inline));
+
+            _nextIdleTime = TimeSpan.Zero;
+
+            // Setup a timer to abort the connection if it's idle for longer than the idle timeout.
+            _idleTimeoutTimer = new Timer(
+                _ =>
+                {
+                    lock (_mutex)
+                    {
+                        if (_nextIdleTime >= TimeSpan.FromMilliseconds(Environment.TickCount64))
+                        {
+                            // The idle timeout has just been postponed. Don't abort the connection since this indicates
+                            // data was just received.
+                            return;
+                        }
+
+                        // Set the next idle time to the infinite timeout to ensure ResetTimers fails. Timers can't be
+                        // reset once the connection abort is initiated.
+                        _nextIdleTime = Timeout.InfiniteTimeSpan;
+                    }
+
+                    abortAction(new ConnectionAbortedException(
+                        $"the network connection has been idle for longer than {_idleTimeout}"));
+                });
+
+            if (keepAliveAction != null)
+            {
+                _keepAliveTimer = new Timer(
+                    _ =>
+                    {
+                        lock (_mutex)
+                        {
+                            if (_isDisposed)
+                            {
+                                return;
+                            }
+
+                            // Postpone the idle timeout.
+                            _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
+                        }
+
+                        // Keep the connection alive.
+                        keepAliveAction.Invoke();
+                    });
+            }
         }
 
         internal void AdvanceTo(SequencePosition consumed) => _pipe.Reader.AdvanceTo(consumed);
@@ -92,7 +153,7 @@ namespace IceRpc.Transports.Internal
                     bufferWriter.Advance(read);
                     byteCount -= read;
 
-                    Interlocked.Exchange(ref _idleSinceTime, Environment.TickCount64);
+                    ResetTimers();
 
                     if (byteCount > 0 && read == 0)
                     {
@@ -133,7 +194,7 @@ namespace IceRpc.Transports.Internal
                 _pipe.Writer.Advance(read);
                 minimumSize -= read;
 
-                Interlocked.Exchange(ref _idleSinceTime, Environment.TickCount64);
+                ResetTimers();
 
                 if (minimumSize > 0 && read == 0)
                 {
@@ -151,6 +212,32 @@ namespace IceRpc.Transports.Internal
             return readResult.Buffer;
         }
 
+        internal void SetIdleTimeout(TimeSpan idleTimeout)
+        {
+            lock (_mutex)
+            {
+                if (_isDisposed)
+                {
+                    return;
+                }
+
+                _idleTimeout = idleTimeout;
+
+                if (_idleTimeout == Timeout.InfiniteTimeSpan)
+                {
+                    _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                    _keepAliveTimer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                    _nextIdleTime = TimeSpan.Zero;
+                }
+                else
+                {
+                    _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
+                    _keepAliveTimer?.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
+                    _nextIdleTime = TimeSpan.FromMilliseconds(Environment.TickCount64) + _idleTimeout;
+                }
+            }
+        }
+
         internal bool TryRead(out ReadOnlySequence<byte> buffer)
         {
             if (_pipe.Reader.TryRead(out ReadResult readResult))
@@ -163,6 +250,33 @@ namespace IceRpc.Transports.Internal
             {
                 buffer = default;
                 return false;
+            }
+        }
+
+        private void ResetTimers()
+        {
+            lock (_mutex)
+            {
+                Debug.Assert(!_isDisposed);
+
+                if (_idleTimeout == Timeout.InfiniteTimeSpan)
+                {
+                    // Nothing to do, idle timeout is disabled.
+                }
+                else if (_nextIdleTime == Timeout.InfiniteTimeSpan)
+                {
+                    // The idle timeout timer aborted the connection. Don't reset the timers and throw to ensure the
+                    // calling read method doesn't return data.
+                    throw new ConnectionAbortedException(
+                        $"the network connection has been idle for longer than {_idleTimeout}");
+                }
+                else
+                {
+                    // Postpone the idle timeout and keep the connection alive.
+                    _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
+                    _keepAliveTimer?.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
+                    _nextIdleTime = TimeSpan.FromMilliseconds(Environment.TickCount64) + _idleTimeout;
+                }
             }
         }
     }

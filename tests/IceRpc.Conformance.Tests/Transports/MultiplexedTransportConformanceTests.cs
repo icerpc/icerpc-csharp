@@ -265,7 +265,7 @@ public abstract class MultiplexedTransportConformanceTests
         ValueTask<IMultiplexedStream> acceptTask = serverConnection.AcceptStreamAsync(default);
 
         // Act
-        await Task.Delay(TimeSpan.FromSeconds(2));
+        await Task.Delay(TimeSpan.FromSeconds(1));
 
         // Assert
         Assert.That(acceptTask.IsCompleted, Is.False);
@@ -279,7 +279,7 @@ public abstract class MultiplexedTransportConformanceTests
         // Arrange
         IServiceCollection services = CreateServiceCollection();
 
-        var idleTimeout = TimeSpan.FromMilliseconds(500);
+        var idleTimeout = TimeSpan.FromMilliseconds(250);
         if (serverIdleTimeout)
         {
             services.AddOptions<SlicTransportOptions>("server").Configure(options => options.IdleTimeout = idleTimeout);
@@ -304,7 +304,7 @@ public abstract class MultiplexedTransportConformanceTests
         ValueTask<IMultiplexedStream> acceptTask = serverConnection.AcceptStreamAsync(default);
 
         // Act
-        await Task.Delay(TimeSpan.FromSeconds(2));
+        await Task.Delay(TimeSpan.FromSeconds(1));
 
         // Assert
         Assert.That(acceptTask.IsCompleted, Is.False);
