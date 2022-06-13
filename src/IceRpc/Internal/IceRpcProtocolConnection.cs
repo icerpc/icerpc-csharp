@@ -119,6 +119,10 @@ namespace IceRpc.Internal
                         {
                             throw IceRpcStreamError.ConnectionShutdownByPeer.ToException();
                         }
+                        else if (_isShuttingDownOnIdle)
+                        {
+                            throw IceRpcStreamError.ConnectionShutdown.ToException();
+                        }
                         else if (_isAborted)
                         {
                             throw new ConnectionClosedException();
@@ -432,8 +436,10 @@ namespace IceRpc.Internal
                 {
                     lock (_mutex)
                     {
-                        if (_isShuttingDown || _isAborted)
+                        if (_isShuttingDown || _isShuttingDownOnIdle || _isAborted)
                         {
+                            // Don't process the invocation if the connection is in the process of shutting down or it's
+                            // already closed.
                             throw new ConnectionClosedException();
                         }
                         else
@@ -619,17 +625,14 @@ namespace IceRpc.Internal
             IceRpcGoAway? goAwayFrame = null;
             lock (_mutex)
             {
-                // Mark the connection as shutting down to prevent further requests from being accepted. Shutdown might
-                // already be initiated if both side initiated shutdown at the same time.
-                if (!_isShuttingDown || _isShuttingDownOnIdle)
+                // Mark the connection as shutting down to prevent further requests from being accepted.
+                Debug.Assert(!_isShuttingDown);
+                _isShuttingDown = true;
+                if (_streams.Count == 0)
                 {
-                    _isShuttingDown = true;
-                    if (_streams.Count == 0)
-                    {
-                        _streamsCompleted.SetResult();
-                    }
-                    goAwayFrame = new(_lastRemoteBidirectionalStreamId, _lastRemoteUnidirectionalStreamId, message);
+                    _streamsCompleted.SetResult();
                 }
+                goAwayFrame = new(_lastRemoteBidirectionalStreamId, _lastRemoteUnidirectionalStreamId, message);
             }
 
             if (goAwayFrame != null)
@@ -776,22 +779,18 @@ namespace IceRpc.Internal
                 _idleTimeoutTimer = new Timer(
                     _ =>
                     {
-                        bool isIdle = false;
                         lock (_mutex)
                         {
-                            if (!_isShuttingDown && _streams.Count == 0)
+                            if (_streams.Count > 0)
                             {
-                                // Prevent new invocations or dispatches to be processed at this point.
-                                _isShuttingDown = true;
-                                _isShuttingDownOnIdle = true;
-                                isIdle = true;
+                                return; // The connection is no longer idle.
                             }
+
+                            // Prevent new invocations or dispatches to be processed at this point.
+                            _isShuttingDownOnIdle = true;
                         }
 
-                        if (isIdle)
-                        {
-                            OnIdle?.Invoke();
-                        }
+                        OnIdle?.Invoke();
                     },
                     null,
                     _idleTimeout,

@@ -119,9 +119,10 @@ namespace IceRpc.Transports.Internal
             NetworkConnectionInformation information = await _simpleNetworkConnection.ConnectAsync(
                 cancel).ConfigureAwait(false);
 
-            // Wait for the network connection establishment to set the idle timeout. The network connection
-            // ConnectAsync implementation would need to deal with thread safety otherwise if Dispose is called
-            // concurrently.
+            // Set the idle timeout after the network connection establishment. We don't want the network connection to
+            // be disposed because it's idle when the network connection establishment is in progress. This would
+            // require the simple network connection ConnectAsync/Dispose implementations to be thread safe. The network
+            // connection establishment timeout is handled by the cancellation token instead.
             _simpleNetworkConnectionReader.SetIdleTimeout(_localIdleTimeout);
 
             TimeSpan peerIdleTimeout = TimeSpan.MaxValue;
@@ -339,7 +340,7 @@ namespace IceRpc.Transports.Internal
             Action? keepAliveAction = null;
             if (!IsServer)
             {
-                // Only client connections send ping frames when idle to keep alive the connection.
+                // Only client connections send ping frames when idle to keep the connection alive.
                 keepAliveAction = () => SendFrameAsync(stream: null, FrameType.Ping, null, default).AsTask();
             }
 
@@ -347,12 +348,7 @@ namespace IceRpc.Transports.Internal
                 simpleNetworkConnection,
                 slicOptions.Pool,
                 slicOptions.MinimumSegmentSize,
-                abortAction: () =>
-                {
-                    // The connection has been idle for longer than the idle timeout time, abort it.
-                    Abort(new ConnectionAbortedException(
-                        $"Slic connection has been idle for longer than {nameof(SlicTransportOptions.IdleTimeout)}"));
-                },
+                abortAction: exception => Abort(exception),
                 keepAliveAction);
 
             var writer = new SlicFrameWriter(_simpleNetworkConnectionWriter);

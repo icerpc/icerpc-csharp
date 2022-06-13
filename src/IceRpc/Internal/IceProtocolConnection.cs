@@ -479,12 +479,7 @@ namespace IceRpc.Internal
                 simpleNetworkConnection,
                 _memoryPool,
                 _minimumSegmentSize,
-                abortAction: () =>
-                {
-                    // The connection has been idle for longer than the idle timeout time, abort it.
-                    Abort(new ConnectionAbortedException(
-                        $"ice connection has been idle for longer than {nameof(ConnectionOptions.IdleTimeout)}"));
-                },
+                abortAction: exception => Abort(exception),
                 keepAliveAction: () => _ = PingAsync());
 
             _payloadWriter = new IcePayloadPipeWriter(_networkConnectionWriter);

@@ -36,7 +36,7 @@ public class SimpleNetworkConnectionReaderTests
             clientConnection,
             MemoryPool<byte>.Shared,
             4096,
-            abortAction: () => {},
+            abortAction: _ => {},
             keepAliveAction: () => ++pingCount);
         reader.SetIdleTimeout(TimeSpan.FromMilliseconds(500));
 
@@ -78,7 +78,7 @@ public class SimpleNetworkConnectionReaderTests
             clientConnection,
             MemoryPool<byte>.Shared,
             4096,
-            abortAction: () => abortCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64),
+            abortAction: _ => abortCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64),
             keepAliveAction: () => { });
         reader.SetIdleTimeout(TimeSpan.FromMilliseconds(500));
 
@@ -111,7 +111,7 @@ public class SimpleNetworkConnectionReaderTests
             clientConnection,
             MemoryPool<byte>.Shared,
             4096,
-            abortAction: () => abortCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64),
+            abortAction: _ => abortCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64),
             keepAliveAction: () => {});
         reader.SetIdleTimeout(TimeSpan.FromMilliseconds(500));
 

@@ -17,6 +17,7 @@ namespace IceRpc.Transports.Internal
         private bool _isDisposed;
         private readonly Timer? _keepAliveTimer;
         private readonly object _mutex = new();
+        private TimeSpan _nextIdleTime;
         private readonly Pipe _pipe;
 
         public void Dispose()
@@ -40,7 +41,7 @@ namespace IceRpc.Transports.Internal
             ISimpleNetworkConnection connection,
             MemoryPool<byte> pool,
             int minimumSegmentSize,
-            Action abortAction,
+            Action<Exception> abortAction,
             Action? keepAliveAction)
         {
             _connection = connection;
@@ -50,8 +51,29 @@ namespace IceRpc.Transports.Internal
                 pauseWriterThreshold: 0,
                 writerScheduler: PipeScheduler.Inline));
 
+            _nextIdleTime = TimeSpan.Zero;
+
             // Setup a timer to abort the connection if it's idle for longer than the idle timeout.
-            _idleTimeoutTimer = new Timer(_ => abortAction());
+            _idleTimeoutTimer = new Timer(
+                _ =>
+                {
+                    lock (_mutex)
+                    {
+                        if (_nextIdleTime >= TimeSpan.FromMilliseconds(Environment.TickCount64))
+                        {
+                            // The idle timeout has just been postponed. Don't abort the connection since this indicates
+                            // data was just received.
+                            return;
+                        }
+
+                        // Set the next idle time to the infinite timeout to ensure ResetTimers fails. Timers can't be
+                        // reset once the connection abort is initiated.
+                        _nextIdleTime = Timeout.InfiniteTimeSpan;
+                    }
+
+                    abortAction(new ConnectionAbortedException(
+                        $"the network connection has been idle for longer than {_idleTimeout}"));
+                });
 
             if (keepAliveAction != null)
             {
@@ -69,7 +91,7 @@ namespace IceRpc.Transports.Internal
                             _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
                         }
 
-                        // Keep alive the connection.
+                        // Keep the connection alive.
                         keepAliveAction.Invoke();
                     });
             }
@@ -201,11 +223,17 @@ namespace IceRpc.Transports.Internal
 
                 _idleTimeout = idleTimeout;
 
-                _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
-
-                if (_idleTimeout != Timeout.InfiniteTimeSpan)
+                if (_idleTimeout == Timeout.InfiniteTimeSpan)
                 {
+                    _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                    _keepAliveTimer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                    _nextIdleTime = TimeSpan.Zero;
+                }
+                else
+                {
+                    _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
                     _keepAliveTimer?.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
+                    _nextIdleTime = TimeSpan.FromMilliseconds(Environment.TickCount64) + _idleTimeout;
                 }
             }
         }
@@ -229,11 +257,25 @@ namespace IceRpc.Transports.Internal
         {
             lock (_mutex)
             {
-                if (!_isDisposed)
+                Debug.Assert(!_isDisposed);
+
+                if (_idleTimeout == Timeout.InfiniteTimeSpan)
                 {
-                    // Postpone the idle timeout and keep alive the connection.
+                    // Nothing to do, idle timeout is disabled.
+                }
+                else if (_nextIdleTime == Timeout.InfiniteTimeSpan)
+                {
+                    // The idle timeout timer aborted the connection. Don't reset the timers and throw to ensure the
+                    // calling read method doesn't return data.
+                    throw new ConnectionAbortedException(
+                        $"the network connection has been idle for longer than {_idleTimeout}");
+                }
+                else
+                {
+                    // Postpone the idle timeout and keep the connection alive.
                     _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
                     _keepAliveTimer?.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
+                    _nextIdleTime = TimeSpan.FromMilliseconds(Environment.TickCount64) + _idleTimeout;
                 }
             }
         }
