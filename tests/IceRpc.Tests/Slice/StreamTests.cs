@@ -242,24 +242,24 @@ public class StreamTests
 
         async Task EncodeDataAsync(PipeWriter writer)
         {
-            int encodedByteCount = 0;
-            Memory<byte> sizePlaceHolder = writer.GetMemory(4)[0..4];
-            writer.Advance(4);
-            for (int i = 0; i < size; i++)
+            if (size > 0)
             {
-                if (encodedByteCount > 0 && yieldThreshold > 0 && i % yieldThreshold == 0)
+                int encodedByteCount = 0;
+                Memory<byte> sizePlaceHolder = writer.GetMemory(4)[0..4];
+                writer.Advance(4);
+                for (int i = 0; i < size; i++)
                 {
-                    SliceEncoder.EncodeVarUInt62((ulong)encodedByteCount, sizePlaceHolder.Span);
-                    encodedByteCount = 0;
-                    await writer.FlushAsync();
-                    await Task.Yield();
-                    sizePlaceHolder = writer.GetMemory(4)[0..4];
-                    writer.Advance(4);
+                    if (encodedByteCount > 0 && yieldThreshold > 0 && i % yieldThreshold == 0)
+                    {
+                        SliceEncoder.EncodeVarUInt62((ulong)encodedByteCount, sizePlaceHolder.Span);
+                        encodedByteCount = 0;
+                        await writer.FlushAsync();
+                        await Task.Yield();
+                        sizePlaceHolder = writer.GetMemory(4)[0..4];
+                        writer.Advance(4);
+                    }
+                    encodedByteCount += EncodeElement($"hello-{i}");
                 }
-                encodedByteCount += EncodeElement($"hello-{i}");
-            }
-            if (encodedByteCount > 0)
-            {
                 SliceEncoder.EncodeVarUInt62((ulong)encodedByteCount, sizePlaceHolder.Span);
             }
             await writer.CompleteAsync();
