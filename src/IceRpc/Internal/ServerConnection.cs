@@ -37,8 +37,7 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
         _core = new ConnectionCore(options);
     }
 
-    /// <summary>Aborts the connection. This method switches the connection state to
-    /// <see cref="ConnectionState.Closed"/>.</summary>
+    /// <summary>Aborts the connection.</summary>
     internal void Abort() => _core.Abort(this);
 
     /// <summary>Establishes a connection.</summary>

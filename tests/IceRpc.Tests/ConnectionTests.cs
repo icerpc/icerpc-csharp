@@ -176,10 +176,9 @@ public class ConnectionTests
 
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
-        while (connection.State != ConnectionState.Closed)
-        {
-            await Task.Delay(TimeSpan.FromMilliseconds(100));
-        }
+        using var semaphore = new SemaphoreSlim(0);
+        connection.OnClose((connection, exception) => semaphore.Release(1));
+        await semaphore.WaitAsync();
 
         // Act/Assert
         Assert.That(
@@ -214,11 +213,19 @@ public class ConnectionTests
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
         // Act/Assert
-        // TODO: add/use OnDisconnect action
-        while (connection.State != ConnectionState.NotConnected)
+        using var semaphore = new SemaphoreSlim(0);
+        connection.OnDisconnect((connection, exception) =>
         {
-            await Task.Delay(TimeSpan.FromMilliseconds(100));
-        }
+            try
+            {
+                semaphore.Release(1);
+            }
+            catch (ObjectDisposedException)
+            {
+                // expected
+            }
+        });
+        await semaphore.WaitAsync();
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
     }
 
@@ -246,14 +253,21 @@ public class ConnectionTests
         var proxy = Proxy.FromConnection(connection, "/foo");
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
-        // Act
-        await serverConnection!.ShutdownAsync();
-
-        // Assert
-        while (connection.State != ConnectionState.NotConnected)
+        // Act/Assert
+        using var semaphore = new SemaphoreSlim(0);
+        connection.OnDisconnect((connection, exception) =>
         {
-            await Task.Delay(TimeSpan.FromMilliseconds(100));
-        }
+            try
+            {
+                semaphore.Release(1);
+            }
+            catch (ObjectDisposedException)
+            {
+                // expected
+            }
+        });
+        await serverConnection!.ShutdownAsync();
+        await semaphore.WaitAsync();
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
     }
 
@@ -282,14 +296,21 @@ public class ConnectionTests
         var proxy = Proxy.FromConnection(connection, "/foo");
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
-        // Act
-        serverConnection!.Abort();
-
-        // Assert
-        while (connection.State != ConnectionState.NotConnected)
+        // Act/Assert
+        using var semaphore = new SemaphoreSlim(0);
+        connection.OnDisconnect((connection, exception) =>
         {
-            await Task.Delay(TimeSpan.FromMilliseconds(100));
-        }
+            try
+            {
+                semaphore.Release(1);
+            }
+            catch (ObjectDisposedException)
+            {
+                // expected
+            }
+        });
+        serverConnection!.Abort();
+        await semaphore.WaitAsync();
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
     }
 

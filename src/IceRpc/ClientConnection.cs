@@ -33,10 +33,12 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <inheritdoc/>
     public Endpoint RemoteEndpoint { get; }
 
-    /// <summary>Gets the state of the connection.</summary>
-    public ConnectionState State => _core.State;
-
     private readonly SslClientAuthenticationOptions? _clientAuthenticationOptions;
+
+    // _connectRequires remains true as long as ConnectAsync has not returned. If ConnectAsync fails, another call to
+    // ConnectAsync will fail immediately, so there is no reason to call ConnectAsync again once _connectRequired is
+    // false.
+    private volatile bool _connectRequired = true;
 
     private readonly ConnectionCore _core;
 
@@ -86,32 +88,45 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     {
     }
 
-    /// <summary>Aborts the connection. This methods switches the connection state to <see
-    /// cref="ConnectionState.Closed"/>.</summary>
+    /// <summary>Aborts the connection.</summary>
     public void Abort() => _core.Abort(this);
 
     /// <summary>Establishes the connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that indicates the completion of the connect operation.</returns>
     /// <exception cref="ConnectionClosedException">Thrown if the connection is already closed.</exception>
-    public Task ConnectAsync(CancellationToken cancel = default) =>
-        Protocol == Protocol.Ice ?
-        _core.ConnectClientAsync(
-            this,
-            _simpleClientTransport,
-            IceProtocol.Instance.ProtocolConnectionFactory,
-            LogSimpleNetworkConnectionDecorator.Decorate,
-            _loggerFactory,
-            _clientAuthenticationOptions,
-            cancel) :
-        _core.ConnectClientAsync(
-            this,
-            _multiplexedClientTransport,
-            IceRpcProtocol.Instance.ProtocolConnectionFactory,
-            LogMultiplexedNetworkConnectionDecorator.Decorate,
-            _loggerFactory,
-            _clientAuthenticationOptions,
-            cancel);
+    public async Task ConnectAsync(CancellationToken cancel = default)
+    {
+        try
+        {
+            if (Protocol == Protocol.Ice)
+            {
+                await _core.ConnectClientAsync(
+                    this,
+                    _simpleClientTransport,
+                    IceProtocol.Instance.ProtocolConnectionFactory,
+                    LogSimpleNetworkConnectionDecorator.Decorate,
+                    _loggerFactory,
+                    _clientAuthenticationOptions,
+                    cancel).ConfigureAwait(false);
+            }
+            else
+            {
+                await _core.ConnectClientAsync(
+                    this,
+                    _multiplexedClientTransport,
+                    IceRpcProtocol.Instance.ProtocolConnectionFactory,
+                    LogMultiplexedNetworkConnectionDecorator.Decorate,
+                    _loggerFactory,
+                    _clientAuthenticationOptions,
+                    cancel).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            _connectRequired = false;
+        }
+    }
 
     /// <inheritdoc/>
     public ValueTask DisposeAsync() =>
@@ -121,7 +136,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        if (State != ConnectionState.Active)
+        if (_connectRequired)
         {
             await ConnectAsync(cancel).ConfigureAwait(false);
         }
