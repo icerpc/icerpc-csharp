@@ -4,5 +4,6 @@ module Demo;
 
 interface Hello
 {
+    // Compress attribute
     [compress(Args, Return)] sayHello(name: string) -> string;
 }
