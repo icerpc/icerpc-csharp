@@ -3,6 +3,18 @@
 This directory contains example programs for various IceRPC components. These examples are provided to get you started
 on using a particular IceRPC feature or programming technique.
 
+## [Bidir](./Bidir/)
+
+This example application illustrates how to make bidirectional calls.
+
+## [Compress](./Compress/)
+Compress shows how to stream compressed data from a client to a server.
+
+## [GenericHost](./GenericHost/)
+
+This example application shows how to use the .NET Generic Host to implement IceRPC client and server command line
+applications.
+
 ## [Hello](./Hello/)
 
 Hello illustrates how to make an asynchronous invocation and wait for the reply.
@@ -11,11 +23,14 @@ Hello illustrates how to make an asynchronous invocation and wait for the reply.
 
 HelloSecure is an example application that shows how to configure client and server applications to use secure TLS
 connections. It also shows how to make an asynchronous invocation and wait for a reply.
-## [Bidir](./Bidir/)
 
-This example application illustrates how to make bidirectional calls.
+## [OpenTelemetry](./OpenTelemetry/)
 
-## [GenericHost](./GenericHost/)
+This application illustrates how to use the IceRpc telemetry interceptor and middleware, and how they can be integrated
+with OpenTelemetry to export traces to Zipkin. The application also shows how the trace context is propagated from the
+client to the front end Hello server, and from the front end Hello server to the backend CRM server, by just configuring
+the IceRpc telemetry interceptor and middleware.
 
-This example application shows how to use the .NET Generic Host to implement IceRPC client and server command line
-applications.
+## [Stream](./Stream/)
+
+This example application illustrates streaming data from a client to a server.
