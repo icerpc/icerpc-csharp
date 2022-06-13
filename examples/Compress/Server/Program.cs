@@ -7,7 +7,7 @@ using var cancellationSource = new CancellationTokenSource();
 
 // Adding decompression middleware to the router
 Router router = new Router().UseDeflate();
-router.Map<INumberStream>(new NumberStream());
+router.Map<IHello>(new Hello());
 
 await using var server = new Server(router);
 
@@ -15,7 +15,7 @@ await using var server = new Server(router);
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
     eventArgs.Cancel = true;
-    _ = server.ShutdownAsync(new CancellationToken(canceled: true));
+    _ = server.ShutdownAsync();
 };
 
 // Start the server

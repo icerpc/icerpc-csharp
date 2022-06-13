@@ -1,8 +1,0 @@
-// Copyright (c) ZeroC, Inc. All rights reserved.
-
-module Demo;
-
-interface NumberStream
-{
-    [compress(Args)] streamData(numbers: stream int32);
-}
