@@ -9,9 +9,8 @@ Hello illustrates how to make an asynchronous invocation and wait for the reply.
 
 ## [HelloSecure](./HelloSecure/)
 
-HelloSecure is an example application showing how to make an asynchronous invocation and wait for the reply using a
-secured TLS connection.
-
+HelloSecure is an example application that shows how to configure client and server applications to use secure TLS
+connections. It also shows how to make an asynchronous invocation and wait for a reply.
 ## [Bidir](./Bidir/)
 
 This example application illustrates how make bidirectional calls.
