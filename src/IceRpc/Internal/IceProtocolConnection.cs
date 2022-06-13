@@ -13,10 +13,6 @@ namespace IceRpc.Internal
 {
     internal sealed class IceProtocolConnection : IProtocolConnection
     {
-        public Action? OnIdle { get; set; }
-
-        public Action<string>? OnShutdown { get; set; }
-
         public Protocol Protocol => Protocol.Ice;
 
         private static readonly IDictionary<RequestFieldKey, ReadOnlySequence<byte>> _idempotentFields =
@@ -56,6 +52,8 @@ namespace IceRpc.Internal
         private readonly SimpleNetworkConnectionReader _networkConnectionReader;
         private readonly SimpleNetworkConnectionWriter _networkConnectionWriter;
         private int _nextRequestId;
+        private readonly Action _onIdle;
+        private readonly Action<string> _onShutdown;
         private readonly IcePayloadPipeWriter _payloadWriter;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly CancellationTokenSource _readCancelSource = new();
@@ -449,11 +447,18 @@ namespace IceRpc.Internal
             }
         }
 
-        internal IceProtocolConnection(ISimpleNetworkConnection simpleNetworkConnection, ConnectionOptions options)
+        internal IceProtocolConnection(
+            ISimpleNetworkConnection simpleNetworkConnection,
+            ConnectionOptions options,
+            Action onIdle,
+            Action<string> onShutdown)
         {
             _dispatcher = options.Dispatcher;
             _maxFrameSize = options.MaxIceFrameSize;
             _idleTimeout = options.IdleTimeout;
+
+            _onIdle = onIdle;
+            _onShutdown = onShutdown;
 
             if (options.MaxIceConcurrentDispatches > 0)
             {
@@ -569,7 +574,7 @@ namespace IceRpc.Internal
 
                         if (isIdle)
                         {
-                            OnIdle?.Invoke();
+                            _onIdle.Invoke();
                         }
                     },
                     null,
@@ -736,7 +741,7 @@ namespace IceRpc.Internal
                         }
 
                         // Call the peer shutdown initiated callback.
-                        OnShutdown?.Invoke("connection shutdown by peer");
+                        _onShutdown.Invoke("connection shutdown by peer");
 
                         // Close the connection now. The peer expects the connection to be closed after the close
                         // connection frame is received.

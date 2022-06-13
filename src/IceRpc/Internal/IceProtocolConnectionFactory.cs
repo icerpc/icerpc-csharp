@@ -11,9 +11,15 @@ namespace IceRpc.Internal
             ISimpleNetworkConnection networkConnection,
             bool isServer,
             ConnectionOptions connectionOptions,
+            Action onIdle,
+            Action<string> onShutdown,
             CancellationToken cancel)
         {
-            var protocolConnection = new IceProtocolConnection(networkConnection, connectionOptions);
+            var protocolConnection = new IceProtocolConnection(
+                networkConnection,
+                connectionOptions,
+                onIdle,
+                onShutdown);
             try
             {
                 NetworkConnectionInformation networkConnectionInformation = await protocolConnection.ConnectAsync(
