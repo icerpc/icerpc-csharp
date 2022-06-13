@@ -78,9 +78,6 @@ namespace IceRpc
             set => _maxIceRpcHeaderSize = IceRpcCheckMaxHeaderSize(value);
         }
 
-        /// <summary>Gets or sets an action that executes when the connection is closed.</summary>
-        public Action<IConnection, Exception>? OnClose { get; set; }
-
         /// <summary>The default value for <see cref="MaxIceRpcHeaderSize"/>.</summary>
         internal const int DefaultMaxIceRpcHeaderSize = 16_383;
 

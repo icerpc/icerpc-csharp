@@ -138,6 +138,9 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         return await _core.InvokeAsync(this, request, cancel).ConfigureAwait(false);
     }
 
+    /// <inheritdoc/>
+    public void OnClose(Action<IConnection, Exception> callback) => _core.OnClose(this, callback);
+
     /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
     /// canceled. Shutdown cancellation can lead to a speedier shutdown if dispatch are cancelable.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

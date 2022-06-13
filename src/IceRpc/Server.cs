@@ -193,12 +193,6 @@ namespace IceRpc
                 Action<IConnection, Exception>? onClose)
                     where T : INetworkConnection
             {
-                // The common connection options, set through ServerOptions.
-                var connectionOptions = _options.ConnectionOptions with
-                {
-                    OnClose = RemoveOnClose + _options.ConnectionOptions.OnClose
-                };
-
                 while (true)
                 {
                     T networkConnection;
@@ -224,8 +218,10 @@ namespace IceRpc
 
                     // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                    var connection = new ServerConnection(Endpoint.Protocol, connectionOptions);
+                    var connection = new ServerConnection(Endpoint.Protocol, _options.ConnectionOptions);
 #pragma warning restore CA2000
+
+                    connection.OnClose(RemoveOnClose + onClose);
 
                     lock (_mutex)
                     {
@@ -242,7 +238,7 @@ namespace IceRpc
                     // such as TLS based transports where the handshake requires few round trips between the client
                     // and server. Waiting could also cause a security issue if the client doesn't respond to the
                     // connection initialization as we wouldn't be able to accept new connections in the meantime.
-                    _ = connection.ConnectAsync(networkConnection, protocolConnectionFactory, onClose);
+                    _ = connection.ConnectAsync(networkConnection, protocolConnectionFactory);
                 }
             }
 

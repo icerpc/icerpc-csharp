@@ -27,6 +27,9 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
         _core.InvokeAsync(this, request, cancel);
 
+    /// <inheritdoc/>
+    public void OnClose(Action<IConnection, Exception> callback) => _core.OnClose(this, callback);
+
     /// <summary>Constructs a server connection from an accepted network connection.</summary>
     internal ServerConnection(Protocol protocol, ConnectionOptions options)
     {
@@ -41,12 +44,9 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
     /// <summary>Establishes a connection.</summary>
     /// <param name="networkConnection">The underlying network connection.</param>
     /// <param name="protocolConnectionFactory">The protocol connection factory.</param>
-    /// <param name="onClose">An action to execute when the connection is closed.</param>
-    internal Task ConnectAsync<T>(
-        T networkConnection,
-        IProtocolConnectionFactory<T> protocolConnectionFactory,
-        Action<IConnection, Exception>? onClose) where T : INetworkConnection =>
-        _core.ConnectServerAsync(this, networkConnection, protocolConnectionFactory, onClose);
+    internal Task ConnectAsync<T>(T networkConnection, IProtocolConnectionFactory<T> protocolConnectionFactory)
+        where T : INetworkConnection =>
+        _core.ConnectServerAsync(this, networkConnection, protocolConnectionFactory);
 
     /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
     /// canceled. Shutdown cancellation can lead to a speedier shutdown if dispatch are cancelable.</summary>
