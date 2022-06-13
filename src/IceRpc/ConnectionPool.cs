@@ -55,10 +55,10 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
     {
     }
 
-    /// <summary>An alias for <see cref="ShutdownAsync"/>, except this method returns a <see cref="ValueTask"/>.
-    /// </summary>
-    /// <returns>A value task constructed using the task returned by ShutdownAsync.</returns>
-    public ValueTask DisposeAsync() => new(ShutdownAsync());
+    /// <summary>Releases all resources allocated by this connection pool. This is equivalent to calling
+    /// <see cref="ShutdownAsync"/> with a canceled cancellation token.</summary>
+    /// <returns>A value task that completes when the shutdown completes.</returns>
+    public ValueTask DisposeAsync() => new(ShutdownAsync(new CancellationToken(canceled: true)));
 
     /// <summary>Returns a client connection to one of the specified endpoints.</summary>
     /// <param name="endpoint">The first endpoint to try.</param>
