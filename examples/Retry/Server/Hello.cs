@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc;
 using IceRpc.Features;
 using IceRpc.Slice;
 using System.Security.Cryptography;
@@ -17,7 +18,10 @@ public class Hello : Service, IHello
         // 50% failures/success ratio
         if (RandomNumberGenerator.GetInt32(10) > 5)
         {
-            throw new DispatchException(IceRpc.RetryPolicy.Immediately);
+            // Aleatory set the retry policy to RetryPolicy.Immediately or RetryPolicy.OtherReplica
+            throw new DispatchException(
+                DispatchErrorCode.UnhandledException,
+                RandomNumberGenerator.GetInt32(10) > 5 ? RetryPolicy.Immediately : RetryPolicy.OtherReplica);
         }
         else
         {

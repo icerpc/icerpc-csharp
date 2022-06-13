@@ -5,21 +5,22 @@ using IceRpc;
 
 if (args.Length < 1)
 {
-    Console.WriteLine("Missing endpoint argument");
+    Console.WriteLine("Missing server number argument");
     return;
 }
 
-await using var server = new Server(
-    new ServerOptions
-    {
-        Endpoint = args[0],
-        ConnectionOptions = new ConnectionOptions
-        {
-            Dispatcher = new Hello(args[0])
-        }
-    });
+int number;
+if (!int.TryParse(args[0], out number))
+{
+    Console.WriteLine($"Invalid server number argument '{args[0]}', expected a number");
+    return;
+}
 
-// Destroy the server on Ctrl+C or Ctrl+Break
+string endpoint = $"icerpc://127.0.0.1:{10000 + number}/";
+
+await using var server = new Server(new Hello(endpoint), endpoint);
+
+// Shuts down the server on Ctrl+C or Ctrl+Break
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
     eventArgs.Cancel = true;
