@@ -63,16 +63,21 @@ namespace IceRpc.Internal
 
             async Task AbortCoreAsync()
             {
-                Debug.Assert(_controlStream != null && _remoteControlStream != null);
-
                 var exception = new ConnectionClosedException();
 
                 // Wait for operations on the control stream to complete to make sure it's safe to complete the control
                 // stream output.
                 await _controlStreamSemaphore.CompleteAndWaitAsync(exception).ConfigureAwait(false);
 
-                await _controlStream.Output.CompleteAsync(exception).ConfigureAwait(false);
-                await _remoteControlStream.Input.CompleteAsync(exception).ConfigureAwait(false);
+                if (_controlStream != null)
+                {
+                    await _controlStream.Output.CompleteAsync(exception).ConfigureAwait(false);
+                }
+
+                if (_remoteControlStream != null)
+                {
+                    await _remoteControlStream.Input.CompleteAsync(exception).ConfigureAwait(false);
+                }
 
                 if (_waitForGoAwayFrame != null)
                 {
