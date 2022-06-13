@@ -6,6 +6,7 @@
         "icerpc",
         "Slic",
         "slicec",
+        "struct"
     ],
     "rust-analyzer.linkedProjects": [
         "tools/slicec-cs/Cargo.toml"

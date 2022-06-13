@@ -175,6 +175,7 @@ public class ConnectionTests
         var proxy = Proxy.FromConnection(connection, "/foo");
 
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
+
         while (connection.State != ConnectionState.Closed)
         {
             await Task.Delay(TimeSpan.FromMilliseconds(100));

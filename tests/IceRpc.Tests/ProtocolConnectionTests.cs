@@ -90,19 +90,63 @@ public sealed class ProtocolConnectionTests
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        bool isClientIdleCalled = false;
-        bool isServerIdleCalled = false;
-        sut.Client.OnIdle = () => isClientIdleCalled = true;
-        sut.Server.OnIdle = () => isServerIdleCalled = true;
+        TimeSpan clientIdleCalledTime = Timeout.InfiniteTimeSpan;
+        TimeSpan serverIdleCalledTime = Timeout.InfiniteTimeSpan;
+        sut.Client.OnIdle = () => clientIdleCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
+        sut.Server.OnIdle = () => serverIdleCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
         // Act
-        await Task.Delay(TimeSpan.FromSeconds(2));
+        await Task.Delay(TimeSpan.FromSeconds(1));
 
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(isClientIdleCalled, Is.True);
-            Assert.That(isServerIdleCalled, Is.True);
+            Assert.That(clientIdleCalledTime, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
+            Assert.That(serverIdleCalledTime, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
+        });
+    }
+
+    /// <summary>Verifies that the OnIdle callback is called when idle and after the idle time has been
+    /// deferred.</summary>
+    [Test, TestCaseSource(nameof(_protocols))]
+    public async Task OnIdle_is_called_when_idle_and_idle_timeout_deferred(Protocol protocol)
+    {
+        // Arrange
+        IServiceCollection services = new ServiceCollection().AddProtocolTest(protocol);
+
+        services
+            .AddOptions<ConnectionOptions>()
+            .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
+        services
+            .AddOptions<ServerOptions>()
+            .Configure(options => options.ConnectionOptions.IdleTimeout = TimeSpan.FromMilliseconds(500));
+
+        await using var provider = services.BuildServiceProvider();
+
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        long clientIdleCalledTime = Environment.TickCount64;
+        long serverIdleCalledTime = Environment.TickCount64;
+        sut.Client.OnIdle = () => clientIdleCalledTime = Environment.TickCount64 - clientIdleCalledTime;
+        sut.Server.OnIdle = () => serverIdleCalledTime = Environment.TickCount64 - serverIdleCalledTime;
+
+        var request = new OutgoingRequest(new Proxy(protocol));
+        IncomingResponse response = await sut.Client.InvokeAsync(request, InvalidConnection.ForProtocol(protocol));
+        request.Complete();
+
+        // Act
+        await Task.Delay(TimeSpan.FromSeconds(1));
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(
+                TimeSpan.FromMilliseconds(clientIdleCalledTime),
+                Is.GreaterThan(TimeSpan.FromMilliseconds(490)).And.LessThan(TimeSpan.FromSeconds(1)));
+            Assert.That(
+                TimeSpan.FromMilliseconds(serverIdleCalledTime),
+                Is.GreaterThan(TimeSpan.FromMilliseconds(490)).And.LessThan(TimeSpan.FromSeconds(1)));
         });
     }
 

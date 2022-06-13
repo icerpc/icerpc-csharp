@@ -26,9 +26,11 @@ namespace IceRpc.Internal
         // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
         private int _headerSizeLength = 2;
         private int _invocationCount;
-        private bool _isDisposed;
+        private bool _isAborted;
         private readonly TimeSpan _idleTimeout;
+        private Timer? _idleTimeoutTimer;
         private bool _isShuttingDown;
+        private bool _isShuttingDownOnIdle;
         private long _lastRemoteBidirectionalStreamId = -1;
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
         private long _lastRemoteUnidirectionalStreamId = -1;
@@ -42,21 +44,20 @@ namespace IceRpc.Internal
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         private TaskCompletionSource<IceRpcGoAway>? _waitForGoAwayFrame;
-        private readonly Timer _timer;
 
         public void Abort(Exception exception)
         {
             lock (_mutex)
             {
-                if (_isDisposed)
+                if (_isAborted)
                 {
                     return;
                 }
-                _isDisposed = true;
+                _isAborted = true;
             }
 
             _networkConnection.Abort(exception);
-            _timer.Dispose();
+            _idleTimeoutTimer?.Dispose();
 
             _ = AbortCoreAsync();
 
@@ -118,7 +119,11 @@ namespace IceRpc.Internal
                         {
                             throw IceRpcStreamError.ConnectionShutdownByPeer.ToException();
                         }
-                        else if (_isDisposed)
+                        else if (_isShuttingDownOnIdle)
+                        {
+                            throw IceRpcStreamError.ConnectionShutdown.ToException();
+                        }
+                        else if (_isAborted)
                         {
                             throw new ConnectionClosedException();
                         }
@@ -138,8 +143,8 @@ namespace IceRpc.Internal
 
                             if (_streams.Count == 0)
                             {
-                                // Disable idle check
-                                _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                                // Disable the idle check.
+                                _idleTimeoutTimer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
                             }
 
                             _streams.Add(stream);
@@ -158,10 +163,10 @@ namespace IceRpc.Internal
                                             // as completed to allow shutdown to progress.
                                             _streamsCompleted.SetResult();
                                         }
-                                        else
+                                        else if (!_isAborted)
                                         {
-                                            // Enable idle check
-                                            _timer.Change(_idleTimeout, _idleTimeout);
+                                            // Enable the idle check.
+                                            _idleTimeoutTimer?.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
                                         }
                                     }
 
@@ -170,7 +175,7 @@ namespace IceRpc.Internal
 
                                 // If the stream is shutdown because the connection is aborted, make sure to cancel
                                 // the dispatch.
-                                if (_isDisposed)
+                                if (_isAborted)
                                 {
                                     cancelDispatchSource.Cancel();
                                 }
@@ -428,16 +433,18 @@ namespace IceRpc.Internal
                 {
                     lock (_mutex)
                     {
-                        if (_isShuttingDown || _isDisposed)
+                        if (_isShuttingDown || _isShuttingDownOnIdle || _isAborted)
                         {
+                            // Don't process the invocation if the connection is in the process of shutting down or it's
+                            // already closed.
                             throw new ConnectionClosedException();
                         }
                         else
                         {
                             if (_streams.Count == 0)
                             {
-                                // Disable idle check
-                                _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                                // Disable the idle check.
+                                _idleTimeoutTimer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
                             }
 
                             _streams.Add(stream);
@@ -459,9 +466,10 @@ namespace IceRpc.Internal
                                             // as completed to allow shutdown to progress.
                                             _streamsCompleted.SetResult();
                                         }
-                                        else
+                                        else if (!_isAborted)
                                         {
-                                            _timer.Change(_idleTimeout, _idleTimeout);
+                                            // Enable the idle check.
+                                            _idleTimeoutTimer?.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
                                         }
                                     }
                                 }
@@ -614,17 +622,14 @@ namespace IceRpc.Internal
             IceRpcGoAway? goAwayFrame = null;
             lock (_mutex)
             {
-                // Mark the connection as shutting down to prevent further requests from being accepted. Shutdown might
-                // already be initiated if both side initiated shutdown at the same time.
-                if (!_isShuttingDown)
+                // Mark the connection as shutting down to prevent further requests from being accepted.
+                Debug.Assert(!_isShuttingDown);
+                _isShuttingDown = true;
+                if (_streams.Count == 0)
                 {
-                    _isShuttingDown = true;
-                    if (_streams.Count == 0)
-                    {
-                        _streamsCompleted.SetResult();
-                    }
-                    goAwayFrame = new(_lastRemoteBidirectionalStreamId, _lastRemoteUnidirectionalStreamId, message);
+                    _streamsCompleted.SetResult();
                 }
+                goAwayFrame = new(_lastRemoteBidirectionalStreamId, _lastRemoteUnidirectionalStreamId, message);
             }
 
             if (goAwayFrame != null)
@@ -731,8 +736,6 @@ namespace IceRpc.Internal
             _dispatcher = options.Dispatcher;
             _idleTimeout = options.IdleTimeout;
             _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
-
-            _timer = new Timer(_ => OnIdle?.Invoke(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }
 
         internal async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
@@ -768,8 +771,28 @@ namespace IceRpc.Internal
             // Start a task to wait to receive the go away frame to initiate shutdown.
             var waitForGoAwayTask = Task.Run(() => WaitForGoAwayAsync(), CancellationToken.None);
 
-            // Enable the idle check.
-            _timer.Change(_idleTimeout, _idleTimeout);
+            if (_idleTimeout != Timeout.InfiniteTimeSpan)
+            {
+                _idleTimeoutTimer = new Timer(
+                    _ =>
+                    {
+                        lock (_mutex)
+                        {
+                            if (_streams.Count > 0)
+                            {
+                                return; // The connection is no longer idle.
+                            }
+
+                            // Prevent new invocations or dispatches to be processed at this point.
+                            _isShuttingDownOnIdle = true;
+                        }
+
+                        OnIdle?.Invoke();
+                    },
+                    null,
+                    _idleTimeout,
+                    Timeout.InfiniteTimeSpan);
+            }
 
             return networkConnectionInformation;
         }

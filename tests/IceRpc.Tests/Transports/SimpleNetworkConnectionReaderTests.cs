@@ -14,9 +14,8 @@ public class SimpleNetworkConnectionReaderTests
 {
     // TODO: Add more tests
 
-    /// <summary>Verifies that reading from the connection updates its last activity property.</summary>
     [Test]
-    public async Task Read_updates_last_activity()
+    public async Task Ping_action_is_called()
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
@@ -32,23 +31,99 @@ public class SimpleNetworkConnectionReaderTests
         Task<NetworkConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
+        int pingCount = 0;
         using var reader = new SimpleNetworkConnectionReader(
             clientConnection,
             MemoryPool<byte>.Shared,
-            4096);
-
-        await serverConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
-
-        TimeSpan lastActivity = reader.IdleSinceTime;
-        var delay = TimeSpan.FromMilliseconds(2);
-        await Task.Delay(delay);
+            4096,
+            abortAction: _ => {},
+            keepAliveAction: () => ++pingCount);
+        reader.SetIdleTimeout(TimeSpan.FromMilliseconds(500));
 
         // Act
-        await reader.ReadAsync(default);
+        for (int i = 0; i < 3; ++i)
+        {
+            // Write and read data.
+            await serverConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
+            ReadOnlySequence<byte> buffer = await reader.ReadAsync(default);
+            reader.AdvanceTo(buffer.End);
+
+            // A ping is called every 250ms after a ReadAsync so wait 400ms to ensure we get the ping
+            await Task.Delay(TimeSpan.FromMilliseconds(400));
+        }
 
         // Assert
-        Assert.That(
-            reader.IdleSinceTime,
-            Is.GreaterThanOrEqualTo(delay + lastActivity).Or.EqualTo(TimeSpan.Zero));
+        Assert.That(pingCount, Is.GreaterThan(1));
+    }
+
+    [Test]
+    public async Task Abort_action_is_called_after_idle_timeout()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .UseSimpleTransport("icerpc://colochost/")
+            .AddColocTransport()
+            .BuildServiceProvider(validateScopes: true);
+
+        var listener = provider.GetRequiredService<IListener<ISimpleNetworkConnection>>();
+        var clientConnection = provider.GetRequiredService<ISimpleNetworkConnection>();
+        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
+        Task<NetworkConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
+        using ISimpleNetworkConnection serverConnection = await acceptTask;
+        Task<NetworkConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
+        await Task.WhenAll(clientConnectTask, serverConnectTask);
+
+        TimeSpan abortCalledTime = Timeout.InfiniteTimeSpan;
+        using var reader = new SimpleNetworkConnectionReader(
+            clientConnection,
+            MemoryPool<byte>.Shared,
+            4096,
+            abortAction: _ => abortCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64),
+            keepAliveAction: () => { });
+        reader.SetIdleTimeout(TimeSpan.FromMilliseconds(500));
+
+        // Act
+        await Task.Delay(TimeSpan.FromSeconds(1));
+
+        // Assert
+        Assert.That(abortCalledTime, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
+    }
+
+    [Test]
+    public async Task Abort_action_is_called_after_idle_timeout_defer()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .UseSimpleTransport("icerpc://colochost/")
+            .AddColocTransport()
+            .BuildServiceProvider(validateScopes: true);
+
+        var listener = provider.GetRequiredService<IListener<ISimpleNetworkConnection>>();
+        var clientConnection = provider.GetRequiredService<ISimpleNetworkConnection>();
+        Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
+        Task<NetworkConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
+        using ISimpleNetworkConnection serverConnection = await acceptTask;
+        Task<NetworkConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
+        await Task.WhenAll(clientConnectTask, serverConnectTask);
+
+        TimeSpan abortCalledTime = Timeout.InfiniteTimeSpan;
+        using var reader = new SimpleNetworkConnectionReader(
+            clientConnection,
+            MemoryPool<byte>.Shared,
+            4096,
+            abortAction: _ => abortCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64),
+            keepAliveAction: () => {});
+        reader.SetIdleTimeout(TimeSpan.FromMilliseconds(500));
+
+        // Write and read data to defer the idle timeout
+        await serverConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
+        ReadOnlySequence<byte> buffer = await reader.ReadAsync(default);
+        reader.AdvanceTo(buffer.End);
+
+        // Act
+        await Task.Delay(TimeSpan.FromSeconds(1));
+
+        // Assert
+        Assert.That(abortCalledTime, Is.GreaterThan(TimeSpan.FromMilliseconds(250)));
     }
 }

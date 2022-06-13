@@ -1,3 +1,4 @@
+using IceRpc.Features;
 using IceRpc.Slice;
 
 namespace Demo;
