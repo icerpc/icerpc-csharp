@@ -6,7 +6,12 @@ using System.Runtime.CompilerServices;
 
 // Establish the connection to the server
 await using var connection = new ClientConnection("icerpc://127.0.0.1");
-INumberStreamPrx numberStreamPrx = NumberStreamPrx.FromConnection(connection);
+
+// Setup the invocation pipeline with the deflate interceptor
+IInvoker pipeline = new Pipeline().UseDeflate();
+
+// Create the proxy using the connection and the invocation pipeline
+INumberStreamPrx numberStreamPrx = NumberStreamPrx.FromConnection(connection, null, pipeline);
 
 // Continues to stream data until either the client or server are shut down
 Console.WriteLine("Client is streaming data...");
@@ -23,6 +28,8 @@ catch (OperationCanceledException ex)
 {
     Console.WriteLine($"Operation Canceled Exception: {ex.Message}");
 }
+
+Task.Delay(TimeSpan.FromSeconds(1));
 Console.WriteLine("Client has finished streaming data.");
 
 // Continuously generates data to be streamed

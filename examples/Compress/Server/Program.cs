@@ -4,7 +4,12 @@ using Demo;
 using IceRpc;
 
 using var cancellationSource = new CancellationTokenSource();
-await using var server = new Server(new NumberStream());
+
+// Adding decompression middleware to the router
+Router router = new Router().UseDeflate();
+router.Map<INumberStream>(new NumberStream());
+
+await using var server = new Server(router);
 
 // Shuts down the server on Ctrl+C or Ctrl+Break
 Console.CancelKeyPress += (sender, eventArgs) =>
