@@ -236,8 +236,11 @@ namespace IceRpc
                         }
 
                         _ = _connections.Add(connection);
-                        connection.OnClose(RemoveFromCollection); // schedule removal after addition
                     }
+
+                    // Schedule removal after addition. We do this outside the mutex lock otherwise
+                    // await serverConnection.ShutdownAsync could be called within this lock.
+                    connection.OnClose((connection, exception) => _ = RemoveFromCollectionAsync(connection));
 
                     // We don't wait for the connection to be activated. This could take a while for some transports
                     // such as TLS based transports where the handshake requires few round trips between the client
@@ -247,13 +250,18 @@ namespace IceRpc
                 }
             }
 
-            void RemoveFromCollection(IConnection connection, Exception exception)
+            // Remove the connection from the _connections once shutdown completes
+            async Task RemoveFromCollectionAsync(IConnection connection)
             {
+                var serverConnection = (ServerConnection)connection;
+                await serverConnection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+
                 lock (_mutex)
                 {
+                    // the _connections collection is immutable when _shutdownTask is not null
                     if (_shutdownTask == null)
                     {
-                        bool removed = _connections.Remove((ServerConnection)connection);
+                        bool removed = _connections.Remove(serverConnection);
                         Debug.Assert(removed);
                     }
                 }
