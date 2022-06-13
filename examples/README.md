@@ -8,7 +8,7 @@ on using a particular IceRPC feature or programming technique.
 This example application illustrates how to make bidirectional calls.
 
 ## [Compress](./Compress/)
-Compress illustrates how to compress the arguments and return value for an asynchronous invocation and
+Compress illustrates how to compress the arguments and return value for an invocation and
 wait for the reply.
 
 ## [GenericHost](./GenericHost/)
