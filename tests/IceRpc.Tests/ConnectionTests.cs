@@ -83,7 +83,7 @@ public class ConnectionTests
         Assert.That(async () => await invokeTask, Throws.TypeOf<ConnectionLostException>());
     }
 
-    /// <summary>Verifies that aborting the connection raises the connection closed event.</summary>
+    /// <summary>Verifies that aborting the connection executes the OnClose callback.</summary>
     [Test]
     public async Task Connection_closed_event(
         [Values("ice", "icerpc")] string protocol,
@@ -91,30 +91,23 @@ public class ConnectionTests
     {
         // Arrange
         ServerConnection? serverConnection = null;
+        var serverConnectionClosed = new TaskCompletionSource<object?>();
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
             serverConnection = (ServerConnection)request.Connection;
+            serverConnection.OnClose((_, _) => serverConnectionClosed.SetResult(null));
             return new(new OutgoingResponse(request));
         });
 
-        var serverConnectionClosed = new TaskCompletionSource<object?>();
         var clientConnectionClosed = new TaskCompletionSource<object?>();
 
         IServiceCollection services = new ServiceCollection().AddColocTest(dispatcher, Protocol.FromString(protocol));
-
-        services
-            .AddOptions<ClientConnectionOptions>()
-            .Configure(options => options.OnClose = (_, _) => clientConnectionClosed.SetResult(null));
-
-        services
-            .AddOptions<ServerOptions>()
-            .Configure(options =>
-                options.ConnectionOptions.OnClose = (_, _) => serverConnectionClosed.SetResult(null));
 
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
         var server = provider.GetRequiredService<Server>();
         server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
+        clientConnection.OnClose((_, _) => clientConnectionClosed.SetResult(null));
 
         var proxy = Proxy.FromConnection(clientConnection, "/foo");
 

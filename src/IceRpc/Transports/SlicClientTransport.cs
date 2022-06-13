@@ -41,6 +41,9 @@ namespace IceRpc.Transports
         }
 
         /// <inheritdoc/>
+        public bool CheckParams(Endpoint endpoint) => _simpleClientTransport.CheckParams(endpoint);
+
+        /// <inheritdoc/>
         public IMultiplexedNetworkConnection CreateConnection(
             Endpoint remoteEndpoint,
             SslClientAuthenticationOptions? authenticationOptions,

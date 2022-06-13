@@ -118,16 +118,6 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         // Perform a speedy graceful shutdown by canceling invocations and dispatches in progress.
         new(ShutdownAsync("connection disposed", new CancellationToken(canceled: true)));
 
-    /// <summary>Checks if the parameters of the provided endpoint are compatible with this client connection.
-    /// Compatible means a client could reuse this client connection instead of establishing a new client
-    /// connection.</summary>
-    /// <param name="remoteEndpoint">The endpoint to check.</param>
-    /// <returns><c>true</c> when this client connection is an active connection whose parameters are compatible
-    /// with the parameters of the provided endpoint; otherwise, <c>false</c>.</returns>
-    /// <remarks>This method checks only the parameters of the endpoint; it does not check other properties.
-    /// </remarks>
-    public bool HasCompatibleParams(Endpoint remoteEndpoint) => _core.HasCompatibleParams(remoteEndpoint);
-
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
@@ -137,6 +127,9 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         }
         return await _core.InvokeAsync(this, request, cancel).ConfigureAwait(false);
     }
+
+    /// <inheritdoc/>
+    public void OnClose(Action<IConnection, Exception> callback) => _core.OnClose(this, callback);
 
     /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
     /// canceled. Shutdown cancellation can lead to a speedier shutdown if dispatch are cancelable.</summary>

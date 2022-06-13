@@ -40,8 +40,6 @@ namespace IceRpc.Transports.Internal
             Socket.Close(0);
         }
 
-        public abstract bool HasCompatibleParams(Endpoint remoteEndpoint);
-
         public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             if (buffer.Length == 0)
@@ -255,9 +253,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
-            TcpClientTransport.CheckEndpointParams(remoteEndpoint.Params, out string? _);
-
         internal TcpClientNetworkConnection(
             string host,
             ushort port,
@@ -353,9 +348,6 @@ namespace IceRpc.Transports.Internal
                 throw exception.ToConnectFailedException();
             }
         }
-
-        public override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
-            throw new NotSupportedException($"{nameof(HasCompatibleParams)} is only supported by client connections.");
 
         internal TcpServerNetworkConnection(
             Socket socket,

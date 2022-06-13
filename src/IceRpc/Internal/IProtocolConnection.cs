@@ -21,14 +21,6 @@ namespace IceRpc.Internal
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         Task AcceptRequestsAsync(IConnection connection);
 
-        /// <summary>Checks if the parameters of the provided endpoint are compatible with the network connection of
-        /// this protocol connection. Compatible means a client could reuse the network connection instead of
-        /// establishing a new network connection.</summary>
-        /// <param name="remoteEndpoint">The endpoint to check.</param>
-        /// <returns><c>true</c> when the network connection is a network connection whose parameters are compatible
-        /// with the parameters of the provided endpoint; otherwise, <c>false</c>.</returns>
-        bool HasCompatibleParams(Endpoint remoteEndpoint);
-
         /// <summary>Sends a request and returns the response. The implementation must complete the request payload
         /// and payload stream.</summary>
         /// <param name="request">The outgoing request to send.</param>

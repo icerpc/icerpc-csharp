@@ -25,7 +25,7 @@ namespace IceRpc.Transports.Internal
                 throw new NotSupportedException("cannot create secure Coloc server");
             }
 
-            if (!ColocTransport.CheckEndpointParams(endpoint.Params))
+            if (!ColocTransport.CheckParams(endpoint))
             {
                 throw new FormatException($"cannot create a Coloc listener for endpoint '{endpoint}'");
             }

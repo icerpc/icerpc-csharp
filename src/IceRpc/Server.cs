@@ -5,6 +5,7 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Diagnostics;
 using System.Net.Security;
 
 namespace IceRpc
@@ -193,12 +194,6 @@ namespace IceRpc
                 Action<IConnection, Exception>? onClose)
                     where T : INetworkConnection
             {
-                // The common connection options, set through ServerOptions.
-                var connectionOptions = _options.ConnectionOptions with
-                {
-                    OnClose = RemoveOnClose + _options.ConnectionOptions.OnClose
-                };
-
                 while (true)
                 {
                     T networkConnection;
@@ -224,8 +219,13 @@ namespace IceRpc
 
                     // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                    var connection = new ServerConnection(Endpoint.Protocol, connectionOptions);
+                    var connection = new ServerConnection(Endpoint.Protocol, _options.ConnectionOptions);
 #pragma warning restore CA2000
+
+                    if (onClose != null)
+                    {
+                        connection.OnClose(onClose);
+                    }
 
                     lock (_mutex)
                     {
@@ -236,23 +236,25 @@ namespace IceRpc
                         }
 
                         _ = _connections.Add(connection);
+                        connection.OnClose(RemoveFromCollection); // schedule removal after addition
                     }
 
                     // We don't wait for the connection to be activated. This could take a while for some transports
                     // such as TLS based transports where the handshake requires few round trips between the client
                     // and server. Waiting could also cause a security issue if the client doesn't respond to the
                     // connection initialization as we wouldn't be able to accept new connections in the meantime.
-                    _ = connection.ConnectAsync(networkConnection, protocolConnectionFactory, onClose);
+                    _ = connection.ConnectAsync(networkConnection, protocolConnectionFactory);
                 }
             }
 
-            void RemoveOnClose(IConnection connection, Exception exception)
+            void RemoveFromCollection(IConnection connection, Exception exception)
             {
                 lock (_mutex)
                 {
                     if (_shutdownTask == null)
                     {
-                        _connections.Remove((ServerConnection)connection);
+                        bool removed = _connections.Remove((ServerConnection)connection);
+                        Debug.Assert(removed);
                     }
                 }
             }

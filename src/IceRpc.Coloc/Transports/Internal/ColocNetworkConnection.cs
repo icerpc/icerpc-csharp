@@ -50,9 +50,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
-            ColocTransport.CheckEndpointParams(remoteEndpoint.Params);
-
         public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             if (!_state.TrySetFlag(State.Reading))

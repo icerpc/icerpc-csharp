@@ -36,9 +36,6 @@ namespace IceRpc.Internal
             _logger.LogProtocolConnectionDispose(_decoratee.Protocol);
         }
 
-        bool IProtocolConnection.HasCompatibleParams(Endpoint remoteEndpoint) =>
-            _decoratee.HasCompatibleParams(remoteEndpoint);
-
         async Task<IncomingResponse> IProtocolConnection.InvokeAsync(
             OutgoingRequest request,
             IConnection connection,

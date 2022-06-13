@@ -384,9 +384,6 @@ namespace IceRpc.Internal
             }
         }
 
-        public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
-            _networkConnection.HasCompatibleParams(remoteEndpoint);
-
         public async Task ShutdownAsync(string message, CancellationToken cancel)
         {
             bool alreadyShuttingDown = false;
