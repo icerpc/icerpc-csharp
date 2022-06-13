@@ -27,9 +27,7 @@ connections. It also shows how to make an asynchronous invocation and wait for a
 ## [OpenTelemetry](./OpenTelemetry/)
 
 This application illustrates how to use the IceRpc telemetry interceptor and middleware, and how they can be integrated
-with OpenTelemetry to export traces to Zipkin. The application also shows how the trace context is propagated from the
-client to the front end Hello server, and from the front end Hello server to the backend CRM server, by just configuring
-the IceRpc telemetry interceptor and middleware.
+with OpenTelemetry to export traces to Zipkin. 
 
 ## [Stream](./Stream/)
 
