@@ -8,7 +8,8 @@ on using a particular IceRPC feature or programming technique.
 This example application illustrates how to make bidirectional calls.
 
 ## [Compress](./Compress/)
-Compress shows how to stream compressed data from a client to a server.
+Compress illustrates how to compress the arguments and return value for an asynchronous invocation and
+wait for the reply.
 
 ## [GenericHost](./GenericHost/)
 
