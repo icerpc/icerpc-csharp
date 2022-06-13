@@ -1,10 +1,10 @@
-This application illustrate how to use IceRpc retry interceptor to retry failed invocations and make the application
-resilent to failures.
+This application illustrate how to use the retry interceptor to retry failed invocations and make the application
+resilient to failures.
 
-The server is configured to randomly fail, and the client will automatically retry failed invocations up to the configured
-max attempts. If the client invocation reaches the max attempts it gives up on retry and report the failure, if the server
-failure carries a RetryPolicy.OtherReplica the current endpoint will be excluded for following attempts and the client will
-be only able to retry if additional endpoints were configured.
+The server is configured to randomly fail, and the client will automatically retry failed invocations up to the
+configured max attempts. If the client invocation reaches the max attempts it gives up on retry and report the failure,
+if the server failure carries a RetryPolicy.OtherReplica the current endpoint will be excluded for following attempts
+and the client will be only able to retry if additional endpoints were configured.
 
 First start at least two instances of the Server:
 ```
