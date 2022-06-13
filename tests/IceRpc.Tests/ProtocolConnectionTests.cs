@@ -264,7 +264,7 @@ public sealed class ProtocolConnectionTests
     /// <summary>Verifies that aborting the client connection kills pending invocations, the invocations will fail
     /// with <see cref="ObjectDisposedException"/>.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    public async Task Dispose_client_connection_kills_pending_invocations(Protocol protocol)
+    public async Task Aborting_client_connection_kills_pending_invocations(Protocol protocol)
     {
         // Arrange
         using var start = new SemaphoreSlim(0);
