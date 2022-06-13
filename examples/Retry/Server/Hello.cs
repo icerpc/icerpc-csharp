@@ -16,12 +16,12 @@ public class Hello : Service, IHello
     public ValueTask<string> SayHelloAsync(string name, IFeatureCollection features, CancellationToken cancel)
     {
         // 50% failures/success ratio
-        if (RandomNumberGenerator.GetInt32(10) > 5)
+        if (RandomNumberGenerator.GetInt32(10) < 5)
         {
             // Aleatory set the retry policy to RetryPolicy.Immediately or RetryPolicy.OtherReplica
             throw new DispatchException(
                 DispatchErrorCode.UnhandledException,
-                RandomNumberGenerator.GetInt32(10) > 5 ? RetryPolicy.Immediately : RetryPolicy.OtherReplica);
+                RandomNumberGenerator.GetInt32(10) < 5 ? RetryPolicy.Immediately : RetryPolicy.OtherReplica);
         }
         else
         {
