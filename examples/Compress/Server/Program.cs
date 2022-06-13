@@ -5,7 +5,7 @@ using IceRpc;
 
 using var cancellationSource = new CancellationTokenSource();
 
-// Adding decompression middleware to the router
+// Adding deflate middleware to the router
 Router router = new Router().UseDeflate();
 router.Map<IHello>(new Hello());
 
