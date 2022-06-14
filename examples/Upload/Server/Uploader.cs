@@ -16,14 +16,13 @@ public class Uploader : Service, IUploader
         Stream imageStream = image.AsStream(leaveOpen: false);
 
         // Create the file, or overwrite if the file exists.
-        using (FileStream fs = File.Create($"Server/uploads/uploaded_earth.png"))
-        {
-            // Copy the image to the file stream.
-            await imageStream.CopyToAsync(fs, cancel);
+        using FileStream fs = File.Create($"Server/uploads/uploaded_earth.png");
 
-            // Complete and cleanup the pipe reader.
-            await image.CompleteAsync();
-        }
+        // Copy the image to the file stream.
+        await imageStream.CopyToAsync(fs, cancel);
+
+        // Complete and cleanup the pipe reader.
+        await image.CompleteAsync();
 
         Console.WriteLine("Image downloaded");
     }
