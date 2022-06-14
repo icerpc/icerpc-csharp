@@ -212,7 +212,6 @@ public class ConnectionTests
 
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
-        // Act/Assert
         using var semaphore = new SemaphoreSlim(0);
         connection.OnDisconnect((connection, exception) =>
         {
@@ -226,6 +225,8 @@ public class ConnectionTests
             }
         });
         await semaphore.WaitAsync();
+
+        // Act/Assert
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
     }
 
@@ -253,7 +254,6 @@ public class ConnectionTests
         var proxy = Proxy.FromConnection(connection, "/foo");
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
-        // Act/Assert
         using var semaphore = new SemaphoreSlim(0);
         connection.OnDisconnect((connection, exception) =>
         {
@@ -268,6 +268,8 @@ public class ConnectionTests
         });
         await serverConnection!.ShutdownAsync();
         await semaphore.WaitAsync();
+
+        // Act/Assert
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
     }
 
@@ -296,7 +298,6 @@ public class ConnectionTests
         var proxy = Proxy.FromConnection(connection, "/foo");
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
-        // Act/Assert
         using var semaphore = new SemaphoreSlim(0);
         connection.OnDisconnect((connection, exception) =>
         {
@@ -311,6 +312,8 @@ public class ConnectionTests
         });
         serverConnection!.Abort();
         await semaphore.WaitAsync();
+
+        // Act/Assert
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
     }
 
