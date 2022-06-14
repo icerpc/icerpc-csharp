@@ -271,19 +271,7 @@ internal sealed class ConnectionCore
             // possible that the connection didn't receive yet the GoAway message. Initiating the shutdown now
             // ensures that the next InvokeAsync will fail with ConnectionClosedException and won't be retried on
             // this connection.
-            lock (_mutex)
-            {
-                // If the connection is still active, switch the state to ShuttingDown and initiate the shutdown.
-                if (_state == ConnectionState.Active)
-                {
-                    _state = ConnectionState.ShuttingDown;
-                    _stateTask = ShutdownAsyncCore(
-                        connection,
-                        _protocolConnection!,
-                        exception.Message,
-                        _shutdownCancellationSource.Token);
-                }
-            }
+            _ = ShutdownAsync(connection, exception.Message, cancel);
             throw;
         }
 
