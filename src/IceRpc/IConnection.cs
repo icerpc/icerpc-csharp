@@ -7,11 +7,13 @@ namespace IceRpc;
 /// <summary>Represents a connection used to send and receive requests and responses.</summary>
 public interface IConnection
 {
-    /// <summary>Gets a value indicating whether a call to <see cref="InvokeAsync"/> can succeed.</summary>
-    /// <value><c>true</c> when a call to <see cref="InvokeAsync"/> can succeed. <c>false</c> when a call to
-    /// <see cref="InvokeAsync"/> is guaranteed to fail, for example because the connection is closed or shutting down.
-    /// </value>
-    bool IsInvocable { get; }
+    /// <summary>Gets a value indicating whether a call to <see cref="InvokeAsync"/> can succeed after a preceding call
+    /// throws <see cref="ConnectionAbortedException"/>, <see cref="ConnectionClosedException"/>,
+    /// <see cref="ConnectionLostException"/><see cref="ConnectFailedException"/> or
+    /// <see cref="ConnectTimeoutException"/>.</summary>
+    /// <value><c>true</c> when a call to <see cref="InvokeAsync"/> can succeed after such an exception; <c>false</c>
+    /// when a new call to <see cref="InvokeAsync"/> will fail.</value>
+    bool IsResumable { get; }
 
     /// <summary>Gets the network connection information or <c>null</c> if the connection is not connected.
     /// </summary>

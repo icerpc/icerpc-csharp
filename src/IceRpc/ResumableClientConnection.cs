@@ -12,7 +12,16 @@ namespace IceRpc;
 public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposable
 {
     /// <inheritdoc/>
-    public bool IsInvocable => !IsClosed;
+    public bool IsResumable
+    {
+        get
+        {
+            lock (_mutex)
+            {
+                return _isResumable;
+            }
+        }
+    }
 
     /// <inheritdoc/>
     public NetworkConnectionInformation? NetworkConnectionInformation => _clientConnection.NetworkConnectionInformation;
@@ -23,24 +32,13 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
     /// <inheritdoc/>
     public Endpoint RemoteEndpoint => _clientConnection.RemoteEndpoint;
 
-    private bool IsClosed
-    {
-        get
-        {
-            lock (_mutex)
-            {
-                return _isClosed;
-            }
-        }
-    }
-
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
        "Usage",
        "CA2213: Disposable fields should be disposed",
        Justification = "correctly disposed by DisposeAsync, Abort and ShutdownAsync")]
     private ClientConnection _clientConnection;
 
-    private bool _isClosed;
+    private bool _isResumable;
 
     private readonly ILoggerFactory? _loggerFactory;
 
@@ -113,7 +111,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
             await clientConnection.ConnectAsync(cancel).ConfigureAwait(false);
             return;
         }
-        catch (ConnectionClosedException) when (!IsClosed)
+        catch (ConnectionClosedException) when (!IsResumable)
         {
             RefreshClientConnection(clientConnection);
 
@@ -137,7 +135,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         {
             return await clientConnection.InvokeAsync(request, cancel).ConfigureAwait(false);
         }
-        catch (ConnectionClosedException) when (!IsClosed)
+        catch (ConnectionClosedException) when (!IsResumable)
         {
             RefreshClientConnection(clientConnection);
 
@@ -154,7 +152,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
 
         lock (_mutex)
         {
-            if (_isClosed)
+            if (_isResumable)
             {
                 executeCallback = true;
             }
@@ -218,7 +216,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
 
         void OnClose(IConnection connection, Exception exception)
         {
-            if (!IsClosed)
+            if (!IsResumable)
             {
                 RefreshClientConnection((ClientConnection)clientConnection);
             }
@@ -233,9 +231,9 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
 
         lock (_mutex)
         {
-            if (!_isClosed)
+            if (!_isResumable)
             {
-                _isClosed = true;
+                _isResumable = true;
                 onClose = _onClose;
             }
             // else keep onClose null
