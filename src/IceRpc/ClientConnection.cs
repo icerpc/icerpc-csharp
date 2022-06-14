@@ -113,10 +113,12 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             _clientAuthenticationOptions,
             cancel);
 
+    // public ValueTask DisposeAsync() =>
+    //     // Perform a speedy graceful shutdown by canceling invocations and dispatches in progress.
+    //     new(ShutdownAsync("connection disposed", new CancellationToken(canceled: true)));
+
     /// <inheritdoc/>
-    public ValueTask DisposeAsync() =>
-        // Perform a speedy graceful shutdown by canceling invocations and dispatches in progress.
-        new(ShutdownAsync("connection disposed", new CancellationToken(canceled: true)));
+    public ValueTask DisposeAsync() => new(ShutdownAsync("connection disposed", new CancellationToken(canceled: true)));
 
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)

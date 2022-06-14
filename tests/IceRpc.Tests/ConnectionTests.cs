@@ -294,19 +294,17 @@ public class ConnectionTests
     }
 
     [Test]
-    public async Task Connect_sets_network_connection_information([Values("ice", "icerpc")] string protocol)
+    public async Task Connect_sets_network_connection_information([Values("icerpc")] string protocol)
     {
         // Arrange
         IServiceCollection services = new ServiceCollection().AddColocTest(
             new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
             Protocol.FromString(protocol));
 
-        services.AddIceRpcResumableClientConnection(); // overwrites AddIceRpcClientConnection from AddColocTest
-
         await using var provider = services.BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
-        var connection = provider.GetRequiredService<ResumableClientConnection>();
+        var connection = provider.GetRequiredService<ClientConnection>();
         var networkConnectionInformation = connection.NetworkConnectionInformation;
 
         // Act
