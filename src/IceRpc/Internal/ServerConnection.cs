@@ -5,10 +5,10 @@ using IceRpc.Transports;
 namespace IceRpc.Internal;
 
 /// <summary>A connection created by a <see cref="Server"/>.</summary>
-internal sealed class ServerConnection : IConnection, IAsyncDisposable
+internal sealed class ServerConnection : IConnection
 {
     /// <inheritdoc/>
-    public bool IsInvocable => _core.IsInvocable;
+    public bool IsResumable => false;
 
     /// <inheritdoc/>
     public NetworkConnectionInformation? NetworkConnectionInformation => _core.NetworkConnectionInformation;
@@ -17,11 +17,6 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
     public Protocol Protocol { get; }
 
     private readonly ConnectionCore _core;
-
-    /// <inheritdoc/>
-    public ValueTask DisposeAsync() =>
-        // Perform a speedy graceful shutdown by canceling invocations and dispatches in progress.
-        new(ShutdownAsync("connection disposed", new CancellationToken(canceled: true)));
 
     /// <inheritdoc/>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
@@ -37,8 +32,7 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
         _core = new ConnectionCore(options);
     }
 
-    /// <summary>Aborts the connection. This method switches the connection state to
-    /// <see cref="ConnectionState.Closed"/>.</summary>
+    /// <summary>Aborts the connection.</summary>
     internal void Abort() => _core.Abort(this);
 
     /// <summary>Establishes a connection.</summary>

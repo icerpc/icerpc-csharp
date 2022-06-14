@@ -209,7 +209,7 @@ public sealed class ProtocolConnectionTests
     }
 
     [Test, TestCaseSource(nameof(_protocols))]
-    public async Task Dispose_the_protocol_connections(Protocol protocol)
+    public async Task Aborting_the_protocol_connections(Protocol protocol)
     {
         // Arrange
         await using var provider = new ServiceCollection()
@@ -220,15 +220,15 @@ public sealed class ProtocolConnectionTests
         await sut.ConnectAsync();
 
         // Act
-        sut.Client.Dispose();
-        sut.Server.Dispose();
+        sut.Client.Abort(new ConnectionClosedException());
+        sut.Server.Abort(new ConnectionClosedException());
     }
 
-    /// <summary>Verifies that disposing the server connection kills pending invocations, peer invocations will fail
+    /// <summary>Verifies that aborting a server connection kills pending invocations, peer invocations will fail
     /// with <see cref="ConnectionLostException"/>.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
     [Ignore("see https://github.com/zeroc-ice/icerpc-csharp/issues/1309")]
-    public async Task Dispose_server_connection_kills_pending_invocations(Protocol protocol)
+    public async Task Aborting_server_connection_kills_pending_invocations(Protocol protocol)
     {
         // Arrange
         using var start = new SemaphoreSlim(0);
@@ -252,17 +252,17 @@ public sealed class ProtocolConnectionTests
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
-        sut.Server.Dispose();
+        sut.Server.Abort(new ConnectionAbortedException());
 
         // Assert
         Assert.That(async () => await invokeTask, Throws.TypeOf<ConnectionLostException>());
         hold.Release();
     }
 
-    /// <summary>Verifies that disposing the client connection kills pending invocations, the invocations will fail
+    /// <summary>Verifies that aborting the client connection kills pending invocations, the invocations will fail
     /// with <see cref="ObjectDisposedException"/>.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    public async Task Dispose_client_connection_kills_pending_invocations(Protocol protocol)
+    public async Task Aborting_client_connection_kills_pending_invocations(Protocol protocol)
     {
         // Arrange
         using var start = new SemaphoreSlim(0);
@@ -284,7 +284,7 @@ public sealed class ProtocolConnectionTests
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
-        sut.Client.Dispose();
+        sut.Client.Abort(new ConnectionClosedException());
 
         // Assert
         Assert.That(async () => await invokeTask, Throws.TypeOf<ConnectionClosedException>());

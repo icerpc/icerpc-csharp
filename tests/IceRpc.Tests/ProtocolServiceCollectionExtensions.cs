@@ -86,7 +86,7 @@ internal interface IClientServerProtocolConnection
 /// the connections are correctly disposed.</summary>
 [System.Diagnostics.CodeAnalysis.SuppressMessage(
     "Performance",
-    "CA1812:Avoid uninstantiated internal classes",
+    "CA1812: Avoid uninstantiated internal classes",
     Justification = "DI instantiated")]
 internal class ClientServerProtocolConnection<T> : IClientServerProtocolConnection, IDisposable
     where T : INetworkConnection
@@ -142,8 +142,8 @@ internal class ClientServerProtocolConnection<T> : IClientServerProtocolConnecti
 
     public void Dispose()
     {
-        _client?.Dispose();
-        _server?.Dispose();
+        _client?.Abort(new ConnectionClosedException());
+        _server?.Abort(new ConnectionClosedException());
     }
 
     // This constructor must be public to be usable by DI container

@@ -11,6 +11,10 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Internal
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Design",
+        "CA1001: Types that own disposable fields should be disposable",
+        Justification = "the disposable fields are cleaned up by Abort")]
     internal sealed class IceProtocolConnection : IProtocolConnection
     {
         public Protocol Protocol => Protocol.Ice;
@@ -131,8 +135,6 @@ namespace IceRpc.Internal
                 _readFramesTaskCompletionSource?.SetResult();
             }
         }
-
-        public void Dispose() => Abort(new ConnectionClosedException());
 
         public async Task<IncomingResponse> InvokeAsync(
             OutgoingRequest request,

@@ -27,7 +27,7 @@ namespace IceRpc.Internal
             }
             catch
             {
-                protocolConnection.Dispose();
+                protocolConnection.Abort(new ConnectionClosedException());
                 throw;
             }
         }
