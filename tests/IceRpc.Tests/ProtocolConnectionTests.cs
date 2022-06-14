@@ -490,7 +490,6 @@ public sealed class ProtocolConnectionTests
         await using var provider = new ServiceCollection()
             .AddProtocolTest(protocol)
             .BuildServiceProvider(validateScopes: true);
-        IConnection connection = provider.GetRequiredService<IConnection>();
 
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
 

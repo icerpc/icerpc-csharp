@@ -562,6 +562,8 @@ namespace IceRpc.Internal
                             {
                                 return; // The connection is no longer idle.
                             }
+
+                            // Prevent new invocations or dispatches to be processed at this point.
                             _isShuttingDownOnIdle = true;
                         }
 
