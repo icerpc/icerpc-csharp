@@ -3,6 +3,7 @@
 using IceRpc.Features;
 using IceRpc.Retry.Internal;
 using IceRpc.Slice;
+using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Diagnostics;
@@ -132,10 +133,11 @@ public class RetryInterceptor : IInvoker
                             await Task.Delay(retryPolicy.Delay, cancel).ConfigureAwait(false);
                         }
 
-                        if (request.Connection != null &&
-                            (retryPolicy == RetryPolicy.OtherReplica || !request.Connection.IsInvocable))
+                        // Clear connection is the retry policy is other replica or the current connection is unusable.
+                        if (request.Connection is IConnection connection &&
+                            (retryPolicy == RetryPolicy.OtherReplica ||
+                                (!connection.IsResumable && IsDeadConnectionException(exception))))
                         {
-                            // Retry with a new connection
                             request.Connection = null;
                         }
 
@@ -165,6 +167,14 @@ public class RetryInterceptor : IInvoker
                 decorator.IsResettable = false;
             }
         }
+
+        static bool IsDeadConnectionException(Exception? exception) =>
+            exception is
+                ConnectionAbortedException or
+                ConnectionClosedException or
+                ConnectionLostException or
+                ConnectFailedException or
+                ConnectTimeoutException;
     }
 
     private static Exception RethrowException(Exception ex)

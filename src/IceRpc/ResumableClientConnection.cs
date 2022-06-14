@@ -12,7 +12,16 @@ namespace IceRpc;
 public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposable
 {
     /// <inheritdoc/>
-    public bool IsInvocable => !IsClosed;
+    public bool IsResumable
+    {
+        get
+        {
+            lock (_mutex)
+            {
+                return _isResumable;
+            }
+        }
+    }
 
     /// <inheritdoc/>
     public NetworkConnectionInformation? NetworkConnectionInformation => _clientConnection.NetworkConnectionInformation;
@@ -23,24 +32,13 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
     /// <inheritdoc/>
     public Endpoint RemoteEndpoint => _clientConnection.RemoteEndpoint;
 
-    private bool IsClosed
-    {
-        get
-        {
-            lock (_mutex)
-            {
-                return _isClosed;
-            }
-        }
-    }
-
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
        "Usage",
        "CA2213: Disposable fields should be disposed",
        Justification = "correctly disposed by DisposeAsync, Abort and ShutdownAsync")]
     private ClientConnection _clientConnection;
 
-    private bool _isClosed;
+    private bool _isResumable = true;
 
     private readonly ILoggerFactory? _loggerFactory;
 
@@ -113,7 +111,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
             await clientConnection.ConnectAsync(cancel).ConfigureAwait(false);
             return;
         }
-        catch (ConnectionClosedException) when (!IsClosed)
+        catch (ConnectionClosedException) when (IsResumable)
         {
             RefreshClientConnection(clientConnection);
 
@@ -137,7 +135,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         {
             return await clientConnection.InvokeAsync(request, cancel).ConfigureAwait(false);
         }
-        catch (ConnectionClosedException) when (!IsClosed)
+        catch (ConnectionClosedException) when (IsResumable)
         {
             RefreshClientConnection(clientConnection);
 
@@ -154,13 +152,13 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
 
         lock (_mutex)
         {
-            if (_isClosed)
+            if (_isResumable)
             {
-                executeCallback = true;
+                _onClose += callback;
             }
             else
             {
-                _onClose += callback;
+                executeCallback = true;
             }
         }
 
@@ -181,14 +179,14 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         lock (_mutex)
         {
             clientConnection = _clientConnection;
-            _onDisconnect += Callback; // for connections created later on
+            _onDisconnect += CallbackWithThis; // for connections created later on
         }
 
         // can execute synchronously
-        clientConnection.OnClose(Callback);
+        clientConnection.OnClose(CallbackWithThis);
 
         // Wrap callback to always get "this" as the connection parameter.
-        void Callback(IConnection connection, Exception exception) => callback(this, exception);
+        void CallbackWithThis(IConnection connection, Exception exception) => callback(this, exception);
     }
 
     /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
@@ -214,11 +212,12 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
             _multiplexedClientTransport,
             _simpleClientTransport);
 
+        // only called from the constructor or with _mutex locked
         clientConnection.OnClose(_onDisconnect + OnClose);
 
         void OnClose(IConnection connection, Exception exception)
         {
-            if (!IsClosed)
+            if (IsResumable)
             {
                 RefreshClientConnection((ClientConnection)clientConnection);
             }
@@ -233,9 +232,9 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
 
         lock (_mutex)
         {
-            if (!_isClosed)
+            if (_isResumable)
             {
-                _isClosed = true;
+                _isResumable = false;
                 onClose = _onClose;
             }
             // else keep onClose null
