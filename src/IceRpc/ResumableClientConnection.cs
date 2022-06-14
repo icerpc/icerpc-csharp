@@ -179,14 +179,14 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         lock (_mutex)
         {
             clientConnection = _clientConnection;
-            _onDisconnect += Callback; // for connections created later on
+            _onDisconnect += CallbackWithThis; // for connections created later on
         }
 
         // can execute synchronously
-        clientConnection.OnClose(Callback);
+        clientConnection.OnClose(CallbackWithThis);
 
         // Wrap callback to always get "this" as the connection parameter.
-        void Callback(IConnection connection, Exception exception) => callback(this, exception);
+        void CallbackWithThis(IConnection connection, Exception exception) => callback(this, exception);
     }
 
     /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
