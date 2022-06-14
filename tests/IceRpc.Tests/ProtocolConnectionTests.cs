@@ -57,7 +57,7 @@ public sealed class ProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
 
         IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync(false);
+        await sut.ConnectAsync(acceptRequests: false);
 
         Task clientAcceptRequestsTask = sut.Client.AcceptRequestsAsync(provider.GetRequiredService<IConnection>());
         Task serverAcceptRequestsTask = sut.Server.AcceptRequestsAsync(provider.GetRequiredService<IConnection>());
@@ -87,13 +87,13 @@ public sealed class ProtocolConnectionTests
 
         await using var provider = services.BuildServiceProvider();
 
-        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-
         TimeSpan clientIdleCalledTime = Timeout.InfiniteTimeSpan;
         TimeSpan serverIdleCalledTime = Timeout.InfiniteTimeSpan;
-        sut.Client.OnIdle = () => clientIdleCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
-        sut.Server.OnIdle = () => serverIdleCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
+
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync(
+            onClientIdle: () => clientIdleCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64),
+            onServerIdle: () => serverIdleCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64));
 
         // Act
         await Task.Delay(TimeSpan.FromSeconds(1));
@@ -123,13 +123,13 @@ public sealed class ProtocolConnectionTests
 
         await using var provider = services.BuildServiceProvider();
 
-        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-
         long clientIdleCalledTime = Environment.TickCount64;
         long serverIdleCalledTime = Environment.TickCount64;
-        sut.Client.OnIdle = () => clientIdleCalledTime = Environment.TickCount64 - clientIdleCalledTime;
-        sut.Server.OnIdle = () => serverIdleCalledTime = Environment.TickCount64 - serverIdleCalledTime;
+
+        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync(
+            onClientIdle: () => clientIdleCalledTime = Environment.TickCount64 - clientIdleCalledTime,
+            onServerIdle: () => serverIdleCalledTime = Environment.TickCount64 - serverIdleCalledTime);
 
         var request = new OutgoingRequest(new Proxy(protocol));
         IncomingResponse response = await sut.Client.InvokeAsync(request, InvalidConnection.ForProtocol(protocol));
@@ -172,9 +172,7 @@ public sealed class ProtocolConnectionTests
 
         IConnection connection = provider.GetRequiredService<IConnection>();
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-
-        sut.Client.OnShutdown += (message) => sut.Client.ShutdownAsync("shutdown", default);
+        await sut.ConnectAsync(onClientShutdown: (message) => sut.Client.ShutdownAsync("shutdown", default));
         var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
         await start.WaitAsync(); // Wait for the dispatch to start
 
@@ -492,19 +490,32 @@ public sealed class ProtocolConnectionTests
         await using var provider = new ServiceCollection()
             .AddProtocolTest(protocol)
             .BuildServiceProvider(validateScopes: true);
-        IConnection connection = provider.GetRequiredService<IConnection>();
+
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync();
 
-        IProtocolConnection connection1 = connectionType == ConnectionType.Client ? sut.Server : sut.Client;
-        IProtocolConnection connection2 = connectionType == ConnectionType.Client ? sut.Client : sut.Server;
-
+        IProtocolConnection? connection1 = null;
+        IProtocolConnection? connection2 = null;
         var shutdownInitiatedCalled = new TaskCompletionSource<string>();
-        connection2.OnShutdown = message =>
+        if (connectionType == ConnectionType.Client)
         {
-            shutdownInitiatedCalled.SetResult(message);
-            _ = connection2.ShutdownAsync("");
-        };
+            await sut.ConnectAsync(onClientShutdown: message =>
+                {
+                    shutdownInitiatedCalled.SetResult(message);
+                    _ = connection2!.ShutdownAsync("");
+                });
+            connection1 = sut.Server;
+            connection2 = sut.Client;
+        }
+        else
+        {
+            await sut.ConnectAsync(onServerShutdown: message =>
+                {
+                    shutdownInitiatedCalled.SetResult(message);
+                    _ = connection2!.ShutdownAsync("");
+                });
+            connection1 = sut.Client;
+            connection2 = sut.Server;
+        }
 
         // Act
         _ = connection1.ShutdownAsync("hello world");
@@ -654,9 +665,8 @@ public sealed class ProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         IConnection connection = provider.GetRequiredService<IConnection>();
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync();
+        await sut.ConnectAsync(onClientShutdown: message => _ = sut.Client.ShutdownAsync(message));
 
-        sut.Client.OnShutdown = message => _ = sut.Client.ShutdownAsync(message);
         var invokeTask1 = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
         await start.WaitAsync(); // Wait for the dispatch to start
 

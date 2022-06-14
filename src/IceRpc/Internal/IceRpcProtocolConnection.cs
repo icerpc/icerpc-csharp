@@ -12,10 +12,6 @@ namespace IceRpc.Internal
 {
     internal sealed class IceRpcProtocolConnection : IProtocolConnection
     {
-        public Action? OnIdle { get; set; }
-
-        public Action<string>? OnShutdown { get; set; }
-
         public Protocol Protocol => Protocol.IceRpc;
 
         private IMultiplexedStream? _controlStream;
@@ -743,7 +739,10 @@ namespace IceRpc.Internal
             _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
         }
 
-        internal async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
+        internal async Task<NetworkConnectionInformation> ConnectAsync(
+            Action onIdle,
+            Action<string> onShutdown,
+            CancellationToken cancel)
         {
             // Connect the network connection
             NetworkConnectionInformation networkConnectionInformation =
@@ -774,7 +773,7 @@ namespace IceRpc.Internal
                 TaskCreationOptions.RunContinuationsAsynchronously);
 
             // Start a task to wait to receive the go away frame to initiate shutdown.
-            var waitForGoAwayTask = Task.Run(() => WaitForGoAwayAsync(), CancellationToken.None);
+            var waitForGoAwayTask = Task.Run(() => WaitForGoAwayAsync(onShutdown), CancellationToken.None);
 
             if (_idleTimeout != Timeout.InfiniteTimeSpan)
             {
@@ -792,7 +791,7 @@ namespace IceRpc.Internal
                             _isShuttingDownOnIdle = true;
                         }
 
-                        OnIdle?.Invoke();
+                        onIdle.Invoke();
                     },
                     null,
                     _idleTimeout,
@@ -1124,7 +1123,7 @@ namespace IceRpc.Internal
             }
         }
 
-        private async Task WaitForGoAwayAsync()
+        private async Task WaitForGoAwayAsync(Action<string> onShutdown)
         {
             Debug.Assert(_waitForGoAwayFrame != null);
             try
@@ -1138,8 +1137,8 @@ namespace IceRpc.Internal
 
                 _waitForGoAwayFrame.SetResult(goAwayFrame);
 
-                // Call the peer shutdown initiated callback.
-                OnShutdown?.Invoke(goAwayFrame.Message);
+                // Call the connection on shutdown callback.
+                onShutdown(goAwayFrame.Message);
             }
             catch (Exception exception)
             {

@@ -69,7 +69,21 @@ public static class ProtocolServiceCollectionExtensions
     }
 }
 
-/// <summary>A helper class to ensure the network and protocol connections are correctly disposed.</summary>
+internal interface IClientServerProtocolConnection
+{
+    IProtocolConnection Client { get; }
+    IProtocolConnection Server { get; }
+
+    Task ConnectAsync(
+        Action? onClientIdle = null,
+        Action<string>? onClientShutdown = null,
+        Action? onServerIdle = null,
+        Action<string>? onServerShutdown = null,
+        bool acceptRequests = true);
+}
+
+/// <summary>A helper class to connect and provide access to a client and server protocol connection. It also  ensures
+/// the connections are correctly disposed.</summary>
 [System.Diagnostics.CodeAnalysis.SuppressMessage(
     "Performance",
     "CA1812:Avoid uninstantiated internal classes",
@@ -79,26 +93,32 @@ internal class ClientServerProtocolConnection<T> : IClientServerProtocolConnecti
 {
     public IProtocolConnection Client =>
         _client ?? throw new InvalidOperationException("client connection not initialized");
-
     public IProtocolConnection Server =>
         _server ?? throw new InvalidOperationException("server connection not initialized");
 
     private IProtocolConnection? _client;
     private readonly ConnectionOptions _clientConnectionOptions;
     private readonly IClientTransport<T> _clientTransport;
-    private readonly IListener<T> _listener;
     private readonly IConnection _connection;
+    private readonly IListener<T> _listener;
     private readonly IProtocolConnectionFactory<T> _protocolConnectionFactory;
     private IProtocolConnection? _server;
     private readonly ServerOptions _serverOptions;
 
-    public async Task ConnectAsync(bool accept = true)
+    public async Task ConnectAsync(
+        Action? onClientIdle,
+        Action<string>? onClientShutdown,
+        Action? onServerIdle,
+        Action<string>? onServerShutdown,
+        bool acceptRequests = true)
     {
         Task<(IProtocolConnection, NetworkConnectionInformation)> clientProtocolConnectionTask =
             _protocolConnectionFactory.CreateConnectionAsync(
                 _clientTransport.CreateConnection(_listener.Endpoint, null, NullLogger.Instance),
                 isServer: false,
                 _clientConnectionOptions,
+                onClientIdle ?? (() => {}),
+                onClientShutdown ?? (_ => {}),
                 CancellationToken.None);
 
         Task<(IProtocolConnection, NetworkConnectionInformation)> serverProtocolConnectionTask =
@@ -106,12 +126,14 @@ internal class ClientServerProtocolConnection<T> : IClientServerProtocolConnecti
                 await _listener.AcceptAsync(),
                 isServer: true,
                 _serverOptions.ConnectionOptions,
+                onServerIdle ?? (() => {}),
+                onServerShutdown ?? (_ => {}),
                 CancellationToken.None);
 
         (_client, _) = await clientProtocolConnectionTask;
         (_server, _) = await serverProtocolConnectionTask;
 
-        if (accept)
+        if (acceptRequests)
         {
             _ = _client.AcceptRequestsAsync(_connection);
             _ = _server.AcceptRequestsAsync(_connection);
@@ -142,15 +164,6 @@ internal class ClientServerProtocolConnection<T> : IClientServerProtocolConnecti
         _client = null;
         _server = null;
     }
-}
-
-internal interface IClientServerProtocolConnection
-{
-    IProtocolConnection Client { get; }
-
-    IProtocolConnection Server { get; }
-
-    Task ConnectAsync(bool accept = true);
 }
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage(
