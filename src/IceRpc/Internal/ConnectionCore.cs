@@ -97,7 +97,6 @@ internal sealed class ConnectionCore
                 else if (_state == ConnectionState.Closed)
                 {
                     // This can occur if the connection is aborted shortly after the connection establishment.
-                    protocolConnection.Dispose();
                     throw new ConnectionClosedException("connection aborted");
                 }
                 else
@@ -429,7 +428,7 @@ internal sealed class ConnectionCore
                     _protocolConnection.Abort(exception);
                 }
 
-                _protocolConnection.Dispose();
+                _protocolConnection.Abort(exception ?? new ConnectionClosedException());
                 _protocolConnection = null;
             }
             _state = ConnectionState.Closed;
