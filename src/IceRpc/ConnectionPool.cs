@@ -13,20 +13,20 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
     // Connected connections that can be returned immediately.
     private readonly Dictionary<Endpoint, ClientConnection> _activeConnections = new(EndpointComparer.ParameterLess);
 
-    // Formerly pending or active connections that are closed but not shutdown yet.
-    private readonly HashSet<ClientConnection> _closedConnections = new();
-
     private readonly ILoggerFactory? _loggerFactory;
     private readonly IClientTransport<IMultiplexedNetworkConnection> _multiplexedClientTransport;
+
+    private readonly object _mutex = new();
 
     private readonly ConnectionPoolOptions _options;
 
     // New connections in the process of connecting. They can be returned only after ConnectAsync succeeds.
     private readonly Dictionary<Endpoint, ClientConnection> _pendingConnections = new(EndpointComparer.ParameterLess);
 
-    private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
+    // Formerly pending or active connections that are closed but not shutdown yet.
+    private readonly HashSet<ClientConnection> _shutdownPendingConnections = new();
 
-    private readonly object _mutex = new();
+    private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
 
     private CancellationTokenSource? _shutdownCancelSource;
     private Task? _shutdownTask;
@@ -179,8 +179,8 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
 
                 // Shut down all connections managed by this pool.
                 await Task.WhenAll(
-                    _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_closedConnections).Select(
-                        connection => connection.ShutdownAsync("connection pool shutdown", cancel)))
+                    _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_shutdownPendingConnections)
+                        .Select(connection => connection.ShutdownAsync("connection pool shutdown", cancel)))
                         .ConfigureAwait(false);
             }
             finally
@@ -263,10 +263,10 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
                 // the _pendingConnections collection is immutable after shutdown
                 if (_shutdownTask == null)
                 {
-                    // "move" from pending to closed
+                    // "move" from pending to shutdown pending
                     bool removed = _pendingConnections.Remove(endpoint);
                     Debug.Assert(removed);
-                    _ = _closedConnections.Add(connection);
+                    _ = _shutdownPendingConnections.Add(connection);
                     scheduleRemoveFromClosed = true;
                 }
             }
@@ -312,10 +312,10 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
                 // the _activeConnections collection is immutable after shutdown
                 if (_shutdownTask == null)
                 {
-                    // "move" from active to closed
+                    // "move" from active to shutdown pending
                     bool removed = _activeConnections.Remove(clientConnection.RemoteEndpoint);
                     Debug.Assert(removed);
-                    _ = _closedConnections.Add(clientConnection);
+                    _ = _shutdownPendingConnections.Add(clientConnection);
                     scheduleRemoveFromClosed = true;
                 }
             }
@@ -326,17 +326,17 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
             }
         }
 
-        // Remove connection from _closedConnections once the shutdown is complete
+        // Remove connection from _shutdownPendingConnections once the shutdown is complete
         async Task RemoveFromClosedAsync(ClientConnection clientConnection)
         {
             await clientConnection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
 
             lock (_mutex)
             {
-                // the _closedConnections collection is immutable after shutdown
+                // the _shutdownPendingConnections collection is immutable after shutdown
                 if (_shutdownTask == null)
                 {
-                    bool removed = _closedConnections.Remove(clientConnection);
+                    bool removed = _shutdownPendingConnections.Remove(clientConnection);
                     Debug.Assert(removed);
                 }
             }
