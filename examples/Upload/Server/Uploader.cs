@@ -12,15 +12,19 @@ public class Uploader : Service, IUploader
     {
         Console.WriteLine("Downloading image...");
 
+        // leaveOpen will cleanup the stream when the PipeReader is completed (false by default).
         Stream imageStream = image.AsStream(leaveOpen: false);
 
         // Create the file, or overwrite if the file exists.
-        using (FileStream fs = File.Create("Server/images/zeroc_icon.png"))
+        using (FileStream fs = File.Create($"Server/uploads/uploaded_earth.png"))
         {
             // Copy the image to the file stream.
-            await imageStream.CopyToAsync(fs);
+            await imageStream.CopyToAsync(fs, cancel);
+
+            // Complete and cleanup the pipe reader.
+            await image.CompleteAsync();
         }
 
-        Console.WriteLine("Image downloaded.");
+        Console.WriteLine("Image downloaded");
     }
 }

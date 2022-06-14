@@ -12,5 +12,7 @@ Console.CancelKeyPress += (sender, eventArgs) =>
     _ = server.ShutdownAsync();
 };
 
+Console.WriteLine("Server is waiting for connections...");
 server.Listen();
+
 await server.ShutdownComplete;
