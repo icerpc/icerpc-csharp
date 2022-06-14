@@ -38,7 +38,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
        Justification = "correctly disposed by DisposeAsync, Abort and ShutdownAsync")]
     private ClientConnection _clientConnection;
 
-    private bool _isResumable;
+    private bool _isResumable = true;
 
     private readonly ILoggerFactory? _loggerFactory;
 
@@ -111,7 +111,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
             await clientConnection.ConnectAsync(cancel).ConfigureAwait(false);
             return;
         }
-        catch (ConnectionClosedException) when (!IsResumable)
+        catch (ConnectionClosedException) when (IsResumable)
         {
             RefreshClientConnection(clientConnection);
 
@@ -135,7 +135,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         {
             return await clientConnection.InvokeAsync(request, cancel).ConfigureAwait(false);
         }
-        catch (ConnectionClosedException) when (!IsResumable)
+        catch (ConnectionClosedException) when (IsResumable)
         {
             RefreshClientConnection(clientConnection);
 
@@ -154,11 +154,11 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         {
             if (_isResumable)
             {
-                executeCallback = true;
+                _onClose += callback;
             }
             else
             {
-                _onClose += callback;
+                executeCallback = true;
             }
         }
 
@@ -212,11 +212,12 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
             _multiplexedClientTransport,
             _simpleClientTransport);
 
+        // only called from the constructor or with _mutex locked
         clientConnection.OnClose(_onDisconnect + OnClose);
 
         void OnClose(IConnection connection, Exception exception)
         {
-            if (!IsResumable)
+            if (IsResumable)
             {
                 RefreshClientConnection((ClientConnection)clientConnection);
             }
@@ -231,9 +232,9 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
 
         lock (_mutex)
         {
-            if (!_isResumable)
+            if (_isResumable)
             {
-                _isResumable = true;
+                _isResumable = false;
                 onClose = _onClose;
             }
             // else keep onClose null
