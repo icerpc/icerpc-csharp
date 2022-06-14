@@ -74,18 +74,10 @@ namespace IceRpc.Transports.Internal
                 {
                     // If reads aren't marked as completed yet, abort stream reads. This will send a stream stop sending
                     // frame to the peer to notify it shouldn't send additional data.
-                    if (exception == null)
-                    {
-                        _stream.AbortRead(SlicStreamError.NoError.ToError());
-                    }
-                    else if (exception is MultiplexedStreamAbortedException abortedException)
-                    {
-                        _stream.AbortRead(abortedException.ToError());
-                    }
-                    else
-                    {
-                        _stream.AbortRead(SlicStreamError.UnexpectedError.ToError());
-                    }
+
+                    // TODO: CompleteRead would be nicer
+                    // TODO: convert parameter type to MultiplexedStreamErrorCode
+                    _stream.AbortRead((ulong)IMultiplexedStream.ToErrorCode(exception));
                 }
 
                 _pipe.Reader.Complete(exception);
@@ -168,8 +160,8 @@ namespace IceRpc.Transports.Internal
         internal void Abort(Exception exception) => CompletePipeWriter(exception);
 
         /// <summary>Called when a stream reset is received.</summary>
-        internal void ReceivedResetFrame(ulong error) => CompletePipeWriter(
-            error == SlicStreamError.NoError.ToError() ? null : new MultiplexedStreamAbortedException(error));
+        internal void ReceivedResetFrame(ulong error) =>
+            CompletePipeWriter(IMultiplexedStream.FromErrorCode((MultiplexedStreamErrorCode)error));
 
         /// <summary>Called when a stream frame is received. It writes the data from the received stream frame to the
         /// internal pipe writer and returns the number of bytes that were consumed.</summary>

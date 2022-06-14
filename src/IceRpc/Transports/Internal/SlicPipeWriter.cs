@@ -30,23 +30,15 @@ namespace IceRpc.Transports.Internal
                 // the peer to notify it won't receive additional data.
                 if (!_stream.WritesCompleted)
                 {
-                    if (exception == null)
+                    if (exception == null && _pipe.Writer.UnflushedBytes > 0)
                     {
-                        if (_pipe.Writer.UnflushedBytes > 0)
-                        {
-                            throw new NotSupportedException(
-                                $"can't complete {nameof(SlicPipeWriter)} with unflushed bytes");
-                        }
-                        _stream.AbortWrite(SlicStreamError.NoError.ToError());
+                        throw new NotSupportedException(
+                            $"can't complete {nameof(SlicPipeWriter)} with unflushed bytes");
                     }
-                    else if (exception is MultiplexedStreamAbortedException abortedException)
-                    {
-                        _stream.AbortWrite(abortedException.ToError());
-                    }
-                    else
-                    {
-                        _stream.AbortWrite(SlicStreamError.UnexpectedError.ToError());
-                    }
+
+                    // TODO: CompleteWrite would be nicer
+                    // TODO: convert parameter to MultiplexedStreamErrorCode
+                    _stream.AbortWrite((ulong)IMultiplexedStream.ToErrorCode(exception));
                 }
 
                 _pipe.Writer.Complete(exception);
@@ -180,8 +172,8 @@ namespace IceRpc.Transports.Internal
 
         internal void Abort(Exception exception) => CompletePipeReader(exception);
 
-        internal void ReceivedStopSendingFrame(ulong error) => CompletePipeReader(
-            error == SlicStreamError.NoError.ToError() ? null : new MultiplexedStreamAbortedException(error));
+        internal void ReceivedStopSendingFrame(ulong error) =>
+            CompletePipeReader(IMultiplexedStream.FromErrorCode((MultiplexedStreamErrorCode)error));
 
         private void CheckIfCompleted()
         {

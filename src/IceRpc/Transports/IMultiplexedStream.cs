@@ -38,5 +38,43 @@ namespace IceRpc.Transports
         /// <remarks>If the he peer <see cref="IDuplexPipe.Input"/> is already completed, the callback is called
         /// synchronously by this method.</remarks>
         void OnPeerInputCompleted(Action action);
+
+        /// <summary>Converts the exception given to <see cref="Abort"/>, <see cref="PipeReader.Complete(Exception?)"/>,
+        /// <see cref="PipeWriter.Complete(Exception?)"/> etc. into a transport-independent error code.</summary>
+        /// <param name="exception">The exception to convert, or null.</param>
+        /// <returns>The error code.</returns>
+        public static MultiplexedStreamErrorCode ToErrorCode(Exception? exception)
+        {
+            if (exception == null)
+            {
+                return MultiplexedStreamErrorCode.NoError;
+            }
+            else
+            {
+                return exception switch
+                {
+                    ConnectionClosedException => MultiplexedStreamErrorCode.ConnectionShutdown,
+                    MultiplexedStreamException multiplexedStreamException => multiplexedStreamException.ErrorCode,
+                    OperationCanceledException => MultiplexedStreamErrorCode.RequestCanceled,
+                    _ => MultiplexedStreamErrorCode.Unspecified
+                };
+            }
+        }
+
+        /// <summary>Converts an error code received from the peer into an exception. This exception can be thrown by
+        /// <see cref="PipeReader.ReadAsync(CancellationToken)"/>,
+        /// <see cref="PipeWriter.FlushAsync(CancellationToken)"/> and other APIs implemented by this stream.</summary>
+        /// <param name="errorCode">The error code to convert into an exception.</param>
+        /// <returns>A new exception, or null when the error code received shows no error.</returns>
+        public static Exception? FromErrorCode(MultiplexedStreamErrorCode errorCode) =>
+            errorCode switch
+            {
+                MultiplexedStreamErrorCode.NoError => null,
+                MultiplexedStreamErrorCode.RequestCanceled =>
+                    new OperationCanceledException("request canceled by peer"),
+                MultiplexedStreamErrorCode.ConnectionShutdown =>
+                    new ConnectionClosedException("connection shutdown by peer"),
+                _ => new MultiplexedStreamException(errorCode)
+            };
     }
 }

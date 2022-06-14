@@ -1,0 +1,22 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc;
+
+/// The "application error codes" carried by multiplexed streams. These values are shared and carried blindly by
+/// all multiplexed transports. Multiplexed transports don't interpret these error codes or generate these codes. In
+/// particular, these codes are not used by the transports to report transport failures.
+unchecked enum MultiplexedStreamErrorCode : varuint62
+{
+    /// The stream (or one side of the stream) completed without error.
+    NoError = 0,
+
+    /// The stream (or one side of the stream) completed with an exception that could not be converted into a more
+    /// specific error code.
+    Unspecified,
+
+    /// The request was canceled.
+    RequestCanceled,
+
+    /// The connection was shut down.
+    ConnectionShutdown,
+}

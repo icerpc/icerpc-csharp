@@ -122,11 +122,11 @@ namespace IceRpc.Internal
                     {
                         if (_isShuttingDown)
                         {
-                            throw IceRpcStreamError.ConnectionShutdownByPeer.ToException();
+                            throw new ConnectionClosedException("connection shutdown");
                         }
                         else if (_isShuttingDownOnIdle)
                         {
-                            throw IceRpcStreamError.ConnectionShutdown.ToException();
+                            throw new ConnectionClosedException("connection shutdown due to idle timeout");
                         }
                         else if (_isAborted)
                         {
@@ -222,7 +222,7 @@ namespace IceRpc.Internal
                         await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
                     }
 
-                    if (exception is MultiplexedStreamAbortedException streamAbortedException)
+                    if (exception is OperationCanceledException)
                     {
                         // The stream can be aborted if the invocation is canceled. It's not a fatal connection error,
                         // we can continue accepting new requests.
@@ -269,20 +269,18 @@ namespace IceRpc.Internal
                             "the dispatcher did not return the last response created for this request");
                     }
                 }
+                catch (OperationCanceledException exception)
+                {
+                    await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
+
+                    // We're done since the completion of the stream Output pipe writer aborted the stream or the
+                    // stream was already aborted.
+                    request.Complete();
+                    return;
+                }
                 catch (Exception exception)
                 {
                     // If we catch an exception, we return a failure response with a Slice-encoded payload.
-
-                    if (exception is OperationCanceledException || exception is MultiplexedStreamAbortedException)
-                    {
-                        await stream.Output.CompleteAsync(
-                            IceRpcStreamError.DispatchCanceled.ToException()).ConfigureAwait(false);
-
-                        // We're done since the completion of the stream Output pipe writer aborted the stream or the
-                        // stream was already aborted.
-                        request.Complete();
-                        return;
-                    }
 
                     if (exception is not RemoteException remoteException || remoteException.ConvertToUnhandled)
                     {
@@ -497,22 +495,8 @@ namespace IceRpc.Internal
                     }
                 }
 
-                if (exception is MultiplexedStreamAbortedException streamAbortedException)
-                {
-                    if (streamAbortedException.ErrorKind == MultiplexedStreamErrorKind.Protocol)
-                    {
-                        throw streamAbortedException.ToIceRpcException();
-                    }
-                    else
-                    {
-                        throw new ConnectionLostException(exception);
-                    }
-                }
-                else
-                {
-                    // TODO: Should we wrap unexpected exceptions with ConnectionLostException?
-                    throw;
-                }
+                // TODO: Should we wrap unexpected exceptions with ConnectionLostException?
+                throw;
             }
 
             request.IsSent = true;
@@ -548,34 +532,17 @@ namespace IceRpc.Internal
                     ResultType = header.ResultType
                 };
             }
-            catch (OperationCanceledException)
+            catch (TaskCanceledException)
             {
-                // Notify the peer that we give up on receiving the response. The peer will cancel the dispatch upon
-                // receiving this notification.
-                await stream.Input.CompleteAsync(
-                    IceRpcStreamError.InvocationCanceled.ToException()).ConfigureAwait(false);
-                throw;
+                var exception = new OperationCanceledException();
+                await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
+                throw ExceptionUtil.Throw(exception);
             }
             catch (Exception exception)
             {
                 await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
-
-                if (exception is MultiplexedStreamAbortedException streamAbortedException)
-                {
-                    if (streamAbortedException.ErrorKind == MultiplexedStreamErrorKind.Protocol)
-                    {
-                        throw streamAbortedException.ToIceRpcException();
-                    }
-                    else
-                    {
-                        throw new ConnectionLostException(exception);
-                    }
-                }
-                else
-                {
-                    // TODO: Should we wrap unexpected exceptions with ConnectionLostException?
-                    throw;
-                }
+                // TODO: Should we wrap unexpected exceptions with ConnectionLostException?
+                throw;
             }
 
             void EncodeHeader(PipeWriter writer)
@@ -661,10 +628,10 @@ namespace IceRpc.Internal
 
             // Abort streams for invocations that were not dispatched by the peer. The invocations will throw
             // ConnectionClosedException which is retryable.
-            MultiplexedStreamAbortedException exception = IceRpcStreamError.ConnectionShutdownByPeer.ToException();
+            var connectionClosedException = new ConnectionClosedException();
             foreach (IMultiplexedStream stream in invocations)
             {
-                stream.Abort(exception);
+                stream.Abort(connectionClosedException);
             }
 
             // Wait for streams to complete.
@@ -672,7 +639,7 @@ namespace IceRpc.Internal
             {
                 await _streamsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException exception)
             {
                 // Cancel pending invocations and dispatches to speed up shutdown.
 
@@ -699,7 +666,6 @@ namespace IceRpc.Internal
                 }
 
                 // Abort streams for invocations.
-                exception = IceRpcStreamError.ConnectionShutdown.ToException();
                 foreach (IMultiplexedStream stream in streams)
                 {
                     if (!stream.IsRemote)

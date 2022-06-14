@@ -637,10 +637,10 @@ public abstract class MultiplexedTransportConformanceTests
         var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
 
         // Act
-        await sut.RemoteStream.Input.CompleteAsync(new MultiplexedStreamAbortedException(error: errorCode));
+        await sut.RemoteStream.Input.CompleteAsync(new MultiplexedStreamException((MultiplexedStreamErrorCode)errorCode));
 
         // Assert
-        MultiplexedStreamAbortedException? ex = Assert.CatchAsync<MultiplexedStreamAbortedException>(
+        MultiplexedStreamException? ex = Assert.CatchAsync<MultiplexedStreamException>(
             async () =>
             {
                 while (true)
@@ -650,7 +650,7 @@ public abstract class MultiplexedTransportConformanceTests
                 }
             });
         Assert.That(ex, Is.Not.Null);
-        Assert.That(ex!.ErrorCode, Is.EqualTo(errorCode));
+        Assert.That(ex!.ErrorCode, Is.EqualTo((MultiplexedStreamErrorCode)errorCode));
 
         // Complete the pipe readers/writers to shutdown the stream.
         await CompleteStreamsAsync(sut);
@@ -672,15 +672,15 @@ public abstract class MultiplexedTransportConformanceTests
         var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
 
         // Act
-        await sut.LocalStream.Output.CompleteAsync(new MultiplexedStreamAbortedException(error: errorCode));
+        await sut.LocalStream.Output.CompleteAsync(new MultiplexedStreamException((MultiplexedStreamErrorCode)errorCode));
 
         // Assert
         // Wait for the peer to receive the StreamStopSending/StreamReset frame.
         await Task.Delay(TimeSpan.FromMilliseconds(50));
-        MultiplexedStreamAbortedException? ex = Assert.CatchAsync<MultiplexedStreamAbortedException>(
+        MultiplexedStreamException? ex = Assert.CatchAsync<MultiplexedStreamException>(
             async () => await sut.RemoteStream.Input.ReadAsync());
         Assert.That(ex, Is.Not.Null);
-        Assert.That(ex!.ErrorCode, Is.EqualTo(errorCode));
+        Assert.That(ex!.ErrorCode, Is.EqualTo((MultiplexedStreamErrorCode)errorCode));
 
         // Complete the pipe readers/writers to shutdown the stream.
         await CompleteStreamsAsync(sut);
