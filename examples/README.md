@@ -28,8 +28,8 @@ connections. It also shows how to make an asynchronous invocation and wait for a
 ## [OpenTelemetry](./OpenTelemetry/)
 
 This application illustrates how to use the IceRpc telemetry interceptor and middleware, and how they can be integrated
-with OpenTelemetry to export traces to Zipkin. 
+with OpenTelemetry to export traces to Zipkin.
 
 ## [Stream](./Stream/)
 
-This example application illustrates streaming data from a client to a server.
+This example application illustrates how to stream data from a client to a server.

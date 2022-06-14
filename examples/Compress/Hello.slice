@@ -4,8 +4,8 @@ module Demo;
 
 interface Hello
 {
-    // Setting the compress attribute instructs the slicec-cs compiler to add the `ICompressFeature` to the features of
-    // the request, the deflate interceptor and middleware will apply the deflate algorithm to the payload of a request 
-    // or response when this request feature is present.
+    // The Deflate interceptor compresses the payload of a request when this request carries the compress feature, and
+    // the Deflate middleware compresses the payload of a response when the corresponding incoming request carries the
+    // compress feature.
     [compress(Args, Return)] sayHello(name: string) -> string;
 }
