@@ -60,11 +60,8 @@ namespace IceRpc.Transports
 
             if (logger.IsEnabled(LogLevel.Error))
             {
-                simpleNetworkConnection = new LogSimpleNetworkConnectionDecorator(
-                    simpleNetworkConnection,
-                    remoteEndpoint,
-                    false,
-                    logger);
+                // Do not decorate the simple network connection to avoid duplicate traces from the
+                // LogNetworkConnectionDecorator
                 slicFrameReaderDecorator = reader => new LogSlicFrameReaderDecorator(reader, logger);
                 slicFrameWriterDecorator = writer => new LogSlicFrameWriterDecorator(writer, logger);
             }

@@ -59,15 +59,17 @@ namespace IceRpc.Transports
 
             if (logger.IsEnabled(LogLevel.Error))
             {
-                simpleListener = new LogListenerDecorator<ISimpleNetworkConnection>(
-                    simpleListener,
-                    logger,
-                    LogSimpleNetworkConnectionDecorator.Decorate);
+                // Do not decorate the simple listener to avoid duplicate traces from the
+                // LogListenerDecorator
                 slicFrameReaderDecorator = reader => new LogSlicFrameReaderDecorator(reader, logger);
                 slicFrameWriterDecorator = writer => new LogSlicFrameWriterDecorator(writer, logger);
             }
 
-            return new SlicListener(simpleListener, slicFrameReaderDecorator, slicFrameWriterDecorator, _slicTransportOptions);
+            return new SlicListener(
+                simpleListener,
+                slicFrameReaderDecorator,
+                slicFrameWriterDecorator,
+                _slicTransportOptions);
         }
     }
 }

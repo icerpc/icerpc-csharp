@@ -2,6 +2,7 @@
 
 using Demo;
 using IceRpc;
+using Microsoft.Extensions.Logging;
 
 if (args.Length < 1)
 {
@@ -16,9 +17,24 @@ if (!int.TryParse(args[0], out number))
     return;
 }
 
+using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
+{
+    builder.AddFilter("IceRpc", LogLevel.Information);
+    builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
+});
+
 string endpoint = $"icerpc://127.0.0.1:{10000 + number}/";
 
-await using var server = new Server(new Hello(endpoint), endpoint);
+await using var server = new Server(
+    new ServerOptions
+    {
+        ConnectionOptions = new ConnectionOptions
+        {
+            Dispatcher = new Hello(endpoint)
+        },
+        Endpoint = endpoint,
+    },
+    loggerFactory);
 
 // Shuts down the server on Ctrl+C or Ctrl+Break
 Console.CancelKeyPress += (sender, eventArgs) =>

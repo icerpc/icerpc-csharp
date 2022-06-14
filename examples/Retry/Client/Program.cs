@@ -26,14 +26,15 @@ Console.CancelKeyPress += (sender, eventArgs) =>
     cancellationSource.Cancel();
 };
 
-await using var connectionPool = new ConnectionPool(
-    new ConnectionPoolOptions { PreferExistingConnection = true });
-
 using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
     {
         builder.AddFilter("IceRpc", LogLevel.Information);
-        builder.AddConsole();
+        builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
     });
+
+await using var connectionPool = new ConnectionPool(
+    new ConnectionPoolOptions { PreferExistingConnection = true },
+    loggerFactory: loggerFactory);
 
 // Setup the invocation pipeline with the retry, binder and logger interceptors, the retry interceptor is always
 // configured before the binder interceptor, this allows the retry interceptor to influence the endpoints used by
