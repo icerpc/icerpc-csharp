@@ -84,7 +84,7 @@ public sealed class DeadlineTests
         {
             hasDeadline = request.Fields.ContainsKey(RequestFieldKey.Deadline);
             cancellationToken = cancel;
-            await Task.Delay(TimeSpan.FromMilliseconds(100), cancel);
+            await Task.Delay(TimeSpan.FromMilliseconds(500), cancel);
             return new IncomingResponse(request, request.Connection!);
         });
 

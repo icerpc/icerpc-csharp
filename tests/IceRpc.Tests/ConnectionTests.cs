@@ -325,12 +325,10 @@ public class ConnectionTests
             new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
             Protocol.FromString(protocol));
 
-        services.AddIceRpcResumableClientConnection(); // overwrites AddIceRpcClientConnection from AddColocTest
-
         await using var provider = services.BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
-        var connection = provider.GetRequiredService<ResumableClientConnection>();
+        var connection = provider.GetRequiredService<ClientConnection>();
         var networkConnectionInformation = connection.NetworkConnectionInformation;
 
         // Act

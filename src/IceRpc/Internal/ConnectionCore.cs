@@ -89,8 +89,8 @@ internal sealed class ConnectionCore
                     networkConnection,
                     isServer,
                     _options,
-                    onIdle: () => InitiateShutdown(connection, "idle connection"),
-                    onShutdown: message => InitiateShutdown(connection, message),
+                    onIdle: () => _ = ShutdownAsync(connection, "idle connection", CancellationToken.None),
+                    onShutdown: message => _ = ShutdownAsync(connection, message, CancellationToken.None),
                     cancel).ConfigureAwait(false);
 
             lock (_mutex)
@@ -275,7 +275,7 @@ internal sealed class ConnectionCore
             // possible that the connection didn't receive yet the GoAway message. Initiating the shutdown now
             // ensures that the next InvokeAsync will fail with ConnectionClosedException and won't be retried on
             // this connection.
-            InitiateShutdown(connection, exception.Message);
+            _ = ShutdownAsync(connection, exception.Message, cancel);
             throw;
         }
 
@@ -442,23 +442,6 @@ internal sealed class ConnectionCore
             // Time to get rid of disposable resources
             _shutdownCancellationSource.Dispose();
             _connectCancellationSource.Dispose();
-        }
-    }
-
-    private void InitiateShutdown(IConnection connection, string message)
-    {
-        lock (_mutex)
-        {
-            // If the connection is active, switch the state to ShuttingDown and initiate the shutdown.
-            if (_state == ConnectionState.Active)
-            {
-                _state = ConnectionState.ShuttingDown;
-                _stateTask = ShutdownAsyncCore(
-                    connection,
-                    _protocolConnection!,
-                    message,
-                    _shutdownCancellationSource.Token);
-            }
         }
     }
 

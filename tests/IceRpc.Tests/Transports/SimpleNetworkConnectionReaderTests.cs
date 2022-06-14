@@ -38,22 +38,19 @@ public class SimpleNetworkConnectionReaderTests
             4096,
             abortAction: _ => {},
             keepAliveAction: () => ++pingCount);
-        reader.SetIdleTimeout(TimeSpan.FromMilliseconds(500));
+        reader.SetIdleTimeout(TimeSpan.FromMilliseconds(1000));
+
+        // Write and read data.
+        await serverConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
+        ReadOnlySequence<byte> buffer = await reader.ReadAsync(default);
+        reader.AdvanceTo(buffer.End);
 
         // Act
-        for (int i = 0; i < 3; ++i)
-        {
-            // Write and read data.
-            await serverConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
-            ReadOnlySequence<byte> buffer = await reader.ReadAsync(default);
-            reader.AdvanceTo(buffer.End);
-
-            // A ping is called every 250ms after a ReadAsync so wait 400ms to ensure we get the ping
-            await Task.Delay(TimeSpan.FromMilliseconds(400));
-        }
+        // The ping action is called 500ms after a ReadAsync. We wait 900ms to ensure the ping action is called.
+        await Task.Delay(TimeSpan.FromMilliseconds(900));
 
         // Assert
-        Assert.That(pingCount, Is.GreaterThan(1));
+        Assert.That(pingCount, Is.EqualTo(1));
     }
 
     [Test]
