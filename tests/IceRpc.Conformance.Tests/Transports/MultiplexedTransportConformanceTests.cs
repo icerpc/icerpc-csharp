@@ -793,7 +793,7 @@ public abstract class MultiplexedTransportConformanceTests
     [Test]
     public async Task Stream_read_examine_data_without_consuming(
         [Values(64, 256)] int segments,
-        [Values(64 * 1024, 512 * 1024)] int payloadSize)
+        [Values(1024, 8192)] int payloadSize)
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -829,18 +829,17 @@ public abstract class MultiplexedTransportConformanceTests
 
         async Task<byte[]> ReadAsync(IMultiplexedStream stream, long size)
         {
-            ReadResult readResult = default;
             byte[] buffer = Array.Empty<byte>();
-            do
+            while (buffer.Length == 0)
             {
-                readResult = await stream.Input.ReadAsync();
-                if (readResult.Buffer.Length >= size)
+                ReadResult readResult = await stream.Input.ReadAsync();
+                long bufferLength = readResult.Buffer.Length;
+                stream.Input.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                if (bufferLength == size)
                 {
                     buffer = readResult.Buffer.ToArray();
                 }
-                stream.Input.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
             }
-            while (readResult.Buffer.Length < size);
             await stream.Input.CompleteAsync();
             return buffer;
         }
@@ -850,6 +849,7 @@ public abstract class MultiplexedTransportConformanceTests
             for (int i = 0; i < segments; ++i)
             {
                 await stream.Output.WriteAsync(payload, default);
+                await Task.Yield();
             }
             await stream.Output.CompleteAsync();
         }
