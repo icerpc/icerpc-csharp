@@ -238,7 +238,7 @@ public abstract class MultiplexedTransportConformanceTests
         await stream.Input.CompleteAsync();
     }
 
-    /// <summary>Verifies that the setting of idle timeout causes the abort of the connection when it's idle.</summary>
+    /// <summary>Verifies that disabling the idle timeout doesn't abort the connection if it's idle.</summary>
     [Test]
     public async Task Connection_with_no_idle_timeout_is_not_aborted_when_idle()
     {
@@ -271,7 +271,7 @@ public abstract class MultiplexedTransportConformanceTests
         Assert.That(acceptTask.IsCompleted, Is.False);
     }
 
-    /// <summary>Verifies that the setting of idle timeout causes the abort of the connection when it's idle.</summary>
+    /// <summary>Verifies that setting the idle timeout doesn't abort the connection if it's idle.</summary>
     [Test]
     public async Task Connection_with_idle_timeout_is_not_aborted_when_idle(
         [Values(true, false)] bool serverIdleTimeout)
@@ -279,7 +279,7 @@ public abstract class MultiplexedTransportConformanceTests
         // Arrange
         IServiceCollection services = CreateServiceCollection();
 
-        var idleTimeout = TimeSpan.FromMilliseconds(250);
+        var idleTimeout = TimeSpan.FromSeconds(1);
         if (serverIdleTimeout)
         {
             services.AddOptions<SlicTransportOptions>("server").Configure(options => options.IdleTimeout = idleTimeout);
@@ -304,7 +304,7 @@ public abstract class MultiplexedTransportConformanceTests
         ValueTask<IMultiplexedStream> acceptTask = serverConnection.AcceptStreamAsync(default);
 
         // Act
-        await Task.Delay(TimeSpan.FromSeconds(1));
+        await Task.Delay(TimeSpan.FromSeconds(2));
 
         // Assert
         Assert.That(acceptTask.IsCompleted, Is.False);
