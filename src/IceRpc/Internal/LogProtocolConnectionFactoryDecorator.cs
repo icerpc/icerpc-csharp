@@ -16,6 +16,8 @@ namespace IceRpc.Internal
             T networkConnection,
             bool isServer,
             ConnectionOptions connectionOptions,
+            Action onIdle,
+            Action<string> onShutdown,
             CancellationToken cancel)
         {
             (IProtocolConnection connection, NetworkConnectionInformation information) =
@@ -23,6 +25,8 @@ namespace IceRpc.Internal
                     networkConnection,
                     isServer,
                     connectionOptions,
+                    onIdle,
+                    onShutdown,
                     cancel).ConfigureAwait(false);
 
             using IDisposable scope = _logger.StartConnectionScope(information, isServer);

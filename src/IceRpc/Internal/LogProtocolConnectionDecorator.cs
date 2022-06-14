@@ -8,18 +8,6 @@ namespace IceRpc.Internal
     /// <summary>A log decorator for protocol connections.</summary>
     internal class LogProtocolConnectionDecorator : IProtocolConnection
     {
-        Action? IProtocolConnection.OnIdle
-        {
-            get => _decoratee.OnIdle;
-            set => _decoratee.OnIdle = value;
-        }
-
-        Action<string>? IProtocolConnection.OnShutdown
-        {
-            get => _decoratee.OnShutdown;
-            set => _decoratee.OnShutdown = value;
-        }
-
         Protocol IProtocolConnection.Protocol => _decoratee.Protocol;
 
         private readonly IProtocolConnection _decoratee;

@@ -6,12 +6,6 @@ namespace IceRpc.Internal;
 /// protocol.</summary>
 internal interface IProtocolConnection
 {
-    /// <summary>Gets or sets the callback called by the protocol connection when the connection is idle.</summary>
-    public Action? OnIdle { get; set; }
-
-    /// <summary>Gets or sets the callback called by the protocol connection to initiate shutdown.</summary>
-    Action<string>? OnShutdown { get; set; }
-
     /// <summary>Gets the protocol implemented by this protocol connection.</summary>
     Protocol Protocol { get; }
 

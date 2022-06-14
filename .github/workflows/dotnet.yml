@@ -41,5 +41,8 @@ jobs:
       run: dotnet build --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
+    # Required for Interop examples
+    - name: Install ZeroC Ice Slice compilers
+      run: sudo apt-get install -y zeroc-ice-compilers
     - name: Build Examples
       run: ./build.sh --examples --srcdist
