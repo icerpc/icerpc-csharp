@@ -11,21 +11,26 @@ namespace IceRpc.Internal;
 /// <summary>Code common to client and server connections.</summary>
 internal sealed class ConnectionCore
 {
-    internal bool IsInvocable => State < ConnectionState.ShuttingDown;
+    /// <summary>The state of this connection.</summary>
+    private enum ConnectionState : byte
+    {
+        /// <summary>The connection is in its initial state.</summary>
+        NotConnected,
+
+        /// <summary>The connection establishment is in progress.</summary>
+        Connecting,
+
+        /// <summary>The connection is active and can send and receive messages.</summary>
+        Active,
+
+        /// <summary>The connection is being gracefully shutdown.</summary>
+        ShuttingDown,
+
+        /// <summary>The connection is closed (terminal state).</summary>
+        Closed
+    }
 
     internal NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
-
-    /// <summary>Gets the state of the connection.</summary>
-    internal ConnectionState State
-    {
-        get
-        {
-            lock (_mutex)
-            {
-                return _state;
-            }
-        }
-    }
 
     private readonly CancellationTokenSource _connectCancellationSource = new();
 
