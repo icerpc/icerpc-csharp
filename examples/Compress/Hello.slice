@@ -1,0 +1,11 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module Demo;
+
+interface Hello
+{
+    // The Deflate interceptor compresses the payload of a request when this request carries the compress feature, and
+    // the Deflate middleware compresses the payload of a response when the corresponding incoming request carries the
+    // compress feature.
+    [compress(Args, Return)] sayHello(name: string) -> string;
+}
