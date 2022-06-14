@@ -92,20 +92,24 @@ namespace IceRpc
         /// properties have their default values.</summary>
         /// <param name="dispatcher">The dispatcher of the server.</param>
         /// <param name="endpoint">The endpoint of the server.</param>
+        /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
         /// <param name="authenticationOptions">The server authentication options.</param>
         public Server(
             IDispatcher dispatcher,
             Endpoint endpoint,
+            ILoggerFactory? loggerFactory = null,
             SslServerAuthenticationOptions? authenticationOptions = null)
-            : this(new ServerOptions
-            {
-                ServerAuthenticationOptions = authenticationOptions,
-                ConnectionOptions = new()
+            : this(
+                new ServerOptions
                 {
-                    Dispatcher = dispatcher,
+                    ServerAuthenticationOptions = authenticationOptions,
+                    ConnectionOptions = new()
+                    {
+                        Dispatcher = dispatcher,
+                    },
+                    Endpoint = endpoint
                 },
-                Endpoint = endpoint
-            })
+                loggerFactory)
         {
         }
 
