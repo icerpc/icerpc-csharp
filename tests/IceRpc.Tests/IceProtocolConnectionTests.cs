@@ -125,12 +125,12 @@ public sealed class IceProtocolConnectionTests
         Assert.That(maxCount, Is.EqualTo(maxConcurrentDispatches));
     }
 
-    /// <summary>Verifies that when dispatches are blocked waiting for the dispatch semaphore that disposing the server
+    /// <summary>Verifies that when dispatches are blocked waiting for the dispatch semaphore that aborting the server
     /// connection correctly cancels the dispatch semaphore wait. If the dispatch semaphore wait wasn't canceled, the
     /// DisposeAsync call would hang because it waits for the read semaphore to be released.</summary>
     /// </summary>
     [Test]
-    public async Task Connection_with_dispatches_waiting_for_concurrent_dispatch_unblocks_on_dispose()
+    public async Task Connection_with_dispatches_waiting_for_concurrent_dispatch_unblocks_on_abort()
     {
         // Arrange
         using var semaphore = new SemaphoreSlim(0);
@@ -163,7 +163,7 @@ public sealed class IceProtocolConnectionTests
         await Task.Delay(200);
 
         // Act
-        sut.Server.Dispose();
+        sut.Server.Abort(new ConnectionClosedException());
 
         // Assert
         Assert.That(dispatchCount, Is.EqualTo(1));
@@ -280,10 +280,7 @@ public sealed class IceProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
 
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-
-        sut.Server.OnShutdown = message =>
-            sut.Server.ShutdownAsync("");
+        await sut.ConnectAsync(onServerShutdown: message => sut.Server.ShutdownAsync(""));
 
         var invokeTask = sut.Client.InvokeAsync(
             new OutgoingRequest(new Proxy(Protocol.Ice)),

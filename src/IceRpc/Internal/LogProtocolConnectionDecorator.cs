@@ -8,18 +8,6 @@ namespace IceRpc.Internal
     /// <summary>A log decorator for protocol connections.</summary>
     internal class LogProtocolConnectionDecorator : IProtocolConnection
     {
-        Action? IProtocolConnection.OnIdle
-        {
-            get => _decoratee.OnIdle;
-            set => _decoratee.OnIdle = value;
-        }
-
-        Action<string>? IProtocolConnection.OnShutdown
-        {
-            get => _decoratee.OnShutdown;
-            set => _decoratee.OnShutdown = value;
-        }
-
         Protocol IProtocolConnection.Protocol => _decoratee.Protocol;
 
         private readonly IProtocolConnection _decoratee;
@@ -39,13 +27,6 @@ namespace IceRpc.Internal
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             _logger.LogAcceptRequests();
             await _decoratee.AcceptRequestsAsync(connection).ConfigureAwait(false);
-        }
-
-        void IDisposable.Dispose()
-        {
-            using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
-            _decoratee.Dispose();
-            _logger.LogProtocolConnectionDispose(_decoratee.Protocol);
         }
 
         async Task<IncomingResponse> IProtocolConnection.InvokeAsync(

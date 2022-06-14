@@ -10,20 +10,23 @@ namespace IceRpc;
 /// <summary>A connection pool manages a pool of client connections and is a client connection provider.</summary>
 public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
 {
-    // Connected connections that can be returned immediately
+    // Connected connections that can be returned immediately.
     private readonly Dictionary<Endpoint, ClientConnection> _activeConnections = new(EndpointComparer.ParameterLess);
 
     private readonly ILoggerFactory? _loggerFactory;
     private readonly IClientTransport<IMultiplexedNetworkConnection> _multiplexedClientTransport;
+
+    private readonly object _mutex = new();
 
     private readonly ConnectionPoolOptions _options;
 
     // New connections in the process of connecting. They can be returned only after ConnectAsync succeeds.
     private readonly Dictionary<Endpoint, ClientConnection> _pendingConnections = new(EndpointComparer.ParameterLess);
 
-    private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
+    // Formerly pending or active connections that are closed but not shutdown yet.
+    private readonly HashSet<ClientConnection> _shutdownPendingConnections = new();
 
-    private readonly object _mutex = new();
+    private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
 
     private CancellationTokenSource? _shutdownCancelSource;
     private Task? _shutdownTask;
@@ -176,8 +179,9 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
 
                 // Shut down all connections managed by this pool.
                 await Task.WhenAll(
-                    _pendingConnections.Values.Concat(_activeConnections.Values).Select(connection =>
-                        connection.ShutdownAsync("connection pool shutdown", cancel))).ConfigureAwait(false);
+                    _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_shutdownPendingConnections)
+                        .Select(connection => connection.ShutdownAsync("connection pool shutdown", cancel)))
+                        .ConfigureAwait(false);
             }
             finally
             {
@@ -252,15 +256,25 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
         }
         catch when (created)
         {
+            bool scheduleRemoveFromClosed = false;
+
             lock (_mutex)
             {
                 // the _pendingConnections collection is immutable after shutdown
                 if (_shutdownTask == null)
                 {
+                    // "move" from pending to shutdown pending
                     bool removed = _pendingConnections.Remove(endpoint);
                     Debug.Assert(removed);
+                    _ = _shutdownPendingConnections.Add(connection);
+                    scheduleRemoveFromClosed = true;
                 }
             }
+            if (scheduleRemoveFromClosed)
+            {
+                _ = RemoveFromClosedAsync(connection);
+            }
+
             throw;
         }
 
@@ -274,7 +288,6 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
                     bool removed = _pendingConnections.Remove(endpoint);
                     Debug.Assert(removed);
                     _activeConnections.Add(endpoint, connection);
-                    connection.OnClose(RemoveFromActive); // schedule removal after addition
                 }
                 else
                 {
@@ -282,18 +295,48 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
                     throw new ObjectDisposedException($"{typeof(ConnectionPool)}");
                 }
             }
+
+            // Schedule removal after addition. We do this outside the mutex lock otherwise RemoveFromActive could call
+            // await clientConnection.ShutdownAsync within this lock.
+            connection.OnClose(RemoveFromActive);
         }
         return connection;
 
         void RemoveFromActive(IConnection connection, Exception exception)
         {
+            bool scheduleRemoveFromClosed = false;
+            var clientConnection = (ClientConnection)connection;
+
             lock (_mutex)
             {
                 // the _activeConnections collection is immutable after shutdown
                 if (_shutdownTask == null)
                 {
-                    var clientConnection = (ClientConnection)connection;
+                    // "move" from active to shutdown pending
                     bool removed = _activeConnections.Remove(clientConnection.RemoteEndpoint);
+                    Debug.Assert(removed);
+                    _ = _shutdownPendingConnections.Add(clientConnection);
+                    scheduleRemoveFromClosed = true;
+                }
+            }
+
+            if (scheduleRemoveFromClosed)
+            {
+                _ = RemoveFromClosedAsync(clientConnection);
+            }
+        }
+
+        // Remove connection from _shutdownPendingConnections once the shutdown is complete
+        async Task RemoveFromClosedAsync(ClientConnection clientConnection)
+        {
+            await clientConnection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+
+            lock (_mutex)
+            {
+                // the _shutdownPendingConnections collection is immutable after shutdown
+                if (_shutdownTask == null)
+                {
+                    bool removed = _shutdownPendingConnections.Remove(clientConnection);
                     Debug.Assert(removed);
                 }
             }

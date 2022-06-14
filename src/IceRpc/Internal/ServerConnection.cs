@@ -5,7 +5,7 @@ using IceRpc.Transports;
 namespace IceRpc.Internal;
 
 /// <summary>A connection created by a <see cref="Server"/>.</summary>
-internal sealed class ServerConnection : IConnection, IAsyncDisposable
+internal sealed class ServerConnection : IConnection
 {
     /// <inheritdoc/>
     public bool IsInvocable => _isInvocable;
@@ -19,11 +19,6 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
     private readonly ConnectionCore _core;
 
     private volatile bool _isInvocable = true;
-
-    /// <inheritdoc/>
-    public ValueTask DisposeAsync() =>
-        // Perform a speedy graceful shutdown by canceling invocations and dispatches in progress.
-        new(ShutdownAsync("connection disposed", new CancellationToken(canceled: true)));
 
     /// <inheritdoc/>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>

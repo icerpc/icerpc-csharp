@@ -11,12 +11,12 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Internal
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Design",
+        "CA1001: Types that own disposable fields should be disposable",
+        Justification = "the disposable fields are cleaned up by Abort")]
     internal sealed class IceProtocolConnection : IProtocolConnection
     {
-        public Action? OnIdle { get; set; }
-
-        public Action<string>? OnShutdown { get; set; }
-
         public Protocol Protocol => Protocol.Ice;
 
         private static readonly IDictionary<RequestFieldKey, ReadOnlySequence<byte>> _idempotentFields =
@@ -56,6 +56,8 @@ namespace IceRpc.Internal
         private readonly SimpleNetworkConnectionReader _networkConnectionReader;
         private readonly SimpleNetworkConnectionWriter _networkConnectionWriter;
         private int _nextRequestId;
+        private readonly Action _onIdle;
+        private readonly Action<string> _onShutdown;
         private readonly IcePayloadPipeWriter _payloadWriter;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly CancellationTokenSource _readCancelSource = new();
@@ -134,8 +136,6 @@ namespace IceRpc.Internal
             }
         }
 
-        public void Dispose() => Abort(new ConnectionClosedException());
-
         public async Task<IncomingResponse> InvokeAsync(
             OutgoingRequest request,
             IConnection connection,
@@ -172,7 +172,7 @@ namespace IceRpc.Internal
                 {
                     lock (_mutex)
                     {
-                        if (_isShuttingDown || _isAborted)
+                        if (_isShuttingDown || _isShuttingDownOnIdle || _isAborted)
                         {
                             throw new ConnectionClosedException();
                         }
@@ -391,7 +391,7 @@ namespace IceRpc.Internal
             bool alreadyShuttingDown = false;
             lock (_mutex)
             {
-                if (_isShuttingDown && !_isShuttingDownOnIdle)
+                if (_isShuttingDown)
                 {
                     alreadyShuttingDown = true;
                 }
@@ -446,11 +446,18 @@ namespace IceRpc.Internal
             }
         }
 
-        internal IceProtocolConnection(ISimpleNetworkConnection simpleNetworkConnection, ConnectionOptions options)
+        internal IceProtocolConnection(
+            ISimpleNetworkConnection simpleNetworkConnection,
+            ConnectionOptions options,
+            Action onIdle,
+            Action<string> onShutdown)
         {
             _dispatcher = options.Dispatcher;
             _maxFrameSize = options.MaxIceFrameSize;
             _idleTimeout = options.IdleTimeout;
+
+            _onIdle = onIdle;
+            _onShutdown = onShutdown;
 
             if (options.MaxIceConcurrentDispatches > 0)
             {
@@ -551,23 +558,18 @@ namespace IceRpc.Internal
                 _idleTimeoutTimer = new Timer(
                     _ =>
                     {
-                        bool isIdle = false;
                         lock (_mutex)
                         {
-                            if (!_isShuttingDown && _invocations.Count == 0 && _dispatches.Count == 0)
+                            if (_invocations.Count > 0 || _dispatches.Count > 0)
                             {
-                                // Prevent new invocations or dispatches to be processed at this point.
-                                _isShuttingDown = true;
-                                _isShuttingDownOnIdle = true;
-                                _dispatchesAndInvocationsCompleted.SetResult();
-                                isIdle = true;
+                                return; // The connection is no longer idle.
                             }
+
+                            // Prevent new invocations or dispatches to be processed at this point.
+                            _isShuttingDownOnIdle = true;
                         }
 
-                        if (isIdle)
-                        {
-                            OnIdle?.Invoke();
-                        }
+                        _onIdle.Invoke();
                     },
                     null,
                     _idleTimeout,
@@ -733,7 +735,7 @@ namespace IceRpc.Internal
                         }
 
                         // Call the peer shutdown initiated callback.
-                        OnShutdown?.Invoke("connection shutdown by peer");
+                        _onShutdown.Invoke("connection shutdown by peer");
 
                         // Close the connection now. The peer expects the connection to be closed after the close
                         // connection frame is received.
@@ -898,7 +900,7 @@ namespace IceRpc.Internal
                 bool isClosed = false;
                 lock (_mutex)
                 {
-                    if (_isShuttingDown || _isAborted)
+                    if (_isShuttingDown || _isShuttingDownOnIdle || _isAborted)
                     {
                         isClosed = true;
                     }

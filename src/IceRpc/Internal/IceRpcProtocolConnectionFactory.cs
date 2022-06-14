@@ -11,19 +11,23 @@ namespace IceRpc.Internal
             IMultiplexedNetworkConnection networkConnection,
             bool isServer,
             ConnectionOptions connectionOptions,
+            Action onIdle,
+            Action<string> onShutdown,
             CancellationToken cancel)
         {
             var protocolConnection = new IceRpcProtocolConnection(networkConnection, connectionOptions);
             try
             {
                 NetworkConnectionInformation networkConnectionInformation = await protocolConnection.ConnectAsync(
+                    onIdle,
+                    onShutdown,
                     cancel).ConfigureAwait(false);
 
                 return (protocolConnection, networkConnectionInformation);
             }
             catch
             {
-                protocolConnection.Dispose();
+                protocolConnection.Abort(new ConnectionClosedException());
                 throw;
             }
         }
