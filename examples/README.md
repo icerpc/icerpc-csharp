@@ -1,7 +1,7 @@
 # IceRPC for C# Examples
 
-This directory contains example applications for various IceRPC components. These examples are provided to get you
-started on using a particular IceRPC feature or programming technique.
+This directory contains example applications for various IceRPC components. These examples have been provided to help 
+get you started using a particular IceRPC feature or programming technique.
 
 ## [Bidir](./Bidir/)
 
