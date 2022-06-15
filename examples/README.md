@@ -5,8 +5,8 @@ get you started using a particular IceRPC feature or programming technique.
 
 ## [Bidir](./Bidir/)
 
-The bidir example application shows how to make bidirectional calls, that is the server callback a client using a
-connection previously established by the client.
+The Bidir example application shows how to make bidirectional calls. A bidirectional call is a call in which the server 
+callbacks to the client using a connection previously established by the client.
 
 ## [Compress](./Compress/)
 
