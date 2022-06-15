@@ -89,19 +89,9 @@ namespace IceRpc
         /// <returns><c>true</c>when the two protocols have the same name; otherwise, <c>false</c>.</returns>
         public bool Equals(Protocol? other) => Name == other?.Name;
 
-        /// <summary>Converts a protocol-specific stream error code into an exception.</summary>
-        /// <param name="errorCode">The errorCode to convert.</param>
-        /// <returns>The corresponding exception.</returns>
-        public virtual Exception? FromStreamErrorCode(ulong errorCode) => throw new NotSupportedException();
-
         /// <summary>Computes the hash code for this protocol.</summary>
         /// <returns>The hash code.</returns>
         public override int GetHashCode() => Name.GetHashCode(StringComparison.Ordinal);
-
-        /// <summary>Converts an exception into a protocol-specific stream error code.</summary>
-        /// <param name="exception">The exception to convert.</param>
-        /// <returns>The corresponding error code.</returns>
-        public virtual ulong ToStreamErrorCode(Exception? exception) => throw new NotSupportedException();
 
         /// <summary>Converts this protocol into a string.</summary>
         /// <returns>The name of the protocol.</returns>
