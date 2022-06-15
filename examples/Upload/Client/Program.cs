@@ -8,8 +8,9 @@ using System.IO.Pipelines;
 await using var connection = new ClientConnection("icerpc://127.0.0.1");
 IUploaderPrx uploader = UploaderPrx.FromConnection(connection);
 
-// Create a FileStream for the image to be uploaded.
-await using var image = new FileStream("Client/images/Earth.png", FileMode.Open);
+// Create a FileStream for the image to be uploaded. This stream will be closed by IceRPC when it completes the
+// `PipeReader`. This is because the PipeReader has a `LeaveOpen` property which is to `false` by default.
+var image = new FileStream("Client/images/Earth.png", FileMode.Open);
 
 Console.WriteLine("Uploading image of the Earth...");
 
