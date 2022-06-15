@@ -103,6 +103,7 @@ public sealed class ConnectionPoolTests
 
     /// <summary>Verifies that the connection pool reuses existing connection.</summary>
     [Test]
+    [Repeat(1000)]
     public async Task Get_connection_reuses_existing_connection()
     {
         // Arrange

@@ -17,6 +17,25 @@ namespace IceRpc.Internal
         Justification = "the disposable fields are cleaned up by Abort")]
     internal sealed class IceProtocolConnection : IProtocolConnection
     {
+        /// <summary>The state of this connection.</summary>
+        private enum State : byte
+        {
+            /// <summary>The connection is in its initial state.</summary>
+            NotConnected,
+
+            /// <summary>The connection establishment is in progress.</summary>
+            Connecting,
+
+            /// <summary>The connection is active and can send and receive messages.</summary>
+            Active,
+
+            /// <summary>The connection is being gracefully shutdown.</summary>
+            ShuttingDown,
+
+            /// <summary>The connection is closed (terminal state).</summary>
+            Closed
+        }
+
         public Protocol Protocol => Protocol.Ice;
 
         private static readonly IDictionary<RequestFieldKey, ReadOnlySequence<byte>> _idempotentFields =
@@ -56,8 +75,7 @@ namespace IceRpc.Internal
         private readonly SimpleNetworkConnectionReader _networkConnectionReader;
         private readonly SimpleNetworkConnectionWriter _networkConnectionWriter;
         private int _nextRequestId;
-        private readonly Action _onIdle;
-        private readonly Action<string> _onShutdown;
+        private Action<string>? _onShutdown;
         private readonly IcePayloadPipeWriter _payloadWriter;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly CancellationTokenSource _readCancelSource = new();
@@ -133,6 +151,90 @@ namespace IceRpc.Internal
             finally
             {
                 _readFramesTaskCompletionSource?.SetResult();
+            }
+        }
+
+        public async Task<NetworkConnectionInformation> ConnectAsync(
+            bool isServer,
+            Action onIdle,
+            Action<string> onShutdown,
+            CancellationToken cancel)
+        {
+            // Connect the network connection
+            NetworkConnectionInformation networkConnectionInformation =
+                await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+
+            _onShutdown = onShutdown;
+
+            // Wait for the network connection establishment to set the idle timeout. The network connection
+            // ConnectAsync implementation would need otherwise to deal with thread safety if Dispose is called
+            // concurrently.
+            _networkConnectionReader.SetIdleTimeout(_idleTimeout);
+
+            if (isServer)
+            {
+                EncodeValidateConnectionFrame(_networkConnectionWriter);
+
+                // The flush can't be canceled because it would lead to the writing of an incomplete frame.
+                await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            else
+            {
+                ReadOnlySequence<byte> buffer = await _networkConnectionReader.ReadAtLeastAsync(
+                    IceDefinitions.PrologueSize,
+                    cancel).ConfigureAwait(false);
+
+                (IcePrologue validateConnectionFrame, long consumed) = DecodeValidateConnectionFrame(buffer);
+                _networkConnectionReader.AdvanceTo(buffer.GetPosition(consumed), buffer.End);
+
+                IceDefinitions.CheckPrologue(validateConnectionFrame);
+                if (validateConnectionFrame.FrameSize != IceDefinitions.PrologueSize)
+                {
+                    throw new InvalidDataException(
+                        $"received Ice frame with only '{validateConnectionFrame.FrameSize}' bytes");
+                }
+                if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
+                {
+                    throw new InvalidDataException(
+                        @$"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'");
+                }
+            }
+
+            if (_idleTimeout != Timeout.InfiniteTimeSpan)
+            {
+                _idleTimeoutTimer = new Timer(
+                    _ =>
+                    {
+                        lock (_mutex)
+                        {
+                            if (_invocations.Count > 0 || _dispatches.Count > 0)
+                            {
+                                return; // The connection is no longer idle.
+                            }
+
+                            // Prevent new invocations or dispatches to be processed at this point.
+                            _isShuttingDownOnIdle = true;
+                        }
+
+                        onIdle.Invoke();
+                    },
+                    null,
+                    _idleTimeout,
+                    Timeout.InfiniteTimeSpan);
+            }
+
+            return networkConnectionInformation;
+
+            static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
+            {
+                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
+                IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
+            }
+
+            static (IcePrologue, long) DecodeValidateConnectionFrame(ReadOnlySequence<byte> buffer)
+            {
+                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
+                return (new IcePrologue(ref decoder), decoder.Consumed);
             }
         }
 
@@ -446,18 +548,11 @@ namespace IceRpc.Internal
             }
         }
 
-        internal IceProtocolConnection(
-            ISimpleNetworkConnection simpleNetworkConnection,
-            ConnectionOptions options,
-            Action onIdle,
-            Action<string> onShutdown)
+        internal IceProtocolConnection(ISimpleNetworkConnection simpleNetworkConnection, ConnectionOptions options)
         {
             _dispatcher = options.Dispatcher;
             _maxFrameSize = options.MaxIceFrameSize;
             _idleTimeout = options.IdleTimeout;
-
-            _onIdle = onIdle;
-            _onShutdown = onShutdown;
 
             if (options.MaxIceConcurrentDispatches > 0)
             {
@@ -510,84 +605,6 @@ namespace IceRpc.Internal
                     var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
                     IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
                 }
-            }
-        }
-
-        internal async Task<NetworkConnectionInformation> ConnectAsync(bool isServer, CancellationToken cancel)
-        {
-            // Connect the network connection
-            NetworkConnectionInformation networkConnectionInformation =
-                await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
-
-            // Wait for the network connection establishment to set the idle timeout. The network connection
-            // ConnectAsync implementation would need otherwise to deal with thread safety if Dispose is called
-            // concurrently.
-            _networkConnectionReader.SetIdleTimeout(_idleTimeout);
-
-            if (isServer)
-            {
-                EncodeValidateConnectionFrame(_networkConnectionWriter);
-
-                // The flush can't be canceled because it would lead to the writing of an incomplete frame.
-                await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-            }
-            else
-            {
-                ReadOnlySequence<byte> buffer = await _networkConnectionReader.ReadAtLeastAsync(
-                    IceDefinitions.PrologueSize,
-                    cancel).ConfigureAwait(false);
-
-                (IcePrologue validateConnectionFrame, long consumed) = DecodeValidateConnectionFrame(buffer);
-                _networkConnectionReader.AdvanceTo(buffer.GetPosition(consumed), buffer.End);
-
-                IceDefinitions.CheckPrologue(validateConnectionFrame);
-                if (validateConnectionFrame.FrameSize != IceDefinitions.PrologueSize)
-                {
-                    throw new InvalidDataException(
-                        $"received Ice frame with only '{validateConnectionFrame.FrameSize}' bytes");
-                }
-                if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
-                {
-                    throw new InvalidDataException(
-                        @$"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'");
-                }
-            }
-
-            if (_idleTimeout != Timeout.InfiniteTimeSpan)
-            {
-                _idleTimeoutTimer = new Timer(
-                    _ =>
-                    {
-                        lock (_mutex)
-                        {
-                            if (_invocations.Count > 0 || _dispatches.Count > 0)
-                            {
-                                return; // The connection is no longer idle.
-                            }
-
-                            // Prevent new invocations or dispatches to be processed at this point.
-                            _isShuttingDownOnIdle = true;
-                        }
-
-                        _onIdle.Invoke();
-                    },
-                    null,
-                    _idleTimeout,
-                    Timeout.InfiniteTimeSpan);
-            }
-
-            return networkConnectionInformation;
-
-            static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
-            {
-                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
-                IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
-            }
-
-            static (IcePrologue, long) DecodeValidateConnectionFrame(ReadOnlySequence<byte> buffer)
-            {
-                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
-                return (new IcePrologue(ref decoder), decoder.Consumed);
             }
         }
 
@@ -688,6 +705,8 @@ namespace IceRpc.Internal
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         private async ValueTask ReadFramesAsync(IConnection connection, CancellationToken cancel)
         {
+            Debug.Assert(_onShutdown != null);
+
             while (true)
             {
                 ReadOnlySequence<byte> buffer = await _networkConnectionReader.ReadAtLeastAsync(

@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
+
 namespace IceRpc.Internal;
 
 /// <summary>A protocol connection enables communication over a network connection using either the ice or icerpc
@@ -18,6 +20,18 @@ internal interface IProtocolConnection
     /// <param name="connection">The connection of incoming requests created by this method.</param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     Task AcceptRequestsAsync(IConnection connection);
+
+    /// <summary>Connects a protocol connection.</summary>
+    /// <param name="isServer"><c>true</c> if the connection is a server connection, <c>false</c> otherwise.</param>
+    /// <param name="onIdle">The callback called by the protocol connection when the connection is idle.</param>
+    /// <param name="onShutdown">The callback called by the protocol connection to initiate shutdown.</param>
+    /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>The network connection information.</returns>
+    Task<NetworkConnectionInformation> ConnectAsync(
+        bool isServer,
+        Action onIdle,
+        Action<string> onShutdown,
+        CancellationToken cancel);
 
     /// <summary>Sends a request and returns the response. The implementation must complete the request payload
     /// and payload stream.</summary>

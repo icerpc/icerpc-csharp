@@ -9,17 +9,7 @@ internal interface IProtocolConnectionFactory<T>
 {
     /// <summary>Creates a protocol connection over a network connection.</summary>
     /// <param name="networkConnection">The network connection.</param>
-    /// <param name="isServer"><c>true</c> if the connection is a server connection, <c>false</c> otherwise.</param>
     /// <param name="connectionOptions">The options class to configure the connection.</param>
-    /// <param name="onIdle">The callback called by the protocol connection when the connection is idle.</param>
-    /// <param name="onShutdown">The callback called by the protocol connection to initiate shutdown.</param>
-    /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The protocol connection and network connection information.</returns>
-    Task<(IProtocolConnection, NetworkConnectionInformation)> CreateConnectionAsync(
-        T networkConnection,
-        bool isServer,
-        ConnectionOptions connectionOptions,
-        Action onIdle,
-        Action<string> onShutdown,
-        CancellationToken cancel);
+    IProtocolConnection CreateConnection(T networkConnection, ConnectionOptions connectionOptions);
 }

@@ -84,14 +84,23 @@ internal sealed class ConnectionCore
 
             // Create the protocol connection. The protocol connection owns the network connection and is responsible
             // for its disposal. If the protocol connection establishment fails, the network connection is disposed.
-            (IProtocolConnection protocolConnection, NetworkConnectionInformation) =
-                await protocolConnectionFactory.CreateConnectionAsync(
-                    networkConnection,
+            IProtocolConnection protocolConnection = protocolConnectionFactory.CreateConnection(
+                networkConnection,
+                _options);
+
+            try
+            {
+                 NetworkConnectionInformation = await protocolConnection.ConnectAsync(
                     isServer,
-                    _options,
                     onIdle: () => _ = ShutdownAsync(connection, "idle connection", CancellationToken.None),
                     onShutdown: message => _ = ShutdownAsync(connection, message, CancellationToken.None),
                     cancel).ConfigureAwait(false);
+            }
+            catch
+            {
+                protocolConnection.Abort(new ConnectionClosedException());
+                throw;
+            }
 
             lock (_mutex)
             {
