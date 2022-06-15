@@ -72,6 +72,7 @@ namespace IceRpc.Transports
             return new SlicNetworkConnection(
                 simpleNetworkConnection,
                 isServer: false,
+                remoteEndpoint.Protocol,
                 slicFrameReaderDecorator,
                 slicFrameWriterDecorator,
                 _slicTransportOptions);

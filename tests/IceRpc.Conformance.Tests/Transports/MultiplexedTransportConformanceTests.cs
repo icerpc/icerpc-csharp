@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -637,10 +638,10 @@ public abstract class MultiplexedTransportConformanceTests
         var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
 
         // Act
-        await sut.RemoteStream.Input.CompleteAsync(new MultiplexedStreamException((MultiplexedStreamErrorCode)errorCode));
+        await sut.RemoteStream.Input.CompleteAsync(new IceRpcProtocolStreamException((IceRpcStreamErrorCode)errorCode));
 
         // Assert
-        MultiplexedStreamException? ex = Assert.CatchAsync<MultiplexedStreamException>(
+        IceRpcProtocolStreamException? ex = Assert.CatchAsync<IceRpcProtocolStreamException>(
             async () =>
             {
                 while (true)
@@ -650,7 +651,7 @@ public abstract class MultiplexedTransportConformanceTests
                 }
             });
         Assert.That(ex, Is.Not.Null);
-        Assert.That(ex!.ErrorCode, Is.EqualTo((MultiplexedStreamErrorCode)errorCode));
+        Assert.That(ex!.ErrorCode, Is.EqualTo((IceRpcStreamErrorCode)errorCode));
 
         // Complete the pipe readers/writers to shutdown the stream.
         await CompleteStreamsAsync(sut);
@@ -672,15 +673,15 @@ public abstract class MultiplexedTransportConformanceTests
         var sut = await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
 
         // Act
-        await sut.LocalStream.Output.CompleteAsync(new MultiplexedStreamException((MultiplexedStreamErrorCode)errorCode));
+        await sut.LocalStream.Output.CompleteAsync(new IceRpcProtocolStreamException((IceRpcStreamErrorCode)errorCode));
 
         // Assert
         // Wait for the peer to receive the StreamStopSending/StreamReset frame.
         await Task.Delay(TimeSpan.FromMilliseconds(50));
-        MultiplexedStreamException? ex = Assert.CatchAsync<MultiplexedStreamException>(
+        IceRpcProtocolStreamException? ex = Assert.CatchAsync<IceRpcProtocolStreamException>(
             async () => await sut.RemoteStream.Input.ReadAsync());
         Assert.That(ex, Is.Not.Null);
-        Assert.That(ex!.ErrorCode, Is.EqualTo((MultiplexedStreamErrorCode)errorCode));
+        Assert.That(ex!.ErrorCode, Is.EqualTo((IceRpcStreamErrorCode)errorCode));
 
         // Complete the pipe readers/writers to shutdown the stream.
         await CompleteStreamsAsync(sut);

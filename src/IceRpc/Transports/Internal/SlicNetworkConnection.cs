@@ -28,6 +28,9 @@ namespace IceRpc.Transports.Internal
 
         internal MemoryPool<byte> Pool { get; }
 
+        /// <summary>Gets the protocol that uses this network connection.</summary>
+        internal Protocol Protocol { get; }
+
         internal int ResumeWriterThreshold { get; }
 
         private readonly AsyncQueue<IMultiplexedStream> _acceptStreamQueue = new();
@@ -313,11 +316,13 @@ namespace IceRpc.Transports.Internal
         internal SlicNetworkConnection(
             ISimpleNetworkConnection simpleNetworkConnection,
             bool isServer,
+            Protocol protocol,
             Func<ISlicFrameReader, ISlicFrameReader> slicFrameReaderDecorator,
             Func<ISlicFrameWriter, ISlicFrameWriter> slicFrameWriterDecorator,
             SlicTransportOptions slicOptions)
         {
             IsServer = isServer;
+            Protocol = protocol;
             PauseWriterThreshold = slicOptions.PauseWriterThreshold;
             ResumeWriterThreshold = slicOptions.ResumeWriterThreshold;
             Pool = slicOptions.Pool;

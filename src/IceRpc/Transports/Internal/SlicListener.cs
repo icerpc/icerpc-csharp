@@ -15,6 +15,7 @@ namespace IceRpc.Transports.Internal
             new SlicNetworkConnection(
                 await _simpleListener.AcceptAsync().ConfigureAwait(false),
                 isServer: true,
+                Endpoint.Protocol,
                 _slicFrameReaderDecorator,
                 _slicFrameWriterDecorator,
                 _slicOptions);
