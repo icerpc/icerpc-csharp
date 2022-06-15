@@ -20,7 +20,7 @@ injection (DI).
 
 ## [Hello](./Hello/)
 
-The hello example application shows how to create a minimal IceRPC client and server application, implementing the
+The Hello example application shows how to create a minimal IceRPC client and server application implementing the 
 canonical "Hello World" example.
 
 ## [Interop](./Interop/)
