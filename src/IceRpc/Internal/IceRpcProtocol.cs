@@ -20,13 +20,13 @@ namespace IceRpc.Internal
                 IceRpcStreamErrorCode.NoError => null,
 
                 IceRpcStreamErrorCode.OperationCanceled =>
-                    new OperationCanceledException("request canceled by peer"),
+                    new OperationCanceledException("the operation was canceled by the remote peer"),
 
                 IceRpcStreamErrorCode.ConnectionShutdown =>
-                    new ConnectionClosedException("connection shutdown by peer"),
+                    new ConnectionClosedException("the connection was shut down by the remote peer"),
 
                 IceRpcStreamErrorCode.InvalidData =>
-                    new InvalidDataException("peer failed to decode data"),
+                    new InvalidDataException("the remote peer failed to decode data from the stream"),
 
                 _ => new IceRpcProtocolStreamException((IceRpcStreamErrorCode)errorCode)
             };
@@ -43,8 +43,7 @@ namespace IceRpc.Internal
                 {
                     ConnectionClosedException => (ulong)IceRpcStreamErrorCode.ConnectionShutdown,
 
-                    IceRpcProtocolStreamException multiplexedStreamException =>
-                        (ulong)multiplexedStreamException.ErrorCode,
+                    IceRpcProtocolStreamException streamException => (ulong)streamException.ErrorCode,
 
                     OperationCanceledException => (ulong)IceRpcStreamErrorCode.OperationCanceled,
 
