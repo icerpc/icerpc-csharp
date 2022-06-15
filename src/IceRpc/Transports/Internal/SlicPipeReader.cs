@@ -75,8 +75,6 @@ namespace IceRpc.Transports.Internal
                 {
                     // If reads aren't marked as completed yet, abort stream reads. This will send a stream stop sending
                     // frame to the peer to notify it shouldn't send additional data.
-
-                    // TODO: rename to CompleteRead?
                     _stream.AbortRead(_errorCodeConverter.ToErrorCode(exception));
                 }
 
