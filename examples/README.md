@@ -10,8 +10,8 @@ callbacks to the client using a connection previously established by the client.
 
 ## [Compress](./Compress/)
 
-The compress example application shows how to use the deflate interceptor and middleware to compress and decompres
-the arguments and return value of an invocation.
+The Compress example application shows how to use the deflate interceptor and middleware to compress and decompress the 
+arguments and return the value of an invocation.
 
 ## [GenericHost](./GenericHost/)
 
