@@ -47,4 +47,4 @@ The Secure example shows how to create client and server applications that commu
 
 ## [Stream](./Stream/)
 
-The Stream application shows how to stream data from a client to a server.
+The Stream example shows how to stream data from a client to a server.
