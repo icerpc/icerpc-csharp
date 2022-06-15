@@ -35,8 +35,8 @@ integrated with [OpenTelemetry](https://opentelemetry.io/) to export traces to [
 
 ## [RequestContext](./RequestContext/)
 
-The request context example application shows how to attach contextual information to the invocation and how to access
-this information from the dispatch.
+The RequestContext example application shows how to attach contextual information to the invocation and access this 
+information from the dispatch.
 
 ## [Retry](./Retry/)
 
