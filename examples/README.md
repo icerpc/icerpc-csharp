@@ -43,7 +43,7 @@ The Retry example shows how to use the retry interceptor to retry failed invocat
 
 ## [Secure](./Secure/)
 
-The Secure example shows how to create client and server applications that communicates using TLS secure connections.
+The Secure example shows how to create client and server applications that communicate using TLS secure connections.
 
 ## [Stream](./Stream/)
 
