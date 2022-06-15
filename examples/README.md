@@ -39,7 +39,7 @@ this information from the dispatch.
 
 ## [Retry](./Retry/)
 
-The retry example application shows how to use the retry interceptor to retry failed invocations.
+The Retry example application shows how to use the retry interceptor to retry failed invocations.
 
 ## [Secure](./Secure/)
 
