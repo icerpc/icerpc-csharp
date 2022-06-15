@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
@@ -222,10 +223,9 @@ namespace IceRpc.Internal
                         await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
                     }
 
-                    if (exception is OperationCanceledException)
+                    if (exception is OperationCanceledException or IceRpcProtocolStreamException)
                     {
-                        // The stream can be aborted if the invocation is canceled. It's not a fatal connection error,
-                        // we can continue accepting new requests.
+                        // A stream failure is not a fatal connection error; we can continue accepting new requests.
                         continue; // while (true)
                     }
                     else

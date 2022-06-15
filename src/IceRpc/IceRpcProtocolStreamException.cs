@@ -6,7 +6,7 @@ namespace IceRpc;
 
 /// <summary>This exception represents an icerpc-specific error transmitted as an error code over a multiplexed stream.
 /// The multiplexed stream APIs throw this exception when the error code carried by the stream does not map to another
-/// another exception.</summary>
+/// exception.</summary>
 /// <seealso cref="Protocol.FromStreamErrorCode"/>
 /// <seealso cref="Protocol.ToStreamErrorCode"/>
 public class IceRpcProtocolStreamException : Exception
