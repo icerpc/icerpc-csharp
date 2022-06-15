@@ -117,6 +117,8 @@ namespace IceRpc.Transports.Internal
                     _logger.LogSentSlicCloseFrame(dataSize, closeBody.ApplicationProtocolErrorCode);
                     break;
                 }
+                case FrameType.Pong:
+                case FrameType.Ping:
                 case FrameType.Stream:
                 case FrameType.StreamLast:
                 {

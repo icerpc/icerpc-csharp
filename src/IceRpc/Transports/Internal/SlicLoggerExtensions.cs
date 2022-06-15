@@ -18,6 +18,20 @@ namespace IceRpc.Transports.Internal
             ulong errorCode);
 
         [LoggerMessage(
+            EventId = (int)SlicEventIds.ReceivedCloseFrame,
+            EventName = nameof(SlicEventIds.ReceivedCloseFrame),
+            Level = LogLevel.Debug,
+            Message = "received Slic Ping frame (FrameSize={FrameSize})")]
+        internal static partial void LogReceivedSlicPingFrame(this ILogger logger, int frameSize);
+
+        [LoggerMessage(
+            EventId = (int)SlicEventIds.ReceivedCloseFrame,
+            EventName = nameof(SlicEventIds.ReceivedCloseFrame),
+            Level = LogLevel.Debug,
+            Message = "received Slic Pong frame (FrameSize={FrameSize})")]
+        internal static partial void LogReceivedSlicPongFrame(this ILogger logger, int frameSize);
+
+        [LoggerMessage(
             EventId = (int)SlicEventIds.ReceivedStreamResetFrame,
             EventName = nameof(SlicEventIds.ReceivedStreamResetFrame),
             Level = LogLevel.Debug,
