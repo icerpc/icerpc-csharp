@@ -30,6 +30,12 @@ internal class ReadOnlyFeatureCollectionDecorator : IFeatureCollection
     /// <inheritdoc />
     public IEnumerator<KeyValuePair<Type, object>> GetEnumerator() => _decoratee.GetEnumerator();
 
+    /// <inheritdoc />
+    public TFeature? Get<TFeature>() => _decoratee.Get<TFeature>();
+
+    /// <inheritdoc />
+    public void Set<TFeature>(TFeature? feature) => _decoratee.Set(feature);
+
     /// <summary>Constructs a read-only feature collection over another feature collection.</summary>
     /// <param name="decoratee">The decoratee.</param>
     internal ReadOnlyFeatureCollectionDecorator(IFeatureCollection decoratee)

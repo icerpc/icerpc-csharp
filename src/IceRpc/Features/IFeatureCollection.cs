@@ -22,10 +22,10 @@ public interface IFeatureCollection : IEnumerable<KeyValuePair<Type, object>>
     /// <summary>Gets the requested feature. If the feature is not set, returns null.</summary>
     /// <typeparam name="TFeature">The feature key.</typeparam>
     /// <returns>The requested feature.</returns>
-    TFeature? Get<TFeature>() => this[typeof(TFeature)] is object value ? (TFeature)value : default;
+    TFeature? Get<TFeature>();
 
     /// <summary>Sets a new feature. Setting null removes the feature.</summary>
     /// <typeparam name="TFeature">The feature key.</typeparam>
     /// <param name="feature">The feature value.</param>
-    void Set<TFeature>(TFeature? feature) => this[typeof(TFeature)] = feature;
+    void Set<TFeature>(TFeature? feature);
 }
