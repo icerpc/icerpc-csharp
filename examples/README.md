@@ -15,8 +15,8 @@ arguments and return the value of an invocation.
 
 ## [GenericHost](./GenericHost/)
 
-The generic host example application shows how to create IceRPC client and server applications using the .NET
-dependency injection (DI).
+The GenericHost example application shows how to create an IceRPC client and server applications using .NET dependency 
+injection (DI).
 
 ## [Hello](./Hello/)
 
