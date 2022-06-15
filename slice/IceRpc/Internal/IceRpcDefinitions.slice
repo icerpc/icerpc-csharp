@@ -64,8 +64,7 @@ compact struct IceRpcGoAway
 }
 
 /// The icerpc-specific error codes carried by multiplexed streams. These values are shared and carried blindly by
-/// all multiplexed transports. Multiplexed transports don't interpret these error codes or generate these codes, and
-/// never correspond to transport failures.
+/// all multiplexed transports. Multiplexed transports don't interpret these error codes or generate these codes.
 unchecked enum IceRpcStreamErrorCode : varuint62
 {
     /// The stream (or one side of the stream) completed without error.
