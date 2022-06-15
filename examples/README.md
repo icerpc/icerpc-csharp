@@ -15,7 +15,8 @@ and return the value of an invocation.
 
 ## [GenericHost](./GenericHost/)
 
-The GenericHost example shows how to create client and server applications using .NET dependency injection (DI).
+The GenericHost example shows how to create client and server applications using Microsoft's Dependency Injection
+container.
 
 ## [Hello](./Hello/)
 
@@ -24,8 +25,7 @@ example.
 
 ## [Interop](./Interop/)
 
-The Interop example application shows how IceRPC interoperates with ZeroC Ice using the ice protocol and Slice 1
-encoding.
+The Interop example application shows how IceRPC interoperates with [ZeroC Ice](https://github.com/zeroc-ice/ice).
 
 ## [OpenTelemetry](./OpenTelemetry/)
 
@@ -43,7 +43,7 @@ The Retry example shows how to use the retry interceptor to retry failed invocat
 
 ## [Secure](./Secure/)
 
-The Secure example shows how to create client and server applications that communicate using TLS secure connections.
+The Secure example shows how to create client and server applications that communicate using TLS secured connections.
 
 ## [Stream](./Stream/)
 
