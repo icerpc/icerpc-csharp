@@ -25,7 +25,8 @@ canonical "Hello World" example.
 
 ## [Interop](./Interop/)
 
-The interop example application shows how IceRPC inteoperates with ZeroC Ice using ice protocol and Slice 1 encoding.
+The Interop example application shows how IceRPC interoperates with ZeroC Ice using the ice protocol and Slice 1 
+encoding.
 
 ## [OpenTelemetry](./OpenTelemetry/)
 
