@@ -17,7 +17,7 @@ public class Uploader : Service, IUploader
         using Stream imageStream = image.AsStream();
 
         // Create the file, or overwrite if the file exists.
-        using FileStream fs = File.Create($"Server/uploads/uploaded_earth.png");
+        using FileStream fs = File.Create("Server/uploads/uploaded_earth.png");
 
         // Copy the image to the file stream.
         await imageStream.CopyToAsync(fs, cancel);
