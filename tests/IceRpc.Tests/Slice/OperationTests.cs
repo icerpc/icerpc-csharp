@@ -282,7 +282,7 @@ public class OperationTests
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
-        provider.GetRequiredService<Server>().Listen();;
+        provider.GetRequiredService<Server>().Listen();
 
         // Act
         (int r1, int r2) = await prx.OpWithMultipleReturnValuesAndEncodedResultAttributeAsync();

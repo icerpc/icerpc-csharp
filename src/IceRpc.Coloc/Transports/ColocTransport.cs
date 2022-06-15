@@ -2,7 +2,6 @@
 
 using IceRpc.Transports.Internal;
 using System.Collections.Concurrent;
-using System.Collections.Immutable;
 
 namespace IceRpc.Transports
 {

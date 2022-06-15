@@ -376,7 +376,7 @@ public class ProxyTests
             .BuildServiceProvider(validateScopes: true);
 
         var prx = SendProxyTestPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
-         provider.GetRequiredService<Server>().Listen();
+        provider.GetRequiredService<Server>().Listen();
 
         await prx.SendProxyAsync(prx);
 

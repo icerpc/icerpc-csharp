@@ -117,8 +117,8 @@ internal class ClientServerProtocolConnection<T> : IClientServerProtocolConnecti
                 _clientTransport.CreateConnection(_listener.Endpoint, null, NullLogger.Instance),
                 isServer: false,
                 _clientConnectionOptions,
-                onClientIdle ?? (() => {}),
-                onClientShutdown ?? (_ => {}),
+                onClientIdle ?? (() => { }),
+                onClientShutdown ?? (_ => { }),
                 CancellationToken.None);
 
         Task<(IProtocolConnection, NetworkConnectionInformation)> serverProtocolConnectionTask =
@@ -126,8 +126,8 @@ internal class ClientServerProtocolConnection<T> : IClientServerProtocolConnecti
                 await _listener.AcceptAsync(),
                 isServer: true,
                 _serverOptions.ConnectionOptions,
-                onServerIdle ?? (() => {}),
-                onServerShutdown ?? (_ => {}),
+                onServerIdle ?? (() => { }),
+                onServerShutdown ?? (_ => { }),
                 CancellationToken.None);
 
         (_client, _) = await clientProtocolConnectionTask;

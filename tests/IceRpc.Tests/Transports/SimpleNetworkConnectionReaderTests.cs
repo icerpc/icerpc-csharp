@@ -36,7 +36,7 @@ public class SimpleNetworkConnectionReaderTests
             clientConnection,
             MemoryPool<byte>.Shared,
             4096,
-            abortAction: _ => {},
+            abortAction: _ => { },
             keepAliveAction: () => ++pingCount);
         reader.SetIdleTimeout(TimeSpan.FromMilliseconds(1000));
 
@@ -109,7 +109,7 @@ public class SimpleNetworkConnectionReaderTests
             MemoryPool<byte>.Shared,
             4096,
             abortAction: _ => abortCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64),
-            keepAliveAction: () => {});
+            keepAliveAction: () => { });
         reader.SetIdleTimeout(TimeSpan.FromMilliseconds(500));
 
         // Write and read data to defer the idle timeout
