@@ -5,17 +5,18 @@ started on using a particular IceRPC feature or programming technique.
 
 ## [Bidir](./Bidir/)
 
-The bidir example application shows how to make bidirectional calls, that is the server callback a clinet using a
-connection previously stablished by the client.
+The bidir example application shows how to make bidirectional calls, that is the server callback a client using a
+connection previously established by the client.
 
 ## [Compress](./Compress/)
+
 The compress example application shows how to use the deflate interceptor and middleware to compress and decompres
 the arguments and return value of an invocation.
 
 ## [GenericHost](./GenericHost/)
 
 The generic host example application shows how to create IceRPC client and server applications using the .NET
-dependency injection (DI) and .NET Generic Host.
+dependency injection (DI).
 
 ## [Hello](./Hello/)
 
@@ -24,7 +25,7 @@ canonical "Hello World" example.
 
 ## [Interop](./Interop/)
 
-The interop example applications shows how IceRPC inteoperates with  ZeroC Ice using ice protocol and Slice 1 encoding.
+The interop example application shows how IceRPC inteoperates with ZeroC Ice using ice protocol and Slice 1 encoding.
 
 ## [OpenTelemetry](./OpenTelemetry/)
 
@@ -42,7 +43,8 @@ The retry example application shows how to use the retry interceptor to retry fa
 
 ## [Secure](./Secure/)
 
-The secure example application shows how to use TLS secure connections with IceRPC.
+The secure example application shows how to create a client and server application that communicates  using TLS secure
+connections.
 
 ## [Stream](./Stream/)
 
