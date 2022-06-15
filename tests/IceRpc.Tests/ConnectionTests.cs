@@ -464,7 +464,7 @@ public class ConnectionTests
         {
             Assert.That(async () => await shutdownTask, Throws.Nothing);
 
-            Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
+            Assert.That(async () => await pingTask, Throws.InstanceOf<OperationCanceledException>());
             Assert.That(async () => await dispatchCompletionSource.Task, Throws.Nothing);
         }
         else

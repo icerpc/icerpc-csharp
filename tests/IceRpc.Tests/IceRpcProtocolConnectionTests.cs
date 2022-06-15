@@ -104,7 +104,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(async () => await invokeTask, Throws.TypeOf<OperationCanceledException>());
+            Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
             Assert.That(async () => await shutdownTask, Throws.Nothing);
             Assert.That(async () => await tcs.Task, Throws.Nothing);
         });

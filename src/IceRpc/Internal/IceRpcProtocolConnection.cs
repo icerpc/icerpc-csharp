@@ -532,12 +532,6 @@ namespace IceRpc.Internal
                     ResultType = header.ResultType
                 };
             }
-            catch (TaskCanceledException)
-            {
-                var exception = new OperationCanceledException();
-                await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
-                throw ExceptionUtil.Throw(exception);
-            }
             catch (Exception exception)
             {
                 await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
