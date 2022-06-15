@@ -725,7 +725,7 @@ namespace IceRpc.Internal
                     _controlStreamSemaphore.Release();
                 }
 
-                await _networkConnection.ShutdownAsync(applicationErrorCode: 0, cancel).ConfigureAwait(false);
+                await _networkConnection.ShutdownAsync(applicationErrorCode: 0, CancellationToken.None).ConfigureAwait(false);
             }
             catch
             {
