@@ -11,7 +11,7 @@ namespace IceRpc.Transports.Internal
     {
         private Exception? _exception;
         private readonly Pipe _pipe;
-        private readonly Protocol _protocol;
+        private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
         private int _state;
         private readonly SlicMultiplexedStream _stream;
 
@@ -37,8 +37,7 @@ namespace IceRpc.Transports.Internal
                             $"can't complete {nameof(SlicPipeWriter)} with unflushed bytes");
                     }
 
-                    // TODO: rename of CompleteWrite?
-                    _stream.AbortWrite(_protocol.ToStreamErrorCode(exception));
+                    _stream.AbortWrite(_errorCodeConverter.ToErrorCode(exception));
                 }
 
                 _pipe.Writer.Complete(exception);
@@ -158,12 +157,12 @@ namespace IceRpc.Transports.Internal
 
         internal SlicPipeWriter(
             SlicMultiplexedStream stream,
-            Protocol protocol,
+            IMultiplexedStreamErrorCodeConverter errorCodeConverter,
             MemoryPool<byte> pool,
             int minimumSegmentSize)
         {
             _stream = stream;
-            _protocol = protocol;
+            _errorCodeConverter = errorCodeConverter;
 
             // Create a pipe that never pauses on flush or write. The SlicePipeWriter will pause the flush or write if
             // the Slic flow control doesn't permit sending more data. We also use an inline pipe scheduler for write to
@@ -178,7 +177,7 @@ namespace IceRpc.Transports.Internal
         internal void Abort(Exception exception) => CompletePipeReader(exception);
 
         internal void ReceivedStopSendingFrame(ulong errorCode) =>
-            CompletePipeReader(_protocol.FromStreamErrorCode(errorCode));
+            CompletePipeReader(_errorCodeConverter.FromErrorCode(errorCode));
 
         private void CheckIfCompleted()
         {

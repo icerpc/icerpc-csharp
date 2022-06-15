@@ -74,7 +74,7 @@ namespace IceRpc.Transports.Internal
 
             // We don't wait for the application to complete the stream Input and Output to shutdown the stream. We
             // abort reads and writes right away to shutdown the stream.
-            ulong errorCode = _connection.Protocol.ToStreamErrorCode(exception);
+            ulong errorCode = _connection.ErrorCodeConverter.ToErrorCode(exception);
             AbortRead(errorCode);
             AbortWrite(errorCode);
         }
@@ -98,7 +98,7 @@ namespace IceRpc.Transports.Internal
 
             _inputPipeReader = new SlicPipeReader(
                 this,
-                _connection.Protocol,
+                _connection.ErrorCodeConverter,
                 _connection.Pool,
                 _connection.MinimumSegmentSize,
                 _connection.ResumeWriterThreshold,
@@ -107,7 +107,7 @@ namespace IceRpc.Transports.Internal
 
             _outputPipeWriter = new SlicPipeWriter(
                 this,
-                _connection.Protocol,
+                _connection.ErrorCodeConverter,
                 _connection.Pool,
                 _connection.MinimumSegmentSize);
 

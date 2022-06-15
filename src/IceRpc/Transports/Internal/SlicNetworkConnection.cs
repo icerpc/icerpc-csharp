@@ -20,6 +20,8 @@ namespace IceRpc.Transports.Internal
 
         internal int MinimumSegmentSize { get; }
 
+        internal IMultiplexedStreamErrorCodeConverter ErrorCodeConverter { get; }
+
         internal int PauseWriterThreshold { get; }
 
         internal int PeerPacketMaxSize { get; private set; }
@@ -27,9 +29,6 @@ namespace IceRpc.Transports.Internal
         internal int PeerPauseWriterThreshold { get; private set; }
 
         internal MemoryPool<byte> Pool { get; }
-
-        /// <summary>Gets the protocol that uses this network connection.</summary>
-        internal Protocol Protocol { get; }
 
         internal int ResumeWriterThreshold { get; }
 
@@ -316,13 +315,13 @@ namespace IceRpc.Transports.Internal
         internal SlicNetworkConnection(
             ISimpleNetworkConnection simpleNetworkConnection,
             bool isServer,
-            Protocol protocol,
+            IMultiplexedStreamErrorCodeConverter errorCodeConverter,
             Func<ISlicFrameReader, ISlicFrameReader> slicFrameReaderDecorator,
             Func<ISlicFrameWriter, ISlicFrameWriter> slicFrameWriterDecorator,
             SlicTransportOptions slicOptions)
         {
             IsServer = isServer;
-            Protocol = protocol;
+            ErrorCodeConverter = errorCodeConverter;
             PauseWriterThreshold = slicOptions.PauseWriterThreshold;
             ResumeWriterThreshold = slicOptions.ResumeWriterThreshold;
             Pool = slicOptions.Pool;

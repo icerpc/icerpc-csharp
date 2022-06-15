@@ -131,13 +131,13 @@ public class ConnectionTests
     /// <summary>Verifies that connect establishment timeouts after the <see cref="ConnectionOptions.ConnectTimeout"/>
     /// time period.</summary>
     [Test]
-    public async Task Connect_timeout([Values("ice", "icerpc")] string protocol)
+    public async Task Connect_timeout()
     {
         // Arrange
         var tcpServerTransport = new TcpServerTransport();
         var slicServerTransport = new SlicServerTransport(tcpServerTransport);
 
-        await using var listener = slicServerTransport.Listen($"{protocol}://127.0.0.1:0", null, NullLogger.Instance);
+        await using var listener = slicServerTransport.Listen("icerpc://127.0.0.1:0", null, NullLogger.Instance);
         await using var connection = new ClientConnection(new ClientConnectionOptions
         {
             RemoteEndpoint = listener.Endpoint,

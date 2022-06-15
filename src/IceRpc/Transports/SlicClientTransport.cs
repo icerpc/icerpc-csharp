@@ -52,6 +52,11 @@ namespace IceRpc.Transports
             // This is the composition root of the Slic client transport, where we install log decorators when logging
             // is enabled.
 
+            IMultiplexedStreamErrorCodeConverter errorCodeConverter =
+                remoteEndpoint.Protocol.MultiplexedStreamErrorCodeConverter ??
+                throw new NotSupportedException(
+                    $"cannot create Slic client network connection for protocol {remoteEndpoint.Protocol}");
+
             ISimpleNetworkConnection simpleNetworkConnection =
                 _simpleClientTransport.CreateConnection(remoteEndpoint, authenticationOptions, logger);
 
@@ -72,7 +77,7 @@ namespace IceRpc.Transports
             return new SlicNetworkConnection(
                 simpleNetworkConnection,
                 isServer: false,
-                remoteEndpoint.Protocol,
+                errorCodeConverter,
                 slicFrameReaderDecorator,
                 slicFrameWriterDecorator,
                 _slicTransportOptions);

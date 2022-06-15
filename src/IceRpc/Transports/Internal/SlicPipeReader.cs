@@ -8,12 +8,12 @@ namespace IceRpc.Transports.Internal
 {
     internal class SlicPipeReader : PipeReader
     {
+        private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
         private int _examined;
         private Exception? _exception;
         private long _lastExaminedOffset;
         private readonly SimpleNetworkConnectionReader _networkConnectionReader;
         private readonly Pipe _pipe;
-        private readonly Protocol _protocol;
         private ReadResult _readResult;
         private int _receiveCredit;
         private readonly int _resumeThreshold;
@@ -77,7 +77,7 @@ namespace IceRpc.Transports.Internal
                     // frame to the peer to notify it shouldn't send additional data.
 
                     // TODO: rename to CompleteRead?
-                    _stream.AbortRead(_protocol.ToStreamErrorCode(exception));
+                    _stream.AbortRead(_errorCodeConverter.ToErrorCode(exception));
                 }
 
                 _pipe.Reader.Complete(exception);
@@ -140,7 +140,7 @@ namespace IceRpc.Transports.Internal
 
         internal SlicPipeReader(
             SlicMultiplexedStream stream,
-            Protocol protocol,
+            IMultiplexedStreamErrorCodeConverter errorCodeConverter,
             MemoryPool<byte> pool,
             int minimumSegmentSize,
             int resumeThreshold,
@@ -148,7 +148,7 @@ namespace IceRpc.Transports.Internal
             SimpleNetworkConnectionReader networkConnectionReader)
         {
             _stream = stream;
-            _protocol = protocol;
+            _errorCodeConverter = errorCodeConverter;
             _resumeThreshold = resumeThreshold;
             _networkConnectionReader = networkConnectionReader;
             _receiveCredit = pauseThreshold;
@@ -163,7 +163,7 @@ namespace IceRpc.Transports.Internal
 
         /// <summary>Called when a stream reset is received.</summary>
         internal void ReceivedResetFrame(ulong errorCode) =>
-            CompletePipeWriter(_protocol.FromStreamErrorCode(errorCode));
+            CompletePipeWriter(_errorCodeConverter.FromErrorCode(errorCode));
 
         /// <summary>Called when a stream frame is received. It writes the data from the received stream frame to the
         /// internal pipe writer and returns the number of bytes that were consumed.</summary>

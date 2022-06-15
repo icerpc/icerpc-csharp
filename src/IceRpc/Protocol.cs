@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
+using IceRpc.Transports;
 using System.Collections.Immutable;
 using System.Diagnostics;
 
@@ -35,6 +36,9 @@ namespace IceRpc
         /// </summary>
         /// <returns><c>true</c> if the protocol is supported; otherwise, <c>false</c>.</returns>
         public virtual bool IsSupported => false;
+
+        /// <summary>Gets the multiplexed stream error code converter if this protocol.</summary>
+        public virtual IMultiplexedStreamErrorCodeConverter? MultiplexedStreamErrorCodeConverter => null;
 
         /// <summary>Gets the name of this protocol.</summary>
         public string Name { get; }
