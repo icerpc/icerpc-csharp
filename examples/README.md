@@ -48,3 +48,7 @@ The Secure example shows how to create client and server applications that commu
 ## [Stream](./Stream/)
 
 The Stream example shows how to stream data from a client to a server.
+
+## [Uploader](./Uploader/)
+
+The uploader example shows how to use a stream uint8 parameter to upload a file.
