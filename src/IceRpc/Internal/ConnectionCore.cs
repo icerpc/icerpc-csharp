@@ -428,11 +428,6 @@ internal sealed class ConnectionCore
         {
             if (_protocolConnection != null)
             {
-                if (exception != null)
-                {
-                    _protocolConnection.Abort(exception);
-                }
-
                 _protocolConnection.Abort(exception ?? new ConnectionClosedException());
                 _protocolConnection = null;
             }
