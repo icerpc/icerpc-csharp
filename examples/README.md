@@ -1,35 +1,49 @@
 # IceRPC for C# Examples
 
-This directory contains example programs for various IceRPC components. These examples are provided to get you started
-on using a particular IceRPC feature or programming technique.
+This directory contains example applications for various IceRPC components. These examples are provided to get you
+started on using a particular IceRPC feature or programming technique.
 
 ## [Bidir](./Bidir/)
 
-This example application illustrates how to make bidirectional calls.
+The bidir example application shows how to make bidirectional calls, that is the server callback a clinet using a
+connection previously stablished by the client.
 
 ## [Compress](./Compress/)
-Compress illustrates how to compress the arguments and return value for an invocation and
-wait for the reply.
+The compress example application shows how to use the deflate interceptor and middleware to compress and decompres
+the arguments and return value of an invocation.
 
 ## [GenericHost](./GenericHost/)
 
-This example application shows how to use the .NET Generic Host to implement IceRPC client and server command line
-applications.
+The generic host example application shows how to create IceRPC client and server applications using the .NET
+dependency injection (DI) and .NET Generic Host.
 
 ## [Hello](./Hello/)
 
-Hello illustrates how to make an asynchronous invocation and wait for the reply.
+The hello example application shows how to create a minimal IceRPC client and server application, implementing the
+canonical "Hello World" example.
 
-## [Secure](./Secure/)
+## [Interop](./Interop/)
 
-Secure is an example application that shows how to configure client and server applications to use secure TLS
-connections. It also shows how to make an asynchronous invocation and wait for a reply.
+The interop example applications shows how IceRPC inteoperates with  ZeroC Ice using ice protocol and Slice 1 encoding.
 
 ## [OpenTelemetry](./OpenTelemetry/)
 
-This application illustrates how to use the IceRpc telemetry interceptor and middleware, and how they can be integrated
-with OpenTelemetry to export traces to Zipkin.
+The OpenTelemetry example application shows how to use the telemetry interceptor and middleware, and how they can be
+integrated with [OpenTelemetry](https://opentelemetry.io/) to export traces to [Zipkin](https://zipkin.io/).
+
+## [RequestContext](./RequestContext/)
+
+The request context example application shows how to attach contextual information to the invocation and how to access
+this information from the dispatch.
+
+## [Retry](./Retry/)
+
+The retry example application shows how to use the retry interceptor to retry failed invocations.
+
+## [Secure](./Secure/)
+
+The secure example application shows how to use TLS secure connections with IceRPC.
 
 ## [Stream](./Stream/)
 
-This example application illustrates how to stream data from a client to a server.
+The stream example application shows how to stream data from a client to a server.
