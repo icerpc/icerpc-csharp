@@ -11,7 +11,7 @@ public class Hello : Service, IHello
     public ValueTask<string> SayHelloAsync(string name, IFeatureCollection features, CancellationToken cancel)
     {
         Console.WriteLine($"{name} says hello!");
-        // The request context send by the client is available to the dispatch as the IRequestContextFeature.
+        // The request context sent by the client is available to the dispatch as the IRequestContextFeature.
         if (features.Get<IRequestContextFeature>() is IRequestContextFeature contextFeature)
         {
             Console.WriteLine("with RequestContext:");
