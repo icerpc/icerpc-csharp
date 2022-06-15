@@ -29,7 +29,7 @@ The interop example application shows how IceRPC inteoperates with ZeroC Ice usi
 
 ## [OpenTelemetry](./OpenTelemetry/)
 
-The OpenTelemetry example application shows how to use the telemetry interceptor and middleware, and how they can be
+The OpenTelemetry example application shows how to use the telemetry interceptor and middleware and how they can be
 integrated with [OpenTelemetry](https://opentelemetry.io/) to export traces to [Zipkin](https://zipkin.io/).
 
 ## [RequestContext](./RequestContext/)
