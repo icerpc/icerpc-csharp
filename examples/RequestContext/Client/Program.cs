@@ -17,9 +17,8 @@ Console.Write("To say hello to the server, type your name: ");
 if (Console.ReadLine() is string name)
 {
     var features = new FeatureCollection();
-    // TODO add WithRequestContext extension method?
     // Add the request context feature to the request features for the SayHello invocation.
-    features.With<IRequestContextFeature>(new RequestContextFeature()
+    features.Set<IRequestContextFeature>(new RequestContextFeature
         {
             Value = new Dictionary<string, string>
             {

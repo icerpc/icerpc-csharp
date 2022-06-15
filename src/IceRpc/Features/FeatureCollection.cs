@@ -50,6 +50,9 @@ public class FeatureCollection : IFeatureCollection
         // read-only) can change over time
         _defaults = defaults == Empty ? null : defaults;
 
+    /// <inheritdoc/>
+    public TFeature? Get<TFeature>() => this[typeof(TFeature)] is object value ? (TFeature)value : default;
+
     /// <inheritdoc />
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
@@ -72,4 +75,7 @@ public class FeatureCollection : IFeatureCollection
             }
         }
     }
+
+    /// <inheritdoc/>
+    public void Set<TFeature>(TFeature? feature) => this[typeof(TFeature)] = feature;
 }
