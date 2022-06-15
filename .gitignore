@@ -80,6 +80,9 @@ tests/**/Test.cs
 tests/CodeCoverageReport
 TestResults
 
+# Example generated files
+examples/Upload/Server/uploads/*
+
 # docfx
 doc/_site
 
