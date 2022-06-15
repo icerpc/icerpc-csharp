@@ -48,4 +48,4 @@ connections.
 
 ## [Stream](./Stream/)
 
-The stream example application shows how to stream data from a client to a server.
+The Stream example application shows how to stream data from a client to a server.
