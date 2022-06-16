@@ -18,6 +18,20 @@ namespace IceRpc.Transports.Internal
             ulong errorCode);
 
         [LoggerMessage(
+            EventId = (int)SlicEventIds.ReceivedPingFrame,
+            EventName = nameof(SlicEventIds.ReceivedPingFrame),
+            Level = LogLevel.Debug,
+            Message = "received Slic Ping frame (FrameSize={FrameSize})")]
+        internal static partial void LogReceivedSlicPingFrame(this ILogger logger, int frameSize);
+
+        [LoggerMessage(
+            EventId = (int)SlicEventIds.ReceivedPongFrame,
+            EventName = nameof(SlicEventIds.ReceivedPongFrame),
+            Level = LogLevel.Debug,
+            Message = "received Slic Pong frame (FrameSize={FrameSize})")]
+        internal static partial void LogReceivedSlicPongFrame(this ILogger logger, int frameSize);
+
+        [LoggerMessage(
             EventId = (int)SlicEventIds.ReceivedStreamResetFrame,
             EventName = nameof(SlicEventIds.ReceivedStreamResetFrame),
             Level = LogLevel.Debug,
@@ -141,6 +155,20 @@ namespace IceRpc.Transports.Internal
             this ILogger logger,
             int frameSize,
             int size);
+
+        [LoggerMessage(
+            EventId = (int)SlicEventIds.SentPingFrame,
+            EventName = nameof(SlicEventIds.SentPingFrame),
+            Level = LogLevel.Debug,
+            Message = "sent Slic Ping frame (FrameSize={FrameSize})")]
+        internal static partial void LogSentSlicPingFrame(this ILogger logger, int frameSize);
+
+        [LoggerMessage(
+            EventId = (int)SlicEventIds.SentPongFrame,
+            EventName = nameof(SlicEventIds.SentPongFrame),
+            Level = LogLevel.Debug,
+            Message = "sent Slic Pong frame (FrameSize={FrameSize})")]
+        internal static partial void LogSentSlicPongFrame(this ILogger logger, int frameSize);
 
         [LoggerMessage(
             EventId = (int)SlicEventIds.SentStreamFrame,

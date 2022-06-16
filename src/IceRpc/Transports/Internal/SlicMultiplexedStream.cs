@@ -74,15 +74,7 @@ namespace IceRpc.Transports.Internal
 
             // We don't wait for the application to complete the stream Input and Output to shutdown the stream. We
             // abort reads and writes right away to shutdown the stream.
-            ulong errorCode;
-            if (exception is MultiplexedStreamAbortedException abortedException)
-            {
-                errorCode = abortedException.ToError();
-            }
-            else
-            {
-                errorCode = SlicStreamError.UnexpectedError.ToError();
-            }
+            ulong errorCode = _connection.ErrorCodeConverter.ToErrorCode(exception);
             AbortRead(errorCode);
             AbortWrite(errorCode);
         }
@@ -106,13 +98,18 @@ namespace IceRpc.Transports.Internal
 
             _inputPipeReader = new SlicPipeReader(
                 this,
+                _connection.ErrorCodeConverter,
                 _connection.Pool,
                 _connection.MinimumSegmentSize,
                 _connection.ResumeWriterThreshold,
                 _connection.PauseWriterThreshold,
                 networkConnectionReader);
 
-            _outputPipeWriter = new SlicPipeWriter(this, _connection.Pool, _connection.MinimumSegmentSize);
+            _outputPipeWriter = new SlicPipeWriter(
+                this,
+                _connection.ErrorCodeConverter,
+                _connection.Pool,
+                _connection.MinimumSegmentSize);
 
             IsBidirectional = bidirectional;
             if (!IsBidirectional)

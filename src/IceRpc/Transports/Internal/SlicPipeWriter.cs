@@ -11,6 +11,7 @@ namespace IceRpc.Transports.Internal
     {
         private Exception? _exception;
         private readonly Pipe _pipe;
+        private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
         private int _state;
         private readonly SlicMultiplexedStream _stream;
 
@@ -30,23 +31,13 @@ namespace IceRpc.Transports.Internal
                 // the peer to notify it won't receive additional data.
                 if (!_stream.WritesCompleted)
                 {
-                    if (exception == null)
+                    if (exception == null && _pipe.Writer.UnflushedBytes > 0)
                     {
-                        if (_pipe.Writer.UnflushedBytes > 0)
-                        {
-                            throw new NotSupportedException(
-                                $"can't complete {nameof(SlicPipeWriter)} with unflushed bytes");
-                        }
-                        _stream.AbortWrite(SlicStreamError.NoError.ToError());
+                        throw new NotSupportedException(
+                            $"can't complete {nameof(SlicPipeWriter)} with unflushed bytes");
                     }
-                    else if (exception is MultiplexedStreamAbortedException abortedException)
-                    {
-                        _stream.AbortWrite(abortedException.ToError());
-                    }
-                    else
-                    {
-                        _stream.AbortWrite(SlicStreamError.UnexpectedError.ToError());
-                    }
+
+                    _stream.AbortWrite(_errorCodeConverter.ToErrorCode(exception));
                 }
 
                 _pipe.Writer.Complete(exception);
@@ -164,9 +155,14 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal SlicPipeWriter(SlicMultiplexedStream stream, MemoryPool<byte> pool, int minimumSegmentSize)
+        internal SlicPipeWriter(
+            SlicMultiplexedStream stream,
+            IMultiplexedStreamErrorCodeConverter errorCodeConverter,
+            MemoryPool<byte> pool,
+            int minimumSegmentSize)
         {
             _stream = stream;
+            _errorCodeConverter = errorCodeConverter;
 
             // Create a pipe that never pauses on flush or write. The SlicePipeWriter will pause the flush or write if
             // the Slic flow control doesn't permit sending more data. We also use an inline pipe scheduler for write to
@@ -180,8 +176,8 @@ namespace IceRpc.Transports.Internal
 
         internal void Abort(Exception exception) => CompletePipeReader(exception);
 
-        internal void ReceivedStopSendingFrame(ulong error) => CompletePipeReader(
-            error == SlicStreamError.NoError.ToError() ? null : new MultiplexedStreamAbortedException(error));
+        internal void ReceivedStopSendingFrame(ulong errorCode) =>
+            CompletePipeReader(_errorCodeConverter.FromErrorCode(errorCode));
 
         private void CheckIfCompleted()
         {

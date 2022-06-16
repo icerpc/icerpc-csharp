@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <AssemblyName>client</AssemblyName>
     <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -13,10 +12,8 @@
   </PropertyGroup>
   <ItemGroup>
     <SliceCompile Include="Hello.slice" />
-    <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview4" PrivateAssets="All" />
-    <PackageReference Include="icerpc" Version="$(IceRpcVersion)" />
-    <Compile Update="generated\Hello.cs">
-      <SliceCompileSource>Hello.slice</SliceCompileSource>
-    </Compile>
+    <PackageReference Include="IceRpc.Builder.MSBuild" Version="0.1.0-preview4" PrivateAssets="All" />
+    <!-- TODO do not use IceRpcVersion, this property is only for source distribution building -->
+    <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
   </ItemGroup>
 </Project>

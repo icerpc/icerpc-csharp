@@ -1,5 +1,4 @@
-HelloSecure is an example application showing how to make an asynchronous invocation and wait for the reply using a
-secure TLS connection.
+This example application illustrates how to stream bytes from a local file to a server.
 
 For build instructions check the top-level [README.md](../../README.md).
 
