@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
+        <ProjectTemplatesDirectory>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)/ProjectTemplates/'))</ProjectTemplatesDirectory>
+        <SrcDirectory>$(MSBuildThisFileDirectory)</SrcDirectory>
         <IsUnitTestProject Condition="$(MSBuildProjectName.EndsWith('.Tests'))">true</IsUnitTestProject>
+        <IsTemplateProject Condition="$(MSBuildProjectDirectory.StartsWith('$(ProjectTemplateDirectory)'))">true</IsTemplateProject>
+        <IsSrcProject Condition="$(MSBuildProjectDirectory.StartsWith('$(SrcDirectory)')) AND '$(IsTemplateProject)' != 'true'">true</IsSrcProject>
         <IsUnitTestProject Condition="'$(IsUnitTestProject)' == ''">false</IsUnitTestProject>
     </PropertyGroup>
-    <Import Project="$(MSBuildThisFileDirectory)../build/icerpc.props" Condition="'$(IsUnitTestProject)' == 'false'"/>
+    <Import Project="$(MSBuildThisFileDirectory)../build/icerpc.props" Condition="'$(IsSrcProject)' == 'true'"/>
+    <Import Project="$(MSBuildThisFileDirectory)../build/icerpc.version.props" Condition="'$(IsTemplateProject)' == 'true'"/>
     <Import Project="$(MSBuildThisFileDirectory)../build/test.props" Condition="'$(IsUnitTestProject)' == 'true'"/>
     <PropertyGroup>
         <!-- Include PDB in the built .nupkg -->
@@ -13,7 +18,7 @@
     <ItemGroup>
         <AdditionalFiles Include="$(MSBuildThisFileDirectory)../build/stylecop.json" Link="stylecop.json" />
         <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.base.globalconfig" />
-        <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.src.globalconfig" Condition="'$(IsUnitTestProject)' == 'false'"/>
+        <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.src.globalconfig" Condition="'$(IsSrcProject)' == 'true'"/>
         <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.tests.globalconfig" Condition="'$(IsUnitTestProject)' == 'true'"/>
     </ItemGroup>
 </Project>
