@@ -16,6 +16,10 @@ internal sealed class ServerConnection : IConnection
     /// <inheritdoc/>
     public Protocol Protocol { get; }
 
+    private readonly CancellationTokenSource _connectCancellationSource = new();
+
+    private readonly TimeSpan _connectTimeout;
+
     private readonly ConnectionCore _core;
 
     /// <inheritdoc/>
@@ -30,6 +34,7 @@ internal sealed class ServerConnection : IConnection
     {
         Protocol = protocol;
         _core = new ConnectionCore(options);
+        _connectTimeout = options.ConnectTimeout;
     }
 
     /// <summary>Aborts the connection.</summary>
@@ -39,8 +44,17 @@ internal sealed class ServerConnection : IConnection
     /// <param name="networkConnection">The underlying network connection.</param>
     /// <param name="protocolConnectionFactory">The protocol connection factory.</param>
     internal Task ConnectAsync<T>(T networkConnection, IProtocolConnectionFactory<T> protocolConnectionFactory)
-        where T : INetworkConnection =>
-        _core.ConnectServerAsync(this, networkConnection, protocolConnectionFactory);
+        where T : INetworkConnection
+    {
+        _connectCancellationSource.CancelAfter(_connectTimeout);
+
+        return _core.ConnectAsync(
+            this,
+            isServer: true,
+            networkConnection,
+            protocolConnectionFactory,
+            _connectCancellationSource.Token);
+    }
 
     /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
     /// canceled. Shutdown cancellation can lead to a speedier shutdown if dispatch are cancelable.</summary>
@@ -51,6 +65,18 @@ internal sealed class ServerConnection : IConnection
     /// canceled. Shutdown cancellation can lead to a speedier shutdown if dispatch are cancelable.</summary>
     /// <param name="message">The message transmitted to the peer (when using the IceRPC protocol).</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    internal Task ShutdownAsync(string message, CancellationToken cancel = default) =>
-        _core.ShutdownAsync(this, message, cancel);
+    internal Task ShutdownAsync(string message, CancellationToken cancel = default)
+    {
+        try
+        {
+            // Cancel connection establishment if it's in progress.
+            _connectCancellationSource.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Connection has been disposed already.
+        }
+
+        return _core.ShutdownAsync(this, message, cancel);
+    }
 }

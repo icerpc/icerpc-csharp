@@ -484,6 +484,7 @@ public class ConnectionTests
     }
 
     [Test]
+    [Ignore("see ClientConnection.ShutdownAsync TODO comment")]
     public async Task Shutdown_waits_for_connection_establishment()
     {
         // Arrange
