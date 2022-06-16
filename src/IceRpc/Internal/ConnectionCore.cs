@@ -50,26 +50,6 @@ internal sealed class ConnectionCore
         IProtocolConnectionFactory<T> protocolConnectionFactory,
         CancellationToken cancel) where T : INetworkConnection
     {
-        // Create the protocol connection. The protocol connection owns the network connection and is responsible
-        // for its disposal. If the protocol connection establishment fails, the network connection is disposed.
-        IProtocolConnection protocolConnection = protocolConnectionFactory.CreateConnection(
-            networkConnection,
-            _options);
-
-        try
-        {
-            NetworkConnectionInformation = await protocolConnection.ConnectAsync(
-                isServer,
-                onIdle: () => _ = ShutdownAsync(connection, "idle connection", CancellationToken.None),
-                onShutdown: message => _ = ShutdownAsync(connection, message, CancellationToken.None),
-                cancel).ConfigureAwait(false);
-        }
-        catch
-        {
-            protocolConnection.Abort(new ConnectionClosedException());
-            throw;
-        }
-
         try
         {
             lock (_mutex)
@@ -79,29 +59,35 @@ internal sealed class ConnectionCore
                     return;
                 }
 
-                _protocolConnection = protocolConnection;
-
-                // Start accepting requests. _protocolConnection might be updated before the task is ran so it's important
-                // to use protocolConnection here.
-                _ = Task.Run(
-                    async () =>
-                    {
-                        Exception? exception = null;
-                        try
-                        {
-                            await protocolConnection.AcceptRequestsAsync(connection).ConfigureAwait(false);
-                        }
-                        catch (Exception ex)
-                        {
-                            exception = ex;
-                        }
-                        finally
-                        {
-                            Close(connection, exception);
-                        }
-                    },
-                    cancel);
+                // Create the protocol connection. The protocol connection owns the network connection and is
+                // responsible for its disposal.
+                _protocolConnection = protocolConnectionFactory.CreateConnection(networkConnection, _options);
             }
+
+            NetworkConnectionInformation = await _protocolConnection.ConnectAsync(
+                isServer,
+                onIdle: () => _ = ShutdownAsync(connection, "idle connection", CancellationToken.None),
+                onShutdown: message => _ = ShutdownAsync(connection, message, CancellationToken.None),
+                cancel).ConfigureAwait(false);
+
+            _ = Task.Run(
+                async () =>
+                {
+                    Exception? exception = null;
+                    try
+                    {
+                        await _protocolConnection.AcceptRequestsAsync(connection).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        exception = ex;
+                    }
+                    finally
+                    {
+                        Close(connection, exception);
+                    }
+                },
+                cancel);
         }
         catch (Exception exception)
         {
