@@ -13,6 +13,10 @@ the client using a connection previously established by the client.
 The Compress example shows how to use the deflate interceptor and middleware to compress and decompress the arguments
 and return the value of an invocation.
 
+## [Download](./Download/)
+
+The Download example shows how a server can stream bytes from a file to a client.
+
 ## [GenericHost](./GenericHost/)
 
 The GenericHost example shows how to create client and server applications using Microsoft's Dependency Injection
