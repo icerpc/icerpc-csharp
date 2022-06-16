@@ -14,7 +14,7 @@ Building IceRpc requires Rust and .NET development environments:
  - A Rust development environment
  - The .NET 6.0 SDK
 
-The build depends on `icerpc.builder.msbuild` NuGet package that is not publicly available, for accessing this package you must create a
+The build depends on `IceRpc.Builder.MSBuild` NuGet package that is not publicly available, for accessing this package you must create a
 `nuget.config` file with the following contents:
 
 ```
