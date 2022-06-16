@@ -14,6 +14,12 @@ namespace IceRpc.Transports
         /// <summary>Receiving Slic initialize ack frame.</summary>
         ReceivedInitializeAckFrame,
 
+        /// <summary>Receiving Slic ping frame.</summary>
+        ReceivedPingFrame,
+
+        /// <summary>Receiving Slic pong frame.</summary>
+        ReceivedPongFrame,
+
         /// <summary>Receiving Slic stream data frame.</summary>
         ReceivingStreamFrame,
 
@@ -46,6 +52,12 @@ namespace IceRpc.Transports
 
         /// <summary>Sent Slic initialize ack frame.</summary>
         SentInitializeAckFrame,
+
+        /// <summary>Sent Slic ping frame.</summary>
+        SentPingFrame,
+
+        /// <summary>Sent Slic pong frame.</summary>
+        SentPongFrame,
 
         /// <summary>Sent Slic stream consumed frame.</summary>
         SentStreamConsumedFrame,
