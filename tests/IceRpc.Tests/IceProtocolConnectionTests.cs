@@ -99,12 +99,12 @@ public sealed class IceProtocolConnectionTests
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        var request = new OutgoingRequest(new Proxy(Protocol.Ice));
         var responseTasks = new List<Task<IncomingResponse>>();
 
         // Act
         for (int i = 0; i < maxConcurrentDispatches + 1; ++i)
         {
+            var request = new OutgoingRequest(new Proxy(Protocol.Ice));
             responseTasks.Add(sut.Client.InvokeAsync(request, InvalidConnection.Ice, default));
         }
         // wait for maxDispatchesPerConnection dispatches to start

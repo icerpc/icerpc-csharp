@@ -153,6 +153,11 @@ namespace IceRpc.Internal
                     throw new NotSupportedException("PayloadStream must be null with the ice protocol");
                 }
 
+                if (request.IsSent)
+                {
+                    throw new InvalidOperationException("cannot resend a request that was previously sent");
+                }
+
                 // Read the full payload. This can take some time so this needs to be done before acquiring the write
                 // semaphore.
                 ReadOnlySequence<byte> payload = await ReadFullPayloadAsync(
@@ -195,6 +200,9 @@ namespace IceRpc.Internal
 
                 payloadWriter = request.GetPayloadWriter(payloadWriter);
 
+                // The WriteAsync below may send part of the request, and we have no way to know if it did not.
+                request.IsSent = true;
+
                 FlushResult flushResult = await payloadWriter.WriteAsync(
                     payload,
                     endStream: false,
@@ -224,9 +232,6 @@ namespace IceRpc.Internal
                     _writeSemaphore.Release();
                 }
             }
-
-            // Request is sent at this point.
-            request.IsSent = true;
 
             if (request.IsOneway)
             {

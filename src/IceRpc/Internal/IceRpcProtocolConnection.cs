@@ -426,6 +426,11 @@ namespace IceRpc.Internal
                     throw new NotSupportedException("the icerpc protocol does not support fragments");
                 }
 
+                if (request.IsSent)
+                {
+                    throw new InvalidOperationException("cannot resend a request that was previously sent");
+                }
+
                 // Create the stream.
                 stream = _networkConnection.CreateStream(bidirectional: !request.IsOneway);
 
@@ -481,6 +486,9 @@ namespace IceRpc.Internal
 
                 EncodeHeader(stream.Output);
 
+                // The SendPayloadAsync below may send part of the request, and we have no way to know if it did not.
+                request.IsSent = true;
+
                 // SendPayloadAsync takes care of the completion of the stream output.
                 await SendPayloadAsync(request, stream, cancel).ConfigureAwait(false);
             }
@@ -498,8 +506,6 @@ namespace IceRpc.Internal
                 // TODO: Should we wrap unexpected exceptions with ConnectionLostException?
                 throw;
             }
-
-            request.IsSent = true;
 
             if (request.IsOneway)
             {
