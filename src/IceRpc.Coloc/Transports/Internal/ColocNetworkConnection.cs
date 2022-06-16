@@ -144,7 +144,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
+        public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers)
         {
             if (!_state.TrySetFlag(State.Writing))
             {
@@ -164,7 +164,7 @@ namespace IceRpc.Transports.Internal
                         throw new TransportException("connection is shutdown");
                     }
 
-                    _ = await _writer.WriteAsync(buffer, cancel).ConfigureAwait(false);
+                    _ = await _writer.WriteAsync(buffer, CancellationToken.None).ConfigureAwait(false);
                 }
             }
             catch (Exception exception)

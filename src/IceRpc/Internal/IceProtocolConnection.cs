@@ -426,7 +426,7 @@ namespace IceRpc.Internal
                 {
                     // Encode and write the CloseConnection frame once all the dispatches are done.
                     EncodeCloseConnectionFrame(_networkConnectionWriter);
-                    await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                    await _networkConnectionWriter.FlushAsync().ConfigureAwait(false);
                 }
                 finally
                 {
@@ -498,7 +498,7 @@ namespace IceRpc.Internal
                 {
                     EncodeValidateConnectionFrame(_networkConnectionWriter);
                     // The flush can't be canceled because it would lead to the writing of an incomplete frame.
-                    await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                    await _networkConnectionWriter.FlushAsync().ConfigureAwait(false);
                 }
                 finally
                 {
@@ -529,7 +529,7 @@ namespace IceRpc.Internal
                 EncodeValidateConnectionFrame(_networkConnectionWriter);
 
                 // The flush can't be canceled because it would lead to the writing of an incomplete frame.
-                await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                await _networkConnectionWriter.FlushAsync().ConfigureAwait(false);
             }
             else
             {

@@ -48,7 +48,7 @@ public abstract class SimpleTransportConformanceTests
         while (true)
         {
             writtenSize += payload[0].Length;
-            writeTask = sut.ClientConnection.WriteAsync(payload, default).AsTask();
+            writeTask = sut.ClientConnection.WriteAsync(payload).AsTask();
             await Task.Delay(TimeSpan.FromMilliseconds(100));
             if (writeTask.IsCompleted)
             {
@@ -193,55 +193,6 @@ public abstract class SimpleTransportConformanceTests
         });
     }
 
-    [Test]
-    public async Task Write_canceled()
-    {
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var listener = provider.GetRequiredService<IListener<ISimpleNetworkConnection>>();
-        var clientConnection = provider.GetRequiredService<ISimpleNetworkConnection>();
-        var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1] };
-
-        Assert.CatchAsync<OperationCanceledException>(
-            async () => await clientConnection.WriteAsync(buffer, new CancellationToken(canceled: true)));
-    }
-
-    /// <summary>Verifies that pending write operation fails with <see cref="OperationCanceledException"/> once the
-    /// cancellation token is canceled.</summary>
-    [Test]
-    public async Task Write_cancellation()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        using ClientServerSimpleTransportConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-            provider.GetRequiredService<ISimpleNetworkConnection>());
-        var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1024 * 1024] };
-        using var canceled = new CancellationTokenSource();
-
-        // Write data until flow control blocks the sending. Cancelling the blocked write, should throw
-        // OperationCanceledException.
-        Task writeTask;
-        while (true)
-        {
-            writeTask = sut.ClientConnection.WriteAsync(buffer, canceled.Token).AsTask();
-            await Task.Delay(TimeSpan.FromMilliseconds(20));
-            if (writeTask.IsCompleted)
-            {
-                await writeTask;
-            }
-            else
-            {
-                break;
-            }
-        }
-
-        // Act
-        canceled.Cancel();
-
-        // Assert
-        Assert.That(async () => await writeTask, Throws.TypeOf<OperationCanceledException>());
-    }
-
     /// <summary>Verifies that calling write fails with <see cref="ConnectionLostException"/> when the peer connection
     /// is disposed.</summary>
     [Test]
@@ -264,7 +215,7 @@ public abstract class SimpleTransportConformanceTests
             // It can take few writes to detect the peer's connection closure.
             while (true)
             {
-                await sut.ClientConnection.WriteAsync(buffer, default);
+                await sut.ClientConnection.WriteAsync(buffer);
                 await Task.Delay(50);
             }
         }
@@ -292,9 +243,7 @@ public abstract class SimpleTransportConformanceTests
 
         // Act/Assert
         Assert.That(
-            async () => await disposedConnection.WriteAsync(
-                new List<ReadOnlyMemory<byte>>() { new byte[1024] },
-                default),
+            async () => await disposedConnection.WriteAsync(new List<ReadOnlyMemory<byte>>() { new byte[1024] }),
             Throws.TypeOf<ObjectDisposedException>());
     }
 
@@ -309,8 +258,7 @@ public abstract class SimpleTransportConformanceTests
 
         // Act/Assert
         Assert.CatchAsync<Exception>(async () =>
-            await sut.ServerConnection.WriteAsync(new List<ReadOnlyMemory<byte>> { new byte[1] },
-            CancellationToken.None));
+            await sut.ServerConnection.WriteAsync(new List<ReadOnlyMemory<byte>> { new byte[1] }));
     }
 
     [Test]
@@ -329,7 +277,7 @@ public abstract class SimpleTransportConformanceTests
         Task sendTask;
         do
         {
-            sendTask = sut.ClientConnection.WriteAsync(sendData, CancellationToken.None).AsTask();
+            sendTask = sut.ClientConnection.WriteAsync(sendData).AsTask();
             sendSize += buffer.Length;
         } while (sendTask.IsCompletedSuccessfully);
         await sendTask;
@@ -373,7 +321,7 @@ public abstract class SimpleTransportConformanceTests
         ISimpleNetworkConnection readConnection = useServerConnection ? sut.ClientConnection : sut.ServerConnection;
 
         // Act
-        ValueTask writeTask = writeConnection.WriteAsync(new ReadOnlyMemory<byte>[] { writeBuffer }, default);
+        ValueTask writeTask = writeConnection.WriteAsync(new ReadOnlyMemory<byte>[] { writeBuffer });
 
         // Assert
         Memory<byte> readBuffer = new byte[size];

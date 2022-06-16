@@ -41,7 +41,7 @@ public class SimpleNetworkConnectionReaderTests
         reader.SetIdleTimeout(TimeSpan.FromMilliseconds(1000));
 
         // Write and read data.
-        await serverConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
+        await serverConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] });
         ReadOnlySequence<byte> buffer = await reader.ReadAsync(default);
         reader.AdvanceTo(buffer.End);
 
@@ -113,7 +113,7 @@ public class SimpleNetworkConnectionReaderTests
         reader.SetIdleTimeout(TimeSpan.FromMilliseconds(500));
 
         // Write and read data to defer the idle timeout
-        await serverConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
+        await serverConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] });
         ReadOnlySequence<byte> buffer = await reader.ReadAsync(default);
         reader.AdvanceTo(buffer.End);
 

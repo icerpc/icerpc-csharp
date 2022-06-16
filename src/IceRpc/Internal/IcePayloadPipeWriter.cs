@@ -25,7 +25,7 @@ namespace IceRpc.Internal
         public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancel = default)
         {
             // The flush can't be canceled because it would lead to the writing of an incomplete payload.
-            await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+            await _networkConnectionWriter.FlushAsync().ConfigureAwait(false);
             return default;
         }
 
@@ -36,9 +36,7 @@ namespace IceRpc.Internal
         public override async ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancel)
         {
             // The write can't be canceled because it would lead to the writing of an incomplete payload.
-            await _networkConnectionWriter.WriteAsync(
-                new ReadOnlySequence<byte>(source),
-                CancellationToken.None).ConfigureAwait(false);
+            await _networkConnectionWriter.WriteAsync(new ReadOnlySequence<byte>(source)).ConfigureAwait(false);
             return default;
         }
 
@@ -50,7 +48,7 @@ namespace IceRpc.Internal
             CancellationToken cancel)
         {
             // The write can't be canceled because it would lead to the writing of an incomplete payload.
-            await _networkConnectionWriter.WriteAsync(source, CancellationToken.None).ConfigureAwait(false);
+            await _networkConnectionWriter.WriteAsync(source).ConfigureAwait(false);
             return default;
         }
 

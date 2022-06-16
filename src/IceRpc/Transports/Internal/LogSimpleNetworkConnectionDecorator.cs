@@ -21,9 +21,9 @@ namespace IceRpc.Transports.Internal
             Logger.LogSimpleNetworkConnectionShutdown();
         }
 
-        public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
+        public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers)
         {
-            await _decoratee.WriteAsync(buffers, cancel).ConfigureAwait(false);
+            await _decoratee.WriteAsync(buffers).ConfigureAwait(false);
             int size = 0;
             foreach (ReadOnlyMemory<byte> buffer in buffers)
             {

@@ -94,7 +94,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
+        public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers)
         {
             Debug.Assert(buffers.Count > 0);
 
@@ -104,7 +104,7 @@ namespace IceRpc.Transports.Internal
                 {
                     if (buffers.Count == 1)
                     {
-                        await sslStream.WriteAsync(buffers[0], cancel).ConfigureAwait(false);
+                        await sslStream.WriteAsync(buffers[0], CancellationToken.None).ConfigureAwait(false);
                     }
                     else
                     {
@@ -145,13 +145,13 @@ namespace IceRpc.Transports.Internal
                             }
 
                             // Send the "coalesced" initial buffers
-                            await sslStream.WriteAsync(writeBuffer, cancel).ConfigureAwait(false);
+                            await sslStream.WriteAsync(writeBuffer, CancellationToken.None).ConfigureAwait(false);
                         }
 
                         // Send the remaining buffers one by one
                         for (int i = index; i < buffers.Count; ++i)
                         {
-                            await sslStream.WriteAsync(buffers[i], cancel).ConfigureAwait(false);
+                            await sslStream.WriteAsync(buffers[i], CancellationToken.None).ConfigureAwait(false);
                         }
                     }
                 }
@@ -159,7 +159,8 @@ namespace IceRpc.Transports.Internal
                 {
                     if (buffers.Count == 1)
                     {
-                        await Socket.SendAsync(buffers[0], SocketFlags.None, cancel).ConfigureAwait(false);
+                        await Socket.SendAsync(buffers[0], SocketFlags.None, CancellationToken.None)
+                            .ConfigureAwait(false);
                     }
                     else
                     {
@@ -177,17 +178,13 @@ namespace IceRpc.Transports.Internal
                                     nameof(buffers));
                             }
                         }
-                        await Socket.SendAsync(_segments, SocketFlags.None).WaitAsync(cancel).ConfigureAwait(false);
+                        await Socket.SendAsync(_segments, SocketFlags.None).ConfigureAwait(false);
                     }
                 }
             }
             catch when (disposed == 1)
             {
                 throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
-            }
-            catch (Exception exception) when (cancel.IsCancellationRequested)
-            {
-                throw new OperationCanceledException(null, exception, cancel);
             }
             catch (Exception exception)
             {

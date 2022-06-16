@@ -44,18 +44,14 @@ namespace IceRpc.Transports.Internal
         }
 
         /// <summary>Flush the buffered data.</summary>
-        internal ValueTask FlushAsync(CancellationToken cancel) =>
-            WriteAsync(ReadOnlySequence<byte>.Empty, ReadOnlySequence<byte>.Empty, cancel);
+        internal ValueTask FlushAsync() => WriteAsync(ReadOnlySequence<byte>.Empty, ReadOnlySequence<byte>.Empty);
 
         /// <summary>Writes a sequence of bytes.</summary>
-        internal ValueTask WriteAsync(ReadOnlySequence<byte> source, CancellationToken cancel) =>
-            WriteAsync(source, ReadOnlySequence<byte>.Empty, cancel);
+        internal ValueTask WriteAsync(ReadOnlySequence<byte> source) =>
+            WriteAsync(source, ReadOnlySequence<byte>.Empty);
 
         /// <summary>Writes two sequences of bytes.</summary>
-        internal async ValueTask WriteAsync(
-            ReadOnlySequence<byte> source1,
-            ReadOnlySequence<byte> source2,
-            CancellationToken cancel)
+        internal async ValueTask WriteAsync(ReadOnlySequence<byte> source1, ReadOnlySequence<byte> source2)
         {
             if (_pipe.Writer.UnflushedBytes == 0 && source1.IsEmpty && source2.IsEmpty)
             {
@@ -68,7 +64,7 @@ namespace IceRpc.Transports.Internal
             SequencePosition? consumed = null;
             if (_pipe.Writer.UnflushedBytes > 0)
             {
-                await _pipe.Writer.FlushAsync(cancel).ConfigureAwait(false);
+                await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
                 _pipe.Reader.TryRead(out ReadResult readResult);
 
                 Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled);
@@ -83,15 +79,7 @@ namespace IceRpc.Transports.Internal
 
             try
             {
-                ValueTask task = _connection.WriteAsync(_sendBuffers, cancel);
-                if (cancel.CanBeCanceled && !task.IsCompleted)
-                {
-                    await task.AsTask().WaitAsync(cancel).ConfigureAwait(false);
-                }
-                else
-                {
-                    await task.ConfigureAwait(false);
-                }
+                await _connection.WriteAsync(_sendBuffers).ConfigureAwait(false);
             }
             finally
             {

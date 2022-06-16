@@ -43,8 +43,7 @@ namespace IceRpc.Transports.Internal
 
         public override string? ToString() => _decoratee.ToString();
 
-        public ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
-            _decoratee.WriteAsync(buffers, cancel);
+        public ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers) => _decoratee.WriteAsync(buffers);
 
         internal LogTcpNetworkConnectionDecorator(TcpNetworkConnection decoratee, ILogger logger)
         {
