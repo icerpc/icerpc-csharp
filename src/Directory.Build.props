@@ -4,7 +4,7 @@
         <ProjectTemplatesDirectory>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)/ProjectTemplates/'))</ProjectTemplatesDirectory>
         <SrcDirectory>$(MSBuildThisFileDirectory)</SrcDirectory>
         <IsUnitTestProject Condition="$(MSBuildProjectName.EndsWith('.Tests'))">true</IsUnitTestProject>
-        <IsTemplateProject Condition="$(MSBuildProjectDirectory.StartsWith('$(ProjectTemplateDirectory)'))">true</IsTemplateProject>
+        <IsTemplateProject Condition="$(MSBuildProjectDirectory.StartsWith('$(ProjectTemplatesDirectory)'))">true</IsTemplateProject>
         <IsSrcProject Condition="$(MSBuildProjectDirectory.StartsWith('$(SrcDirectory)')) AND '$(IsTemplateProject)' != 'true'">true</IsSrcProject>
         <IsUnitTestProject Condition="'$(IsUnitTestProject)' == ''">false</IsUnitTestProject>
     </PropertyGroup>
