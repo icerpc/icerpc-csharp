@@ -21,7 +21,7 @@ internal interface IProtocolConnection
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     Task AcceptRequestsAsync(IConnection connection);
 
-    /// <summary>Connects a protocol connection.</summary>
+    /// <summary>Connects the protocol connection.</summary>
     /// <param name="isServer"><c>true</c> if the connection is a server connection, <c>false</c> otherwise.</param>
     /// <param name="onIdle">The callback called by the protocol connection when the connection is idle.</param>
     /// <param name="onShutdown">The callback called by the protocol connection to initiate shutdown.</param>

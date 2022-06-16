@@ -17,25 +17,6 @@ namespace IceRpc.Internal
         Justification = "the disposable fields are cleaned up by Abort")]
     internal sealed class IceProtocolConnection : IProtocolConnection
     {
-        /// <summary>The state of this connection.</summary>
-        private enum State : byte
-        {
-            /// <summary>The connection is in its initial state.</summary>
-            NotConnected,
-
-            /// <summary>The connection establishment is in progress.</summary>
-            Connecting,
-
-            /// <summary>The connection is active and can send and receive messages.</summary>
-            Active,
-
-            /// <summary>The connection is being gracefully shutdown.</summary>
-            ShuttingDown,
-
-            /// <summary>The connection is closed (terminal state).</summary>
-            Closed
-        }
-
         public Protocol Protocol => Protocol.Ice;
 
         private static readonly IDictionary<RequestFieldKey, ReadOnlySequence<byte>> _idempotentFields =

@@ -18,9 +18,13 @@ internal sealed class ServerConnection : IConnection
 
     private readonly CancellationTokenSource _connectCancellationSource = new();
 
+    private Task? _connectTask;
+
     private readonly TimeSpan _connectTimeout;
 
     private readonly ConnectionCore _core;
+
+    private readonly object _mutex = new();
 
     /// <inheritdoc/>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
@@ -46,14 +50,19 @@ internal sealed class ServerConnection : IConnection
     internal Task ConnectAsync<T>(T networkConnection, IProtocolConnectionFactory<T> protocolConnectionFactory)
         where T : INetworkConnection
     {
+        lock (_mutex)
+        {
+            _connectTask ??= _core.ConnectAsync(
+                this,
+                isServer: true,
+                networkConnection,
+                protocolConnectionFactory,
+                _connectCancellationSource.Token);
+        }
+
         _connectCancellationSource.CancelAfter(_connectTimeout);
 
-        return _core.ConnectAsync(
-            this,
-            isServer: true,
-            networkConnection,
-            protocolConnectionFactory,
-            _connectCancellationSource.Token);
+        return _connectTask;
     }
 
     /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
@@ -65,18 +74,33 @@ internal sealed class ServerConnection : IConnection
     /// canceled. Shutdown cancellation can lead to a speedier shutdown if dispatch are cancelable.</summary>
     /// <param name="message">The message transmitted to the peer (when using the IceRPC protocol).</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    internal Task ShutdownAsync(string message, CancellationToken cancel = default)
+    internal async Task ShutdownAsync(string message, CancellationToken cancel = default)
     {
-        try
+        lock (_mutex)
         {
-            // Cancel connection establishment if it's in progress.
-            _connectCancellationSource.Cancel();
-        }
-        catch (ObjectDisposedException)
-        {
-            // Connection has been disposed already.
+            // Make sure that connection establishment is not initiated if it's not in progress or completed.
+            _connectTask ??= Task.FromException(new ConnectionClosedException());
         }
 
-        return _core.ShutdownAsync(this, message, cancel);
+        // TODO: Should we actually cancel the pending connect on ShutdownAsync?
+        // try
+        // {
+        //     _connectCancellationSource.Cancel();
+        // }
+        // catch
+        // {
+        // }
+
+        try
+        {
+            // Wait for connection establishment to complete before calling ShutdownAsync.
+            await _connectTask.ConfigureAwait(false);
+        }
+        catch
+        {
+            // Ignore
+        }
+
+        await _core.ShutdownAsync(this, message, cancel).ConfigureAwait(false);
     }
 }

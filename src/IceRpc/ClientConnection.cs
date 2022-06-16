@@ -254,7 +254,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
             try
             {
-                // Don't call ShutdownAsync before ConnectAsync completes on the core connection.
+                // Wait for connection establishment to complete before calling ShutdownAsync.
                 await _connectTask.ConfigureAwait(false);
             }
             catch
