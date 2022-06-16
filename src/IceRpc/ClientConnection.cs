@@ -97,23 +97,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     }
 
     /// <summary>Aborts the connection.</summary>
-    public void Abort()
-    {
-        if (!IsConnected)
-        {
-            try
-            {
-                // Cancel connection establishment if it's in progress.
-                _connectCancellationSource.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-                // Connection has been disposed.
-            }
-        }
-
-        _core.Abort(this);
-    }
+    public void Abort() => _core.Abort(this);
 
     /// <summary>Establishes the connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -142,15 +126,17 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             }
             else if (_connectTask.IsCompletedSuccessfully)
             {
+                // Connection establishment completed successfully, we're done.
                 return;
             }
             else if (_connectTask.IsCompleted)
             {
+                // Connection establishment didn't complete successfully so at this point the connection is closed.
                 throw new ConnectionClosedException();
             }
             else
             {
-                // Connection establishment is in progress.
+                // Connection establishment is in progress, wait for _connectTask to complete below.
             }
         }
 
@@ -251,21 +237,34 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     {
         if (!IsConnected)
         {
-            // TODO: behavior differs here, we used to wait for connection establishment to complete before shutting
-            // down the connection. Is it worth the trouble to add this back? What's the point of waiting for the
-            // connecting establishment to complete? To not abort the connection?
+            lock (_mutex)
+            {
+                // Make sure that connection establishment is not initiated if it's not in progress or completed.
+                _connectTask ??= Task.FromException(new ConnectionClosedException());
+            }
+
+            // TODO: Should we actually cancel the pending connect on ShutdownAsync?
+            // try
+            // {
+            //     _connectCancellationSource.Cancel();
+            // }
+            // catch
+            // {
+            // }
+
             try
             {
-                _connectCancellationSource.Cancel();
+                // Don't call ShutdownAsync before ConnectAsync completes on the core connection.
+                await _connectTask.ConfigureAwait(false);
             }
-            catch (System.Exception)
+            catch
             {
-                // Connection is already disposed.
+                // Ignore
             }
         }
 
-        _connectCancellationSource.Dispose();
-
         await _core.ShutdownAsync(this, message, cancel).ConfigureAwait(false);
+
+        _connectCancellationSource.Dispose();
     }
 }

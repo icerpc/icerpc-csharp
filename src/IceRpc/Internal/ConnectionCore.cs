@@ -101,11 +101,12 @@ internal sealed class ConnectionCore
         OutgoingRequest request,
         CancellationToken cancel)
     {
-        IProtocolConnection protocolConnection = GetProtocolConnection() ?? throw new ConnectionClosedException();
+        // InvokeAsync shouldn't be called before ConnectAsync completes.
+        Debug.Assert(_protocolConnection != null);
 
         try
         {
-            return await protocolConnection.InvokeAsync(request, connection, cancel).ConfigureAwait(false);
+            return await _protocolConnection.InvokeAsync(request, connection, cancel).ConfigureAwait(false);
         }
         catch (ConnectionLostException exception)
         {
@@ -123,14 +124,6 @@ internal sealed class ConnectionCore
             // this connection.
             _ = ShutdownAsync(connection, exception.Message, cancel);
             throw;
-        }
-
-        IProtocolConnection? GetProtocolConnection()
-        {
-            lock (_mutex)
-            {
-                return _protocolConnection ?? throw new ConnectionClosedException();
-            }
         }
     }
 
@@ -164,9 +157,13 @@ internal sealed class ConnectionCore
             {
                 return;
             }
-
-            if (_shutdownTask == null && _protocolConnection != null)
+            else if (_protocolConnection == null)
             {
+                // Just call Close() if the connection establishment didn't start.
+            }
+            else if (_shutdownTask == null)
+            {
+                // There's a protocol connection, shut it down.
                 _shutdownTask = ShutdownAsyncCore();
             }
         }
@@ -254,7 +251,6 @@ internal sealed class ConnectionCore
             if (_protocolConnection != null)
             {
                 _protocolConnection.Abort(exception ?? new ConnectionClosedException());
-                _protocolConnection = null;
             }
 
             // Time to get rid of disposable resources

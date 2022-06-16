@@ -484,7 +484,6 @@ public class ConnectionTests
     }
 
     [Test]
-    [Ignore("see ClientConnection.ShutdownAsync TODO comment")]
     public async Task Shutdown_waits_for_connection_establishment()
     {
         // Arrange
@@ -510,7 +509,7 @@ public class ConnectionTests
         connection.Abort();
         Assert.Multiple(() =>
         {
-            Assert.That(async () => await connectTask, Throws.TypeOf<ConnectionClosedException>());
+            Assert.That(async () => await connectTask, Throws.TypeOf<ObjectDisposedException>());
             Assert.That(async () => await shutdownTask, Throws.Nothing);
         });
     }
