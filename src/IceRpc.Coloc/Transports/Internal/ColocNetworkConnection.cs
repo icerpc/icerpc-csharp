@@ -128,7 +128,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public async Task ShutdownAsync(CancellationToken cancel)
+        public async Task ShutdownAsync()
         {
             if (_state.TrySetFlag(State.ShuttingDown))
             {

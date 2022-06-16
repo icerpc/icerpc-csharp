@@ -75,7 +75,7 @@ namespace IceRpc.Transports.Internal
             return received;
         }
 
-        public async Task ShutdownAsync(CancellationToken cancel)
+        public async Task ShutdownAsync()
         {
             try
             {

@@ -179,10 +179,10 @@ public abstract class SimpleTransportConformanceTests
             provider.GetRequiredService<ISimpleNetworkConnection>());
 
         // Act
-        await sut.ServerConnection.ShutdownAsync(CancellationToken.None);
+        await sut.ServerConnection.ShutdownAsync();
         int clientRead = await sut.ClientConnection.ReadAsync(new byte[1], CancellationToken.None);
 
-        await sut.ClientConnection.ShutdownAsync(CancellationToken.None);
+        await sut.ClientConnection.ShutdownAsync();
         int serverRead = await sut.ServerConnection.ReadAsync(new byte[1], CancellationToken.None);
 
         // Assert
@@ -305,7 +305,7 @@ public abstract class SimpleTransportConformanceTests
         using ClientServerSimpleTransportConnection sut = await ConnectAndAcceptAsync(
             provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
             provider.GetRequiredService<ISimpleNetworkConnection>());
-        await sut.ServerConnection.ShutdownAsync(CancellationToken.None);
+        await sut.ServerConnection.ShutdownAsync();
 
         // Act/Assert
         Assert.CatchAsync<Exception>(async () =>
@@ -335,7 +335,7 @@ public abstract class SimpleTransportConformanceTests
         await sendTask;
 
         // Act
-        await sut.ClientConnection.ShutdownAsync(CancellationToken.None);
+        await sut.ClientConnection.ShutdownAsync();
 
         // Assert
         Assert.That(await receiveTask, Is.EqualTo(sendSize));

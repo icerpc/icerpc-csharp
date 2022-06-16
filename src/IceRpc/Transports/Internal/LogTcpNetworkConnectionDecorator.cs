@@ -39,7 +39,7 @@ namespace IceRpc.Transports.Internal
         public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel) =>
             _decoratee.ReadAsync(buffer, cancel);
 
-        public Task ShutdownAsync(CancellationToken cancel) => _decoratee.ShutdownAsync(cancel);
+        public Task ShutdownAsync() => _decoratee.ShutdownAsync();
 
         public override string? ToString() => _decoratee.ToString();
 

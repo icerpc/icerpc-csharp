@@ -16,8 +16,7 @@ namespace IceRpc.Transports
         ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel);
 
         /// <summary>Shuts down the connection.</summary>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        Task ShutdownAsync(CancellationToken cancel);
+        Task ShutdownAsync();
 
         /// <summary>Writes data over the connection.</summary>
         /// <param name="buffers">The buffers containing the data to write.</param>

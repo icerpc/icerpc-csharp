@@ -309,7 +309,7 @@ namespace IceRpc.Transports.Internal
             }
 
             // Shutdown the simple network connection.
-            await _simpleNetworkConnection.ShutdownAsync(cancel).ConfigureAwait(false);
+            await _simpleNetworkConnection.ShutdownAsync().ConfigureAwait(false);
         }
 
         internal SlicNetworkConnection(
