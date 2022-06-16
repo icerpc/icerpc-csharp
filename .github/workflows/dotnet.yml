@@ -48,7 +48,7 @@ jobs:
       run: ./build.sh --examples --srcdist
     - name: Install Templates
       working-directory: src/ProjectTemplates
-      run dotnet pack && dotnet new --install "bin/Any CPU/Debug/IceRpc.Project.Templates.0.1.0-preview1.nupkg"
+      run: dotnet pack && dotnet new --install "bin/Any CPU/Debug/IceRpc.Project.Templates.0.1.0-preview1.nupkg"
     - name Test IceRpc Client Template
       run: mkdir templates-test/client && cd templates-test/client && dotnet new icerpc-client && dotnet build
     - name Test IceRpc Server Template
