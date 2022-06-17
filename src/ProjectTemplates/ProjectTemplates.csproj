@@ -4,7 +4,7 @@
     <PackageType>Template</PackageType>
     <PackageVersion>$(IceRpcVersion)</PackageVersion>
     <PackageId>IceRpc.Project.Templates</PackageId>
-    <PackageTags>icerpc;templates;contoso</PackageTags>
+    <PackageTags>icerpc;templates</PackageTags>
     <TargetFramework>net6.0</TargetFramework>
 
     <IncludeContentInPack>true</IncludeContentInPack>
