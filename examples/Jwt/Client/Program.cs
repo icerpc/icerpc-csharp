@@ -33,7 +33,7 @@ if (Console.ReadLine() is string name)
         // fail and with a DispatchException
         try
         {
-            Console.WriteLine(await hello.SayHelloAsync(name));
+            Console.WriteLine(await hello.SayHelloAsync());
         }
         catch (DispatchException ex)
         {

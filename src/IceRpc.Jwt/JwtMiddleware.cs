@@ -67,8 +67,8 @@ public class JwtMiddleware : IDispatcher
         }
 
         OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
-        if (request.Features.Get<IJwtFeature>() is IJwtFeature jwtFeature &&
-            (jwtSecurityToken == null || jwtFeature.Value != jwtSecurityToken))
+        // If the Jwt token changed we  have to encode it in the response features
+        if (request.Features.Get<IJwtFeature>() is IJwtFeature jwtFeature && jwtFeature.Value != jwtSecurityToken)
         {
             response.Fields = response.Fields.With(
                 ResponseFieldKey.Jwt,

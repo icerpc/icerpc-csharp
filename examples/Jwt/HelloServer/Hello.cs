@@ -8,20 +8,16 @@ namespace Demo;
 
 public class Hello : Service, IHello
 {
-    public ValueTask<string> SayHelloAsync(string name, IFeatureCollection features, CancellationToken cancel)
+    public ValueTask<string> SayHelloAsync(IFeatureCollection features, CancellationToken cancel)
     {
         if (features.Get<IJwtFeature>() is JwtFeature feature)
         {
-            if (feature.Value.Subject != name)
-            {
-                throw new DispatchException($"access denied: {name} doesn't match sub: {feature.Value.Subject}", DispatchErrorCode.UnhandledException);
-            }
-            Console.WriteLine($"{name} says hello!");
-            return new($"Hello, {name}!");
+            Console.WriteLine($"{feature.Value.Subject} says hello!");
+            return new($"Hello, {feature.Value.Subject}!");
         }
         else
         {
-            throw new DispatchException($"access denied missing Jwt security token: {name}", DispatchErrorCode.UnhandledException);
+            throw new DispatchException($"access denied missing Jwt security token", DispatchErrorCode.UnhandledException);
         }
     }
 }
