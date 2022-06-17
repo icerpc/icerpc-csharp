@@ -83,6 +83,19 @@ function Install($config) {
     RunCommand "dotnet" @('nuget', 'push', "src\**\$dotnetConfiguration\*.nupkg", '--source', $global_packages)
 }
 
+function InstallTemplates($config) {
+    $dotnetConfiguration = DotnetConfiguration($config)
+    Push-Location "src\ProjectTemplates"
+    RunCommand "dotnet" @('pack', '--configuration', $dotnetConfiguration)
+    $dotnet_templates = dotnet new -l
+    if ($dotnet_templates.Where({$_.Contains("icerpc-client")}).count -gt 0) {
+        RunCommand "dotnet" @('new', '--uninstall', 'IceRpc.Project.Templates')
+    }
+
+    RunCommand "dotnet" @('new', '--install', "bin\Any CPU\$dotnetConfiguration\IceRpc.Project.Templates.$version.nupkg")
+    Pop-Location
+}
+
 function Pack($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
     RunCommand "dotnet"  @('pack', '--configuration', $dotnetConfiguration)
@@ -143,6 +156,7 @@ function Get-Help() {
     Write-Host "  build                     Build IceRpc sources & slice-cs compiler."
     Write-Host "  pack                      Build the IceRpc NuGet packages."
     Write-Host "  install                   Install IceRpc NuGet packages into the global-packages source."
+    Write-Host "  install-templates         Install IceRpc dotnet new project templates."
     Write-Host "  clean                     Clean IceRpc sources & slice-cs compiler."
     Write-Host "  rebuild                   Rebuild IceRpc sources & slice-cs compiler."
     Write-Host "  test                      Runs tests."
@@ -177,6 +191,9 @@ switch ( $action ) {
     }
     "install" {
         Install $config
+    }
+    "install-templates" {
+        InstallTemplates $config
     }
     "rebuild" {
         Rebuild $config $examples $srcdist

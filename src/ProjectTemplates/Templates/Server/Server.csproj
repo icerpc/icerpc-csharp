@@ -6,14 +6,12 @@
     <Nullable>enable</Nullable>
     <LangVersion>10.0</LangVersion>
     <ImplicitUsings>true</ImplicitUsings>
-    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
     <WarningLevel>4</WarningLevel>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
     <SliceCompile Include="Hello.slice" />
     <PackageReference Include="IceRpc.Builder.MSBuild" Version="0.1.0-preview4" PrivateAssets="All" />
-    <!-- TODO do not use IceRpcVersion, this property is only for source distribution building -->
-    <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
+    <PackageReference Include="IceRpc" Version="0.1.0-preview1" />
   </ItemGroup>
 </Project>
