@@ -11,6 +11,7 @@ usage()
     echo "  build                     Build IceRpc sources & slice-cs compiler."
     echo "  pack                      Build the IceRpc NuGet packages."
     echo "  install                   Install the IceRpc NuGet packages into the global-packages source."
+    echo "  install-templates         Install IceRpc dotnet new project templates."
     echo "  clean                     Clean IceRpc sources & slice-cs compiler."
     echo "  rebuild                   Rebuild IceRpc sources & slice-cs compiler."
     echo "  test                      Runs tests."
@@ -61,6 +62,18 @@ install()
     global_packages=${global_packages/global-packages: /""}
     run_command rm "-rf" "$global_packages/icerpc/$version" "$global_packages"/icerpc.*/"$version"
     run_command dotnet "nuget" "push" "src/**/$dotnet_config/*.nupkg" "--source" "$global_packages"
+}
+
+install_templates()
+{
+    pushd src/ProjectTemplates
+    run_command dotnet "pack" "-c" "$dotnet_config"
+    dotnet_templates=$(dotnet new -l)
+    if [[ "$dotnet_templates" == *"icerpc-client"* ]]; then
+        run_command "dotnet" 'new' '-u' 'IceRpc.Project.Templates'
+    fi
+    run_command "dotnet" 'new' '-i' "bin/$dotnet_config/IceRpc.Project.Templates.$version.nupkg"
+    popd
 }
 
 clean_icerpc()
@@ -181,7 +194,7 @@ then
     config="debug"
 fi
 
-actions=("build" "clean" "pack" "install" "rebuild" "test" "doc")
+actions=("build" "clean" "pack" "install" "install-templates" "rebuild" "test" "doc")
 if [[ ! " ${actions[*]} " == *" ${action} "* ]]; then
     echo "invalid action: " $action
     usage
@@ -213,6 +226,9 @@ case $action in
         ;;
     "install")
         install
+        ;;
+    "install-templates")
+        install_templates
         ;;
     "clean")
         clean
