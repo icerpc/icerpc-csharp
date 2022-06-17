@@ -46,6 +46,24 @@ namespace IceRpc.Internal
             return _information;
         }
 
+        async Task<NetworkConnectionInformation> IProtocolConnection.ConnectAsync(
+            bool isServer,
+            Action onIdle,
+            Action<string> onShutdown,
+            CancellationToken cancel)
+        {
+            _isServer = isServer;
+            _information = await _decoratee.ConnectAsync(isServer, onIdle, onShutdown, cancel).ConfigureAwait(false);
+
+            using IDisposable scope = _logger.StartConnectionScope(_information, isServer);
+            _logger.LogProtocolConnectionConnect(
+                _decoratee.Protocol,
+                _information.LocalEndPoint,
+                _information.RemoteEndPoint);
+
+            return _information;
+        }
+
         async Task<IncomingResponse> IProtocolConnection.InvokeAsync(
             IConnection connection,
             OutgoingRequest request,

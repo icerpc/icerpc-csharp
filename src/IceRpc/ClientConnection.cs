@@ -35,19 +35,39 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
     // Returns true if the connection establishment completed.
     private bool IsConnected => _connectTask?.IsCompleted ?? false;
+<<<<<<< HEAD
+=======
+
+    private readonly SslClientAuthenticationOptions? _clientAuthenticationOptions;
+>>>>>>> origin/main
 
     private readonly CancellationTokenSource _connectCancellationSource = new();
 
     // _connectTask is set on connection establishment. It's volatile to avoid locking the mutex to check if the
     // connection establishment is completed.
     private volatile Task? _connectTask;
+<<<<<<< HEAD
 
     private readonly TimeSpan _connectTimeout;
+=======
+
+    private readonly TimeSpan _connectTimeout;
+
+    private readonly ConnectionCore _core;
+    private readonly ILoggerFactory _loggerFactory;
+>>>>>>> origin/main
 
     // Prevent concurrent assignment of _connectTask.
     private readonly object _mutex = new();
 
+<<<<<<< HEAD
     private readonly IProtocolConnection _protocolConnection;
+=======
+    // Prevent concurrent assignment of _connectTask.
+    private readonly object _mutex = new();
+
+    private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
+>>>>>>> origin/main
 
     /// <summary>Constructs a client connection.</summary>
     /// <param name="options">The connection options.</param>
@@ -62,7 +82,14 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
         IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
     {
+<<<<<<< HEAD
         _connectTimeout = options.ConnectTimeout;
+=======
+        _core = new ConnectionCore(options);
+        _connectTimeout = options.ConnectTimeout;
+
+        _clientAuthenticationOptions = options.ClientAuthenticationOptions;
+>>>>>>> origin/main
 
         RemoteEndpoint = options.RemoteEndpoint ??
             throw new ArgumentException(
@@ -148,7 +175,24 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         {
             if (_connectTask == null)
             {
+<<<<<<< HEAD
                 _connectTask = ConnectAsync();
+=======
+                if (Protocol == Protocol.Ice)
+                {
+                    _connectTask = ConnectAsync(
+                        _simpleClientTransport,
+                        IceProtocol.Instance.ProtocolConnectionFactory,
+                        LogSimpleNetworkConnectionDecorator.Decorate);
+                }
+                else
+                {
+                    _connectTask = ConnectAsync(
+                         _multiplexedClientTransport,
+                         IceRpcProtocol.Instance.ProtocolConnectionFactory,
+                         LogMultiplexedNetworkConnectionDecorator.Decorate);
+                }
+>>>>>>> origin/main
             }
             else if (_connectTask.IsCompletedSuccessfully)
             {
@@ -173,7 +217,15 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         // Wait for the connection establishment to complete.
         await _connectTask.ConfigureAwait(false);
 
+<<<<<<< HEAD
         async Task ConnectAsync()
+=======
+        async Task ConnectAsync<T>(
+            IClientTransport<T> clientTransport,
+            IProtocolConnectionFactory<T> protocolConnectionFactory,
+            LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory)
+            where T : INetworkConnection
+>>>>>>> origin/main
         {
             // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
             await Task.Yield();
@@ -185,9 +237,47 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
             try
             {
+<<<<<<< HEAD
                 NetworkConnectionInformation = await _protocolConnection.ConnectAsync(
                     this,
                     isServer: false,
+=======
+                // This is the composition root of client Connections, where we install log decorators when logging
+                // is enabled.
+
+                ILogger logger = _loggerFactory.CreateLogger("IceRpc.Client");
+
+                T networkConnection = clientTransport.CreateConnection(
+                    RemoteEndpoint,
+                    _clientAuthenticationOptions,
+                    logger);
+
+                // TODO: log level
+                if (logger.IsEnabled(LogLevel.Error))
+                {
+                    networkConnection = logDecoratorFactory(networkConnection, RemoteEndpoint, isServer: false, logger);
+
+                    protocolConnectionFactory =
+                        new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, logger);
+
+                    _core.OnClose(
+                        this,
+                        (connection, exception) =>
+                        {
+                            if (NetworkConnectionInformation is NetworkConnectionInformation connectionInformation)
+                            {
+                                using IDisposable scope = logger.StartClientConnectionScope(connectionInformation);
+                                logger.LogConnectionClosedReason(exception);
+                            }
+                        });
+                }
+
+                await _core.ConnectAsync(
+                    this,
+                    isServer: false,
+                    networkConnection,
+                    protocolConnectionFactory,
+>>>>>>> origin/main
                     _connectCancellationSource.Token).ConfigureAwait(false);
             }
             catch when (connectTimeoutSource.IsCancellationRequested)
@@ -254,7 +344,11 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             }
         }
 
+<<<<<<< HEAD
         await _protocolConnection.ShutdownAsync(this, message, cancel).ConfigureAwait(false);
+=======
+        await _core.ShutdownAsync(this, message, cancel).ConfigureAwait(false);
+>>>>>>> origin/main
 
         _connectCancellationSource.Dispose();
     }
