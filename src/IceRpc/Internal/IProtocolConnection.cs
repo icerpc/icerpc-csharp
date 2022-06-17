@@ -16,33 +16,35 @@ internal interface IProtocolConnection
     /// </param>
     void Abort(Exception exception);
 
-    /// <summary>Accepts requests and returns once the connection is closed or the shutdown completes.</summary>
-    /// <param name="connection">The connection of incoming requests created by this method.</param>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    Task AcceptRequestsAsync(IConnection connection);
-
     /// <summary>Connects the protocol connection.</summary>
+    /// <param name="connection">The parent connection used to set <see cref="IncomingFrame.Connection"/> for incoming
+    /// requests.</param>
     /// <param name="isServer"><c>true</c> if the connection is a server connection, <c>false</c> otherwise.</param>
-    /// <param name="onIdle">The callback called by the protocol connection when the connection is idle.</param>
-    /// <param name="onShutdown">The callback called by the protocol connection to initiate shutdown.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The network connection information.</returns>
     Task<NetworkConnectionInformation> ConnectAsync(
+        IConnection connection,
         bool isServer,
-        Action onIdle,
-        Action<string> onShutdown,
         CancellationToken cancel);
 
-    /// <summary>Sends a request and returns the response. The implementation must complete the request payload
-    /// and payload stream.</summary>
+    /// <summary>Sends a request and returns the response. The implementation must complete the request payload and
+    /// payload stream.</summary>
+    /// <param name="connection">The parent connection used to set <see cref="IncomingFrame.Connection"/> for incoming
+    /// responses.</param>
     /// <param name="request">The outgoing request to send.</param>
-    /// <param name="connection">The connection of incoming responses created by this method.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The received response.</returns>
     Task<IncomingResponse> InvokeAsync(
-        OutgoingRequest request,
         IConnection connection,
+        OutgoingRequest request,
         CancellationToken cancel = default);
+
+    /// <summary>Adds a callback that will be executed when the closure of this connection is initiated. The closure of
+    /// a connection can be initiated by a local call to Abort or ShutdownAsync, by the shutdown of the remote peer, or
+    /// by a transport error. If the connection is already shutting down or closed, this callback is executed
+    /// synchronously with this connection and an instance of <see cref="ConnectionClosedException"/>.</summary>
+    /// <param name="callback">The callback to execute. It must not block or throw any exception.</param>
+    void OnClose(Action<Exception> callback);
 
     /// <summary>Shuts down gracefully the connection.</summary>
     /// <param name="message">The reason of the connection shutdown.</param>

@@ -22,21 +22,13 @@ namespace IceRpc.Internal
             _logger.LogProtocolConnectionAbort(_decoratee.Protocol, exception);
         }
 
-        async Task IProtocolConnection.AcceptRequestsAsync(IConnection connection)
-        {
-            using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
-            _logger.LogAcceptRequests();
-            await _decoratee.AcceptRequestsAsync(connection).ConfigureAwait(false);
-        }
-
         async Task<NetworkConnectionInformation> IProtocolConnection.ConnectAsync(
+            IConnection connection,
             bool isServer,
-            Action onIdle,
-            Action<string> onShutdown,
             CancellationToken cancel)
         {
             _isServer = isServer;
-            _information = await _decoratee.ConnectAsync(isServer, onIdle, onShutdown, cancel).ConfigureAwait(false);
+            _information = await _decoratee.ConnectAsync(connection, isServer, cancel).ConfigureAwait(false);
 
             using IDisposable scope = _logger.StartConnectionScope(_information, isServer);
             _logger.LogProtocolConnectionConnect(
@@ -44,23 +36,32 @@ namespace IceRpc.Internal
                 _information.LocalEndPoint,
                 _information.RemoteEndPoint);
 
+            _decoratee.OnClose(
+                exception =>
+                {
+                    using IDisposable scope = _logger.StartClientConnectionScope(_information);
+                    _logger.LogConnectionClosedReason(exception);
+                });
+
             return _information;
         }
 
         async Task<IncomingResponse> IProtocolConnection.InvokeAsync(
-            OutgoingRequest request,
             IConnection connection,
+            OutgoingRequest request,
             CancellationToken cancel)
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             using IDisposable _ = _logger.StartSendRequestScope(request);
             IncomingResponse response = await _decoratee.InvokeAsync(
-                request,
                 connection,
+                request,
                 cancel).ConfigureAwait(false);
             _logger.LogSendRequest();
             return response;
         }
+
+        void IProtocolConnection.OnClose(Action<Exception> callback) => _decoratee.OnClose(callback);
 
         async Task IProtocolConnection.ShutdownAsync(string message, CancellationToken cancel)
         {

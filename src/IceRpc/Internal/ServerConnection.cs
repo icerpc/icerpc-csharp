@@ -11,10 +11,10 @@ internal sealed class ServerConnection : IConnection
     public bool IsResumable => false;
 
     /// <inheritdoc/>
-    public NetworkConnectionInformation? NetworkConnectionInformation => _core.NetworkConnectionInformation;
+    public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
 
     /// <inheritdoc/>
-    public Protocol Protocol { get; }
+    public Protocol Protocol => _protocolConnection.Protocol;
 
     private readonly CancellationTokenSource _connectCancellationSource = new();
 
@@ -22,42 +22,34 @@ internal sealed class ServerConnection : IConnection
 
     private readonly TimeSpan _connectTimeout;
 
-    private readonly ConnectionCore _core;
-
     private readonly object _mutex = new();
+
+    private readonly IProtocolConnection _protocolConnection;
 
     /// <inheritdoc/>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
-        _core.InvokeAsync(this, request, cancel);
+        _protocolConnection.InvokeAsync(this, request, cancel);
 
     /// <inheritdoc/>
-    public void OnClose(Action<IConnection, Exception> callback) => _core.OnClose(this, callback);
+    public void OnClose(Action<Exception> callback) => _protocolConnection.OnClose(callback);
 
     /// <summary>Constructs a server connection from an accepted network connection.</summary>
-    internal ServerConnection(Protocol protocol, ConnectionOptions options)
+    internal ServerConnection(IProtocolConnection protocolConnection, TimeSpan connectTimeout)
     {
-        Protocol = protocol;
-        _core = new ConnectionCore(options);
-        _connectTimeout = options.ConnectTimeout;
+        _protocolConnection = protocolConnection;
+        _connectTimeout = connectTimeout;
     }
 
     /// <summary>Aborts the connection.</summary>
-    internal void Abort() => _core.Abort(this);
+    internal void Abort() => _protocolConnection.Abort(new ConnectionAbortedException());
 
-    /// <summary>Establishes a connection.</summary>
-    /// <param name="networkConnection">The underlying network connection.</param>
-    /// <param name="protocolConnectionFactory">The protocol connection factory.</param>
-    internal Task ConnectAsync<T>(T networkConnection, IProtocolConnectionFactory<T> protocolConnectionFactory)
-        where T : INetworkConnection
+    /// <summary>Establishes the connection.</summary>
+    /// <returns>A task that indicates the completion of the connect operation.</returns>
+    internal Task ConnectAsync()
     {
         lock (_mutex)
         {
-            _connectTask ??= _core.ConnectAsync(
-                this,
-                isServer: true,
-                networkConnection,
-                protocolConnectionFactory,
-                _connectCancellationSource.Token);
+            _connectTask ??= _protocolConnection.ConnectAsync(this, isServer: true, _connectCancellationSource.Token);
         }
 
         _connectCancellationSource.CancelAfter(_connectTimeout);
@@ -101,6 +93,6 @@ internal sealed class ServerConnection : IConnection
             // Ignore
         }
 
-        await _core.ShutdownAsync(this, message, cancel).ConfigureAwait(false);
+        await _protocolConnection.ShutdownAsync(message, cancel).ConfigureAwait(false);
     }
 }

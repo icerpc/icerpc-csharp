@@ -302,10 +302,11 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
         }
         return connection;
 
-        void RemoveFromActive(IConnection connection, Exception exception)
+        void RemoveFromActive(Exception exception)
         {
+            Debug.Assert(connection != null);
+
             bool scheduleRemoveFromClosed = false;
-            var clientConnection = (ClientConnection)connection;
 
             lock (_mutex)
             {
@@ -313,16 +314,16 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
                 if (_shutdownTask == null)
                 {
                     // "move" from active to shutdown pending
-                    bool removed = _activeConnections.Remove(clientConnection.RemoteEndpoint);
+                    bool removed = _activeConnections.Remove(connection.RemoteEndpoint);
                     Debug.Assert(removed);
-                    _ = _shutdownPendingConnections.Add(clientConnection);
+                    _ = _shutdownPendingConnections.Add(connection);
                     scheduleRemoveFromClosed = true;
                 }
             }
 
             if (scheduleRemoveFromClosed)
             {
-                _ = RemoveFromClosedAsync(clientConnection);
+                _ = RemoveFromClosedAsync(connection);
             }
         }
 
