@@ -24,7 +24,8 @@ internal interface IProtocolConnection
     /// <summary>Connects the protocol connection.</summary>
     /// <param name="isServer"><c>true</c> if the connection is a server connection, <c>false</c> otherwise.</param>
     /// <param name="onIdle">The callback called by the protocol connection when the connection is idle.</param>
-    /// <param name="onShutdown">The callback called by the protocol connection to initiate shutdown.</param>
+    /// <param name="onShutdown">The callback called by the protocol connection to initiate shutdown in response to the
+    /// peer shutdown. The callback is provided the message by the remote peer.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The network connection information.</returns>
     Task<NetworkConnectionInformation> ConnectAsync(

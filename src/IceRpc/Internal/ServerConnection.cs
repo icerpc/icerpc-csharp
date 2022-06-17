@@ -24,6 +24,7 @@ internal sealed class ServerConnection : IConnection
 
     private readonly ConnectionCore _core;
 
+    // Prevent concurrent assignment of _connectTask.
     private readonly object _mutex = new();
 
     /// <inheritdoc/>
