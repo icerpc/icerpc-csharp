@@ -17,26 +17,26 @@ internal interface IProtocolConnection
     void Abort(Exception exception);
 
     /// <summary>Connects the protocol connection.</summary>
+    /// <param name="isServer"><c>true</c> if the connection is a server connection, <c>false</c> otherwise.</param>
     /// <param name="connection">The parent connection used to set <see cref="IncomingFrame.Connection"/> for incoming
     /// requests.</param>
-    /// <param name="isServer"><c>true</c> if the connection is a server connection, <c>false</c> otherwise.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The network connection information.</returns>
     Task<NetworkConnectionInformation> ConnectAsync(
-        IConnection connection,
         bool isServer,
+        IConnection connection,
         CancellationToken cancel);
 
     /// <summary>Sends a request and returns the response. The implementation must complete the request payload and
     /// payload stream.</summary>
+    /// <param name="request">The outgoing request to send.</param>
     /// <param name="connection">The parent connection used to set <see cref="IncomingFrame.Connection"/> for incoming
     /// responses.</param>
-    /// <param name="request">The outgoing request to send.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The received response.</returns>
     Task<IncomingResponse> InvokeAsync(
-        IConnection connection,
         OutgoingRequest request,
+        IConnection connection,
         CancellationToken cancel = default);
 
     /// <summary>Adds a callback that will be executed when the closure of this connection is initiated. The closure of

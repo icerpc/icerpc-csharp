@@ -105,6 +105,7 @@ internal class ClientServerProtocolConnection<T> : IClientServerProtocolConnecti
     private IProtocolConnection? _server;
     private readonly ServerOptions _serverOptions;
 
+    // TODO: XXX fix callbacks
     public async Task ConnectAsync(
         Action? onClientIdle,
         Action<string>? onClientShutdown,
@@ -115,40 +116,34 @@ internal class ClientServerProtocolConnection<T> : IClientServerProtocolConnecti
         Task<IProtocolConnection> clientProtocolConnectionTask = CreateConnectionAsync(
             _clientTransport.CreateConnection(_listener.Endpoint, null, NullLogger.Instance),
             _clientConnectionOptions,
-            isServer: false,
-            onClientIdle,
-            onClientShutdown);
+            isServer: false);
 
         Task<IProtocolConnection> serverProtocolConnectionTask = CreateConnectionAsync(
             await _listener.AcceptAsync(),
             _serverOptions.ConnectionOptions,
-            isServer: true,
-            onServerIdle,
-            onServerShutdown);
+            isServer: true);
 
         _client = await clientProtocolConnectionTask;
         _server = await serverProtocolConnectionTask;
 
-        if (acceptRequests)
-        {
-            _ = _client.AcceptRequestsAsync(_connection);
-            _ = _server.AcceptRequestsAsync(_connection);
-        }
+        // TODO: XXX
+        // if (acceptRequests)
+        // {
+        //     _ = _client.AcceptRequestsAsync(_connection);
+        //     _ = _server.AcceptRequestsAsync(_connection);
+        // }
 
         async Task<IProtocolConnection> CreateConnectionAsync(
             T networkConnection,
             ConnectionOptions connectionOptions,
-            bool isServer,
-            Action? onIdle,
-            Action<string>? onShutdown)
+            bool isServer)
         {
             IProtocolConnection protocolConnection = _protocolConnectionFactory.CreateConnection(
                 networkConnection,
                 connectionOptions);
             _ = await protocolConnection.ConnectAsync(
                 isServer,
-                onIdle ?? (() => {}),
-                onShutdown ?? (_ => {}),
+                null!, // TODO: XXX
                 CancellationToken.None);
             return protocolConnection;
         }

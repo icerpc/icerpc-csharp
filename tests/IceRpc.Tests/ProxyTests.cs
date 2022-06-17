@@ -277,8 +277,11 @@ public class ProxyTests
     [Test]
     public async Task From_connection_with_a_server_connection()
     {
+        // TODO: XXX Remove this test? FromConnection takes an IConnection...
+
         // Arrange
-        var serverConnection = new Internal.ServerConnection(Protocol.IceRpc, new ConnectionOptions());
+        // var serverConnection = new Internal.ServerConnection(Protocol.IceRpc, new ConnectionOptions());
+        var serverConnection = new Internal.ServerConnection(null!, new ConnectionOptions());
 
         // Act
         var proxy = Proxy.FromConnection(serverConnection, "/");

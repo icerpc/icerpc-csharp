@@ -48,28 +48,29 @@ public sealed class ProtocolConnectionTests
 
     /// <summary>Ensures that AcceptRequestsAsync returns successfully when the connection is gracefully
     /// shutdown.</summary>
-    [Test, TestCaseSource(nameof(_protocols))]
-    public async Task AcceptRequests_returns_successfully_on_graceful_shutdown(Protocol protocol)
-    {
-        // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
-            .BuildServiceProvider(validateScopes: true);
+    // TODO: there's no more AcceptRequestsAsync method on IProtocolConnection
+    // [Test, TestCaseSource(nameof(_protocols))]
+    // public async Task AcceptRequests_returns_successfully_on_graceful_shutdown(Protocol protocol)
+    // {
+    //     // Arrange
+    //     await using ServiceProvider provider = new ServiceCollection()
+    //         .AddProtocolTest(protocol)
+    //         .BuildServiceProvider(validateScopes: true);
 
-        IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync(acceptRequests: false);
+    //     IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+    //     await sut.ConnectAsync(acceptRequests: false);
 
-        Task clientAcceptRequestsTask = sut.Client.AcceptRequestsAsync(provider.GetRequiredService<IConnection>());
-        Task serverAcceptRequestsTask = sut.Server.AcceptRequestsAsync(provider.GetRequiredService<IConnection>());
+    //     Task clientAcceptRequestsTask = sut.Client.AcceptRequestsAsync(provider.GetRequiredService<IConnection>());
+    //     Task serverAcceptRequestsTask = sut.Server.AcceptRequestsAsync(provider.GetRequiredService<IConnection>());
 
-        // Act
-        _ = sut.Client.ShutdownAsync("");
-        _ = sut.Server.ShutdownAsync("");
+    //     // Act
+    //     _ = sut.Client.ShutdownAsync("");
+    //     _ = sut.Server.ShutdownAsync("");
 
-        // Assert
-        Assert.DoesNotThrowAsync(() => clientAcceptRequestsTask);
-        Assert.DoesNotThrowAsync(() => serverAcceptRequestsTask);
-    }
+    //     // Assert
+    //     Assert.DoesNotThrowAsync(() => clientAcceptRequestsTask);
+    //     Assert.DoesNotThrowAsync(() => serverAcceptRequestsTask);
+    // }
 
     /// <summary>Verifies that the OnIdle callback is called when idle.</summary>
     [Test, TestCaseSource(nameof(_protocols))]

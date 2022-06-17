@@ -44,9 +44,7 @@ namespace IceRpc.Internal
         private Timer? _idleTimeoutTimer;
         private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
         private bool _isAborted;
-        private bool _isShutdown;
-        private bool _isShuttingDown;
-        private bool _isShuttingDownOnIdle;
+        private bool _isOnCloseCalled;
         private readonly int _maxFrameSize;
         private readonly MemoryPool<byte> _memoryPool;
         private readonly int _minimumSegmentSize;
@@ -56,11 +54,12 @@ namespace IceRpc.Internal
         private readonly SimpleNetworkConnectionReader _networkConnectionReader;
         private readonly SimpleNetworkConnectionWriter _networkConnectionWriter;
         private int _nextRequestId;
-        private Action<string>? _onShutdown;
+        private Action<Exception>? _onClose;
         private readonly IcePayloadPipeWriter _payloadWriter;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly CancellationTokenSource _readCancelSource = new();
         private TaskCompletionSource? _readFramesTaskCompletionSource;
+        private volatile Task? _shutdownTask;
         private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
         public void Abort(Exception exception)
@@ -73,6 +72,8 @@ namespace IceRpc.Internal
                 }
                 _isAborted = true;
             }
+
+            InvokeOnClose(exception);
 
             // Close the network connection and cancel the pending receive.
             _networkConnection.Dispose();
@@ -116,36 +117,14 @@ namespace IceRpc.Internal
             }
         }
 
-        public async Task AcceptRequestsAsync(IConnection connection)
-        {
-            try
-            {
-                _readFramesTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-                // Read frames until the CloseConnection frame is received.
-                await ReadFramesAsync(connection, _readCancelSource.Token).ConfigureAwait(false);
-            }
-            catch (ConnectionLostException) when (_isShutdown)
-            {
-                // Ignore, the peer closed the connection after we sent the CloseConnection frame.
-            }
-            finally
-            {
-                _readFramesTaskCompletionSource?.SetResult();
-            }
-        }
-
         public async Task<NetworkConnectionInformation> ConnectAsync(
             bool isServer,
-            Action onIdle,
-            Action<string> onShutdown,
+            IConnection connection,
             CancellationToken cancel)
         {
             // Connect the network connection
             NetworkConnectionInformation networkConnectionInformation =
                 await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
-
-            _onShutdown = onShutdown;
 
             // Wait for the network connection establishment to set the idle timeout. The network connection
             // ConnectAsync implementation would need otherwise to deal with thread safety if Dispose is called
@@ -193,16 +172,37 @@ namespace IceRpc.Internal
                                 return; // The connection is no longer idle.
                             }
 
-                            // Prevent new invocations or dispatches to be processed at this point.
-                            _isShuttingDownOnIdle = true;
+                            // Initiate the shutdown.
+                            _shutdownTask = ShutdownAsyncCore("idle connection", CancellationToken.None);
                         }
-
-                        onIdle.Invoke();
                     },
                     null,
                     _idleTimeout,
                     Timeout.InfiniteTimeSpan);
             }
+
+            _ = Task.Run(
+                async () =>
+                {
+                    try
+                    {
+                        _readFramesTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+                        // Read frames until the CloseConnection frame is received.
+                        await ReadFramesAsync(connection, _readCancelSource.Token).ConfigureAwait(false);
+                    }
+                    catch (ConnectionLostException) when (_dispatchesAndInvocationsCompleted.Task.IsCompleted)
+                    {
+                        // Ignore. The dispatches and invocations completed task is completed on graceful shutdown. This
+                        // exception is expected since the peer closes the connection after we sent the CloseConnection
+                        // frame.
+                    }
+                    finally
+                    {
+                        _readFramesTaskCompletionSource?.SetResult();
+                    }
+                },
+                cancel);
 
             return networkConnectionInformation;
 
@@ -255,7 +255,7 @@ namespace IceRpc.Internal
                 {
                     lock (_mutex)
                     {
-                        if (_isShuttingDown || _isShuttingDownOnIdle || _isAborted)
+                        if (_shutdownTask != null || _isAborted)
                         {
                             throw new ConnectionClosedException();
                         }
@@ -403,7 +403,7 @@ namespace IceRpc.Internal
                     {
                         if (_invocations.Count == 0 && _dispatches.Count == 0)
                         {
-                            if (_isShuttingDown)
+                            if (_shutdownTask != null)
                             {
                                 _dispatchesAndInvocationsCompleted.TrySetResult();
                             }
@@ -469,63 +469,34 @@ namespace IceRpc.Internal
             }
         }
 
-        public async Task ShutdownAsync(string message, CancellationToken cancel)
+        public void OnClose(Action<Exception> callback)
         {
-            bool alreadyShuttingDown = false;
+            bool executeCallback = false;
+
             lock (_mutex)
             {
-                if (_isShuttingDown)
+                if (_isOnCloseCalled)
                 {
-                    alreadyShuttingDown = true;
+                    executeCallback = true;
                 }
                 else
                 {
-                    _isShuttingDown = true;
-                    if (_dispatches.Count == 0 && _invocations.Count == 0)
-                    {
-                        _dispatchesAndInvocationsCompleted.TrySetResult();
-                    }
+                    _onClose += callback;
                 }
             }
 
-            cancel.Register(CancelDispatches);
-
-            if (!alreadyShuttingDown)
+            if (executeCallback)
             {
-                // Cancel pending invocations immediately.
-                CancelInvocations(new OperationCanceledException(message));
-
-                // Wait for dispatches and invocations to complete.
-                await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
-
-                // Mark the connection as shut down at this point. This is necessary to ensure ReadFramesAsync returns
-                // successfully on a graceful connection shutdown. This needs to be set before writing the close
-                // connection frame since the peer will close the simple network connection as soon as it receives the
-                // frame.
-                _isShutdown = true;
-
-                await _writeSemaphore.EnterAsync(CancellationToken.None).ConfigureAwait(false);
-                try
-                {
-                    // Encode and write the CloseConnection frame once all the dispatches are done.
-                    EncodeCloseConnectionFrame(_networkConnectionWriter);
-                    await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-                }
-                finally
-                {
-                    _writeSemaphore.Release();
-                }
+                callback(new ConnectionClosedException());
             }
+        }
 
-            // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
-            // connection closure here. We can't just return and close the underlying transport since this could abort
-            // the receive of the dispatch responses and close connection frame by the peer.
-            await _pendingClose.Task.ConfigureAwait(false);
-
-            static void EncodeCloseConnectionFrame(SimpleNetworkConnectionWriter writer)
+        public Task ShutdownAsync(string message, CancellationToken cancel)
+        {
+            // TODO: CANCELLATION TOKEN
+            lock (_mutex)
             {
-                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
-                IceDefinitions.CloseConnectionFrame.Encode(ref encoder);
+                return _shutdownTask ??= ShutdownAsyncCore(message, cancel);
             }
         }
 
@@ -681,13 +652,26 @@ namespace IceRpc.Internal
             }
         }
 
+        private void InvokeOnClose(Exception exception)
+        {
+            Action<Exception>? onClose;
+
+            lock (_mutex)
+            {
+                _isOnCloseCalled = true;
+                onClose = _onClose;
+                _onClose = null; // clear _onClose because we want to execute it only once
+            }
+
+            // Execute callbacks (if any) outside lock
+            onClose?.Invoke(exception);
+        }
+
         /// <summary>Read incoming frames and returns on graceful connection shutdown.</summary>
         /// <param name="connection">The connection assigned to <see cref="IncomingFrame.Connection"/>.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         private async ValueTask ReadFramesAsync(IConnection connection, CancellationToken cancel)
         {
-            Debug.Assert(_onShutdown != null);
-
             while (true)
             {
                 ReadOnlySequence<byte> buffer = await _networkConnectionReader.ReadAtLeastAsync(
@@ -729,13 +713,8 @@ namespace IceRpc.Internal
 
                         lock (_mutex)
                         {
-                            // If local shutdown is in progress, shutdown from peer prevails. The local shutdown
-                            // will return once the connection disposes this protocol connection.
-                            _isShuttingDown = true;
+                            _shutdownTask ??= ShutdownAsyncCore("connection shutdown by peer", CancellationToken.None);
                         }
-
-                        // Call the peer shutdown initiated callback.
-                        _onShutdown.Invoke("connection shutdown by peer");
 
                         // Close the connection now. The peer expects the connection to be closed after the close
                         // connection frame is received.
@@ -818,7 +797,7 @@ namespace IceRpc.Internal
 
                             cleanupFrameReader = false;
                         }
-                        else if (!_isShuttingDown)
+                        else if (_shutdownTask == null)
                         {
                             throw new InvalidDataException("received ice Reply for unknown invocation");
                         }
@@ -900,7 +879,7 @@ namespace IceRpc.Internal
                 bool isClosed = false;
                 lock (_mutex)
                 {
-                    if (_isShuttingDown || _isShuttingDownOnIdle || _isAborted)
+                    if (_shutdownTask != null || _isAborted)
                     {
                         isClosed = true;
                     }
@@ -1127,7 +1106,7 @@ namespace IceRpc.Internal
                             {
                                 if (_invocations.Count == 0 && _dispatches.Count == 0)
                                 {
-                                    if (_isShuttingDown)
+                                    if (_shutdownTask != null)
                                     {
                                         _dispatchesAndInvocationsCompleted.TrySetResult();
                                     }
@@ -1222,6 +1201,67 @@ namespace IceRpc.Internal
 
                     return (requestId, requestHeader, contextPipe?.Reader, (int)decoder.Consumed);
                 }
+            }
+        }
+
+        private async Task ShutdownAsyncCore(string message, CancellationToken cancel)
+        {
+            Debug.Assert(_shutdownTask != null);
+
+            if (_isAborted)
+            {
+                return;
+            }
+
+            // Make sure we shutdown the connection asynchronously without holding any mutex lock from the caller.
+            await Task.Yield();
+
+            var exception = new ConnectionClosedException(message);
+
+            // TODO: should the on close callback take a nullable exception instead?
+            InvokeOnClose(exception);
+
+            if (_dispatches.Count == 0 && _invocations.Count == 0)
+            {
+                _dispatchesAndInvocationsCompleted.TrySetResult();
+            }
+
+            cancel.Register(CancelDispatches);
+
+            // Cancel pending invocations immediately.
+            CancelInvocations(new OperationCanceledException(message));
+
+            // Wait for dispatches and invocations to complete.
+            await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
+
+            await _writeSemaphore.EnterAsync(CancellationToken.None).ConfigureAwait(false);
+            try
+            {
+                // Encode and write the CloseConnection frame once all the dispatches are done.
+                EncodeCloseConnectionFrame(_networkConnectionWriter);
+                await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            finally
+            {
+                _writeSemaphore.Release();
+            }
+
+            // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
+            // connection closure here. We can't just return and close the underlying transport since this could abort
+            // the receive of the dispatch responses and close connection frame by the peer.
+            await _pendingClose.Task.ConfigureAwait(false);
+
+            // Release the resources of the connection. TODO: this needs to be refactored once we settle on the
+            // responsibilities of the Shutdown/Dispose/Abort, etc methods. Right now, the protocol connection
+            // Abort method disposes of the resources and ShutdownAsync relies on it. It's backward for IConnection
+            // where Abort doesn't disposes of the resources and where it's instead ShutdownAsync that disposes of
+            // them.
+            Abort(exception);
+
+            static void EncodeCloseConnectionFrame(SimpleNetworkConnectionWriter writer)
+            {
+                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
+                IceDefinitions.CloseConnectionFrame.Encode(ref encoder);
             }
         }
     }
