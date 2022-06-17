@@ -13,7 +13,6 @@
   <ItemGroup>
     <SliceCompile Include="../Downloader.slice" />
     <PackageReference Include="IceRpc.Builder.MSBuild" Version="0.1.0-preview4" PrivateAssets="All" />
-    <!-- TODO do not use IceRpcVersion, this property is only for projects within the source distribution -->
     <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
   </ItemGroup>
 </Project>

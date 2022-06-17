@@ -15,7 +15,7 @@ and return the value of an invocation.
 
 ## [Download](./Download/)
 
-The Download example shows how a server can stream bytes from a file to a client.
+The Download example shows how to download a file using streaming from a server.
 
 ## [GenericHost](./GenericHost/)
 
@@ -55,4 +55,4 @@ The Stream example shows how to stream data from a client to a server.
 
 ## [Upload](./Upload/)
 
-The Upload example shows how a client can stream bytes a local file to a remote server.
+The Upload example shows how to upload a file from a client to a sever using streaming.
