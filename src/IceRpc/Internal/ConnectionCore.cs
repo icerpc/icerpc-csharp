@@ -13,7 +13,7 @@ internal sealed class ConnectionCore
 {
     internal NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
 
-    private bool _isClosing;
+    private bool _isOnCloseCalled;
     private bool _isClosed;
 
     // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
@@ -133,7 +133,7 @@ internal sealed class ConnectionCore
 
         lock (_mutex)
         {
-            if (_isClosing)
+            if (_isOnCloseCalled)
             {
                 executeCallback = true;
             }
@@ -248,10 +248,7 @@ internal sealed class ConnectionCore
             }
             _isClosed = true;
 
-            if (_protocolConnection != null)
-            {
-                _protocolConnection.Abort(exception ?? new ConnectionClosedException());
-            }
+            _protocolConnection?.Abort(exception ?? new ConnectionClosedException());
 
             // Time to get rid of disposable resources
             _shutdownCancellationSource.Dispose();
@@ -264,7 +261,7 @@ internal sealed class ConnectionCore
 
         lock (_mutex)
         {
-            _isClosing = true;
+            _isOnCloseCalled = true;
 
             onClose = _onClose;
             _onClose = null; // clear _onClose because we want to execute it only once

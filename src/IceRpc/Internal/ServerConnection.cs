@@ -22,6 +22,7 @@ internal sealed class ServerConnection : IConnection
 
     private readonly TimeSpan _connectTimeout;
 
+    // Prevent concurrent assignment of _connectTask.
     private readonly object _mutex = new();
 
     private readonly IProtocolConnection _protocolConnection;

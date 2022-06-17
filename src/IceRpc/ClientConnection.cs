@@ -44,6 +44,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
     private readonly TimeSpan _connectTimeout;
 
+    // Prevent concurrent assignment of _connectTask.
     private readonly object _mutex = new();
 
     private readonly IProtocolConnection _protocolConnection;
@@ -154,9 +155,10 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
                 // Connection establishment completed successfully, we're done.
                 return;
             }
-            else if (_connectTask.IsCompleted)
+            else if (_connectTask.IsCanceled || _connectTask.IsFaulted)
             {
-                // Connection establishment didn't complete successfully so at this point the connection is closed.
+                // Connection establishment didn't complete successfully. Since we're using an already closed connection
+                // we raise ConnectionClosedException instead of raising the connection establishment failure exception.
                 throw new ConnectionClosedException();
             }
             else
