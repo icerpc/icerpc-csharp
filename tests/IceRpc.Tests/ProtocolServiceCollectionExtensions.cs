@@ -112,31 +112,45 @@ internal class ClientServerProtocolConnection<T> : IClientServerProtocolConnecti
         Action<string>? onServerShutdown,
         bool acceptRequests = true)
     {
-        Task<(IProtocolConnection, NetworkConnectionInformation)> clientProtocolConnectionTask =
-            _protocolConnectionFactory.CreateConnectionAsync(
-                _clientTransport.CreateConnection(_listener.Endpoint, null, NullLogger.Instance),
-                isServer: false,
-                _clientConnectionOptions,
-                onClientIdle ?? (() => { }),
-                onClientShutdown ?? (_ => { }),
-                CancellationToken.None);
+        Task<IProtocolConnection> clientProtocolConnectionTask = CreateConnectionAsync(
+            _clientTransport.CreateConnection(_listener.Endpoint, null, NullLogger.Instance),
+            _clientConnectionOptions,
+            isServer: false,
+            onClientIdle,
+            onClientShutdown);
 
-        Task<(IProtocolConnection, NetworkConnectionInformation)> serverProtocolConnectionTask =
-            _protocolConnectionFactory.CreateConnectionAsync(
-                await _listener.AcceptAsync(),
-                isServer: true,
-                _serverOptions.ConnectionOptions,
-                onServerIdle ?? (() => { }),
-                onServerShutdown ?? (_ => { }),
-                CancellationToken.None);
+        Task<IProtocolConnection> serverProtocolConnectionTask = CreateConnectionAsync(
+            await _listener.AcceptAsync(),
+            _serverOptions.ConnectionOptions,
+            isServer: true,
+            onServerIdle,
+            onServerShutdown);
 
-        (_client, _) = await clientProtocolConnectionTask;
-        (_server, _) = await serverProtocolConnectionTask;
+        _client = await clientProtocolConnectionTask;
+        _server = await serverProtocolConnectionTask;
 
         if (acceptRequests)
         {
             _ = _client.AcceptRequestsAsync(_connection);
             _ = _server.AcceptRequestsAsync(_connection);
+        }
+
+        async Task<IProtocolConnection> CreateConnectionAsync(
+            T networkConnection,
+            ConnectionOptions connectionOptions,
+            bool isServer,
+            Action? onIdle,
+            Action<string>? onShutdown)
+        {
+            IProtocolConnection protocolConnection = _protocolConnectionFactory.CreateConnection(
+                networkConnection,
+                connectionOptions);
+            _ = await protocolConnection.ConnectAsync(
+                isServer,
+                onIdle ?? (() => {}),
+                onShutdown ?? (_ => {}),
+                CancellationToken.None);
+            return protocolConnection;
         }
     }
 

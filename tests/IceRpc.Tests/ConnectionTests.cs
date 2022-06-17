@@ -509,7 +509,7 @@ public class ConnectionTests
         connection.Abort();
         Assert.Multiple(() =>
         {
-            Assert.That(async () => await connectTask, Throws.TypeOf<ConnectionClosedException>());
+            Assert.That(async () => await connectTask, Throws.TypeOf<ObjectDisposedException>());
             Assert.That(async () => await shutdownTask, Throws.Nothing);
         });
     }

@@ -11,28 +11,10 @@ namespace IceRpc.Internal;
 /// <summary>Code common to client and server connections.</summary>
 internal sealed class ConnectionCore
 {
-    /// <summary>The state of this connection.</summary>
-    private enum ConnectionState : byte
-    {
-        /// <summary>The connection is in its initial state.</summary>
-        NotConnected,
-
-        /// <summary>The connection establishment is in progress.</summary>
-        Connecting,
-
-        /// <summary>The connection is active and can send and receive messages.</summary>
-        Active,
-
-        /// <summary>The connection is being gracefully shutdown.</summary>
-        ShuttingDown,
-
-        /// <summary>The connection is closed (terminal state).</summary>
-        Closed
-    }
-
     internal NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
 
-    private readonly CancellationTokenSource _connectCancellationSource = new();
+    private bool _isOnCloseCalled;
+    private bool _isClosed;
 
     // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
     private readonly object _mutex = new();
@@ -46,16 +28,12 @@ internal sealed class ConnectionCore
 
     private readonly CancellationTokenSource _shutdownCancellationSource = new();
 
-    private ConnectionState _state = ConnectionState.NotConnected;
-
-    // The state task is assigned when the state is updated to Connecting or ShuttingDown. It's completed once the
-    // state update completes. It's protected with _mutex.
-    private Task? _stateTask;
+    // The shutdown task is assigned when shutdown is initiated.
+    private Task? _shutdownTask;
 
     internal ConnectionCore(ConnectionOptions options) => _options = options;
 
-    /// <summary>Aborts the connection. This methods switches the connection state to <see
-    /// cref="ConnectionState.Closed"/>.</summary>
+    /// <summary>Aborts the connection.</summary>
     internal void Abort(IConnection connection) => Close(connection, new ConnectionAbortedException());
 
     /// <summary>Establishes a connection.</summary>
@@ -64,64 +42,41 @@ internal sealed class ConnectionCore
     /// </param>
     /// <param name="networkConnection">The underlying network connection.</param>
     /// <param name="protocolConnectionFactory">The protocol connection factory.</param>
-    // TODO: make private
+    /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     internal async Task ConnectAsync<T>(
         IConnection connection,
         bool isServer,
         T networkConnection,
-        IProtocolConnectionFactory<T> protocolConnectionFactory) where T : INetworkConnection
+        IProtocolConnectionFactory<T> protocolConnectionFactory,
+        CancellationToken cancel) where T : INetworkConnection
     {
-        using var connectTimeoutCancellationSource = new CancellationTokenSource(_options.ConnectTimeout);
-        using var connectCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(
-            connectTimeoutCancellationSource.Token,
-            _connectCancellationSource.Token);
-        CancellationToken cancel = connectCancellationSource.Token;
-
         try
         {
-            // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
-            await Task.Yield();
-
-            // Create the protocol connection. The protocol connection owns the network connection and is responsible
-            // for its disposal. If the protocol connection establishment fails, the network connection is disposed.
-            (IProtocolConnection protocolConnection, NetworkConnectionInformation) =
-                await protocolConnectionFactory.CreateConnectionAsync(
-                    networkConnection,
-                    isServer,
-                    _options,
-                    onIdle: () => _ = ShutdownAsync(connection, "idle connection", CancellationToken.None),
-                    onShutdown: message => _ = ShutdownAsync(connection, message, CancellationToken.None),
-                    cancel).ConfigureAwait(false);
-
             lock (_mutex)
             {
-                if (_state == ConnectionState.Connecting)
+                if (_shutdownTask != null || _isClosed)
                 {
-                    _state = ConnectionState.Active;
-                }
-                else if (_state == ConnectionState.Closed)
-                {
-                    // This can occur if the connection is aborted shortly after the connection establishment.
-                    throw new ConnectionClosedException("connection aborted");
-                }
-                else
-                {
-                    // The state can switch to ShuttingDown if ShutdownAsync is called while the connection
-                    // establishment is in progress.
-                    Debug.Assert(_state == ConnectionState.ShuttingDown);
+                    return;
                 }
 
-                _stateTask = null;
-                _protocolConnection = protocolConnection;
+                // Create the protocol connection. The protocol connection owns the network connection and is
+                // responsible for its disposal.
+                _protocolConnection = protocolConnectionFactory.CreateConnection(networkConnection, _options);
+            }
 
-                // Start accepting requests. _protocolConnection might be updated before the task is ran so it's
-                // important to use protocolConnection here.
-                _ = Task.Run(async () =>
+            NetworkConnectionInformation = await _protocolConnection.ConnectAsync(
+                isServer,
+                onIdle: () => _ = ShutdownAsync(connection, "idle connection", CancellationToken.None),
+                onShutdown: message => _ = ShutdownAsync(connection, message, CancellationToken.None),
+                cancel).ConfigureAwait(false);
+
+            _ = Task.Run(
+                async () =>
                 {
                     Exception? exception = null;
                     try
                     {
-                        await protocolConnection.AcceptRequestsAsync(connection).ConfigureAwait(false);
+                        await _protocolConnection.AcceptRequestsAsync(connection).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
@@ -131,20 +86,8 @@ internal sealed class ConnectionCore
                     {
                         Close(connection, exception);
                     }
-                });
-            }
-        }
-        catch (OperationCanceledException) when (connectTimeoutCancellationSource.IsCancellationRequested)
-        {
-            var exception = new ConnectTimeoutException();
-            Close(connection, exception);
-            throw exception;
-        }
-        catch (OperationCanceledException) when (_connectCancellationSource.IsCancellationRequested)
-        {
-            // This occurs when connection establishment is canceled by Close. We just throw
-            // ConnectionClosedException here because the connection is already closed and disposed.
-            throw new ConnectionClosedException("connection aborted");
+                },
+                cancel);
         }
         catch (Exception exception)
         {
@@ -153,113 +96,17 @@ internal sealed class ConnectionCore
         }
     }
 
-    /// <summary>Establishes the client connection.</summary>
-    /// <exception cref="ConnectionClosedException">Thrown if the connection is already closed.</exception>
-    internal async Task ConnectClientAsync<T>(
-        IClientConnection clientConnection,
-        IClientTransport<T> clientTransport,
-        IProtocolConnectionFactory<T> protocolConnectionFactory,
-        LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory,
-        ILoggerFactory loggerFactory,
-        SslClientAuthenticationOptions? clientAuthenticationOptions,
-        CancellationToken cancel) where T : INetworkConnection
-    {
-        Task? waitTask = null;
-        lock (_mutex)
-        {
-            if (_state == ConnectionState.NotConnected)
-            {
-                Debug.Assert(_protocolConnection == null);
-
-                // This is the composition root of client Connections, where we install log decorators when logging
-                // is enabled.
-
-                ILogger logger = loggerFactory.CreateLogger("IceRpc.Client");
-
-                T networkConnection = clientTransport.CreateConnection(
-                    clientConnection.RemoteEndpoint,
-                    clientAuthenticationOptions,
-                    logger);
-
-                // TODO: log level
-                if (logger.IsEnabled(LogLevel.Error))
-                {
-                    networkConnection = logDecoratorFactory(
-                        networkConnection,
-                        clientConnection.RemoteEndpoint,
-                        isServer: false,
-                        logger);
-
-                    protocolConnectionFactory =
-                        new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, logger);
-
-                    OnClose(
-                        clientConnection,
-                        (connection, exception) =>
-                        {
-                            if (NetworkConnectionInformation is NetworkConnectionInformation connectionInformation)
-                            {
-                                using IDisposable scope = logger.StartClientConnectionScope(connectionInformation);
-                                logger.LogConnectionClosedReason(exception);
-                            }
-                        });
-                }
-
-                _state = ConnectionState.Connecting;
-                _stateTask = ConnectAsync(
-                    clientConnection,
-                    isServer: false,
-                    networkConnection,
-                    protocolConnectionFactory);
-            }
-            else if (_state == ConnectionState.Active)
-            {
-                return;
-            }
-            else
-            {
-                // ShuttingDown or Closed
-                throw new ConnectionClosedException();
-            }
-
-            Debug.Assert(_stateTask != null);
-            waitTask = _stateTask;
-        }
-
-        await waitTask.WaitAsync(cancel).ConfigureAwait(false);
-    }
-
-    /// <summary>Connects a server connection.</summary>
-    internal Task ConnectServerAsync<T>(
-        IConnection connection,
-        T networkConnection,
-        IProtocolConnectionFactory<T> protocolConnectionFactory) where T : INetworkConnection
-    {
-        lock (_mutex)
-        {
-            Debug.Assert(_state == ConnectionState.NotConnected);
-            _state = ConnectionState.Connecting;
-
-            _stateTask = ConnectAsync(
-                connection,
-                isServer: true,
-                networkConnection,
-                protocolConnectionFactory);
-
-            return _stateTask;
-        }
-    }
-
     internal async Task<IncomingResponse> InvokeAsync(
         IConnection connection,
         OutgoingRequest request,
         CancellationToken cancel)
     {
-        IProtocolConnection protocolConnection = GetProtocolConnection() ?? throw new ConnectionClosedException();
+        // InvokeAsync shouldn't be called before ConnectAsync completes.
+        Debug.Assert(_protocolConnection != null);
 
         try
         {
-            return await protocolConnection.InvokeAsync(request, connection, cancel).ConfigureAwait(false);
+            return await _protocolConnection.InvokeAsync(request, connection, cancel).ConfigureAwait(false);
         }
         catch (ConnectionLostException exception)
         {
@@ -278,25 +125,6 @@ internal sealed class ConnectionCore
             _ = ShutdownAsync(connection, exception.Message, cancel);
             throw;
         }
-
-        IProtocolConnection? GetProtocolConnection()
-        {
-            lock (_mutex)
-            {
-                if (_state == ConnectionState.Active)
-                {
-                    return _protocolConnection!;
-                }
-                else if (_state > ConnectionState.Active)
-                {
-                    throw new ConnectionClosedException();
-                }
-                else
-                {
-                    return null;
-                }
-            }
-        }
     }
 
     internal void OnClose(IConnection connection, Action<IConnection, Exception> callback)
@@ -305,7 +133,7 @@ internal sealed class ConnectionCore
 
         lock (_mutex)
         {
-            if (_state >= ConnectionState.ShuttingDown)
+            if (_isOnCloseCalled)
             {
                 executeCallback = true;
             }
@@ -323,70 +151,26 @@ internal sealed class ConnectionCore
 
     internal async Task ShutdownAsync(IConnection connection, string message, CancellationToken cancel)
     {
-        Task? shutdownTask = null;
-        Task? connectTask = null;
         lock (_mutex)
         {
-            if (_state == ConnectionState.Connecting)
-            {
-                _state = ConnectionState.ShuttingDown;
-                connectTask = _stateTask;
-            }
-            else if (_state == ConnectionState.Active)
-            {
-                _state = ConnectionState.ShuttingDown;
-                _stateTask = ShutdownAsyncCore(
-                    connection,
-                    _protocolConnection!,
-                    message,
-                    _shutdownCancellationSource.Token);
-                shutdownTask = _stateTask;
-            }
-            else if (_state == ConnectionState.ShuttingDown)
-            {
-                shutdownTask = _stateTask;
-            }
-            else if (_state == ConnectionState.Closed)
+            if (_isClosed)
             {
                 return;
             }
-        }
-
-        if (connectTask != null)
-        {
-            // Wait for the connection establishment to complete.
-            try
+            else if (_protocolConnection == null)
             {
-                await connectTask.ConfigureAwait(false);
+                // Just call Close() if the connection establishment didn't start.
             }
-            catch
+            else if (_shutdownTask == null)
             {
-                // Ignore connection establishment failures.
-            }
-
-            // Initiate shutdown.
-            lock (_mutex)
-            {
-                if (_state == ConnectionState.Closed)
-                {
-                    // The connection is already closed and disposed, nothing to do.
-                    return;
-                }
-
-                Debug.Assert(_state == ConnectionState.ShuttingDown);
-                _stateTask = ShutdownAsyncCore(
-                    connection,
-                    _protocolConnection!,
-                    message,
-                    _shutdownCancellationSource.Token);
-                shutdownTask = _stateTask;
+                // There's a protocol connection, shut it down.
+                _shutdownTask = ShutdownAsyncCore();
             }
         }
 
-        if (shutdownTask != null)
+        if (_shutdownTask != null)
         {
-            // If the application cancels ShutdownAsync, cancel the shutdown cancellation source to speed up
-            // shutdown.
+            // If the application cancels ShutdownAsync, cancel the shutdown cancellation source to speed up shutdown.
             using CancellationTokenRegistration _ = cancel.Register(() =>
             {
                 try
@@ -399,11 +183,52 @@ internal sealed class ConnectionCore
             });
 
             // Wait for the shutdown to complete.
-            await shutdownTask.ConfigureAwait(false);
+            await _shutdownTask.ConfigureAwait(false);
         }
         else
         {
             Close(connection, new ConnectionClosedException());
+        }
+
+        async Task ShutdownAsyncCore()
+        {
+            // Yield before continuing to ensure the code below isn't executed with the mutex locked.
+            await Task.Yield();
+
+            InvokeOnClose(connection, exception: null);
+
+            using var cancelCloseTimeoutSource = new CancellationTokenSource();
+            _ = CloseOnTimeoutAsync(cancelCloseTimeoutSource.Token);
+
+            Exception? exception = null;
+            try
+            {
+                // Shutdown the connection. If the given cancellation token is canceled, pending invocations and
+                // dispatches are canceled to speed up shutdown. Otherwise, the protocol shutdown is canceled on close
+                // timeout.
+                await _protocolConnection.ShutdownAsync(message, cancel).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                exception = ex;
+            }
+            finally
+            {
+                cancelCloseTimeoutSource.Cancel();
+                Close(connection, exception);
+            }
+
+            async Task CloseOnTimeoutAsync(CancellationToken cancel)
+            {
+                try
+                {
+                    await Task.Delay(_options.CloseTimeout, cancel).ConfigureAwait(false);
+                    Close(connection, new ConnectionAbortedException("shutdown timed out"));
+                }
+                catch (OperationCanceledException)
+                {
+                }
+            }
         }
     }
 
@@ -413,30 +238,20 @@ internal sealed class ConnectionCore
     /// exception indicates a graceful connection closure.</param>
     private void Close(IConnection connection, Exception? exception)
     {
-        // Make sure connection establishment is canceled.
-        try
-        {
-            _connectCancellationSource.Cancel();
-        }
-        catch (ObjectDisposedException)
-        {
-        }
-
         InvokeOnClose(connection, exception);
 
         lock (_mutex)
         {
-            if (_protocolConnection != null)
+            if (_isClosed)
             {
-                _protocolConnection.Abort(exception ?? new ConnectionClosedException());
-                _protocolConnection = null;
+                return;
             }
-            _state = ConnectionState.Closed;
-            _stateTask = null;
+            _isClosed = true;
+
+            _protocolConnection?.Abort(exception ?? new ConnectionClosedException());
 
             // Time to get rid of disposable resources
             _shutdownCancellationSource.Dispose();
-            _connectCancellationSource.Dispose();
         }
     }
 
@@ -446,11 +261,7 @@ internal sealed class ConnectionCore
 
         lock (_mutex)
         {
-            if (_state < ConnectionState.ShuttingDown)
-            {
-                // Subsequent calls to OnClose must execute their callback immediately.
-                _state = ConnectionState.ShuttingDown;
-            }
+            _isOnCloseCalled = true;
 
             onClose = _onClose;
             _onClose = null; // clear _onClose because we want to execute it only once
@@ -458,51 +269,5 @@ internal sealed class ConnectionCore
 
         // Execute callbacks (if any) outside lock
         onClose?.Invoke(connection, exception ?? new ConnectionClosedException());
-    }
-
-    private async Task ShutdownAsyncCore(
-        IConnection connection,
-        IProtocolConnection protocolConnection,
-        string message,
-        CancellationToken cancel)
-    {
-        // Yield before continuing to ensure the code below isn't executed with the mutex locked and that _stateTask
-        // is assigned before any synchronous continuations are ran.
-        await Task.Yield();
-
-        InvokeOnClose(connection, exception: null);
-
-        using var cancelCloseTimeoutSource = new CancellationTokenSource();
-        _ = CloseOnTimeoutAsync(cancelCloseTimeoutSource.Token);
-
-        Exception? exception = null;
-        try
-        {
-            // Shutdown the connection. If the given cancellation token is canceled, pending invocations and
-            // dispatches are canceled to speed up shutdown. Otherwise, the protocol shutdown is canceled on close
-            // timeout.
-            await protocolConnection.ShutdownAsync(message, cancel).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            exception = ex;
-        }
-        finally
-        {
-            cancelCloseTimeoutSource.Cancel();
-            Close(connection, exception);
-        }
-
-        async Task CloseOnTimeoutAsync(CancellationToken cancel)
-        {
-            try
-            {
-                await Task.Delay(_options.CloseTimeout, cancel).ConfigureAwait(false);
-                Close(connection, new ConnectionAbortedException("shutdown timed out"));
-            }
-            catch (OperationCanceledException)
-            {
-            }
-        }
     }
 }
