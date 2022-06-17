@@ -10,4 +10,7 @@ unchecked enum ResponseFieldKey : varuint62
 
     /// The compression format of the payload.
     CompressionFormat = 2,
+
+    /// The Jwt token field.
+    Jwt = 3,
 }
