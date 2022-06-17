@@ -175,7 +175,17 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         }
 
         // Cancel the connection establishment if the given token is canceled.
-        using CancellationTokenRegistration _ = cancel.Register(_connectCancellationSource!.Cancel);
+        using CancellationTokenRegistration _ = cancel.Register(
+            () =>
+            {
+                try
+                {
+                    _connectCancellationSource.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+            });
 
         // Wait for the connection establishment to complete.
         await _connectTask.ConfigureAwait(false);
@@ -188,7 +198,17 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             // TODO: we create a cancellation token source just for the purpose if raising ConnectTimedException below.
             // Is it worth it? If not, we could just call _connectionCancellationSource.CancelAfter(_connectTimeout).
             using var connectTimeoutSource = new CancellationTokenSource(_connectTimeout);
-            using var _ = connectTimeoutSource.Token.Register(_connectCancellationSource.Cancel);
+            using CancellationTokenRegistration _ = connectTimeoutSource.Token.Register(
+                () =>
+                {
+                    try
+                    {
+                        _connectCancellationSource.Cancel();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                    }
+                });
 
             try
             {
@@ -236,11 +256,10 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         Task? connectTask = null;
         lock (_mutex)
         {
-            // TODO: Should we cancel the pending connect on ShutdownAsync or let it complete first?
-            // if (_shutdownTask == null && _connectTask != null && !_connectTask.IsCompleted)
-            // {
-            //     _connectCancellationSource.Cancel();
-            // }
+            if (_shutdownTask == null && _connectTask != null && !_connectTask.IsCompleted)
+            {
+                _connectCancellationSource.Cancel();
+            }
 
             connectTask = _connectTask;
 
@@ -250,7 +269,17 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         }
 
         // Cancel shutdown if the given token is canceled.
-        using CancellationTokenRegistration _ = cancel.Register(_shutdownCancellationSource.Cancel);
+        using CancellationTokenRegistration _ = cancel.Register(
+            () =>
+            {
+                try
+                {
+                    _shutdownCancellationSource.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+            });
 
         // Wait for the shutdown to complete.
         return _shutdownTask;

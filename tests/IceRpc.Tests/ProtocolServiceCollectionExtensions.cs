@@ -55,15 +55,13 @@ public static class ProtocolServiceCollectionExtensions
 
         if (protocol == Protocol.Ice)
         {
-            services.TryAddSingleton<IConnection>(InvalidConnection.Ice);
-            services.AddSingleton(IceProtocol.Instance.ProtocolConnectionFactory);
-            services.AddSingleton<IClientServerProtocolConnection, ClientServerProtocolConnection<ISimpleNetworkConnection>>();
+            services.TryAddSingleton(InvalidConnection.Ice);
+            services.AddSingleton<IClientServerProtocolConnection, ClientServerIceProtocolConnection>();
         }
         else
         {
-            services.TryAddSingleton<IConnection>(InvalidConnection.IceRpc);
-            services.AddSingleton(IceRpcProtocol.Instance.ProtocolConnectionFactory);
-            services.AddSingleton<IClientServerProtocolConnection, ClientServerProtocolConnection<IMultiplexedNetworkConnection>>();
+            services.TryAddSingleton(InvalidConnection.IceRpc);
+            services.AddSingleton<IClientServerProtocolConnection, ClientServerIceRpcProtocolConnection>();
         }
         return services;
     }
@@ -74,21 +72,12 @@ internal interface IClientServerProtocolConnection
     IProtocolConnection Client { get; }
     IProtocolConnection Server { get; }
 
-    Task ConnectAsync(
-        Action? onClientIdle = null,
-        Action<string>? onClientShutdown = null,
-        Action? onServerIdle = null,
-        Action<string>? onServerShutdown = null,
-        bool acceptRequests = true);
+    Task ConnectAsync();
 }
 
 /// <summary>A helper class to connect and provide access to a client and server protocol connection. It also  ensures
 /// the connections are correctly disposed.</summary>
-[System.Diagnostics.CodeAnalysis.SuppressMessage(
-    "Performance",
-    "CA1812: Avoid uninstantiated internal classes",
-    Justification = "DI instantiated")]
-internal class ClientServerProtocolConnection<T> : IClientServerProtocolConnection, IDisposable
+internal abstract class ClientServerProtocolConnection<T> : IClientServerProtocolConnection, IDisposable
     where T : INetworkConnection
 {
     public IProtocolConnection Client =>
@@ -101,17 +90,10 @@ internal class ClientServerProtocolConnection<T> : IClientServerProtocolConnecti
     private readonly IClientTransport<T> _clientTransport;
     private readonly IConnection _connection;
     private readonly IListener<T> _listener;
-    private readonly IProtocolConnectionFactory<T> _protocolConnectionFactory;
     private IProtocolConnection? _server;
     private readonly ServerOptions _serverOptions;
 
-    // TODO: XXX fix callbacks
-    public async Task ConnectAsync(
-        Action? onClientIdle,
-        Action<string>? onClientShutdown,
-        Action? onServerIdle,
-        Action<string>? onServerShutdown,
-        bool acceptRequests = true)
+    public async Task ConnectAsync()
     {
         Task<IProtocolConnection> clientProtocolConnectionTask = CreateConnectionAsync(
             _clientTransport.CreateConnection(_listener.Endpoint, null, NullLogger.Instance),
@@ -126,24 +108,15 @@ internal class ClientServerProtocolConnection<T> : IClientServerProtocolConnecti
         _client = await clientProtocolConnectionTask;
         _server = await serverProtocolConnectionTask;
 
-        // TODO: XXX
-        // if (acceptRequests)
-        // {
-        //     _ = _client.AcceptRequestsAsync(_connection);
-        //     _ = _server.AcceptRequestsAsync(_connection);
-        // }
-
         async Task<IProtocolConnection> CreateConnectionAsync(
             T networkConnection,
             ConnectionOptions connectionOptions,
             bool isServer)
         {
-            IProtocolConnection protocolConnection = _protocolConnectionFactory.CreateConnection(
-                networkConnection,
-                connectionOptions);
+            IProtocolConnection protocolConnection = CreateConnection(networkConnection, connectionOptions);
             _ = await protocolConnection.ConnectAsync(
                 isServer,
-                null!, // TODO: XXX
+                _connection,
                 CancellationToken.None);
             return protocolConnection;
         }
@@ -155,17 +128,14 @@ internal class ClientServerProtocolConnection<T> : IClientServerProtocolConnecti
         _server?.Abort(new ConnectionClosedException());
     }
 
-    // This constructor must be public to be usable by DI container
-    public ClientServerProtocolConnection(
+    protected ClientServerProtocolConnection(
         IConnection connection,
-        IProtocolConnectionFactory<T> protocolConnectionFactory,
         IClientTransport<T> clientTransport,
         IListener<T> listener,
         IOptions<ConnectionOptions> clientConnectionOptions,
         IOptions<ServerOptions> serverOptions)
     {
         _connection = connection;
-        _protocolConnectionFactory = protocolConnectionFactory;
         _clientTransport = clientTransport;
         _listener = listener;
         _clientConnectionOptions = clientConnectionOptions?.Value ?? new ConnectionOptions();
@@ -173,6 +143,55 @@ internal class ClientServerProtocolConnection<T> : IClientServerProtocolConnecti
         _client = null;
         _server = null;
     }
+
+    protected abstract IProtocolConnection CreateConnection(T networkConnection, ConnectionOptions options);
+}
+
+[System.Diagnostics.CodeAnalysis.SuppressMessage(
+    "Performance",
+    "CA1812:Avoid uninstantiated internal classes",
+    Justification = "DI instantiated")]
+internal sealed class ClientServerIceProtocolConnection : ClientServerProtocolConnection<ISimpleNetworkConnection>
+{
+    // This constructor must be public to be usable by DI container
+    public ClientServerIceProtocolConnection(
+        IConnection connection,
+        IClientTransport<ISimpleNetworkConnection> clientTransport,
+        IListener<ISimpleNetworkConnection> listener,
+        IOptions<ConnectionOptions> clientConnectionOptions,
+        IOptions<ServerOptions> serverOptions) :
+        base(connection, clientTransport, listener, clientConnectionOptions, serverOptions)
+    {
+    }
+
+    protected override IProtocolConnection CreateConnection(
+        ISimpleNetworkConnection networkConnection,
+        ConnectionOptions options) =>
+        new IceProtocolConnection(networkConnection, options);
+}
+
+[System.Diagnostics.CodeAnalysis.SuppressMessage(
+    "Performance",
+    "CA1812:Avoid uninstantiated internal classes",
+    Justification = "DI instantiated")]
+internal sealed class ClientServerIceRpcProtocolConnection :
+    ClientServerProtocolConnection<IMultiplexedNetworkConnection>
+{
+    // This constructor must be public to be usable by DI container
+    public ClientServerIceRpcProtocolConnection(
+        IConnection connection,
+        IClientTransport<IMultiplexedNetworkConnection> clientTransport,
+        IListener<IMultiplexedNetworkConnection> listener,
+        IOptions<ConnectionOptions> clientConnectionOptions,
+        IOptions<ServerOptions> serverOptions) :
+        base(connection, clientTransport, listener, clientConnectionOptions, serverOptions)
+    {
+    }
+
+    protected override IProtocolConnection CreateConnection(
+        IMultiplexedNetworkConnection networkConnection,
+        ConnectionOptions options) =>
+        new IceRpcProtocolConnection(networkConnection, options);
 }
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage(

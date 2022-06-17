@@ -19,6 +19,8 @@ internal sealed class ServerConnection : IConnection
 
     private bool _isShutdown;
 
+    private readonly CancellationTokenSource _connectCancellationSource = new();
+
     private Task? _connectTask;
 
     private readonly TimeSpan _connectTimeout;
@@ -52,7 +54,7 @@ internal sealed class ServerConnection : IConnection
     /// <returns>A task that indicates the completion of the connect operation.</returns>
     internal Task ConnectAsync()
     {
-        using var connectCancellationSource = new CancellationTokenSource(_connectTimeout);
+        _connectCancellationSource.CancelAfter(_connectTimeout);
 
         lock (_mutex)
         {
@@ -75,7 +77,7 @@ internal sealed class ServerConnection : IConnection
             await _protocolConnection.ConnectAsync(
                 isServer: true,
                 this,
-                connectCancellationSource.Token).ConfigureAwait(false);
+                _connectCancellationSource.Token).ConfigureAwait(false);
         }
     }
 
@@ -95,11 +97,10 @@ internal sealed class ServerConnection : IConnection
         {
             Debug.Assert(!_isShutdown);
 
-            // TODO: Should we cancel the pending connect on ShutdownAsync or let it complete first?
-            // if (_shutdownTask == null && _connectTask != null && !_connectTask.IsCompleted)
-            // {
-            //     _connectCancellationSource.Cancel();
-            // }
+            if (_connectTask != null && !_connectTask.IsCompleted)
+            {
+                _connectCancellationSource.Cancel();
+            }
 
             connectTask = _connectTask;
             _isShutdown = true;
@@ -124,5 +125,8 @@ internal sealed class ServerConnection : IConnection
 
         // Shutdown the protocol connection.
         await _protocolConnection.ShutdownAsync(message, cancel).ConfigureAwait(false);
+
+        // Release disposable resources.
+        _connectCancellationSource.Dispose();
     }
 }

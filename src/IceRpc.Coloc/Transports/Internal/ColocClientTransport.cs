@@ -36,18 +36,22 @@ namespace IceRpc.Transports.Internal
 
             remoteEndpoint = remoteEndpoint.WithTransport(Name);
 
+            return new ColocNetworkConnection(remoteEndpoint, Connect);
+        }
+
+        internal ColocClientTransport(ConcurrentDictionary<Endpoint, ColocListener> listeners) =>
+            _listeners = listeners;
+
+        private (PipeReader, PipeWriter) Connect(Endpoint remoteEndpoint)
+        {
             if (_listeners.TryGetValue(remoteEndpoint, out ColocListener? listener))
             {
-                (PipeReader reader, PipeWriter writer) = listener.NewClientConnection();
-                return new ColocNetworkConnection(remoteEndpoint, isServer: false, writer, reader);
+                return listener.NewClientConnection();
             }
             else
             {
                 throw new ConnectionRefusedException();
             }
         }
-
-        internal ColocClientTransport(ConcurrentDictionary<Endpoint, ColocListener> listeners) =>
-            _listeners = listeners;
     }
 }

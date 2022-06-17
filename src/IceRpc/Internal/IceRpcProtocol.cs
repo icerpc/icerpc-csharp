@@ -20,9 +20,6 @@ namespace IceRpc.Internal
         /// <summary>Gets the IceRpc protocol singleton.</summary>
         internal static IceRpcProtocol Instance { get; } = new();
 
-        internal IProtocolConnectionFactory<IMultiplexedNetworkConnection> ProtocolConnectionFactory { get; } =
-            new IceRpcProtocolConnectionFactory();
-
         internal override SliceEncoding SliceEncoding => SliceEncoding.Slice2;
 
         private IceRpcProtocol()

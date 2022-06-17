@@ -74,7 +74,7 @@ public sealed class ProtocolConnectionTests
 
     /// <summary>Verifies that the OnIdle callback is called when idle.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    public async Task OnIdle_is_called_when_idle(Protocol protocol)
+    public async Task OnClose_is_called_when_idle(Protocol protocol)
     {
         // Arrange
         IServiceCollection services = new ServiceCollection().AddProtocolTest(protocol);
@@ -92,9 +92,10 @@ public sealed class ProtocolConnectionTests
         TimeSpan serverIdleCalledTime = Timeout.InfiniteTimeSpan;
 
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync(
-            onClientIdle: () => clientIdleCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64),
-            onServerIdle: () => serverIdleCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64));
+        await sut.ConnectAsync();
+
+        sut.Client.OnClose(_ => clientIdleCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64));
+        sut.Server.OnClose(_ => serverIdleCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64));
 
         // Act
         await Task.Delay(TimeSpan.FromSeconds(1));
@@ -110,7 +111,7 @@ public sealed class ProtocolConnectionTests
     /// <summary>Verifies that the OnIdle callback is called when idle and after the idle time has been
     /// deferred.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    public async Task OnIdle_is_called_when_idle_and_idle_timeout_deferred(Protocol protocol)
+    public async Task OnClose_is_called_when_idle_and_idle_timeout_deferred(Protocol protocol)
     {
         // Arrange
         IServiceCollection services = new ServiceCollection().AddProtocolTest(protocol);
@@ -128,9 +129,10 @@ public sealed class ProtocolConnectionTests
         long serverIdleCalledTime = Environment.TickCount64;
 
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync(
-            onClientIdle: () => clientIdleCalledTime = Environment.TickCount64 - clientIdleCalledTime,
-            onServerIdle: () => serverIdleCalledTime = Environment.TickCount64 - serverIdleCalledTime);
+        await sut.ConnectAsync();
+
+        sut.Client.OnClose(_ => clientIdleCalledTime = Environment.TickCount64 - clientIdleCalledTime);
+        sut.Client.OnClose(_ => serverIdleCalledTime = Environment.TickCount64 - serverIdleCalledTime);
 
         var request = new OutgoingRequest(new Proxy(protocol));
         IncomingResponse response = await sut.Client.InvokeAsync(request, InvalidConnection.ForProtocol(protocol));
@@ -173,7 +175,7 @@ public sealed class ProtocolConnectionTests
 
         IConnection connection = provider.GetRequiredService<IConnection>();
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync(onClientShutdown: (message) => sut.Client.ShutdownAsync("shutdown", default));
+
         var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
         await start.WaitAsync(); // Wait for the dispatch to start
 
@@ -482,50 +484,6 @@ public sealed class ProtocolConnectionTests
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.Null);
     }
 
-    /// <summary>Ensures that the InitiateShutdown callback is called when the peer initiates the
-    /// shutdown.</summary>
-    [Test, TestCaseSource(nameof(Protocol_on_server_and_client_connection))]
-    public async Task InitiateShutdown_callback_is_called(Protocol protocol, ConnectionType connectionType)
-    {
-        // Arrange
-        await using var provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
-            .BuildServiceProvider(validateScopes: true);
-
-        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-
-        IProtocolConnection? connection1 = null;
-        IProtocolConnection? connection2 = null;
-        var shutdownInitiatedCalled = new TaskCompletionSource<string>();
-        if (connectionType == ConnectionType.Client)
-        {
-            await sut.ConnectAsync(onClientShutdown: message =>
-                {
-                    shutdownInitiatedCalled.SetResult(message);
-                    _ = connection2!.ShutdownAsync("");
-                });
-            connection1 = sut.Server;
-            connection2 = sut.Client;
-        }
-        else
-        {
-            await sut.ConnectAsync(onServerShutdown: message =>
-                {
-                    shutdownInitiatedCalled.SetResult(message);
-                    _ = connection2!.ShutdownAsync("");
-                });
-            connection1 = sut.Client;
-            connection2 = sut.Server;
-        }
-
-        // Act
-        _ = connection1.ShutdownAsync("hello world");
-
-        // Assert
-        string message = protocol == Protocol.Ice ? "connection shutdown by peer" : "hello world";
-        Assert.That(await shutdownInitiatedCalled.Task, Is.EqualTo(message));
-    }
-
     [Test, TestCaseSource(nameof(_protocols))]
     public async Task Receive_payload(Protocol protocol)
     {
@@ -666,7 +624,6 @@ public sealed class ProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         IConnection connection = provider.GetRequiredService<IConnection>();
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync(onClientShutdown: message => _ = sut.Client.ShutdownAsync(message));
 
         var invokeTask1 = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
         await start.WaitAsync(); // Wait for the dispatch to start

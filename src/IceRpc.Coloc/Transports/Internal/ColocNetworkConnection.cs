@@ -9,23 +9,26 @@ namespace IceRpc.Transports.Internal
     /// copies the send buffer into the receive buffer.</summary>
     internal class ColocNetworkConnection : ISimpleNetworkConnection
     {
+        private readonly Func<Endpoint, (PipeReader, PipeWriter)> _connect;
         private readonly Endpoint _endpoint;
         // Remember the failure that caused the connection failure to raise the same exception from WriteAsync or
         // ReadAsync
         private Exception? _exception;
-        private readonly bool _isServer;
-        private readonly PipeReader _reader;
+        private PipeReader? _reader;
         private int _state;
-        private readonly PipeWriter _writer;
+        private PipeWriter? _writer;
 
         public Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
         {
+            (_reader, _writer) = _connect(_endpoint);
             var colocEndPoint = new ColocEndPoint(_endpoint);
             return Task.FromResult(new NetworkConnectionInformation(colocEndPoint, colocEndPoint, null));
         }
 
         public void Dispose()
         {
+            Debug.Assert(_reader != null && _writer != null);
+
             _exception ??= new ObjectDisposedException($"{typeof(ColocNetworkConnection)}");
 
             if (_state.TrySetFlag(State.Disposed))
@@ -52,6 +55,8 @@ namespace IceRpc.Transports.Internal
 
         public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
+            Debug.Assert(_reader != null && _writer != null);
+
             if (!_state.TrySetFlag(State.Reading))
             {
                 throw new InvalidOperationException($"{nameof(ReadAsync)} is not thread safe");
@@ -130,6 +135,8 @@ namespace IceRpc.Transports.Internal
 
         public async Task ShutdownAsync(CancellationToken cancel)
         {
+            Debug.Assert(_reader != null && _writer != null);
+
             if (_state.TrySetFlag(State.ShuttingDown))
             {
                 if (_state.TrySetFlag(State.Writing))
@@ -146,6 +153,8 @@ namespace IceRpc.Transports.Internal
 
         public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
+            Debug.Assert(_reader != null && _writer != null);
+
             if (!_state.TrySetFlag(State.Writing))
             {
                 throw new InvalidOperationException($"{nameof(WriteAsync)} is not thread safe");
@@ -186,12 +195,10 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public ColocNetworkConnection(Endpoint endpoint, bool isServer, PipeWriter writer, PipeReader reader)
+        public ColocNetworkConnection(Endpoint endpoint, Func<Endpoint, (PipeReader, PipeWriter)> connect)
         {
             _endpoint = endpoint;
-            _isServer = isServer;
-            _writer = writer;
-            _reader = reader;
+            _connect = connect;
         }
 
         private enum State : int

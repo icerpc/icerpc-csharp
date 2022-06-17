@@ -243,20 +243,22 @@ namespace IceRpc
             }
 
             // Remove the connection from _connections once shutdown completes
-            async Task RemoveFromCollectionAsync(IConnection connection)
+            Task RemoveFromCollectionAsync(ServerConnection connection)
             {
-                var serverConnection = (ServerConnection)connection;
-                await serverConnection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
-
                 lock (_mutex)
                 {
-                    // the _connections collection is immutable when _shutdownTask is not null
-                    if (_shutdownTask == null)
+                    // the _connections collection is immutable when _shutdownTask.
+                    if (_shutdownTask != null)
                     {
-                        bool removed = _connections.Remove(serverConnection);
-                        Debug.Assert(removed);
+                        // We're done, the connection shutdown is taken care of by the shutdown task.
+                        return Task.CompletedTask;
                     }
+
+                    bool removed = _connections.Remove(connection);
+                    Debug.Assert(removed);
                 }
+
+                return connection.ShutdownAsync(CancellationToken.None);
             }
         }
 

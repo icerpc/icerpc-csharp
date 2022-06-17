@@ -14,7 +14,7 @@ namespace IceRpc.Transports.Internal
         public async Task<ISimpleNetworkConnection> AcceptAsync()
         {
             (PipeReader reader, PipeWriter writer) = await _queue.DequeueAsync(default).ConfigureAwait(false);
-            return new ColocNetworkConnection(Endpoint, isServer: true, writer, reader);
+            return new ColocNetworkConnection(Endpoint, _ => (reader, writer));
         }
 
         public ValueTask DisposeAsync()

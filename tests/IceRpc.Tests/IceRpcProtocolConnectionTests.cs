@@ -90,7 +90,6 @@ public sealed class IceRpcProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
 
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync(onServerShutdown: message => _ = sut.Server.ShutdownAsync(message));
 
         var invokeTask = sut.Client.InvokeAsync(
             new OutgoingRequest(new Proxy(Protocol.IceRpc)),
@@ -415,7 +414,6 @@ public sealed class IceRpcProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
 
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync(onServerShutdown: message => sut.Server.ShutdownAsync(message));
 
         var invokeTask = sut.Client.InvokeAsync(
             new OutgoingRequest(new Proxy(Protocol.IceRpc)),

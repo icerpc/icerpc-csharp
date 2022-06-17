@@ -20,9 +20,6 @@ namespace IceRpc.Internal
 
         internal override SliceEncoding SliceEncoding => SliceEncoding.Slice1;
 
-        internal IProtocolConnectionFactory<ISimpleNetworkConnection> ProtocolConnectionFactory { get; } =
-            new IceProtocolConnectionFactory();
-
         /// <summary>Checks if this absolute path holds a valid identity.</summary>
         internal override void CheckPath(string uriPath)
         {

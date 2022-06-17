@@ -1004,7 +1004,7 @@ namespace IceRpc.Internal
 
         private async Task ShutdownAsyncCore(string message, CancellationToken cancel)
         {
-            Debug.Assert(_shutdownTask != null);
+            Debug.Assert(_shutdownTask == null);
 
             if (_isAborted)
             {

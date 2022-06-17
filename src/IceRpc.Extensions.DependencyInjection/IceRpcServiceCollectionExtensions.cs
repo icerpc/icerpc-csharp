@@ -19,7 +19,7 @@ public static class IceRpcServiceCollectionExtensions
     public static IServiceCollection AddIceRpcClientConnection(this IServiceCollection services) =>
         services
             .TryAddIceRpcClientTransport()
-            .AddSingleton<ClientConnection>(provider =>
+            .AddSingleton(provider =>
                 new ClientConnection(
                     provider.GetRequiredService<IOptions<ClientConnectionOptions>>().Value,
                     loggerFactory: provider.GetService<ILoggerFactory>(),
@@ -33,7 +33,7 @@ public static class IceRpcServiceCollectionExtensions
     public static IServiceCollection AddIceRpcConnectionPool(this IServiceCollection services) =>
         services
             .TryAddIceRpcClientTransport()
-            .AddSingleton<ConnectionPool>(provider =>
+            .AddSingleton(provider =>
                 new ConnectionPool(
                     provider.GetRequiredService<IOptions<ConnectionPoolOptions>>().Value,
                     loggerFactory: provider.GetService<ILoggerFactory>(),
