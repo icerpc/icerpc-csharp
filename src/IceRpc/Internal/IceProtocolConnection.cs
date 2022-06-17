@@ -308,9 +308,6 @@ namespace IceRpc.Internal
                 }
             }
 
-            // Request is sent at this point.
-            request.IsSent = true;
-
             if (request.IsOneway)
             {
                 // We're done, there's no response for oneway requests.

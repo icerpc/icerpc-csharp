@@ -562,8 +562,6 @@ namespace IceRpc.Internal
                 throw;
             }
 
-            request.IsSent = true;
-
             if (request.IsOneway)
             {
                 return new IncomingResponse(request, connection);
