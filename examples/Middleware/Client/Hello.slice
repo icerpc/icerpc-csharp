@@ -1,0 +1,6 @@
+module Demo;
+
+interface Hello
+{
+    sayHello(name: string) -> string;
+}

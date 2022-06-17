@@ -2,6 +2,7 @@
 
 using Demo;
 using IceRpc;
+using IceRpc.Features;
 
 // Establish the connection to the server
 await using var connection = new ClientConnection("icerpc://127.0.0.1");
