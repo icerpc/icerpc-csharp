@@ -6,6 +6,7 @@
 - [Building](#building)
 - [Testing](#testing)
 - [Building Example Programs](#building-example-programs)
+- [Project Templates](#project-templates)
 
 ## Build Requirements
 
@@ -120,10 +121,10 @@ following command:
 ```
 ## Project Templates
 
-The `IceRpc.Project.Templates` NuGet packages provides project templates for `dotnet new`, install the templates using:
+The `IceRpc.ProjectTemplates` NuGet packages provides project templates for `dotnet new`, install the templates using:
 
 ```
-dotnet new install IceRpc.Project.Templates
+dotnet new install IceRpc.ProjectTemplates
 ```
 
 Or for a source build:
@@ -132,10 +133,17 @@ Or for a source build:
 build install-templates
 ```
 
-This package provides two templates to `icercp-client` is for command line client applications, and `icerpc-serer` is
-for command line server applications.
+The `IceRpc.ProjectTemplates` package provides the following templates:
+
+| Template Name   | Description                                    |
+| --------------- | ---------------------------------------------- |
+|`icerpc-client`  | Template for command line client applications. |
+|`icerpc-server`  | Template for command line server applications. |
+
+### Usage:
 
 ```
-dotnet new icerpc-client
-dotnet new icerpc-server
+dotnet new <template-name>
 ```
+
+> :point_up: `dotnet new -h` for help.
