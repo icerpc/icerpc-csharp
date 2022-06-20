@@ -173,7 +173,7 @@ namespace IceRpc.Internal
                             }
 
                             // Initiate the shutdown.
-                            _shutdownTask = ShutdownAsyncCore("idle connection", CancellationToken.None);
+                            _shutdownTask ??= ShutdownAsyncCore("idle connection", CancellationToken.None);
                         }
                     },
                     null,
@@ -722,8 +722,6 @@ namespace IceRpc.Internal
                         // Close the connection now. The peer expects the connection to be closed after the close
                         // connection frame is received.
                         Abort(new ConnectionClosedException("connection shutdown by peer"));
-
-                        await _pendingClose.Task.ConfigureAwait(false);
                         return;
                     }
 

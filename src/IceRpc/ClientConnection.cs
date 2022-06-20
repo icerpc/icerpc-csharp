@@ -290,16 +290,23 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             // TODO: Refactor depending on what we decide for the protocol connection resource cleanup (#1397,
             // #1372, #1404, #1400).
             _protocolConnection.Abort(new ConnectionClosedException());
+
+            // Release disposable resources.
+            _connectCancellationSource.Dispose();
+            _shutdownCancellationSource.Dispose();
         }
         else
         {
             // Wait for the shutdown to complete.
-            await _shutdownTask.ConfigureAwait(false);
+            try
+            {
+                await _shutdownTask.ConfigureAwait(false);
+            }
+            catch
+            {
+                // Ignore. This can occur if the protocol connection is aborted while the shutdown is in progress.
+            }
         }
-
-        // Release disposable resources.
-        _connectCancellationSource.Dispose();
-        _shutdownCancellationSource.Dispose();
 
         async Task ShutdownAsyncCore()
         {
@@ -327,6 +334,10 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
             // Shutdown the connection.
             await _protocolConnection.ShutdownAsync(message, _shutdownCancellationSource.Token).ConfigureAwait(false);
+
+            // Release disposable resources.
+            _connectCancellationSource.Dispose();
+            _shutdownCancellationSource.Dispose();
         }
     }
 }
