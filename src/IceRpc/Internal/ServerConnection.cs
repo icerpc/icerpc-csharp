@@ -137,7 +137,14 @@ internal sealed class ServerConnection : IConnection
             using CancellationTokenRegistration _ = shutdownTimeoutCancellationSource.Token.Register(Abort);
 
             // Shutdown the protocol connection.
-            await _protocolConnection.ShutdownAsync(message, cancel).ConfigureAwait(false);
+            try
+            {
+                await _protocolConnection.ShutdownAsync(message, cancel).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Ignore, this can occur if the protocol conneciton is aborted.
+            }
         }
 
         // Release disposable resources.
