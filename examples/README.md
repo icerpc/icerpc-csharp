@@ -31,6 +31,10 @@ example.
 
 The Interop example application shows how IceRPC interoperates with [ZeroC Ice](https://github.com/zeroc-ice/ice).
 
+## [Middleware](./Middleware/)
+
+The Middleware example shows how to use a custom interceptor and middleware to authenticate a client.
+
 ## [OpenTelemetry](./OpenTelemetry/)
 
 The OpenTelemetry example shows how to use the telemetry interceptor and middleware and how they can be integrated with
