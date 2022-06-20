@@ -6,7 +6,7 @@
 - [Building](#building)
 - [Testing](#testing)
 - [Building Example Programs](#building-example-programs)
-- [Project Templates](#projet-templates)
+- [Project Templates](#project-templates)
 
 ## Build Requirements
 
