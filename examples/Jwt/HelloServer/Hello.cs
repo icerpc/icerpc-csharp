@@ -17,7 +17,7 @@ public class Hello : Service, IHello
         }
         else
         {
-            throw new DispatchException($"access denied missing Jwt security token", DispatchErrorCode.UnhandledException);
+            throw new DispatchException("access denied: missing JWT security token", DispatchErrorCode.InvalidCredentials);
         }
     }
 }

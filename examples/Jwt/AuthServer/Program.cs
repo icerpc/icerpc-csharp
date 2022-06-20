@@ -5,7 +5,7 @@ using IceRpc;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
-var issuerKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("A dummy secret key for Jwt authentication example"));
+var issuerKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("A dummy secret key for JWT authentication example"));
 var credentials = new SigningCredentials(issuerKey, SecurityAlgorithms.HmacSha256);
 
 // Add the request context middleware to the dispatch pipeline.

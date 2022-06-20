@@ -5,9 +5,9 @@ using IceRpc;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
-var issuerKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("A dummy secret key for Jwt authentication example"));
+var issuerKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("A dummy secret key for JWT authentication example"));
 
-// Add the Jwt middleware to the dispatch pipeline.
+// Add the JWT middleware to the dispatch pipeline.
 Router router = new Router().UseJwt(
     new TokenValidationParameters
     {

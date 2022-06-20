@@ -7,7 +7,7 @@ using IceRpc.Slice;
 await using var connection1 = new ClientConnection("icerpc://127.0.0.1:10001");
 await using var connection2 = new ClientConnection("icerpc://127.0.0.1:10002");
 
-// Add the Jwt interceptor to the invocation pipeline.
+// Add the JWT interceptor to the invocation pipeline.
 Pipeline? pipeline = new Pipeline().UseJwt();
 
 IAuthPrx auth = AuthPrx.FromConnection(connection1, invoker: pipeline);
@@ -25,11 +25,11 @@ CancellationToken cancel = cancellationSource.Token;
 Console.Write("To say hello to the server, type your name: ");
 if (Console.ReadLine() is string name)
 {
-    // Sign-in to the Auth server to acquire the Jwt token.
+    // Sign-in to the Auth server to acquire the JWT token.
     await auth.SignInAsync(name, name.ToLowerInvariant());
     while (true)
     {
-        // The token is set to expire after 5 seconds, this will cause Jwt token validation to
+        // The token is set to expire after 5 seconds, this will cause JWT token validation to
         // fail with a DispatchException and ErrorCode = InvalidCredentials.
         try
         {
@@ -37,7 +37,7 @@ if (Console.ReadLine() is string name)
         }
         catch (DispatchException ex) when (ex.ErrorCode == DispatchErrorCode.InvalidCredentials)
         {
-            Console.WriteLine("request failed: invalid or expired Jwt token.");
+            Console.WriteLine("request failed: invalid or expired JWT token.");
             break;
         }
 
