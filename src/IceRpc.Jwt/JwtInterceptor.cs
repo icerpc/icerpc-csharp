@@ -11,7 +11,7 @@ public class JwtInterceptor : IInvoker
     private readonly IInvoker _next;
     private string? _token;
 
-    /// <summary>Constructs a request Jwt interceptor.</summary>
+    /// <summary>Constructs a request JWT interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
     public JwtInterceptor(IInvoker next) => _next = next;
 
