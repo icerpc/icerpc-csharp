@@ -6,6 +6,7 @@
 - [Building](#building)
 - [Testing](#testing)
 - [Building Example Programs](#building-example-programs)
+- [Project Templates](#projet-templates)
 
 ## Build Requirements
 
@@ -134,8 +135,8 @@ build install-templates
 
 The `IceRpc.ProjectTemplates` package provides the following templates:
 
-| Template Name | Description |
------------------------------------
+| Template Name   | Description                                    |
+| --------------- | ---------------------------------------------- |
 |`icercp-client`  | Template for command line client applications. |
 |`icerpc-serer`   | Template for command line server applications. |
 
