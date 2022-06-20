@@ -214,7 +214,7 @@ namespace IceRpc.Internal
                                         {
                                             // If shutting down, we can set the _streamsCompleted task completion source
                                             // as completed to allow shutdown to progress.
-                                            _streamsCompleted.SetResult();
+                                            _streamsCompleted.TrySetResult();
                                         }
                                         else if (!_isAborted)
                                         {
@@ -618,7 +618,7 @@ namespace IceRpc.Internal
                                         {
                                             // If shutting down, we can set the _streamsCompleted task completion source
                                             // as completed to allow shutdown to progress.
-                                            _streamsCompleted.SetResult();
+                                            _streamsCompleted.TrySetResult();
                                         }
                                         else if (!_isAborted)
                                         {
@@ -1019,20 +1019,19 @@ namespace IceRpc.Internal
 
         private async Task ShutdownAsyncCore(string message, CancellationToken cancel)
         {
+            Debug.Assert(_shutdownTask == null);
+
             // Make sure we shutdown the connection asynchronously without holding any mutex lock from the caller.
             await Task.Yield();
 
-            lock (_mutex)
+            if (_isAborted)
             {
-                if (_isAborted)
-                {
-                    return;
-                }
+                return;
+            }
 
-                if (_streams.Count == 0)
-                {
-                    _streamsCompleted.SetResult();
-                }
+            if (_streams.Count == 0)
+            {
+                _streamsCompleted.TrySetResult();
             }
 
             var exception = new ConnectionClosedException(message);
