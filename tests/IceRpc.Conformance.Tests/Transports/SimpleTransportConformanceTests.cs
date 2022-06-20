@@ -196,6 +196,32 @@ public abstract class SimpleTransportConformanceTests
     }
 
     [Test]
+    public async Task UnknownEndpointParameter_throws_FormatException_with_client_transport()
+    {
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var clientTransport = provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>();
+
+        Endpoint endpoint = "icerpc://foo?unknown-parameter=foo";
+
+        // Act/Asserts
+        Assert.Throws<FormatException>(
+            () => clientTransport.CreateConnection(endpoint, authenticationOptions: null, NullLogger.Instance));
+    }
+
+    [Test]
+    public async Task UnknownEndpointParameter_throws_FormatException_with_server_transport()
+    {
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var serverTransport = provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>();
+
+        Endpoint endpoint = "icerpc://foo?unknown-parameter=foo";
+
+        // Act/Asserts
+        Assert.Throws<FormatException>(
+            () => serverTransport.Listen(endpoint, authenticationOptions: null, NullLogger.Instance));
+    }
+
+    [Test]
     public async Task Write_canceled()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);

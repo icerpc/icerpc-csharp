@@ -963,6 +963,32 @@ public abstract class MultiplexedTransportConformanceTests
             async () => await clientStream.Output.WriteAsync(_oneBytePayload, new CancellationToken(canceled: true)));
     }
 
+    [Test]
+    public async Task UnknownEndpointParameter_throws_FormatException_with_client_transport()
+    {
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var clientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
+
+        Endpoint endpoint = "icerpc://foo?unknown-parameter=foo";
+
+        // Act/Asserts
+        Assert.Throws<FormatException>(
+            () => clientTransport.CreateConnection(endpoint, authenticationOptions: null, NullLogger.Instance));
+    }
+
+    [Test]
+    public async Task UnknownEndpointParameter_throws_FormatException_with_server_transport()
+    {
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var serverTransport = provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>();
+
+        Endpoint endpoint = "icerpc://foo?unknown-parameter=foo";
+
+        // Act/Asserts
+        Assert.Throws<FormatException>(
+            () => serverTransport.Listen(endpoint, authenticationOptions: null, NullLogger.Instance));
+    }
+
     /// <summary>Verifies that stream write can be canceled.</summary>
     [Test]
     public async Task Write_to_a_stream_before_calling_connect_fails()
