@@ -1,7 +1,10 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
 using Demo;
 using IceRpc;
 
-Console.WriteLine("Press type a password that the client will need use to authenticate:");
+Console.Write("Press type a password that the client will need use to authenticate: ");
+
 if (Console.ReadLine() is string password)
 {
     // Adding authentication middleware to the router

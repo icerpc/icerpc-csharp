@@ -1,5 +1,8 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
 using Demo;
 using IceRpc;
+using IceRpc.Slice;
 
 public class AuthenticationMiddleware : IDispatcher
 {
@@ -15,22 +18,22 @@ public class AuthenticationMiddleware : IDispatcher
         _password = password;
     }
 
-    public async ValueTask<OutgoingResponse> DispatchAsync(
+    public ValueTask<OutgoingResponse> DispatchAsync(
         IncomingRequest request,
         CancellationToken cancel = default)
     {
-        Dictionary<string, string>? headers = request.Features.Get<Dictionary<string, string>>();
-        if (headers is null)
-        {
-            throw new InvalidOperationException("No headers found");
-        }
-        else if (headers.TryGetValue("Authorization", out string? authorization) && authorization == _password)
-        {
-            return await _next.DispatchAsync(request, cancel);
-        }
-        else
-        {
-            throw new InvalidOperationException("User password incorrect");
-        }
+        // Retrieve the token field from the request
+        string? token = request.Fields.DecodeValue(
+            (RequestFieldKey)100,
+            (ref SliceDecoder decoder) => decoder.DecodeString());
+
+        // Set a feature containing the token and password
+        var authorization = new Dictionary<string, string?>();
+        authorization.Add("token", token);
+        authorization.Add("authorization", _password);
+        request.Features.Set<Dictionary<string, string?>>(authorization);
+
+        // Allow the request to continue
+        return _next.DispatchAsync(request, cancel);
     }
 }
