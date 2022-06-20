@@ -82,6 +82,7 @@ TestResults
 
 # Example generated files
 examples/Upload/Server/uploads/*
+examples/Download/Client/downloads/*
 
 # docfx
 doc/_site

@@ -120,18 +120,20 @@ following command:
 ```
 ## Project Templates
 
-You can generate a starter project by using dotnet templates.
-
-Templates to generate a hello server and hello client are provided in `src/ProjectTemplates`
-
-To install these templates run:
+The `IceRpc.Project.Templates` NuGet packages provides project templates for `dotnet new`, install the templates using:
 
 ```
-dotnet new --install src/ProjectTemplates/server
-dotnet new --install src/ProjectTemplates/client
+dotnet new install IceRpc.Project.Templates
 ```
 
-To create the starter projects using the provided templates run:
+Or for a source build:
+
+```
+build install-templates
+```
+
+This package provides two templates to `icercp-client` is for command line client applications, and `icerpc-serer` is
+for command line server applications.
 
 ```
 dotnet new icerpc-client

@@ -232,7 +232,6 @@ public sealed class RetryInterceptorTests
         {
             if (++attempts == 1)
             {
-                request.IsSent = true;
                 throw new ConnectionClosedException();
             }
             else
@@ -261,7 +260,6 @@ public sealed class RetryInterceptorTests
         {
             if (++attempts == 1)
             {
-                request.IsSent = true;
                 throw new InvalidOperationException();
             }
             else
@@ -343,47 +341,6 @@ public sealed class RetryInterceptorTests
         Assert.That(endpoints[0], Is.EqualTo(proxy.Endpoint));
         Assert.That(endpoints[1], Is.EqualTo(proxy.AltEndpoints[0]));
         Assert.That(endpoints[2], Is.EqualTo(proxy.AltEndpoints[1]));
-    }
-
-    [Test]
-    public async Task IsSent_property_is_reset_on_retry()
-    {
-        // Arrange
-        int attempts = 0;
-        bool isSent = true;
-        var invoker = new InlineInvoker((request, cancel) =>
-        {
-            if (++attempts == 1)
-            {
-                request.IsSent = true;
-                return Task.FromResult(new IncomingResponse(
-                    request,
-                    request.Connection!,
-                    new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
-                    {
-                        [ResponseFieldKey.RetryPolicy] = EncodeRetryPolicy(RetryPolicy.Immediately)
-                    })
-                {
-                    ResultType = ResultType.Failure,
-                });
-            }
-            else
-            {
-                isSent = request.IsSent;
-                return Task.FromResult(new IncomingResponse(request, request.Connection!));
-            }
-        });
-
-        var sut = new RetryInterceptor(invoker, new RetryOptions());
-        var proxy = new Proxy(Protocol.IceRpc);
-        var request = new OutgoingRequest(proxy) { Operation = "Op" };
-
-        // Act
-        await sut.InvokeAsync(request, default);
-
-        // Assert
-        Assert.That(attempts, Is.EqualTo(2));
-        Assert.That(isSent, Is.False);
     }
 
     private static ReadOnlySequence<byte> EncodeRetryPolicy(RetryPolicy retryPolicy)

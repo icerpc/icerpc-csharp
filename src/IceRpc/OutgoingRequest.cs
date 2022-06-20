@@ -27,10 +27,6 @@ namespace IceRpc
         /// <value><c>true</c> for oneway requests, <c>false</c> otherwise. The default is <c>false</c>.</value>
         public bool IsOneway { get; init; }
 
-        /// <summary>Gets or sets a value indicating whether or not this request has been sent.</summary>
-        /// <value>When <c>true</c>, the request was sent. When <c>false</c> the request was not sent yet.</value>
-        public bool IsSent { get; set; }
-
         /// <summary>Gets or initializes the name of the operation to call on the target service.</summary>
         /// <value>The name of the operation. The default is the empty string.</value>
         public string Operation { get; init; } = "";
