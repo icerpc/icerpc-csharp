@@ -257,9 +257,9 @@ public class ProxyTests
         Assert.That(hashCode1, Is.EqualTo(proxy2.GetHashCode()));
     }
 
-    /// <summary>Verifies that a proxy created from a client connection has the expected path and connection.</summary>
+    /// <summary>Verifies that a proxy created from a connection has the expected path and connection.</summary>
     [Test]
-    public async Task From_connection_with_a_client_connection()
+    public async Task From_connection_returns_proxy_with_expected_path_and_connection()
     {
         await using var connection = new ClientConnection(new Endpoint(Protocol.IceRpc));
 
@@ -270,32 +270,6 @@ public class ProxyTests
             Assert.That(proxy.Path, Is.EqualTo("/"));
             Assert.That(proxy.Connection, Is.EqualTo(connection));
         });
-    }
-
-    /// <summary>Verifies that a proxy created from a server connection has the expected path, connection and endpoint
-    /// properties.</summary>
-    [Test]
-    public async Task From_connection_with_a_server_connection()
-    {
-        // TODO: XXX Remove this test? FromConnection takes an IConnection...
-
-        // Arrange
-        // var serverConnection = new Internal.ServerConnection(Protocol.IceRpc, new ConnectionOptions());
-        var serverConnection = new Internal.ServerConnection(null!, new ConnectionOptions());
-
-        // Act
-        var proxy = Proxy.FromConnection(serverConnection, "/");
-
-        // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(proxy.Path, Is.EqualTo("/"));
-            Assert.That(proxy.Connection, Is.EqualTo(serverConnection));
-            Assert.That(proxy.Endpoint, Is.Null);
-        });
-
-        // Cleanup
-        await serverConnection.ShutdownAsync();
     }
 
     /// <summary>Verifies that a proxy created from a path has the expected protocol, path and endpoint properties.

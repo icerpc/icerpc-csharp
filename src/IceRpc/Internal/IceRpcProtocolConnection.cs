@@ -26,7 +26,6 @@ namespace IceRpc.Internal
 
         // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
         private int _headerSizeLength = 2;
-        private int _invocationCount;
         private readonly TimeSpan _idleTimeout;
         private Timer? _idleTimeoutTimer;
         private bool _isAborted;
@@ -140,7 +139,28 @@ namespace IceRpc.Internal
             _ = Task.Run(WaitForGoAwayAsync, cancel);
 
             // Start a task to start accepting requests.
-            _ = Task.Run(() => AcceptRequestsAsync(connection), cancel);
+            _ = Task.Run(
+                async () =>
+                {
+                    Exception? exception = null;
+                    try
+                    {
+                        await AcceptRequestsAsync(connection).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        exception = ex;
+                    }
+                    finally
+                    {
+                        // Protocol connection resource cleanup. This is for now performed by Abort (which should have
+                        // been named CloseAsync like ConnectionCore.CloseAsync).
+                        // TODO: Refactor depending on what we decide for the protocol connection resource cleanup
+                        // (#1397,#1372, #1404, #1400).
+                        Abort(exception ?? new ConnectionClosedException());
+                    }
+                },
+                cancel);
 
             return networkConnectionInformation;
         }
@@ -181,14 +201,11 @@ namespace IceRpc.Internal
                             }
 
                             _streams.Add(stream);
-                            ++_invocationCount;
 
                             stream.OnShutdown(() =>
                             {
                                 lock (_mutex)
                                 {
-                                    --_invocationCount;
-
                                     _streams.Remove(stream);
 
                                     if (_streams.Count == 0)
@@ -1004,25 +1021,26 @@ namespace IceRpc.Internal
 
         private async Task ShutdownAsyncCore(string message, CancellationToken cancel)
         {
-            Debug.Assert(_shutdownTask == null);
-
-            if (_isAborted)
-            {
-                return;
-            }
-
             // Make sure we shutdown the connection asynchronously without holding any mutex lock from the caller.
             await Task.Yield();
+
+            lock (_mutex)
+            {
+                if (_isAborted)
+                {
+                    return;
+                }
+
+                if (_streams.Count == 0)
+                {
+                    _streamsCompleted.SetResult();
+                }
+            }
 
             var exception = new ConnectionClosedException(message);
 
             // TODO: should the on close callback take a nullable exception instead?
             InvokeOnClose(exception);
-
-            if (_streams.Count == 0)
-            {
-                _streamsCompleted.SetResult();
-            }
 
             // Send GoAway frame.
             IceRpcGoAway goAwayFrame = new(_lastRemoteBidirectionalStreamId, _lastRemoteUnidirectionalStreamId, message);
@@ -1118,11 +1136,10 @@ namespace IceRpc.Internal
                 // Ignore the connection got aborted concurrently.
             }
 
-            // Release the resources of the connection. TODO: this needs to be refactored once we settle on the
-            // responsibilities of the Shutdown/Dispose/Abort, etc methods. Right now, the protocol connection
-            // Abort method disposes of the resources and ShutdownAsync relies on it. It's backward for IConnection
-            // where Abort doesn't disposes of the resources and where it's instead ShutdownAsync that disposes of
-            // them.
+            // Protocol connection resource cleanup. This is for now performed by Abort (which should have
+            // been named CloseAsync like ConnectionCore.CloseAsync).
+            // TODO: Refactor depending on what we decide for the protocol connection resource cleanup (#1397,
+            // #1372, #1404, #1400).
             Abort(exception);
         }
 

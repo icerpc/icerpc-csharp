@@ -184,6 +184,7 @@ namespace IceRpc.Internal
             _ = Task.Run(
                 async () =>
                 {
+                    Exception? exception = null;
                     try
                     {
                         _readFramesTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -197,10 +198,20 @@ namespace IceRpc.Internal
                         // exception is expected since the peer closes the connection after we sent the CloseConnection
                         // frame.
                     }
+                    catch (Exception ex)
+                    {
+                        exception = ex;
+                    }
                     finally
                     {
-                        _readFramesTaskCompletionSource?.SetResult();
+                        // Protocol connection resource cleanup. This is for now performed by Abort (which should have
+                        // been named CloseAsync like ConnectionCore.CloseAsync).
+                        // TODO: Refactor depending on what we decide for the protocol connection resource cleanup
+                        // (#1397,#1372, #1404, #1400).
+                        Abort(exception ?? new ConnectionClosedException());
                     }
+
+                    _readFramesTaskCompletionSource?.SetResult();
                 },
                 cancel);
 
@@ -711,15 +722,11 @@ namespace IceRpc.Internal
                                 $"unexpected data for {nameof(IceFrameType.CloseConnection)}");
                         }
 
-                        lock (_mutex)
-                        {
-                            _shutdownTask ??= ShutdownAsyncCore("connection shutdown by peer", CancellationToken.None);
-                        }
-
                         // Close the connection now. The peer expects the connection to be closed after the close
                         // connection frame is received.
                         Abort(new ConnectionClosedException("connection shutdown by peer"));
 
+                        await _pendingClose.Task.ConfigureAwait(false);
                         return;
                     }
 
@@ -1251,11 +1258,10 @@ namespace IceRpc.Internal
             // the receive of the dispatch responses and close connection frame by the peer.
             await _pendingClose.Task.ConfigureAwait(false);
 
-            // Release the resources of the connection. TODO: this needs to be refactored once we settle on the
-            // responsibilities of the Shutdown/Dispose/Abort, etc methods. Right now, the protocol connection
-            // Abort method disposes of the resources and ShutdownAsync relies on it. It's backward for IConnection
-            // where Abort doesn't disposes of the resources and where it's instead ShutdownAsync that disposes of
-            // them.
+            // Protocol connection resource cleanup. This is for now performed by Abort (which should have
+            // been named CloseAsync like ConnectionCore.CloseAsync).
+            // TODO: Refactor depending on what we decide for the protocol connection resource cleanup (#1397,
+            // #1372, #1404, #1400).
             Abort(exception);
 
             static void EncodeCloseConnectionFrame(SimpleNetworkConnectionWriter writer)

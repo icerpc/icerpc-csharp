@@ -27,28 +27,34 @@ namespace IceRpc.Transports.Internal
 
         public void Dispose()
         {
-            Debug.Assert(_reader != null && _writer != null);
-
             _exception ??= new ObjectDisposedException($"{typeof(ColocNetworkConnection)}");
 
             if (_state.TrySetFlag(State.Disposed))
             {
-                if (_state.HasFlag(State.Reading))
+                // _reader and _writer can be null if connection establishment failed.
+
+                if (_reader != null)
                 {
-                    _reader.CancelPendingRead();
-                }
-                else
-                {
-                    _reader.Complete(new ConnectionLostException());
+                    if (_state.HasFlag(State.Reading))
+                    {
+                        _reader.CancelPendingRead();
+                    }
+                    else
+                    {
+                        _reader.Complete(new ConnectionLostException());
+                    }
                 }
 
-                if (_state.HasFlag(State.Writing))
+                if (_writer != null)
                 {
-                    _writer.CancelPendingFlush();
-                }
-                else
-                {
-                    _writer.Complete(new ConnectionLostException());
+                    if (_state.HasFlag(State.Writing))
+                    {
+                        _writer.CancelPendingFlush();
+                    }
+                    else
+                    {
+                        _writer.Complete(new ConnectionLostException());
+                    }
                 }
             }
         }

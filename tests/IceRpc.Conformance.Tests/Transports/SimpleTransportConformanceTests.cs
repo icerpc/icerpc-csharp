@@ -100,11 +100,13 @@ public abstract class SimpleTransportConformanceTests
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var listener = provider.GetRequiredService<IListener<ISimpleNetworkConnection>>();
-        var clientConnection = provider.GetRequiredService<ISimpleNetworkConnection>();
+        using ClientServerSimpleTransportConnection sut = await ConnectAndAcceptAsync(
+            provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
+            provider.GetRequiredService<ISimpleNetworkConnection>());
         var buffer = new Memory<byte>(new byte[1]);
 
         Assert.CatchAsync<OperationCanceledException>(
-            async () => await clientConnection.ReadAsync(buffer, new CancellationToken(canceled: true)));
+            async () => await sut.ClientConnection.ReadAsync(buffer, new CancellationToken(canceled: true)));
     }
 
     /// <summary>Verifies that a read operation ends with <see cref="OperationCanceledException"/> if the given
@@ -197,12 +199,13 @@ public abstract class SimpleTransportConformanceTests
     public async Task Write_canceled()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var listener = provider.GetRequiredService<IListener<ISimpleNetworkConnection>>();
-        var clientConnection = provider.GetRequiredService<ISimpleNetworkConnection>();
+        using ClientServerSimpleTransportConnection sut = await ConnectAndAcceptAsync(
+            provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
+            provider.GetRequiredService<ISimpleNetworkConnection>());
         var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1] };
 
         Assert.CatchAsync<OperationCanceledException>(
-            async () => await clientConnection.WriteAsync(buffer, new CancellationToken(canceled: true)));
+            async () => await sut.ClientConnection.WriteAsync(buffer, new CancellationToken(canceled: true)));
     }
 
     /// <summary>Verifies that pending write operation fails with <see cref="OperationCanceledException"/> once the

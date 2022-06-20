@@ -97,34 +97,48 @@ internal sealed class ServerConnection : IConnection
         {
             Debug.Assert(!_isShutdown);
 
-            if (_connectTask != null && !_connectTask.IsCompleted)
+            if (_connectTask == null)
             {
-                _connectCancellationSource.Cancel();
+                _isShutdown = true;
             }
-
-            connectTask = _connectTask;
-            _isShutdown = true;
+            else
+            {
+                connectTask = _connectTask;
+                _isShutdown = true;
+            }
         }
 
-        if (connectTask != null)
+        if (connectTask == null)
+        {
+            // ConnectAsync wasn't called, just release resources associated with the protocol connection.
+            // TODO: Refactor depending on what we decide for the protocol connection resource cleanup (#1397,
+            // #1372, #1404, #1400).
+            _protocolConnection.Abort(new ConnectionClosedException());
+        }
+        else
         {
             try
             {
                 // Wait for connection establishment to complete before calling ShutdownAsync.
                 await connectTask.ConfigureAwait(false);
             }
-            catch
+            catch (Exception exception)
             {
-                // Ignore
+                // Protocol connection resource cleanup. This is for now performed by Abort (which should have
+                // been named CloseAsync like ConnectionCore.CloseAsync).
+                // TODO: Refactor depending on what we decide for the protocol connection resource cleanup (#1397,
+                // #1372, #1404, #1400).
+                _protocolConnection.Abort(exception);
+                return;
             }
+
+            // If shutdown times out, abort the protocol connection.
+            using var shutdownTimeoutCancellationSource = new CancellationTokenSource(_shutdownTimeout);
+            using CancellationTokenRegistration _ = shutdownTimeoutCancellationSource.Token.Register(Abort);
+
+            // Shutdown the protocol connection.
+            await _protocolConnection.ShutdownAsync(message, cancel).ConfigureAwait(false);
         }
-
-        // If shutdown times out, abort the protocol connection.
-        using var shutdownTimeoutCancellationSource = new CancellationTokenSource(_shutdownTimeout);
-        using CancellationTokenRegistration _ = shutdownTimeoutCancellationSource.Token.Register(Abort);
-
-        // Shutdown the protocol connection.
-        await _protocolConnection.ShutdownAsync(message, cancel).ConfigureAwait(false);
 
         // Release disposable resources.
         _connectCancellationSource.Dispose();
