@@ -1,5 +1,5 @@
 This application illustrates how to use the Jwt interceptor and middleware to authenticate clients acrross services,
-the Auth service issues Jwt tokens when a user signs-in, and the Hello service validates the token before letting the
+the Auth service issues a JWT when a user signs-in, and the Hello service validates the token before letting the
 user access it, the Auth and Hello servers use a symetric key derived from a shared secret to sign and validate the
 Jwt tokens.
 
