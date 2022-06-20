@@ -12,13 +12,12 @@ public static class DeadlineInvokerBuilderExtensions
     /// <param name="builder">The builder being configured.</param>
     /// <returns>The builder being configured.</returns>
     public static IInvokerBuilder UseDeadline(this IInvokerBuilder builder) =>
-        builder.Use(next => new DeadlineInterceptor(next, Timeout.InfiniteTimeSpan));
+        builder.Use(next => new DeadlineInterceptor(next, new DeadlineInterceptorOptions()));
 
     /// <summary>Adds a <see cref="DeadlineInterceptor"/> to the builder.</summary>
     /// <param name="builder">The builder being configured.</param>
-    /// <param name="timeout">The default timeout for the request. This value can be overwritten by setting the
-    /// <see cref="ITimeoutFeature"/> request feature.</param>
+    /// <param name="options">The deadline interceptor options.</param>
     /// <returns>The builder being configured.</returns>
-    public static IInvokerBuilder UseDeadline(this IInvokerBuilder builder, TimeSpan timeout) =>
-        builder.Use(next => new DeadlineInterceptor(next, timeout));
+    public static IInvokerBuilder UseDeadline(this IInvokerBuilder builder, DeadlineInterceptorOptions options) =>
+        builder.Use(next => new DeadlineInterceptor(next, options));
 }

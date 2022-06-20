@@ -5,7 +5,8 @@ using IceRpc.Slice;
 
 namespace IceRpc.Deadline;
 
-/// <summary>The deadline middleware decodes the deadline field into the deadline feature.</summary>
+/// <summary>The deadline middleware decodes the deadline field into the deadline feature and creates a cancellation
+/// token source to enforce this deadline.</summary>
 public class DeadlineMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;
@@ -17,6 +18,8 @@ public class DeadlineMiddleware : IDispatcher
     /// <inheritdoc/>
     public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel = default)
     {
+        TimeSpan? timeout = null;
+
         // not found returns 0
         long value = request.Fields.DecodeValue(
             RequestFieldKey.Deadline,
@@ -24,6 +27,14 @@ public class DeadlineMiddleware : IDispatcher
 
         if (value > 0)
         {
+            DateTime deadline = DateTime.UnixEpoch + TimeSpan.FromMilliseconds(value);
+            timeout = deadline - DateTime.UtcNow;
+
+            if (timeout <= TimeSpan.Zero)
+            {
+                throw new DispatchException("the request deadline has expired", DispatchErrorCode.DeadlineExpired);
+            }
+
             request.Features = request.Features.With<IDeadlineFeature>(
                 new DeadlineFeature
                 {
@@ -31,6 +42,22 @@ public class DeadlineMiddleware : IDispatcher
                 });
         }
 
-        return _next.DispatchAsync(request, cancel);
+        return timeout is null ? _next.DispatchAsync(request, cancel) : PerformDispatchAsync(timeout.Value);
+
+        async ValueTask<OutgoingResponse> PerformDispatchAsync(TimeSpan timeout)
+        {
+            using var tokenSource = new CancellationTokenSource(timeout);
+            using CancellationTokenRegistration _ = cancel.Register(() => tokenSource.Cancel());
+
+            try
+            {
+                return await _next.DispatchAsync(request, tokenSource.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException exception) when (exception.CancellationToken == tokenSource.Token)
+            {
+                cancel.ThrowIfCancellationRequested();
+                throw new DispatchException("the request deadline has expired", DispatchErrorCode.DeadlineExpired);
+            }
+        }
     }
 }

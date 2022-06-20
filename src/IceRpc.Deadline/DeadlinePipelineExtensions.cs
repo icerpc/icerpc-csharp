@@ -12,13 +12,12 @@ public static class DeadlinePipelineExtensions
     /// <param name="pipeline">The pipeline being configured.</param>
     /// <returns>The pipeline being configured.</returns>
     public static Pipeline UseDeadline(this Pipeline pipeline) =>
-        pipeline.Use(next => new DeadlineInterceptor(next, Timeout.InfiniteTimeSpan));
+        pipeline.Use(next => new DeadlineInterceptor(next, new DeadlineInterceptorOptions()));
 
     /// <summary>Adds a <see cref="DeadlineInterceptor"/> to the pipeline.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>
-    /// <param name="timeout">The default timeout for the request. This value can be overwritten by setting the
-    /// <see cref="ITimeoutFeature"/> request feature.</param>
+    /// <param name="options">The deadline interceptor options.</param>
     /// <returns>The pipeline being configured.</returns>
-    public static Pipeline UseDeadline(this Pipeline pipeline, TimeSpan timeout) =>
-        pipeline.Use(next => new DeadlineInterceptor(next, timeout));
+    public static Pipeline UseDeadline(this Pipeline pipeline, DeadlineInterceptorOptions options) =>
+        pipeline.Use(next => new DeadlineInterceptor(next, options));
 }

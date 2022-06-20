@@ -4,29 +4,22 @@ using IceRpc.Slice;
 
 namespace IceRpc.Deadline;
 
-/// <summary>The deadline interceptor sets the invocation timeout and encodes the deadline field. When the request
-/// carries a deadline feature the invocation timeout set by the <see cref="ITimeoutFeature"/> or with the interceptor
-/// is ignored and the caller must pass a cancelable cancellation token to the invocation, otherwise the interceptor
-/// creates a cancellation token that is canceled after the configured timeout, and computes the request deadline from the
-/// configured timeout. The timeout set by <see cref="ITimeoutFeature"/> always has preference over the timeout
-/// configured with the interceptor allowing to overwrite the invocation timeout per request.</summary>
+/// <summary>The deadline interceptor adds a deadline to requests without a deadline feature, encodes the deadline field
+/// and enforces the deadline.</summary>
 public class DeadlineInterceptor : IInvoker
 {
+    private readonly bool _alwaysEnforceDeadline;
     private readonly IInvoker _next;
-    private readonly TimeSpan _timeout;
+    private readonly TimeSpan _defaultTimeout;
 
     /// <summary>Constructs a deadline interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
-    /// <param name="timeout">The default timeout for the request. This value can be overwritten by setting the
-    /// <see cref="ITimeoutFeature"/> request feature.</param>
-    public DeadlineInterceptor(IInvoker next, TimeSpan timeout)
+    /// <param name="options">The deadline interceptor options.</param>
+    public DeadlineInterceptor(IInvoker next, DeadlineInterceptorOptions options)
     {
-        if (timeout < TimeSpan.Zero && timeout != Timeout.InfiniteTimeSpan)
-        {
-            throw new ArgumentException($"{nameof(timeout)} must be greater than 0", nameof(timeout));
-        }
         _next = next;
-        _timeout = timeout;
+        _alwaysEnforceDeadline = options.AlwaysEnforceDeadline;
+        _defaultTimeout = options.DefaultTimeout;
     }
 
     /// <inheritdoc/>
@@ -34,22 +27,30 @@ public class DeadlineInterceptor : IInvoker
     {
         TimeSpan timeout = Timeout.InfiniteTimeSpan;
         DateTime deadline = DateTime.MaxValue;
+        bool enforceDeadline = false;
+
         if (request.Features.Get<IDeadlineFeature>() is IDeadlineFeature deadlineFeature)
         {
-            if (deadlineFeature.Value != DateTime.MaxValue && !cancel.CanBeCanceled)
-            {
-                throw new InvalidOperationException(
-                    "the request's cancellation token must be cancelable when a deadline is set");
-            }
             deadline = deadlineFeature.Value;
-        }
-        else
-        {
-            timeout = request.Features.Get<ITimeoutFeature>()?.Value ?? _timeout;
-            if (timeout != Timeout.InfiniteTimeSpan)
+            if (deadline != DateTime.MaxValue)
             {
-                deadline = DateTime.UtcNow + timeout;
+                enforceDeadline = _alwaysEnforceDeadline || !cancel.CanBeCanceled;
+                if (enforceDeadline)
+                {
+                    timeout = deadline - DateTime.UtcNow;
+
+                    if (timeout < TimeSpan.Zero)
+                    {
+                        throw new TimeoutException("the request deadline has expired");
+                    }
+                }
             }
+        }
+        else if (_defaultTimeout != Timeout.InfiniteTimeSpan)
+        {
+            timeout = _defaultTimeout;
+            deadline = DateTime.UtcNow + timeout;
+            enforceDeadline = true;
         }
 
         if (deadline != DateTime.MaxValue)
@@ -60,14 +61,7 @@ public class DeadlineInterceptor : IInvoker
                 (ref SliceEncoder encoder) => encoder.EncodeVarInt62(deadlineValue));
         }
 
-        if (timeout == Timeout.InfiniteTimeSpan)
-        {
-            return _next.InvokeAsync(request, cancel);
-        }
-        else
-        {
-            return PerformInvokeAsync(timeout);
-        }
+        return enforceDeadline ? PerformInvokeAsync(timeout) : _next.InvokeAsync(request, cancel);
 
         async Task<IncomingResponse> PerformInvokeAsync(TimeSpan timeout)
         {
@@ -75,7 +69,16 @@ public class DeadlineInterceptor : IInvoker
             using CancellationTokenSource linkedTokenSource = cancel.CanBeCanceled ?
                 CancellationTokenSource.CreateLinkedTokenSource(cancel, timeoutTokenSource.Token) :
                 timeoutTokenSource;
-            return await _next.InvokeAsync(request, linkedTokenSource.Token).ConfigureAwait(false);
+
+            try
+            {
+                return await _next.InvokeAsync(request, linkedTokenSource.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException exception) when (exception.CancellationToken == linkedTokenSource.Token)
+            {
+                cancel.ThrowIfCancellationRequested();
+                throw new TimeoutException("the request deadline has expired");
+            }
         }
     }
 }
