@@ -20,6 +20,6 @@ unchecked enum RequestFieldKey : varuint62
     /// The idempotent field.
     Idempotent = 4,
 
-    /// The Jwt token field.
+    /// The JWT token field.
     Jwt = 5,
 }
