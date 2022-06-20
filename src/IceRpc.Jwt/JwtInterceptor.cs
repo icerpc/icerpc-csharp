@@ -18,7 +18,7 @@ public class JwtInterceptor : IInvoker
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        // If we have a Jwt security token encode it in the Jwt request field.
+        // If we have a JWT security token encode it in the JWT request field.
         if (_token != null)
         {
             request.Fields = request.Fields.With(
