@@ -16,5 +16,5 @@ public static class RequestContextDispatcherBuilderExtensions
     public static IDispatcherBuilder UseJwt(
         this IDispatcherBuilder builder,
         TokenValidationParameters validationParameters) =>
-        builder.Use(next => new JwtMiddleware(validationParameters, next));
+        builder.Use(next => new JwtMiddleware(next, validationParameters));
 }

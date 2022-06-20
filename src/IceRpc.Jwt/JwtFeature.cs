@@ -8,9 +8,9 @@ namespace IceRpc.Jwt;
 public sealed class JwtFeature : IJwtFeature
 {
     /// <inheritdoc/>
-    public JwtSecurityToken Value { get; set; }
+    public JwtSecurityToken Token { get; set; }
 
     /// <summary>Constructs a Jwt feature.</summary>
-    /// <param name="value">The Jwt token.</param>
-    public JwtFeature(JwtSecurityToken value) => Value = value;
+    /// <param name="token">The Jwt token.</param>
+    public JwtFeature(JwtSecurityToken token) => Token = token;
 }

@@ -7,8 +7,8 @@ using IceRpc.Slice;
 await using var connection1 = new ClientConnection("icerpc://127.0.0.1:10001");
 await using var connection2 = new ClientConnection("icerpc://127.0.0.1:10002");
 
-// Add the request context interceptor to the invocation pipeline.
-var pipeline = new Pipeline().UseJwt();
+// Add the Jwt interceptor to the invocation pipeline.
+Pipeline? pipeline = new Pipeline().UseJwt();
 
 IAuthPrx auth = AuthPrx.FromConnection(connection1, invoker: pipeline);
 IHelloPrx hello = HelloPrx.FromConnection(connection2, invoker: pipeline);
@@ -25,19 +25,19 @@ CancellationToken cancel = cancellationSource.Token;
 Console.Write("To say hello to the server, type your name: ");
 if (Console.ReadLine() is string name)
 {
-    // Sign-in to the Auth serer to acquire the Jwt token
+    // Sign-in to the Auth serer to acquire the Jwt token.
     await auth.SignInAsync(name, name.ToLowerInvariant());
     while (true)
     {
         // The token is set to expire after 5 seconds, this will cause Jwt token validation to
-        // fail and with a DispatchException
+        // fail and with a DispatchException and ErrorCode = InvalidCredentials.
         try
         {
             Console.WriteLine(await hello.SayHelloAsync());
         }
-        catch (DispatchException ex)
+        catch (DispatchException ex) when (ex.ErrorCode == DispatchErrorCode.InvalidCredentials)
         {
-            Console.WriteLine($"request failed: {ex.Message}");
+            Console.WriteLine("request failed: invalid or expired Jwt token.");
             break;
         }
 

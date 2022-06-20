@@ -8,5 +8,5 @@ namespace IceRpc.Jwt;
 public interface IJwtFeature
 {
     /// <summary>Gets or sets the value of this JWT feature.</summary>
-    JwtSecurityToken Value { get; set; }
+    JwtSecurityToken Token { get; set; }
 }

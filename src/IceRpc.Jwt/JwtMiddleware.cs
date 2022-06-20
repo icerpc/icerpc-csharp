@@ -20,18 +20,11 @@ public class JwtMiddleware : IDispatcher
 
     /// <summary>Constructs a Jwt middleware.</summary>
     /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
-    public JwtMiddleware(IDispatcher next)
-        : this(new TokenValidationParameters(), next)
-    {
-    }
-
-    /// <summary>Constructs a Jwt middleware.</summary>
     /// <param name="validationParameteres">The Jwt token validation parameters.</param>
-    /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
-    public JwtMiddleware(TokenValidationParameters validationParameteres, IDispatcher next)
+    public JwtMiddleware(IDispatcher next, TokenValidationParameters? validationParameteres = null)
     {
-        _validationParameteres = validationParameteres;
         _next = next;
+        _validationParameteres = validationParameteres ?? new TokenValidationParameters();
     }
 
     /// <inheritdoc/>
@@ -55,7 +48,7 @@ public class JwtMiddleware : IDispatcher
             {
                 throw new DispatchException(
                     "Invalid Jwt token",
-                    DispatchErrorCode.UnhandledException,
+                    DispatchErrorCode.InvalidCredentials,
                     result.Exception);
             }
         }
@@ -67,12 +60,12 @@ public class JwtMiddleware : IDispatcher
         }
 
         OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
-        // If the Jwt token changed we  have to encode it in the response features
-        if (request.Features.Get<IJwtFeature>() is IJwtFeature jwtFeature && jwtFeature.Value != jwtSecurityToken)
+        // If the Jwt token changed we  have to encode it in the response fields
+        if (request.Features.Get<IJwtFeature>() is IJwtFeature jwtFeature && jwtFeature.Token != jwtSecurityToken)
         {
             response.Fields = response.Fields.With(
                 ResponseFieldKey.Jwt,
-                (ref SliceEncoder encoder) => encoder.EncodeString(_tokenHandler.WriteToken(jwtFeature.Value)));
+                (ref SliceEncoder encoder) => encoder.EncodeString(_tokenHandler.WriteToken(jwtFeature.Token)));
         }
         return response;
 

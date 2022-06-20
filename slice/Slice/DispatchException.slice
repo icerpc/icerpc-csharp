@@ -26,6 +26,9 @@ unchecked enum DispatchErrorCode
     /// The dispatch failed because the request header or the request payload could not be decoded.
     InvalidData,
 
+    /// The dispatch failed because the provided credentials are invalid.
+    InvalidCredentials,
+
     /// The dispatch was canceled.
     Canceled,
 }

@@ -12,8 +12,8 @@ public class Hello : Service, IHello
     {
         if (features.Get<IJwtFeature>() is JwtFeature feature)
         {
-            Console.WriteLine($"{feature.Value.Subject} says hello!");
-            return new($"Hello, {feature.Value.Subject}!");
+            Console.WriteLine($"{feature.Token.Subject} says hello!");
+            return new($"Hello, {feature.Token.Subject}!");
         }
         else
         {
