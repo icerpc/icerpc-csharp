@@ -17,9 +17,9 @@ public class JwtMiddleware : IDispatcher
     private readonly JwtSecurityTokenHandler _tokenHandler = new();
     private readonly TokenValidationParameters _tokenValidationParameters;
 
-    /// <summary>Constructs a Jwt middleware.</summary>
+    /// <summary>Constructs a JWT middleware.</summary>
     /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
-    /// <param name="parameters">The Jwt token validation parameters.</param>
+    /// <param name="parameters">The JWT token validation parameters.</param>
     public JwtMiddleware(IDispatcher next, TokenValidationParameters? parameters = null)
     {
         _next = next;
@@ -30,7 +30,7 @@ public class JwtMiddleware : IDispatcher
     public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
     {
         JwtSecurityToken? jwtSecurityToken = null;
-        // Decode Jwt from Fields and set corresponding feature.
+        // Decode JWT token from Fields and set corresponding feature.
         if (request.Fields.TryGetValue(RequestFieldKey.Jwt, out ReadOnlySequence<byte> value))
         {
             Debug.Assert(request.Protocol == Protocol.IceRpc);
@@ -59,7 +59,7 @@ public class JwtMiddleware : IDispatcher
         }
 
         OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
-        
+
         // If the Jwt token changed we have to encode it in the response fields.
         if (request.Features.Get<IJwtFeature>() is IJwtFeature jwtFeature && jwtFeature.Token != jwtSecurityToken)
         {

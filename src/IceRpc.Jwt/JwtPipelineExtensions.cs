@@ -4,8 +4,7 @@ using IceRpc.Jwt;
 
 namespace IceRpc;
 
-/// <summary>This class provides extension methods to add the Jwt interceptor to a <see cref="Pipeline"/>.
-/// </summary>
+/// <summary>This class provides extension methods to add the JWT interceptor to a <see cref="Pipeline"/>.</summary>
 public static class JwtPipelineExtensions
 {
     /// <summary>Adds a <see cref="JwtInterceptor"/> to the pipeline.</summary>
