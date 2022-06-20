@@ -9,8 +9,8 @@ using System.IdentityModel.Tokens.Jwt;
 
 namespace IceRpc.Jwt;
 
-/// <summary>A middleware that decodes the request Jwt field into a Jwt security token and validates it, on the way
-/// back it encodes the token from IJwtFeature in the Jwt response field.</summary>
+/// <summary>A middleware that decodes the request JWT field into a JWT security token and validates it, on the way
+/// back it encodes the token from IJwtFeature in the JWT response field.</summary>
 public class JwtMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;
