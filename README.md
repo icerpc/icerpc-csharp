@@ -140,6 +140,10 @@ The `IceRpc.ProjectTemplates` package provides the following templates:
 |`icercp-client`  | Template for command line client applications. |
 |`icerpc-serer`   | Template for command line server applications. |
 
+### Usage:
+
 ```
 dotnet new <template-name>
 ```
+
+> :point_up: `dotnet new -h` for help.
