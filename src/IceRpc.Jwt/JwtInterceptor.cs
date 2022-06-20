@@ -27,7 +27,7 @@ public class JwtInterceptor : IInvoker
         }
         IncomingResponse response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
 
-        // Check if there is a Jwt field and decode the token.
+        // Check if there is a JWT field and decode the token.
         if (response.Fields.TryGetValue(ResponseFieldKey.Jwt, out ReadOnlySequence<byte> value))
         {
             _token = DecodeToken(value);
