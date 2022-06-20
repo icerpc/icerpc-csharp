@@ -1111,6 +1111,10 @@ namespace IceRpc.Internal
                 await _streamsCompleted.Task.ConfigureAwait(false);
             }
 
+            // Complete the control stream only once all the streams have completed. We also wait for the peer to close
+            // its control stream to ensure the peer's stream are also completed. The network connection can safely be
+            // closed only once we ensured streams are completed locally and remotely. Otherwise, we could end up
+            // closing the network connection too soon, before the remote streams are completed.
             try
             {
                 await _controlStreamSemaphore.EnterAsync(CancellationToken.None).ConfigureAwait(false);
