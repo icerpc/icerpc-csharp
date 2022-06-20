@@ -25,12 +25,12 @@ CancellationToken cancel = cancellationSource.Token;
 Console.Write("To say hello to the server, type your name: ");
 if (Console.ReadLine() is string name)
 {
-    // Sign-in to the Auth serer to acquire the Jwt token.
+    // Sign-in to the Auth server to acquire the Jwt token.
     await auth.SignInAsync(name, name.ToLowerInvariant());
     while (true)
     {
         // The token is set to expire after 5 seconds, this will cause Jwt token validation to
-        // fail and with a DispatchException and ErrorCode = InvalidCredentials.
+        // fail with a DispatchException and ErrorCode = InvalidCredentials.
         try
         {
             Console.WriteLine(await hello.SayHelloAsync());

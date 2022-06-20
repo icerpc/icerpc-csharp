@@ -10,21 +10,20 @@ using System.IdentityModel.Tokens.Jwt;
 namespace IceRpc.Jwt;
 
 /// <summary>A middleware that decodes the request Jwt field into a Jwt security token and validates it, on the way
-/// back it encode the token from IJwtFeature in the Jwt response field.</summary>
-/// <exception cref="ArgumentException">xx.</exception>
+/// back it encodes the token from IJwtFeature in the Jwt response field.</summary>
 public class JwtMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;
     private readonly JwtSecurityTokenHandler _tokenHandler = new();
-    private readonly TokenValidationParameters _validationParameteres;
+    private readonly TokenValidationParameters _tokenValidationParameters;
 
     /// <summary>Constructs a Jwt middleware.</summary>
     /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
-    /// <param name="validationParameteres">The Jwt token validation parameters.</param>
-    public JwtMiddleware(IDispatcher next, TokenValidationParameters? validationParameteres = null)
+    /// <param name="parameters">The Jwt token validation parameters.</param>
+    public JwtMiddleware(IDispatcher next, TokenValidationParameters? parameters = null)
     {
         _next = next;
-        _validationParameteres = validationParameteres ?? new TokenValidationParameters();
+        _tokenValidationParameters = parameters ?? new TokenValidationParameters();
     }
 
     /// <inheritdoc/>
@@ -37,7 +36,7 @@ public class JwtMiddleware : IDispatcher
             Debug.Assert(request.Protocol == Protocol.IceRpc);
             string token = DecodeToken(value);
             TokenValidationResult result =
-                await _tokenHandler.ValidateTokenAsync(token, _validationParameteres).ConfigureAwait(false);
+                await _tokenHandler.ValidateTokenAsync(token, _tokenValidationParameters).ConfigureAwait(false);
             if (result.IsValid)
             {
                 Debug.Assert(result.SecurityToken is JwtSecurityToken);
@@ -53,14 +52,14 @@ public class JwtMiddleware : IDispatcher
             }
         }
 
-        // Ensure that request features is not read-only to allow dispatch setting the IJwtFeature
+        // Ensure that request features is not read-only to allow dispatch setting the IJwtFeature.
         if (request.Features.IsReadOnly)
         {
             request.Features = new FeatureCollection(request.Features);
         }
 
         OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
-        // If the Jwt token changed we  have to encode it in the response fields
+        // If the Jwt token changed we have to encode it in the response fields.
         if (request.Features.Get<IJwtFeature>() is IJwtFeature jwtFeature && jwtFeature.Token != jwtSecurityToken)
         {
             response.Fields = response.Fields.With(
