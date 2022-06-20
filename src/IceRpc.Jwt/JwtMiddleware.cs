@@ -46,7 +46,7 @@ public class JwtMiddleware : IDispatcher
             else
             {
                 throw new DispatchException(
-                    "Invalid Jwt token",
+                    "Invalid JWT token",
                     DispatchErrorCode.InvalidCredentials,
                     result.Exception);
             }
