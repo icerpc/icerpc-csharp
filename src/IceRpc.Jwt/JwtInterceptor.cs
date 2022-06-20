@@ -5,7 +5,7 @@ using System.Buffers;
 
 namespace IceRpc.Jwt;
 
-/// <summary>An interceptor that encodes a Jwt security token into a request field.</summary>
+/// <summary>An interceptor that encodes a JWT into a request field.</summary>
 public class JwtInterceptor : IInvoker
 {
     private readonly IInvoker _next;
