@@ -10,6 +10,7 @@ namespace IceRpc.Bidir;
 public class BidirInterceptor : IInvoker
 {
     private readonly IInvoker _next;
+    // The value for the relative origin ID field is a 128 bit field randomly initialized during initialization.
     private readonly byte[] _connectionId;
 
     /// <summary>Constructs a bidir interceptor.</summary>
@@ -17,10 +18,9 @@ public class BidirInterceptor : IInvoker
     public BidirInterceptor(IInvoker next)
     {
         _next = next;
-        byte[] bytes = new byte[16];
+        _connectionId = new byte[16];
         using var provider = RandomNumberGenerator.Create();
-        provider.GetBytes(bytes);
-        _connectionId = new Guid(bytes).ToByteArray();
+        provider.GetBytes(_connectionId);
     }
 
     /// <inheritdoc/>
@@ -28,7 +28,7 @@ public class BidirInterceptor : IInvoker
     {
         request.Fields = request.Fields.With(
             RequestFieldKey.ConnectionId,
-            (ref SliceEncoder encoder) => encoder.EncodeSequence(_connectionId));
+            (ref SliceEncoder encoder) => encoder.WriteByteSpan(new ReadOnlySpan<byte>(_connectionId)));
         return _next.InvokeAsync(request, cancel);
     }
 }

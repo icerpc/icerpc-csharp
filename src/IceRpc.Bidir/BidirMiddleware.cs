@@ -2,6 +2,8 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.Intrinsics;
 
 namespace IceRpc.Bidir;
 
@@ -10,7 +12,7 @@ public class BidirMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;
     private readonly object _mutex = new();
-    private readonly Dictionary<Guid, BidirConnection> _connections = new();
+    private readonly Dictionary<Vector128<ulong>, BidirConnection> _connections = new();
 
     /// <summary>Constructs a compressor middleware.</summary>
     /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
@@ -23,10 +25,10 @@ public class BidirMiddleware : IDispatcher
     {
         if (request.Protocol.HasFields && request.Fields.ContainsKey(RequestFieldKey.ConnectionId))
         {
-            var connectionId = new Guid(
+            Vector128<ulong> connectionId =
                 request.Fields.DecodeValue(
                     RequestFieldKey.ConnectionId,
-                    (ref SliceDecoder decoder) => decoder.DecodeSequence<byte>())!);
+                    (ref SliceDecoder decoder) => Vector128.Create(decoder.DecodeUInt64(), decoder.DecodeUInt64()));
 
             lock (_mutex)
             {
