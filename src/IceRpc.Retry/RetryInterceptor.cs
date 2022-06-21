@@ -173,7 +173,7 @@ public class RetryInterceptor : IInvoker
                 ConnectionClosedException or
                 ConnectionLostException or
                 ConnectFailedException or
-                ConnectTimeoutException;
+                TimeoutException;
     }
 
     private static Exception RethrowException(Exception ex)

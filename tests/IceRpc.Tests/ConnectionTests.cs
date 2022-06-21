@@ -137,6 +137,8 @@ public class ConnectionTests
         var tcpServerTransport = new TcpServerTransport();
         var slicServerTransport = new SlicServerTransport(tcpServerTransport);
 
+        var proxy = new Proxy(Protocol.IceRpc);
+
         using var listener = slicServerTransport.Listen("icerpc://127.0.0.1:0", null, NullLogger.Instance);
         await using var connection = new ClientConnection(new ClientConnectionOptions
         {
@@ -145,7 +147,9 @@ public class ConnectionTests
         });
 
         // Assert
-        Assert.That(async () => await connection.ConnectAsync(default), Throws.TypeOf<ConnectTimeoutException>());
+        Assert.That(
+            async () => await connection.InvokeAsync(new OutgoingRequest(proxy), default),
+            Throws.TypeOf<TimeoutException>());
     }
 
     [Test]
