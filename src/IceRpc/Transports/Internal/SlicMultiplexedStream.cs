@@ -87,11 +87,7 @@ internal class SlicMultiplexedStream : IMultiplexedStream
     public void OnShutdown(Action callback) =>
         RegisterStateAction(ref _shutdownAction, State.WritesCompleted | State.ReadsCompleted, callback);
 
-    internal SlicMultiplexedStream(
-        SlicNetworkConnection connection,
-        bool bidirectional,
-        bool remote,
-        SimpleNetworkConnectionReader networkConnectionReader)
+    internal SlicMultiplexedStream(SlicNetworkConnection connection, bool bidirectional, bool remote)
     {
         _connection = connection;
         _sendCredit = _connection.PeerPauseWriterThreshold;
@@ -102,8 +98,7 @@ internal class SlicMultiplexedStream : IMultiplexedStream
             _connection.Pool,
             _connection.MinimumSegmentSize,
             _connection.ResumeWriterThreshold,
-            _connection.PauseWriterThreshold,
-            networkConnectionReader);
+            _connection.PauseWriterThreshold);
 
         _outputPipeWriter = new SlicPipeWriter(
             this,
@@ -235,6 +230,12 @@ internal class SlicMultiplexedStream : IMultiplexedStream
         }
         Debug.Assert(sendCredit >= 0);
     }
+
+    internal ValueTask FillBufferWriterAsync(
+        IBufferWriter<byte> bufferWriter,
+        int byteCount,
+        CancellationToken cancel) =>
+        _connection.FillBufferWriterAsync(bufferWriter, byteCount, cancel);
 
     internal void ReceivedConsumedFrame(int size)
     {
