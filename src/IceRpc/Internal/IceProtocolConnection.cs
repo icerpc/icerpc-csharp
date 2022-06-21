@@ -122,6 +122,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         IConnection connection,
         CancellationToken cancel)
     {
+        Debug.Assert(_readFramesTaskCompletionSource == null); // ConnectAsync should be called only once.
+
         lock (_mutex)
         {
             if (_isAborted)

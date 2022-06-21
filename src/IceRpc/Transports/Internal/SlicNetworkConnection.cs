@@ -115,6 +115,8 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
 
     public async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
     {
+        Debug.Assert(_readFramesTaskCompletionSource == null); // ConnectAsync should be called only once.
+
         lock (_mutex)
         {
             if (_exception != null)
@@ -637,6 +639,8 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         DecodeFunc<T> decodeFunc,
         CancellationToken cancel)
     {
+        Debug.Assert(size > 0);
+
         try
         {
             ReadOnlySequence<byte> buffer = await _simpleNetworkConnectionReader.ReadAtLeastAsync(
@@ -648,11 +652,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
             }
 
             T decodedFrame = SliceEncoding.Slice2.DecodeBuffer(buffer, decodeFunc);
-            if (size > 0)
-            {
-                _simpleNetworkConnectionReader.AdvanceTo(buffer.End);
-            }
-
+            _simpleNetworkConnectionReader.AdvanceTo(buffer.End);
             return decodedFrame;
         }
         catch (ObjectDisposedException)
