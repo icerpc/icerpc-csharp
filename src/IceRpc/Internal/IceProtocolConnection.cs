@@ -149,9 +149,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             if (isServer)
             {
                 EncodeValidateConnectionFrame(_networkConnectionWriter);
-
-                // The flush can't be canceled because it would lead to the writing of an incomplete frame.
-                await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                await _networkConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
             }
             else
             {
