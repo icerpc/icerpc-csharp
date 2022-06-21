@@ -12,7 +12,7 @@ public sealed class DeadlineInterceptorTests
     /// <summary>Verifies that the invocation throws TimeoutException when the invocation deadline expires.</summary>
     [Test]
     [NonParallelizable]
-    public void Invocation_fails_after_the_timeout_expires()
+    public void Invocation_fails_after_the_deadline_expires()
     {
         // Arrange
         CancellationToken? cancellationToken = null;
@@ -102,6 +102,56 @@ public sealed class DeadlineInterceptorTests
 
         // Assert
         Assert.That(Math.Abs((deadline - expectedDeadline).TotalMilliseconds), Is.LessThan(10));
+    }
+
+    [Test]
+    public async Task Deadline_interceptor_does_not_enforce_deadline_by_default()
+    {
+        // Arrange
+        CancellationToken? cancellationToken = null;
+        var invoker = new InlineInvoker((request, cancel) =>
+        {
+            cancellationToken = cancel;
+            return Task.FromResult(new IncomingResponse(request, request.Connection!));
+        });
+
+        var sut = new DeadlineInterceptor(invoker, new());
+        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
+        {
+            Features = new FeatureCollection().With<IDeadlineFeature>(
+                DeadlineFeature.FromTimeout(TimeSpan.FromMilliseconds(100)))
+        };
+        using var tokenSource = new CancellationTokenSource();
+
+        // Act
+        await sut.InvokeAsync(request, tokenSource.Token);
+
+        // Assert
+        Assert.That(cancellationToken, Is.Not.Null);
+        Assert.That(cancellationToken.Value, Is.EqualTo(tokenSource.Token));
+    }
+
+    [Test]
+    [NonParallelizable]
+    public void Deadline_interceptor_can_enforce_application_deadline()
+    {
+        // Arrange
+        var invoker = new InlineInvoker(async (request, cancel) =>
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(500), cancel);
+            return new IncomingResponse(request, request.Connection!);
+        });
+
+        var sut = new DeadlineInterceptor(invoker, new() { AlwaysEnforceDeadline = true });
+        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
+        {
+            Features = new FeatureCollection().With<IDeadlineFeature>(
+                DeadlineFeature.FromTimeout(TimeSpan.FromMilliseconds(100)))
+        };
+        using var tokenSource = new CancellationTokenSource();
+
+        // Act/Assert
+        Assert.ThrowsAsync<TimeoutException>(async () => await sut.InvokeAsync(request, tokenSource.Token));
     }
 
     private static DateTime ReadDeadline(OutgoingFieldValue field)

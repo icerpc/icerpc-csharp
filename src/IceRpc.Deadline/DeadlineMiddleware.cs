@@ -36,10 +36,7 @@ public class DeadlineMiddleware : IDispatcher
             }
 
             request.Features = request.Features.With<IDeadlineFeature>(
-                new DeadlineFeature
-                {
-                    Value = DateTime.UnixEpoch + TimeSpan.FromMilliseconds(value)
-                });
+                new DeadlineFeature(DateTime.UnixEpoch + TimeSpan.FromMilliseconds(value)));
         }
 
         return timeout is null ? _next.DispatchAsync(request, cancel) : PerformDispatchAsync(timeout.Value);
