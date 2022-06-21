@@ -964,7 +964,7 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     [Test]
-    public async Task UnknownEndpointParameter_throws_FormatException_with_client_transport()
+    public async Task Create_client_connection_with_unknown_endpoint_parameter_fails_with_format_exception()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var clientTransport = provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
@@ -977,7 +977,7 @@ public abstract class MultiplexedTransportConformanceTests
     }
 
     [Test]
-    public async Task UnknownEndpointParameter_throws_FormatException_with_server_transport()
+    public async Task Create_server_connection_with_unknown_endpoint_parameter_fails_with_format_exception()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var serverTransport = provider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>();

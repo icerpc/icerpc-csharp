@@ -74,8 +74,8 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
         // This is the composition root of client Connections, where we install log decorators when logging is enabled.
 
-        multiplexedClientTransport = multiplexedClientTransport ?? DefaultMultiplexedClientTransport;
-        simpleClientTransport = simpleClientTransport ?? DefaultSimpleClientTransport;
+        multiplexedClientTransport ??= DefaultMultiplexedClientTransport;
+        simpleClientTransport ??= DefaultSimpleClientTransport;
 
         ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc.Client");
 

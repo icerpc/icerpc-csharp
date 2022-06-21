@@ -58,7 +58,7 @@ namespace IceRpc.Internal
         private readonly IcePayloadPipeWriter _payloadWriter;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly CancellationTokenSource _readCancelSource = new();
-        private TaskCompletionSource? _readFramesTaskCompletionSource;
+        private TaskCompletionSource _readFramesTaskCompletionSource = new();
         private volatile Task? _shutdownTask;
         private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
@@ -184,11 +184,21 @@ namespace IceRpc.Internal
             _ = Task.Run(
                 async () =>
                 {
+                    lock (_mutex)
+                    {
+                        if (_isAborted)
+                        {
+                            return;
+                        }
+
+                        // This needs to be set only if the connection isn't aborted. Abort uses this task completion
+                        // source to wait for reads to complete and it should only wait if reads actually started.
+                        _readFramesTaskCompletionSource = new();
+                    }
+
                     Exception? exception = null;
                     try
                     {
-                        _readFramesTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
                         // Read frames until the CloseConnection frame is received.
                         await ReadFramesAsync(connection, _readCancelSource.Token).ConfigureAwait(false);
                     }
@@ -209,9 +219,9 @@ namespace IceRpc.Internal
                         // TODO: Refactor depending on what we decide for the protocol connection resource cleanup
                         // (#1397,#1372, #1404, #1400).
                         Abort(exception ?? new ConnectionClosedException());
-                    }
 
-                    _readFramesTaskCompletionSource?.SetResult();
+                        _readFramesTaskCompletionSource.SetResult();
+                    }
                 },
                 cancel);
 
