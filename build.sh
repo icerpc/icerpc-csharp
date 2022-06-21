@@ -66,13 +66,13 @@ install()
 
 install_templates()
 {
-    pushd src/ProjectTemplates
+    pushd src/IceRpc.ProjectTemplates
     run_command dotnet "pack" "-c" "$dotnet_config"
     dotnet_templates=$(dotnet new -l)
     if [[ "$dotnet_templates" == *"icerpc-client"* ]]; then
-        run_command "dotnet" 'new' '-u' 'IceRpc.Project.Templates'
+        run_command "dotnet" 'new' '-u' 'IceRpc.ProjectTemplates'
     fi
-    run_command "dotnet" 'new' '-i' "bin/$dotnet_config/IceRpc.Project.Templates.$version.nupkg"
+    run_command "dotnet" 'new' '-i' "bin/$dotnet_config/IceRpc.ProjectTemplates.$version.nupkg"
     popd
 }
 

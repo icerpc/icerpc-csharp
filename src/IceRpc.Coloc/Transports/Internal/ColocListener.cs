@@ -2,44 +2,43 @@
 
 using System.IO.Pipelines;
 
-namespace IceRpc.Transports.Internal
+namespace IceRpc.Transports.Internal;
+
+/// <summary>The listener implementation for the colocated transport.</summary>
+internal class ColocListener : IListener<ISimpleNetworkConnection>
 {
-    /// <summary>The listener implementation for the colocated transport.</summary>
-    internal class ColocListener : IListener<ISimpleNetworkConnection>
+    public Endpoint Endpoint { get; }
+
+    private readonly AsyncQueue<(PipeReader, PipeWriter)> _queue = new();
+
+    public async Task<ISimpleNetworkConnection> AcceptAsync()
     {
-        public Endpoint Endpoint { get; }
+        (PipeReader reader, PipeWriter writer) = await _queue.DequeueAsync(default).ConfigureAwait(false);
+        return new ColocNetworkConnection(Endpoint, _ => (reader, writer));
+    }
 
-        private readonly AsyncQueue<(PipeReader, PipeWriter)> _queue = new();
+    public ValueTask DisposeAsync()
+    {
+        _queue.TryComplete(new ObjectDisposedException(nameof(ColocListener)));
+        return default;
+    }
 
-        public async Task<ISimpleNetworkConnection> AcceptAsync()
+    internal ColocListener(Endpoint endpoint) => Endpoint = endpoint;
+
+    internal (PipeReader, PipeWriter) NewClientConnection()
+    {
+        // By default, the Pipe will pause writes on the PipeWriter when written data is more than 64KB. We could
+        // eventually increase this size by providing a PipeOptions instance to the Pipe construction.
+        var localPipe = new Pipe();
+        var remotePipe = new Pipe();
+        try
         {
-            (PipeReader reader, PipeWriter writer) = await _queue.DequeueAsync(default).ConfigureAwait(false);
-            return new ColocNetworkConnection(Endpoint, isServer: true, writer, reader);
+            _queue.Enqueue((localPipe.Reader, remotePipe.Writer));
         }
-
-        public ValueTask DisposeAsync()
+        catch (ObjectDisposedException)
         {
-            _queue.TryComplete(new ObjectDisposedException(nameof(ColocListener)));
-            return default;
+            throw new ConnectionRefusedException();
         }
-
-        internal ColocListener(Endpoint endpoint) => Endpoint = endpoint;
-
-        internal (PipeReader, PipeWriter) NewClientConnection()
-        {
-            // By default, the Pipe will pause writes on the PipeWriter when written data is more than 64KB. We could
-            // eventually increase this size by providing a PipeOptions instance to the Pipe construction.
-            var localPipe = new Pipe();
-            var remotePipe = new Pipe();
-            try
-            {
-                _queue.Enqueue((localPipe.Reader, remotePipe.Writer));
-            }
-            catch (ObjectDisposedException)
-            {
-                throw new ConnectionRefusedException();
-            }
-            return (remotePipe.Reader, localPipe.Writer);
-        }
+        return (remotePipe.Reader, localPipe.Writer);
     }
 }

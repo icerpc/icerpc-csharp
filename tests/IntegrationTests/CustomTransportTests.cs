@@ -103,31 +103,16 @@ public class CustomTransportTests
     [Test]
     public async Task CustomTransport_UnknownEndpointParameterAsync()
     {
-        // Using an unknown parameter with tcp transport results in FormatException
+        // Custom transport handles any params that start with custom-
         {
-            await using var server = new Server(
-                new ServerOptions
+            await using var server = new Server(new ServerOptions
                 {
-                    Endpoint = "icerpc://127.0.0.1:0?custom-p=bar",
+                    Endpoint = "icerpc://127.0.0.1:0?transport=custom&custom-p=bar",
                     ConnectionOptions = new ConnectionOptions()
                     {
                         Dispatcher = new MyService()
                     }
                 },
-                multiplexedServerTransport: new SlicServerTransport(new TcpServerTransport()));
-            Assert.Throws<FormatException>(() => server.Listen());
-        }
-
-        // Custom transport handles any params that start with custom-
-        {
-            await using var server = new Server(new ServerOptions
-            {
-                Endpoint = "icerpc://127.0.0.1:0?transport=custom&custom-p=bar",
-                ConnectionOptions = new ConnectionOptions()
-                {
-                    Dispatcher = new MyService()
-                }
-            },
                 multiplexedServerTransport: new CustomServerTransport());
             server.Listen();
 
@@ -145,21 +130,6 @@ public class CustomTransportTests
 
             var prx = ServicePrx.FromConnection(connection1);
             await prx.IcePingAsync();
-
-            await using var connection2 = new ClientConnection(
-                new ClientConnectionOptions
-                {
-                    // We add the custom endpoint here because listen updates the endpoint and the custom transport
-                    // removes the parameter
-                    RemoteEndpoint = server.Endpoint with
-                    {
-                        Params = server.Endpoint.Params.Add("custom-p", "bar")
-                    }
-                },
-                multiplexedClientTransport: new SlicClientTransport(new TcpClientTransport()));
-
-            prx = ServicePrx.FromConnection(connection2);
-            Assert.ThrowsAsync<FormatException>(async () => await prx.IcePingAsync());
         }
     }
 

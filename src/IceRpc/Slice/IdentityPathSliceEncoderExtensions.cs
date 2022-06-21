@@ -2,13 +2,12 @@
 
 using IceRpc.Slice.Internal;
 
-namespace IceRpc.Slice
+namespace IceRpc.Slice;
+
+/// <summary>Provides an extension method for encoding a path as an Ice identity.</summary>
+public static class IdentityPathSliceEncoderExtensions
 {
-    /// <summary>Provides an extension method for encoding a path as an Ice identity.</summary>
-    public static class IdentityPathSliceEncoderExtensions
-    {
-        /// <summary>Encodes a path as an Ice identity.</summary>
-        public static void EncodeIdentityPath(this ref SliceEncoder encoder, string value) =>
-            Identity.Parse(value).Encode(ref encoder);
-    }
+    /// <summary>Encodes a path as an Ice identity.</summary>
+    public static void EncodeIdentityPath(this ref SliceEncoder encoder, string value) =>
+        Identity.Parse(value).Encode(ref encoder);
 }

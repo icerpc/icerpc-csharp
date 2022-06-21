@@ -1,56 +1,55 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc.Slice.Internal
+namespace IceRpc.Slice.Internal;
+
+internal readonly partial record struct Identity
 {
-    internal readonly partial record struct Identity
+    /// <summary>Gets the null identity.</summary>
+    internal static Identity Empty { get; } = new("", "");
+
+    public override string ToString() => ToPath();
+
+    /// <summary>Parses a path into an identity.</summary>
+    /// <param name="path">The path (percent escaped).</param>
+    /// <returns>The corresponding identity. Its name can be empty.</returns>
+    internal static Identity Parse(string path)
     {
-        /// <summary>Gets the null identity.</summary>
-        internal static Identity Empty { get; } = new("", "");
+        string workingPath = path[1..]; // removes leading /.
 
-        public override string ToString() => ToPath();
+        int firstSlash = workingPath.IndexOf('/', StringComparison.Ordinal);
 
-        /// <summary>Parses a path into an identity.</summary>
-        /// <param name="path">The path (percent escaped).</param>
-        /// <returns>The corresponding identity. Its name can be empty.</returns>
-        internal static Identity Parse(string path)
+        string name;
+        string category = "";
+
+        if (firstSlash == -1)
         {
-            string workingPath = path[1..]; // removes leading /.
-
-            int firstSlash = workingPath.IndexOf('/', StringComparison.Ordinal);
-
-            string name;
-            string category = "";
-
-            if (firstSlash == -1)
+            // Name only
+            name = Uri.UnescapeDataString(workingPath);
+        }
+        else
+        {
+            if (firstSlash != workingPath.LastIndexOf('/'))
             {
-                // Name only
-                name = Uri.UnescapeDataString(workingPath);
-            }
-            else
-            {
-                if (firstSlash != workingPath.LastIndexOf('/'))
-                {
-                    throw new FormatException($"too many slashes in path '{path}'");
-                }
-
-                name = Uri.UnescapeDataString(workingPath[(firstSlash + 1)..]);
-                category = Uri.UnescapeDataString(workingPath[0..firstSlash]);
+                throw new FormatException($"too many slashes in path '{path}'");
             }
 
-            return name.Length == 0 ? Empty : new(name, category);
+            name = Uri.UnescapeDataString(workingPath[(firstSlash + 1)..]);
+            category = Uri.UnescapeDataString(workingPath[0..firstSlash]);
         }
 
-        /// <summary>Converts this identity into a path.</summary>
-        internal string ToPath()
-        {
-            if (Name.Length == 0)
-            {
-                return "/";
-            }
+        return name.Length == 0 ? Empty : new(name, category);
+    }
 
-            return Category.Length > 0 ?
-                $"/{Uri.EscapeDataString(Category)}/{Uri.EscapeDataString(Name)}" :
-                $"/{Uri.EscapeDataString(Name)}";
+    /// <summary>Converts this identity into a path.</summary>
+    internal string ToPath()
+    {
+        if (Name.Length == 0)
+        {
+            return "/";
         }
+
+        return Category.Length > 0 ?
+            $"/{Uri.EscapeDataString(Category)}/{Uri.EscapeDataString(Name)}" :
+            $"/{Uri.EscapeDataString(Name)}";
     }
 }

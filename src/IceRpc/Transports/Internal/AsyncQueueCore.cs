@@ -4,189 +4,188 @@ using IceRpc.Internal;
 using System.Diagnostics;
 using System.Threading.Tasks.Sources;
 
-namespace IceRpc.Transports.Internal
+namespace IceRpc.Transports.Internal;
+
+/// <summary>This interface is required because AsyncQueueCore is a struct and we can't reference a struct from the
+/// function registered with the cancellation token to cancel the asynchronous dequeue call.</summary>
+/// <typeparam name="T">The type of the result.</typeparam>
+internal interface IAsyncQueueValueTaskSource<T> : IValueTaskSource<T>
 {
-    /// <summary>This interface is required because AsyncQueueCore is a struct and we can't reference a struct from the
-    /// function registered with the cancellation token to cancel the asynchronous dequeue call.</summary>
-    /// <typeparam name="T">The type of the result.</typeparam>
-    internal interface IAsyncQueueValueTaskSource<T> : IValueTaskSource<T>
+    /// <summary>Cancels the asynchronous dequeue call.</summary>
+    void Cancel();
+}
+
+/// <summary>The AsyncQueueCore struct provides result queuing functionality to be used with the IValueTaskSource
+/// interface. It's useful for the Slic stream implementation to avoid allocating on the heap objects to support a
+/// ValueTask based ReceiveAsync.
+/// </summary>
+internal struct AsyncQueueCore<T>
+{
+    private Exception? _exception;
+
+    // Provide thread safety using a spin lock to avoid having to create another object on the heap. The lock is
+    // used to protect the setting of the signal value or exception with the manual reset value task source.
+    private SpinLock _lock;
+
+    // The result queue is only created when Enqueue() is called and if the result can't be set on the source when a
+    // result is already set on the source.
+    private Queue<T>? _queue;
+    private ManualResetValueTaskSourceCore<T> _source = new() { RunContinuationsAsynchronously = true };
+    private CancellationTokenRegistration _tokenRegistration;
+
+    public AsyncQueueCore()
     {
-        /// <summary>Cancels the asynchronous dequeue call.</summary>
-        void Cancel();
+        _exception = null;
+        _lock = new();
+        _queue = null;
+        _tokenRegistration = default;
     }
 
-    /// <summary>The AsyncQueueCore struct provides result queuing functionality to be used with the IValueTaskSource
-    /// interface. It's useful for the Slic stream implementation to avoid allocating on the heap objects to support a
-    /// ValueTask based ReceiveAsync.
-    /// </summary>
-    internal struct AsyncQueueCore<T>
+    /// <summary>Complete the pending <see cref="DequeueAsync"/> and discard queued items.</summary>
+    internal bool TryComplete(Exception exception)
     {
-        private Exception? _exception;
-
-        // Provide thread safety using a spin lock to avoid having to create another object on the heap. The lock is
-        // used to protect the setting of the signal value or exception with the manual reset value task source.
-        private SpinLock _lock;
-
-        // The result queue is only created when Enqueue() is called and if the result can't be set on the source when a
-        // result is already set on the source.
-        private Queue<T>? _queue;
-        private ManualResetValueTaskSourceCore<T> _source = new() { RunContinuationsAsynchronously = true };
-        private CancellationTokenRegistration _tokenRegistration;
-
-        public AsyncQueueCore()
+        bool lockTaken = false;
+        try
         {
-            _exception = null;
-            _lock = new();
-            _queue = null;
-            _tokenRegistration = default;
-        }
-
-        /// <summary>Complete the pending <see cref="DequeueAsync"/> and discard queued items.</summary>
-        internal bool TryComplete(Exception exception)
-        {
-            bool lockTaken = false;
-            try
+            _lock.Enter(ref lockTaken);
+            if (_exception != null)
             {
-                _lock.Enter(ref lockTaken);
-                if (_exception != null)
-                {
-                    return false;
-                }
+                return false;
+            }
 
-                _exception = exception;
+            _exception = exception;
 
-                // If the source isn't already signaled, signal completion by setting the exception. Otherwise if
-                // it's already signaled, a result is pending. In this case, we'll raise the exception the next time
-                // the queue is awaited. This is necessary because ManualResetValueTaskSourceCore is not thread safe
-                // and once an exception or result is set we can't call again SetXxx until the source's result or
-                // exception is consumed.
+            // If the source isn't already signaled, signal completion by setting the exception. Otherwise if
+            // it's already signaled, a result is pending. In this case, we'll raise the exception the next time
+            // the queue is awaited. This is necessary because ManualResetValueTaskSourceCore is not thread safe
+            // and once an exception or result is set we can't call again SetXxx until the source's result or
+            // exception is consumed.
+            if (_source.GetStatus(_source.Version) == ValueTaskSourceStatus.Pending)
+            {
+                _source.SetException(exception);
+            }
+            return true;
+        }
+        finally
+        {
+            if (lockTaken)
+            {
+                _lock.Exit();
+            }
+        }
+    }
+
+    internal void Enqueue(T value)
+    {
+        bool lockTaken = false;
+        try
+        {
+            _lock.Enter(ref lockTaken);
+            if (_exception == null)
+            {
                 if (_source.GetStatus(_source.Version) == ValueTaskSourceStatus.Pending)
                 {
-                    _source.SetException(exception);
-                }
-                return true;
-            }
-            finally
-            {
-                if (lockTaken)
-                {
-                    _lock.Exit();
-                }
-            }
-        }
-
-        internal void Enqueue(T value)
-        {
-            bool lockTaken = false;
-            try
-            {
-                _lock.Enter(ref lockTaken);
-                if (_exception == null)
-                {
-                    if (_source.GetStatus(_source.Version) == ValueTaskSourceStatus.Pending)
-                    {
-                        // If the source is pending, set the result on the source result. The  queue should be empty if
-                        // the source is pending.
-                        Debug.Assert(_queue == null || _queue.Count == 0);
-                        _source.SetResult(value);
-                    }
-                    else
-                    {
-                        // Create the queue if needed and queue the result. If will be consumed once the source's result
-                        // is consumed.
-                        _queue ??= new();
-                        _queue.Enqueue(value);
-                    }
+                    // If the source is pending, set the result on the source result. The  queue should be empty if
+                    // the source is pending.
+                    Debug.Assert(_queue == null || _queue.Count == 0);
+                    _source.SetResult(value);
                 }
                 else
                 {
-                    throw _exception;
+                    // Create the queue if needed and queue the result. If will be consumed once the source's result
+                    // is consumed.
+                    _queue ??= new();
+                    _queue.Enqueue(value);
                 }
             }
-            finally
+            else
             {
-                if (lockTaken)
-                {
-                    _lock.Exit();
-                }
+                throw _exception;
             }
         }
-
-        internal T GetResult(short token)
+        finally
         {
-            Debug.Assert(token == _source.Version);
-
-            _tokenRegistration.Dispose();
-            _tokenRegistration = default;
-
-            // Get the result.
-            T? result;
-            try
+            if (lockTaken)
             {
-                result = _source.GetResult(token);
-            }
-            catch (Exception ex)
-            {
-                throw ExceptionUtil.Throw(ex);
-            }
-
-            bool lockTaken = false;
-            try
-            {
-                _lock.Enter(ref lockTaken);
-                if (_exception != null)
-                {
-                    throw ExceptionUtil.Throw(_exception);
-                }
-
-                // Reseting the source must be done with the lock held because other threads are checking the source
-                // status to figure out whether or not to set another result or exception on the source.
-                _source.Reset();
-
-                // If there results are queued, dequeue the result and set it on the source.
-                if (_queue != null && _queue.Count > 0)
-                {
-                    _source.SetResult(_queue.Dequeue());
-                }
-
-                return result;
-            }
-            finally
-            {
-                if (lockTaken)
-                {
-                    _lock.Exit();
-                }
+                _lock.Exit();
             }
         }
+    }
 
-        internal ValueTaskSourceStatus GetStatus(short token)
+    internal T GetResult(short token)
+    {
+        Debug.Assert(token == _source.Version);
+
+        _tokenRegistration.Dispose();
+        _tokenRegistration = default;
+
+        // Get the result.
+        T? result;
+        try
         {
-            Debug.Assert(token == _source.Version);
-            return _source.GetStatus(token);
+            result = _source.GetResult(token);
+        }
+        catch (Exception ex)
+        {
+            throw ExceptionUtil.Throw(ex);
         }
 
-        internal void OnCompleted(
-            Action<object?> continuation,
-            object? state,
-            short token,
-            ValueTaskSourceOnCompletedFlags flags)
+        bool lockTaken = false;
+        try
         {
-            Debug.Assert(token == _source.Version);
-            _source.OnCompleted(continuation, state, token, flags);
-        }
-
-        internal ValueTask<T> DequeueAsync(IAsyncQueueValueTaskSource<T> valueTaskSource, CancellationToken cancel)
-        {
-            if (cancel.CanBeCanceled)
+            _lock.Enter(ref lockTaken);
+            if (_exception != null)
             {
-                // The returned ValueTask<T> always calls GetResult on completion. It will dispose the token
-                // registration. Note that we don't check if cancellation is requested on the token here. It's up to the
-                // IAsyncQueueValueTaskSource.Cancel() implementation to decide what to do upon cancellation.
-                Debug.Assert(_tokenRegistration == default);
-                _tokenRegistration = cancel.Register(valueTaskSource.Cancel);
+                throw ExceptionUtil.Throw(_exception);
             }
-            return new ValueTask<T>(valueTaskSource, _source.Version);
+
+            // Reseting the source must be done with the lock held because other threads are checking the source
+            // status to figure out whether or not to set another result or exception on the source.
+            _source.Reset();
+
+            // If there results are queued, dequeue the result and set it on the source.
+            if (_queue != null && _queue.Count > 0)
+            {
+                _source.SetResult(_queue.Dequeue());
+            }
+
+            return result;
         }
+        finally
+        {
+            if (lockTaken)
+            {
+                _lock.Exit();
+            }
+        }
+    }
+
+    internal ValueTaskSourceStatus GetStatus(short token)
+    {
+        Debug.Assert(token == _source.Version);
+        return _source.GetStatus(token);
+    }
+
+    internal void OnCompleted(
+        Action<object?> continuation,
+        object? state,
+        short token,
+        ValueTaskSourceOnCompletedFlags flags)
+    {
+        Debug.Assert(token == _source.Version);
+        _source.OnCompleted(continuation, state, token, flags);
+    }
+
+    internal ValueTask<T> DequeueAsync(IAsyncQueueValueTaskSource<T> valueTaskSource, CancellationToken cancel)
+    {
+        if (cancel.CanBeCanceled)
+        {
+            // The returned ValueTask<T> always calls GetResult on completion. It will dispose the token
+            // registration. Note that we don't check if cancellation is requested on the token here. It's up to the
+            // IAsyncQueueValueTaskSource.Cancel() implementation to decide what to do upon cancellation.
+            Debug.Assert(_tokenRegistration == default);
+            _tokenRegistration = cancel.Register(valueTaskSource.Cancel);
+        }
+        return new ValueTask<T>(valueTaskSource, _source.Version);
     }
 }

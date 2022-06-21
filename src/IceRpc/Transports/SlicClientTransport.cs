@@ -4,80 +4,79 @@ using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System.Net.Security;
 
-namespace IceRpc.Transports
+namespace IceRpc.Transports;
+
+/// <summary>Implements <see cref="IClientTransport{IMultiplexedNetworkConnection}"/> using Slic over a simple
+/// client transport.</summary>
+public class SlicClientTransport : IClientTransport<IMultiplexedNetworkConnection>
 {
-    /// <summary>Implements <see cref="IClientTransport{IMultiplexedNetworkConnection}"/> using Slic over a simple
-    /// client transport.</summary>
-    public class SlicClientTransport : IClientTransport<IMultiplexedNetworkConnection>
+    /// <inheritdoc/>
+    public string Name => _simpleClientTransport.Name;
+
+    private static readonly Func<ISlicFrameReader, ISlicFrameReader> _defaultSlicFrameReaderDecorator =
+        reader => reader;
+
+    private static readonly Func<ISlicFrameWriter, ISlicFrameWriter> _defaultSlicFrameWriterDecorator =
+        writer => writer;
+
+    private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
+    private readonly SlicTransportOptions _slicTransportOptions;
+
+    /// <summary>Constructs a Slic client transport.</summary>
+    /// <param name="options">The options to configure the Slic transport.</param>
+    /// <param name="simpleClientTransport">The simple client transport.</param>
+    public SlicClientTransport(
+        SlicTransportOptions options,
+        IClientTransport<ISimpleNetworkConnection> simpleClientTransport)
     {
-        /// <inheritdoc/>
-        public string Name => _simpleClientTransport.Name;
+        _simpleClientTransport = simpleClientTransport;
+        _slicTransportOptions = options;
+    }
 
-        private static readonly Func<ISlicFrameReader, ISlicFrameReader> _defaultSlicFrameReaderDecorator =
-            reader => reader;
+    /// <summary>Constructs a Slic client transport.</summary>
+    /// <param name="simpleClientTransport">The simple client transport.</param>
+    public SlicClientTransport(IClientTransport<ISimpleNetworkConnection> simpleClientTransport)
+        : this(new(), simpleClientTransport)
+    {
+    }
 
-        private static readonly Func<ISlicFrameWriter, ISlicFrameWriter> _defaultSlicFrameWriterDecorator =
-            writer => writer;
+    /// <inheritdoc/>
+    public bool CheckParams(Endpoint endpoint) => _simpleClientTransport.CheckParams(endpoint);
 
-        private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
-        private readonly SlicTransportOptions _slicTransportOptions;
+    /// <inheritdoc/>
+    public IMultiplexedNetworkConnection CreateConnection(
+        Endpoint remoteEndpoint,
+        SslClientAuthenticationOptions? authenticationOptions,
+        ILogger logger)
+    {
+        // This is the composition root of the Slic client transport, where we install log decorators when logging
+        // is enabled.
 
-        /// <summary>Constructs a Slic client transport.</summary>
-        /// <param name="options">The options to configure the Slic transport.</param>
-        /// <param name="simpleClientTransport">The simple client transport.</param>
-        public SlicClientTransport(
-            SlicTransportOptions options,
-            IClientTransport<ISimpleNetworkConnection> simpleClientTransport)
+        IMultiplexedStreamErrorCodeConverter errorCodeConverter =
+            remoteEndpoint.Protocol.MultiplexedStreamErrorCodeConverter ??
+            throw new NotSupportedException(
+                $"cannot create Slic client network connection for protocol {remoteEndpoint.Protocol}");
+
+        ISimpleNetworkConnection simpleNetworkConnection =
+            _simpleClientTransport.CreateConnection(remoteEndpoint, authenticationOptions, logger);
+
+        Func<ISlicFrameReader, ISlicFrameReader> slicFrameReaderDecorator = _defaultSlicFrameReaderDecorator;
+        Func<ISlicFrameWriter, ISlicFrameWriter> slicFrameWriterDecorator = _defaultSlicFrameWriterDecorator;
+
+        if (logger.IsEnabled(LogLevel.Error))
         {
-            _simpleClientTransport = simpleClientTransport;
-            _slicTransportOptions = options;
+            // Do not decorate the simple network connection to avoid duplicate traces from the
+            // LogNetworkConnectionDecorator
+            slicFrameReaderDecorator = reader => new LogSlicFrameReaderDecorator(reader, logger);
+            slicFrameWriterDecorator = writer => new LogSlicFrameWriterDecorator(writer, logger);
         }
 
-        /// <summary>Constructs a Slic client transport.</summary>
-        /// <param name="simpleClientTransport">The simple client transport.</param>
-        public SlicClientTransport(IClientTransport<ISimpleNetworkConnection> simpleClientTransport)
-            : this(new(), simpleClientTransport)
-        {
-        }
-
-        /// <inheritdoc/>
-        public bool CheckParams(Endpoint endpoint) => _simpleClientTransport.CheckParams(endpoint);
-
-        /// <inheritdoc/>
-        public IMultiplexedNetworkConnection CreateConnection(
-            Endpoint remoteEndpoint,
-            SslClientAuthenticationOptions? authenticationOptions,
-            ILogger logger)
-        {
-            // This is the composition root of the Slic client transport, where we install log decorators when logging
-            // is enabled.
-
-            IMultiplexedStreamErrorCodeConverter errorCodeConverter =
-                remoteEndpoint.Protocol.MultiplexedStreamErrorCodeConverter ??
-                throw new NotSupportedException(
-                    $"cannot create Slic client network connection for protocol {remoteEndpoint.Protocol}");
-
-            ISimpleNetworkConnection simpleNetworkConnection =
-                _simpleClientTransport.CreateConnection(remoteEndpoint, authenticationOptions, logger);
-
-            Func<ISlicFrameReader, ISlicFrameReader> slicFrameReaderDecorator = _defaultSlicFrameReaderDecorator;
-            Func<ISlicFrameWriter, ISlicFrameWriter> slicFrameWriterDecorator = _defaultSlicFrameWriterDecorator;
-
-            if (logger.IsEnabled(LogLevel.Error))
-            {
-                // Do not decorate the simple network connection to avoid duplicate traces from the
-                // LogNetworkConnectionDecorator
-                slicFrameReaderDecorator = reader => new LogSlicFrameReaderDecorator(reader, logger);
-                slicFrameWriterDecorator = writer => new LogSlicFrameWriterDecorator(writer, logger);
-            }
-
-            return new SlicNetworkConnection(
-                simpleNetworkConnection,
-                isServer: false,
-                errorCodeConverter,
-                slicFrameReaderDecorator,
-                slicFrameWriterDecorator,
-                _slicTransportOptions);
-        }
+        return new SlicNetworkConnection(
+            simpleNetworkConnection,
+            isServer: false,
+            errorCodeConverter,
+            slicFrameReaderDecorator,
+            slicFrameWriterDecorator,
+            _slicTransportOptions);
     }
 }
