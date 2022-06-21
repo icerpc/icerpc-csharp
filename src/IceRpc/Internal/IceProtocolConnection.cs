@@ -201,15 +201,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         {
             _readFramesTaskCompletionSource.SetResult();
 
-            // The simple network connection can only be disposed if this connection is aborted either because
-            // it was disposed or because the connection was lost. We throw the abort exception to ensure that
-            // the cause of the connection abortion (connection disposed or lost) is correctly reported.
-            lock (_mutex)
-            {
-                Debug.Assert(_isAborted);
-                throw new ConnectionAbortedException();
-            }
-            throw;
+            // The simple network connection can only be disposed if this connection is aborted.
+            throw new ConnectionAbortedException();
         }
         catch
         {
@@ -627,6 +620,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         catch
         {
             await pipe.Reader.CompleteAsync().ConfigureAwait(false);
+            throw;
         }
         finally
         {

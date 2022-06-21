@@ -259,9 +259,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         {
             _readFramesTaskCompletionSource.SetResult();
 
-            // The simple network connection can only be disposed if this connection is aborted either because
-            // it was disposed or because the connection was lost. We throw the abort exception to ensure that
-            // the cause of the connection abortion (connection disposed or lost) is correctly reported.
+            // The simple network connection can only be disposed if this connection is aborted.
             lock (_mutex)
             {
                 Debug.Assert(_exception != null);
@@ -446,9 +444,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         }
         catch (ObjectDisposedException)
         {
-            // The simple network connection can only be disposed if this connection is aborted either because
-            // it was disposed or because the connection was lost. We throw the abort exception to ensure that
-            // the cause of the connection abortion (connection disposed or lost) is correctly reported.
+            // The simple network connection can only be disposed if this connection is aborted.
             lock (_mutex)
             {
                 Debug.Assert(_exception != null);
@@ -661,9 +657,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         }
         catch (ObjectDisposedException)
         {
-            // The simple network connection can only be disposed if this connection is aborted either because
-            // it was disposed or because the connection was lost. We throw the abort exception to ensure that
-            // the cause of the connection abortion (connection disposed or lost) is correctly reported.
+            // The simple network connection can only be disposed if this connection is aborted.
             lock (_mutex)
             {
                 Debug.Assert(_exception != null);
@@ -701,9 +695,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         }
         catch (ObjectDisposedException)
         {
-            // The simple network connection can only be disposed if this connection is aborted either because
-            // it was disposed or because the connection was lost. We throw the abort exception to ensure that
-            // the cause of the connection abortion (connection disposed or lost) is correctly reported.
+            // The simple network connection can only be disposed if this connection is aborted.
             lock (_mutex)
             {
                 Debug.Assert(_exception != null);
@@ -1072,9 +1064,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         }
         catch (ObjectDisposedException)
         {
-            // The simple network connection can only be disposed if this connection is aborted either because
-            // it was disposed or because the connection was lost. We throw the abort exception to ensure that
-            // the cause of the connection abortion (connection disposed or lost) is correctly reported.
+            // The simple network connection can only be disposed if this connection is aborted.
             lock (_mutex)
             {
                 Debug.Assert(_exception != null);
@@ -1110,9 +1100,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         }
         catch (ObjectDisposedException)
         {
-            // The simple network connection can only be disposed if this connection is aborted either because
-            // it was disposed or because the connection was lost. We throw the abort exception to ensure that
-            // the cause of the connection abortion (connection disposed or lost) is correctly reported.
+            // The simple network connection can only be disposed if this connection is aborted.
             lock (_mutex)
             {
                 Debug.Assert(_exception != null);
