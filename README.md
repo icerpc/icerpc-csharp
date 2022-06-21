@@ -130,7 +130,7 @@ dotnet new install IceRpc.ProjectTemplates
 Or for a source build:
 
 ```
-build install-templates
+./build.sh install-templates
 ```
 
 The `IceRpc.ProjectTemplates` package provides the following templates:

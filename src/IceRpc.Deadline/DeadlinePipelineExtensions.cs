@@ -8,17 +8,22 @@ namespace IceRpc;
 /// </summary>
 public static class DeadlinePipelineExtensions
 {
-    /// <summary>Adds a <see cref="DeadlineInterceptor"/> to the pipeline.</summary>
+    /// <summary>Adds a <see cref="DeadlineInterceptor"/> with an infinite default timeout to the pipeline.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>
     /// <returns>The pipeline being configured.</returns>
-    public static Pipeline UseDeadline(this Pipeline pipeline) =>
-        pipeline.Use(next => new DeadlineInterceptor(next, Timeout.InfiniteTimeSpan));
+    public static Pipeline UseDeadline(this Pipeline pipeline) => pipeline.UseDeadline(Timeout.InfiniteTimeSpan);
 
     /// <summary>Adds a <see cref="DeadlineInterceptor"/> to the pipeline.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>
-    /// <param name="timeout">The default timeout for the request. This value can be overwritten by setting the
-    /// <see cref="ITimeoutFeature"/> request feature.</param>
-    /// <returns>The pipeline being configured.</returns>
-    public static Pipeline UseDeadline(this Pipeline pipeline, TimeSpan timeout) =>
-        pipeline.Use(next => new DeadlineInterceptor(next, timeout));
+    /// <param name="defaultTimeout">The deadline interceptor options.</param>
+    /// <param name="alwaysEnforceDeadline">When <c>true</c> and the request carries a deadline, the interceptor always
+    /// creates a cancellation token source to enforce this deadline. When <c>false</c> and the request carries a
+    /// deadline, the interceptor creates a cancellation token source to enforce this deadline only when the
+    /// invocation's cancellation token cannot be canceled. The default value is <c>false</c>.</param>
+    /// <returns>The builder being configured.</returns>
+    public static Pipeline UseDeadline(
+        this Pipeline pipeline,
+        TimeSpan defaultTimeout,
+        bool alwaysEnforceDeadline = false) =>
+        pipeline.Use(next => new DeadlineInterceptor(next, defaultTimeout, alwaysEnforceDeadline));
 }

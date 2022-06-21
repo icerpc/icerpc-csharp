@@ -98,11 +98,6 @@ impl fmt::Display for CsharpComment {
         // Write the comment's summary message.
         writeln!(f, "{}", CommentTag::new("summary", &comment.overview))?;
 
-        // Write deprecate reason if present
-        if let Some(reason) = &comment.deprecate_reason {
-            writeln!(f, "{}", CommentTag::new("para", reason))?;
-        }
-
         // Write each of the comment's parameter fields.
         for param in &comment.params {
             let (identifier, description) = param;

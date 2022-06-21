@@ -137,7 +137,7 @@ public class ConnectionTests
         var tcpServerTransport = new TcpServerTransport();
         var slicServerTransport = new SlicServerTransport(tcpServerTransport);
 
-        await using var listener = slicServerTransport.Listen("icerpc://127.0.0.1:0", null, NullLogger.Instance);
+        using var listener = slicServerTransport.Listen("icerpc://127.0.0.1:0", null, NullLogger.Instance);
         await using var connection = new ClientConnection(new ClientConnectionOptions
         {
             RemoteEndpoint = listener.Endpoint,
@@ -488,7 +488,7 @@ public class ConnectionTests
     {
         // Arrange
         var tcpServerTransport = new TcpServerTransport();
-        await using var listener = tcpServerTransport.Listen(
+        using var listener = tcpServerTransport.Listen(
             "icerpc://127.0.0.1:0",
             authenticationOptions: null,
             NullLogger.Instance);

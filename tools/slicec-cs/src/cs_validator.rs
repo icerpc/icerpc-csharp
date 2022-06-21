@@ -2,13 +2,22 @@
 
 use slice::error::ErrorReporter;
 use slice::grammar::*;
+use slice::parse_result::{ParsedData, ParserResult};
 use slice::visitor::Visitor;
+
+pub(crate) fn validate_cs_attributes(mut parsed_data: ParsedData) -> ParserResult {
+    let mut visitor = CsValidator { error_reporter: &mut parsed_data.error_reporter };
+    for slice_file in parsed_data.files.values() {
+        slice_file.visit_with(&mut visitor);
+    }
+    parsed_data.into()
+}
 
 /// CsValidator visits all the elements in a slice file to check for errors and warnings specific to
 /// the slicec-cs compiler. This is the final validation step, and the last phase of compilation
 /// before code generation occurs.
 #[derive(Debug)]
-pub(crate) struct CsValidator<'a> {
+struct CsValidator<'a> {
     pub error_reporter: &'a mut ErrorReporter,
 }
 

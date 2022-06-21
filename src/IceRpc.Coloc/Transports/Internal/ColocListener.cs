@@ -17,11 +17,7 @@ internal class ColocListener : IListener<ISimpleNetworkConnection>
         return new ColocNetworkConnection(Endpoint, _ => (reader, writer));
     }
 
-    public ValueTask DisposeAsync()
-    {
-        _queue.TryComplete(new ObjectDisposedException(nameof(ColocListener)));
-        return default;
-    }
+    public void Dispose() => _queue.TryComplete(new ObjectDisposedException(nameof(ColocListener)));
 
     internal ColocListener(Endpoint endpoint) => Endpoint = endpoint;
 
