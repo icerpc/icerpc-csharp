@@ -24,14 +24,14 @@ mod trait_visitor;
 use blake2::{Blake2b, Digest};
 use class_visitor::ClassVisitor;
 use cs_options::CsOptions;
-use cs_validator::CsValidator;
+use cs_validator::validate_cs_attributes;
 use dispatch_visitor::DispatchVisitor;
 use enum_visitor::EnumVisitor;
 use exception_visitor::ExceptionVisitor;
 use generated_code::GeneratedCode;
 use module_visitor::ModuleVisitor;
 use proxy_visitor::ProxyVisitor;
-use slice::error::Error;
+use slice::parse_result::{ParsedData, ParserResult};
 use slice::slice_file::SliceFile;
 use std::fs::File;
 use std::io;
@@ -43,32 +43,40 @@ use trait_visitor::TraitVisitor;
 
 use crate::code_block::CodeBlock;
 
+pub fn print_errors(parsed_data: ParsedData) {
+    parsed_data.error_reporter.print_errors(&parsed_data.files);
+    if parsed_data.error_reporter.has_errors() {
+        let counts = parsed_data.error_reporter.get_totals();
+        let message = format!(
+            "Compilation failed with {} error(s) and {} warning(s).\n",
+            counts.0, counts.1
+        );
+
+        println!("{}", &message);
+    }
+}
+
 pub fn main() {
     std::process::exit(match try_main() {
-        Ok(()) => 0,
-        Err(_) => 1,
+        Ok(data) => {
+            print_errors(data);
+            0
+        }
+        Err(data) => {
+            print_errors(data);
+            1
+        }
     })
 }
 
-fn try_main() -> Result<(), Error> {
+fn try_main() -> ParserResult {
     let options = CsOptions::from_args();
     let slice_options = &options.slice_options;
-    let (_ast, mut error_reporter, slice_files) = slice::parse_from_options(slice_options)?;
-
-    let mut cs_validator = CsValidator { error_reporter: &mut error_reporter };
-    for slice_file in slice_files.values() {
-        slice_file.visit_with(&mut cs_validator);
-    }
-    slice::handle_errors(
-        slice_options.warn_as_error,
-        &slice_files,
-        &mut error_reporter,
-    )?;
+    let mut parsed_data =
+        slice::parse_from_options(slice_options).and_then(validate_cs_attributes)?;
 
     if !slice_options.validate {
-        for slice_file in slice_files.values().filter(|file| file.is_source) {
-            // TODO: actually check for the error
-
+        for slice_file in parsed_data.files.values().filter(|file| file.is_source) {
             let mut generated_code = GeneratedCode::new();
 
             generated_code.code_blocks.push(preamble(slice_file));
@@ -122,7 +130,7 @@ fn try_main() -> Result<(), Error> {
                 match write_file(&path, &code_string) {
                     Ok(_) => (),
                     Err(err) => {
-                        error_reporter.report_error(
+                        parsed_data.error_reporter.report_error(
                             format!("failed to write to file {}: {}", &path.display(), err),
                             None,
                         );
@@ -134,7 +142,7 @@ fn try_main() -> Result<(), Error> {
         }
     }
 
-    slice::handle_errors(true, &slice_files, &mut error_reporter)
+    parsed_data.into()
 }
 
 fn preamble(slice_file: &SliceFile) -> CodeBlock {
