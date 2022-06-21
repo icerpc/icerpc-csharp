@@ -1,23 +1,20 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Features;
+using IceRpc.Internal;
 using IceRpc.Slice;
 
 namespace IceRpc.Bidir;
 
-/// <summary>A middleware that applies the deflate compression algorithm to the payload of a response depending on
-/// the <see cref="ICompressFeature"/> feature.</summary>
+/// <summary>A middleware that keeps the connection of relative proxies associated to the last known client connection.</summary>
 public class BidirMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;
-    private readonly Dictionary<Guid, IConnection> _connections = new();
+    private readonly object _mutex = new();
+    private readonly Dictionary<Guid, BidirConnection> _connections = new();
 
     /// <summary>Constructs a compressor middleware.</summary>
     /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
-    public BidirMiddleware(IDispatcher next)
-    {
-        _next = next;
-    }
+    public BidirMiddleware(IDispatcher next) => _next = next;
 
     /// <inheritdoc/>
     public async ValueTask<OutgoingResponse> DispatchAsync(
@@ -26,18 +23,25 @@ public class BidirMiddleware : IDispatcher
     {
         if (request.Protocol.HasFields && request.Fields.ContainsKey(RequestFieldKey.ConnectionId))
         {
-            Guid connectionID = new Guid(
+            var connectionId = new Guid(
                 request.Fields.DecodeValue(
                     RequestFieldKey.ConnectionId,
                     (ref SliceDecoder decoder) => decoder.DecodeSequence<byte>())!);
 
-            var bidirConnection = new Internal.BidirConnection(request.Connection);
-            _connections.Add(connectionID, bidirConnection);
-            request.Connection = bidirConnection;
+            lock (_mutex)
+            {
+                if (_connections.TryGetValue(connectionId, out BidirConnection? bidirConnection))
+                {
+                    bidirConnection.Decoratee = request.Connection;
+                }
+                else
+                {
+                    bidirConnection = new BidirConnection(request.Connection);
+                    _connections.Add(connectionId, bidirConnection);
+                }
+                request.Connection = bidirConnection;
+            }
         }
-
-        OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
-
-        return response;
+        return await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
     }
 }

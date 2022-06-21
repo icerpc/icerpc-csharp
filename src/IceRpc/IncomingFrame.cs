@@ -8,8 +8,8 @@ namespace IceRpc;
 /// <summary>Base class for incoming frames.</summary>
 public abstract class IncomingFrame
 {
-    /// <summary>Gets the connection that received this frame.</summary>
-    public IConnection Connection { get; }
+    /// <summary>Gets or sets the connection that received this frame.</summary>
+    public IConnection Connection { get; set; }
 
     /// <summary>Gets or sets the payload of this frame.</summary>
     /// <value>The payload of this frame. The default value is an empty <see cref="PipeReader"/>.</value>

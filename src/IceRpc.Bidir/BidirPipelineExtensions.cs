@@ -4,7 +4,7 @@ using IceRpc.Bidir;
 
 namespace IceRpc;
 
-/// <summary>This class provides extension methods to add the deflate interceptor to a <see cref="Pipeline"/>.
+/// <summary>This class provides extension methods to add the bidir interceptor to a <see cref="Pipeline"/>.
 /// </summary>
 public static class BidirPipelineExtensions
 {
