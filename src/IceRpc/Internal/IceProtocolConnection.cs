@@ -58,7 +58,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private readonly IcePayloadPipeWriter _payloadWriter;
     private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly CancellationTokenSource _readCancelSource = new();
-    private TaskCompletionSource _readFramesTaskCompletionSource = new();
+    private TaskCompletionSource? _readFramesTaskCompletionSource;
     private volatile Task? _shutdownTask;
     private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 

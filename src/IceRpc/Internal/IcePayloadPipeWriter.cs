@@ -24,12 +24,9 @@ internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
 
     public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancel = default)
     {
-        // The cancellation of the flush just cancels the wait for the data writing. It doesn't cancel the write as
-        // it would leave the connection is a non-recoverable state.
         try
         {
-            await _networkConnectionWriter.FlushAsync(
-                CancellationToken.None).AsTask().WaitAsync(cancel).ConfigureAwait(false);
+            await _networkConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
         {
@@ -45,13 +42,9 @@ internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
 
     public override async ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancel)
     {
-        // The cancellation of the write just cancels the wait for the data writing. It doesn't cancel the write as
-        // it would leave the connection is a non-recoverable state.
         try
         {
-            await _networkConnectionWriter.WriteAsync(
-                new ReadOnlySequence<byte>(source),
-                CancellationToken.None).AsTask().WaitAsync(cancel).ConfigureAwait(false);
+            await _networkConnectionWriter.WriteAsync(new ReadOnlySequence<byte>(source), cancel).ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
         {
@@ -68,13 +61,9 @@ internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
         bool endStream,
         CancellationToken cancel)
     {
-        // The cancellation of the flush just cancels the wait for the data writing. It doesn't cancel the write as
-        // it would leave the connection is a non-recoverable state.
         try
         {
-            await _networkConnectionWriter.WriteAsync(
-                source,
-                CancellationToken.None).AsTask().WaitAsync(cancel).ConfigureAwait(false);
+            await _networkConnectionWriter.WriteAsync(source, cancel).ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
         {
