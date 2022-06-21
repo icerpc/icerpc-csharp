@@ -13,12 +13,6 @@ public class SlicClientTransport : IClientTransport<IMultiplexedNetworkConnectio
     /// <inheritdoc/>
     public string Name => _simpleClientTransport.Name;
 
-    private static readonly Func<ISlicFrameReader, ISlicFrameReader> _defaultSlicFrameReaderDecorator =
-        reader => reader;
-
-    private static readonly Func<ISlicFrameWriter, ISlicFrameWriter> _defaultSlicFrameWriterDecorator =
-        writer => writer;
-
     private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
     private readonly SlicTransportOptions _slicTransportOptions;
 
@@ -49,34 +43,15 @@ public class SlicClientTransport : IClientTransport<IMultiplexedNetworkConnectio
         SslClientAuthenticationOptions? authenticationOptions,
         ILogger logger)
     {
-        // This is the composition root of the Slic client transport, where we install log decorators when logging
-        // is enabled.
-
         IMultiplexedStreamErrorCodeConverter errorCodeConverter =
             remoteEndpoint.Protocol.MultiplexedStreamErrorCodeConverter ??
             throw new NotSupportedException(
                 $"cannot create Slic client network connection for protocol {remoteEndpoint.Protocol}");
 
-        ISimpleNetworkConnection simpleNetworkConnection =
-            _simpleClientTransport.CreateConnection(remoteEndpoint, authenticationOptions, logger);
-
-        Func<ISlicFrameReader, ISlicFrameReader> slicFrameReaderDecorator = _defaultSlicFrameReaderDecorator;
-        Func<ISlicFrameWriter, ISlicFrameWriter> slicFrameWriterDecorator = _defaultSlicFrameWriterDecorator;
-
-        if (logger.IsEnabled(LogLevel.Error))
-        {
-            // Do not decorate the simple network connection to avoid duplicate traces from the
-            // LogNetworkConnectionDecorator
-            slicFrameReaderDecorator = reader => new LogSlicFrameReaderDecorator(reader, logger);
-            slicFrameWriterDecorator = writer => new LogSlicFrameWriterDecorator(writer, logger);
-        }
-
         return new SlicNetworkConnection(
-            simpleNetworkConnection,
+            _simpleClientTransport.CreateConnection(remoteEndpoint, authenticationOptions, logger),
             isServer: false,
             errorCodeConverter,
-            slicFrameReaderDecorator,
-            slicFrameWriterDecorator,
             _slicTransportOptions);
     }
 }

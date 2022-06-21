@@ -22,6 +22,7 @@ internal interface IProtocolConnection
     /// this protocol connection.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The network connection information.</returns>
+    /// <remarks>This method should be called only once.</remarks>
     Task<NetworkConnectionInformation> ConnectAsync(
         bool isServer,
         IConnection connection,
@@ -50,5 +51,7 @@ internal interface IProtocolConnection
     /// <param name="message">The reason of the connection shutdown.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    /// <remarks>This method should be called only once and always after a successful <see
+    /// cref="ConnectAsync"/>.</remarks>
     Task ShutdownAsync(string message, CancellationToken cancel = default);
 }

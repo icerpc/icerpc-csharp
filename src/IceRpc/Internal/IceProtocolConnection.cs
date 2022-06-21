@@ -58,7 +58,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private readonly IcePayloadPipeWriter _payloadWriter;
     private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly CancellationTokenSource _readCancelSource = new();
-    private TaskCompletionSource _readFramesTaskCompletionSource = new();
+    private TaskCompletionSource? _readFramesTaskCompletionSource;
     private volatile Task? _shutdownTask;
     private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
@@ -122,80 +122,97 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         IConnection connection,
         CancellationToken cancel)
     {
+        Debug.Assert(_readFramesTaskCompletionSource == null); // ConnectAsync should be called only once.
+
+        lock (_mutex)
+        {
+            if (_isAborted)
+            {
+                throw new ConnectionAbortedException();
+            }
+
+            // Resource cleanup needs to know when no more reads are pending to release the simple network connection
+            // reader.
+            _readFramesTaskCompletionSource = new();
+        }
+
         // Connect the network connection
-        NetworkConnectionInformation networkConnectionInformation =
-            await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+        NetworkConnectionInformation information;
 
-        // Wait for the network connection establishment to set the idle timeout. The network connection
-        // ConnectAsync implementation would need otherwise to deal with thread safety if Dispose is called
-        // concurrently.
-        _networkConnectionReader.SetIdleTimeout(_idleTimeout);
-
-        if (isServer)
+        try
         {
-            EncodeValidateConnectionFrame(_networkConnectionWriter);
+            information = await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
 
-            // The flush can't be canceled because it would lead to the writing of an incomplete frame.
-            await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-        }
-        else
-        {
-            ReadOnlySequence<byte> buffer = await _networkConnectionReader.ReadAtLeastAsync(
-                IceDefinitions.PrologueSize,
-                cancel).ConfigureAwait(false);
+            // Wait for the network connection establishment to set the idle timeout. The network connection
+            // ConnectAsync implementation would need otherwise to deal with thread safety if Dispose is called
+            // concurrently.
+            _networkConnectionReader.SetIdleTimeout(_idleTimeout);
 
-            (IcePrologue validateConnectionFrame, long consumed) = DecodeValidateConnectionFrame(buffer);
-            _networkConnectionReader.AdvanceTo(buffer.GetPosition(consumed), buffer.End);
-
-            IceDefinitions.CheckPrologue(validateConnectionFrame);
-            if (validateConnectionFrame.FrameSize != IceDefinitions.PrologueSize)
+            if (isServer)
             {
-                throw new InvalidDataException(
-                    $"received Ice frame with only '{validateConnectionFrame.FrameSize}' bytes");
+                EncodeValidateConnectionFrame(_networkConnectionWriter);
+                await _networkConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
             }
-            if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
+            else
             {
-                throw new InvalidDataException(
-                    @$"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'");
-            }
-        }
+                ReadOnlySequence<byte> buffer = await _networkConnectionReader.ReadAtLeastAsync(
+                    IceDefinitions.PrologueSize,
+                    cancel).ConfigureAwait(false);
 
-        if (_idleTimeout != Timeout.InfiniteTimeSpan)
-        {
-            _idleTimeoutTimer = new Timer(
-                _ =>
+                (IcePrologue validateConnectionFrame, long consumed) = DecodeValidateConnectionFrame(buffer);
+                _networkConnectionReader.AdvanceTo(buffer.GetPosition(consumed), buffer.End);
+
+                IceDefinitions.CheckPrologue(validateConnectionFrame);
+                if (validateConnectionFrame.FrameSize != IceDefinitions.PrologueSize)
                 {
-                    lock (_mutex)
-                    {
-                        if (_invocations.Count > 0 || _dispatches.Count > 0)
-                        {
-                            return; // The connection is no longer idle.
-                        }
+                    throw new InvalidDataException(
+                        $"received Ice frame with only '{validateConnectionFrame.FrameSize}' bytes");
+                }
+                if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
+                {
+                    throw new InvalidDataException(
+                        @$"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{
+                            validateConnectionFrame.FrameType}'");
+                }
+            }
 
-                        // Initiate the shutdown.
-                        _shutdownTask ??= ShutdownAsyncCore("idle connection", CancellationToken.None);
-                    }
-                },
-                null,
-                _idleTimeout,
-                Timeout.InfiniteTimeSpan);
+            if (_idleTimeout != Timeout.InfiniteTimeSpan)
+            {
+                _idleTimeoutTimer = new Timer(
+                    _ =>
+                    {
+                        lock (_mutex)
+                        {
+                            if (_invocations.Count > 0 || _dispatches.Count > 0)
+                            {
+                                return; // The connection is no longer idle.
+                            }
+
+                            // Initiate the shutdown.
+                            _shutdownTask ??= ShutdownAsyncCore("idle connection", CancellationToken.None);
+                        }
+                    },
+                    null,
+                    _idleTimeout,
+                    Timeout.InfiniteTimeSpan);
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+            _readFramesTaskCompletionSource.SetResult();
+
+            // The simple network connection can only be disposed if this connection is aborted.
+            throw new ConnectionAbortedException();
+        }
+        catch
+        {
+            _readFramesTaskCompletionSource.SetResult();
+            throw;
         }
 
         _ = Task.Run(
             async () =>
             {
-                lock (_mutex)
-                {
-                    if (_isAborted)
-                    {
-                        return;
-                    }
-
-                    // This needs to be set only if the connection isn't aborted. Abort uses this task completion
-                    // source to wait for reads to complete and it should only wait if reads actually started.
-                    _readFramesTaskCompletionSource = new();
-                }
-
                 Exception? exception = null;
                 try
                 {
@@ -225,7 +242,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             },
             cancel);
 
-        return networkConnectionInformation;
+        return information;
 
         static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
         {
