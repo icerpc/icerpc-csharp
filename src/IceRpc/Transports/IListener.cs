@@ -3,7 +3,7 @@
 namespace IceRpc.Transports;
 
 /// <summary>The base interface for <see cref="IListener{T}"/>.</summary>
-public interface IListener : IAsyncDisposable
+public interface IListener : IDisposable
 {
     /// <summary>Gets the endpoint this listener is listening on. This endpoint can be different from the endpoint used
     /// to create the listener if for example the binding of the server socket assigned a port.</summary>

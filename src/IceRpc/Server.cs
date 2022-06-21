@@ -303,10 +303,7 @@ public sealed class Server : IAsyncDisposable
             try
             {
                 // Stop accepting new connections by disposing of the listener.
-                if (_listener is IListener listener)
-                {
-                    await listener.DisposeAsync().ConfigureAwait(false);
-                }
+                _listener?.Dispose();
 
                 // Shuts down the connections to stop accepting new incoming requests. This ensures that once
                 // ShutdownAsync returns, no new requests will be dispatched. ShutdownAsync on each connection waits

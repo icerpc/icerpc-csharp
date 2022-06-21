@@ -37,11 +37,7 @@ internal sealed class TcpListener : IListener<ISimpleNetworkConnection>
 #pragma warning restore CA2000
     }
 
-    public ValueTask DisposeAsync()
-    {
-        _socket.Dispose();
-        return default;
-    }
+    public void Dispose() => _socket.Dispose();
 
     internal TcpListener(
         Endpoint endpoint,
