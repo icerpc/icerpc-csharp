@@ -282,10 +282,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
                 try
                 {
                     // Read frames. This will return when the Close frame is received.
-                    ulong errorCode = await ReadFramesAsync(_readCancelSource.Token).ConfigureAwait(false);
-
-                    // Send back a Close frame to the peer with the same error code.
-                    await ShutdownAsync(errorCode, _readCancelSource.Token).ConfigureAwait(false);
+                    await ReadFramesAsync(_readCancelSource.Token).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -634,6 +631,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         }
     }
 
+<<<<<<< HEAD
     private async ValueTask<T> ReadFrameAsync<T>(
         int size,
         DecodeFunc<T> decodeFunc,
@@ -739,6 +737,9 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
     }
 
     private async Task<ulong> ReadFramesAsync(CancellationToken cancel)
+=======
+    private async Task ReadFramesAsync(CancellationToken cancel)
+>>>>>>> origin/main
     {
         while (true)
         {
@@ -762,7 +763,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
                         cancel).ConfigureAwait(false);
 
                     // Graceful connection shutdown, we're done.
-                    return closeBody.ApplicationProtocolErrorCode;
+                    return;
                 }
                 case FrameType.Ping:
                 {
