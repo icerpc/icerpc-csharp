@@ -46,9 +46,9 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
 
     private readonly object _mutex = new();
 
-    private Action<IConnection, Exception>? _onClose;
+    private Action<Exception>? _onClose;
 
-    private Action<IConnection, Exception>? _onDisconnect;
+    private Action<Exception>? _onDisconnect;
 
     private readonly ClientConnectionOptions _options;
 
@@ -146,7 +146,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
     }
 
     /// <inheritdoc/>
-    public void OnClose(Action<IConnection, Exception> callback)
+    public void OnClose(Action<Exception> callback)
     {
         bool executeCallback = false;
 
@@ -164,7 +164,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
 
         if (executeCallback)
         {
-            callback(this, new ConnectionClosedException());
+            callback(new ConnectionClosedException());
         }
     }
 
@@ -172,21 +172,18 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
     /// connection is already disconnected, this callback is executed synchronously with this connection and an instance
     /// of <see cref="ConnectionClosedException"/>.</summary>
     /// <param name="callback">The callback to execute. It must not block or throw any exception.</param>
-    public void OnDisconnect(Action<IConnection, Exception> callback)
+    public void OnDisconnect(Action<Exception> callback)
     {
         ClientConnection clientConnection;
 
         lock (_mutex)
         {
             clientConnection = _clientConnection;
-            _onDisconnect += CallbackWithThis; // for connections created later on
+            _onDisconnect += callback; // for connections created later on
         }
 
         // can execute synchronously
-        clientConnection.OnClose(CallbackWithThis);
-
-        // Wrap callback to always get "this" as the connection parameter.
-        void CallbackWithThis(IConnection connection, Exception exception) => callback(this, exception);
+        clientConnection.OnClose(callback);
     }
 
     /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
@@ -215,11 +212,11 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         // only called from the constructor or with _mutex locked
         clientConnection.OnClose(_onDisconnect + OnClose);
 
-        void OnClose(IConnection connection, Exception exception)
+        void OnClose(Exception exception)
         {
             if (IsResumable)
             {
-                RefreshClientConnection((ClientConnection)clientConnection);
+                RefreshClientConnection(clientConnection);
             }
         }
 
@@ -228,7 +225,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
 
     private void InvokeOnClose(Exception? exception = null)
     {
-        Action<IConnection, Exception>? onClose = null;
+        Action<Exception>? onClose = null;
 
         lock (_mutex)
         {
@@ -240,7 +237,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
             // else keep onClose null
         }
 
-        onClose?.Invoke(this, exception ?? new ConnectionClosedException());
+        onClose?.Invoke(exception ?? new ConnectionClosedException());
     }
 
     private void RefreshClientConnection(ClientConnection clientConnection)

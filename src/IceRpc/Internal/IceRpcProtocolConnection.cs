@@ -26,12 +26,10 @@ namespace IceRpc.Internal
 
         // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
         private int _headerSizeLength = 2;
-        private int _invocationCount;
-        private bool _isAborted;
         private readonly TimeSpan _idleTimeout;
         private Timer? _idleTimeoutTimer;
-        private bool _isShuttingDown;
-        private bool _isShuttingDownOnIdle;
+        private bool _isAborted;
+        private bool _isOnCloseCalled;
         private long _lastRemoteBidirectionalStreamId = -1;
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
         private long _lastRemoteUnidirectionalStreamId = -1;
@@ -39,12 +37,14 @@ namespace IceRpc.Internal
         private int _maxRemoteHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
         private readonly object _mutex = new();
         private readonly IMultiplexedNetworkConnection _networkConnection;
+        private Action<Exception>? _onClose;
         private IMultiplexedStream? _remoteControlStream;
+        private Task? _shutdownTask;
         private readonly HashSet<IMultiplexedStream> _streams = new();
         private readonly TaskCompletionSource _streamsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        private TaskCompletionSource<IceRpcGoAway>? _waitForGoAwayFrame;
+        private readonly TaskCompletionSource<IceRpcGoAway> _waitForGoAwayFrame = new();
 
         public void Abort(Exception exception)
         {
@@ -57,7 +57,10 @@ namespace IceRpc.Internal
                 _isAborted = true;
             }
 
+            InvokeOnClose(exception);
+
             _networkConnection.Abort(exception);
+
             _idleTimeoutTimer?.Dispose();
 
             _ = AbortCoreAsync();
@@ -79,15 +82,471 @@ namespace IceRpc.Internal
                 {
                     await _remoteControlStream.Input.CompleteAsync(exception).ConfigureAwait(false);
                 }
-
-                if (_waitForGoAwayFrame != null)
-                {
-                    await _waitForGoAwayFrame.Task.ConfigureAwait(false);
-                }
             }
         }
 
-        public async Task AcceptRequestsAsync(IConnection connection)
+        public async Task<NetworkConnectionInformation> ConnectAsync(
+            bool isServer,
+            IConnection connection,
+            CancellationToken cancel)
+        {
+            // Connect the network connection
+            NetworkConnectionInformation networkConnectionInformation =
+                await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+
+            _controlStream = _networkConnection.CreateStream(false);
+
+            var settings = new IceRpcSettings(
+                _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
+                    ImmutableDictionary<IceRpcSettingKey, ulong>.Empty :
+                    new Dictionary<IceRpcSettingKey, ulong>
+                    {
+                        [IceRpcSettingKey.MaxHeaderSize] = (ulong)_maxLocalHeaderSize
+                    });
+
+            await SendControlFrameAsync(
+                IceRpcControlFrameType.Settings,
+                (ref SliceEncoder encoder) => settings.Encode(ref encoder),
+                cancel).ConfigureAwait(false);
+
+            // Wait for the remote control stream to be accepted and read the protocol Settings frame
+            _remoteControlStream = await _networkConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
+
+            await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.Settings, cancel).ConfigureAwait(false);
+            await ReceiveSettingsFrameBody(cancel).ConfigureAwait(false);
+
+            if (_idleTimeout != Timeout.InfiniteTimeSpan)
+            {
+                _idleTimeoutTimer = new Timer(
+                    _ =>
+                    {
+                        lock (_mutex)
+                        {
+                            if (_streams.Count > 0)
+                            {
+                                return; // The connection is no longer idle.
+                            }
+
+                            _shutdownTask ??= ShutdownAsyncCore("idle connection", CancellationToken.None);
+                        }
+                    },
+                    null,
+                    _idleTimeout,
+                    Timeout.InfiniteTimeSpan);
+            }
+
+            // Start a task to wait to receive the go away frame to initiate shutdown.
+            _ = Task.Run(WaitForGoAwayAsync, cancel);
+
+            // Start a task to start accepting requests.
+            _ = Task.Run(
+                async () =>
+                {
+                    Exception? exception = null;
+                    try
+                    {
+                        await AcceptRequestsAsync(connection).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        exception = ex;
+                    }
+                    finally
+                    {
+                        // Protocol connection resource cleanup. This is for now performed by Abort (which should have
+                        // been named CloseAsync like ConnectionCore.CloseAsync).
+                        // TODO: Refactor depending on what we decide for the protocol connection resource cleanup
+                        // (#1397,#1372, #1404, #1400).
+                        Abort(exception ?? new ConnectionClosedException());
+                    }
+                },
+                cancel);
+
+            return networkConnectionInformation;
+        }
+
+        public async Task<IncomingResponse> InvokeAsync(
+            OutgoingRequest request,
+            IConnection connection,
+            CancellationToken cancel)
+        {
+            IMultiplexedStream? stream = null;
+            try
+            {
+                if (request.Proxy.Fragment.Length > 0)
+                {
+                    throw new NotSupportedException("the icerpc protocol does not support fragments");
+                }
+
+                // Create the stream.
+                stream = _networkConnection.CreateStream(bidirectional: !request.IsOneway);
+
+                // Keep track of the invocation for the shutdown logic.
+                if (!request.IsOneway || request.PayloadStream != null)
+                {
+                    lock (_mutex)
+                    {
+                        if (_shutdownTask != null || _isAborted)
+                        {
+                            // Don't process the invocation if the connection is in the process of shutting down or it's
+                            // already closed.
+                            throw new ConnectionClosedException();
+                        }
+                        else
+                        {
+                            if (_streams.Count == 0)
+                            {
+                                // Disable the idle check.
+                                _idleTimeoutTimer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                            }
+
+                            _streams.Add(stream);
+
+                            stream.OnShutdown(() =>
+                            {
+                                lock (_mutex)
+                                {
+                                    _streams.Remove(stream);
+
+                                    if (_streams.Count == 0)
+                                    {
+                                        if (_shutdownTask != null)
+                                        {
+                                            // If shutting down, we can set the _streamsCompleted task completion source
+                                            // as completed to allow shutdown to progress.
+                                            _streamsCompleted.TrySetResult();
+                                        }
+                                        else if (!_isAborted)
+                                        {
+                                            // Enable the idle check.
+                                            _idleTimeoutTimer?.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
+
+                EncodeHeader(stream.Output);
+
+                // SendPayloadAsync takes care of the completion of the stream output.
+                await SendPayloadAsync(request, stream, cancel).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                if (stream != null)
+                {
+                    await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
+                    if (stream.IsBidirectional)
+                    {
+                        await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
+                    }
+                }
+
+                // TODO: Should we wrap unexpected exceptions with ConnectionLostException?
+                throw;
+            }
+
+            if (request.IsOneway)
+            {
+                return new IncomingResponse(request, connection);
+            }
+
+            Debug.Assert(stream != null);
+            try
+            {
+                ReadResult readResult = await stream.Input.ReadSegmentAsync(
+                    SliceEncoding.Slice2,
+                    _maxLocalHeaderSize,
+                    cancel).ConfigureAwait(false);
+
+                // Nothing cancels the stream input pipe reader.
+                Debug.Assert(!readResult.IsCanceled);
+
+                if (readResult.Buffer.IsEmpty)
+                {
+                    throw new InvalidDataException($"received icerpc response with empty header");
+                }
+
+                (IceRpcResponseHeader header, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields, PipeReader? fieldsPipeReader) =
+                    DecodeHeader(readResult.Buffer);
+                stream.Input.AdvanceTo(readResult.Buffer.End);
+
+                return new IncomingResponse(request, connection, fields, fieldsPipeReader)
+                {
+                    Payload = stream.Input,
+                    ResultType = header.ResultType
+                };
+            }
+            catch (Exception exception)
+            {
+                await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
+                // TODO: Should we wrap unexpected exceptions with ConnectionLostException?
+                throw;
+            }
+
+            void EncodeHeader(PipeWriter writer)
+            {
+                var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
+
+                // Write the IceRpc request header.
+                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(_headerSizeLength);
+                int headerStartPos = encoder.EncodedByteCount; // does not include the size
+
+                var header = new IceRpcRequestHeader(request.Proxy.Path, request.Operation);
+
+                header.Encode(ref encoder);
+
+                encoder.EncodeDictionary(
+                    request.Fields,
+                    (ref SliceEncoder encoder, RequestFieldKey key) => encoder.EncodeRequestFieldKey(key),
+                    (ref SliceEncoder encoder, OutgoingFieldValue value) =>
+                        value.Encode(ref encoder, _headerSizeLength));
+
+                // We're done with the header encoding, write the header size.
+                int headerSize = encoder.EncodedByteCount - headerStartPos;
+                CheckRemoteHeaderSize(headerSize);
+                SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
+            }
+
+            static (IceRpcResponseHeader, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>>, PipeReader?) DecodeHeader(
+                ReadOnlySequence<byte> buffer)
+            {
+                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+                var header = new IceRpcResponseHeader(ref decoder);
+
+                (IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields, PipeReader? pipeReader) =
+                    DecodeFieldDictionary(ref decoder, (ref SliceDecoder decoder) => decoder.DecodeResponseFieldKey());
+
+                return (header, fields, pipeReader);
+            }
+        }
+
+        public void OnClose(Action<Exception> callback)
+        {
+            bool executeCallback = false;
+
+            lock (_mutex)
+            {
+                if (_isOnCloseCalled)
+                {
+                    executeCallback = true;
+                }
+                else
+                {
+                    _onClose += callback;
+                }
+            }
+
+            if (executeCallback)
+            {
+                callback(new ConnectionClosedException());
+            }
+        }
+
+        public Task ShutdownAsync(string message, CancellationToken cancel)
+        {
+            // TODO: CANCELLATION TOKEN
+            lock (_mutex)
+            {
+                return _shutdownTask ??= ShutdownAsyncCore(message, cancel);
+            }
+        }
+
+        internal IceRpcProtocolConnection(IMultiplexedNetworkConnection networkConnection, ConnectionOptions options)
+        {
+            _networkConnection = networkConnection;
+            _dispatcher = options.Dispatcher;
+            _idleTimeout = options.IdleTimeout;
+            _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
+        }
+
+        private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeFieldDictionary<TKey>(
+            ref SliceDecoder decoder,
+            DecodeFunc<TKey> decodeKeyFunc) where TKey : struct
+        {
+            int count = decoder.DecodeSize();
+
+            IDictionary<TKey, ReadOnlySequence<byte>> fields;
+            PipeReader? pipeReader;
+            if (count == 0)
+            {
+                fields = ImmutableDictionary<TKey, ReadOnlySequence<byte>>.Empty;
+                pipeReader = null;
+                decoder.CheckEndOfBuffer(skipTaggedParams: false);
+            }
+            else
+            {
+                // TODO: since this pipe is purely internal to the icerpc protocol implementation, it should be easy
+                // to pool.
+                var pipe = new Pipe();
+
+                decoder.CopyTo(pipe.Writer);
+                pipe.Writer.Complete();
+
+                try
+                {
+                    _ = pipe.Reader.TryRead(out ReadResult readResult);
+                    var fieldsDecoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
+
+                    fields = fieldsDecoder.DecodeShallowFieldDictionary(count, decodeKeyFunc);
+                    fieldsDecoder.CheckEndOfBuffer(skipTaggedParams: false);
+
+                    pipe.Reader.AdvanceTo(readResult.Buffer.Start); // complete read without consuming anything
+
+                    pipeReader = pipe.Reader;
+                }
+                catch
+                {
+                    pipe.Reader.Complete();
+                    throw;
+                }
+            }
+
+            // The caller is responsible for completing the pipe reader.
+            return (fields, pipeReader);
+        }
+
+        /// <summary>Sends the payload and payload stream of an outgoing frame. SendPayloadAsync completes the payload
+        /// if successful. It completes the output only if there's no payload stream. Otherwise, it starts a streaming
+        /// task that is responsible for completing the payload stream and the output.</summary>
+        private static async ValueTask SendPayloadAsync(
+            OutgoingFrame outgoingFrame,
+            IMultiplexedStream stream,
+            CancellationToken cancel)
+        {
+            PipeWriter payloadWriter = outgoingFrame.GetPayloadWriter(stream.Output);
+            PipeReader? payloadStream = outgoingFrame.PayloadStream;
+
+            try
+            {
+                FlushResult flushResult = await CopyReaderToWriterAsync(
+                    outgoingFrame.Payload,
+                    payloadWriter,
+                    endStream: payloadStream == null,
+                    cancel).ConfigureAwait(false);
+
+                if (flushResult.IsCompleted)
+                {
+                    // The remote reader gracefully completed the stream input pipe. We're done.
+                    await payloadWriter.CompleteAsync().ConfigureAwait(false);
+
+                    // We complete the payload and payload stream immediately. For example, we've just sent an outgoing
+                    // request and we're waiting for the exception to come back.
+                    await outgoingFrame.Payload.CompleteAsync().ConfigureAwait(false);
+                    if (payloadStream != null)
+                    {
+                        await payloadStream.CompleteAsync().ConfigureAwait(false);
+                    }
+                    return;
+                }
+                else if (flushResult.IsCanceled)
+                {
+                    throw new InvalidOperationException(
+                        "a payload writer is not allowed to return a canceled flush result");
+                }
+            }
+            catch (Exception exception)
+            {
+                await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
+
+                // An exception will trigger the immediate completion of the request and indirectly of the
+                // outgoingFrame payloads.
+                throw;
+            }
+
+            await outgoingFrame.Payload.CompleteAsync().ConfigureAwait(false);
+
+            if (payloadStream == null)
+            {
+                await payloadWriter.CompleteAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                // Send payloadStream in the background.
+                outgoingFrame.PayloadStream = null; // we're now responsible for payloadStream
+
+                _ = Task.Run(
+                    async () =>
+                    {
+                        try
+                        {
+                            FlushResult flushResult = await CopyReaderToWriterAsync(
+                                payloadStream,
+                                payloadWriter,
+                                endStream: true,
+                                CancellationToken.None).ConfigureAwait(false);
+
+                            if (flushResult.IsCanceled)
+                            {
+                                throw new InvalidOperationException(
+                                    "a payload writer interceptor is not allowed to return a canceled flush result");
+                            }
+
+                            await payloadStream.CompleteAsync().ConfigureAwait(false);
+                            await payloadWriter.CompleteAsync().ConfigureAwait(false);
+                        }
+                        catch (Exception exception)
+                        {
+                            await payloadStream.CompleteAsync(exception).ConfigureAwait(false);
+                            await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
+                        }
+                    },
+                    cancel);
+            }
+
+            async Task<FlushResult> CopyReaderToWriterAsync(
+                PipeReader reader,
+                PipeWriter writer,
+                bool endStream,
+                CancellationToken cancel)
+            {
+                // If the peer completes its input pipe reader, we cancel the pending read on the payload.
+                stream.OnPeerInputCompleted(reader.CancelPendingRead);
+
+                FlushResult flushResult;
+                do
+                {
+                    ReadResult readResult = await reader.ReadAsync(cancel).ConfigureAwait(false);
+
+                    if (readResult.IsCanceled)
+                    {
+                        // If the peer input pipe reader was completed, this will throw with the reason of the pipe
+                        // reader completion.
+                        flushResult = await writer.FlushAsync(cancel).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        try
+                        {
+                            flushResult = await writer.WriteAsync(
+                                readResult.Buffer,
+                                readResult.IsCompleted && endStream,
+                                cancel).ConfigureAwait(false);
+                        }
+                        finally
+                        {
+                            reader.AdvanceTo(readResult.Buffer.End);
+                        }
+                    }
+
+                    if (readResult.IsCompleted)
+                    {
+                        // We're done if there's no more data to send for the payload.
+                        break;
+                    }
+                    else if (readResult.IsCanceled)
+                    {
+                        throw new OperationCanceledException("payload pipe reader was canceled");
+                    }
+                }
+                while (!flushResult.IsCanceled && !flushResult.IsCompleted);
+                return flushResult;
+            }
+        }
+
+        private async Task AcceptRequestsAsync(IConnection connection)
         {
             while (true)
             {
@@ -121,15 +580,7 @@ namespace IceRpc.Internal
 
                     lock (_mutex)
                     {
-                        if (_isShuttingDown)
-                        {
-                            throw new ConnectionClosedException("connection shutdown");
-                        }
-                        else if (_isShuttingDownOnIdle)
-                        {
-                            throw new ConnectionClosedException("connection shutdown due to idle timeout");
-                        }
-                        else if (_isAborted)
+                        if (_shutdownTask != null || _isAborted)
                         {
                             throw new ConnectionClosedException();
                         }
@@ -163,11 +614,11 @@ namespace IceRpc.Internal
 
                                     if (_streams.Count == 0)
                                     {
-                                        if (_isShuttingDown)
+                                        if (_shutdownTask != null)
                                         {
                                             // If shutting down, we can set the _streamsCompleted task completion source
                                             // as completed to allow shutdown to progress.
-                                            _streamsCompleted.SetResult();
+                                            _streamsCompleted.TrySetResult();
                                         }
                                         else if (!_isAborted)
                                         {
@@ -413,537 +864,19 @@ namespace IceRpc.Internal
             }
         }
 
-        public async Task<NetworkConnectionInformation> ConnectAsync(
-            bool isServer,
-            Action onIdle,
-            Action<string> onShutdown,
-            CancellationToken cancel)
+        private void InvokeOnClose(Exception exception)
         {
-            // Connect the network connection
-            NetworkConnectionInformation networkConnectionInformation =
-                await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+            Action<Exception>? onClose;
 
-            _controlStream = _networkConnection.CreateStream(false);
-
-            var settings = new IceRpcSettings(
-                _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
-                    ImmutableDictionary<IceRpcSettingKey, ulong>.Empty :
-                    new Dictionary<IceRpcSettingKey, ulong>
-                    {
-                        [IceRpcSettingKey.MaxHeaderSize] = (ulong)_maxLocalHeaderSize
-                    });
-
-            await SendControlFrameAsync(
-                IceRpcControlFrameType.Settings,
-                (ref SliceEncoder encoder) => settings.Encode(ref encoder),
-                cancel).ConfigureAwait(false);
-
-            // Wait for the remote control stream to be accepted and read the protocol Settings frame
-            _remoteControlStream = await _networkConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
-
-            await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.Settings, cancel).ConfigureAwait(false);
-            await ReceiveSettingsFrameBody(cancel).ConfigureAwait(false);
-
-            _waitForGoAwayFrame = new TaskCompletionSource<IceRpcGoAway>(
-                TaskCreationOptions.RunContinuationsAsynchronously);
-
-            // Start a task to wait to receive the go away frame to initiate shutdown.
-            var waitForGoAwayTask = Task.Run(() => WaitForGoAwayAsync(onShutdown), CancellationToken.None);
-
-            if (_idleTimeout != Timeout.InfiniteTimeSpan)
-            {
-                _idleTimeoutTimer = new Timer(
-                    _ =>
-                    {
-                        lock (_mutex)
-                        {
-                            if (_streams.Count > 0)
-                            {
-                                return; // The connection is no longer idle.
-                            }
-
-                            // Prevent new invocations or dispatches to be processed at this point.
-                            _isShuttingDownOnIdle = true;
-                        }
-
-                        onIdle.Invoke();
-                    },
-                    null,
-                    _idleTimeout,
-                    Timeout.InfiniteTimeSpan);
-            }
-
-            return networkConnectionInformation;
-        }
-
-        public async Task<IncomingResponse> InvokeAsync(
-            OutgoingRequest request,
-            IConnection connection,
-            CancellationToken cancel)
-        {
-            IMultiplexedStream? stream = null;
-            try
-            {
-                if (request.Proxy.Fragment.Length > 0)
-                {
-                    throw new NotSupportedException("the icerpc protocol does not support fragments");
-                }
-
-                // Create the stream.
-                stream = _networkConnection.CreateStream(bidirectional: !request.IsOneway);
-
-                // Keep track of the invocation for the shutdown logic.
-                if (!request.IsOneway || request.PayloadStream != null)
-                {
-                    lock (_mutex)
-                    {
-                        if (_isShuttingDown || _isShuttingDownOnIdle || _isAborted)
-                        {
-                            // Don't process the invocation if the connection is in the process of shutting down or it's
-                            // already closed.
-                            throw new ConnectionClosedException();
-                        }
-                        else
-                        {
-                            if (_streams.Count == 0)
-                            {
-                                // Disable the idle check.
-                                _idleTimeoutTimer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-                            }
-
-                            _streams.Add(stream);
-                            ++_invocationCount;
-
-                            stream.OnShutdown(() =>
-                            {
-                                lock (_mutex)
-                                {
-                                    --_invocationCount;
-
-                                    _streams.Remove(stream);
-
-                                    if (_streams.Count == 0)
-                                    {
-                                        if (_isShuttingDown)
-                                        {
-                                            // If shutting down, we can set the _streamsCompleted task completion source
-                                            // as completed to allow shutdown to progress.
-                                            _streamsCompleted.SetResult();
-                                        }
-                                        else if (!_isAborted)
-                                        {
-                                            // Enable the idle check.
-                                            _idleTimeoutTimer?.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
-                                        }
-                                    }
-                                }
-                            });
-                        }
-                    }
-                }
-
-                EncodeHeader(stream.Output);
-
-                // SendPayloadAsync takes care of the completion of the stream output.
-                await SendPayloadAsync(request, stream, cancel).ConfigureAwait(false);
-            }
-            catch (Exception exception)
-            {
-                if (stream != null)
-                {
-                    await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
-                    if (stream.IsBidirectional)
-                    {
-                        await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
-                    }
-                }
-
-                // TODO: Should we wrap unexpected exceptions with ConnectionLostException?
-                throw;
-            }
-
-            if (request.IsOneway)
-            {
-                return new IncomingResponse(request, connection);
-            }
-
-            Debug.Assert(stream != null);
-            try
-            {
-                ReadResult readResult = await stream.Input.ReadSegmentAsync(
-                    SliceEncoding.Slice2,
-                    _maxLocalHeaderSize,
-                    cancel).ConfigureAwait(false);
-
-                // Nothing cancels the stream input pipe reader.
-                Debug.Assert(!readResult.IsCanceled);
-
-                if (readResult.Buffer.IsEmpty)
-                {
-                    throw new InvalidDataException($"received icerpc response with empty header");
-                }
-
-                (IceRpcResponseHeader header, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields, PipeReader? fieldsPipeReader) =
-                    DecodeHeader(readResult.Buffer);
-                stream.Input.AdvanceTo(readResult.Buffer.End);
-
-                return new IncomingResponse(request, connection, fields, fieldsPipeReader)
-                {
-                    Payload = stream.Input,
-                    ResultType = header.ResultType
-                };
-            }
-            catch (Exception exception)
-            {
-                await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
-                // TODO: Should we wrap unexpected exceptions with ConnectionLostException?
-                throw;
-            }
-
-            void EncodeHeader(PipeWriter writer)
-            {
-                var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
-
-                // Write the IceRpc request header.
-                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(_headerSizeLength);
-                int headerStartPos = encoder.EncodedByteCount; // does not include the size
-
-                var header = new IceRpcRequestHeader(request.Proxy.Path, request.Operation);
-
-                header.Encode(ref encoder);
-
-                encoder.EncodeDictionary(
-                    request.Fields,
-                    (ref SliceEncoder encoder, RequestFieldKey key) => encoder.EncodeRequestFieldKey(key),
-                    (ref SliceEncoder encoder, OutgoingFieldValue value) =>
-                        value.Encode(ref encoder, _headerSizeLength));
-
-                // We're done with the header encoding, write the header size.
-                int headerSize = encoder.EncodedByteCount - headerStartPos;
-                CheckRemoteHeaderSize(headerSize);
-                SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
-            }
-
-            static (IceRpcResponseHeader, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>>, PipeReader?) DecodeHeader(
-                ReadOnlySequence<byte> buffer)
-            {
-                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
-                var header = new IceRpcResponseHeader(ref decoder);
-
-                (IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields, PipeReader? pipeReader) =
-                    DecodeFieldDictionary(ref decoder, (ref SliceDecoder decoder) => decoder.DecodeResponseFieldKey());
-
-                return (header, fields, pipeReader);
-            }
-        }
-
-        public async Task ShutdownAsync(string message, CancellationToken cancel)
-        {
-            if (_waitForGoAwayFrame == null)
-            {
-                throw new InvalidOperationException($"{nameof(ConnectAsync)} must be called first");
-            }
-
-            IceRpcGoAway? goAwayFrame = null;
             lock (_mutex)
             {
-                // Mark the connection as shutting down to prevent further requests from being accepted.
-                Debug.Assert(!_isShuttingDown);
-                _isShuttingDown = true;
-                if (_streams.Count == 0)
-                {
-                    _streamsCompleted.SetResult();
-                }
-                goAwayFrame = new(_lastRemoteBidirectionalStreamId, _lastRemoteUnidirectionalStreamId, message);
+                _isOnCloseCalled = true;
+                onClose = _onClose;
+                _onClose = null; // clear _onClose because we want to execute it only once
             }
 
-            if (goAwayFrame != null)
-            {
-                // Send GoAway frame.
-                await SendControlFrameAsync(
-                    IceRpcControlFrameType.GoAway,
-                    (ref SliceEncoder encoder) => goAwayFrame.Value.Encode(ref encoder),
-                    CancellationToken.None).ConfigureAwait(false);
-            }
-
-            // If the shutdown is initiated locally, we wait for the peer to send back a GoAway frame. The task should
-            // already be completed if the shutdown has been initiated by the peer.
-            IceRpcGoAway peerGoAwayFrame = await _waitForGoAwayFrame.Task.ConfigureAwait(false);
-
-            IEnumerable<IMultiplexedStream> invocations;
-            lock (_mutex)
-            {
-                // Cancel the invocations that were not dispatched by the peer.
-                invocations = _streams.Where(stream =>
-                    !stream.IsRemote &&
-                    (!stream.IsStarted || (stream.Id > (stream.IsBidirectional ?
-                        peerGoAwayFrame.LastBidirectionalStreamId :
-                        peerGoAwayFrame.LastUnidirectionalStreamId)))).ToArray();
-            }
-
-            // Abort streams for invocations that were not dispatched by the peer. The invocations will throw
-            // ConnectionClosedException which is retryable.
-            var connectionClosedException = new ConnectionClosedException();
-            foreach (IMultiplexedStream stream in invocations)
-            {
-                stream.Abort(connectionClosedException);
-            }
-
-            // Wait for streams to complete.
-            try
-            {
-                await _streamsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException exception)
-            {
-                // Cancel pending invocations and dispatches to speed up shutdown.
-
-                IEnumerable<IMultiplexedStream> streams;
-                IEnumerable<CancellationTokenSource> cancelDispatchSources;
-                lock (_mutex)
-                {
-                    Debug.Assert(_isShuttingDown);
-                    streams = _streams.ToArray();
-                    cancelDispatchSources = _cancelDispatchSources.ToArray();
-                }
-
-                // Cancel pending dispatches.
-                foreach (CancellationTokenSource cancelDispatchSource in cancelDispatchSources)
-                {
-                    try
-                    {
-                        cancelDispatchSource.Cancel();
-                    }
-                    catch (ObjectDisposedException)
-                    {
-                        // Ignore, the dispatch completed concurrently.
-                    }
-                }
-
-                // Abort streams for invocations.
-                foreach (IMultiplexedStream stream in streams)
-                {
-                    if (!stream.IsRemote)
-                    {
-                        stream.Abort(exception);
-                    }
-                }
-
-                // Wait again for streams to complete.
-                await _streamsCompleted.Task.ConfigureAwait(false);
-            }
-
-            try
-            {
-                await _controlStreamSemaphore.EnterAsync(CancellationToken.None).ConfigureAwait(false);
-                try
-                {
-                    await _controlStream!.Output.CompleteAsync().ConfigureAwait(false);
-                    _ = await _remoteControlStream!.Input.ReadAsync(CancellationToken.None).ConfigureAwait(false);
-                }
-                finally
-                {
-                    _controlStreamSemaphore.Release();
-                }
-
-                await _networkConnection.ShutdownAsync(applicationErrorCode: 0, CancellationToken.None).ConfigureAwait(false);
-            }
-            catch
-            {
-                // Ignore the connection got aborted concurrently.
-            }
-        }
-
-        internal IceRpcProtocolConnection(IMultiplexedNetworkConnection networkConnection, ConnectionOptions options)
-        {
-            _networkConnection = networkConnection;
-            _dispatcher = options.Dispatcher;
-            _idleTimeout = options.IdleTimeout;
-            _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
-        }
-
-        private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeFieldDictionary<TKey>(
-            ref SliceDecoder decoder,
-            DecodeFunc<TKey> decodeKeyFunc) where TKey : struct
-        {
-            int count = decoder.DecodeSize();
-
-            IDictionary<TKey, ReadOnlySequence<byte>> fields;
-            PipeReader? pipeReader;
-            if (count == 0)
-            {
-                fields = ImmutableDictionary<TKey, ReadOnlySequence<byte>>.Empty;
-                pipeReader = null;
-                decoder.CheckEndOfBuffer(skipTaggedParams: false);
-            }
-            else
-            {
-                // TODO: since this pipe is purely internal to the icerpc protocol implementation, it should be easy
-                // to pool.
-                var pipe = new Pipe();
-
-                decoder.CopyTo(pipe.Writer);
-                pipe.Writer.Complete();
-
-                try
-                {
-                    _ = pipe.Reader.TryRead(out ReadResult readResult);
-                    var fieldsDecoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
-
-                    fields = fieldsDecoder.DecodeShallowFieldDictionary(count, decodeKeyFunc);
-                    fieldsDecoder.CheckEndOfBuffer(skipTaggedParams: false);
-
-                    pipe.Reader.AdvanceTo(readResult.Buffer.Start); // complete read without consuming anything
-
-                    pipeReader = pipe.Reader;
-                }
-                catch
-                {
-                    pipe.Reader.Complete();
-                    throw;
-                }
-            }
-
-            // The caller is responsible for completing the pipe reader.
-            return (fields, pipeReader);
-        }
-
-        /// <summary>Sends the payload and payload stream of an outgoing frame. SendPayloadAsync completes the payload
-        /// if successful. It completes the output only if there's no payload stream. Otherwise, it starts a streaming
-        /// task that is responsible for completing the payload stream and the output.</summary>
-        private static async ValueTask SendPayloadAsync(
-            OutgoingFrame outgoingFrame,
-            IMultiplexedStream stream,
-            CancellationToken cancel)
-        {
-            PipeWriter payloadWriter = outgoingFrame.GetPayloadWriter(stream.Output);
-            PipeReader? payloadStream = outgoingFrame.PayloadStream;
-
-            try
-            {
-                FlushResult flushResult = await CopyReaderToWriterAsync(
-                    outgoingFrame.Payload,
-                    payloadWriter,
-                    endStream: payloadStream == null,
-                    cancel).ConfigureAwait(false);
-
-                if (flushResult.IsCompleted)
-                {
-                    // The remote reader gracefully completed the stream input pipe. We're done.
-                    await payloadWriter.CompleteAsync().ConfigureAwait(false);
-
-                    // We complete the payload and payload stream immediately. For example, we've just sent an outgoing
-                    // request and we're waiting for the exception to come back.
-                    await outgoingFrame.Payload.CompleteAsync().ConfigureAwait(false);
-                    if (payloadStream != null)
-                    {
-                        await payloadStream.CompleteAsync().ConfigureAwait(false);
-                    }
-                    return;
-                }
-                else if (flushResult.IsCanceled)
-                {
-                    throw new InvalidOperationException(
-                        "a payload writer is not allowed to return a canceled flush result");
-                }
-            }
-            catch (Exception exception)
-            {
-                await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
-
-                // An exception will trigger the immediate completion of the request and indirectly of the
-                // outgoingFrame payloads.
-                throw;
-            }
-
-            await outgoingFrame.Payload.CompleteAsync().ConfigureAwait(false);
-
-            if (payloadStream == null)
-            {
-                await payloadWriter.CompleteAsync().ConfigureAwait(false);
-            }
-            else
-            {
-                // Send payloadStream in the background.
-                outgoingFrame.PayloadStream = null; // we're now responsible for payloadStream
-
-                _ = Task.Run(
-                    async () =>
-                    {
-                        try
-                        {
-                            FlushResult flushResult = await CopyReaderToWriterAsync(
-                                payloadStream,
-                                payloadWriter,
-                                endStream: true,
-                                CancellationToken.None).ConfigureAwait(false);
-
-                            if (flushResult.IsCanceled)
-                            {
-                                throw new InvalidOperationException(
-                                    "a payload writer interceptor is not allowed to return a canceled flush result");
-                            }
-
-                            await payloadStream.CompleteAsync().ConfigureAwait(false);
-                            await payloadWriter.CompleteAsync().ConfigureAwait(false);
-                        }
-                        catch (Exception exception)
-                        {
-                            await payloadStream.CompleteAsync(exception).ConfigureAwait(false);
-                            await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
-                        }
-                    },
-                    cancel);
-            }
-
-            async Task<FlushResult> CopyReaderToWriterAsync(
-                PipeReader reader,
-                PipeWriter writer,
-                bool endStream,
-                CancellationToken cancel)
-            {
-                // If the peer completes its input pipe reader, we cancel the pending read on the payload.
-                stream.OnPeerInputCompleted(reader.CancelPendingRead);
-
-                FlushResult flushResult;
-                do
-                {
-                    ReadResult readResult = await reader.ReadAsync(cancel).ConfigureAwait(false);
-
-                    if (readResult.IsCanceled)
-                    {
-                        // If the peer input pipe reader was completed, this will throw with the reason of the pipe
-                        // reader completion.
-                        flushResult = await writer.FlushAsync(cancel).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        try
-                        {
-                            flushResult = await writer.WriteAsync(
-                                readResult.Buffer,
-                                readResult.IsCompleted && endStream,
-                                cancel).ConfigureAwait(false);
-                        }
-                        finally
-                        {
-                            reader.AdvanceTo(readResult.Buffer.End);
-                        }
-                    }
-
-                    if (readResult.IsCompleted)
-                    {
-                        // We're done if there's no more data to send for the payload.
-                        break;
-                    }
-                    else if (readResult.IsCanceled)
-                    {
-                        throw new OperationCanceledException("payload pipe reader was canceled");
-                    }
-                }
-                while (!flushResult.IsCanceled && !flushResult.IsCompleted);
-                return flushResult;
-            }
+            // Execute callbacks (if any) outside lock
+            onClose?.Invoke(exception);
         }
 
         private async ValueTask ReceiveControlFrameHeaderAsync(
@@ -1084,9 +1017,135 @@ namespace IceRpc.Internal
             }
         }
 
-        private async Task WaitForGoAwayAsync(Action<string> onShutdown)
+        private async Task ShutdownAsyncCore(string message, CancellationToken cancel)
         {
-            Debug.Assert(_waitForGoAwayFrame != null);
+            Debug.Assert(_shutdownTask == null);
+
+            // Make sure we shutdown the connection asynchronously without holding any mutex lock from the caller.
+            await Task.Yield();
+
+            if (_isAborted)
+            {
+                return;
+            }
+
+            if (_streams.Count == 0)
+            {
+                _streamsCompleted.TrySetResult();
+            }
+
+            var exception = new ConnectionClosedException(message);
+
+            // TODO: should the on close callback take a nullable exception instead?
+            InvokeOnClose(exception);
+
+            // Send GoAway frame.
+            IceRpcGoAway goAwayFrame = new(_lastRemoteBidirectionalStreamId, _lastRemoteUnidirectionalStreamId, message);
+            await SendControlFrameAsync(
+                IceRpcControlFrameType.GoAway,
+                (ref SliceEncoder encoder) => goAwayFrame.Encode(ref encoder),
+                CancellationToken.None).ConfigureAwait(false);
+
+            // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown has
+            // been initiated by the peer.
+            IceRpcGoAway peerGoAwayFrame = await _waitForGoAwayFrame.Task.ConfigureAwait(false);
+
+            IEnumerable<IMultiplexedStream> invocations;
+            lock (_mutex)
+            {
+                // Cancel the invocations that were not dispatched by the peer.
+                invocations = _streams.Where(stream =>
+                    !stream.IsRemote &&
+                    (!stream.IsStarted || (stream.Id > (stream.IsBidirectional ?
+                        peerGoAwayFrame.LastBidirectionalStreamId :
+                        peerGoAwayFrame.LastUnidirectionalStreamId)))).ToArray();
+            }
+
+            // Abort streams for invocations that were not dispatched by the peer. The invocations will throw
+            // ConnectionClosedException which is retryable.
+            foreach (IMultiplexedStream stream in invocations)
+            {
+                stream.Abort(exception);
+            }
+
+            // Wait for streams to complete.
+            try
+            {
+                await _streamsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException ex)
+            {
+                // Cancel pending invocations and dispatches to speed up shutdown.
+
+                IEnumerable<IMultiplexedStream> streams;
+                IEnumerable<CancellationTokenSource> cancelDispatchSources;
+                lock (_mutex)
+                {
+                    streams = _streams.ToArray();
+                    cancelDispatchSources = _cancelDispatchSources.ToArray();
+                }
+
+                // Cancel pending dispatches.
+                foreach (CancellationTokenSource cancelDispatchSource in cancelDispatchSources)
+                {
+                    try
+                    {
+                        cancelDispatchSource.Cancel();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // Ignore, the dispatch completed concurrently.
+                    }
+                }
+
+                // Abort streams for invocations.
+                foreach (IMultiplexedStream stream in streams)
+                {
+                    if (!stream.IsRemote)
+                    {
+                        stream.Abort(ex);
+                    }
+                }
+
+                // Wait again for streams to complete.
+                await _streamsCompleted.Task.ConfigureAwait(false);
+            }
+
+            // Complete the control stream only once all the streams have completed. We also wait for the peer to close
+            // its control stream to ensure the peer's stream are also completed. The network connection can safely be
+            // closed only once we ensured streams are completed locally and remotely. Otherwise, we could end up
+            // closing the network connection too soon, before the remote streams are completed.
+            try
+            {
+                await _controlStreamSemaphore.EnterAsync(CancellationToken.None).ConfigureAwait(false);
+                try
+                {
+                    await _controlStream!.Output.CompleteAsync().ConfigureAwait(false);
+                    _ = await _remoteControlStream!.Input.ReadAsync(CancellationToken.None).ConfigureAwait(false);
+                }
+                finally
+                {
+                    _controlStreamSemaphore.Release();
+                }
+
+                await _networkConnection.ShutdownAsync(
+                    applicationErrorCode: 0,
+                    CancellationToken.None).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Ignore the connection got aborted concurrently.
+            }
+
+            // Protocol connection resource cleanup. This is for now performed by Abort (which should have
+            // been named CloseAsync like ConnectionCore.CloseAsync).
+            // TODO: Refactor depending on what we decide for the protocol connection resource cleanup (#1397,
+            // #1372, #1404, #1400).
+            Abort(exception);
+        }
+
+        private async Task WaitForGoAwayAsync()
+        {
             try
             {
                 // Receive and decode GoAway frame
@@ -1098,8 +1157,10 @@ namespace IceRpc.Internal
 
                 _waitForGoAwayFrame.SetResult(goAwayFrame);
 
-                // Call the connection on shutdown callback.
-                onShutdown(goAwayFrame.Message);
+                lock (_mutex)
+                {
+                    _shutdownTask ??= ShutdownAsyncCore(goAwayFrame.Message, CancellationToken.None);
+                }
             }
             catch (Exception exception)
             {

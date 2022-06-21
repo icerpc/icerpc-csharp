@@ -139,14 +139,14 @@ namespace IceRpc
                 {
                     PerformListen(
                         _simpleServerTransport,
-                        IceProtocol.Instance.ProtocolConnectionFactory,
+                        (networkConnection, options) => new IceProtocolConnection(networkConnection, options),
                         LogSimpleNetworkConnectionDecorator.Decorate);
                 }
                 else
                 {
                     PerformListen(
                         _multiplexedServerTransport,
-                        IceRpcProtocol.Instance.ProtocolConnectionFactory,
+                        (networkConnection, options) => new IceRpcProtocolConnection(networkConnection, options),
                         LogMultiplexedNetworkConnectionDecorator.Decorate);
                 }
 
@@ -155,7 +155,7 @@ namespace IceRpc
 
             void PerformListen<T>(
                 IServerTransport<T> serverTransport,
-                IProtocolConnectionFactory<T> protocolConnectionFactory,
+                Func<T, ConnectionOptions, IProtocolConnection> protocolConnectionFactory,
                 LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory)
                     where T : INetworkConnection
             {
@@ -167,35 +167,24 @@ namespace IceRpc
                 _listener = listener;
                 Endpoint = listener.Endpoint;
 
-                Action<IConnection, Exception>? onClose = null;
-
                 // TODO: log level
                 if (logger.IsEnabled(LogLevel.Error))
                 {
                     listener = new LogListenerDecorator<T>(listener, logger, logDecoratorFactory);
                     _listener = listener;
 
-                    protocolConnectionFactory =
-                        new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, logger);
-
-                    onClose = (connection, exception) =>
-                    {
-                        if (connection.NetworkConnectionInformation is NetworkConnectionInformation connectionInformation)
-                        {
-                            using IDisposable scope = logger.StartServerConnectionScope(connectionInformation);
-                            logger.LogConnectionClosedReason(exception);
-                        }
-                    };
+                    Func<T, ConnectionOptions, IProtocolConnection> decoratee = protocolConnectionFactory;
+                    protocolConnectionFactory = (T networkConnection, ConnectionOptions options) =>
+                        new LogProtocolConnectionDecorator(decoratee(networkConnection, options), logger);
                 }
 
                 // Run task to start accepting new connections.
-                _ = Task.Run(() => AcceptAsync(listener, protocolConnectionFactory, onClose));
+                _ = Task.Run(() => AcceptAsync(listener, protocolConnectionFactory));
             }
 
             async Task AcceptAsync<T>(
                 IListener<T> listener,
-                IProtocolConnectionFactory<T> protocolConnectionFactory,
-                Action<IConnection, Exception>? onClose)
+                Func<T, ConnectionOptions, IProtocolConnection> protocolConnectionFactory)
                     where T : INetworkConnection
             {
                 while (true)
@@ -221,15 +210,14 @@ namespace IceRpc
                         continue;
                     }
 
+                    IProtocolConnection protocolConnection = protocolConnectionFactory(
+                        networkConnection,
+                        _options.ConnectionOptions);
+
                     // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                    var connection = new ServerConnection(Endpoint.Protocol, _options.ConnectionOptions);
+                    var connection = new ServerConnection(protocolConnection, _options.ConnectionOptions);
 #pragma warning restore CA2000
-
-                    if (onClose != null)
-                    {
-                        connection.OnClose(onClose);
-                    }
 
                     lock (_mutex)
                     {
@@ -244,31 +232,33 @@ namespace IceRpc
 
                     // Schedule removal after addition. We do this outside the mutex lock otherwise
                     // await serverConnection.ShutdownAsync could be called within this lock.
-                    connection.OnClose((connection, exception) => _ = RemoveFromCollectionAsync(connection));
+                    connection.OnClose(exception => _ = RemoveFromCollectionAsync(connection));
 
                     // We don't wait for the connection to be activated. This could take a while for some transports
                     // such as TLS based transports where the handshake requires few round trips between the client
                     // and server. Waiting could also cause a security issue if the client doesn't respond to the
                     // connection initialization as we wouldn't be able to accept new connections in the meantime.
-                    _ = connection.ConnectAsync(networkConnection, protocolConnectionFactory);
+                    _ = connection.ConnectAsync();
                 }
             }
 
             // Remove the connection from _connections once shutdown completes
-            async Task RemoveFromCollectionAsync(IConnection connection)
+            Task RemoveFromCollectionAsync(ServerConnection connection)
             {
-                var serverConnection = (ServerConnection)connection;
-                await serverConnection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
-
                 lock (_mutex)
                 {
-                    // the _connections collection is immutable when _shutdownTask is not null
-                    if (_shutdownTask == null)
+                    // the _connections collection is immutable when _shutdownTask.
+                    if (_shutdownTask != null)
                     {
-                        bool removed = _connections.Remove(serverConnection);
-                        Debug.Assert(removed);
+                        // We're done, the connection shutdown is taken care of by the shutdown task.
+                        return Task.CompletedTask;
                     }
+
+                    bool removed = _connections.Remove(connection);
+                    Debug.Assert(removed);
                 }
+
+                return connection.ShutdownAsync(CancellationToken.None);
             }
         }
 

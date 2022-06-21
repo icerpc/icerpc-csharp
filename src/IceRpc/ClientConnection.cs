@@ -25,7 +25,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     public bool IsResumable => false;
 
     /// <inheritdoc/>
-    public NetworkConnectionInformation? NetworkConnectionInformation => _core.NetworkConnectionInformation;
+    public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
 
     /// <inheritdoc/>
     public Protocol Protocol => RemoteEndpoint.Protocol;
@@ -33,28 +33,23 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <inheritdoc/>
     public Endpoint RemoteEndpoint { get; }
 
-    // Returns true if the connection establishment completed.
-    private bool IsConnected => _connectTask?.IsCompleted ?? false;
-
-    private readonly SslClientAuthenticationOptions? _clientAuthenticationOptions;
-
     private readonly CancellationTokenSource _connectCancellationSource = new();
 
-    // _connectTask is set on connection establishment. It's volatile to avoid locking the mutex to check if the
-    // connection establishment is completed.
+    // _connectTask is volatile to avoid locking the mutex to check if the connection establishment is completed.
     private volatile Task? _connectTask;
 
     private readonly TimeSpan _connectTimeout;
 
-    private readonly ConnectionCore _core;
-    private readonly ILoggerFactory _loggerFactory;
-
-    private readonly IClientTransport<IMultiplexedNetworkConnection> _multiplexedClientTransport;
-
-    // Prevent concurrent assignment of _connectTask.
+    // Prevent concurrent assignment of _connectTask and _shutdownTask.
     private readonly object _mutex = new();
 
-    private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
+    private readonly IProtocolConnection _protocolConnection;
+
+    private readonly CancellationTokenSource _shutdownCancellationSource = new();
+
+    private Task? _shutdownTask;
+
+    private readonly TimeSpan _shutdownTimeout;
 
     /// <summary>Constructs a client connection.</summary>
     /// <param name="options">The connection options.</param>
@@ -69,19 +64,65 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
         IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
     {
-        _core = new ConnectionCore(options);
         _connectTimeout = options.ConnectTimeout;
-
-        _clientAuthenticationOptions = options.ClientAuthenticationOptions;
+        _shutdownTimeout = options.CloseTimeout;
 
         RemoteEndpoint = options.RemoteEndpoint ??
             throw new ArgumentException(
                 $"{nameof(ClientConnectionOptions.RemoteEndpoint)} is not set",
                 nameof(options));
 
-        _multiplexedClientTransport = multiplexedClientTransport ?? DefaultMultiplexedClientTransport;
-        _simpleClientTransport = simpleClientTransport ?? DefaultSimpleClientTransport;
-        _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
+        // This is the composition root of client Connections, where we install log decorators when logging is enabled.
+
+        multiplexedClientTransport ??= DefaultMultiplexedClientTransport;
+        simpleClientTransport ??= DefaultSimpleClientTransport;
+
+        ILogger logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc.Client");
+
+        if (Protocol == Protocol.Ice)
+        {
+            ISimpleNetworkConnection networkConnection = simpleClientTransport.CreateConnection(
+                RemoteEndpoint,
+                options.ClientAuthenticationOptions,
+                logger);
+
+            // TODO: log level
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                networkConnection = new LogSimpleNetworkConnectionDecorator(
+                    networkConnection,
+                    RemoteEndpoint,
+                    isServer: false,
+                    logger);
+            }
+
+            _protocolConnection = new IceProtocolConnection(networkConnection, options);
+        }
+        else
+        {
+            IMultiplexedNetworkConnection networkConnection = multiplexedClientTransport.CreateConnection(
+                RemoteEndpoint,
+                options.ClientAuthenticationOptions,
+                logger);
+
+            // TODO: log level
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                networkConnection = new LogMultiplexedNetworkConnectionDecorator(
+                    networkConnection,
+                    RemoteEndpoint,
+                    isServer: false,
+                    logger);
+            }
+
+            _protocolConnection = new IceRpcProtocolConnection(networkConnection, options);
+        }
+
+        // TODO: log level
+        if (logger.IsEnabled(LogLevel.Error))
+        {
+            _protocolConnection = new LogProtocolConnectionDecorator(_protocolConnection, logger);
+        }
     }
 
     /// <summary>Constructs a client connection with the specified remote endpoint and  authentication options.
@@ -98,7 +139,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     }
 
     /// <summary>Aborts the connection.</summary>
-    public void Abort() => _core.Abort(this);
+    public void Abort() => _protocolConnection.Abort(new ConnectionAbortedException());
 
     /// <summary>Establishes the connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -108,22 +149,13 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     {
         lock (_mutex)
         {
-            if (_connectTask == null)
+            if (_shutdownTask != null)
             {
-                if (Protocol == Protocol.Ice)
-                {
-                    _connectTask = ConnectAsync(
-                        _simpleClientTransport,
-                        IceProtocol.Instance.ProtocolConnectionFactory,
-                        LogSimpleNetworkConnectionDecorator.Decorate);
-                }
-                else
-                {
-                    _connectTask = ConnectAsync(
-                         _multiplexedClientTransport,
-                         IceRpcProtocol.Instance.ProtocolConnectionFactory,
-                         LogMultiplexedNetworkConnectionDecorator.Decorate);
-                }
+                throw new ConnectionClosedException();
+            }
+            else if (_connectTask == null)
+            {
+                _connectTask = ConnectAsyncCore();
             }
             else if (_connectTask.IsCompletedSuccessfully)
             {
@@ -143,16 +175,22 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         }
 
         // Cancel the connection establishment if the given token is canceled.
-        using CancellationTokenRegistration _ = cancel.Register(_connectCancellationSource!.Cancel);
+        using CancellationTokenRegistration _ = cancel.Register(
+            () =>
+            {
+                try
+                {
+                    _connectCancellationSource.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+            });
 
         // Wait for the connection establishment to complete.
         await _connectTask.ConfigureAwait(false);
 
-        async Task ConnectAsync<T>(
-            IClientTransport<T> clientTransport,
-            IProtocolConnectionFactory<T> protocolConnectionFactory,
-            LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory)
-            where T : INetworkConnection
+        async Task ConnectAsyncCore()
         {
             // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
             await Task.Yield();
@@ -160,45 +198,23 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             // TODO: we create a cancellation token source just for the purpose if raising ConnectTimedException below.
             // Is it worth it? If not, we could just call _connectionCancellationSource.CancelAfter(_connectTimeout).
             using var connectTimeoutSource = new CancellationTokenSource(_connectTimeout);
-            using var _ = connectTimeoutSource.Token.Register(_connectCancellationSource.Cancel);
+            using CancellationTokenRegistration _ = connectTimeoutSource.Token.Register(
+                () =>
+                {
+                    try
+                    {
+                        _connectCancellationSource.Cancel();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                    }
+                });
 
             try
             {
-                // This is the composition root of client Connections, where we install log decorators when logging
-                // is enabled.
-
-                ILogger logger = _loggerFactory.CreateLogger("IceRpc.Client");
-
-                T networkConnection = clientTransport.CreateConnection(
-                    RemoteEndpoint,
-                    _clientAuthenticationOptions,
-                    logger);
-
-                // TODO: log level
-                if (logger.IsEnabled(LogLevel.Error))
-                {
-                    networkConnection = logDecoratorFactory(networkConnection, RemoteEndpoint, isServer: false, logger);
-
-                    protocolConnectionFactory =
-                        new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, logger);
-
-                    _core.OnClose(
-                        this,
-                        (connection, exception) =>
-                        {
-                            if (NetworkConnectionInformation is NetworkConnectionInformation connectionInformation)
-                            {
-                                using IDisposable scope = logger.StartClientConnectionScope(connectionInformation);
-                                logger.LogConnectionClosedReason(exception);
-                            }
-                        });
-                }
-
-                await _core.ConnectAsync(
-                    this,
+                NetworkConnectionInformation = await _protocolConnection.ConnectAsync(
                     isServer: false,
-                    networkConnection,
-                    protocolConnectionFactory,
+                    this,
                     _connectCancellationSource.Token).ConfigureAwait(false);
             }
             catch when (connectTimeoutSource.IsCancellationRequested)
@@ -216,15 +232,15 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        if (!IsConnected)
+        if (_connectTask == null || !_connectTask.IsCompleted)
         {
             await ConnectAsync(cancel).ConfigureAwait(false);
         }
-        return await _core.InvokeAsync(this, request, cancel).ConfigureAwait(false);
+        return await _protocolConnection.InvokeAsync(request, this, cancel).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public void OnClose(Action<IConnection, Exception> callback) => _core.OnClose(this, callback);
+    public void OnClose(Action<Exception> callback) => _protocolConnection.OnClose(callback);
 
     /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
     /// canceled. Shutdown cancellation can lead to a speedier shutdown if dispatch are cancelable.</summary>
@@ -237,36 +253,91 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     public async Task ShutdownAsync(string message, CancellationToken cancel = default)
     {
-        if (!IsConnected)
+        Task? connectTask = null;
+        lock (_mutex)
         {
-            lock (_mutex)
+            if (_connectTask == null)
             {
-                // Make sure that connection establishment is not initiated if it's not in progress or completed.
-                _connectTask ??= Task.FromException(new ConnectionClosedException());
+                _shutdownTask = Task.CompletedTask;
             }
+            else
+            {
+                connectTask = _connectTask;
 
-            // TODO: Should we actually cancel the pending connect on ShutdownAsync?
-            // try
-            // {
-            //     _connectCancellationSource.Cancel();
-            // }
-            // catch
-            // {
-            // }
+                // Calling shutdown on the protocol connection is required even if it's not connected because
+                // ShutdownAsync is used for two purposes: graceful protocol shutdown and the disposal of the
+                // connection's resources.
+                _shutdownTask ??= ShutdownAsyncCore();
+            }
+        }
+
+        // Cancel shutdown if the given token is canceled.
+        using CancellationTokenRegistration _ = cancel.Register(
+            () =>
+            {
+                try
+                {
+                    _shutdownCancellationSource.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+            });
+
+        if (connectTask == null)
+        {
+            // ConnectAsync wasn't called, just release resources associated with the protocol connection.
+            // TODO: Refactor depending on what we decide for the protocol connection resource cleanup (#1397,
+            // #1372, #1404, #1400).
+            _protocolConnection.Abort(new ConnectionClosedException());
+
+            // Release disposable resources.
+            _connectCancellationSource.Dispose();
+            _shutdownCancellationSource.Dispose();
+        }
+        else
+        {
+            // Wait for the shutdown to complete.
+            try
+            {
+                await _shutdownTask.ConfigureAwait(false);
+            }
+            catch
+            {
+                // Ignore. This can occur if the protocol connection is aborted while the shutdown is in progress.
+            }
+        }
+
+        async Task ShutdownAsyncCore()
+        {
+            // Make sure we shutdown the connection asynchronously without holding any mutex lock from the caller.
+            await Task.Yield();
 
             try
             {
                 // Wait for connection establishment to complete before calling ShutdownAsync.
-                await _connectTask.ConfigureAwait(false);
+                await connectTask.ConfigureAwait(false);
             }
-            catch
+            catch (Exception exception)
             {
-                // Ignore
+                // Protocol connection resource cleanup. This is for now performed by Abort (which should have
+                // been named CloseAsync like ConnectionCore.CloseAsync).
+                // TODO: Refactor depending on what we decide for the protocol connection resource cleanup (#1397,
+                // #1372, #1404, #1400).
+                _protocolConnection.Abort(exception);
+                return;
             }
+
+            // If shutdown times out, abort the protocol connection.
+            using var shutdownTimeoutCancellationSource = new CancellationTokenSource(_shutdownTimeout);
+            using CancellationTokenRegistration _ = shutdownTimeoutCancellationSource.Token.Register(Abort);
+
+            // Shutdown the connection.
+            await _protocolConnection.ShutdownAsync(message, _shutdownCancellationSource.Token).ConfigureAwait(false);
+
+            // Release disposable resources.
+            _connectCancellationSource.Dispose();
+            _shutdownCancellationSource.Dispose();
         }
-
-        await _core.ShutdownAsync(this, message, cancel).ConfigureAwait(false);
-
-        _connectCancellationSource.Dispose();
     }
 }

@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using System.Diagnostics;
 
 namespace IceRpc.Internal;
 
@@ -11,10 +12,12 @@ internal sealed class ServerConnection : IConnection
     public bool IsResumable => false;
 
     /// <inheritdoc/>
-    public NetworkConnectionInformation? NetworkConnectionInformation => _core.NetworkConnectionInformation;
+    public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
 
     /// <inheritdoc/>
-    public Protocol Protocol { get; }
+    public Protocol Protocol => _protocolConnection.Protocol;
+
+    private bool _isShutdown;
 
     private readonly CancellationTokenSource _connectCancellationSource = new();
 
@@ -22,48 +25,60 @@ internal sealed class ServerConnection : IConnection
 
     private readonly TimeSpan _connectTimeout;
 
-    private readonly ConnectionCore _core;
-
-    // Prevent concurrent assignment of _connectTask.
+    // Prevent concurrent assignment of _connectTask and _isShutdown.
     private readonly object _mutex = new();
+
+    private readonly IProtocolConnection _protocolConnection;
+
+    private readonly TimeSpan _shutdownTimeout;
 
     /// <inheritdoc/>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
-        _core.InvokeAsync(this, request, cancel);
+        _protocolConnection.InvokeAsync(request, this, cancel);
 
     /// <inheritdoc/>
-    public void OnClose(Action<IConnection, Exception> callback) => _core.OnClose(this, callback);
+    public void OnClose(Action<Exception> callback) => _protocolConnection.OnClose(callback);
 
     /// <summary>Constructs a server connection from an accepted network connection.</summary>
-    internal ServerConnection(Protocol protocol, ConnectionOptions options)
+    internal ServerConnection(IProtocolConnection protocolConnection, ConnectionOptions options)
     {
-        Protocol = protocol;
-        _core = new ConnectionCore(options);
+        _protocolConnection = protocolConnection;
         _connectTimeout = options.ConnectTimeout;
+        _shutdownTimeout = options.CloseTimeout;
     }
 
     /// <summary>Aborts the connection.</summary>
-    internal void Abort() => _core.Abort(this);
+    internal void Abort() => _protocolConnection.Abort(new ConnectionAbortedException());
 
-    /// <summary>Establishes a connection.</summary>
-    /// <param name="networkConnection">The underlying network connection.</param>
-    /// <param name="protocolConnectionFactory">The protocol connection factory.</param>
-    internal Task ConnectAsync<T>(T networkConnection, IProtocolConnectionFactory<T> protocolConnectionFactory)
-        where T : INetworkConnection
+    /// <summary>Establishes the connection.</summary>
+    /// <returns>A task that indicates the completion of the connect operation.</returns>
+    internal Task ConnectAsync()
     {
-        lock (_mutex)
-        {
-            _connectTask ??= _core.ConnectAsync(
-                this,
-                isServer: true,
-                networkConnection,
-                protocolConnectionFactory,
-                _connectCancellationSource.Token);
-        }
-
         _connectCancellationSource.CancelAfter(_connectTimeout);
 
+        lock (_mutex)
+        {
+            Debug.Assert(_connectTask == null);
+
+            if (_isShutdown)
+            {
+                return Task.CompletedTask;
+            }
+            _connectTask = ConnectAsyncCore();
+        }
+
         return _connectTask;
+
+        async Task ConnectAsyncCore()
+        {
+            // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
+            await Task.Yield();
+
+            await _protocolConnection.ConnectAsync(
+                isServer: true,
+                this,
+                _connectCancellationSource.Token).ConfigureAwait(false);
+        }
     }
 
     /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
@@ -77,31 +92,62 @@ internal sealed class ServerConnection : IConnection
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     internal async Task ShutdownAsync(string message, CancellationToken cancel = default)
     {
+        Task? connectTask = null;
         lock (_mutex)
         {
-            // Make sure that connection establishment is not initiated if it's not in progress or completed.
-            _connectTask ??= Task.FromException(new ConnectionClosedException());
+            Debug.Assert(!_isShutdown);
+
+            if (_connectTask == null)
+            {
+                _isShutdown = true;
+            }
+            else
+            {
+                connectTask = _connectTask;
+                _isShutdown = true;
+            }
         }
 
-        // TODO: Should we actually cancel the pending connect on ShutdownAsync?
-        // try
-        // {
-        //     _connectCancellationSource.Cancel();
-        // }
-        // catch
-        // {
-        // }
-
-        try
+        if (connectTask == null)
         {
-            // Wait for connection establishment to complete before calling ShutdownAsync.
-            await _connectTask.ConfigureAwait(false);
+            // ConnectAsync wasn't called, just release resources associated with the protocol connection.
+            // TODO: Refactor depending on what we decide for the protocol connection resource cleanup (#1397,
+            // #1372, #1404, #1400).
+            _protocolConnection.Abort(new ConnectionClosedException());
         }
-        catch
+        else
         {
-            // Ignore
+            try
+            {
+                // Wait for connection establishment to complete before calling ShutdownAsync.
+                await connectTask.ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                // Protocol connection resource cleanup. This is for now performed by Abort (which should have
+                // been named CloseAsync like ConnectionCore.CloseAsync).
+                // TODO: Refactor depending on what we decide for the protocol connection resource cleanup (#1397,
+                // #1372, #1404, #1400).
+                _protocolConnection.Abort(exception);
+                return;
+            }
+
+            // If shutdown times out, abort the protocol connection.
+            using var shutdownTimeoutCancellationSource = new CancellationTokenSource(_shutdownTimeout);
+            using CancellationTokenRegistration _ = shutdownTimeoutCancellationSource.Token.Register(Abort);
+
+            // Shutdown the protocol connection.
+            try
+            {
+                await _protocolConnection.ShutdownAsync(message, cancel).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Ignore, this can occur if the protocol conneciton is aborted.
+            }
         }
 
-        await _core.ShutdownAsync(this, message, cancel).ConfigureAwait(false);
+        // Release disposable resources.
+        _connectCancellationSource.Dispose();
     }
 }
