@@ -27,6 +27,10 @@ internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
 
     public void Dispose()
     {
+        if (_isDisposed)
+        {
+            return;
+        }
         _isDisposed = true;
 
         if (SslStream is SslStream sslStream)
