@@ -3,12 +3,11 @@
 ![.github/workflows/dotnet.yml](https://github.com/zeroc-ice/icerpc-csharp/workflows/.NET/badge.svg?branch=main)
 
 - [IceRPC](#icerpc)
-  - [Build Requirements](#build-requirements)
-  - [Building](#building)
-  - [Testing](#testing)
-  - [Building Example Programs](#building-example-programs)
-  - [Project Templates](#project-templates)
-    - [Usage:](#usage)
+- [Build Requirements](#build-requirements)
+- [Building](#building)
+- [Testing](#testing)
+- [Building Example Programs](#building-example-programs)
+- [Project Templates](#project-templates)
 
 ## Build Requirements
 
