@@ -631,7 +631,6 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         }
     }
 
-<<<<<<< HEAD
     private async ValueTask<T> ReadFrameAsync<T>(
         int size,
         DecodeFunc<T> decodeFunc,
@@ -736,10 +735,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         }
     }
 
-    private async Task<ulong> ReadFramesAsync(CancellationToken cancel)
-=======
     private async Task ReadFramesAsync(CancellationToken cancel)
->>>>>>> origin/main
     {
         while (true)
         {
