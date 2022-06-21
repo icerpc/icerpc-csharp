@@ -106,24 +106,12 @@ fn encode_type(
                         value = value
                     )
                 }
-                TypeRefs::Struct(struct_ref) => {
-                    if struct_ref.definition().has_attribute("cs::type", false) {
-                        format!(
-                            "{encoder_extensions_class}.Encode{identifier}(ref {encoder_param}, {value});",
-                            encoder_extensions_class = struct_ref.escape_scoped_identifier_with_suffix(
-                                "SliceEncoderExtensions",
-                                namespace),
-                            identifier = struct_ref.identifier(),
-                            encoder_param = encoder_param,
-                            value = value
-                        )
-                    } else {
-                        format!(
-                            "{value}.Encode(ref {encoder_param});",
-                            value = value,
-                            encoder_param = encoder_param
-                        )
-                    }
+                TypeRefs::Struct(_) => {
+                    format!(
+                        "{value}.Encode(ref {encoder_param});",
+                        value = value,
+                        encoder_param = encoder_param
+                    )
                 }
                 TypeRefs::Exception(_) => format!(
                     "{param}.Encode(ref {encoder_param});",
@@ -555,25 +543,13 @@ pub fn encode_action(
                 )
             )
         }
-        TypeRefs::Struct(struct_ref) => {
-            if struct_ref.definition().has_attribute("cs::type", false) {
-                write!(
-                    code,
-                    "(ref SliceEncoder encoder, {value_type} value) => {encoder_extensions_class}.Encode{identifier}(ref encoder, value)",
-                    value_type = value_type,
-                    encoder_extensions_class = struct_ref.escape_scoped_identifier_with_suffix(
-                        "SliceEncoderExtensions",
-                        namespace),
-                    identifier = struct_ref.identifier()
-                )
-            } else {
-                write!(
-                    code,
-                    "(ref SliceEncoder encoder, {value_type} value) => {value}.Encode(ref encoder)",
-                    value_type = value_type,
-                    value = value
-                )
-            }
+        TypeRefs::Struct(_) => {
+            write!(
+                code,
+                "(ref SliceEncoder encoder, {value_type} value) => {value}.Encode(ref encoder)",
+                value_type = value_type,
+                value = value
+            )
         }
         TypeRefs::Exception(_) => {
             write!(

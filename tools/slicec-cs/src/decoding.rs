@@ -91,18 +91,8 @@ fn decode_member(
                 write!(code, "decoder.Decode{}()", primitive_ref.type_suffix());
             }
         }
-        TypeRefs::Struct(struct_ref) => {
-            if struct_ref.definition().has_attribute("cs::type", false) {
-                write!(
-                    code,
-                    "{decoder_extensions_class}.Decode{name}(ref decoder)",
-                    decoder_extensions_class = struct_ref
-                        .escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
-                    name = fix_case(struct_ref.identifier(), CaseStyle::Pascal)
-                );
-            } else {
-                write!(code, "new {}(ref decoder)", type_string);
-            }
+        TypeRefs::Struct(_) => {
+            write!(code, "new {}(ref decoder)", type_string);
         }
         TypeRefs::Exception(_) => {
             write!(code, "new {}(ref decoder)", type_string)
@@ -445,23 +435,11 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
                 name = fix_case(enum_ref.identifier(), CaseStyle::Pascal)
             )
         }
-        TypeRefs::Struct(struct_ref) => {
-            if struct_ref.definition().has_attribute("cs::type", false) {
-                format!(
-                    "(ref SliceDecoder decoder) => {decoder_extensions_class}.Decode{name}(ref decoder)",
-                    decoder_extensions_class = struct_ref
-                        .escape_scoped_identifier_with_suffix(
-                            "SliceDecoderExtensions",
-                            namespace
-                        ),
-                    name = fix_case(struct_ref.identifier(), CaseStyle::Pascal)
-                )
-            } else {
-                format!(
-                    "(ref SliceDecoder decoder) => new {}(ref decoder)",
-                    type_name
-                )
-            }
+        TypeRefs::Struct(_) => {
+            format!(
+                "(ref SliceDecoder decoder) => new {}(ref decoder)",
+                type_name
+            )
         }
         TypeRefs::Exception(_) => {
             format!(
