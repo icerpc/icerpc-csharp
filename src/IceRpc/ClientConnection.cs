@@ -45,7 +45,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
     private readonly IProtocolConnection _protocolConnection;
 
-    private readonly CancellationTokenSource _shutdownCancellationSource = new();
+    private readonly CancellationTokenSource _protocolConnectionCancellationSource = new(); // temporary
 
     private Task? _shutdownTask;
 
@@ -164,11 +164,11 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         {
             lock (_mutex)
             {
-                if (_shutdownTask != null)
+                if (_shutdownTask is not null)
                 {
                     throw new ConnectionClosedException();
                 }
-                else if (_connectTask == null)
+                else if (_connectTask is null)
                 {
                     _connectTask = PerformConnectAsync(cancel);
                     task = _connectTask;
@@ -226,9 +226,30 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
-        await ShutdownAsync("connection disposed", new CancellationToken(canceled: true)).ConfigureAwait(false);
+        // DisposeAsync cannot be interrupted by an Abort.
+        using var cancellationTokenSource = new CancellationTokenSource(_shutdownTimeout);
+
+        try
+        {
+            await ShutdownAsync(
+                "connection disposed",
+                cancelDispatches: true,
+                cancelInvocations: true,
+                cancellationTokenSource.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            _protocolConnection.Abort(new TimeoutException());
+        }
+        catch (Exception exception)
+        {
+            _protocolConnection.Abort(exception);
+        }
+
+        // TODO: await _protocolConnection.DisposeAsync();
+
         _connectCancellationSource.Dispose();
-        _shutdownCancellationSource.Dispose();
+        _protocolConnectionCancellationSource.Dispose();
     }
 
     /// <inheritdoc/>
@@ -276,87 +297,78 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <inheritdoc/>
     public void OnClose(Action<Exception> callback) => _protocolConnection.OnClose(callback);
 
-    /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
-    /// canceled. Shutdown cancellation can lead to a speedier shutdown if dispatch are cancelable.</summary>
+    /// <summary>Gracefully shuts down of the connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    public Task ShutdownAsync(CancellationToken cancel = default) => ShutdownAsync("connection shutdown", cancel);
+    public Task ShutdownAsync(CancellationToken cancel = default) =>
+        ShutdownAsync("connection shutdown", cancelDispatches: false, cancelInvocations: false, cancel);
 
-    /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
-    /// canceled. Shutdown cancellation can lead to a speedier shutdown if dispatch are cancelable.</summary>
-    /// <param name="message">The message transmitted to the peer (when using the IceRPC protocol).</param>
+    /// <summary>Gracefully shuts down of the connection.</summary>
+    /// <param name="message">The message transmitted to the server when using the IceRPC protocol.</param>
+    /// <param name="cancelDispatches">When <c>true</c>, cancel outstanding dispatches.</param>
+    /// <param name="cancelInvocations">When <c>true</c>, cancel outstanding invocations.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    public async Task ShutdownAsync(string message, CancellationToken cancel = default)
+    public async Task ShutdownAsync(
+        string message,
+        bool cancelDispatches = false,
+        bool cancelInvocations = false,
+        CancellationToken cancel = default)
     {
-        Task? connectTask = null;
+        if (cancelDispatches || cancelInvocations)
+        {
+            // TODO: temporary
+            _protocolConnectionCancellationSource.Cancel();
+        }
+
+        Task task;
+
         lock (_mutex)
         {
-            if (_connectTask == null)
+            if (_shutdownTask is null)
             {
-                _shutdownTask = Task.CompletedTask;
+                _shutdownTask = PerformShutdownAsync(_connectTask);
+                task = _shutdownTask;
             }
             else
             {
-                connectTask = _connectTask;
-
-                // Calling shutdown on the protocol connection is required even if it's not connected because
-                // ShutdownAsync is used for two purposes: graceful protocol shutdown and the disposal of the
-                // connection's resources.
-                // TODO: comment no longer correct
-                _shutdownTask ??= ShutdownAsyncCore();
+                task = _shutdownTask.WaitAsync(cancel);
             }
         }
 
-        // Cancel shutdown if the given token is canceled.
-        using CancellationTokenRegistration _ = cancel.Register(
-            () =>
-            {
-                try
-                {
-                    _shutdownCancellationSource.Cancel();
-                }
-                catch (ObjectDisposedException)
-                {
-                }
-            });
-
-        if (connectTask == null)
+        try
         {
-            _protocolConnection.Abort(new ConnectionClosedException());
+            await task.ConfigureAwait(false);
         }
-        else
+        catch (OperationCanceledException exception)
         {
-            // Wait for the shutdown to complete.
-            try
+            if (exception.CancellationToken == cancel)
             {
-                await _shutdownTask.ConfigureAwait(false);
+                throw;
             }
-            catch
+            else
             {
-                // Ignore. This can occur if the protocol connection is aborted while the shutdown is in progress.
+                cancel.ThrowIfCancellationRequested();
+
+                // A previous call to ShutdownAsync failed with OperationCanceledException
+                throw new ConnectionCanceledException();
             }
         }
 
-        async Task ShutdownAsyncCore()
+        async Task PerformShutdownAsync(Task? connectTask)
         {
             // Make sure we shutdown the connection asynchronously without holding any mutex lock from the caller.
             await Task.Yield();
 
-            try
+            if (connectTask is not null)
             {
                 // Wait for connection establishment to complete before calling ShutdownAsync.
-                await connectTask.ConfigureAwait(false);
-            }
-            catch
-            {
-                // TODO: in future PR, ShutdownAsync should throw exception
+                await connectTask.WaitAsync(cancel).ConfigureAwait(false);
             }
 
-            // If shutdown times out, abort the protocol connection.
-            using var shutdownTimeoutCancellationSource = new CancellationTokenSource(_shutdownTimeout);
-            using CancellationTokenRegistration _ = shutdownTimeoutCancellationSource.Token.Register(Abort);
-
-            // Shutdown the connection.
-            await _protocolConnection.ShutdownAsync(message, _shutdownCancellationSource.Token).ConfigureAwait(false);
+            // Shut down the protocol connection.
+            await _protocolConnection
+                .ShutdownAsync(message, _protocolConnectionCancellationSource.Token) // currently does not throw anything
+                .WaitAsync(cancel)
+                .ConfigureAwait(false);
         }
     }
 }
