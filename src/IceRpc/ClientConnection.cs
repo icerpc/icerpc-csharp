@@ -233,9 +233,8 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
-        Task task;
-
         using var cancellationTokenSource = new CancellationTokenSource(_shutdownTimeout);
+        Task task;
 
         lock (_mutex)
         {
@@ -248,8 +247,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             if (_shutdownTask is null)
             {
                 // Attempt a graceful shutdown
-                _shutdownTask = ShutdownAsyncCore("connection disposed", _connectTask, cancellationTokenSource.Token);
-                task = _shutdownTask;
+                task = ShutdownAsyncCore("connection disposed", _connectTask, cancellationTokenSource.Token);
             }
             else
             {

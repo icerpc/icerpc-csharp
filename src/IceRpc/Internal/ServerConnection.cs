@@ -19,6 +19,7 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
 
     private readonly CancellationTokenSource _connectCancellationSource = new();
 
+    // The only reason we have a _connectTask is to wait for its completion during shutdown.
     private Task? _connectTask;
 
     private readonly TimeSpan _connectTimeout;
@@ -55,17 +56,13 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
     }
 
     /// <summary>Aborts the connection.</summary>
-    internal void Abort()
-    {
-        _connectCancellationSource.Cancel();
-        _protocolConnection.Abort(new ConnectionAbortedException());
-    }
+    internal void Abort() => _protocolConnection.Abort(new ConnectionAbortedException());
 
     /// <summary>Establishes the connection.</summary>
     /// <returns>A task that indicates the completion of the connect operation.</returns>
     internal Task ConnectAsync()
     {
-        Debug.Assert(_connectTask == null);
+        Debug.Assert(_connectTask == null); // called at most once
 
         lock (_mutex)
         {
