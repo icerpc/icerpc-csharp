@@ -33,5 +33,5 @@ public interface IConnection
     /// by a transport error. If the connection is already shutting down or closed, this callback is executed
     /// synchronously with this connection and an instance of <see cref="ConnectionClosedException"/>.</summary>
     /// <param name="callback">The callback to execute. It must not block or throw any exception.</param>
-    void OnClose(Action<IConnection, Exception> callback);
+    void OnClose(Action<Exception> callback);
 }

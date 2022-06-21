@@ -95,7 +95,7 @@ public class ConnectionTests
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
             serverConnection = (ServerConnection)request.Connection;
-            serverConnection.OnClose((_, _) => serverConnectionClosed.SetResult(null));
+            serverConnection.OnClose(_ => serverConnectionClosed.SetResult(null));
             return new(new OutgoingResponse(request));
         });
 
@@ -107,7 +107,7 @@ public class ConnectionTests
         var server = provider.GetRequiredService<Server>();
         server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
-        clientConnection.OnClose((_, _) => clientConnectionClosed.SetResult(null));
+        clientConnection.OnClose(_ => clientConnectionClosed.SetResult(null));
 
         var proxy = Proxy.FromConnection(clientConnection, "/foo");
 
@@ -177,7 +177,7 @@ public class ConnectionTests
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
         using var semaphore = new SemaphoreSlim(0);
-        connection.OnClose((connection, exception) => semaphore.Release(1));
+        connection.OnClose(exception => semaphore.Release(1));
         await semaphore.WaitAsync();
 
         // Act/Assert
@@ -213,7 +213,7 @@ public class ConnectionTests
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
         using var semaphore = new SemaphoreSlim(0);
-        connection.OnDisconnect((connection, exception) =>
+        connection.OnDisconnect(exception =>
         {
             try
             {
@@ -255,7 +255,7 @@ public class ConnectionTests
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
         using var semaphore = new SemaphoreSlim(0);
-        connection.OnDisconnect((connection, exception) =>
+        connection.OnDisconnect(exception =>
         {
             try
             {
@@ -299,7 +299,7 @@ public class ConnectionTests
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
         using var semaphore = new SemaphoreSlim(0);
-        connection.OnDisconnect((connection, exception) =>
+        connection.OnDisconnect(exception =>
         {
             try
             {

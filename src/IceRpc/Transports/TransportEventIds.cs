@@ -1,44 +1,43 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc.Transports
+namespace IceRpc.Transports;
+
+/// <summary>This enum contains event ID constants used for transport logging.</summary>
+public enum TransportEventIds
 {
-    /// <summary>This enum contains event ID constants used for transport logging.</summary>
-    public enum TransportEventIds
-    {
-        /// <summary>The listener failed to accept a connection.</summary>
-        ListenerAcceptFailed = IceRpc.Internal.BaseEventIds.Transport,
+    /// <summary>The listener failed to accept a connection.</summary>
+    ListenerAcceptFailed = IceRpc.Internal.BaseEventIds.Transport,
 
-        /// <summary>The listener starts listening for new connections.</summary>
-        ListenerCreated,
+    /// <summary>The listener starts listening for new connections.</summary>
+    ListenerCreated,
 
-        /// <summary>The listener is disposed and no longer accepts connections.</summary>
-        ListenerDisposed,
+    /// <summary>The listener is disposed and no longer accepts connections.</summary>
+    ListenerDisposed,
 
-        /// <summary>Successfully read data from a multiplexed stream.</summary>
-        MultiplexedStreamRead,
+    /// <summary>Successfully read data from a multiplexed stream.</summary>
+    MultiplexedStreamRead,
 
-        /// <summary>A multiplexed network connection was shutdown.</summary>
-        MultiplexedNetworkConnectionShutdown,
+    /// <summary>A multiplexed network connection was shutdown.</summary>
+    MultiplexedNetworkConnectionShutdown,
 
-        /// <summary>Wrote data to a multiplexed stream.</summary>
-        MultiplexedStreamWrite,
+    /// <summary>Wrote data to a multiplexed stream.</summary>
+    MultiplexedStreamWrite,
 
-        /// <summary>Connect on a network connection succeeded.</summary>
-        NetworkConnectionConnect,
+    /// <summary>Connect on a network connection succeeded.</summary>
+    NetworkConnectionConnect,
 
-        /// <summary>Connect on a network connection failed.</summary>
-        NetworkConnectionConnectFailed,
+    /// <summary>Connect on a network connection failed.</summary>
+    NetworkConnectionConnectFailed,
 
-        /// <summary>A network connection was disposed.</summary>
-        NetworkConnectionDispose,
+    /// <summary>A network connection was disposed.</summary>
+    NetworkConnectionDispose,
 
-        /// <summary>Successfully read data from a simple network connection.</summary>
-        SimpleNetworkConnectionRead,
+    /// <summary>Successfully read data from a simple network connection.</summary>
+    SimpleNetworkConnectionRead,
 
-        /// <summary>Simple network connection shutdown.</summary>
-        SimpleNetworkConnectionShutdown,
+    /// <summary>Simple network connection shutdown.</summary>
+    SimpleNetworkConnectionShutdown,
 
-        /// <summary>Wrote data to a simple network connection.</summary>
-        SimpleNetworkConnectionWrite,
-    }
+    /// <summary>Wrote data to a simple network connection.</summary>
+    SimpleNetworkConnectionWrite,
 }
