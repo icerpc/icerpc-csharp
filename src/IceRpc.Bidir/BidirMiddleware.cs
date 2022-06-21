@@ -24,7 +24,7 @@ public class BidirMiddleware : IDispatcher
     }
 
     /// <inheritdoc/>
-    public async ValueTask<OutgoingResponse> DispatchAsync(
+    public ValueTask<OutgoingResponse> DispatchAsync(
         IncomingRequest request,
         CancellationToken cancel = default)
     {
@@ -49,6 +49,6 @@ public class BidirMiddleware : IDispatcher
                 request.Connection = bidirConnection;
             }
         }
-        return await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
+        return _next.DispatchAsync(request, cancel);
     }
 }

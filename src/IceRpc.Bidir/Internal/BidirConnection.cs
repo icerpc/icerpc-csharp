@@ -79,6 +79,8 @@ internal class BidirConnection : IConnection
                 }
                 catch (OperationCanceledException)
                 {
+                    // TODO: Should we mark this connection as closed and let subsequences class to InvokeAsyn fail right await.
+
                     // Give up on waiting for a new connection and throw the original exception.
                     ExceptionDispatchInfo.Throw(ex);
                 }
@@ -90,7 +92,9 @@ internal class BidirConnection : IConnection
         return response;
     }
 
-    public void OnClose(Action<Exception> callback) => Decoratee.OnClose(callback);
+    public void OnClose(Action<Exception> callback)
+    {
+    }
 
     internal BidirConnection(IConnection decoratee, TimeSpan waitTimeout)
     {

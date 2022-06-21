@@ -26,9 +26,12 @@ public class BidirInterceptor : IInvoker
     /// <inheritdoc/>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        request.Fields = request.Fields.With(
-            RequestFieldKey.RelativeOrigin,
-            (ref SliceEncoder encoder) => encoder.WriteByteSpan(new ReadOnlySpan<byte>(_relativeOrigin)));
+        if (request.Protocol.HasFields)
+        {
+            request.Fields = request.Fields.With(
+                RequestFieldKey.RelativeOrigin,
+                (ref SliceEncoder encoder) => encoder.WriteByteSpan(new ReadOnlySpan<byte>(_relativeOrigin)));
+        }
         return _next.InvokeAsync(request, cancel);
     }
 }
