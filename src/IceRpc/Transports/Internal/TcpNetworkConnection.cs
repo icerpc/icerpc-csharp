@@ -12,11 +12,11 @@ namespace IceRpc.Transports.Internal;
 
 internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
 {
-    protected int disposed;
-
     internal abstract Socket Socket { get; }
 
     internal abstract SslStream? SslStream { get; }
+
+    private protected volatile bool _isDisposed;
 
     // The MaxDataSize of the SSL implementation.
     private const int MaxSslDataSize = 16 * 1024;
@@ -27,10 +27,11 @@ internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
 
     public void Dispose()
     {
-        if (Interlocked.Exchange(ref disposed, 1) == 1)
+        if (_isDisposed)
         {
-            return; // Aready disposed.
+            return;
         }
+        _isDisposed = true;
 
         if (SslStream is SslStream sslStream)
         {
@@ -59,7 +60,7 @@ internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
                 received = await Socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
             }
         }
-        catch when (disposed == 1)
+        catch when (_isDisposed)
         {
             throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
         }
@@ -181,7 +182,7 @@ internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
                 }
             }
         }
-        catch when (disposed == 1)
+        catch when (_isDisposed)
         {
             throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
         }
@@ -235,7 +236,7 @@ internal class TcpClientNetworkConnection : TcpNetworkConnection
                 remoteEndPoint: Socket.RemoteEndPoint!,
                 _sslStream?.RemoteCertificate);
         }
-        catch when (disposed == 1)
+        catch when (_isDisposed)
         {
             throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
         }
@@ -331,7 +332,7 @@ internal class TcpServerNetworkConnection : TcpNetworkConnection
                 remoteEndPoint: Socket.RemoteEndPoint!,
                 _sslStream?.RemoteCertificate);
         }
-        catch when (disposed == 1)
+        catch when (_isDisposed)
         {
             throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
         }
