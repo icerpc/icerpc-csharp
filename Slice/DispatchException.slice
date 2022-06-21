@@ -28,4 +28,7 @@ unchecked enum DispatchErrorCode
 
     /// The dispatch was canceled.
     Canceled,
+
+    /// The request's deadline has expired.
+    DeadlineExpired,
 }
