@@ -20,6 +20,6 @@ unchecked enum RequestFieldKey : varuint62
     /// The idempotent field.
     Idempotent = 4,
 
-    /// The connection ID.
-    ConnectionId = 5,
+    /// The relative origin field, used to identify the origin of relative proxies.
+    RelativeOrigin = 5,
 }

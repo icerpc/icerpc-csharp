@@ -5,30 +5,30 @@ using System.Security.Cryptography;
 
 namespace IceRpc.Bidir;
 
-/// <summary>An interceptor that encodes a connection ID field with each request, the connection ID can be used
-/// to identify connections from a given client.</summary>
+/// <summary>An interceptor that encodes a relative origin field with each request, the relative origin is used by the
+/// bidir middleware to identify connections from a given origin.</summary>
 public class BidirInterceptor : IInvoker
 {
     private readonly IInvoker _next;
-    // The value for the relative origin ID field is a 128 bit field randomly initialized during initialization.
-    private readonly byte[] _connectionId;
+    // The value for the relative origin ID field is a 128 bit field randomly initialized.
+    private readonly byte[] _relativeOrigin;
 
     /// <summary>Constructs a bidir interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
     public BidirInterceptor(IInvoker next)
     {
         _next = next;
-        _connectionId = new byte[16];
+        _relativeOrigin = new byte[16];
         using var provider = RandomNumberGenerator.Create();
-        provider.GetBytes(_connectionId);
+        provider.GetBytes(_relativeOrigin);
     }
 
     /// <inheritdoc/>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
         request.Fields = request.Fields.With(
-            RequestFieldKey.ConnectionId,
-            (ref SliceEncoder encoder) => encoder.WriteByteSpan(new ReadOnlySpan<byte>(_connectionId)));
+            RequestFieldKey.RelativeOrigin,
+            (ref SliceEncoder encoder) => encoder.WriteByteSpan(new ReadOnlySpan<byte>(_relativeOrigin)));
         return _next.InvokeAsync(request, cancel);
     }
 }

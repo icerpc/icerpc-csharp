@@ -10,7 +10,8 @@ public static class BidirDispatcherBuilderExtensions
 {
     /// <summary>Adds a <see cref="BidirMiddleware"/> to this dispatcher builder.</summary>
     /// <param name="builder">The builder being configured.</param>
+    /// <param name="reconnectTimeout">The timeout for reestablish the connection.</param>
     /// <returns>The builder being configured.</returns>
-    public static IDispatcherBuilder UseBidir(this IDispatcherBuilder builder) =>
-        builder.Use(next => new BidirMiddleware(next));
+    public static IDispatcherBuilder UseBidir(this IDispatcherBuilder builder, TimeSpan reconnectTimeout) =>
+        builder.Use(next => new BidirMiddleware(next, reconnectTimeout));
 }

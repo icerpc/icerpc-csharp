@@ -37,14 +37,15 @@ internal class BidirConnection : IConnection
     private TaskCompletionSource? _connectionUpdatedSource;
     private IConnection _decoratee;
     private readonly object _mutex = new();
-    private TimeSpan _waitTimeout;
+    private readonly TimeSpan _reconnectTimeout;
 
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
         IConnection connection = Decoratee;
+        IncomingResponse response;
         try
         {
-            return await connection.InvokeAsync(request, cancel).ConfigureAwait(false);
+            response = await connection.InvokeAsync(request, cancel).ConfigureAwait(false);
         }
         catch (ConnectionClosedException ex)
         {
@@ -68,7 +69,7 @@ internal class BidirConnection : IConnection
             {
                 try
                 {
-                    using var timeoutTokenSource = new CancellationTokenSource(_waitTimeout);
+                    using var timeoutTokenSource = new CancellationTokenSource(_reconnectTimeout);
                     using var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
                         cancel,
                         timeoutTokenSource.Token);
@@ -83,8 +84,10 @@ internal class BidirConnection : IConnection
                 }
             }
 
-            return await connection.InvokeAsync(request, cancel).ConfigureAwait(false);
+            response = await connection.InvokeAsync(request, cancel).ConfigureAwait(false);
         }
+        response.Connection = this;
+        return response;
     }
 
     public void OnClose(Action<Exception> callback) => Decoratee.OnClose(callback);
@@ -92,7 +95,6 @@ internal class BidirConnection : IConnection
     internal BidirConnection(IConnection decoratee, TimeSpan waitTimeout)
     {
         _decoratee = decoratee;
-        _waitTimeout = waitTimeout;
+        _reconnectTimeout = waitTimeout;
     }
-
 }

@@ -10,7 +10,8 @@ public static class BidirRouterExtensions
 {
     /// <summary>Adds a <see cref="BidirMiddleware"/> to the router.</summary>
     /// <param name="router">The router being configured.</param>
+    /// <param name="reconnectTimeout">The timeout for reestablish the connection.</param>
     /// <returns>The router being configured.</returns>
-    public static Router UseBidir(this Router router) =>
-        router.Use(next => new BidirMiddleware(next));
+    public static Router UseBidir(this Router router, TimeSpan reconnectTimeout) =>
+        router.Use(next => new BidirMiddleware(next, reconnectTimeout));
 }
