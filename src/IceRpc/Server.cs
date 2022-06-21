@@ -258,7 +258,7 @@ public sealed class Server : IAsyncDisposable
                 Debug.Assert(removed);
             }
 
-            return connection.ShutdownAsync(CancellationToken.None);
+            return connection.DisposeAsync().AsTask();
         }
     }
 
@@ -312,6 +312,9 @@ public sealed class Server : IAsyncDisposable
                 // token.
                 await Task.WhenAll(_connections.Select(
                     connection => connection.ShutdownAsync("server shutdown", cancel))).ConfigureAwait(false);
+
+                await Task.WhenAll(_connections.Select(
+                    connection => connection.DisposeAsync().AsTask())).ConfigureAwait(false);
             }
             finally
             {

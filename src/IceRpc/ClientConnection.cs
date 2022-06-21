@@ -34,6 +34,8 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <inheritdoc/>
     public Endpoint RemoteEndpoint { get; }
 
+    private readonly CancellationTokenSource _connectCancellationSource = new();
+
     private Task? _connectTask;
 
     private readonly TimeSpan _connectTimeout;
@@ -137,7 +139,11 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     }
 
     /// <summary>Aborts the connection.</summary>
-    public void Abort() => _protocolConnection.Abort(new ConnectionAbortedException());
+    public void Abort()
+    {
+        _connectCancellationSource.Cancel();
+        _protocolConnection.Abort(new ConnectionAbortedException());
+    }
 
     /// <summary>Establishes the connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -186,8 +192,8 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             }
             else
             {
-                // Unlikely, but we prefer throwing OperationCanceledException (if appropriate) over
-                // ConnectionCanceledException.
+                // Unlikely, but we prefer throwing OperationCanceledException (if appropriate) over other
+                // exceptions.
                 cancel.ThrowIfCancellationRequested();
 
                 // exception comes from another call to ConnectAsync
@@ -200,17 +206,30 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
             await Task.Yield();
 
-            NetworkConnectionInformation = await _protocolConnection.ConnectAsync(
-               isServer: false,
-               this,
-               cancel).ConfigureAwait(false);
+            using CancellationTokenRegistration _ = cancel.Register(_connectCancellationSource.Cancel);
+
+            try
+            {
+                // TODO: not quite correct because assignment to NetworkConnectionInformation is not atomic
+                NetworkConnectionInformation = await _protocolConnection.ConnectAsync(
+                    isServer: false,
+                    this,
+                    _connectCancellationSource.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
+            {
+                throw new ConnectionClosedException();
+            }
         }
     }
 
     /// <inheritdoc/>
-    public ValueTask DisposeAsync() =>
-        // Perform a speedy graceful shutdown by canceling invocations and dispatches in progress.
-        new(ShutdownAsync("connection disposed", new CancellationToken(canceled: true)));
+    public async ValueTask DisposeAsync()
+    {
+        await ShutdownAsync("connection disposed", new CancellationToken(canceled: true)).ConfigureAwait(false);
+        _connectCancellationSource.Dispose();
+        _shutdownCancellationSource.Dispose();
+    }
 
     /// <inheritdoc/>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
@@ -282,6 +301,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
                 // Calling shutdown on the protocol connection is required even if it's not connected because
                 // ShutdownAsync is used for two purposes: graceful protocol shutdown and the disposal of the
                 // connection's resources.
+                // TODO: comment no longer correct
                 _shutdownTask ??= ShutdownAsyncCore();
             }
         }
@@ -301,13 +321,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
         if (connectTask == null)
         {
-            // ConnectAsync wasn't called, just release resources associated with the protocol connection.
-            // TODO: Refactor depending on what we decide for the protocol connection resource cleanup (#1397,
-            // #1372, #1404, #1400).
             _protocolConnection.Abort(new ConnectionClosedException());
-
-            // Release disposable resources.
-            _shutdownCancellationSource.Dispose();
         }
         else
         {
@@ -332,14 +346,9 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
                 // Wait for connection establishment to complete before calling ShutdownAsync.
                 await connectTask.ConfigureAwait(false);
             }
-            catch (Exception exception)
+            catch
             {
-                // Protocol connection resource cleanup. This is for now performed by Abort (which should have
-                // been named CloseAsync like ConnectionCore.CloseAsync).
-                // TODO: Refactor depending on what we decide for the protocol connection resource cleanup (#1397,
-                // #1372, #1404, #1400).
-                _protocolConnection.Abort(exception);
-                return;
+                // TODO: in future PR, ShutdownAsync should throw exception
             }
 
             // If shutdown times out, abort the protocol connection.
@@ -348,9 +357,6 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
             // Shutdown the connection.
             await _protocolConnection.ShutdownAsync(message, _shutdownCancellationSource.Token).ConfigureAwait(false);
-
-            // Release disposable resources.
-            _shutdownCancellationSource.Dispose();
         }
     }
 }

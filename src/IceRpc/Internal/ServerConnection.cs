@@ -6,7 +6,7 @@ using System.Diagnostics;
 namespace IceRpc.Internal;
 
 /// <summary>A connection created by a <see cref="Server"/>.</summary>
-internal sealed class ServerConnection : IConnection
+internal sealed class ServerConnection : IConnection, IAsyncDisposable
 {
     /// <inheritdoc/>
     public bool IsResumable => false;
@@ -17,13 +17,13 @@ internal sealed class ServerConnection : IConnection
     /// <inheritdoc/>
     public Protocol Protocol => _protocolConnection.Protocol;
 
-    private bool _isShutdown;
-
     private readonly CancellationTokenSource _connectCancellationSource = new();
 
     private Task? _connectTask;
 
     private readonly TimeSpan _connectTimeout;
+
+    private bool _isShutdown;
 
     // Prevent concurrent assignment of _connectTask and _isShutdown.
     private readonly object _mutex = new();
@@ -31,6 +31,13 @@ internal sealed class ServerConnection : IConnection
     private readonly IProtocolConnection _protocolConnection;
 
     private readonly TimeSpan _shutdownTimeout;
+
+    /// <inheritdoc/>
+    public async ValueTask DisposeAsync()
+    {
+        await ShutdownAsync(new CancellationToken(canceled: true)).ConfigureAwait(false);
+        _connectCancellationSource.Dispose();
+    }
 
     /// <inheritdoc/>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
@@ -48,33 +55,39 @@ internal sealed class ServerConnection : IConnection
     }
 
     /// <summary>Aborts the connection.</summary>
-    internal void Abort() => _protocolConnection.Abort(new ConnectionAbortedException());
+    internal void Abort()
+    {
+        _connectCancellationSource.Cancel();
+        _protocolConnection.Abort(new ConnectionAbortedException());
+    }
 
     /// <summary>Establishes the connection.</summary>
     /// <returns>A task that indicates the completion of the connect operation.</returns>
     internal Task ConnectAsync()
     {
-        _connectCancellationSource.CancelAfter(_connectTimeout);
+        Debug.Assert(_connectTask == null);
 
         lock (_mutex)
         {
-            Debug.Assert(_connectTask == null);
-
             if (_isShutdown)
             {
                 return Task.CompletedTask;
             }
-            _connectTask = ConnectAsyncCore();
+            _connectTask = PerformConnectAsync();
         }
 
         return _connectTask;
 
-        async Task ConnectAsyncCore()
+        async Task PerformConnectAsync()
         {
             // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
             await Task.Yield();
 
-            await _protocolConnection.ConnectAsync(
+            _connectCancellationSource.CancelAfter(_connectTimeout);
+
+            // Even though this is not atomic, nobody can get hold of this connection before the connection is
+            // established
+            NetworkConnectionInformation = await _protocolConnection.ConnectAsync(
                 isServer: true,
                 this,
                 _connectCancellationSource.Token).ConfigureAwait(false);
@@ -95,17 +108,8 @@ internal sealed class ServerConnection : IConnection
         Task? connectTask = null;
         lock (_mutex)
         {
-            Debug.Assert(!_isShutdown);
-
-            if (_connectTask == null)
-            {
-                _isShutdown = true;
-            }
-            else
-            {
-                connectTask = _connectTask;
-                _isShutdown = true;
-            }
+            _isShutdown = true;
+            connectTask = _connectTask;
         }
 
         if (connectTask == null)
@@ -146,8 +150,5 @@ internal sealed class ServerConnection : IConnection
                 // Ignore, this can occur if the protocol conneciton is aborted.
             }
         }
-
-        // Release disposable resources.
-        _connectCancellationSource.Dispose();
     }
 }
