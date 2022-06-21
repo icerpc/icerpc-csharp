@@ -4,119 +4,118 @@ using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
-namespace IceRpc.Transports.Internal
+namespace IceRpc.Transports.Internal;
+
+/// <summary>A helper class to write to simple network connection. It provides a PipeWriter-like API but
+/// is not a PipeWriter.</summary>
+internal class SimpleNetworkConnectionWriter : IBufferWriter<byte>, IDisposable
 {
-    /// <summary>A helper class to write to simple network connection. It provides a PipeWriter-like API but
-    /// is not a PipeWriter.</summary>
-    internal class SimpleNetworkConnectionWriter : IBufferWriter<byte>, IDisposable
+    private readonly ISimpleNetworkConnection _connection;
+    private readonly Pipe _pipe;
+    private readonly List<ReadOnlyMemory<byte>> _sendBuffers = new(16);
+
+    /// <inheritdoc/>
+    public void Advance(int bytes) => _pipe.Writer.Advance(bytes);
+
+    /// <inheritdoc/>
+    public void Dispose()
     {
-        private readonly ISimpleNetworkConnection _connection;
-        private readonly Pipe _pipe;
-        private readonly List<ReadOnlyMemory<byte>> _sendBuffers = new(16);
+        _pipe.Writer.Complete();
+        _pipe.Reader.Complete();
+    }
 
-        /// <inheritdoc/>
-        public void Advance(int bytes) => _pipe.Writer.Advance(bytes);
+    /// <inheritdoc/>
+    public Memory<byte> GetMemory(int sizeHint = 0) => _pipe.Writer.GetMemory(sizeHint);
 
-        /// <inheritdoc/>
-        public void Dispose()
+    /// <inheritdoc/>
+    public Span<byte> GetSpan(int sizeHint = 0) => _pipe.Writer.GetSpan(sizeHint);
+
+    internal SimpleNetworkConnectionWriter(
+        ISimpleNetworkConnection connection,
+        MemoryPool<byte> pool,
+        int minimumSegmentSize)
+    {
+        _connection = connection;
+        _pipe = new Pipe(new PipeOptions(
+            pool: pool,
+            minimumSegmentSize: minimumSegmentSize,
+            pauseWriterThreshold: 0,
+            writerScheduler: PipeScheduler.Inline));
+    }
+
+    /// <summary>Flush the buffered data.</summary>
+    internal ValueTask FlushAsync(CancellationToken cancel) =>
+        WriteAsync(ReadOnlySequence<byte>.Empty, ReadOnlySequence<byte>.Empty, cancel);
+
+    /// <summary>Writes a sequence of bytes.</summary>
+    internal ValueTask WriteAsync(ReadOnlySequence<byte> source, CancellationToken cancel) =>
+        WriteAsync(source, ReadOnlySequence<byte>.Empty, cancel);
+
+    /// <summary>Writes two sequences of bytes.</summary>
+    internal async ValueTask WriteAsync(
+        ReadOnlySequence<byte> source1,
+        ReadOnlySequence<byte> source2,
+        CancellationToken cancel)
+    {
+        if (_pipe.Writer.UnflushedBytes == 0 && source1.IsEmpty && source2.IsEmpty)
         {
-            _pipe.Writer.Complete();
-            _pipe.Reader.Complete();
+            return;
         }
 
-        /// <inheritdoc/>
-        public Memory<byte> GetMemory(int sizeHint = 0) => _pipe.Writer.GetMemory(sizeHint);
+        _sendBuffers.Clear();
 
-        /// <inheritdoc/>
-        public Span<byte> GetSpan(int sizeHint = 0) => _pipe.Writer.GetSpan(sizeHint);
-
-        internal SimpleNetworkConnectionWriter(
-            ISimpleNetworkConnection connection,
-            MemoryPool<byte> pool,
-            int minimumSegmentSize)
+        // First add the data from the internal pipe.
+        SequencePosition? consumed = null;
+        if (_pipe.Writer.UnflushedBytes > 0)
         {
-            _connection = connection;
-            _pipe = new Pipe(new PipeOptions(
-                pool: pool,
-                minimumSegmentSize: minimumSegmentSize,
-                pauseWriterThreshold: 0,
-                writerScheduler: PipeScheduler.Inline));
+            await _pipe.Writer.FlushAsync(cancel).ConfigureAwait(false);
+            _pipe.Reader.TryRead(out ReadResult readResult);
+
+            Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled);
+
+            consumed = readResult.Buffer.GetPosition(readResult.Buffer.Length);
+            AddToSendBuffers(readResult.Buffer);
         }
 
-        /// <summary>Flush the buffered data.</summary>
-        internal ValueTask FlushAsync(CancellationToken cancel) =>
-            WriteAsync(ReadOnlySequence<byte>.Empty, ReadOnlySequence<byte>.Empty, cancel);
+        // Next add the data from source1 and source2.
+        AddToSendBuffers(source1);
+        AddToSendBuffers(source2);
 
-        /// <summary>Writes a sequence of bytes.</summary>
-        internal ValueTask WriteAsync(ReadOnlySequence<byte> source, CancellationToken cancel) =>
-            WriteAsync(source, ReadOnlySequence<byte>.Empty, cancel);
-
-        /// <summary>Writes two sequences of bytes.</summary>
-        internal async ValueTask WriteAsync(
-            ReadOnlySequence<byte> source1,
-            ReadOnlySequence<byte> source2,
-            CancellationToken cancel)
+        try
         {
-            if (_pipe.Writer.UnflushedBytes == 0 && source1.IsEmpty && source2.IsEmpty)
+            ValueTask task = _connection.WriteAsync(_sendBuffers, cancel);
+            if (cancel.CanBeCanceled && !task.IsCompleted)
             {
-                return;
+                await task.AsTask().WaitAsync(cancel).ConfigureAwait(false);
             }
-
-            _sendBuffers.Clear();
-
-            // First add the data from the internal pipe.
-            SequencePosition? consumed = null;
-            if (_pipe.Writer.UnflushedBytes > 0)
+            else
             {
-                await _pipe.Writer.FlushAsync(cancel).ConfigureAwait(false);
-                _pipe.Reader.TryRead(out ReadResult readResult);
-
-                Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled);
-
-                consumed = readResult.Buffer.GetPosition(readResult.Buffer.Length);
-                AddToSendBuffers(readResult.Buffer);
+                await task.ConfigureAwait(false);
             }
-
-            // Next add the data from source1 and source2.
-            AddToSendBuffers(source1);
-            AddToSendBuffers(source2);
-
-            try
+        }
+        finally
+        {
+            if (consumed != null)
             {
-                ValueTask task = _connection.WriteAsync(_sendBuffers, cancel);
-                if (cancel.CanBeCanceled && !task.IsCompleted)
-                {
-                    await task.AsTask().WaitAsync(cancel).ConfigureAwait(false);
-                }
-                else
-                {
-                    await task.ConfigureAwait(false);
-                }
+                _pipe.Reader.AdvanceTo(consumed.Value);
             }
-            finally
-            {
-                if (consumed != null)
-                {
-                    _pipe.Reader.AdvanceTo(consumed.Value);
-                }
-            }
+        }
 
-            void AddToSendBuffers(ReadOnlySequence<byte> source)
+        void AddToSendBuffers(ReadOnlySequence<byte> source)
+        {
+            if (source.IsEmpty)
             {
-                if (source.IsEmpty)
+                // Nothing to add.
+            }
+            else if (source.IsSingleSegment)
+            {
+                _sendBuffers.Add(source.First);
+            }
+            else
+            {
+                foreach (ReadOnlyMemory<byte> memory in source)
                 {
-                    // Nothing to add.
-                }
-                else if (source.IsSingleSegment)
-                {
-                    _sendBuffers.Add(source.First);
-                }
-                else
-                {
-                    foreach (ReadOnlyMemory<byte> memory in source)
-                    {
-                        _sendBuffers.Add(memory);
-                    }
+                    _sendBuffers.Add(memory);
                 }
             }
         }

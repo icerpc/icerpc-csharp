@@ -1,80 +1,79 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc.Transports
+namespace IceRpc.Transports;
+
+/// <summary>This enum contains event ID constants used for Slic transport logging.</summary>
+public enum SlicEventIds
 {
-    /// <summary>This enum contains event ID constants used for Slic transport logging.</summary>
-    public enum SlicEventIds
-    {
-        /// <summary>Receiving Slic Close frame.</summary>
-        ReceivedCloseFrame = IceRpc.Internal.BaseEventIds.Slic,
+    /// <summary>Receiving Slic Close frame.</summary>
+    ReceivedCloseFrame = IceRpc.Internal.BaseEventIds.Slic,
 
-        /// <summary>Receiving Slic initialize frame.</summary>
-        ReceivedInitializeFrame,
+    /// <summary>Receiving Slic initialize frame.</summary>
+    ReceivedInitializeFrame,
 
-        /// <summary>Receiving Slic initialize ack frame.</summary>
-        ReceivedInitializeAckFrame,
+    /// <summary>Receiving Slic initialize ack frame.</summary>
+    ReceivedInitializeAckFrame,
 
-        /// <summary>Receiving Slic ping frame.</summary>
-        ReceivedPingFrame,
+    /// <summary>Receiving Slic ping frame.</summary>
+    ReceivedPingFrame,
 
-        /// <summary>Receiving Slic pong frame.</summary>
-        ReceivedPongFrame,
+    /// <summary>Receiving Slic pong frame.</summary>
+    ReceivedPongFrame,
 
-        /// <summary>Receiving Slic stream data frame.</summary>
-        ReceivingStreamFrame,
+    /// <summary>Receiving Slic stream data frame.</summary>
+    ReceivingStreamFrame,
 
-        /// <summary>Received Slic stream consume frame.</summary>
-        ReceivedStreamConsumedFrame,
+    /// <summary>Received Slic stream consume frame.</summary>
+    ReceivedStreamConsumedFrame,
 
-        /// <summary>Received Slic stream reset frame.</summary>
-        ReceivedStreamResetFrame,
+    /// <summary>Received Slic stream reset frame.</summary>
+    ReceivedStreamResetFrame,
 
-        /// <summary>Received Slic stream stop sending frame.</summary>
-        ReceivedStreamStopSendingFrame,
+    /// <summary>Received Slic stream stop sending frame.</summary>
+    ReceivedStreamStopSendingFrame,
 
-        /// <summary>Received Slic unidirectional stream released frame.</summary>
-        ReceivedUnidirectionalStreamReleased,
+    /// <summary>Received Slic unidirectional stream released frame.</summary>
+    ReceivedUnidirectionalStreamReleased,
 
-        /// <summary>Received Slic Initialize frame with unsupported version.</summary>
-        ReceivedUnsupportedInitializeFrame,
+    /// <summary>Received Slic Initialize frame with unsupported version.</summary>
+    ReceivedUnsupportedInitializeFrame,
 
-        /// <summary>Receiving Slic version frame.</summary>
-        ReceivedVersionFrame,
+    /// <summary>Receiving Slic version frame.</summary>
+    ReceivedVersionFrame,
 
-        /// <summary>Sending Slic frame failed.</summary>
-        SendFailure,
+    /// <summary>Sending Slic frame failed.</summary>
+    SendFailure,
 
-        /// <summary>Sent Slic close frame.</summary>
-        SentCloseFrame,
+    /// <summary>Sent Slic close frame.</summary>
+    SentCloseFrame,
 
-        /// <summary>Sent Slic initialize frame.</summary>
-        SentInitializeFrame,
+    /// <summary>Sent Slic initialize frame.</summary>
+    SentInitializeFrame,
 
-        /// <summary>Sent Slic initialize ack frame.</summary>
-        SentInitializeAckFrame,
+    /// <summary>Sent Slic initialize ack frame.</summary>
+    SentInitializeAckFrame,
 
-        /// <summary>Sent Slic ping frame.</summary>
-        SentPingFrame,
+    /// <summary>Sent Slic ping frame.</summary>
+    SentPingFrame,
 
-        /// <summary>Sent Slic pong frame.</summary>
-        SentPongFrame,
+    /// <summary>Sent Slic pong frame.</summary>
+    SentPongFrame,
 
-        /// <summary>Sent Slic stream consumed frame.</summary>
-        SentStreamConsumedFrame,
+    /// <summary>Sent Slic stream consumed frame.</summary>
+    SentStreamConsumedFrame,
 
-        /// <summary>Sent Slic reset frame.</summary>
-        SentStreamResetFrame,
+    /// <summary>Sent Slic reset frame.</summary>
+    SentStreamResetFrame,
 
-        /// <summary>Sent Slic stream frame.</summary>
-        SentStreamFrame,
+    /// <summary>Sent Slic stream frame.</summary>
+    SentStreamFrame,
 
-        /// <summary>Sent Slic stream stop sending frame.</summary>
-        SentStreamStopSendingFrame,
+    /// <summary>Sent Slic stream stop sending frame.</summary>
+    SentStreamStopSendingFrame,
 
-        /// <summary>Sent Slic unidirectional stream released frame.</summary>
-        SentUnidirectionalStreamReleased,
+    /// <summary>Sent Slic unidirectional stream released frame.</summary>
+    SentUnidirectionalStreamReleased,
 
-        /// <summary>Sent Slic version frame.</summary>
-        SentVersionFrame
-    }
+    /// <summary>Sent Slic version frame.</summary>
+    SentVersionFrame
 }
