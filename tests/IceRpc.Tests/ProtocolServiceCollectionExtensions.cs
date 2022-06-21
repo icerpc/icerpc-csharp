@@ -221,5 +221,6 @@ internal class Listener<T> : IListener<T> where T : INetworkConnection
     }
 
     public Task<T> AcceptAsync() => _listener.AcceptAsync();
-    public ValueTask DisposeAsync() => _listener.DisposeAsync();
+
+    public void Dispose() => _listener.Dispose();
 }

@@ -108,7 +108,7 @@ public class TcpTransportTests
     public async Task Configure_server_connection_buffer_size(int bufferSize)
     {
         // Arrange
-        await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
+        using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
             options: new TcpServerTransportOptions
             {
                 ReceiveBufferSize = bufferSize,
@@ -171,7 +171,7 @@ public class TcpTransportTests
     public async Task Configure_server_connection_listen_backlog()
     {
         // Arrange
-        await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
+        using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
             options: new TcpServerTransportOptions
             {
                 ListenerBackLog = 18
@@ -216,7 +216,7 @@ public class TcpTransportTests
     public async Task Connect_cancellation()
     {
         // Arrange
-        await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
+        using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
             options: new TcpServerTransportOptions
             {
                 ListenerBackLog = 1
@@ -269,7 +269,7 @@ public class TcpTransportTests
     {
         // Arrange
         using var cancellationSource = new CancellationTokenSource();
-        await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
+        using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
             authenticationOptions: DefaultSslServerAuthenticationOptions);
 
         using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(
@@ -298,7 +298,7 @@ public class TcpTransportTests
     {
         // Arrange
         using var cancellationSource = new CancellationTokenSource();
-        await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
+        using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
             authenticationOptions: tls ? DefaultSslServerAuthenticationOptions : null);
 
         using TcpClientNetworkConnection clientConnection = CreateTcpClientConnection(
@@ -331,7 +331,7 @@ public class TcpTransportTests
     public async Task Tls_server_connection_connect_failed_exception()
     {
         // Arrange
-        await using IListener<ISimpleNetworkConnection> listener =
+        using IListener<ISimpleNetworkConnection> listener =
             CreateTcpListener(authenticationOptions: DefaultSslServerAuthenticationOptions);
         using TcpClientNetworkConnection clientConnection =
             CreateTcpClientConnection(listener.Endpoint, authenticationOptions: DefaultSslClientAuthenticationOptions);
@@ -355,7 +355,7 @@ public class TcpTransportTests
     {
         // Arrange
         using var cancellationSource = new CancellationTokenSource();
-        await using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
+        using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
             authenticationOptions: new SslServerAuthenticationOptions
             {
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),

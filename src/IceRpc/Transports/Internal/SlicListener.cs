@@ -21,7 +21,7 @@ internal class SlicListener : IListener<IMultiplexedNetworkConnection>
             _slicFrameWriterDecorator,
             _slicOptions);
 
-    public ValueTask DisposeAsync() => _simpleListener.DisposeAsync();
+    public void Dispose() => _simpleListener.Dispose();
 
     internal SlicListener(
         IListener<ISimpleNetworkConnection> simpleListener,
