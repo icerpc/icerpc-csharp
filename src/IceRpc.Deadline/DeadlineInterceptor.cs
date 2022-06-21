@@ -4,8 +4,9 @@ using IceRpc.Slice;
 
 namespace IceRpc.Deadline;
 
-/// <summary>The deadline interceptor adds a deadline to requests without a deadline feature, encodes the deadline field
-/// and enforces the deadline.</summary>
+/// <summary>The deadline interceptor adds a deadline to requests without a deadline feature and encodes the deadline
+/// field. When the deadline expires, the invocation is canceled and the interceptor throws
+/// <see cref="TimeoutException"/>.</summary>
 public class DeadlineInterceptor : IInvoker
 {
     private readonly bool _alwaysEnforceDeadline;
@@ -14,43 +15,38 @@ public class DeadlineInterceptor : IInvoker
 
     /// <summary>Constructs a deadline interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
-    /// <param name="options">The deadline interceptor options.</param>
-    public DeadlineInterceptor(IInvoker next, DeadlineInterceptorOptions options)
+    /// <param name="defaultTimeout">The default timeout.</param>
+    /// <param name="alwaysEnforceDeadline">Indicates whether this interceptor always enforces the deadline.</param>
+    public DeadlineInterceptor(IInvoker next, TimeSpan defaultTimeout, bool alwaysEnforceDeadline)
     {
         _next = next;
-        _alwaysEnforceDeadline = options.AlwaysEnforceDeadline;
-        _defaultTimeout = options.DefaultTimeout;
+        _alwaysEnforceDeadline = alwaysEnforceDeadline;
+        _defaultTimeout = defaultTimeout;
     }
 
     /// <inheritdoc/>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default)
     {
-        TimeSpan timeout = Timeout.InfiniteTimeSpan;
+        TimeSpan? timeout = null;
         DateTime deadline = DateTime.MaxValue;
-        bool enforceDeadline = false;
 
         if (request.Features.Get<IDeadlineFeature>() is IDeadlineFeature deadlineFeature)
         {
             deadline = deadlineFeature.Value;
-            if (deadline != DateTime.MaxValue)
+            if (deadline != DateTime.MaxValue && (_alwaysEnforceDeadline || !cancel.CanBeCanceled))
             {
-                enforceDeadline = _alwaysEnforceDeadline || !cancel.CanBeCanceled;
-                if (enforceDeadline)
-                {
-                    timeout = deadline - DateTime.UtcNow;
-
-                    if (timeout < TimeSpan.Zero)
-                    {
-                        throw new TimeoutException("the request deadline has expired");
-                    }
-                }
+                timeout = deadline - DateTime.UtcNow;
             }
         }
         else if (_defaultTimeout != Timeout.InfiniteTimeSpan)
         {
             timeout = _defaultTimeout;
-            deadline = DateTime.UtcNow + timeout;
-            enforceDeadline = true;
+            deadline = DateTime.UtcNow + timeout.Value;
+        }
+
+        if (timeout is not null && timeout.Value <= TimeSpan.Zero)
+        {
+            throw new TimeoutException("the request deadline has expired");
         }
 
         if (deadline != DateTime.MaxValue)
@@ -61,7 +57,7 @@ public class DeadlineInterceptor : IInvoker
                 (ref SliceEncoder encoder) => encoder.EncodeVarInt62(deadlineValue));
         }
 
-        return enforceDeadline ? PerformInvokeAsync(timeout) : _next.InvokeAsync(request, cancel);
+        return timeout is null ? _next.InvokeAsync(request, cancel) : PerformInvokeAsync(timeout.Value);
 
         async Task<IncomingResponse> PerformInvokeAsync(TimeSpan timeout)
         {

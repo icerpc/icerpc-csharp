@@ -5,8 +5,9 @@ using IceRpc.Slice;
 
 namespace IceRpc.Deadline;
 
-/// <summary>The deadline middleware decodes the deadline field into the deadline feature and creates a cancellation
-/// token source to enforce this deadline.</summary>
+/// <summary>The deadline middleware decodes the deadline field into the deadline feature. When the deadline expires,
+/// the dispatch is canceled and the middleware throws <see cref="DispatchException"/> with the
+/// <see cref="DispatchErrorCode.DeadlineExpired"/> error code.</summary>
 public class DeadlineMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;
@@ -44,7 +45,7 @@ public class DeadlineMiddleware : IDispatcher
         async ValueTask<OutgoingResponse> PerformDispatchAsync(TimeSpan timeout)
         {
             using var tokenSource = new CancellationTokenSource(timeout);
-            using CancellationTokenRegistration _ = cancel.Register(() => tokenSource.Cancel());
+            using CancellationTokenRegistration _ = cancel.Register(tokenSource.Cancel);
 
             try
             {

@@ -26,7 +26,10 @@ public sealed class DeadlineInterceptorTests
             return new IncomingResponse(request, request.Connection!);
         });
 
-        var sut = new DeadlineInterceptor(invoker, new() { DefaultTimeout = TimeSpan.FromMilliseconds(10) });
+        var sut = new DeadlineInterceptor(
+            invoker,
+            defaultTimeout: TimeSpan.FromMilliseconds(10),
+            alwaysEnforceDeadline: false);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
 
         // Act
@@ -62,7 +65,8 @@ public sealed class DeadlineInterceptorTests
                 }
                 return Task.FromResult(new IncomingResponse(request, request.Connection!));
             }),
-            new() { DefaultTimeout = TimeSpan.FromSeconds(120) });
+            defaultTimeout: TimeSpan.FromSeconds(120),
+            alwaysEnforceDeadline: false);
 
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
         {
@@ -93,7 +97,7 @@ public sealed class DeadlineInterceptorTests
             return Task.FromResult(new IncomingResponse(request, request.Connection!));
         });
 
-        var sut = new DeadlineInterceptor(invoker, new() { DefaultTimeout = timeout });
+        var sut = new DeadlineInterceptor(invoker, timeout, alwaysEnforceDeadline: false);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
         DateTime expectedDeadline = DateTime.UtcNow + timeout;
 
@@ -115,7 +119,7 @@ public sealed class DeadlineInterceptorTests
             return Task.FromResult(new IncomingResponse(request, request.Connection!));
         });
 
-        var sut = new DeadlineInterceptor(invoker, new());
+        var sut = new DeadlineInterceptor(invoker, Timeout.InfiniteTimeSpan, alwaysEnforceDeadline: false);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
         {
             Features = new FeatureCollection().With<IDeadlineFeature>(
@@ -142,7 +146,10 @@ public sealed class DeadlineInterceptorTests
             return new IncomingResponse(request, request.Connection!);
         });
 
-        var sut = new DeadlineInterceptor(invoker, new() { AlwaysEnforceDeadline = true });
+        var sut = new DeadlineInterceptor(
+            invoker,
+            defaultTimeout: Timeout.InfiniteTimeSpan,
+            alwaysEnforceDeadline: true);
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
         {
             Features = new FeatureCollection().With<IDeadlineFeature>(
