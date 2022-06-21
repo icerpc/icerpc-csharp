@@ -484,16 +484,24 @@ public class ConnectionTests
     }
 
     [Test]
-    public async Task Shutdown_waits_for_connection_establishment()
+    public async Task Shutdown_waits_for_connection_establishment([Values("ice", "icerpc")] string protocol)
     {
         // Arrange
         var tcpServerTransport = new TcpServerTransport();
-        var slicServerTransport = new SlicServerTransport(tcpServerTransport);
+        await using var listener = tcpServerTransport.Listen(
+            "icerpc://127.0.0.1:0",
+            authenticationOptions: null,
+            NullLogger.Instance);
 
-        await using var listener = slicServerTransport.Listen($"icerpc://127.0.0.1:0", null, NullLogger.Instance);
+        var endpoint = new Endpoint(Protocol.FromString(protocol))
+            {
+                Host = listener.Endpoint.Host,
+                Port = listener.Endpoint.Port
+            };
+
         await using var connection = new ClientConnection(new ClientConnectionOptions
         {
-            RemoteEndpoint = listener.Endpoint,
+            RemoteEndpoint = endpoint,
         });
         Task connectTask = connection.ConnectAsync();
 

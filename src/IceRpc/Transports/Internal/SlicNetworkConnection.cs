@@ -115,6 +115,18 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
 
     public async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
     {
+        lock (_mutex)
+        {
+            if (_exception != null)
+            {
+                throw ExceptionUtil.Throw(_exception);
+            }
+
+            // Resource cleanup needs to know when no more reads are pending to release the simple network connection
+            // reader.
+            _readFramesTaskCompletionSource = new();
+        }
+
         NetworkConnectionInformation information;
         try
         {
@@ -245,6 +257,8 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         }
         catch (ObjectDisposedException)
         {
+            _readFramesTaskCompletionSource.SetResult();
+
             // The simple network connection can only be disposed if this connection is aborted either because
             // it was disposed or because the connection was lost. We throw the abort exception to ensure that
             // the cause of the connection abortion (connection disposed or lost) is correctly reported.
@@ -254,20 +268,16 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
                 throw ExceptionUtil.Throw(_exception);
             }
         }
+        catch
+        {
+            _readFramesTaskCompletionSource.SetResult();
+            throw;
+        }
 
         // Start a task to read frames from the network connection.
         _ = Task.Run(
             async () =>
             {
-                lock (_mutex)
-                {
-                    if (_exception != null)
-                    {
-                        return;
-                    }
-                    _readFramesTaskCompletionSource = new();
-                }
-
                 Exception? exception = null;
                 try
                 {
@@ -1090,8 +1100,9 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
 
         try
         {
-            // The cancellation of the stream write operation should not leave the simple network connection in a non
-            // recoverable state (which is typically the case when a write on the network connection is canceled).
+            // We let the write complete if the stream write operation is canceled. The cancellation of the stream write
+            // operation should not leave the simple network connection in a non recoverable state (which is typically
+            // the case when a write on the network connection is canceled).
             return new(_simpleNetworkConnectionWriter.WriteAsync(
                 source1,
                 source2,

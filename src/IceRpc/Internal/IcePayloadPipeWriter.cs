@@ -24,8 +24,18 @@ internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
 
     public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancel = default)
     {
-        // The flush can't be canceled because it would lead to the writing of an incomplete payload.
-        await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+        // The cancellation of the flush just cancels the wait for the data writing. It doesn't cancel the write as
+        // it would leave the connection is a non-recoverable state.
+        try
+        {
+            await _networkConnectionWriter.FlushAsync(
+                CancellationToken.None).AsTask().WaitAsync(cancel).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            // The simple network connection can only be disposed if this connection is aborted.
+            throw new ConnectionAbortedException();
+        }
         return default;
     }
 
@@ -35,10 +45,19 @@ internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
 
     public override async ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancel)
     {
-        // The write can't be canceled because it would lead to the writing of an incomplete payload.
-        await _networkConnectionWriter.WriteAsync(
-            new ReadOnlySequence<byte>(source),
-            CancellationToken.None).ConfigureAwait(false);
+        // The cancellation of the write just cancels the wait for the data writing. It doesn't cancel the write as
+        // it would leave the connection is a non-recoverable state.
+        try
+        {
+            await _networkConnectionWriter.WriteAsync(
+                new ReadOnlySequence<byte>(source),
+                CancellationToken.None).AsTask().WaitAsync(cancel).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            // The simple network connection can only be disposed if this connection is aborted.
+            throw new ConnectionAbortedException();
+        }
         return default;
     }
 
@@ -49,8 +68,19 @@ internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
         bool endStream,
         CancellationToken cancel)
     {
-        // The write can't be canceled because it would lead to the writing of an incomplete payload.
-        await _networkConnectionWriter.WriteAsync(source, CancellationToken.None).ConfigureAwait(false);
+        // The cancellation of the flush just cancels the wait for the data writing. It doesn't cancel the write as
+        // it would leave the connection is a non-recoverable state.
+        try
+        {
+            await _networkConnectionWriter.WriteAsync(
+                source,
+                CancellationToken.None).AsTask().WaitAsync(cancel).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            // The simple network connection can only be disposed if this connection is aborted.
+            throw new ConnectionAbortedException();
+        }
         return default;
     }
 
