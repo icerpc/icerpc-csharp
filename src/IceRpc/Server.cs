@@ -122,7 +122,9 @@ public sealed class Server : IAsyncDisposable
             _isDisposed = true;
             _isReadOnly = true;
 
+            // Stop accepting new connections by disposing of the listener
             _listener?.Dispose();
+            _listener = null;
         }
 
         try
