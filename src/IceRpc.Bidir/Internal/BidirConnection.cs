@@ -10,38 +10,23 @@ internal class BidirConnection : IConnection
 {
     public bool IsResumable => true;
 
-    public NetworkConnectionInformation? NetworkConnectionInformation => Decoratee.NetworkConnectionInformation;
+    public NetworkConnectionInformation? NetworkConnectionInformation => _decoratee.NetworkConnectionInformation;
 
-    public Protocol Protocol => Decoratee.Protocol;
+    public Protocol Protocol => _decoratee.Protocol;
 
-    internal IConnection Decoratee
-    {
-        get => _decoratee;
-        set
-        {
-            lock (_mutex)
-            {
-                if (value != _decoratee)
-                {
-                    _decoratee = value;
-                    if (_connectionUpdatedSource != null)
-                    {
-                        _connectionUpdatedSource.SetResult();
-                        _connectionUpdatedSource = null;
-                    }
-                }
-            }
-        }
-    }
-
-    private TaskCompletionSource? _connectionUpdatedSource;
+    private TaskCompletionSource<IConnection>? _connectionUpdatedSource;
     private IConnection _decoratee;
     private readonly object _mutex = new();
     private readonly TimeSpan _reconnectTimeout;
 
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        IConnection connection = Decoratee;
+        IConnection connection;
+        lock (_mutex)
+        {
+            connection = _decoratee;
+        }
+
         IncomingResponse response;
         try
         {
@@ -49,15 +34,15 @@ internal class BidirConnection : IConnection
         }
         catch (ConnectionClosedException ex)
         {
-            Task? updatedTask = null;
+            Task<IConnection>? updateTask = null;
             lock (_mutex)
             {
                 // If connection stills points to the actual _decoratee we set updatedTask to wait for the
                 // _decorate to be updated otherwise we can retry right away with the new _decoratee
                 if (connection == _decoratee)
                 {
-                    _connectionUpdatedSource ??= new TaskCompletionSource();
-                    updatedTask = _connectionUpdatedSource.Task;
+                    _connectionUpdatedSource ??= new TaskCompletionSource<IConnection>();
+                    updateTask = _connectionUpdatedSource.Task;
                 }
                 else
                 {
@@ -65,23 +50,18 @@ internal class BidirConnection : IConnection
                 }
             }
 
-            if (updatedTask != null)
+            if (updateTask != null)
             {
+                using var timeoutTokenSource = new CancellationTokenSource(_reconnectTimeout);
                 try
                 {
-                    using var timeoutTokenSource = new CancellationTokenSource(_reconnectTimeout);
-                    using var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
-                        cancel,
-                        timeoutTokenSource.Token);
-                    await updatedTask.WaitAsync(linkedTokenSource.Token).ConfigureAwait(false);
-                    Debug.Assert(connection != _decoratee);
-                    connection = _decoratee;
+                    cancel.Register(timeoutTokenSource.Cancel);
+                    connection = await updateTask.WaitAsync(timeoutTokenSource.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
-                    // TODO: Should we mark this connection as closed and let subsequences class to InvokeAsyn fail right await.
-
                     // Give up on waiting for a new connection and throw the original exception.
+                    Debug.Assert(timeoutTokenSource.IsCancellationRequested);
                     ExceptionDispatchInfo.Throw(ex);
                 }
             }
@@ -96,9 +76,25 @@ internal class BidirConnection : IConnection
     {
     }
 
-    internal BidirConnection(IConnection decoratee, TimeSpan waitTimeout)
+    internal BidirConnection(IConnection decoratee, TimeSpan reconnectTimeout)
     {
         _decoratee = decoratee;
-        _reconnectTimeout = waitTimeout;
+        _reconnectTimeout = reconnectTimeout;
+    }
+
+    internal void UpdateDecoratee(IConnection connection)
+    {
+        lock (_mutex)
+        {
+            if (connection != _decoratee)
+            {
+                _decoratee = connection;
+                if (_connectionUpdatedSource != null)
+                {
+                    _connectionUpdatedSource.SetResult(_decoratee);
+                    _connectionUpdatedSource = null;
+                }
+            }
+        }
     }
 }

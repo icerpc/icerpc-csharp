@@ -39,7 +39,7 @@ public class BidirMiddleware : IDispatcher
             {
                 if (_connections.TryGetValue(relativeOrigin, out BidirConnection? bidirConnection))
                 {
-                    bidirConnection.Decoratee = request.Connection;
+                    bidirConnection.UpdateDecoratee(request.Connection);
                 }
                 else
                 {
