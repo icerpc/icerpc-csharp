@@ -14,7 +14,7 @@ namespace IceRpc.Transports.Internal;
 /// top of a <see cref="ISimpleNetworkConnection"/>.</summary>
 internal class SlicNetworkConnection : IMultiplexedNetworkConnection
 {
-    internal bool IsAborted => _exception != null;
+    internal bool IsAborted => _exception is not null;
 
     internal bool IsServer { get; }
 
@@ -61,7 +61,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
     {
         lock (_mutex)
         {
-            if (_exception != null)
+            if (_exception is not null)
             {
                 return;
             }
@@ -89,7 +89,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
 
         async Task AbortCoreAsync()
         {
-            Debug.Assert(_exception != null);
+            Debug.Assert(_exception is not null);
 
             // Unblock requests waiting on the semaphore and wait for the semaphore to be released to ensure it's
             // safe to dispose the simple network connection writer.
@@ -97,7 +97,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
 
             // Wait for the receive task to complete to ensure we don't dispose the simple network connection reader
             // while it's being used.
-            if (_readFramesTaskCompletionSource != null)
+            if (_readFramesTaskCompletionSource is not null)
             {
                 await _readFramesTaskCompletionSource.Task.ConfigureAwait(false);
             }
@@ -115,11 +115,11 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
 
     public async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
     {
-        Debug.Assert(_readFramesTaskCompletionSource == null); // ConnectAsync should be called only once.
+        Debug.Assert(_readFramesTaskCompletionSource is null); // ConnectAsync should be called only once.
 
         lock (_mutex)
         {
-            if (_exception != null)
+            if (_exception is not null)
             {
                 throw ExceptionUtil.Throw(_exception);
             }
@@ -185,7 +185,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
                         cancel).ConfigureAwait(false);
                 }
 
-                if (initializeBody == null)
+                if (initializeBody is null)
                 {
                     throw new InvalidDataException($"unsupported Slic version '{version}'");
                 }
@@ -264,7 +264,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
             // The simple network connection can only be disposed if this connection is aborted.
             lock (_mutex)
             {
-                Debug.Assert(_exception != null);
+                Debug.Assert(_exception is not null);
                 throw ExceptionUtil.Throw(_exception);
             }
         }
@@ -402,7 +402,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
     {
         lock (_mutex)
         {
-            if (_exception != null)
+            if (_exception is not null)
             {
                 throw _exception;
             }
@@ -446,7 +446,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
             // The simple network connection can only be disposed if this connection is aborted.
             lock (_mutex)
             {
-                Debug.Assert(_exception != null);
+                Debug.Assert(_exception is not null);
                 throw ExceptionUtil.Throw(_exception);
             }
         }
@@ -504,7 +504,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         CancellationToken cancel)
     {
         Debug.Assert(!source1.IsEmpty || endStream);
-        if (_bidirectionalStreamSemaphore == null)
+        if (_bidirectionalStreamSemaphore is null)
         {
             throw new InvalidOperationException("cannot send a stream before calling ConnectAsync");
         }
@@ -657,7 +657,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
             // The simple network connection can only be disposed if this connection is aborted.
             lock (_mutex)
             {
-                Debug.Assert(_exception != null);
+                Debug.Assert(_exception is not null);
                 throw ExceptionUtil.Throw(_exception);
             }
         }
@@ -695,7 +695,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
             // The simple network connection can only be disposed if this connection is aborted.
             lock (_mutex)
             {
-                Debug.Assert(_exception != null);
+                Debug.Assert(_exception is not null);
                 throw ExceptionUtil.Throw(_exception);
             }
         }
@@ -775,7 +775,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
                 case FrameType.Stream:
                 case FrameType.StreamLast:
                 {
-                    Debug.Assert(streamId != null);
+                    Debug.Assert(streamId is not null);
                     bool endStream = type == FrameType.StreamLast;
                     bool isRemote = streamId % 2 == (IsServer ? 0 : 1);
                     bool isBidirectional = streamId % 4 < 2;
@@ -882,7 +882,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
                 }
                 case FrameType.StreamConsumed:
                 {
-                    Debug.Assert(streamId != null);
+                    Debug.Assert(streamId is not null);
                     if (dataSize == 0)
                     {
                         throw new InvalidDataException("stream consumed frame too small");
@@ -904,7 +904,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
                 }
                 case FrameType.StreamReset:
                 {
-                    Debug.Assert(streamId != null);
+                    Debug.Assert(streamId is not null);
                     if (dataSize == 0)
                     {
                         throw new InvalidDataException("stream reset frame too small");
@@ -926,7 +926,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
                 }
                 case FrameType.StreamStopSending:
                 {
-                    Debug.Assert(streamId != null);
+                    Debug.Assert(streamId is not null);
                     if (dataSize == 0)
                     {
                         throw new InvalidDataException("stream stop sending frame too small");
@@ -948,7 +948,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
                 }
                 case FrameType.UnidirectionalStreamReleased:
                 {
-                    Debug.Assert(streamId != null);
+                    Debug.Assert(streamId is not null);
                     if (dataSize > 0)
                     {
                         throw new InvalidDataException("unidirectional stream released frame too large");
@@ -1015,12 +1015,12 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
 
         // Now, ensure required parameters are set.
 
-        if (_bidirectionalStreamSemaphore == null)
+        if (_bidirectionalStreamSemaphore is null)
         {
             throw new InvalidDataException("missing MaxBidirectionalStreams Slic connection parameter");
         }
 
-        if (_unidirectionalStreamSemaphore == null)
+        if (_unidirectionalStreamSemaphore is null)
         {
             throw new InvalidDataException("missing MaxUnidirectionalStreams Slic connection parameter");
         }
@@ -1048,7 +1048,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
         int startPos = encoder.EncodedByteCount;
 
-        if (streamId != null)
+        if (streamId is not null)
         {
             encoder.EncodeVarUInt62((ulong)streamId);
         }
@@ -1064,7 +1064,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
             // The simple network connection can only be disposed if this connection is aborted.
             lock (_mutex)
             {
-                Debug.Assert(_exception != null);
+                Debug.Assert(_exception is not null);
                 throw ExceptionUtil.Throw(_exception);
             }
         }
@@ -1100,7 +1100,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
             // The simple network connection can only be disposed if this connection is aborted.
             lock (_mutex)
             {
-                Debug.Assert(_exception != null);
+                Debug.Assert(_exception is not null);
                 throw ExceptionUtil.Throw(_exception);
             }
         }

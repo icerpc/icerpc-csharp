@@ -87,7 +87,7 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
     /// <returns>A task that indicates the completion of the connect operation.</returns>
     internal Task ConnectAsync()
     {
-        Debug.Assert(_connectTask == null); // called at most once
+        Debug.Assert(_connectTask is null); // called at most once
 
         lock (_mutex)
         {

@@ -33,7 +33,7 @@ public sealed record class Proxy
 
             if (value.Count > 0)
             {
-                if (_endpoint == null)
+                if (_endpoint is null)
                 {
                     throw new InvalidOperationException(
                         $"cannot set {nameof(AltEndpoints)} when {nameof(Endpoint)} is empty");
@@ -89,7 +89,7 @@ public sealed record class Proxy
                     nameof(value));
             }
 
-            if (value != null)
+            if (value is not null)
             {
                 if (_params.Count > 0)
                 {
@@ -195,7 +195,7 @@ public sealed record class Proxy
                 throw new ArgumentException($"invalid parameters", nameof(Params), ex);
             }
 
-            if (_endpoint != null && value.Count > 0)
+            if (_endpoint is not null && value.Count > 0)
             {
                 throw new InvalidOperationException($"cannot set {nameof(Params)} on a proxy with an endpoint");
             }
@@ -251,7 +251,7 @@ public sealed record class Proxy
             throw new FormatException($"cannot parse URI '{s}'", ex);
         }
 
-        if (invoker != null)
+        if (invoker is not null)
         {
             try
             {
@@ -344,7 +344,7 @@ public sealed record class Proxy
                         port: checked((ushort)(uri.Port == -1 ? Protocol.DefaultUriPort : uri.Port)),
                         queryParams);
 
-                    if (altEndpointValue != null)
+                    if (altEndpointValue is not null)
                     {
                         // Split and parse recursively each endpoint
                         foreach (string endpointStr in altEndpointValue.Split(','))
@@ -365,7 +365,7 @@ public sealed record class Proxy
                         throw new FormatException($"invalid path in proxy URI '{uri.OriginalString}'");
                     }
 
-                    if (altEndpointValue != null)
+                    if (altEndpointValue is not null)
                     {
                         throw new FormatException($"invalid alt-endpoint parameter in URI '{uri.OriginalString}'");
                     }
@@ -391,7 +391,7 @@ public sealed record class Proxy
     /// <inheritdoc/>
     public bool Equals(Proxy? other)
     {
-        if (other == null)
+        if (other is null)
         {
             return false;
         }
@@ -411,8 +411,8 @@ public sealed record class Proxy
         }
         else if (!Protocol.IsSupported)
         {
-            Debug.Assert(OriginalUri != null);
-            Debug.Assert(other.OriginalUri != null);
+            Debug.Assert(OriginalUri is not null);
+            Debug.Assert(other.OriginalUri is not null);
             return OriginalUri == other.OriginalUri;
         }
 
@@ -438,7 +438,7 @@ public sealed record class Proxy
         }
 
         // Only compare the connections of endpointless proxies.
-        if (_endpoint == null && _connection != other._connection)
+        if (_endpoint is null && _connection != other._connection)
         {
             return false;
         }
@@ -463,7 +463,7 @@ public sealed record class Proxy
         }
         else if (!Protocol.IsSupported)
         {
-            Debug.Assert(OriginalUri != null);
+            Debug.Assert(OriginalUri is not null);
             return OriginalUri.GetHashCode();
         }
 
@@ -476,11 +476,11 @@ public sealed record class Proxy
         hash.Add(Fragment);
         hash.Add(Invoker);
 
-        if (_endpoint != null)
+        if (_endpoint is not null)
         {
             hash.Add(_endpoint);
         }
-        else if (_connection != null)
+        else if (_connection is not null)
         {
             hash.Add(_connection);
         }

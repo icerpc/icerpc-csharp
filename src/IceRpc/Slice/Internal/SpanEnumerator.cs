@@ -39,7 +39,7 @@ internal ref struct SpanEnumerator
                     return false;
                 }
             default:
-                if (_additionalMemory != null && _additionalMemory.Count > _position - 1)
+                if (_additionalMemory is not null && _additionalMemory.Count > _position - 1)
                 {
                     _position += 1;
                     _currentSpan = _additionalMemory[_position - 2].Span;

@@ -30,7 +30,7 @@ internal static class UriExtensions
 
                 if (name == "alt-endpoint")
                 {
-                    altEndpoint = altEndpoint == null ? value : $"{altEndpoint},{value}";
+                    altEndpoint = altEndpoint is null ? value : $"{altEndpoint},{value}";
                 }
                 else
                 {

@@ -110,14 +110,14 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
                     foreach (Endpoint altEndpoint in altEndpoints)
                     {
                         connection = GetActiveConnection(altEndpoint);
-                        if (connection != null)
+                        if (connection is not null)
                         {
                             break; // foreach
                         }
                     }
                 }
             }
-            if (connection != null)
+            if (connection is not null)
             {
                 return new(connection);
             }
@@ -315,7 +315,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
 
         void RemoveFromActive(Exception exception)
         {
-            Debug.Assert(connection != null);
+            Debug.Assert(connection is not null);
 
             bool scheduleRemoveFromClosed = false;
 

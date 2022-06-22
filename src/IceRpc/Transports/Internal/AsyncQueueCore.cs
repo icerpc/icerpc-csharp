@@ -48,7 +48,7 @@ internal struct AsyncQueueCore<T>
         try
         {
             _lock.Enter(ref lockTaken);
-            if (_exception != null)
+            if (_exception is not null)
             {
                 return false;
             }
@@ -81,13 +81,13 @@ internal struct AsyncQueueCore<T>
         try
         {
             _lock.Enter(ref lockTaken);
-            if (_exception == null)
+            if (_exception is null)
             {
                 if (_source.GetStatus(_source.Version) == ValueTaskSourceStatus.Pending)
                 {
                     // If the source is pending, set the result on the source result. The  queue should be empty if
                     // the source is pending.
-                    Debug.Assert(_queue == null || _queue.Count == 0);
+                    Debug.Assert(_queue is null || _queue.Count == 0);
                     _source.SetResult(value);
                 }
                 else
@@ -134,7 +134,7 @@ internal struct AsyncQueueCore<T>
         try
         {
             _lock.Enter(ref lockTaken);
-            if (_exception != null)
+            if (_exception is not null)
             {
                 throw ExceptionUtil.Throw(_exception);
             }
@@ -144,7 +144,7 @@ internal struct AsyncQueueCore<T>
             _source.Reset();
 
             // If there results are queued, dequeue the result and set it on the source.
-            if (_queue != null && _queue.Count > 0)
+            if (_queue is not null && _queue.Count > 0)
             {
                 _source.SetResult(_queue.Dequeue());
             }

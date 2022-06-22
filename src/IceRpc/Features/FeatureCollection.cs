@@ -27,7 +27,7 @@ public class FeatureCollection : IFeatureCollection
 
         set
         {
-            if (value == null)
+            if (value is null)
             {
                 _ = _features.Remove(key);
             }
@@ -64,7 +64,7 @@ public class FeatureCollection : IFeatureCollection
             yield return pair;
         }
 
-        if (_defaults != null)
+        if (_defaults is not null)
         {
             foreach (KeyValuePair<Type, object> pair in _defaults)
             {

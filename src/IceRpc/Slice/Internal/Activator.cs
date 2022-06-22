@@ -103,7 +103,7 @@ internal class ActivatorFactory
                 new Type[] { typeof(SliceDecoder).MakeByRefType() },
                 null);
 
-            if (constructor == null)
+            if (constructor is null)
             {
                 throw new InvalidOperationException($"cannot get Slice decoding constructor for '{type}'");
             }

@@ -52,7 +52,7 @@ public class TcpClientTransport : IClientTransport<ISimpleNetworkConnection>
         authenticationOptions = authenticationOptions?.Clone() ??
             (remoteEndpointTransport == TransportNames.Ssl ? new SslClientAuthenticationOptions() : null);
 
-        if (authenticationOptions != null)
+        if (authenticationOptions is not null)
         {
             // Add the endpoint protocol to the SSL application protocols (used by TLS ALPN) and set the
             // TargetHost to the endpoint host. On the client side, the application doesn't necessarily

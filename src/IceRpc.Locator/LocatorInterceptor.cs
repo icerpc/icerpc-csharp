@@ -28,13 +28,13 @@ public class LocatorInterceptor : IInvoker
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        if (request.Connection == null && request.Protocol == Protocol.Ice)
+        if (request.Connection is null && request.Protocol == Protocol.Ice)
         {
             Location location = default;
             bool refreshCache = false;
 
             IEndpointFeature? endpointFeature = request.Features.Get<IEndpointFeature>();
-            if (endpointFeature == null)
+            if (endpointFeature is null)
             {
                 endpointFeature = new EndpointFeature(request.Proxy);
                 request.Features = request.Features.With(endpointFeature);
@@ -50,7 +50,7 @@ public class LocatorInterceptor : IInvoker
                 location = cachedResolution.Location;
                 refreshCache = true;
             }
-            else if (endpointFeature.Endpoint == null)
+            else if (endpointFeature.Endpoint is null)
             {
                 if (request.Proxy.Params.TryGetValue("adapter-id", out string? adapterId))
                 {
@@ -86,10 +86,10 @@ public class LocatorInterceptor : IInvoker
                         new CachedResolutionFeature(location));
                 }
 
-                if (proxy != null)
+                if (proxy is not null)
                 {
                     // A well behaved location resolver should never return a non-null proxy with a null endpoint.
-                    Debug.Assert(proxy.Endpoint != null);
+                    Debug.Assert(proxy.Endpoint is not null);
                     endpointFeature.Endpoint = proxy.Endpoint;
                     endpointFeature.AltEndpoints = proxy.AltEndpoints;
                 }
@@ -172,7 +172,7 @@ public class LocatorLocationResolver : ILocationResolver
         IEndpointCache? endpointCache = options.Ttl != TimeSpan.Zero && options.MaxCacheSize > 0 ?
             new EndpointCache(options.MaxCacheSize) : null;
 
-        if (endpointCache != null && installLogDecorator)
+        if (endpointCache is not null && installLogDecorator)
         {
             endpointCache = new LogEndpointCacheDecorator(endpointCache, logger);
         }
@@ -183,13 +183,13 @@ public class LocatorLocationResolver : ILocationResolver
         {
             endpointFinder = new LogEndpointFinderDecorator(endpointFinder, logger);
         }
-        if (endpointCache != null)
+        if (endpointCache is not null)
         {
             endpointFinder = new CacheUpdateEndpointFinderDecorator(endpointFinder, endpointCache);
         }
         endpointFinder = new CoalesceEndpointFinderDecorator(endpointFinder);
 
-        _locationResolver = endpointCache == null ? new CacheLessLocationResolver(endpointFinder) :
+        _locationResolver = endpointCache is null ? new CacheLessLocationResolver(endpointFinder) :
                 new LocationResolver(
                     endpointFinder,
                     endpointCache,

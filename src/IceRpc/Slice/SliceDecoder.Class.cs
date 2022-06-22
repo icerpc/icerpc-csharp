@@ -34,7 +34,7 @@ public ref partial struct SliceDecoder
         AnyClass? obj = DecodeAnyClass();
 
         return obj is T result ? result :
-            obj == null ? null : throw new InvalidDataException(@$"decoded instance of type '{obj.GetType()
+            obj is null ? null : throw new InvalidDataException(@$"decoded instance of type '{obj.GetType()
                 }' but expected instance of type '{typeof(T)}'");
     }
 
@@ -61,21 +61,21 @@ public ref partial struct SliceDecoder
         {
             // The type ID is always decoded for an exception and cannot be null.
             string? typeId = DecodeSliceHeaderIntoCurrent();
-            Debug.Assert(typeId != null);
+            Debug.Assert(typeId is not null);
             mostDerivedTypeId ??= typeId;
 
             DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
             remoteException = _activator?.CreateInstance(typeId, ref this) as RemoteException;
-            if (remoteException == null && SkipSlice(typeId))
+            if (remoteException is null && SkipSlice(typeId))
             {
                 // Slice off what we don't understand.
                 break;
             }
         }
-        while (remoteException == null);
+        while (remoteException is null);
 
-        if (remoteException != null)
+        if (remoteException is not null)
         {
             _classContext.Current.FirstSlice = true;
             remoteException.Decode(ref this);
@@ -108,8 +108,8 @@ public ref partial struct SliceDecoder
         }
         if ((_classContext.Current.SliceFlags & SliceFlags.HasIndirectionTable) != 0)
         {
-            Debug.Assert(_classContext.Current.PosAfterIndirectionTable != null &&
-                         _classContext.Current.IndirectionTable != null);
+            Debug.Assert(_classContext.Current.PosAfterIndirectionTable is not null &&
+                         _classContext.Current.IndirectionTable is not null);
 
             _reader.Advance(_classContext.Current.PosAfterIndirectionTable.Value - _reader.Consumed);
             _classContext.Current.PosAfterIndirectionTable = null;
@@ -203,7 +203,7 @@ public ref partial struct SliceDecoder
     /// </summary>
     private void DecodeIndirectionTableIntoCurrent()
     {
-        Debug.Assert(_classContext.Current.IndirectionTable == null);
+        Debug.Assert(_classContext.Current.IndirectionTable is null);
         if ((_classContext.Current.SliceFlags & SliceFlags.HasIndirectionTable) != 0)
         {
             if ((_classContext.Current.SliceFlags & SliceFlags.HasSliceSize) == 0)
@@ -228,7 +228,7 @@ public ref partial struct SliceDecoder
 
         if (index > 1)
         {
-            if (_classContext.InstanceMap != null && _classContext.InstanceMap.Count > index - 2)
+            if (_classContext.InstanceMap is not null && _classContext.InstanceMap.Count > index - 2)
             {
                 return _classContext.InstanceMap[index - 2];
             }
@@ -256,12 +256,12 @@ public ref partial struct SliceDecoder
 
             // We cannot decode the indirection table at this point as it may reference the new instance that is
             // not created yet.
-            if (typeId != null)
+            if (typeId is not null)
             {
                 instance = _activator?.CreateInstance(typeId, ref this) as AnyClass;
             }
 
-            if (instance == null && SkipSlice(typeId))
+            if (instance is null && SkipSlice(typeId))
             {
                 // Slice off what we don't understand.
                 instance = new UnknownSlicedClass();
@@ -269,7 +269,7 @@ public ref partial struct SliceDecoder
                 decodeIndirectionTable = false;
             }
         }
-        while (instance == null);
+        while (instance is null);
 
         // Add the instance to the map/list of instances. This must be done before decoding the instances (for
         // circular references).
@@ -331,7 +331,7 @@ public ref partial struct SliceDecoder
         {
             typeId = DecodeTypeId(_classContext.Current.SliceFlags.GetTypeIdKind());
 
-            if (typeId == null)
+            if (typeId is null)
             {
                 if ((_classContext.Current.SliceFlags & SliceFlags.HasSliceSize) != 0)
                 {
@@ -475,7 +475,7 @@ public ref partial struct SliceDecoder
     /// <returns>True when the current slice is the last slice; otherwise, false.</returns>
     private bool SkipSlice(string? typeId)
     {
-        if (typeId == null)
+        if (typeId is null)
         {
             throw new InvalidDataException("cannot skip a class slice with no type ID");
         }
@@ -524,7 +524,7 @@ public ref partial struct SliceDecoder
         }
         else if (hasIndirectionTable)
         {
-            Debug.Assert(_classContext.Current.PosAfterIndirectionTable != null);
+            Debug.Assert(_classContext.Current.PosAfterIndirectionTable is not null);
 
             // Move past indirection table
             _reader.Advance(_classContext.Current.PosAfterIndirectionTable.Value - _reader.Consumed);

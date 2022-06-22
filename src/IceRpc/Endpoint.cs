@@ -154,7 +154,7 @@ public readonly record struct Endpoint
         }
 
         (_params, string? altEndpointValue) = uri.ParseQuery();
-        if (altEndpointValue != null)
+        if (altEndpointValue is not null)
         {
             throw new ArgumentException(
                 "cannot create an endpoint with an alt-endpoint query parameter",

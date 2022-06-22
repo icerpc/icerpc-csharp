@@ -172,8 +172,8 @@ public class LocationResolverTests
         public void Set(Location location, Proxy proxy) => throw new NotImplementedException();
         public bool TryGetValue(Location location, out (TimeSpan InsertionTime, Proxy Proxy) value)
         {
-            if ((location.IsAdapterId && _adapterIdProxy == null) ||
-                (!location.IsAdapterId && _wellKnownProxy == null))
+            if ((location.IsAdapterId && _adapterIdProxy is null) ||
+                (!location.IsAdapterId && _wellKnownProxy is null))
             {
                 value = default;
                 return false;

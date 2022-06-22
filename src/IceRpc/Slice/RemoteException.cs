@@ -6,7 +6,7 @@ namespace IceRpc.Slice;
 public abstract class RemoteException : Exception, ITrait
 {
     /// <inheritdoc/>
-    public override string Message => _hasCustomMessage || DefaultMessage == null ? base.Message : DefaultMessage;
+    public override string Message => _hasCustomMessage || DefaultMessage is null ? base.Message : DefaultMessage;
 
     /// <summary>Gets or sets a value indicating whether the exception should be converted to an unhandled exception,
     /// when true, if this exception is thrown from the implementation of an operation, Ice will convert it into an
@@ -54,7 +54,7 @@ public abstract class RemoteException : Exception, ITrait
         : base(message, innerException)
     {
         RetryPolicy = retryPolicy ?? RetryPolicy.NoRetry;
-        _hasCustomMessage = message != null;
+        _hasCustomMessage = message is not null;
     }
 
     /// <summary>Constructs a remote exception using a decoder.</summary>

@@ -16,7 +16,7 @@ public partial class DispatchException
             {
                 message += $" thrown by operation '{request.Operation}' on '{request.Proxy}'";
             }
-            if (InnerException != null)
+            if (InnerException is not null)
             {
 #if DEBUG
                 message += $":\n{InnerException}\n---";

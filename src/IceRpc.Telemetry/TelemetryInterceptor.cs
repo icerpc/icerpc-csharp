@@ -56,7 +56,7 @@ public class TelemetryInterceptor : IInvoker
             throw new ArgumentException("only W3C ID format is supported with IceRpc", nameof(activity));
         }
 
-        if (activity.Id == null)
+        if (activity.Id is null)
         {
             throw new ArgumentException("invalid null activity ID", nameof(activity));
         }

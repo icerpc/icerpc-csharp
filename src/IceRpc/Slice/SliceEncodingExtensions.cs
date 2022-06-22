@@ -84,7 +84,7 @@ public static class SliceEncodingExtensions
             else
             {
                 bool hasNext;
-                if (_moveNext == null)
+                if (_moveNext is null)
                 {
                     hasNext = await _asyncEnumerator.MoveNextAsync().ConfigureAwait(false);
                 }

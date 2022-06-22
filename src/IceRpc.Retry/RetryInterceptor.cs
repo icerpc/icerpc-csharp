@@ -42,7 +42,7 @@ public class RetryInterceptor : IInvoker
         else
         {
             IEndpointFeature? endpointFeature = request.Features.Get<IEndpointFeature>();
-            if (endpointFeature == null)
+            if (endpointFeature is null)
             {
                 endpointFeature = new EndpointFeature(request.Proxy);
                 request.Features = request.Features.With(endpointFeature);
@@ -105,7 +105,7 @@ public class RetryInterceptor : IInvoker
                     }
 
                     // We have an exception (possibly encoded in response) and the associated retry policy.
-                    Debug.Assert(response != null || exception != null);
+                    Debug.Assert(response is not null || exception is not null);
 
                     // Check if we can retry
                     if (attempt < _options.MaxAttempts && retryPolicy != RetryPolicy.NoRetry && decorator.IsResettable)
@@ -150,8 +150,8 @@ public class RetryInterceptor : IInvoker
                 }
                 while (tryAgain);
 
-                Debug.Assert(response != null || exception != null);
-                Debug.Assert(response == null || response.ResultType != ResultType.Success);
+                Debug.Assert(response is not null || exception is not null);
+                Debug.Assert(response is null || response.ResultType != ResultType.Success);
                 return response ?? throw RethrowException(exception!);
             }
             finally

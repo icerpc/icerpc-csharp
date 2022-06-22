@@ -25,7 +25,7 @@ public static class ProtocolServiceCollectionExtensions
             options =>
             {
                 options.Endpoint = new Endpoint(protocol) { Host = "colochost" };
-                if (dispatcher != null)
+                if (dispatcher is not null)
                 {
                     options.ConnectionOptions.Dispatcher = dispatcher;
                 }
