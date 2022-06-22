@@ -33,8 +33,6 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <inheritdoc/>
     public Endpoint RemoteEndpoint { get; }
 
-    private readonly CancellationTokenSource _connectCancellationSource = new();
-
     private Task? _connectTask;
 
     private readonly TimeSpan _connectTimeout;
@@ -183,21 +181,13 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         {
             await task.ConfigureAwait(false);
         }
-        catch (OperationCanceledException exception)
+        catch (OperationCanceledException exception) when (exception.CancellationToken != cancel)
         {
-            if (exception.CancellationToken == cancel)
-            {
-                throw;
-            }
-            else
-            {
-                // Unlikely, but we prefer throwing OperationCanceledException (if appropriate) over other
-                // exceptions.
-                cancel.ThrowIfCancellationRequested();
+            // Unlikely but we just prefer throwing OperationCanceledException (if appropriate) over other exceptions.
+            cancel.ThrowIfCancellationRequested();
 
-                // exception comes from another call to ConnectAsync
-                throw new ConnectionCanceledException();
-            }
+            // exception comes from another call to ConnectAsync
+            throw new ConnectionCanceledException();
         }
 
         async Task PerformConnectAsync(CancellationToken cancel)
@@ -205,20 +195,11 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
             await Task.Yield();
 
-            using CancellationTokenRegistration _ = cancel.Register(_connectCancellationSource.Cancel);
-
-            try
-            {
-                // TODO: not quite correct because assignment to NetworkConnectionInformation is not atomic
-                NetworkConnectionInformation = await _protocolConnection.ConnectAsync(
-                    isServer: false,
-                    this,
-                    _connectCancellationSource.Token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
-            {
-                throw new ConnectionClosedException();
-            }
+            // TODO: not quite correct because assignment to NetworkConnectionInformation is not atomic
+            NetworkConnectionInformation = await _protocolConnection.ConnectAsync(
+                isServer: false,
+                this,
+                cancel).ConfigureAwait(false);
         }
     }
 
@@ -262,7 +243,6 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
         // TODO: await _protocolConnection.DisposeAsync();
 
-        _connectCancellationSource.Dispose();
         _protocolConnectionCancellationSource.Dispose();
     }
 
