@@ -183,9 +183,6 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         }
         catch (OperationCanceledException exception) when (exception.CancellationToken != cancel)
         {
-            // Unlikely but we just prefer throwing OperationCanceledException (if appropriate) over other exceptions.
-            cancel.ThrowIfCancellationRequested();
-
             // exception comes from another call to ConnectAsync
             throw new ConnectionCanceledException();
         }
@@ -206,7 +203,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
-        using var cancellationTokenSource = new CancellationTokenSource(_shutdownTimeout);
+        using var tokenSource = new CancellationTokenSource(_shutdownTimeout);
         Task task;
 
         lock (_mutex)
@@ -220,12 +217,12 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             if (_shutdownTask is null)
             {
                 // Attempt a graceful shutdown
-                task = ShutdownAsyncCore("connection disposed", _connectTask, cancellationTokenSource.Token);
+                task = ShutdownAsyncCore("client connection disposed", _connectTask, tokenSource.Token);
             }
             else
             {
                 // We give shutdown task a chance to complete within _shutdownTimeout
-                task = _shutdownTask.WaitAsync(cancellationTokenSource.Token);
+                task = _shutdownTask.WaitAsync(tokenSource.Token);
             }
         }
 
@@ -242,7 +239,6 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         }
 
         // TODO: await _protocolConnection.DisposeAsync();
-
         _protocolConnectionCancellationSource.Dispose();
     }
 
@@ -291,12 +287,12 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <inheritdoc/>
     public void OnClose(Action<Exception> callback) => _protocolConnection.OnClose(callback);
 
-    /// <summary>Gracefully shuts down of the connection.</summary>
+    /// <summary>Gracefully shuts down the connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     public Task ShutdownAsync(CancellationToken cancel = default) =>
-        ShutdownAsync("connection shutdown", cancelDispatches: false, abortInvocations: false, cancel);
+        ShutdownAsync("client connection shutdown", cancel: cancel);
 
-    /// <summary>Gracefully shuts down of the connection.</summary>
+    /// <summary>Gracefully shuts down the connection.</summary>
     /// <param name="message">The message transmitted to the server when using the IceRPC protocol.</param>
     /// <param name="cancelDispatches">When <c>true</c>, cancel outstanding dispatches.</param>
     /// <param name="abortInvocations">When <c>true</c>, abort outstanding invocations.</param>
@@ -334,19 +330,10 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         {
             await task.ConfigureAwait(false);
         }
-        catch (OperationCanceledException exception)
+        catch (OperationCanceledException exception) when (exception.CancellationToken != cancel)
         {
-            if (exception.CancellationToken == cancel)
-            {
-                throw;
-            }
-            else
-            {
-                cancel.ThrowIfCancellationRequested();
-
-                // A previous call to ShutdownAsync failed with OperationCanceledException
-                throw new ConnectionCanceledException();
-            }
+            // A previous call to ShutdownAsync failed with OperationCanceledException
+            throw new ConnectionCanceledException();
         }
     }
 

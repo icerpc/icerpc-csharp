@@ -152,7 +152,6 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
             }
             catch (OperationCanceledException exception) when (exception.CancellationToken != cancel)
             {
-                cancel.ThrowIfCancellationRequested();
                 throw new ConnectionCanceledException();
             }
         }
