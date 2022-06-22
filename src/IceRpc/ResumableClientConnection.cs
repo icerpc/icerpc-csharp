@@ -182,21 +182,21 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
     /// <summary>Gracefully shuts down of the connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     public Task ShutdownAsync(CancellationToken cancel = default) =>
-        ShutdownAsync("connection shutdown", cancelDispatches: false, cancelInvocations: false, cancel);
+        ShutdownAsync("connection shutdown", cancelDispatches: false, abortInvocations: false, cancel);
 
     /// <summary>Gracefully shuts down of the connection.</summary>
     /// <param name="message">The message transmitted to the server when using the IceRPC protocol.</param>
     /// <param name="cancelDispatches">When <c>true</c>, cancel outstanding dispatches.</param>
-    /// <param name="cancelInvocations">When <c>true</c>, cancel outstanding invocations.</param>
+    /// <param name="abortInvocations">When <c>true</c>, abort outstanding invocations.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     public Task ShutdownAsync(
         string message,
         bool cancelDispatches = false,
-        bool cancelInvocations = false,
+        bool abortInvocations = false,
         CancellationToken cancel = default)
     {
         InvokeOnClose();
-        return _clientConnection.ShutdownAsync(message, cancelDispatches, cancelInvocations, cancel);
+        return _clientConnection.ShutdownAsync(message, cancelDispatches, abortInvocations, cancel);
     }
 
     private ClientConnection CreateClientConnection()

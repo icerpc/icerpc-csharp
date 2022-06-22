@@ -172,12 +172,12 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
     /// <summary>Gracefully shuts down all connections created by this pool. This method can be called multiple times.
     /// </summary>
     /// <param name="cancelDispatches">When <c>true</c>, cancel outstanding dispatches.</param>
-    /// <param name="cancelInvocations">When <c>true</c>, cancel outstanding invocations.</param>
+    /// <param name="abortInvocations">When <c>true</c>, abort outstanding invocations.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes when the shutdown is complete.</returns>
     public Task ShutdownAsync(
         bool cancelDispatches = false,
-        bool cancelInvocations = false,
+        bool abortInvocations = false,
         CancellationToken cancel = default)
     {
         lock (_mutex)
@@ -195,7 +195,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
                 .Select(connection => connection.ShutdownAsync(
                     "connection pool shutdown",
                     cancelDispatches,
-                    cancelInvocations,
+                    abortInvocations,
                     cancel)));
     }
 
@@ -321,7 +321,6 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
 
             lock (_mutex)
             {
-                // the _activeConnections collection is read-only after shutdown
                 if (!_isReadOnly)
                 {
                     // "move" from active to shutdown pending
@@ -357,7 +356,6 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
 
             lock (_mutex)
             {
-                // the _shutdownPendingConnections collection is read-only after shutdown
                 if (!_isReadOnly)
                 {
                     bool removed = _shutdownPendingConnections.Remove(clientConnection);

@@ -54,7 +54,7 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
             await ShutdownAsync(
                 "server connection disposed",
                 cancelDispatches: true,
-                cancelInvocations: true,
+                abortInvocations: true,
                 tokenSource.Token).ConfigureAwait(false);
         }
         catch (Exception exception)
@@ -126,12 +126,12 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
     /// <summary>Gracefully shuts down the connection.</summary>
     /// <param name="message">The message transmitted to the client when using the IceRPC protocol.</param>
     /// <param name="cancelDispatches">When <c>true</c>, cancel outstanding dispatches.</param>
-    /// <param name="cancelInvocations">When <c>true</c>, cancel outstanding invocations.</param>
+    /// <param name="abortInvocations">When <c>true</c>, abort outstanding invocations.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     internal async Task ShutdownAsync(
         string message,
         bool cancelDispatches = false,
-        bool cancelInvocations = false,
+        bool abortInvocations = false,
         CancellationToken cancel = default)
     {
         Task? connectTask = null;
@@ -157,7 +157,7 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
             }
         }
 
-        if (cancelDispatches || cancelInvocations)
+        if (cancelDispatches || abortInvocations)
         {
             // TODO: temporary
             _protocolConnectionCancellationSource.Cancel();

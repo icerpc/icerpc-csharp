@@ -11,8 +11,7 @@ using System.Net.Security;
 namespace IceRpc;
 
 /// <summary>A server serves clients by listening for the requests they send, processing these requests and sending
-/// the corresponding responses. A server should be first configured through its properties, then activated with
-/// <see cref="Listen"/> and finally shut down with <see cref="ShutdownAsync"/>.</summary>
+/// the corresponding responses.</summary>
 public sealed class Server : IAsyncDisposable
 {
     /// <summary>Gets the default server transport for icerpc protocol connections.</summary>
@@ -273,7 +272,6 @@ public sealed class Server : IAsyncDisposable
                 // the _connections collection is read-only when disposed or shutting down
                 if (_isReadOnly)
                 {
-                    // We're done, the connection shutdown is taken care of by the shutdown task.
                     return;
                 }
 
@@ -282,20 +280,28 @@ public sealed class Server : IAsyncDisposable
             }
 
             // TODO: don't initiate shutdown that waits forever
-            await connection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+            try
+            {
+                await connection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            catch
+            {
+                // ignored
+            }
             await connection.DisposeAsync().ConfigureAwait(false);
         }
     }
 
-    /// <summary>Shuts down this server: the server stops accepting new connections and requests, waits for all
-    /// outstanding dispatches to complete and gracefully closes all its connections. Once shut down, a server is
-    /// disposed and can no longer be used. This method can be safely called multiple times, including from multiple
-    /// threads.</summary>
-    /// <param name="cancel">The cancellation token. When this token is canceled, the cancellation token of all
-    /// outstanding dispatches is canceled, which can speed up the shutdown provided the operation implementations
-    /// check their cancellation tokens.</param>
+    /// <summary>Shuts down this server: the server stops accepting new connections and shuts down gracefully all its
+    /// existing connections.</summary>
+    /// <param name="cancelDispatches">When <c>true</c>, cancel outstanding dispatches.</param>
+    /// <param name="abortInvocations">When <c>true</c>, abort outstanding invocations.</param>
+    /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <return>A task that completes once the shutdown is complete.</return>
-    public async Task ShutdownAsync(CancellationToken cancel = default)
+    public async Task ShutdownAsync(
+        bool cancelDispatches = false,
+        bool abortInvocations = false,
+        CancellationToken cancel = default)
     {
         try
         {
@@ -310,17 +316,12 @@ public sealed class Server : IAsyncDisposable
                 _listener = null;
             }
 
-            // Shuts down the connections to stop accepting new incoming requests. This ensures that once
-            // ShutdownAsync returns, no new requests will be dispatched. ShutdownAsync on each connection waits
-            // for the connection dispatch to complete. If the cancellation token is canceled, the dispatch will
-            // be canceled. This can speed up the shutdown if the dispatch check the dispatch cancellation
-            // token.
             await Task.WhenAll(
                 _connections.Select(
                     connection => connection.ShutdownAsync(
                         "server shutdown",
-                        cancelDispatches: false,
-                        cancelInvocations: false,
+                        cancelDispatches,
+                        abortInvocations,
                         cancel))).ConfigureAwait(false);
         }
         finally
@@ -328,7 +329,7 @@ public sealed class Server : IAsyncDisposable
             // The continuation is executed asynchronously (see _shutdownCompleteSource's construction). This
             // way, even if the continuation blocks waiting on ShutdownAsync to complete (with incorrect code
             // using Result or Wait()), ShutdownAsync will complete.
-            _shutdownCompleteSource.TrySetResult(null);
+            _ = _shutdownCompleteSource.TrySetResult(null);
         }
     }
 
