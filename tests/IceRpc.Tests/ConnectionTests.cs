@@ -409,8 +409,8 @@ public class ConnectionTests
         Assert.DoesNotThrowAsync(async () => await connection.DisposeAsync());
     }
 
-    /*
     [Test]
+    [Ignore("pending IProtocolConnection update")]
     public async Task Shutdown_cancellation(
         [Values("ice", "icerpc")] string protocol,
         [Values(true, false)] bool closeClientSide)
@@ -478,7 +478,6 @@ public class ConnectionTests
             }
         }
     }
-    */
 
     [Test]
     public async Task Shutdown_waits_for_connection_establishment([Values("ice", "icerpc")] string protocol)
