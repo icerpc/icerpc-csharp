@@ -13,7 +13,7 @@ public record class TcpTransportOptions
     public int? ReceiveBufferSize
     {
         get => _receiveBufferSize;
-        set => _receiveBufferSize = value == null || value >= 1024 ? value :
+        set => _receiveBufferSize = value is null || value >= 1024 ? value :
             throw new ArgumentException($"{nameof(ReceiveBufferSize)} can't be less than 1KB", nameof(value));
     }
 
@@ -23,7 +23,7 @@ public record class TcpTransportOptions
     public int? SendBufferSize
     {
         get => _sendBufferSize;
-        set => _sendBufferSize = value == null || value >= 1024 ? value :
+        set => _sendBufferSize = value is null || value >= 1024 ? value :
             throw new ArgumentException($"{nameof(SendBufferSize)} can't be less than 1KB", nameof(value));
     }
 

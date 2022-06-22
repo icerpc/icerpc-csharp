@@ -106,7 +106,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             // Wait for the receive task to complete to ensure we don't dispose the simple network connection reader
             // while it's being used.
-            if (_readFramesTaskCompletionSource != null)
+            if (_readFramesTaskCompletionSource is not null)
             {
                 await _readFramesTaskCompletionSource.Task.ConfigureAwait(false);
             }
@@ -122,7 +122,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         IConnection connection,
         CancellationToken cancel)
     {
-        Debug.Assert(_readFramesTaskCompletionSource == null); // ConnectAsync should be called only once.
+        Debug.Assert(_readFramesTaskCompletionSource is null); // ConnectAsync should be called only once.
 
         lock (_mutex)
         {
@@ -269,7 +269,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
         try
         {
-            if (request.PayloadStream != null)
+            if (request.PayloadStream is not null)
             {
                 throw new NotSupportedException("PayloadStream must be null with the ice protocol");
             }
@@ -293,7 +293,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 lock (_mutex)
                 {
-                    if (_shutdownTask != null || _isAborted)
+                    if (_shutdownTask is not null || _isAborted)
                     {
                         throw new ConnectionClosedException();
                     }
@@ -352,7 +352,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             return new IncomingResponse(request, connection);
         }
 
-        Debug.Assert(responseCompletionSource != null);
+        Debug.Assert(responseCompletionSource is not null);
 
         // Wait to receive the response.
         try
@@ -409,7 +409,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                 // For compatibility with ZeroC Ice "indirect" proxies
                 IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields =
-                    replyStatus == ReplyStatus.ObjectNotExistException && request.Proxy.Endpoint == null ?
+                    replyStatus == ReplyStatus.ObjectNotExistException && request.Proxy.Endpoint is null ?
                     _otherReplicaFields :
                     ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
 
@@ -438,7 +438,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 {
                     if (_invocations.Count == 0 && _dispatches.Count == 0)
                     {
-                        if (_shutdownTask != null)
+                        if (_shutdownTask is not null)
                         {
                             _dispatchesAndInvocationsCompleted.TrySetResult();
                         }
@@ -481,7 +481,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             requestHeader.Encode(ref encoder);
             if (request.Fields.TryGetValue(RequestFieldKey.Context, out OutgoingFieldValue requestField))
             {
-                if (requestField.EncodeAction == null)
+                if (requestField.EncodeAction is null)
                 {
                     encoder.WriteByteSequence(requestField.ByteSequence);
                 }
@@ -826,7 +826,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                         cleanupFrameReader = false;
                     }
-                    else if (_shutdownTask == null)
+                    else if (_shutdownTask is null)
                     {
                         throw new InvalidDataException("received ice Reply for unknown invocation");
                     }
@@ -874,7 +874,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             }
 
             IDictionary<RequestFieldKey, ReadOnlySequence<byte>>? fields;
-            if (contextReader == null)
+            if (contextReader is null)
             {
                 fields = requestHeader.OperationMode == OperationMode.Normal ?
                     ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty : _idempotentFields;
@@ -908,7 +908,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             bool isClosed = false;
             lock (_mutex)
             {
-                if (_shutdownTask != null || _isAborted)
+                if (_shutdownTask is not null || _isAborted)
                 {
                     isClosed = true;
                 }
@@ -930,7 +930,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // If shutting down or aborted, ignore the incoming request.
                 // TODO: replace with payload exception and error code
                 await request.Payload.CompleteAsync(new ConnectionClosedException()).ConfigureAwait(false);
-                if (contextReader != null)
+                if (contextReader is not null)
                 {
                     await contextReader.CompleteAsync().ConfigureAwait(false);
 
@@ -955,7 +955,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     }
                 }
 
-                Debug.Assert(cancelDispatchSource != null);
+                Debug.Assert(cancelDispatchSource is not null);
                 _ = Task.Run(() => DispatchRequestAsync(request, contextReader, cancelDispatchSource), cancel);
             }
 
@@ -1027,7 +1027,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     // Even when the code above throws an exception, we catch it and write a response. So we never
                     // want to give an exception to CompleteAsync when completing the incoming payload.
                     await request.Payload.CompleteAsync().ConfigureAwait(false);
-                    if (contextReader != null)
+                    if (contextReader is not null)
                     {
                         await contextReader.CompleteAsync().ConfigureAwait(false);
 
@@ -1046,7 +1046,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 Exception? completeException = null;
                 try
                 {
-                    if (response.PayloadStream != null)
+                    if (response.PayloadStream is not null)
                     {
                         throw new NotSupportedException("PayloadStream must be null with the ice protocol");
                     }
@@ -1135,7 +1135,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         {
                             if (_invocations.Count == 0 && _dispatches.Count == 0)
                             {
-                                if (_shutdownTask != null)
+                                if (_shutdownTask is not null)
                                 {
                                     _dispatchesAndInvocationsCompleted.TrySetResult();
                                 }
@@ -1235,7 +1235,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
     private async Task ShutdownAsyncCore(string message, CancellationToken cancel)
     {
-        Debug.Assert(_shutdownTask == null);
+        Debug.Assert(_shutdownTask is null);
 
         if (_isAborted)
         {

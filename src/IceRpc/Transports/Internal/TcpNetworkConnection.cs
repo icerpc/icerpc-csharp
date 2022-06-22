@@ -51,7 +51,7 @@ internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
         int received;
         try
         {
-            if (SslStream != null)
+            if (SslStream is not null)
             {
                 received = await SslStream.ReadAsync(buffer, cancel).ConfigureAwait(false);
             }
@@ -217,12 +217,12 @@ internal class TcpClientNetworkConnection : TcpNetworkConnection
 
         try
         {
-            Debug.Assert(Socket != null);
+            Debug.Assert(Socket is not null);
 
             // Connect to the peer.
             await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
 
-            if (_authenticationOptions != null)
+            if (_authenticationOptions is not null)
             {
                 // This can only be created with a connected socket.
                 _sslStream = new SslStream(new NetworkStream(Socket, false), false);
@@ -316,7 +316,7 @@ internal class TcpServerNetworkConnection : TcpNetworkConnection
 
         try
         {
-            if (_authenticationOptions != null)
+            if (_authenticationOptions is not null)
             {
                 // This can only be created with a connected socket.
                 _sslStream = new SslStream(new NetworkStream(Socket, false), false);

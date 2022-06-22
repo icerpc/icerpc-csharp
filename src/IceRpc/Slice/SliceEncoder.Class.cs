@@ -21,7 +21,7 @@ public ref partial struct SliceEncoder
     /// <param name="v">The class instance to encode, or null.</param>
     public void EncodeNullableClass(AnyClass? v)
     {
-        if (v == null)
+        if (v is null)
         {
             EncodeSize(0);
         }
@@ -31,7 +31,7 @@ public ref partial struct SliceEncoder
             {
                 // If encoding an instance within a slice and using the sliced format, encode an index of that
                 // slice's indirection table.
-                if (_classContext.Current.IndirectionMap != null && _classContext.Current.IndirectionMap.TryGetValue(v, out int index))
+                if (_classContext.Current.IndirectionMap is not null && _classContext.Current.IndirectionMap.TryGetValue(v, out int index))
                 {
                     // Found, index is position in indirection table + 1
                     Debug.Assert(index > 0);
@@ -200,7 +200,7 @@ public ref partial struct SliceEncoder
     private void EncodeInstance(AnyClass v)
     {
         // If the instance was already encoded, just encode its instance ID.
-        if (_classContext.InstanceMap != null && _classContext.InstanceMap.TryGetValue(v, out int instanceId))
+        if (_classContext.InstanceMap is not null && _classContext.InstanceMap.TryGetValue(v, out int instanceId))
         {
             EncodeSize(instanceId);
         }
@@ -268,7 +268,7 @@ public ref partial struct SliceEncoder
         }
         else
         {
-            Debug.Assert(compactId == null);
+            Debug.Assert(compactId is null);
             // We always encode a string and don't set a type ID kind in SliceFlags.
             EncodeString(typeId);
         }

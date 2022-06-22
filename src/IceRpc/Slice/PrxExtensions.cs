@@ -72,7 +72,7 @@ public static class PrxExtensions
         bool idempotent = false,
         CancellationToken cancel = default) where TPrx : struct, IPrx
     {
-        if (payload == null && payloadStream != null)
+        if (payload is null && payloadStream is not null)
         {
             throw new ArgumentNullException(
                 nameof(payload),
@@ -153,7 +153,7 @@ public static class PrxExtensions
         bool oneway = false,
         CancellationToken cancel = default) where TPrx : struct, IPrx
     {
-        if (payload == null && payloadStream != null)
+        if (payload is null && payloadStream is not null)
         {
             throw new ArgumentNullException(
                 nameof(payload),

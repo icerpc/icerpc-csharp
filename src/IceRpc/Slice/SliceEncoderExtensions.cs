@@ -54,8 +54,8 @@ public static class SliceEncoderExtensions
             {
                 keyEncodeAction(ref encoder, key);
 
-                bitSequenceWriter.Write(value != null);
-                if (value != null)
+                bitSequenceWriter.Write(value is not null);
+                if (value is not null)
                 {
                     valueEncodeAction(ref encoder, value);
                 }
@@ -128,8 +128,8 @@ public static class SliceEncoderExtensions
             BitSequenceWriter bitSequenceWriter = encoder.GetBitSequenceWriter(count);
             foreach (T item in v)
             {
-                bitSequenceWriter.Write(item != null);
-                if (item != null)
+                bitSequenceWriter.Write(item is not null);
+                if (item is not null)
                 {
                     encodeAction(ref encoder, item);
                 }

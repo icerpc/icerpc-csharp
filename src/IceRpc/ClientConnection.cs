@@ -149,11 +149,11 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     {
         lock (_mutex)
         {
-            if (_shutdownTask != null)
+            if (_shutdownTask is not null)
             {
                 throw new ConnectionClosedException();
             }
-            else if (_connectTask == null)
+            else if (_connectTask is null)
             {
                 _connectTask = ConnectAsyncCore();
             }
@@ -232,7 +232,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        if (_connectTask == null || !_connectTask.IsCompleted)
+        if (_connectTask is null || !_connectTask.IsCompleted)
         {
             await ConnectAsync(cancel).ConfigureAwait(false);
         }
@@ -256,7 +256,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         Task? connectTask = null;
         lock (_mutex)
         {
-            if (_connectTask == null)
+            if (_connectTask is null)
             {
                 _shutdownTask = Task.CompletedTask;
             }
@@ -284,7 +284,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
                 }
             });
 
-        if (connectTask == null)
+        if (connectTask is null)
         {
             // ConnectAsync wasn't called, just release resources associated with the protocol connection.
             // TODO: Refactor depending on what we decide for the protocol connection resource cleanup (#1397,

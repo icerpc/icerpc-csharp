@@ -70,7 +70,7 @@ public sealed class ExceptionTests
         encoder.StartSlice(MyException.SliceTypeId);
         encoder.EncodeInt32(10);
         encoder.EncodeInt32(20);
-        if (taggedValue != null)
+        if (taggedValue is not null)
         {
             // Ensure that a tagged value not declared in the Slice definition is correctly skipped
             encoder.EncodeTagged(
@@ -103,7 +103,7 @@ public sealed class ExceptionTests
         encoder.StartSlice(MyExceptionWithTaggedMembers.SliceTypeId);
         encoder.EncodeInt32(10);
         encoder.EncodeInt32(20);
-        if (k != null)
+        if (k is not null)
         {
             encoder.EncodeTagged(
                 1,
@@ -111,7 +111,7 @@ public sealed class ExceptionTests
                 k.Value,
                 (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
         }
-        if (l != null)
+        if (l is not null)
         {
             encoder.EncodeTagged(
                 255,
@@ -143,7 +143,7 @@ public sealed class ExceptionTests
         encoder.EncodeString("my custom exception");
         encoder.EncodeInt32(10);
         encoder.EncodeInt32(20);
-        if (taggedValue != null)
+        if (taggedValue is not null)
         {
             // Ensure that a tagged value not declared in the Slice definition is correctly skipped
             encoder.EncodeTagged(
@@ -173,13 +173,13 @@ public sealed class ExceptionTests
         var bitSequenceWriter = encoder.GetBitSequenceWriter(2);
         encoder.EncodeInt32(10);
         encoder.EncodeInt32(20);
-        bitSequenceWriter.Write(k != null);
-        if (k != null)
+        bitSequenceWriter.Write(k is not null);
+        if (k is not null)
         {
             encoder.EncodeInt32(k.Value);
         }
-        bitSequenceWriter.Write(l != null);
-        if (l != null)
+        bitSequenceWriter.Write(l is not null);
+        if (l is not null)
         {
             encoder.EncodeInt32(l.Value);
         }
@@ -206,7 +206,7 @@ public sealed class ExceptionTests
         encoder.EncodeString("my exception with tagged members");
         encoder.EncodeInt32(10);
         encoder.EncodeInt32(20);
-        if (k != null)
+        if (k is not null)
         {
             encoder.EncodeTagged(
                 1,
@@ -214,7 +214,7 @@ public sealed class ExceptionTests
                 k.Value,
                 (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
         }
-        if (l != null)
+        if (l is not null)
         {
             encoder.EncodeTagged(
                 255,
@@ -390,13 +390,13 @@ public sealed class ExceptionTests
         Assert.That(decoder.DecodeString(), Is.EqualTo(value.Message));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(value.I));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(value.J));
-        if (k != null)
+        if (k is not null)
         {
             Assert.That(
                 decoder.DecodeTagged(1, (ref SliceDecoder decoder) => decoder.DecodeInt32(), useTagEndMarker: true),
                 Is.EqualTo(value.K));
         }
-        if (l != null)
+        if (l is not null)
         {
             Assert.That(
                 decoder.DecodeTagged(255, (ref SliceDecoder decoder) => decoder.DecodeInt32(), useTagEndMarker: true),

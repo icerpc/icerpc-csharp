@@ -247,7 +247,7 @@ public class TcpTransportTests
             }
             finally
             {
-                if (connection != null)
+                if (connection is not null)
                 {
                     connection.Dispose();
                 }

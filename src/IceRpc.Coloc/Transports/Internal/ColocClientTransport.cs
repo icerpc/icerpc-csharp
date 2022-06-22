@@ -24,7 +24,7 @@ internal class ColocClientTransport : IClientTransport<ISimpleNetworkConnection>
         SslClientAuthenticationOptions? authenticationOptions,
         ILogger logger)
     {
-        if (authenticationOptions != null)
+        if (authenticationOptions is not null)
         {
             throw new NotSupportedException("cannot create a secure Coloc connection");
         }

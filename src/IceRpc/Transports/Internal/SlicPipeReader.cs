@@ -253,7 +253,7 @@ internal class SlicPipeReader : PipeReader
     {
         if (_state.HasFlag(State.PipeWriterCompleted))
         {
-            if (_exception != null)
+            if (_exception is not null)
             {
                 throw ExceptionUtil.Throw(_exception);
             }

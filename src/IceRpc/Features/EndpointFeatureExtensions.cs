@@ -18,7 +18,7 @@ public static class EndpointFeatureExtensions
         }
         feature.AltEndpoints = feature.AltEndpoints.Where(e => e != endpoint).ToList();
 
-        if (feature.Endpoint == null && feature.AltEndpoints.Any())
+        if (feature.Endpoint is null && feature.AltEndpoints.Any())
         {
             feature.Endpoint = feature.AltEndpoints.First();
             feature.AltEndpoints = feature.AltEndpoints.Skip(1);

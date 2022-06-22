@@ -32,7 +32,7 @@ internal class LocatorEndpointFinder : IEndpointFinder
 
                 if (prx?.Proxy is Proxy proxy)
                 {
-                    return proxy.Protocol == Protocol.Ice && proxy.Endpoint != null ? proxy :
+                    return proxy.Protocol == Protocol.Ice && proxy.Endpoint is not null ? proxy :
                         throw new InvalidDataException($"findAdapterById returned invalid proxy '{proxy}'");
                 }
                 else
@@ -57,7 +57,7 @@ internal class LocatorEndpointFinder : IEndpointFinder
                 {
                     // findObjectById can return an indirect proxy with an adapter ID
                     return proxy.Protocol == Protocol.Ice &&
-                        (proxy.Endpoint != null || proxy.Params.ContainsKey("adapter-id")) ? proxy :
+                        (proxy.Endpoint is not null || proxy.Params.ContainsKey("adapter-id")) ? proxy :
                             throw new InvalidDataException($"findObjectById returned invalid proxy '{proxy}'");
                 }
                 else
@@ -92,7 +92,7 @@ internal class LogEndpointFinderDecorator : IEndpointFinder
         {
             Proxy? proxy = await _decoratee.FindAsync(location, cancel).ConfigureAwait(false);
 
-            if (proxy != null)
+            if (proxy is not null)
             {
                 _logger.LogFound(location.Kind, location, proxy);
             }
@@ -129,7 +129,7 @@ internal class CacheUpdateEndpointFinderDecorator : IEndpointFinder
     {
         Proxy? proxy = await _decoratee.FindAsync(location, cancel).ConfigureAwait(false);
 
-        if (proxy != null)
+        if (proxy is not null)
         {
             _endpointCache.Set(location, proxy);
         }

@@ -340,9 +340,9 @@ public ref partial struct SliceDecoder
         object? instance = _activator.CreateInstance(typeId, ref this);
         _currentDepth--;
 
-        if (instance == null)
+        if (instance is null)
         {
-            return fallback != null ? fallback(typeId, ref this) :
+            return fallback is not null ? fallback(typeId, ref this) :
                 throw new InvalidDataException($"activator could not find type with Slice type ID '{typeId}'");
         }
         else
@@ -384,7 +384,7 @@ public ref partial struct SliceDecoder
                 if (proxyString.StartsWith('/'))
                 {
                     // relative proxy
-                    if (_connection == null)
+                    if (_connection is null)
                     {
                         throw new InvalidOperationException(
                             "cannot decode a relative proxy from an decoder with a null Connection");
@@ -1003,7 +1003,7 @@ public ref partial struct SliceDecoder
                 }
             }
 
-            if (endpoint != null)
+            if (endpoint is not null)
             {
                 // Make sure we read the full encapsulation.
                 if (_reader.Consumed != oldPos + size)
@@ -1014,7 +1014,7 @@ public ref partial struct SliceDecoder
             }
         }
 
-        if (endpoint == null)
+        if (endpoint is null)
         {
             throw new InvalidDataException(
                 @$"cannot decode endpoint for protocol '{protocol}' and transport '{transportCode.ToString().ToLowerInvariant()}' with endpoint encapsulation encoded with encoding '{encodingMajor}.{encodingMinor}'");

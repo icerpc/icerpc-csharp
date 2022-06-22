@@ -416,7 +416,7 @@ public sealed class ClassTests
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
         Assert.That(decoder.DecodeUInt8(),
-            b == null ?
+            b is null ?
                 Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String) :
                 Is.EqualTo(
                     (byte)Slice1Definitions.TypeIdKind.String |
@@ -425,7 +425,7 @@ public sealed class ClassTests
         Assert.That(decoder.DecodeString(), Is.EqualTo(MyDerivedClassWithTaggedMembers.SliceTypeId));
 
         // MyDerivedClassWithTaggedMembers.B
-        if (b != null)
+        if (b is not null)
         {
             Assert.That(
                 decoder.DecodeTagged(
@@ -438,13 +438,13 @@ public sealed class ClassTests
         }
 
         Assert.That(decoder.DecodeUInt8(),
-            a == null ?
+            a is null ?
                 Is.EqualTo((byte)Slice1Definitions.SliceFlags.IsLastSlice) :
                 Is.EqualTo(
                     (byte)Slice1Definitions.SliceFlags.HasTaggedMembers |
                     (byte)Slice1Definitions.SliceFlags.IsLastSlice));
         // MyClassWithTaggedMembers.A
-        if (a != null)
+        if (a is not null)
         {
             Assert.That(
                 decoder.DecodeTagged(
@@ -825,7 +825,7 @@ public sealed class ClassTests
 
         encoder.EncodeSize(1); // Instance marker
         byte sliceFlags = (byte)Slice1Definitions.TypeIdKind.String;
-        if (b != null || c != null)
+        if (b is not null || c is not null)
         {
             sliceFlags |= (byte)Slice1Definitions.SliceFlags.HasTaggedMembers;
         }
@@ -834,7 +834,7 @@ public sealed class ClassTests
         encoder.EncodeString(MyDerivedClassWithTaggedMembers.SliceTypeId);
 
         // MyDerivedClassWithTaggedMembers.B
-        if (b != null)
+        if (b is not null)
         {
             encoder.EncodeTagged(
                 20,
@@ -843,7 +843,7 @@ public sealed class ClassTests
                 (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
         }
 
-        if (c != null)
+        if (c is not null)
         {
             // Additional tagged member not defined in Slice
             encoder.EncodeTagged(
@@ -853,20 +853,20 @@ public sealed class ClassTests
                 (ref SliceEncoder encoder, long value) => encoder.EncodeInt64(value));
         }
 
-        if (b != null || c != null)
+        if (b is not null || c is not null)
         {
             encoder.EncodeUInt8(Slice1Definitions.TagEndMarker);
         }
 
         sliceFlags = (byte)Slice1Definitions.SliceFlags.IsLastSlice;
-        if (a != null)
+        if (a is not null)
         {
             sliceFlags |= (byte)Slice1Definitions.SliceFlags.HasTaggedMembers;
         }
         encoder.EncodeUInt8(sliceFlags);
 
         // MyClassWithTaggedMembers.A
-        if (a != null)
+        if (a is not null)
         {
             encoder.EncodeTagged(
                 10,

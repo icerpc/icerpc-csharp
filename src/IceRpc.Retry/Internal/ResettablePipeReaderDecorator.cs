@@ -72,10 +72,10 @@ internal class ResettablePipeReaderDecorator : PipeReader
             throw new InvalidOperationException("cannot call AdvanceTo before reading PipeReader");
 
         // All successful calls to ReadAsync/TryRead set _sequence.
-        Debug.Assert(_sequence != null);
+        Debug.Assert(_sequence is not null);
 
         // The examined given to _decoratee must be ever-increasing.
-        if (_highestExamined == null)
+        if (_highestExamined is null)
         {
             // first AdvanceTo ever
             _highestExamined = examined;
@@ -112,7 +112,7 @@ internal class ResettablePipeReaderDecorator : PipeReader
         {
             if (_isReadingInProgress)
             {
-                Debug.Assert(_sequence != null);
+                Debug.Assert(_sequence is not null);
                 AdvanceTo(_sequence.Value.Start);
             }
 
