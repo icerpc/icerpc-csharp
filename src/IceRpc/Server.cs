@@ -40,8 +40,6 @@ public sealed class Server : IAsyncDisposable
 
     private IListener? _listener;
 
-    private bool _listening;
-
     private readonly ILoggerFactory _loggerFactory;
     private readonly IServerTransport<IMultiplexedNetworkConnection> _multiplexedServerTransport;
     private readonly IServerTransport<ISimpleNetworkConnection> _simpleServerTransport;
@@ -124,6 +122,8 @@ public sealed class Server : IAsyncDisposable
             }
             _isDisposed = true;
             _isReadOnly = true;
+
+            _listener?.Dispose();
         }
 
         try
@@ -151,13 +151,13 @@ public sealed class Server : IAsyncDisposable
         {
             ThrowIfDisposed();
 
-            if (_listening)
-            {
-                throw new InvalidOperationException($"server '{this}' is already listening");
-            }
             if (_isReadOnly)
             {
                 throw new InvalidOperationException($"server '{this}' is shutting down");
+            }
+            if (_listener is not null)
+            {
+                throw new InvalidOperationException($"server '{this}' is already listening");
             }
 
             if (_options.Endpoint.Protocol == Protocol.Ice)
@@ -174,8 +174,6 @@ public sealed class Server : IAsyncDisposable
                     (networkConnection, options) => new IceRpcProtocolConnection(networkConnection, options),
                     LogMultiplexedNetworkConnectionDecorator.Decorate);
             }
-
-            _listening = true;
         }
 
         void PerformListen<T>(
