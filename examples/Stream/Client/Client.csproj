@@ -12,7 +12,7 @@
   </PropertyGroup>
   <ItemGroup>
     <SliceCompile Include="../NumberStream.slice" />
-    <PackageReference Include="IceRpc.Builder.MSBuild" Version="0.1.0-preview4" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Builder.MSBuild" Version="0.1.0-preview5" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
   </ItemGroup>
 </Project>
