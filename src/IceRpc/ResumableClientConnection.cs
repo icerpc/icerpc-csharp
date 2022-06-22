@@ -116,7 +116,11 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
     }
 
     /// <inheritdoc/>
-    public ValueTask DisposeAsync() => _clientConnection.DisposeAsync();
+    public ValueTask DisposeAsync()
+    {
+        InvokeOnClose();
+        return _clientConnection.DisposeAsync();
+    }
 
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
@@ -179,12 +183,12 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         clientConnection.OnClose(callback);
     }
 
-    /// <summary>Gracefully shuts down of the connection.</summary>
+    /// <summary>Gracefully shuts down the connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     public Task ShutdownAsync(CancellationToken cancel = default) =>
         ShutdownAsync("connection shutdown", cancelDispatches: false, abortInvocations: false, cancel);
 
-    /// <summary>Gracefully shuts down of the connection.</summary>
+    /// <summary>Gracefully shuts down the connection.</summary>
     /// <param name="message">The message transmitted to the server when using the IceRPC protocol.</param>
     /// <param name="cancelDispatches">When <c>true</c>, cancel outstanding dispatches.</param>
     /// <param name="abortInvocations">When <c>true</c>, abort outstanding invocations.</param>
@@ -210,13 +214,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         // only called from the constructor or with _mutex locked
         clientConnection.OnClose(_onDisconnect + OnClose);
 
-        void OnClose(Exception exception)
-        {
-            if (IsResumable)
-            {
-                RefreshClientConnection(clientConnection);
-            }
-        }
+        void OnClose(Exception exception) => RefreshClientConnection(clientConnection);
 
         return clientConnection;
     }
@@ -243,6 +241,11 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         bool closeOldConnection = false;
         lock (_mutex)
         {
+            if (!_isResumable)
+            {
+                return;
+            }
+
             // We only create a new connection and assign it to _clientConnection if it matches the clientConnection we
             // just tried. If it's another connection, another thread has already called RefreshClientConnection.
             if (clientConnection == _clientConnection)
@@ -253,9 +256,8 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         }
         if (closeOldConnection)
         {
-            // We call ShutdownAsync and not Abort in case we're in the middle of a graceful shutdown initiated by the
-            // server.
-            _ = clientConnection.ShutdownAsync();
+            // TODO: should we call shutdown in case the connection is being shut down?
+            _ = clientConnection.DisposeAsync().AsTask();
         }
     }
 }
