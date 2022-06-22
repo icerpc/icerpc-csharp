@@ -130,7 +130,6 @@ public sealed class ProtocolConnectionTests
     /// <summary>Verifies that calling ShutdownAsync with a canceled token results in the cancellation of the the
     /// pending dispatches.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    [Ignore("see https://github.com/zeroc-ice/icerpc-csharp/issues/1309")]
     public async Task Shutdown_dispatch_cancellation(Protocol protocol)
     {
         // Arrange
@@ -147,9 +146,10 @@ public sealed class ProtocolConnectionTests
             .AddProtocolTest(protocol, dispatcher)
             .BuildServiceProvider(validateScopes: true);
 
-        IConnection connection = provider.GetRequiredService<IConnection>();
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
+        IConnection connection = provider.GetRequiredService<IConnection>();
         var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
         await start.WaitAsync(); // Wait for the dispatch to start
 
@@ -204,7 +204,6 @@ public sealed class ProtocolConnectionTests
     /// <summary>Verifies that aborting a server connection kills pending invocations, peer invocations will fail
     /// with <see cref="ConnectionLostException"/>.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    [Ignore("see https://github.com/zeroc-ice/icerpc-csharp/issues/1309")]
     public async Task Aborting_server_connection_kills_pending_invocations(Protocol protocol)
     {
         // Arrange
@@ -581,7 +580,6 @@ public sealed class ProtocolConnectionTests
     /// <summary>Verifies that a connection will not accept further request after shutdown was called, and it will
     /// allow pending dispatches to finish.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    [Ignore("see https://github.com/zeroc-ice/icerpc-csharp/issues/1309")]
     public async Task Shutdown_prevents_accepting_new_requests_and_let_pending_dispatches_complete(Protocol protocol)
     {
         // Arrange
@@ -596,9 +594,10 @@ public sealed class ProtocolConnectionTests
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(protocol, dispatcher)
             .BuildServiceProvider(validateScopes: true);
-        IConnection connection = provider.GetRequiredService<IConnection>();
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+        await sut.ConnectAsync();
 
+        IConnection connection = provider.GetRequiredService<IConnection>();
         var invokeTask1 = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
         await start.WaitAsync(); // Wait for the dispatch to start
 
