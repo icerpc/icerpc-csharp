@@ -142,22 +142,17 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         _ = Task.Run(
             async () =>
             {
-                Exception? exception = null;
                 try
                 {
                     await AcceptRequestsAsync(connection).ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (ConnectionClosedException)
                 {
-                    exception = ex;
+                    // The connection is closed or being closed.
                 }
-                finally
+                catch (Exception exception)
                 {
-                    // Protocol connection resource cleanup. This is for now performed by Abort (which should have
-                    // been named CloseAsync like ConnectionCore.CloseAsync).
-                    // TODO: Refactor depending on what we decide for the protocol connection resource cleanup
-                    // (#1397,#1372, #1404, #1400).
-                    Abort(exception ?? new ConnectionClosedException());
+                    Abort(exception);
                 }
             },
             cancel);
