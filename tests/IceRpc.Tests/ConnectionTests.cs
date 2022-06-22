@@ -569,7 +569,7 @@ public class ConnectionTests
         }
 
         // Assert
-        if (closeClientSide)
+        if (closeClientSide || protocol == "icerpc")
         {
             // Invocations
             // TODO: this is not correct, the invocation cancellation must not reach the application code
@@ -578,7 +578,7 @@ public class ConnectionTests
         else
         {
             // Shutdown should trigger the abort of the connection on the client side after the close timeout
-            Assert.ThrowsAsync<ConnectionLostException>(async () => await pingTask);
+            Assert.ThrowsAsync<DispatchException>(async () => await pingTask);
         }
         hold.Release();
     }

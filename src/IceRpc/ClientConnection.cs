@@ -212,16 +212,16 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             {
                 return;
             }
-            _isDisposed = true;
 
             if (_shutdownTask is null)
             {
                 // Attempt a graceful shutdown
-                task = ShutdownAsyncCore("client connection disposed", _connectTask, tokenSource.Token);
+                _shutdownTask = ShutdownAsyncCore("client connection disposed", _connectTask, tokenSource.Token);
+                task = _shutdownTask;
             }
             else
             {
-                // We give shutdown task a chance to complete within _shutdownTimeout
+                // We give shutdown a chance to complete within _shutdownTimeout
                 task = _shutdownTask.WaitAsync(tokenSource.Token);
             }
         }
@@ -240,6 +240,11 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
         // TODO: await _protocolConnection.DisposeAsync();
         _protocolConnectionCancellationSource.Dispose();
+
+        lock (_mutex)
+        {
+            _isDisposed = true;
+        }
     }
 
     /// <inheritdoc/>

@@ -44,7 +44,6 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
             {
                 return;
             }
-            _isDisposed = true;
         }
 
         using var tokenSource = new CancellationTokenSource(_shutdownTimeout);
@@ -63,6 +62,11 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
         }
 
         _protocolConnectionCancellationSource.Dispose();
+
+        lock (_mutex)
+        {
+            _isDisposed = true;
+        }
     }
 
     /// <inheritdoc/>
