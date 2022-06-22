@@ -241,14 +241,9 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         bool closeOldConnection = false;
         lock (_mutex)
         {
-            if (!_isResumable)
-            {
-                return;
-            }
-
             // We only create a new connection and assign it to _clientConnection if it matches the clientConnection we
             // just tried. If it's another connection, another thread has already called RefreshClientConnection.
-            if (clientConnection == _clientConnection)
+            if (_isResumable && clientConnection == _clientConnection)
             {
                 _clientConnection = CreateClientConnection();
                 closeOldConnection = true;
