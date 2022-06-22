@@ -34,6 +34,10 @@ public sealed class Server : IAsyncDisposable
 
     private readonly HashSet<ServerConnection> _connections = new();
 
+    private bool _isDisposed;
+
+    private bool _isReadOnly;
+
     private IListener? _listener;
 
     private bool _listening;
@@ -47,12 +51,8 @@ public sealed class Server : IAsyncDisposable
 
     private readonly ServerOptions _options;
 
-    private CancellationTokenSource? _shutdownCancelSource;
-
     private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-    private Task? _shutdownTask;
 
     /// <summary>Constructs a server.</summary>
     /// <param name="options">The server options.</param>
@@ -113,6 +113,30 @@ public sealed class Server : IAsyncDisposable
     {
     }
 
+    /// <inheritdoc/>
+    public async ValueTask DisposeAsync()
+    {
+        lock (_mutex)
+        {
+            if (_isDisposed)
+            {
+                return;
+            }
+            _isDisposed = true;
+            _isReadOnly = true;
+        }
+
+        try
+        {
+            await Task.WhenAll(_connections.Select(connection => connection.DisposeAsync().AsTask()))
+                .ConfigureAwait(false);
+        }
+        catch
+        {
+            // ignored
+        }
+    }
+
     /// <summary>Starts listening on the configured endpoint and dispatching requests from clients. If the
     /// configured endpoint is an IP endpoint with port 0, this method updates the endpoint to include the actual
     /// port selected by the operating system.</summary>
@@ -125,14 +149,15 @@ public sealed class Server : IAsyncDisposable
         // We lock the mutex because ShutdownAsync can run concurrently.
         lock (_mutex)
         {
+            ThrowIfDisposed();
+
             if (_listening)
             {
                 throw new InvalidOperationException($"server '{this}' is already listening");
             }
-
-            if (_shutdownTask != null)
+            if (_isReadOnly)
             {
-                throw new ObjectDisposedException($"{typeof(Server)}:{this}");
+                throw new InvalidOperationException($"server '{this}' is shutting down");
             }
 
             if (_options.Endpoint.Protocol == Protocol.Ice)
@@ -198,7 +223,7 @@ public sealed class Server : IAsyncDisposable
                 {
                     lock (_mutex)
                     {
-                        if (_shutdownTask != null)
+                        if (_isReadOnly)
                         {
                             return;
                         }
@@ -221,7 +246,7 @@ public sealed class Server : IAsyncDisposable
 
                 lock (_mutex)
                 {
-                    if (_shutdownTask != null)
+                    if (_isReadOnly)
                     {
                         connection.Abort();
                         return;
@@ -243,22 +268,24 @@ public sealed class Server : IAsyncDisposable
         }
 
         // Remove the connection from _connections once shutdown completes
-        Task RemoveFromCollectionAsync(ServerConnection connection)
+        async Task RemoveFromCollectionAsync(ServerConnection connection)
         {
             lock (_mutex)
             {
-                // the _connections collection is immutable when _shutdownTask.
-                if (_shutdownTask != null)
+                // the _connections collection is read-only when disposed or shutting down
+                if (_isReadOnly)
                 {
                     // We're done, the connection shutdown is taken care of by the shutdown task.
-                    return Task.CompletedTask;
+                    return;
                 }
 
                 bool removed = _connections.Remove(connection);
                 Debug.Assert(removed);
             }
 
-            return connection.DisposeAsync().AsTask();
+            // TODO: don't initiate shutdown that waits forever
+            await connection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+            await connection.DisposeAsync().ConfigureAwait(false);
         }
     }
 
@@ -272,65 +299,49 @@ public sealed class Server : IAsyncDisposable
     /// <return>A task that completes once the shutdown is complete.</return>
     public async Task ShutdownAsync(CancellationToken cancel = default)
     {
-        lock (_mutex)
+        try
         {
-            _shutdownCancelSource ??= new();
-            _shutdownTask ??= PerformShutdownAsync();
-        }
-
-        // Cancel shutdown task if this call is canceled.
-        using CancellationTokenRegistration _ = cancel.Register(() =>
-        {
-            try
+            lock (_mutex)
             {
-                _shutdownCancelSource!.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-                // Expected if server shutdown completed already.
-            }
-        });
+                ThrowIfDisposed();
 
-        // Wait for shutdown to complete.
-        await _shutdownTask.ConfigureAwait(false);
+                _isReadOnly = true;
 
-        async Task PerformShutdownAsync()
-        {
-            // Yield to ensure _mutex is released while we perform the shutdown.
-            await Task.Yield();
-
-            CancellationToken cancel = _shutdownCancelSource!.Token;
-            try
-            {
                 // Stop accepting new connections by disposing of the listener.
                 _listener?.Dispose();
-
-                // Shuts down the connections to stop accepting new incoming requests. This ensures that once
-                // ShutdownAsync returns, no new requests will be dispatched. ShutdownAsync on each connection waits
-                // for the connection dispatch to complete. If the cancellation token is canceled, the dispatch will
-                // be canceled. This can speed up the shutdown if the dispatch check the dispatch cancellation
-                // token.
-                await Task.WhenAll(_connections.Select(
-                    connection => connection.ShutdownAsync("server shutdown", cancel))).ConfigureAwait(false);
-
-                await Task.WhenAll(_connections.Select(
-                    connection => connection.DisposeAsync().AsTask())).ConfigureAwait(false);
+                _listener = null;
             }
-            finally
-            {
-                _shutdownCancelSource!.Dispose();
 
-                // The continuation is executed asynchronously (see _shutdownCompleteSource's construction). This
-                // way, even if the continuation blocks waiting on ShutdownAsync to complete (with incorrect code
-                // using Result or Wait()), ShutdownAsync will complete.
-                _shutdownCompleteSource.TrySetResult(null);
-            }
+            // Shuts down the connections to stop accepting new incoming requests. This ensures that once
+            // ShutdownAsync returns, no new requests will be dispatched. ShutdownAsync on each connection waits
+            // for the connection dispatch to complete. If the cancellation token is canceled, the dispatch will
+            // be canceled. This can speed up the shutdown if the dispatch check the dispatch cancellation
+            // token.
+            await Task.WhenAll(
+                _connections.Select(
+                    connection => connection.ShutdownAsync(
+                        "server shutdown",
+                        cancelDispatches: false,
+                        cancelInvocations: false,
+                        cancel))).ConfigureAwait(false);
+        }
+        finally
+        {
+            // The continuation is executed asynchronously (see _shutdownCompleteSource's construction). This
+            // way, even if the continuation blocks waiting on ShutdownAsync to complete (with incorrect code
+            // using Result or Wait()), ShutdownAsync will complete.
+            _shutdownCompleteSource.TrySetResult(null);
         }
     }
 
     /// <inheritdoc/>
     public override string ToString() => Endpoint.ToString();
 
-    /// <inheritdoc/>
-    public ValueTask DisposeAsync() => new(ShutdownAsync(new CancellationToken(canceled: true)));
+    private void ThrowIfDisposed()
+    {
+        if (_isDisposed)
+        {
+            throw new ObjectDisposedException($"{typeof(Server)}:{this}");
+        }
+    }
 }

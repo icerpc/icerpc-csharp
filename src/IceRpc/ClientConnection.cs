@@ -263,9 +263,9 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         {
             await task.ConfigureAwait(false);
         }
-        catch
+        catch (Exception exception)
         {
-            // ignored
+            _protocolConnection.Abort(exception);
         }
 
         // TODO: await _protocolConnection.DisposeAsync();

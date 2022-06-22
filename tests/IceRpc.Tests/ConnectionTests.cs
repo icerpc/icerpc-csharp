@@ -345,8 +345,8 @@ public class ConnectionTests
 
     [Test]
     public async Task Shutdown_connection(
-        [Values("ice", "icerpc")] string protocol,
-        [Values(true, false)] bool closeClientSide)
+        [Values("icerpc", "ice")] string protocol,
+        [Values] bool closeClientSide)
     {
         // Arrange
         using var start = new SemaphoreSlim(0);
@@ -383,12 +383,14 @@ public class ConnectionTests
 
             // With the Ice protocol, when closing the connection with a pending invocation, invocations are
             // canceled immediately. The Ice protocol doesn't support reliably waiting for the response.
+            // TODO: throwing OperationCanceledException is not correct.
             Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
             Assert.That(hold.Release(), Is.EqualTo(0));
         }
         else
         {
             Assert.That(hold.Release(), Is.EqualTo(0));
+
             await shutdownTask;
 
             // Ensure the invocation is successful.
@@ -520,7 +522,7 @@ public class ConnectionTests
     [Test]
     public async Task Close_timeout(
         [Values("ice", "icerpc")] string protocol,
-        [Values(true)] bool closeClientSide) // TODO: add false
+        [Values] bool closeClientSide)
     {
         // Arrange
         using var start = new SemaphoreSlim(0);
@@ -558,14 +560,20 @@ public class ConnectionTests
         await start.WaitAsync();
 
         // Act
-        Task _ = closeClientSide ?
-            clientConnection.DisposeAsync().AsTask() :
-            serverConnection!.DisposeAsync().AsTask();
+        if (closeClientSide)
+        {
+            _ = clientConnection.DisposeAsync().AsTask();
+        }
+        else
+        {
+            _ = serverConnection!.DisposeAsync().AsTask();
+        }
 
         // Assert
         if (closeClientSide)
         {
-            // Invocations are canceled immediately on DisposeAsync
+            // Invocations
+            // TODO: this is not correct, the invocation cancellation must not reach the application code
             Assert.That(async () => await pingTask, Throws.InstanceOf<OperationCanceledException>());
         }
         else
