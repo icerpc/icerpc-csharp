@@ -7,7 +7,7 @@ public class ConnectionAbortedException : Exception
 {
     /// <summary>Constructs a new instance of the <see cref="ConnectionAbortedException"/> class.</summary>
     public ConnectionAbortedException()
-        : base("connection aborted")
+        : base("the connection is aborted")
     {
     }
 
@@ -35,18 +35,18 @@ public class ConnectionCanceledException : Exception
 {
     /// <summary>Constructs a new instance of the <see cref="ConnectionCanceledException"/> class.</summary>
     public ConnectionCanceledException()
-        : base("connection canceled")
+        : base("the connection is canceled")
     {
     }
 }
 
 /// <summary>This exception indicates that a previous established connection was closed gracefully. It is safe to
 /// retry a request that failed with this exception.</summary>
-public class ConnectionClosedException : ObjectDisposedException
+public class ConnectionClosedException : Exception
 {
     /// <summary>Constructs a new instance of the <see cref="ConnectionClosedException"/> class.</summary>
     public ConnectionClosedException()
-        : base($"{typeof(IConnection)}", "cannot access closed connection")
+        : base("the connection is closed")
     {
     }
 
@@ -54,7 +54,7 @@ public class ConnectionClosedException : ObjectDisposedException
     /// error message.</summary>
     /// <param name="message">The message that describes the error.</param>
     public ConnectionClosedException(string message)
-        : base($"{typeof(IConnection)}", message)
+        : base(message)
     {
     }
 
