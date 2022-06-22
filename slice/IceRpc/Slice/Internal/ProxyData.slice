@@ -9,12 +9,10 @@ module IceRpc::Slice::Internal;
 
 /// The fragment of a service, encoded as a sequence of 0 or 1 elements. The empty string is encoded as an empty
 /// sequence. A non-empty string is encoded as a sequence with 1 element. While the fragment string is
-/// percent-escaped, the sequence element is not.
-[cs::type("string")]
-compact struct Fragment
-{
-    value: sequence<string>, // has 0 or 1 element
-}
+/// percent-escaped, the sequence element is not
+
+[cs::custom("string")]
+custom Fragment;
 
 /// The InvocationMode is carried by proxies that use the ice protocol, and it specifies the behavior when sending
 /// a request using such a proxy. When encoding an ice proxy, IceRPC always uses Twoway.

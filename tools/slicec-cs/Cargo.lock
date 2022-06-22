@@ -97,6 +97,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "convert_case"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb4a24b1aaf0fd0ce8b45161144d6f42cd91677fd5940fd431183eb023b3a2b8"
+
+[[package]]
 name = "crypto-mac"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -342,8 +348,9 @@ dependencies = [
 [[package]]
 name = "slicec"
 version = "0.1.0"
-source = "git+ssh://git@github.com/zeroc-ice/icerpc#1c72267347b91b47d0ab0ac923a10ada66355b67"
+source = "git+ssh://git@github.com/zeroc-ice/icerpc#45a45c8cb55bd9ecd857fab1a19b391b1e3be763"
 dependencies = [
+ "convert_case",
  "pest",
  "pest_consume",
  "pest_derive",
