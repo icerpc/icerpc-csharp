@@ -214,19 +214,17 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         using var tokenSource = new CancellationTokenSource(_shutdownTimeout);
         try
         {
-            await ShutdownAsync(
-                "dispose client connection",
-                cancelDispatches: true,
-                abortInvocations: true,
-                tokenSource.Token).ConfigureAwait(false);
+            _protocolConnectionCancellationSource.Cancel();
+            await ShutdownAsync("dispose client connection", tokenSource.Token).ConfigureAwait(false);
         }
         catch (Exception exception)
         {
             _protocolConnection.Abort(exception);
         }
 
-        // TODO: await _protocolConnection.DisposeAsync();
         _protocolConnectionCancellationSource.Dispose();
+
+        // TODO: await _protocolConnection.DisposeAsync();
 
         lock (_mutex)
         {
@@ -276,26 +274,14 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
     /// <summary>Gracefully shuts down the connection.</summary>
     /// <param name="message">The message transmitted to the server when using the IceRPC protocol.</param>
-    /// <param name="cancelDispatches">When <c>true</c>, cancel outstanding dispatches.</param>
-    /// <param name="abortInvocations">When <c>true</c>, abort outstanding invocations.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <exception cref="ConnectionCanceledException">Thrown if this connection was canceled by another call.
     /// </exception>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
     /// <exception cref="OperationCanceledException">Thrown if the cancellation was requested through the cancellation
     /// token.</exception>
-    public async Task ShutdownAsync(
-        string message,
-        bool cancelDispatches = false,
-        bool abortInvocations = false,
-        CancellationToken cancel = default)
+    public async Task ShutdownAsync(string message, CancellationToken cancel = default)
     {
-        if (cancelDispatches || abortInvocations)
-        {
-            // TODO: temporary
-            _protocolConnectionCancellationSource.Cancel();
-        }
-
         Task task;
 
         lock (_mutex)

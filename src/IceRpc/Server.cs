@@ -287,14 +287,9 @@ public sealed class Server : IAsyncDisposable
 
     /// <summary>Shuts down this server: the server stops accepting new connections and shuts down gracefully all its
     /// existing connections.</summary>
-    /// <param name="cancelDispatches">When <c>true</c>, cancel outstanding dispatches.</param>
-    /// <param name="abortInvocations">When <c>true</c>, abort outstanding invocations.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <return>A task that completes once the shutdown is complete.</return>
-    public async Task ShutdownAsync(
-        bool cancelDispatches = false,
-        bool abortInvocations = false,
-        CancellationToken cancel = default)
+    public async Task ShutdownAsync(CancellationToken cancel = default)
     {
         try
         {
@@ -307,13 +302,8 @@ public sealed class Server : IAsyncDisposable
                 _listener = null;
             }
 
-            await Task.WhenAll(
-                _connections.Select(
-                    connection => connection.ShutdownAsync(
-                        "server shutdown",
-                        cancelDispatches,
-                        abortInvocations,
-                        cancel))).ConfigureAwait(false);
+            await Task.WhenAll(_connections.Select(connection => connection.ShutdownAsync("server shutdown", cancel)))
+                .ConfigureAwait(false);
         }
         finally
         {

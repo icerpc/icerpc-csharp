@@ -155,14 +155,9 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
 
     /// <summary>Gracefully shuts down all connections managed by this pool. This method can be called multiple times.
     /// </summary>
-    /// <param name="cancelDispatches">When <c>true</c>, cancel outstanding dispatches.</param>
-    /// <param name="abortInvocations">When <c>true</c>, abort outstanding invocations.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes when the shutdown is complete.</returns>
-    public Task ShutdownAsync(
-        bool cancelDispatches = false,
-        bool abortInvocations = false,
-        CancellationToken cancel = default)
+    public Task ShutdownAsync(CancellationToken cancel = default)
     {
         lock (_mutex)
         {
@@ -174,12 +169,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
             _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_shutdownPendingConnections);
 
         return Task.WhenAll(
-            allConnections
-                .Select(connection => connection.ShutdownAsync(
-                    "connection pool shutdown",
-                    cancelDispatches,
-                    abortInvocations,
-                    cancel)));
+            allConnections.Select(connection => connection.ShutdownAsync("connection pool shutdown", cancel)));
     }
 
     /// <summary>Checks with the protocol-dependent transport if this endpoint has valid parameters. We call this method
