@@ -110,7 +110,7 @@ fn encode_type(
                     format!(
                         "{value}.Encode(ref {encoder_param});",
                         value = value,
-                        encoder_param = encoder_param
+                        encoder_param = encoder_param,
                     )
                 }
                 TypeRefs::Exception(_) => format!(
