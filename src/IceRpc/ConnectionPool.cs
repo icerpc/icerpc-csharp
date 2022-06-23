@@ -243,7 +243,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
             // Make sure this connection/endpoint are actually usable.
             await connection.ConnectAsync(cancel).ConfigureAwait(false);
         }
-        catch (Exception exception) when (created)
+        catch when (created)
         {
             bool scheduleRemoveFromClosed = false;
 
@@ -261,7 +261,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
             }
             if (scheduleRemoveFromClosed)
             {
-                _ = RemoveFromClosedAsync(connection, exception);
+                _ = RemoveFromClosedAsync(connection, gracefulShutdown: false);
             }
 
             throw;
@@ -314,19 +314,19 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
 
             if (scheduleRemoveFromClosed)
             {
-                _ = RemoveFromClosedAsync(connection, exception);
+                // TODO: better way to detect graceful shutdown
+                _ = RemoveFromClosedAsync(connection, gracefulShutdown: exception is ConnectionClosedException);
             }
         }
 
         // Remove connection from _shutdownPendingConnections once the dispose is complete
-        async Task RemoveFromClosedAsync(ClientConnection clientConnection, Exception exception)
+        async Task RemoveFromClosedAsync(ClientConnection clientConnection, bool gracefulShutdown)
         {
-            // TODO: better way to detect graceful shutdown
-            if (exception is ConnectionClosedException)
+            if (gracefulShutdown)
             {
                 try
                 {
-                    // Wait for the graceful shutdown to complete
+                    // Wait for the existing graceful shutdown to complete, not matter how long it takes.
                     await clientConnection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
                 }
                 catch

@@ -240,7 +240,11 @@ public sealed class Server : IAsyncDisposable
 
                 // Schedule removal after addition. We do this outside the mutex lock otherwise
                 // await serverConnection.ShutdownAsync could be called within this lock.
-                connection.OnClose(exception => _ = RemoveFromCollectionAsync(connection, exception));
+                // TODO: better way to detect graceful shutdown
+                connection.OnClose(exception =>
+                    _ = RemoveFromCollectionAsync(
+                            connection,
+                            gracefulShutdown: exception is ConnectionClosedException));
 
                 // We don't wait for the connection to be activated. This could take a while for some transports
                 // such as TLS based transports where the handshake requires few round trips between the client
@@ -251,12 +255,11 @@ public sealed class Server : IAsyncDisposable
         }
 
         // Remove the connection from _connections once shutdown completes
-        async Task RemoveFromCollectionAsync(ServerConnection connection, Exception exception)
+        async Task RemoveFromCollectionAsync(ServerConnection connection, bool gracefulShutdown)
         {
-            // TODO: better way to detect graceful shutdown
-            if (exception is ConnectionClosedException)
+            if (gracefulShutdown)
             {
-                // Wait for graceful shutdown to complete
+                // Wait for the existing graceful shut down to complete, no matter how long it takes.
                 try
                 {
                     await connection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);

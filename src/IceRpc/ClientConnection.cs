@@ -44,7 +44,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
     private readonly IProtocolConnection _protocolConnection;
 
-    private readonly CancellationTokenSource _protocolConnectionCancellationSource = new(); // temporary
+    private readonly CancellationTokenSource _protocolConnectionCancellationSource = new(); // TODO temporary
 
     private Task? _shutdownTask;
 
@@ -248,29 +248,14 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
             async Task PerformConnectAsync()
             {
-                if (_connectTask is null)
+                using var connectTimeoutTokenSource = new CancellationTokenSource(_connectTimeout);
+                try
                 {
-                    using var cancellationTokenSource = new CancellationTokenSource(_connectTimeout);
-
-                    try
-                    {
-                        await ConnectAsync(cancellationTokenSource.Token).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        throw new TimeoutException("connect timeout exceeded");
-                    }
+                    await ConnectAsync(connectTimeoutTokenSource.Token).ConfigureAwait(false);
                 }
-                else
+                catch (OperationCanceledException)
                 {
-                    try
-                    {
-                        await _connectTask.ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        throw new ConnectionCanceledException();
-                    }
+                    throw new TimeoutException("connect timeout exceeded");
                 }
             }
         }
@@ -281,6 +266,11 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
     /// <summary>Gracefully shuts down the connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    /// <exception cref="ConnectionCanceledException">Thrown if this connection was canceled by another call.
+    /// </exception>
+    /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
+    /// <exception cref="OperationCanceledException">Thrown if the cancellation was requested through the cancellation
+    /// token.</exception>
     public Task ShutdownAsync(CancellationToken cancel = default) =>
         ShutdownAsync("client connection shutdown", cancel: cancel);
 
@@ -289,6 +279,11 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <param name="cancelDispatches">When <c>true</c>, cancel outstanding dispatches.</param>
     /// <param name="abortInvocations">When <c>true</c>, abort outstanding invocations.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    /// <exception cref="ConnectionCanceledException">Thrown if this connection was canceled by another call.
+    /// </exception>
+    /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
+    /// <exception cref="OperationCanceledException">Thrown if the cancellation was requested through the cancellation
+    /// token.</exception>
     public async Task ShutdownAsync(
         string message,
         bool cancelDispatches = false,
@@ -349,6 +344,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
     private void ThrowIfDisposed()
     {
+        // Must be called with _mutex locked.
         if (_isDisposed)
         {
             throw new ObjectDisposedException($"{typeof(ClientConnection)}");
