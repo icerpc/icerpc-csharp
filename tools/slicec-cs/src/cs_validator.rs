@@ -175,13 +175,6 @@ impl Visitor for CsValidator<'_> {
                         );
                     }
                 }
-                "type" => {
-                    self.error_reporter.report_error(
-                        r#"The 'cs::type("<type>")' attribute is not valid for structs"#,
-                        Some(&attribute.location),
-                    );
-                    validate_cs_type(attribute, self.error_reporter);
-                }
                 "internal" => validate_cs_internal(attribute, self.error_reporter),
                 _ => validate_common_attributes(attribute, self.error_reporter),
             }
