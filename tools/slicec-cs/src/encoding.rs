@@ -548,8 +548,8 @@ pub fn encode_action(
                 code,
                 "(ref SliceEncoder encoder, {value_type} value) => {value}.Encode(ref encoder)",
                 value_type = value_type,
-                value = value
-            )
+                value = value,
+            );
         }
         TypeRefs::Exception(_) => {
             write!(
