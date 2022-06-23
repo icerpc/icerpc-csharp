@@ -11,7 +11,7 @@ module IceRpc::Slice::Internal;
 /// sequence. A non-empty string is encoded as a sequence with 1 element. While the fragment string is
 /// percent-escaped, the sequence element is not
 
-[cs::custom("string")]
+[cs::type("string")]
 custom Fragment;
 
 /// The InvocationMode is carried by proxies that use the ice protocol, and it specifies the behavior when sending

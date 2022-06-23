@@ -5,5 +5,5 @@ encoding = 1;
 module IceRpc::Slice;
 
 /// The path of a service, encoded as an Ice identity.
-[cs::custom("string")]
+[cs::type("string")]
 custom IdentityPath;
