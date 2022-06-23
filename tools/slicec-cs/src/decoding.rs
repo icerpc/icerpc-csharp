@@ -91,9 +91,7 @@ fn decode_member(
                 write!(code, "decoder.Decode{}()", primitive_ref.type_suffix());
             }
         }
-        TypeRefs::Struct(_) => {
-            write!(code, "new {}(ref decoder)", type_string);
-        }
+        TypeRefs::Struct(_) => write!(code, "new {}(ref decoder)", type_string),
         TypeRefs::Exception(_) => {
             write!(code, "new {}(ref decoder)", type_string)
         }
@@ -438,7 +436,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
         TypeRefs::Struct(_) => {
             format!(
                 "(ref SliceDecoder decoder) => new {}(ref decoder)",
-                type_name
+                type_name,
             )
         }
         TypeRefs::Exception(_) => {

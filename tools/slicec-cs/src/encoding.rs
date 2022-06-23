@@ -110,7 +110,7 @@ fn encode_type(
                     format!(
                         "{value}.Encode(ref {encoder_param});",
                         value = value,
-                        encoder_param = encoder_param
+                        encoder_param = encoder_param,
                     )
                 }
                 TypeRefs::Exception(_) => format!(
@@ -548,8 +548,8 @@ pub fn encode_action(
                 code,
                 "(ref SliceEncoder encoder, {value_type} value) => {value}.Encode(ref encoder)",
                 value_type = value_type,
-                value = value
-            )
+                value = value,
+            );
         }
         TypeRefs::Exception(_) => {
             write!(
