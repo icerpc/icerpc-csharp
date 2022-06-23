@@ -153,7 +153,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
         }
     }
 
-    /// <summary>Gracefully shuts down all connections created by this pool. This method can be called multiple times.
+    /// <summary>Gracefully shuts down all connections managed by this pool. This method can be called multiple times.
     /// </summary>
     /// <param name="cancelDispatches">When <c>true</c>, cancel outstanding dispatches.</param>
     /// <param name="abortInvocations">When <c>true</c>, abort outstanding invocations.</param>
