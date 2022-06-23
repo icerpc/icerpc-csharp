@@ -174,7 +174,7 @@ public ref partial struct SliceEncoder
             else
             {
                 // Encode piecemeal using _utf8Encoder
-                if (_utf8Encoder == null)
+                if (_utf8Encoder is null)
                 {
                     _utf8Encoder = _utf8.GetEncoder();
                 }
@@ -285,7 +285,7 @@ public ref partial struct SliceEncoder
                 "encoding nullable proxies without a bit sequence is only supported with Slice1");
         }
 
-        if (proxy != null)
+        if (proxy is not null)
         {
             EncodeProxy(proxy);
         }

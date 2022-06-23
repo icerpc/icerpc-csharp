@@ -45,7 +45,7 @@ public sealed class IncomingRequest : IncomingFrame
         get => _response;
         set
         {
-            if (_response != null)
+            if (_response is not null)
             {
                 _response.Payload.Complete();
                 _response.PayloadStream?.Complete();
@@ -71,7 +71,7 @@ public sealed class IncomingRequest : IncomingFrame
     public void Complete(Exception? exception = null)
     {
         Payload.Complete(exception);
-        if (_response != null)
+        if (_response is not null)
         {
             _response.Payload.Complete(exception);
             _response.PayloadStream?.Complete(exception);

@@ -68,8 +68,8 @@ public class SequenceDecodingTests
         for (int i = 0; i < expected.Length; ++i)
         {
             int? value = expected[i];
-            bitSequenceWriter.Write(value != null);
-            if (value != null)
+            bitSequenceWriter.Write(value is not null);
+            if (value is not null)
             {
                 encoder.EncodeInt32(value.Value);
             }

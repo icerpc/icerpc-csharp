@@ -56,6 +56,6 @@
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
       <PackageReference Include="System.IO.Pipelines" Version="6.0.3" />
-      <PackageReference Include="IceRpc.Builder.MSBuild" Version="0.1.0-preview4" PrivateAssets="All" />
+      <PackageReference Include="IceRpc.Builder.MSBuild" Version="0.1.0-preview5" PrivateAssets="All" />
     </ItemGroup>
 </Project>

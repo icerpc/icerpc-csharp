@@ -13,12 +13,6 @@ public class SlicServerTransport : IServerTransport<IMultiplexedNetworkConnectio
     /// <inheritdoc/>
     public string Name => _simpleServerTransport.Name;
 
-    private static readonly Func<ISlicFrameReader, ISlicFrameReader> _defaultSlicFrameReaderDecorator =
-        reader => reader;
-
-    private static readonly Func<ISlicFrameWriter, ISlicFrameWriter> _defaultSlicFrameWriterDecorator =
-        writer => writer;
-
     private readonly IServerTransport<ISimpleNetworkConnection> _simpleServerTransport;
     private readonly SlicTransportOptions _slicTransportOptions;
 
@@ -44,31 +38,6 @@ public class SlicServerTransport : IServerTransport<IMultiplexedNetworkConnectio
     public IListener<IMultiplexedNetworkConnection> Listen(
         Endpoint endpoint,
         SslServerAuthenticationOptions? authenticationOptions,
-        ILogger logger)
-    {
-        // This is the composition root of the Slic server transport, where we install log decorators when logging
-        // is enabled.
-
-        IListener<ISimpleNetworkConnection> simpleListener = _simpleServerTransport.Listen(
-            endpoint,
-            authenticationOptions,
-            logger);
-
-        Func<ISlicFrameReader, ISlicFrameReader> slicFrameReaderDecorator = _defaultSlicFrameReaderDecorator;
-        Func<ISlicFrameWriter, ISlicFrameWriter> slicFrameWriterDecorator = _defaultSlicFrameWriterDecorator;
-
-        if (logger.IsEnabled(LogLevel.Error))
-        {
-            // Do not decorate the simple listener to avoid duplicate traces from the
-            // LogListenerDecorator
-            slicFrameReaderDecorator = reader => new LogSlicFrameReaderDecorator(reader, logger);
-            slicFrameWriterDecorator = writer => new LogSlicFrameWriterDecorator(writer, logger);
-        }
-
-        return new SlicListener(
-            simpleListener,
-            slicFrameReaderDecorator,
-            slicFrameWriterDecorator,
-            _slicTransportOptions);
-    }
+        ILogger logger) =>
+        new SlicListener(_simpleServerTransport.Listen(endpoint, authenticationOptions, logger), _slicTransportOptions);
 }

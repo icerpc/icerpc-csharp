@@ -12,11 +12,11 @@ namespace IceRpc.Transports.Internal;
 
 internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
 {
-    protected int disposed;
-
     internal abstract Socket Socket { get; }
 
     internal abstract SslStream? SslStream { get; }
+
+    private protected volatile bool _isDisposed;
 
     // The MaxDataSize of the SSL implementation.
     private const int MaxSslDataSize = 16 * 1024;
@@ -27,10 +27,11 @@ internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
 
     public void Dispose()
     {
-        if (Interlocked.Exchange(ref disposed, 1) == 1)
+        if (_isDisposed)
         {
-            return; // Aready disposed.
+            return;
         }
+        _isDisposed = true;
 
         if (SslStream is SslStream sslStream)
         {
@@ -50,7 +51,7 @@ internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
         int received;
         try
         {
-            if (SslStream != null)
+            if (SslStream is not null)
             {
                 received = await SslStream.ReadAsync(buffer, cancel).ConfigureAwait(false);
             }
@@ -59,7 +60,7 @@ internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
                 received = await Socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
             }
         }
-        catch when (disposed == 1)
+        catch when (_isDisposed)
         {
             throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
         }
@@ -181,7 +182,7 @@ internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
                 }
             }
         }
-        catch when (disposed == 1)
+        catch when (_isDisposed)
         {
             throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
         }
@@ -216,12 +217,12 @@ internal class TcpClientNetworkConnection : TcpNetworkConnection
 
         try
         {
-            Debug.Assert(Socket != null);
+            Debug.Assert(Socket is not null);
 
             // Connect to the peer.
             await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
 
-            if (_authenticationOptions != null)
+            if (_authenticationOptions is not null)
             {
                 // This can only be created with a connected socket.
                 _sslStream = new SslStream(new NetworkStream(Socket, false), false);
@@ -235,7 +236,7 @@ internal class TcpClientNetworkConnection : TcpNetworkConnection
                 remoteEndPoint: Socket.RemoteEndPoint!,
                 _sslStream?.RemoteCertificate);
         }
-        catch when (disposed == 1)
+        catch when (_isDisposed)
         {
             throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
         }
@@ -315,7 +316,7 @@ internal class TcpServerNetworkConnection : TcpNetworkConnection
 
         try
         {
-            if (_authenticationOptions != null)
+            if (_authenticationOptions is not null)
             {
                 // This can only be created with a connected socket.
                 _sslStream = new SslStream(new NetworkStream(Socket, false), false);
@@ -331,7 +332,7 @@ internal class TcpServerNetworkConnection : TcpNetworkConnection
                 remoteEndPoint: Socket.RemoteEndPoint!,
                 _sslStream?.RemoteCertificate);
         }
-        catch when (disposed == 1)
+        catch when (_isDisposed)
         {
             throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
         }

@@ -12,7 +12,6 @@ internal class SlicPipeReader : PipeReader
     private int _examined;
     private Exception? _exception;
     private long _lastExaminedOffset;
-    private readonly SimpleNetworkConnectionReader _networkConnectionReader;
     private readonly Pipe _pipe;
     private ReadResult _readResult;
     private int _receiveCredit;
@@ -142,13 +141,11 @@ internal class SlicPipeReader : PipeReader
         MemoryPool<byte> pool,
         int minimumSegmentSize,
         int resumeThreshold,
-        int pauseThreshold,
-        SimpleNetworkConnectionReader networkConnectionReader)
+        int pauseThreshold)
     {
         _stream = stream;
         _errorCodeConverter = errorCodeConverter;
         _resumeThreshold = resumeThreshold;
-        _networkConnectionReader = networkConnectionReader;
         _receiveCredit = pauseThreshold;
         _pipe = new(new PipeOptions(
             pool: pool,
@@ -192,7 +189,7 @@ internal class SlicPipeReader : PipeReader
             }
 
             // Fill the pipe writer with dataSize bytes.
-            await _networkConnectionReader.FillBufferWriterAsync(
+            await _stream.FillBufferWriterAsync(
                     _pipe.Writer,
                     dataSize,
                     cancel).ConfigureAwait(false);
@@ -256,7 +253,7 @@ internal class SlicPipeReader : PipeReader
     {
         if (_state.HasFlag(State.PipeWriterCompleted))
         {
-            if (_exception != null)
+            if (_exception is not null)
             {
                 throw ExceptionUtil.Throw(_exception);
             }

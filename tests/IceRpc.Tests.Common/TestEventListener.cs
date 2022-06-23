@@ -33,7 +33,7 @@ public class TestEventListener : EventListener
     {
         // OnEventSourceCreated can be called as soon as the base constructor runs and before
         // _sourceName is assigned, if that is the case we ignore the source.
-        if (_sourceName == null)
+        if (_sourceName is null)
         {
             return;
         }
@@ -42,7 +42,7 @@ public class TestEventListener : EventListener
         {
             lock (_mutex)
             {
-                if (_eventSource == null)
+                if (_eventSource is null)
                 {
                     _eventSource = eventSource;
                     EnableEvents(

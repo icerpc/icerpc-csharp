@@ -41,7 +41,7 @@ public sealed class LogAttributeLoggerFactory : ILoggerFactory
         // TestExecutionContext is unfortunately the only way to check the test fixture properties (instead of
         // using TestContext.CurrentContext.Test.Properties.Get("Log") which only checks for the test method
         // properties)
-        for (Test? test = TestExecutionContext.CurrentContext.CurrentTest; test != null; test = test.Parent as Test)
+        for (Test? test = TestExecutionContext.CurrentContext.CurrentTest; test is not null; test = test.Parent as Test)
         {
             if (test.Properties.Get("Log") is LogAttributeLevel logLevel)
             {

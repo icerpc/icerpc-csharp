@@ -56,7 +56,7 @@ public static class TypeExtensions
         else if (type.IsClass)
         {
             var result = new List<string>();
-            for (Type? p = type; p != null; p = p.BaseType)
+            for (Type? p = type; p is not null; p = p.BaseType)
             {
                 if (GetSliceTypeId(p) is string typeId)
                 {

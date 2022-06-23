@@ -130,7 +130,7 @@ public sealed class Server : IAsyncDisposable
                 throw new InvalidOperationException($"server '{this}' is already listening");
             }
 
-            if (_shutdownTask != null)
+            if (_shutdownTask is not null)
             {
                 throw new ObjectDisposedException($"{typeof(Server)}:{this}");
             }
@@ -198,7 +198,7 @@ public sealed class Server : IAsyncDisposable
                 {
                     lock (_mutex)
                     {
-                        if (_shutdownTask != null)
+                        if (_shutdownTask is not null)
                         {
                             return;
                         }
@@ -221,7 +221,7 @@ public sealed class Server : IAsyncDisposable
 
                 lock (_mutex)
                 {
-                    if (_shutdownTask != null)
+                    if (_shutdownTask is not null)
                     {
                         connection.Abort();
                         return;
@@ -248,7 +248,7 @@ public sealed class Server : IAsyncDisposable
             lock (_mutex)
             {
                 // the _connections collection is immutable when _shutdownTask.
-                if (_shutdownTask != null)
+                if (_shutdownTask is not null)
                 {
                     // We're done, the connection shutdown is taken care of by the shutdown task.
                     return Task.CompletedTask;

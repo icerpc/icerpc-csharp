@@ -33,7 +33,7 @@ public class SignTask : Task
     {
         CommandLineBuilder builder = new(false);
         builder.AppendSwitch("sign");
-        if (AdditionalOptions != null)
+        if (AdditionalOptions is not null)
         {
             builder.AppendTextUnquoted(" ");
             builder.AppendTextUnquoted(AdditionalOptions);
@@ -82,7 +82,7 @@ public class SignTask : Task
 
         public void OnOutputDataReceived(object sendingProcess, DataReceivedEventArgs outLine)
         {
-            if (outLine.Data != null)
+            if (outLine.Data is not null)
             {
                 Output += outLine.Data + "\n";
             }
@@ -90,7 +90,7 @@ public class SignTask : Task
 
         public void OnErrorDataReceived(object sendingProcess, DataReceivedEventArgs outLine)
         {
-            if (outLine.Data != null)
+            if (outLine.Data is not null)
             {
                 Error += outLine.Data + "\n";
             }

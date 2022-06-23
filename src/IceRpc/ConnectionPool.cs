@@ -78,19 +78,19 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
             lock (_mutex)
             {
                 connection = GetActiveConnection(endpoint);
-                if (connection == null)
+                if (connection is null)
                 {
                     foreach (Endpoint altEndpoint in altEndpoints)
                     {
                         connection = GetActiveConnection(altEndpoint);
-                        if (connection != null)
+                        if (connection is not null)
                         {
                             break; // foreach
                         }
                     }
                 }
             }
-            if (connection != null)
+            if (connection is not null)
             {
                 return new(connection);
             }
@@ -137,7 +137,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
                     }
                 }
 
-                throw exceptionList == null ? ExceptionUtil.Throw(ex) : new AggregateException(exceptionList);
+                throw exceptionList is null ? ExceptionUtil.Throw(ex) : new AggregateException(exceptionList);
             }
         }
     }
@@ -218,7 +218,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
 
         lock (_mutex)
         {
-            if (_shutdownTask != null)
+            if (_shutdownTask is not null)
             {
                 throw new ObjectDisposedException($"{typeof(ConnectionPool)}");
             }
@@ -261,7 +261,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
             lock (_mutex)
             {
                 // the _pendingConnections collection is immutable after shutdown
-                if (_shutdownTask == null)
+                if (_shutdownTask is null)
                 {
                     // "move" from pending to shutdown pending
                     bool removed = _pendingConnections.Remove(endpoint);
@@ -282,7 +282,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
         {
             lock (_mutex)
             {
-                if (_shutdownTask == null)
+                if (_shutdownTask is null)
                 {
                     // "move" from pending to active
                     bool removed = _pendingConnections.Remove(endpoint);
@@ -304,14 +304,14 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
 
         void RemoveFromActive(Exception exception)
         {
-            Debug.Assert(connection != null);
+            Debug.Assert(connection is not null);
 
             bool scheduleRemoveFromClosed = false;
 
             lock (_mutex)
             {
                 // the _activeConnections collection is immutable after shutdown
-                if (_shutdownTask == null)
+                if (_shutdownTask is null)
                 {
                     // "move" from active to shutdown pending
                     bool removed = _activeConnections.Remove(connection.RemoteEndpoint);
@@ -335,7 +335,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
             lock (_mutex)
             {
                 // the _shutdownPendingConnections collection is immutable after shutdown
-                if (_shutdownTask == null)
+                if (_shutdownTask is null)
                 {
                     bool removed = _shutdownPendingConnections.Remove(clientConnection);
                     Debug.Assert(removed);

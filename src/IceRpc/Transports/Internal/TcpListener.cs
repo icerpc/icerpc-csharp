@@ -55,7 +55,7 @@ internal sealed class TcpListener : IListener<ISimpleNetworkConnection>
 
         _authenticationOptions = authenticationOptions;
 
-        if (_authenticationOptions != null)
+        if (_authenticationOptions is not null)
         {
             // Add the endpoint protocol to the SSL application protocols (used by TLS ALPN)
             _authenticationOptions = _authenticationOptions.Clone();

@@ -33,7 +33,7 @@ internal class ColocNetworkConnection : ISimpleNetworkConnection
         {
             // _reader and _writer can be null if connection establishment failed.
 
-            if (_reader != null)
+            if (_reader is not null)
             {
                 if (_state.HasFlag(State.Reading))
                 {
@@ -45,7 +45,7 @@ internal class ColocNetworkConnection : ISimpleNetworkConnection
                 }
             }
 
-            if (_writer != null)
+            if (_writer is not null)
             {
                 if (_state.HasFlag(State.Writing))
                 {
@@ -61,7 +61,7 @@ internal class ColocNetworkConnection : ISimpleNetworkConnection
 
     public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
     {
-        Debug.Assert(_reader != null && _writer != null);
+        Debug.Assert(_reader is not null && _writer is not null);
 
         if (!_state.TrySetFlag(State.Reading))
         {
@@ -141,7 +141,7 @@ internal class ColocNetworkConnection : ISimpleNetworkConnection
 
     public async Task ShutdownAsync(CancellationToken cancel)
     {
-        Debug.Assert(_reader != null && _writer != null);
+        Debug.Assert(_reader is not null && _writer is not null);
 
         if (_state.TrySetFlag(State.ShuttingDown))
         {
@@ -159,7 +159,7 @@ internal class ColocNetworkConnection : ISimpleNetworkConnection
 
     public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
     {
-        Debug.Assert(_reader != null && _writer != null);
+        Debug.Assert(_reader is not null && _writer is not null);
 
         if (!_state.TrySetFlag(State.Writing))
         {

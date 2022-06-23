@@ -28,7 +28,7 @@ public sealed class RequestContextInterceptorTests
            new InlineInvoker((request, cancel) =>
            {
                if (request.Fields.TryGetValue(RequestFieldKey.Context, out OutgoingFieldValue value) &&
-                   value.EncodeAction != null)
+                   value.EncodeAction is not null)
                {
                    var pipe = new Pipe();
                    var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);

@@ -20,7 +20,7 @@ internal class ColocServerTransport : IServerTransport<ISimpleNetworkConnection>
         SslServerAuthenticationOptions? authenticationOptions,
         ILogger logger)
     {
-        if (authenticationOptions != null)
+        if (authenticationOptions is not null)
         {
             throw new NotSupportedException("cannot create secure Coloc server");
         }

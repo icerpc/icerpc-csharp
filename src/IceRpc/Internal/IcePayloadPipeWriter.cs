@@ -24,8 +24,15 @@ internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
 
     public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancel = default)
     {
-        // The flush can't be canceled because it would lead to the writing of an incomplete payload.
-        await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+        try
+        {
+            await _networkConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            // The simple network connection can only be disposed if this connection is aborted.
+            throw new ConnectionAbortedException();
+        }
         return default;
     }
 
@@ -35,10 +42,15 @@ internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
 
     public override async ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancel)
     {
-        // The write can't be canceled because it would lead to the writing of an incomplete payload.
-        await _networkConnectionWriter.WriteAsync(
-            new ReadOnlySequence<byte>(source),
-            CancellationToken.None).ConfigureAwait(false);
+        try
+        {
+            await _networkConnectionWriter.WriteAsync(new ReadOnlySequence<byte>(source), cancel).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            // The simple network connection can only be disposed if this connection is aborted.
+            throw new ConnectionAbortedException();
+        }
         return default;
     }
 
@@ -49,8 +61,15 @@ internal sealed class IcePayloadPipeWriter : ReadOnlySequencePipeWriter
         bool endStream,
         CancellationToken cancel)
     {
-        // The write can't be canceled because it would lead to the writing of an incomplete payload.
-        await _networkConnectionWriter.WriteAsync(source, CancellationToken.None).ConfigureAwait(false);
+        try
+        {
+            await _networkConnectionWriter.WriteAsync(source, cancel).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            // The simple network connection can only be disposed if this connection is aborted.
+            throw new ConnectionAbortedException();
+        }
         return default;
     }
 

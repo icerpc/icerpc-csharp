@@ -342,49 +342,6 @@ public abstract class SimpleTransportConformanceTests
             CancellationToken.None));
     }
 
-    [Test]
-    public async Task Shutdow_does_not_discard_buffered_data()
-    {
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        using ClientServerSimpleTransportConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IListener<ISimpleNetworkConnection>>(),
-            provider.GetRequiredService<ISimpleNetworkConnection>());
-
-        byte[] buffer = new byte[64 * 1024];
-        var sendData = new List<ReadOnlyMemory<byte>> { buffer };
-        Task<int> receiveTask = ReceiveAsync();
-
-        int sendSize = 0;
-        Task sendTask;
-        do
-        {
-            sendTask = sut.ClientConnection.WriteAsync(sendData, CancellationToken.None).AsTask();
-            sendSize += buffer.Length;
-        } while (sendTask.IsCompletedSuccessfully);
-        await sendTask;
-
-        // Act
-        await sut.ClientConnection.ShutdownAsync(CancellationToken.None);
-
-        // Assert
-        Assert.That(await receiveTask, Is.EqualTo(sendSize));
-
-        async Task<int> ReceiveAsync()
-        {
-            int recvSize = 0;
-            while (true)
-            {
-                int read = await sut.ServerConnection.ReadAsync(buffer, CancellationToken.None);
-                if (read == 0)
-                {
-                    break;
-                }
-                recvSize += read;
-            }
-            return recvSize;
-        }
-    }
-
     /// <summary>Verifies that we can write and read using server and client connections.</summary>
     [Test]
     public async Task WriteAndRead(

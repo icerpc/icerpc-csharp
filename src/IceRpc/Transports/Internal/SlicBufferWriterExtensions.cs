@@ -18,7 +18,7 @@ internal static class SlicBufferWriterExtensions
         Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
         int startPos = encoder.EncodedByteCount;
 
-        if (streamId != null)
+        if (streamId is not null)
         {
             encoder.EncodeVarUInt62((ulong)streamId);
         }

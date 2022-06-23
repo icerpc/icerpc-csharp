@@ -58,7 +58,7 @@ internal sealed class ServerConnection : IConnection
 
         lock (_mutex)
         {
-            Debug.Assert(_connectTask == null);
+            Debug.Assert(_connectTask is null);
 
             if (_isShutdown)
             {
@@ -97,7 +97,7 @@ internal sealed class ServerConnection : IConnection
         {
             Debug.Assert(!_isShutdown);
 
-            if (_connectTask == null)
+            if (_connectTask is null)
             {
                 _isShutdown = true;
             }
@@ -108,7 +108,7 @@ internal sealed class ServerConnection : IConnection
             }
         }
 
-        if (connectTask == null)
+        if (connectTask is null)
         {
             // ConnectAsync wasn't called, just release resources associated with the protocol connection.
             // TODO: Refactor depending on what we decide for the protocol connection resource cleanup (#1397,

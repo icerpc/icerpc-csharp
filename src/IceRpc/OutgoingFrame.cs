@@ -56,7 +56,7 @@ public abstract class OutgoingFrame
     /// <summary>Returns the payload writer to use when sending the payload.</summary>
     internal PipeWriter GetPayloadWriter(PipeWriter writer)
     {
-        if (_payloadWriterInterceptorStack != null)
+        if (_payloadWriterInterceptorStack is not null)
         {
             foreach (Func<PipeWriter, PipeWriter> interceptor in _payloadWriterInterceptorStack)
             {
