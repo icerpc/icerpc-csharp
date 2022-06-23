@@ -58,7 +58,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
     }
 
     /// <summary>Releases all resources allocated by this connection pool.</summary>
-    /// <returns>A value task that completes when the DisposeAsync completes.</returns>
+/// <returns>A value task that completes when all connections managed by this pool are disposed.</returns>
     public async ValueTask DisposeAsync()
     {
         lock (_mutex)
