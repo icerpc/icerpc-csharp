@@ -122,6 +122,8 @@ public sealed class Server : IAsyncDisposable
 
         await Task.WhenAll(_connections.Select(connection => connection.DisposeAsync().AsTask()))
             .ConfigureAwait(false);
+
+        _ = _shutdownCompleteSource.TrySetResult(null);
     }
 
     /// <summary>Starts listening on the configured endpoint and dispatching requests from clients. If the
