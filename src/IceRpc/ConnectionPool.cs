@@ -243,7 +243,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
             // Make sure this connection/endpoint are actually usable.
             await connection.ConnectAsync(cancel).ConfigureAwait(false);
         }
-        catch when (created)
+        catch (Exception exception) when (created)
         {
             bool scheduleRemoveFromClosed = false;
 
@@ -261,7 +261,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
             }
             if (scheduleRemoveFromClosed)
             {
-                _ = RemoveFromClosedAsync(connection);
+                _ = RemoveFromClosedAsync(connection, exception);
             }
 
             throw;
@@ -314,23 +314,25 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
 
             if (scheduleRemoveFromClosed)
             {
-                _ = RemoveFromClosedAsync(connection);
+                _ = RemoveFromClosedAsync(connection, exception);
             }
         }
 
-        // Remove connection from _shutdownPendingConnections once the shutdown is complete
-        async Task RemoveFromClosedAsync(ClientConnection clientConnection)
+        // Remove connection from _shutdownPendingConnections once the dispose is complete
+        async Task RemoveFromClosedAsync(ClientConnection clientConnection, Exception exception)
         {
-            try
+            // TODO: better way to detect graceful shutdown
+            if (exception is ConnectionClosedException)
             {
-                // Wait for the existing shutdown to complete
-                // TODO: it's ok to wait for an ongoing shutdown but we should not start one, especially without
-                // timeout.
-                await clientConnection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
-            }
-            catch
-            {
-                // ignored
+                try
+                {
+                    // Wait for the graceful shutdown to complete
+                    await clientConnection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // ignored
+                }
             }
 
             await clientConnection.DisposeAsync().ConfigureAwait(false);
