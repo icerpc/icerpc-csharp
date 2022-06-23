@@ -203,35 +203,22 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
-        using var tokenSource = new CancellationTokenSource(_shutdownTimeout);
-        Task task;
-
         lock (_mutex)
         {
             if (_isDisposed)
             {
                 return;
             }
-
-            if (_shutdownTask is null)
-            {
-                // Attempt a graceful shutdown
-                _shutdownTask = ShutdownAsyncCore("client connection disposed", _connectTask, tokenSource.Token);
-                task = _shutdownTask;
-            }
-            else
-            {
-                // We give shutdown a chance to complete within _shutdownTimeout
-                task = _shutdownTask.WaitAsync(tokenSource.Token);
-            }
         }
 
-        // TODO: temporary
-        _protocolConnectionCancellationSource.Cancel();
-
+        using var tokenSource = new CancellationTokenSource(_shutdownTimeout);
         try
         {
-            await task.ConfigureAwait(false);
+            await ShutdownAsync(
+                "dispose client connection",
+                cancelDispatches: true,
+                abortInvocations: true,
+                tokenSource.Token).ConfigureAwait(false);
         }
         catch (Exception exception)
         {
@@ -322,7 +309,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
             if (_shutdownTask is null)
             {
-                _shutdownTask = ShutdownAsyncCore(message, _connectTask, cancel);
+                _shutdownTask = PerformShutdownAsync(message, _connectTask, cancel);
                 task = _shutdownTask;
             }
             else
@@ -340,24 +327,24 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             // A previous call to ShutdownAsync failed with OperationCanceledException
             throw new ConnectionCanceledException();
         }
-    }
 
-    private async Task ShutdownAsyncCore(string message, Task? connectTask, CancellationToken cancel)
-    {
-        // Make sure we shutdown the connection asynchronously without holding any mutex lock from the caller.
-        await Task.Yield();
-
-        if (connectTask is not null)
+        async Task PerformShutdownAsync(string message, Task? connectTask, CancellationToken cancel)
         {
-            // Wait for connection establishment to complete before calling ShutdownAsync.
-            await connectTask.WaitAsync(cancel).ConfigureAwait(false);
-        }
+            // Make sure we shutdown the connection asynchronously without holding any mutex lock from the caller.
+            await Task.Yield();
 
-        // Shut down the protocol connection.
-        await _protocolConnection
-            .ShutdownAsync(message, _protocolConnectionCancellationSource.Token) // currently does not throw anything
-            .WaitAsync(cancel)
-            .ConfigureAwait(false);
+            if (connectTask is not null)
+            {
+                // Wait for connection establishment to complete before calling ShutdownAsync.
+                await connectTask.WaitAsync(cancel).ConfigureAwait(false);
+            }
+
+            // Shut down the protocol connection.
+            await _protocolConnection
+                .ShutdownAsync(message, _protocolConnectionCancellationSource.Token) // currently does not throw anything
+                .WaitAsync(cancel)
+                .ConfigureAwait(false);
+        }
     }
 
     private void ThrowIfDisposed()
