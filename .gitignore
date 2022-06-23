@@ -78,6 +78,7 @@ generated
 # Test generated files
 tests/**/Test.cs
 tests/CodeCoverageReport
+tests/TestReport/
 TestResults
 
 # Example generated files
