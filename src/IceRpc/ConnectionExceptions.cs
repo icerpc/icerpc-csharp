@@ -29,7 +29,7 @@ public class ConnectionAbortedException : Exception
     }
 }
 
-/// <summary>This exception indicates that a ConnectAsync or DisposeAsync on this connection was canceled, and the
+/// <summary>This exception indicates that a ConnectAsync or DisposeAsync call on a connection was canceled, and the
 /// the connection is now in an unusable state.</summary>
 public class ConnectionCanceledException : Exception
 {
