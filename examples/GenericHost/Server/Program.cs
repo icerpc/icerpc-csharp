@@ -75,6 +75,6 @@ public static class Program
 
         public Task StopAsync(CancellationToken cancellationToken) =>
             // Shutdown the IceRPC server when the hosted service is stopped.
-            _server.ShutdownAsync(cancellationToken);
+            _server.ShutdownAsync(cancel: cancellationToken);
     }
 }

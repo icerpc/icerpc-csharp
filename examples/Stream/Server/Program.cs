@@ -10,7 +10,7 @@ await using var server = new Server(new NumberStream());
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
     eventArgs.Cancel = true;
-    _ = server.ShutdownAsync(new CancellationToken(canceled: true));
+    _ = server.ShutdownAsync(cancel: new CancellationToken(canceled: true));
 };
 
 // Start the server
