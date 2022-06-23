@@ -2,7 +2,7 @@
 
 using System.IO.Pipelines;
 
-namespace IceRpc.Slice.Internal;
+namespace IceRpc.Internal;
 
 /// <summary>Extension methods for struct <see cref="ReadResult"/>.</summary>
 internal static class ReadResultExtensions
