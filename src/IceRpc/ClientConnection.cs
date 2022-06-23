@@ -211,10 +211,10 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             }
         }
 
+        // DisposeAsync first attempts a fully graceful shutdown that does not cancel dispatches or aborts invocations.
         using var tokenSource = new CancellationTokenSource(_shutdownTimeout);
         try
         {
-            _protocolConnectionCancellationSource.Cancel();
             await ShutdownAsync("dispose client connection", tokenSource.Token).ConfigureAwait(false);
         }
         catch (Exception exception)
@@ -222,9 +222,8 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             _protocolConnection.Abort(exception);
         }
 
-        _protocolConnectionCancellationSource.Dispose();
-
         // TODO: await _protocolConnection.DisposeAsync();
+        _protocolConnectionCancellationSource.Dispose();
 
         lock (_mutex)
         {

@@ -46,11 +46,10 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
             }
         }
 
+        // DisposeAsync first attempts a fully graceful shutdown that does not cancel dispatches or aborts invocations.
         using var tokenSource = new CancellationTokenSource(_shutdownTimeout);
-
         try
         {
-            _protocolConnectionCancellationSource.Cancel();
             await ShutdownAsync("server connection disposed", tokenSource.Token).ConfigureAwait(false);
         }
         catch (Exception exception)
@@ -58,6 +57,7 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
             _protocolConnection.Abort(exception);
         }
 
+        // TODO: await _protocolConnection.DisposeAsync();
         _protocolConnectionCancellationSource.Dispose();
 
         lock (_mutex)
