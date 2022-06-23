@@ -13,8 +13,6 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
     // Connected connections that can be returned immediately.
     private readonly Dictionary<Endpoint, ClientConnection> _activeConnections = new(EndpointComparer.ParameterLess);
 
-    private bool _isDisposed;
-
     private bool _isReadOnly;
 
     private readonly ILoggerFactory? _loggerFactory;
@@ -65,11 +63,6 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
     {
         lock (_mutex)
         {
-            if (_isDisposed)
-            {
-                return;
-            }
-            _isDisposed = true;
             _isReadOnly = true;
         }
 
@@ -77,15 +70,8 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
         IEnumerable<ClientConnection> allConnections =
             _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_shutdownPendingConnections);
 
-        try
-        {
-            await Task.WhenAll(allConnections.Select(connection => connection.DisposeAsync().AsTask()))
-                .ConfigureAwait(false);
-        }
-        catch
-        {
-            // ignored
-        }
+        await Task.WhenAll(allConnections.Select(connection => connection.DisposeAsync().AsTask()))
+            .ConfigureAwait(false);
     }
 
     /// <summary>Returns a client connection to one of the specified endpoints.</summary>
@@ -102,8 +88,6 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
             ClientConnection? connection = null;
             lock (_mutex)
             {
-                ThrowIfDisposed();
-
                 connection = GetActiveConnection(endpoint);
                 if (connection is null)
                 {
@@ -182,7 +166,6 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
     {
         lock (_mutex)
         {
-            ThrowIfDisposed();
             _isReadOnly = true;
         }
 
@@ -227,8 +210,6 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
 
         lock (_mutex)
         {
-            ThrowIfDisposed();
-
             if (_isReadOnly)
             {
                 throw new InvalidOperationException("pool shutting down");
@@ -362,15 +343,6 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
                     Debug.Assert(removed);
                 }
             }
-        }
-    }
-
-    private void ThrowIfDisposed()
-    {
-        // Always called with _mutex locked
-        if (_isDisposed)
-        {
-            throw new ObjectDisposedException($"{typeof(ConnectionPool)}");
         }
     }
 }

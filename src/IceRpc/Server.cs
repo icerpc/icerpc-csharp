@@ -33,8 +33,6 @@ public sealed class Server : IAsyncDisposable
 
     private readonly HashSet<ServerConnection> _connections = new();
 
-    private bool _isDisposed;
-
     private bool _isReadOnly;
 
     private IListener? _listener;
@@ -115,11 +113,6 @@ public sealed class Server : IAsyncDisposable
     {
         lock (_mutex)
         {
-            if (_isDisposed)
-            {
-                return;
-            }
-            _isDisposed = true;
             _isReadOnly = true;
 
             // Stop accepting new connections by disposing of the listener
@@ -127,15 +120,8 @@ public sealed class Server : IAsyncDisposable
             _listener = null;
         }
 
-        try
-        {
-            await Task.WhenAll(_connections.Select(connection => connection.DisposeAsync().AsTask()))
-                .ConfigureAwait(false);
-        }
-        catch
-        {
-            // ignored
-        }
+        await Task.WhenAll(_connections.Select(connection => connection.DisposeAsync().AsTask()))
+            .ConfigureAwait(false);
     }
 
     /// <summary>Starts listening on the configured endpoint and dispatching requests from clients. If the
@@ -150,11 +136,9 @@ public sealed class Server : IAsyncDisposable
         // We lock the mutex because ShutdownAsync can run concurrently.
         lock (_mutex)
         {
-            ThrowIfDisposed();
-
             if (_isReadOnly)
             {
-                throw new InvalidOperationException($"server '{this}' is shutting down");
+                throw new InvalidOperationException($"server '{this}' is shut down or shutting down");
             }
             if (_listener is not null)
             {
@@ -309,8 +293,6 @@ public sealed class Server : IAsyncDisposable
         {
             lock (_mutex)
             {
-                ThrowIfDisposed();
-
                 _isReadOnly = true;
 
                 // Stop accepting new connections by disposing of the listener.
@@ -337,12 +319,4 @@ public sealed class Server : IAsyncDisposable
 
     /// <inheritdoc/>
     public override string ToString() => Endpoint.ToString();
-
-    private void ThrowIfDisposed()
-    {
-        if (_isDisposed)
-        {
-            throw new ObjectDisposedException($"{typeof(Server)}:{this}");
-        }
-    }
 }
