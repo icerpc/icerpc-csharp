@@ -526,14 +526,12 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     }
                 }
 
+                readResult.ThrowIfCanceled(Protocol.IceRpc);
+
                 if (readResult.IsCompleted)
                 {
                     // We're done if there's no more data to send for the payload.
                     break;
-                }
-                else if (readResult.IsCanceled)
-                {
-                    throw new OperationCanceledException("payload pipe reader was canceled");
                 }
             }
             while (!flushResult.IsCanceled && !flushResult.IsCompleted);
@@ -883,10 +881,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         while (true)
         {
             ReadResult readResult = await input.ReadAsync(cancel).ConfigureAwait(false);
-            if (readResult.IsCanceled)
-            {
-                throw new OperationCanceledException();
-            }
+            readResult.ThrowIfCanceled(Protocol.IceRpc);
+
             if (readResult.Buffer.IsEmpty)
             {
                 throw new InvalidDataException("invalid empty control frame");
@@ -917,10 +913,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             SliceEncoding.Slice2,
             _maxLocalHeaderSize,
             cancel).ConfigureAwait(false);
-        if (readResult.IsCanceled)
-        {
-            throw new OperationCanceledException();
-        }
+
+        readResult.ThrowIfCanceled(Protocol.IceRpc);
 
         try
         {
@@ -949,10 +943,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             SliceEncoding.Slice2,
             _maxLocalHeaderSize,
             cancel).ConfigureAwait(false);
-        if (readResult.IsCanceled)
-        {
-            throw new OperationCanceledException();
-        }
+
+        readResult.ThrowIfCanceled(Protocol.IceRpc);
 
         try
         {

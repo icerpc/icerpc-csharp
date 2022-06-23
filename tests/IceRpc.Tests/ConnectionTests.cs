@@ -478,7 +478,7 @@ public class ConnectionTests
             }
             else
             {
-                Assert.That(async () => await pingTask, Throws.TypeOf<OperationCanceledException>());
+                Assert.That(async () => await pingTask, Throws.TypeOf<IceRpcProtocolStreamException>());
             }
         }
     }

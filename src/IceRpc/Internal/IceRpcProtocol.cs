@@ -34,9 +34,6 @@ internal sealed class IceRpcProtocol : Protocol
             {
                 IceRpcStreamErrorCode.NoError => null,
 
-                IceRpcStreamErrorCode.OperationCanceled =>
-                    new OperationCanceledException("the operation was canceled by the remote peer"),
-
                 IceRpcStreamErrorCode.ConnectionShutdown =>
                     new ConnectionClosedException("the connection was shut down by the remote peer"),
 
