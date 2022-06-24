@@ -318,19 +318,13 @@ public class ConnectionTests
     }
 
     [Test]
-    public async Task Resumable_connection_becomes_non_resumable_after_shutdown(
-        [Values("ice", "icerpc")] string protocol)
+    public async Task Resumable_connection_becomes_non_resumable_after_shutdown()
     {
         // Arrange
-        ServerConnection? serverConnection = null;
-
         IServiceCollection services = new ServiceCollection().AddColocTest(
-            new InlineDispatcher((request, cancel) =>
-            {
-                serverConnection = (ServerConnection)request.Connection;
-                return new(new OutgoingResponse(request));
-            }),
-            Protocol.FromString(protocol));
+            new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
+            Protocol.IceRpc
+        );
 
         services.AddIceRpcResumableClientConnection(); // overwrites AddIceRpcClientConnection from AddColocTest
 
