@@ -175,14 +175,6 @@ impl Visitor for CsValidator<'_> {
                         );
                     }
                 }
-                "type" => {
-                    if !struct_def.is_compact {
-                        self.error_reporter.report_error(
-                            r#"The 'cs::type("<type>")' attribute is only valid for compact structs"#,
-                            Some(&attribute.location))
-                    }
-                    validate_cs_type(attribute, self.error_reporter);
-                }
                 "internal" => validate_cs_internal(attribute, self.error_reporter),
                 _ => validate_common_attributes(attribute, self.error_reporter),
             }
