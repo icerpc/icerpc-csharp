@@ -22,11 +22,11 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
 
     private readonly TimeSpan _connectTimeout;
 
-    private bool _isDisposed;
+    private Task? _disposeTask;
 
     private bool _isShutdown;
 
-    // Prevent concurrent assignment of _connectTask and _isShutdown.
+    // Prevent concurrent assignment of _connectTask, _disposeTask and _isShutdown.
     private readonly object _mutex = new();
 
     private readonly IProtocolConnection _protocolConnection;
@@ -38,31 +38,34 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
+        // DisposeAsync can be called concurrently. For example, Server can dispose a connection because the client is
+        // shutting down and at the same time or shortly after dispose the same connection because of its own disposal.
+        // We want to second disposal to "hang" if there is (for example) a bug in the dispatch code that causes the
+        // DisposeAsync to hang.
+
         lock (_mutex)
         {
-            if (_isDisposed)
+            _disposeTask ??= PerformDisposeAsync();
+        }
+
+        await _disposeTask.ConfigureAwait(false);
+
+        async Task PerformDisposeAsync()
+        {
+            await Task.Yield();
+
+            using var tokenSource = new CancellationTokenSource(_shutdownTimeout);
+            try
             {
-                return;
+                await ShutdownAsync("server connection disposed", tokenSource.Token).ConfigureAwait(false);
             }
-        }
+            catch (Exception exception)
+            {
+                _protocolConnection.Abort(exception);
+            }
 
-        // DisposeAsync first attempts a fully graceful shutdown that does not cancel dispatches or aborts invocations.
-        using var tokenSource = new CancellationTokenSource(_shutdownTimeout);
-        try
-        {
-            await ShutdownAsync("server connection disposed", tokenSource.Token).ConfigureAwait(false);
-        }
-        catch (Exception exception)
-        {
-            _protocolConnection.Abort(exception);
-        }
-
-        // TODO: await _protocolConnection.DisposeAsync();
-        _protocolConnectionCancellationSource.Dispose();
-
-        lock (_mutex)
-        {
-            _isDisposed = true;
+            // TODO: await _protocolConnection.DisposeAsync();
+            _protocolConnectionCancellationSource.Dispose();
         }
     }
 
@@ -158,7 +161,8 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
 
     private void ThrowIfDisposed()
     {
-        if (_isDisposed)
+        // Must be called with _mutex locked.
+        if (_disposeTask is Task disposeTask && disposeTask.IsCompleted)
         {
             throw new ObjectDisposedException($"{typeof(ServerConnection)}");
         }

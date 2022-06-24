@@ -37,7 +37,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
     private readonly TimeSpan _connectTimeout;
 
-    private bool _isDisposed;
+    private Task? _disposeTask;
 
     // Prevent concurrent assignment of _connectTask and _shutdownTask.
     private readonly object _mutex = new();
@@ -140,40 +140,44 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <summary>Aborts the connection.</summary>
     public void Abort() => _protocolConnection.Abort(new ConnectionAbortedException());
 
-    /// <summary>Establishes the connection.</summary>
+    /// <summary>Establishes the connection. This method can be called multiple times, even concurrently: the first call
+    /// establishes the connection while subsequent calls wait for the first call to complete and return its result.
+    /// </summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A task that indicates the completion of the connect operation.</returns>
-    /// <exception cref="ConnectionCanceledException">Thrown if another call to this method was canceled.</exception>
-    /// <exception cref="ConnectionClosedException">Thrown if the connection is already closed.</exception>
-    /// <exception cref="OperationCanceledException">Thrown if cancellation was requested through the cancellation
-    /// token.</exception>
+    /// <returns>A task that represents the completion of the connect operation. This task can complete with one of the
+    /// following exceptions:
+    /// <list type="bullet">
+    /// <item><description><see cref="ConnectionCanceledException"/>if the current call is not the first call to this
+    /// method and the first call to this method was canceled which left the connection in an unusable state.
+    /// </description></item>
+    /// <item><description><see cref="ConnectionClosedException"/>if the connection is already closed.</description>
+    /// </item>
+    /// <item><description><see cref="OperationCanceledException"/>if cancellation was requested through the
+    /// cancellation token.</description></item>
+    /// </list>
+    /// </returns>
     public async Task ConnectAsync(CancellationToken cancel = default)
     {
         Task task;
 
-        if (_connectTask is Task connectTask)
+        lock (_mutex)
         {
-            task = connectTask.WaitAsync(cancel);
-        }
-        else
-        {
-            lock (_mutex)
-            {
-                ThrowIfDisposed();
+            ThrowIfDisposed();
 
-                if (_shutdownTask is not null)
-                {
-                    throw new ConnectionClosedException();
-                }
-                else if (_connectTask is null)
-                {
-                    _connectTask = PerformConnectAsync(cancel);
-                    task = _connectTask;
-                }
-                else
-                {
-                    task = _connectTask.WaitAsync(cancel);
-                }
+            if (_shutdownTask is not null)
+            {
+                // TODO: revisit this exception
+                // see https://github.com/zeroc-ice/icerpc-csharp/pull/1434#discussion_r905850094
+                throw new ConnectionClosedException();
+            }
+            else if (_connectTask is null)
+            {
+                _connectTask = PerformConnectAsync(cancel);
+                task = _connectTask;
+            }
+            else
+            {
+                task = _connectTask.WaitAsync(cancel);
             }
         }
 
@@ -203,31 +207,34 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
+        // DisposeAsync can be called concurrently. For example, ConnectionPool can dispose a connection because the
+        // server is shutting down and at the same time or shortly after dispose the same connection because of its own
+        // disposal. We want to second disposal to "hang" if there is (for example) a bug in the dispatch code that
+        // causes the DisposeAsync to hang.
+
         lock (_mutex)
         {
-            if (_isDisposed)
+            _disposeTask ??= PerformDisposeAsync();
+        }
+
+        await _disposeTask.ConfigureAwait(false);
+
+        async Task PerformDisposeAsync()
+        {
+            await Task.Yield();
+
+            using var tokenSource = new CancellationTokenSource(_shutdownTimeout);
+            try
             {
-                return;
+                await ShutdownAsync("dispose client connection", tokenSource.Token).ConfigureAwait(false);
             }
-        }
+            catch (Exception exception)
+            {
+                _protocolConnection.Abort(exception);
+            }
 
-        // DisposeAsync first attempts a fully graceful shutdown that does not cancel dispatches or aborts invocations.
-        using var tokenSource = new CancellationTokenSource(_shutdownTimeout);
-        try
-        {
-            await ShutdownAsync("dispose client connection", tokenSource.Token).ConfigureAwait(false);
-        }
-        catch (Exception exception)
-        {
-            _protocolConnection.Abort(exception);
-        }
-
-        // TODO: await _protocolConnection.DisposeAsync();
-        _protocolConnectionCancellationSource.Dispose();
-
-        lock (_mutex)
-        {
-            _isDisposed = true;
+            // TODO: await _protocolConnection.DisposeAsync();
+            _protocolConnectionCancellationSource.Dispose();
         }
     }
 
@@ -330,7 +337,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     private void ThrowIfDisposed()
     {
         // Must be called with _mutex locked.
-        if (_isDisposed)
+        if (_disposeTask is Task disposeTask && disposeTask.IsCompleted)
         {
             throw new ObjectDisposedException($"{typeof(ClientConnection)}");
         }
