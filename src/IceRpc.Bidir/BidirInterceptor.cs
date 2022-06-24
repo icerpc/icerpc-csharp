@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 
 namespace IceRpc.Bidir;
 
-/// <summary>An interceptor that encodes a relative origin field with each request, the relative origin is used by the
+/// <summary>An interceptor that encodes a relative origin field with each request. The relative origin is used by the
 /// bidir middleware to identify connections from a given origin.</summary>
 public class BidirInterceptor : IInvoker
 {
