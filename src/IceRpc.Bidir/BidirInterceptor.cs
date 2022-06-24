@@ -10,7 +10,7 @@ namespace IceRpc.Bidir;
 public class BidirInterceptor : IInvoker
 {
     private readonly IInvoker _next;
-    // The value for the relative origin ID field is a 128 bit field randomly initialized.
+    // The value for the relative origin ID field is a 128 bit field that is randomly initialized.
     private readonly byte[] _relativeOrigin;
 
     /// <summary>Constructs a bidir interceptor.</summary>
