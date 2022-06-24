@@ -268,6 +268,7 @@ public class TcpTransportTests
     public async Task Tls_client_connect_operation_canceled_exception()
     {
         // Arrange
+
         using var cancellationSource = new CancellationTokenSource();
         using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
             authenticationOptions: DefaultSslServerAuthenticationOptions);
@@ -279,15 +280,16 @@ public class TcpTransportTests
                 {
                     RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
                     {
-                        cancellationSource.Cancel();
-                        Thread.Sleep(100);
                         return false;
                     }
                 });
 
-        Task<NetworkConnectionInformation> connectTask = clientConnection.ConnectAsync(cancellationSource.Token);
+        Task<NetworkConnectionInformation> connectTask =
+            clientConnection.ConnectAsync(cancellationSource.Token);
+
         ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
-        _ = serverConnection.ConnectAsync(cancellationSource.Token);
+        cancellationSource.Cancel();
+        _ = serverConnection.ConnectAsync(CancellationToken.None);
 
         // Act/Assert
         Assert.That(async () => await connectTask, Throws.InstanceOf<OperationCanceledException>());
@@ -354,15 +356,12 @@ public class TcpTransportTests
     public async Task Tls_server_connect_operation_canceled_exception()
     {
         // Arrange
-        using var cancellationSource = new CancellationTokenSource();
         using IListener<ISimpleNetworkConnection> listener = CreateTcpListener(
             authenticationOptions: new SslServerAuthenticationOptions
             {
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password"),
                 RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
                 {
-                    cancellationSource.Cancel();
-                    Thread.Sleep(100);
                     return false;
                 }
             });
@@ -373,7 +372,8 @@ public class TcpTransportTests
 
         Task<NetworkConnectionInformation> connectTask = clientConnection.ConnectAsync(default);
         ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
-        Task<NetworkConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(cancellationSource.Token);
+        Task<NetworkConnectionInformation> serverConnectTask =
+            serverConnection.ConnectAsync(new CancellationToken(canceled: true));
 
         // Act/Assert
         Assert.That(async () => await serverConnectTask, Throws.InstanceOf<OperationCanceledException>());

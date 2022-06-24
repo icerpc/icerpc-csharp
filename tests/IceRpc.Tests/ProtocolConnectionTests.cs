@@ -127,7 +127,7 @@ public sealed class ProtocolConnectionTests
         });
     }
 
-    /// <summary>Verifies that calling ShutdownAsync with a canceled token results in the cancellation of the the
+    /// <summary>Verifies that calling ShutdownAsync with a canceled token results in the cancellation of the
     /// pending dispatches.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
     public async Task Shutdown_dispatch_cancellation(Protocol protocol)
@@ -162,25 +162,28 @@ public sealed class ProtocolConnectionTests
             IncomingResponse response = await invokeTask;
             DecodeAndThrowException(response);
         });
-        Assert.Multiple(() =>
-        {
-            Assert.That(ex!, Is.TypeOf<OperationCanceledException>());
-            Assert.That(async () => await shutdownTask, Throws.Nothing);
-        });
 
-        // TODO should we raise OperationCanceledException directly from Ice, here with Ice we get a DispatchException
-        // with DispatchErrorCode.Canceled and with IceRpc we get OperationCanceledException
+        if (protocol == Protocol.Ice)
+        {
+            Assert.That(ex!, Is.TypeOf<DispatchException>());
+            Assert.That(((DispatchException)ex!).ErrorCode, Is.EqualTo(DispatchErrorCode.Canceled));
+        }
+        else
+        {
+            Assert.That(ex!, Is.TypeOf<IceRpcProtocolStreamException>());
+            Assert.That(
+                ((IceRpcProtocolStreamException)ex!).ErrorCode,
+                Is.EqualTo(IceRpcStreamErrorCode.OperationCanceled));
+        }
+
+        Assert.That(async () => await shutdownTask, Throws.Nothing);
+
         static void DecodeAndThrowException(IncomingResponse response)
         {
             if (response.Payload.TryRead(out ReadResult readResult))
             {
                 var decoder = new SliceDecoder(readResult.Buffer, response.Protocol.SliceEncoding);
-                DispatchException dispatchException = decoder.DecodeSystemException();
-                if (dispatchException.ErrorCode == DispatchErrorCode.Canceled)
-                {
-                    throw new OperationCanceledException();
-                }
-                throw dispatchException;
+                throw decoder.DecodeSystemException();
             }
         }
     }

@@ -639,10 +639,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         // backed by a Pipe.
         ReadResult readResult = await payload.ReadAtLeastAsync(int.MaxValue, cancel).ConfigureAwait(false);
 
-        if (readResult.IsCanceled)
-        {
-            throw new OperationCanceledException();
-        }
+        readResult.ThrowIfCanceled(Protocol.Ice);
 
         return readResult.IsCompleted ? readResult.Buffer :
             throw new ArgumentException("the payload size is greater than int.MaxValue", nameof(payload));

@@ -60,13 +60,14 @@ internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
                 received = await Socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
             }
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        // a disposed Socket throws SocketException instead of ObjectDisposedException
         catch when (_isDisposed)
         {
             throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
-        }
-        catch (Exception exception) when (cancel.IsCancellationRequested)
-        {
-            throw new OperationCanceledException(null, exception, cancel);
         }
         catch (Exception exception)
         {
@@ -182,13 +183,14 @@ internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
                 }
             }
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        // a disposed Socket throws SocketException instead of ObjectDisposedException
         catch when (_isDisposed)
         {
             throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
-        }
-        catch (Exception exception) when (cancel.IsCancellationRequested)
-        {
-            throw new OperationCanceledException(null, exception, cancel);
         }
         catch (Exception exception)
         {
@@ -226,9 +228,7 @@ internal class TcpClientNetworkConnection : TcpNetworkConnection
             {
                 // This can only be created with a connected socket.
                 _sslStream = new SslStream(new NetworkStream(Socket, false), false);
-                await _sslStream.AuthenticateAsClientAsync(
-                    _authenticationOptions,
-                    cancel).WaitAsync(cancel).ConfigureAwait(false);
+                await _sslStream.AuthenticateAsClientAsync(_authenticationOptions, cancel).ConfigureAwait(false);
             }
 
             return new NetworkConnectionInformation(
@@ -236,17 +236,18 @@ internal class TcpClientNetworkConnection : TcpNetworkConnection
                 remoteEndPoint: Socket.RemoteEndPoint!,
                 _sslStream?.RemoteCertificate);
         }
-        catch when (_isDisposed)
-        {
-            throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
-        }
-        catch (Exception exception) when (cancel.IsCancellationRequested)
-        {
-            throw new OperationCanceledException(null, exception, cancel);
-        }
         catch (AuthenticationException)
         {
             throw;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        // a disposed Socket throws SocketException instead of ObjectDisposedException
+        catch when (_isDisposed)
+        {
+            throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
         }
         catch (Exception exception)
         {
@@ -320,9 +321,7 @@ internal class TcpServerNetworkConnection : TcpNetworkConnection
             {
                 // This can only be created with a connected socket.
                 _sslStream = new SslStream(new NetworkStream(Socket, false), false);
-                await _sslStream.AuthenticateAsServerAsync(
-                    _authenticationOptions,
-                    cancel).WaitAsync(cancel).ConfigureAwait(false);
+                await _sslStream.AuthenticateAsServerAsync(_authenticationOptions, cancel).ConfigureAwait(false);
             }
 
             var ipEndPoint = (IPEndPoint)Socket.RemoteEndPoint!;
@@ -332,17 +331,18 @@ internal class TcpServerNetworkConnection : TcpNetworkConnection
                 remoteEndPoint: Socket.RemoteEndPoint!,
                 _sslStream?.RemoteCertificate);
         }
-        catch when (_isDisposed)
-        {
-            throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
-        }
-        catch (Exception exception) when (cancel.IsCancellationRequested)
-        {
-            throw new OperationCanceledException(null, exception, cancel);
-        }
         catch (AuthenticationException)
         {
             throw;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        // a disposed Socket throws SocketException instead of ObjectDisposedException
+        catch when (_isDisposed)
+        {
+            throw new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
         }
         catch (Exception exception)
         {

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.Diagnostics;
@@ -189,10 +190,7 @@ public static class IncomingResponseExtensions
                 decodeFeature?.MaxSegmentSize ?? SliceDecodeFeature.Default.MaxSegmentSize,
                 cancel).ConfigureAwait(false);
 
-            if (readResult.IsCanceled)
-            {
-                throw new OperationCanceledException();
-            }
+            readResult.ThrowIfCanceled(response.Protocol);
 
             if (readResult.Buffer.IsEmpty)
             {
