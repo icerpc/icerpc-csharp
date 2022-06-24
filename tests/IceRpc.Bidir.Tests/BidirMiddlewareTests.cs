@@ -60,7 +60,7 @@ public sealed class BidirMiddlewareTests
     {
         byte[] relativeOrigin = NewRelativeOrigin();
 
-        // Create an incoming request that carries a relative origin and use the closed connection.
+        // Create an incoming request that carries a relative origin and uses the closed connection.
         var connection1 = new ClosedConnection();
         var request1 = new IncomingRequest(connection1)
         {
