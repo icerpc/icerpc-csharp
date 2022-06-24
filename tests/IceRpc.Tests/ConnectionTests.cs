@@ -322,6 +322,32 @@ public class ConnectionTests
     }
 
     [Test]
+    public async Task Resumable_connection_becomes_non_resumable_after_shutdown()
+    {
+        // Arrange
+        IServiceCollection services = new ServiceCollection().AddColocTest(
+            new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
+            Protocol.IceRpc
+        );
+
+        services.AddIceRpcResumableClientConnection(); // overwrites AddIceRpcClientConnection from AddColocTest
+
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        provider.GetRequiredService<Server>().Listen();
+        var connection = provider.GetRequiredService<ResumableClientConnection>();
+        var proxy = Proxy.FromConnection(connection, "/foo");
+
+        await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
+
+        // Act
+        await connection.ShutdownAsync();
+
+        // Assert
+        Assert.That(connection.IsResumable, Is.False);
+    }
+
+    [Test]
     public async Task Connect_sets_network_connection_information([Values("ice", "icerpc")] string protocol)
     {
         // Arrange
@@ -490,10 +516,10 @@ public class ConnectionTests
             NullLogger.Instance);
 
         var endpoint = new Endpoint(Protocol.FromString(protocol))
-            {
-                Host = listener.Endpoint.Host,
-                Port = listener.Endpoint.Port
-            };
+        {
+            Host = listener.Endpoint.Host,
+            Port = listener.Endpoint.Port
+        };
 
         await using var connection = new ClientConnection(new ClientConnectionOptions
         {
