@@ -13,6 +13,8 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
     // Connected connections that can be returned immediately.
     private readonly Dictionary<Endpoint, ClientConnection> _activeConnections = new(EndpointComparer.ParameterLess);
 
+    private bool _isReadOnly;
+
     private readonly ILoggerFactory? _loggerFactory;
     private readonly IClientTransport<IMultiplexedNetworkConnection> _multiplexedClientTransport;
 
@@ -27,9 +29,6 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
     private readonly HashSet<ClientConnection> _shutdownPendingConnections = new();
 
     private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
-
-    private CancellationTokenSource? _shutdownCancelSource;
-    private Task? _shutdownTask;
 
     /// <summary>Constructs a connection pool.</summary>
     /// <param name="options">The connection pool options.</param>
@@ -58,10 +57,22 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
     {
     }
 
-    /// <summary>Releases all resources allocated by this connection pool. This is equivalent to calling
-    /// <see cref="ShutdownAsync"/> with a canceled cancellation token.</summary>
-    /// <returns>A value task that completes when the shutdown completes.</returns>
-    public ValueTask DisposeAsync() => new(ShutdownAsync(new CancellationToken(canceled: true)));
+    /// <summary>Releases all resources allocated by this connection pool.</summary>
+/// <returns>A value task that completes when all connections managed by this pool are disposed.</returns>
+    public async ValueTask DisposeAsync()
+    {
+        lock (_mutex)
+        {
+            _isReadOnly = true;
+        }
+
+        // Dispose all connections managed by this pool.
+        IEnumerable<ClientConnection> allConnections =
+            _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_shutdownPendingConnections);
+
+        await Task.WhenAll(allConnections.Select(connection => connection.DisposeAsync().AsTask()))
+            .ConfigureAwait(false);
+    }
 
     /// <summary>Returns a client connection to one of the specified endpoints.</summary>
     /// <param name="endpoint">The first endpoint to try.</param>
@@ -142,52 +153,23 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
         }
     }
 
-    /// <summary>Releases all resources used by this connection pool. This method can be called multiple times.
+    /// <summary>Gracefully shuts down all connections managed by this pool. This method can be called multiple times.
     /// </summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A task that completes when the destruction is complete.</returns>
-    public async Task ShutdownAsync(CancellationToken cancel = default)
+    /// <returns>A task that completes when the shutdown is complete.</returns>
+    public Task ShutdownAsync(CancellationToken cancel = default)
     {
         lock (_mutex)
         {
-            _shutdownCancelSource ??= new();
-            _shutdownTask ??= PerformShutdownAsync();
+            _isReadOnly = true;
         }
 
-        // Cancel shutdown task if this call is canceled.
-        using CancellationTokenRegistration _ = cancel.Register(() =>
-        {
-            try
-            {
-                _shutdownCancelSource.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-                // Expected if server shutdown completed already.
-            }
-        });
+        // Shut down all connections managed by this pool.
+        IEnumerable<ClientConnection> allConnections =
+            _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_shutdownPendingConnections);
 
-        await _shutdownTask.ConfigureAwait(false);
-
-        async Task PerformShutdownAsync()
-        {
-            // Yield to ensure we don't hold the mutex while performing the shutdown.
-            await Task.Yield();
-            try
-            {
-                CancellationToken cancel = _shutdownCancelSource.Token;
-
-                // Shut down all connections managed by this pool.
-                await Task.WhenAll(
-                    _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_shutdownPendingConnections)
-                        .Select(connection => connection.ShutdownAsync("connection pool shutdown", cancel)))
-                        .ConfigureAwait(false);
-            }
-            finally
-            {
-                _shutdownCancelSource.Dispose();
-            }
-        }
+        return Task.WhenAll(
+            allConnections.Select(connection => connection.ShutdownAsync("connection pool shutdown", cancel)));
     }
 
     /// <summary>Checks with the protocol-dependent transport if this endpoint has valid parameters. We call this method
@@ -218,9 +200,9 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
 
         lock (_mutex)
         {
-            if (_shutdownTask is not null)
+            if (_isReadOnly)
             {
-                throw new ObjectDisposedException($"{typeof(ConnectionPool)}");
+                throw new InvalidOperationException("pool shutting down");
             }
 
             if (_activeConnections.TryGetValue(endpoint, out connection))
@@ -236,10 +218,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
             else
             {
                 connection = new ClientConnection(
-                    _options.ClientConnectionOptions with
-                    {
-                        RemoteEndpoint = endpoint
-                    },
+                    _options.ClientConnectionOptions with { RemoteEndpoint = endpoint },
                     _loggerFactory,
                     _multiplexedClientTransport,
                     _simpleClientTransport);
@@ -260,8 +239,8 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
 
             lock (_mutex)
             {
-                // the _pendingConnections collection is immutable after shutdown
-                if (_shutdownTask is null)
+                // the _pendingConnections collection is read-only after shutdown
+                if (!_isReadOnly)
                 {
                     // "move" from pending to shutdown pending
                     bool removed = _pendingConnections.Remove(endpoint);
@@ -280,26 +259,29 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
 
         if (created)
         {
+            bool scheduleRemoveFromActive = false;
+
             lock (_mutex)
             {
-                if (_shutdownTask is null)
+                if (!_isReadOnly)
                 {
                     // "move" from pending to active
                     bool removed = _pendingConnections.Remove(endpoint);
                     Debug.Assert(removed);
                     _activeConnections.Add(endpoint, connection);
+                    scheduleRemoveFromActive = true;
                 }
-                else
-                {
-                    // since connection is in _pendingConnections, ShutdownAsync is cleaning up this connection.
-                    throw new ObjectDisposedException($"{typeof(ConnectionPool)}");
-                }
+                // this new connection is being shut down already
             }
 
-            // Schedule removal after addition. We do this outside the mutex lock otherwise RemoveFromActive could call
-            // await clientConnection.ShutdownAsync within this lock.
-            connection.OnClose(RemoveFromActive);
+            if (scheduleRemoveFromActive)
+            {
+                // Schedule removal after addition. We do this outside the mutex lock otherwise RemoveFromActive could
+                // call await clientConnection.ShutdownAsync within this lock.
+                connection.OnClose(RemoveFromActive);
+            }
         }
+
         return connection;
 
         void RemoveFromActive(Exception exception)
@@ -310,8 +292,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
 
             lock (_mutex)
             {
-                // the _activeConnections collection is immutable after shutdown
-                if (_shutdownTask is null)
+                if (!_isReadOnly)
                 {
                     // "move" from active to shutdown pending
                     bool removed = _activeConnections.Remove(connection.RemoteEndpoint);
@@ -327,15 +308,14 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
             }
         }
 
-        // Remove connection from _shutdownPendingConnections once the shutdown is complete
+        // Remove connection from _shutdownPendingConnections once the dispose is complete
         async Task RemoveFromClosedAsync(ClientConnection clientConnection)
         {
-            await clientConnection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+            await clientConnection.DisposeAsync().ConfigureAwait(false);
 
             lock (_mutex)
             {
-                // the _shutdownPendingConnections collection is immutable after shutdown
-                if (_shutdownTask is null)
+                if (!_isReadOnly)
                 {
                     bool removed = _shutdownPendingConnections.Remove(clientConnection);
                     Debug.Assert(removed);
