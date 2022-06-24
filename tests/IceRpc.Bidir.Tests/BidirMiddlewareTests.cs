@@ -27,7 +27,7 @@ public sealed class BidirMiddlewareTests
         };
 
         // A second request that carries the same relative origin and causes the reestablishment of the connection
-        // allowing the bidir call to succeed.
+        // which allows the bidir call to succeed.
         var connection2 = new OpenConnection();
         var request2 = new IncomingRequest(connection2)
         {
