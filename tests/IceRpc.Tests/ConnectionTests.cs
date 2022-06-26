@@ -545,7 +545,7 @@ public class ConnectionTests
     }
 
     [Test]
-    public async Task Close_timeout(
+    public async Task Shutdown_timeout(
         [Values("ice", "icerpc")] string protocol,
         [Values] bool closeClientSide)
     {
@@ -567,12 +567,12 @@ public class ConnectionTests
         services
             .AddOptions<ClientConnectionOptions>()
             .Configure(
-                options => options.CloseTimeout = closeClientSide ? TimeSpan.FromSeconds(1) : TimeSpan.FromSeconds(60));
+                options => options.ShutdownTimeout = closeClientSide ? TimeSpan.FromSeconds(1) : TimeSpan.FromSeconds(60));
 
         services
             .AddOptions<ServerOptions>()
             .Configure(
-                options => options.ConnectionOptions.CloseTimeout =
+                options => options.ConnectionOptions.ShutdownTimeout =
                     closeClientSide ? TimeSpan.FromSeconds(60) : TimeSpan.FromSeconds(1));
 
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
@@ -597,13 +597,19 @@ public class ConnectionTests
         // Assert
         if (closeClientSide)
         {
-            // Invocations
-            // TODO: this is not correct, the invocation cancellation must not reach the application code
-            Assert.That(async () => await pingTask, Throws.InstanceOf<OperationCanceledException>());
+            if (protocol == "ice")
+            {
+                // TODO: not correct, comes from CancelInvocations(new OperationCanceledException(message));
+                Assert.That(async () => await pingTask, Throws.InstanceOf<OperationCanceledException>());
+            }
+            else
+            {
+                Assert.That(async () => await pingTask, Throws.InstanceOf<TimeoutException>());
+            }
         }
         else
         {
-            // Shutdown should trigger the abort of the connection on the client side after the close timeout
+            // Shutdown should trigger the abort of the connection on the client side after the shutdown timeout
             Assert.ThrowsAsync<ConnectionLostException>(async () => await pingTask);
         }
         hold.Release();
