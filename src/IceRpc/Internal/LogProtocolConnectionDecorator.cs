@@ -36,7 +36,9 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
             _information.LocalEndPoint,
             _information.RemoteEndPoint);
 
-        _decoratee.OnClose(
+        // TODO: log regular shutdown with message and no exception
+
+        _decoratee.OnAbort(
             exception =>
             {
                 using IDisposable scope = _logger.StartClientConnectionScope(_information);
@@ -61,7 +63,9 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
         return response;
     }
 
-    void IProtocolConnection.OnClose(Action<Exception> callback) => _decoratee.OnClose(callback);
+    void IProtocolConnection.OnAbort(Action<Exception> callback) => _decoratee.OnAbort(callback);
+
+    void IProtocolConnection.OnShutdown(Action<string> callback) => _decoratee.OnShutdown(callback);
 
     async Task IProtocolConnection.ShutdownAsync(string message, CancellationToken cancel)
     {

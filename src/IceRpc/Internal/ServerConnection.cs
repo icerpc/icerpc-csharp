@@ -74,7 +74,10 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
         _protocolConnection.InvokeAsync(request, this, cancel);
 
     /// <inheritdoc/>
-    public void OnClose(Action<Exception> callback) => _protocolConnection.OnClose(callback);
+    public void OnAbort(Action<Exception> callback) => _protocolConnection.OnAbort(callback);
+
+    /// <inheritdoc/>
+    public void OnShutdown(Action<string> callback) => _protocolConnection.OnShutdown(callback);
 
     /// <summary>Constructs a server connection from an accepted network connection.</summary>
     internal ServerConnection(IProtocolConnection protocolConnection, ConnectionOptions options)

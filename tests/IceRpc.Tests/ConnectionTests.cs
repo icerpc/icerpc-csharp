@@ -83,7 +83,7 @@ public class ConnectionTests
         Assert.That(async () => await invokeTask, Throws.TypeOf<ConnectionLostException>());
     }
 
-    /// <summary>Verifies that aborting the connection executes the OnClose callback.</summary>
+    /// <summary>Verifies that aborting the connection executes the OnAbort callback.</summary>
     [Test]
     public async Task Connection_closed_event(
         [Values("ice", "icerpc")] string protocol,
@@ -95,7 +95,7 @@ public class ConnectionTests
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
             serverConnection = (ServerConnection)request.Connection;
-            serverConnection.OnClose(_ => serverConnectionClosed.SetResult(null));
+            serverConnection.OnAbort(_ => serverConnectionClosed.SetResult(null));
             return new(new OutgoingResponse(request));
         });
 
@@ -107,7 +107,7 @@ public class ConnectionTests
         var server = provider.GetRequiredService<Server>();
         server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
-        clientConnection.OnClose(_ => clientConnectionClosed.SetResult(null));
+        clientConnection.OnAbort(_ => clientConnectionClosed.SetResult(null));
 
         var proxy = Proxy.FromConnection(clientConnection, "/foo");
 
@@ -181,7 +181,7 @@ public class ConnectionTests
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
         using var semaphore = new SemaphoreSlim(0);
-        connection.OnClose(exception => semaphore.Release(1));
+        connection.OnShutdown(message => semaphore.Release(1));
         await semaphore.WaitAsync();
 
         // Act/Assert
@@ -217,7 +217,7 @@ public class ConnectionTests
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
         using var semaphore = new SemaphoreSlim(0);
-        connection.OnDisconnect(exception =>
+        connection.OnShutdown(message =>
         {
             try
             {
@@ -259,7 +259,7 @@ public class ConnectionTests
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
         using var semaphore = new SemaphoreSlim(0);
-        connection.OnDisconnect(exception =>
+        connection.OnShutdown(message =>
         {
             try
             {
@@ -303,7 +303,7 @@ public class ConnectionTests
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
         using var semaphore = new SemaphoreSlim(0);
-        connection.OnDisconnect(exception =>
+        connection.OnAbort(exception =>
         {
             try
             {

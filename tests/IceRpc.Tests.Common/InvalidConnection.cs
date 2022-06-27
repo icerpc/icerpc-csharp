@@ -18,7 +18,9 @@ public static class InvalidConnection
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
             throw new NotImplementedException();
 
-        public void OnClose(Action<Exception> callback) => throw new NotImplementedException();
+        public void OnAbort(Action<Exception> callback) => throw new NotImplementedException();
+
+        public void OnShutdown(Action<string> callback) => throw new NotImplementedException();
 
         internal Connection(Protocol protocol) => Protocol = protocol;
     }

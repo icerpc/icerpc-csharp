@@ -266,7 +266,10 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     }
 
     /// <inheritdoc/>
-    public void OnClose(Action<Exception> callback) => _protocolConnection.OnClose(callback);
+    public void OnAbort(Action<Exception> callback) => _protocolConnection.OnAbort(callback);
+
+     /// <inheritdoc/>
+    public void OnShutdown(Action<string> callback) => _protocolConnection.OnShutdown(callback);
 
     /// <summary>Gracefully shuts down the connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

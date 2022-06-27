@@ -46,9 +46,9 @@ public sealed class ProtocolConnectionTests
         }
     }
 
-    /// <summary>Verifies that the OnIdle callback is called when idle.</summary>
+    /// <summary>Verifies that the OnShutdown callback is called when idle.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    public async Task OnClose_is_called_when_idle(Protocol protocol)
+    public async Task OnShutdown_is_called_when_idle(Protocol protocol)
     {
         // Arrange
         IServiceCollection services = new ServiceCollection().AddProtocolTest(protocol);
@@ -68,8 +68,8 @@ public sealed class ProtocolConnectionTests
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        sut.Client.OnClose(_ => clientIdleCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64));
-        sut.Server.OnClose(_ => serverIdleCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64));
+        sut.Client.OnShutdown(_ => clientIdleCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64));
+        sut.Server.OnShutdown(_ => serverIdleCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64));
 
         // Act
         await Task.Delay(TimeSpan.FromSeconds(1));
@@ -82,10 +82,10 @@ public sealed class ProtocolConnectionTests
         });
     }
 
-    /// <summary>Verifies that the OnIdle callback is called when idle and after the idle time has been
+    /// <summary>Verifies that the OnShutdown callback is called when idle and after the idle time has been
     /// deferred.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    public async Task OnClose_is_called_when_idle_and_idle_timeout_deferred(Protocol protocol)
+    public async Task OnShutdown_is_called_when_idle_and_idle_timeout_deferred(Protocol protocol)
     {
         // Arrange
         IServiceCollection services = new ServiceCollection().AddProtocolTest(protocol);
@@ -105,8 +105,8 @@ public sealed class ProtocolConnectionTests
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        sut.Client.OnClose(_ => clientIdleCalledTime = Environment.TickCount64 - clientIdleCalledTime);
-        sut.Client.OnClose(_ => serverIdleCalledTime = Environment.TickCount64 - serverIdleCalledTime);
+        sut.Client.OnShutdown(_ => clientIdleCalledTime = Environment.TickCount64 - clientIdleCalledTime);
+        sut.Server.OnShutdown(_ => serverIdleCalledTime = Environment.TickCount64 - serverIdleCalledTime);
 
         var request = new OutgoingRequest(new Proxy(protocol));
         IncomingResponse response = await sut.Client.InvokeAsync(request, InvalidConnection.ForProtocol(protocol));
