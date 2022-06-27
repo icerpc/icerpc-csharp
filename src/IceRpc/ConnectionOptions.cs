@@ -11,17 +11,6 @@ public record class ConnectionOptions
     public static IDispatcher DefaultDispatcher { get; } = new InlineDispatcher((request, cancel) =>
         throw new DispatchException(DispatchErrorCode.ServiceNotFound, RetryPolicy.OtherReplica));
 
-    /// <summary>Gets or sets the connection close timeout. This timeout is used when gracefully closing a
-    /// connection to wait for the peer connection closure. If the peer doesn't close its side of the connection
-    /// within the timeout timeframe, the connection is forcefully closed.</summary>
-    /// <value>The close timeout value. The default is 10s.</value>
-    public TimeSpan CloseTimeout
-    {
-        get => _closeTimeout;
-        set => _closeTimeout = value != TimeSpan.Zero ? value :
-            throw new ArgumentException($"0 is not a valid value for {nameof(CloseTimeout)}", nameof(value));
-    }
-
     /// <summary>Gets or sets the connection establishment timeout.</summary>
     /// <value>The connection establishment timeout value. The default is 10s.</value>
     public TimeSpan ConnectTimeout
@@ -78,17 +67,27 @@ public record class ConnectionOptions
         set => _maxIceRpcHeaderSize = IceRpcCheckMaxHeaderSize(value);
     }
 
+    /// <summary>Gets or sets the connection shutdown timeout. This timeout is used when gracefully shutting down a
+    /// connection to wait for the remote peer to shut down. If the peer doesn't close its side of the connection
+    /// within the timeout time frame, the connection is forcefully closed.</summary>
+    /// <value>The shutdown timeout value. The default is 10s.</value>
+    public TimeSpan ShutdownTimeout
+    {
+        get => _shutdownTimeout;
+        set => _shutdownTimeout = value != TimeSpan.Zero ? value :
+            throw new ArgumentException($"0 is not a valid value for {nameof(ShutdownTimeout)}", nameof(value));
+    }
+
     /// <summary>The default value for <see cref="MaxIceRpcHeaderSize"/>.</summary>
     internal const int DefaultMaxIceRpcHeaderSize = 16_383;
 
     private const int IceMinFrameSize = 256;
-
-    private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
     private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
     private int _iceConcurrentDispatches = 100;
     private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
     private int _maxIceFrameSize = 1024 * 1024;
     private int _maxIceRpcHeaderSize = DefaultMaxIceRpcHeaderSize;
+    private TimeSpan _shutdownTimeout = TimeSpan.FromSeconds(10);
 
     internal static int IceRpcCheckMaxHeaderSize(long value) => value is >= 63 and <= 1_048_575 ? (int)value :
         throw new ArgumentOutOfRangeException(nameof(value), "value must be between 63 and 1,048,575");

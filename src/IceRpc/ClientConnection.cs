@@ -36,6 +36,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     private Task? _connectTask;
 
     private readonly TimeSpan _connectTimeout;
+    private readonly CancellationTokenSource _connectTokenSource = new();
 
     private Task? _disposeTask;
 
@@ -49,6 +50,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     private Task? _shutdownTask;
 
     private readonly TimeSpan _shutdownTimeout;
+    private readonly CancellationTokenSource _shutdownTokenSource = new();
 
     /// <summary>Constructs a client connection.</summary>
     /// <param name="options">The connection options.</param>
@@ -64,7 +66,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
     {
         _connectTimeout = options.ConnectTimeout;
-        _shutdownTimeout = options.CloseTimeout;
+        _shutdownTimeout = options.ShutdownTimeout;
 
         RemoteEndpoint = options.RemoteEndpoint ??
             throw new ArgumentException(
@@ -140,67 +142,50 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <summary>Aborts the connection.</summary>
     public void Abort() => _protocolConnection.Abort(new ConnectionAbortedException());
 
-    /// <summary>Establishes the connection. This method can be called multiple times, even concurrently: the first call
-    /// establishes the connection while subsequent calls wait for the first call to complete and return its result.
-    /// </summary>
+    /// <summary>Establishes the connection. This method can be called multiple times, even concurrently.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that represents the completion of the connect operation. This task can complete with one of the
     /// following exceptions:
     /// <list type="bullet">
-    /// <item><description><see cref="ConnectionCanceledException"/>if the current call is not the first call to this
-    /// method and the first call to this method was canceled which left the connection in an unusable state.
-    /// </description></item>
-    /// <item><description><see cref="ConnectionClosedException"/>if the connection is already closed.</description>
-    /// </item>
+    /// <item><description><see cref="ConnectionAbortedException"/>if the connection was aborted.</description></item>
+    /// <item><description><see cref="ObjectDisposedException"/>if this connection is disposed.</description></item>
     /// <item><description><see cref="OperationCanceledException"/>if cancellation was requested through the
     /// cancellation token.</description></item>
+    /// <item><description><see cref="TimeoutException"/>if this connection attempt or a previous attempt exceeded
+    /// <see cref="ConnectionOptions.ConnectTimeout"/>.</description></item>
     /// </list>
     /// </returns>
     public async Task ConnectAsync(CancellationToken cancel = default)
     {
-        Task task;
-
         lock (_mutex)
         {
             ThrowIfDisposed();
-
-            if (_shutdownTask is not null)
-            {
-                // TODO: revisit this exception
-                // see https://github.com/zeroc-ice/icerpc-csharp/pull/1434#discussion_r905850094
-                throw new ConnectionClosedException();
-            }
-            else if (_connectTask is null)
-            {
-                _connectTask = PerformConnectAsync(cancel);
-                task = _connectTask;
-            }
-            else
-            {
-                task = _connectTask.WaitAsync(cancel);
-            }
+            _connectTask ??= ConnectAsyncCore(_connectTokenSource.Token);
         }
+
+        using CancellationTokenRegistration _ = cancel.Register(
+            () =>
+            {
+                try
+                {
+                    _connectTokenSource.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // ignored
+                }
+            });
 
         try
         {
-            await task.ConfigureAwait(false);
+            await _connectTask.ConfigureAwait(false);
         }
-        catch (OperationCanceledException exception) when (exception.CancellationToken != cancel)
+        catch (OperationCanceledException)
         {
-            // exception comes from another call to ConnectAsync
-            throw new ConnectionCanceledException();
-        }
+            cancel.ThrowIfCancellationRequested();
 
-        async Task PerformConnectAsync(CancellationToken cancel)
-        {
-            // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
-            await Task.Yield();
-
-            // TODO: not quite correct because assignment to NetworkConnectionInformation is not atomic
-            NetworkConnectionInformation = await _protocolConnection.ConnectAsync(
-                isServer: false,
-                this,
-                cancel).ConfigureAwait(false);
+            // _connectTask was canceled through another token
+            throw new ConnectionAbortedException();
         }
     }
 
@@ -223,18 +208,22 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         {
             await Task.Yield();
 
-            using var tokenSource = new CancellationTokenSource(_shutdownTimeout);
+            // TODO: temporary way to cancel dispatches and abort invocations.
+            _protocolConnectionCancellationSource.Cancel();
+
             try
             {
-                await ShutdownAsync("dispose client connection", tokenSource.Token).ConfigureAwait(false);
+                await ShutdownAsync("dispose client connection", CancellationToken.None).ConfigureAwait(false);
             }
-            catch (Exception exception)
+            catch
             {
-                _protocolConnection.Abort(exception);
             }
 
             // TODO: await _protocolConnection.DisposeAsync();
             _protocolConnectionCancellationSource.Dispose();
+
+            _connectTokenSource.Dispose();
+            _shutdownTokenSource.Dispose();
         }
     }
 
@@ -247,21 +236,8 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
         async Task<IncomingResponse> PerformInvokeAsync()
         {
-            await PerformConnectAsync().WaitAsync(cancel).ConfigureAwait(false);
+            await ConnectAsync(CancellationToken.None).WaitAsync(cancel).ConfigureAwait(false);
             return await _protocolConnection.InvokeAsync(request, this, cancel).ConfigureAwait(false);
-
-            async Task PerformConnectAsync()
-            {
-                using var connectTimeoutTokenSource = new CancellationTokenSource(_connectTimeout);
-                try
-                {
-                    await ConnectAsync(connectTimeoutTokenSource.Token).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    throw new TimeoutException("connect timeout exceeded");
-                }
-            }
         }
     }
 
@@ -270,67 +246,132 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
     /// <summary>Gracefully shuts down the connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    /// <exception cref="ConnectionCanceledException">Thrown if this connection was canceled by another call.
-    /// </exception>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
     /// <exception cref="OperationCanceledException">Thrown if the cancellation was requested through the cancellation
     /// token.</exception>
     public Task ShutdownAsync(CancellationToken cancel = default) =>
-        ShutdownAsync("client connection shutdown", cancel: cancel);
+        ShutdownAsync("client connection shutdown", cancel);
 
     /// <summary>Gracefully shuts down the connection.</summary>
     /// <param name="message">The message transmitted to the server when using the IceRPC protocol.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    /// <exception cref="ConnectionCanceledException">Thrown if this connection was canceled by another call.
-    /// </exception>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
     /// <exception cref="OperationCanceledException">Thrown if the cancellation was requested through the cancellation
     /// token.</exception>
     public async Task ShutdownAsync(string message, CancellationToken cancel = default)
     {
-        Task task;
-
         lock (_mutex)
         {
             ThrowIfDisposed();
 
             if (_shutdownTask is null)
             {
-                _shutdownTask = PerformShutdownAsync(message, _connectTask, cancel);
-                task = _shutdownTask;
-            }
-            else
-            {
-                task = _shutdownTask.WaitAsync(cancel);
+                bool connect;
+                if (_connectTask is null)
+                {
+                    _connectTask = Task.FromException(new ConnectionClosedException());
+                    connect = false;
+                }
+                else
+                {
+                    // the connection is connecting or connected, so ShutdownAsyncCore must call ConnectAsync
+                    connect = true;
+                }
+                _shutdownTask = ShutdownAsyncCore(message, connect, _shutdownTokenSource.Token);
             }
         }
+
+        using CancellationTokenRegistration _ = cancel.Register(
+            () =>
+            {
+                try
+                {
+                    _shutdownTokenSource.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // ignored
+                }
+            });
+        try
+        {
+            await _shutdownTask.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            cancel.ThrowIfCancellationRequested();
+
+            // _shutdownTask was canceled through another token
+            throw new ConnectionAbortedException();
+        }
+    }
+
+    private async Task ConnectAsyncCore(CancellationToken cancel)
+    {
+        // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
+        await Task.Yield();
+
+        // Need second token to figure out if the call exceeded _connectTimeout or was canceled for another reason:
+        using var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancel);
+        linkedTokenSource.CancelAfter(_connectTimeout);
+        try
+        {
+            // TODO: not quite correct because assignment to NetworkConnectionInformation is not atomic
+            NetworkConnectionInformation = await _protocolConnection.ConnectAsync(
+                isServer: false,
+                this,
+                linkedTokenSource.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
+        {
+            // Triggered by the CancelAfter above
+            var timeoutException = new TimeoutException(
+                $"connection establishment timed out after {_connectTimeout.TotalSeconds}s");
+            _protocolConnection.Abort(timeoutException);
+            throw timeoutException;
+        }
+        catch (Exception exception)
+        {
+            _protocolConnection.Abort(exception);
+            throw;
+        }
+    }
+
+    private async Task ShutdownAsyncCore(string message, bool connect, CancellationToken cancel)
+    {
+        // Make sure we shutdown the connection asynchronously without holding any mutex lock from the caller.
+        await Task.Yield();
+
+        // Need second token to figure out if the call exceeded _shutdownTimeout or was canceled for another reason:
+        using var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancel);
+        linkedTokenSource.CancelAfter(_shutdownTimeout);
 
         try
         {
-            await task.ConfigureAwait(false);
-        }
-        catch (OperationCanceledException exception) when (exception.CancellationToken != cancel)
-        {
-            // A previous call to ShutdownAsync failed with OperationCanceledException
-            throw new ConnectionCanceledException();
-        }
-
-        async Task PerformShutdownAsync(string message, Task? connectTask, CancellationToken cancel)
-        {
-            // Make sure we shutdown the connection asynchronously without holding any mutex lock from the caller.
-            await Task.Yield();
-
-            if (connectTask is not null)
+            if (connect)
             {
                 // Wait for connection establishment to complete before calling ShutdownAsync.
-                await connectTask.WaitAsync(cancel).ConfigureAwait(false);
+                await ConnectAsync(linkedTokenSource.Token).ConfigureAwait(false);
             }
 
             // Shut down the protocol connection.
             await _protocolConnection
                 .ShutdownAsync(message, _protocolConnectionCancellationSource.Token) // currently does not throw anything
-                .WaitAsync(cancel)
+                .WaitAsync(linkedTokenSource.Token)
                 .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
+        {
+            // Triggered by the CancelAfter above
+            var timeoutException = new TimeoutException(
+                $"connection shutdown timed out after {_shutdownTimeout.TotalSeconds}s");
+            _protocolConnection.Abort(timeoutException);
+            throw timeoutException;
+        }
+        catch (Exception exception)
+        {
+            _protocolConnection.Abort(exception);
+            throw;
         }
     }
 
