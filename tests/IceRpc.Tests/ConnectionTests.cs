@@ -597,20 +597,20 @@ public class ConnectionTests
         // Assert
         if (closeClientSide)
         {
-            if (protocol == "ice")
-            {
-                // TODO: not correct, comes from CancelInvocations(new OperationCanceledException(message));
-                Assert.That(async () => await pingTask, Throws.InstanceOf<OperationCanceledException>());
-            }
-            else
-            {
-                Assert.That(async () => await pingTask, Throws.InstanceOf<TimeoutException>());
-            }
+            // TODO: not correct
+            Assert.That(async () => await pingTask, Throws.InstanceOf<OperationCanceledException>());
         }
         else
         {
-            // Shutdown should trigger the abort of the connection on the client side after the shutdown timeout
-            Assert.ThrowsAsync<ConnectionLostException>(async () => await pingTask);
+            if (protocol == "ice")
+            {
+                // Shutdown should trigger the abort of the connection on the client side after the shutdown timeout
+                Assert.That(async () => await pingTask, Throws.InstanceOf<DispatchException>());
+            }
+            else
+            {
+                Assert.That(async () => await pingTask, Throws.InstanceOf<IceRpcProtocolStreamException>());
+            }
         }
         hold.Release();
     }

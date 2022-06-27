@@ -196,6 +196,9 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         {
             await Task.Yield();
 
+            // TODO: temporary way to cancel dispatches and abort invocations.
+            _protocolConnectionCancellationSource.Cancel();
+
             try
             {
                 await ShutdownAsync("dispose client connection", CancellationToken.None).ConfigureAwait(false);
@@ -235,7 +238,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <exception cref="OperationCanceledException">Thrown if the cancellation was requested through the cancellation
     /// token.</exception>
     public Task ShutdownAsync(CancellationToken cancel = default) =>
-        ShutdownAsync("client connection shutdown", cancel: cancel);
+        ShutdownAsync("client connection shutdown", cancel);
 
     /// <summary>Gracefully shuts down the connection.</summary>
     /// <param name="message">The message transmitted to the server when using the IceRPC protocol.</param>

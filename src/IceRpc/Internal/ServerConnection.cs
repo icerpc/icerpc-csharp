@@ -51,14 +51,15 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
         {
             await Task.Yield();
 
-            using var tokenSource = new CancellationTokenSource(_shutdownTimeout);
+            // TODO: temporary way to cancel dispatches and abort invocations.
+            _protocolConnectionCancellationSource.Cancel();
+
             try
             {
-                await ShutdownAsync("server connection disposed", tokenSource.Token).ConfigureAwait(false);
+                await ShutdownAsync("server connection disposed", CancellationToken.None).ConfigureAwait(false);
             }
-            catch (Exception exception)
+            catch
             {
-                _protocolConnection.Abort(exception);
             }
 
             // TODO: await _protocolConnection.DisposeAsync();
@@ -130,7 +131,7 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
     /// <summary>Gracefully shuts down the connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     internal Task ShutdownAsync(CancellationToken cancel = default) =>
-        ShutdownAsync("server connection shutdown", cancel: cancel);
+        ShutdownAsync("server connection shutdown", cancel);
 
     /// <summary>Gracefully shuts down the connection.</summary>
     /// <param name="message">The message transmitted to the client when using the IceRPC protocol.</param>
@@ -142,6 +143,9 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
             ThrowIfDisposed();
             _connectTask ??= Task.CompletedTask;
         }
+
+        // TODO: deal with concurrent calls to ShutdownAsync? Seems easier to move this logic to
+        // _protocolConnection.ShutdownAsync
 
         // Need second token to figure out if the call exceeded _shutdownTimeout or was canceled for another reason:
         using var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancel);
