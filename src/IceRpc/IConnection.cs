@@ -26,7 +26,6 @@ public interface IConnection
     /// <param name="request">The outgoing request being sent.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>The corresponding <see cref="IncomingResponse"/>.</returns>
-    /// <exception cref="ConnectionCanceledException">Thrown if the connection was canceled.</exception>
     /// <exception cref="ConnectionClosedException">Thrown if the connection is already closed.</exception>
     /// <exception cref="OperationCanceledException">Thrown if cancellation was requested through the cancellation
     /// token.</exception>

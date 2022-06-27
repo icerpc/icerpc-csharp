@@ -29,17 +29,6 @@ public class ConnectionAbortedException : Exception
     }
 }
 
-/// <summary>This exception indicates that a ConnectAsync or DisposeAsync call on a connection was canceled, and the
-/// the connection is now in an unusable state.</summary>
-public class ConnectionCanceledException : Exception
-{
-    /// <summary>Constructs a new instance of the <see cref="ConnectionCanceledException"/> class.</summary>
-    public ConnectionCanceledException()
-        : base("the connection is canceled")
-    {
-    }
-}
-
 /// <summary>This exception indicates that a previous established connection was closed gracefully. It is safe to
 /// retry a request that failed with this exception.</summary>
 public class ConnectionClosedException : Exception
