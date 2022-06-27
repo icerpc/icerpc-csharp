@@ -129,13 +129,12 @@ public class SequenceDecodingTests
             expected,
             (ref SliceEncoder encoder, TestEnum value) => encoder.EncodeInt16((short)value));
 
-        // Action to check enum is in the correct range
         var checkedValues = new List<TestEnum>();
         var sut = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
         // Act
         TestEnum[]? decoded = sut.DecodeSequence<TestEnum>(value => checkedValues.Add(value));
-
+        
         // Assert
         Assert.That(decoded, Is.EqualTo(expected));
         Assert.That(checkedValues, Is.EqualTo(expected));
