@@ -163,7 +163,19 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             _connectTask ??= ConnectAsyncCore(_connectTokenSource.Token);
         }
 
-        using CancellationTokenRegistration _ = cancel.Register(_connectTokenSource.Cancel);
+        using CancellationTokenRegistration _ = cancel.Register(
+            () =>
+            {
+                try
+                {
+                    _connectTokenSource.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // ignored
+                }
+            });
+
         try
         {
             await _connectTask.ConfigureAwait(false);
@@ -269,7 +281,18 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             }
         }
 
-        using CancellationTokenRegistration _ = cancel.Register(_shutdownTokenSource.Cancel);
+        using CancellationTokenRegistration _ = cancel.Register(
+            () =>
+            {
+                try
+                {
+                    _shutdownTokenSource.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // ignored
+                }
+            });
         try
         {
             await _shutdownTask.ConfigureAwait(false);
