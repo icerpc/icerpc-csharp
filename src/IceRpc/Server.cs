@@ -269,7 +269,7 @@ public sealed class Server : IAsyncDisposable
                 // Wait for the current shutdown to complete
                 try
                 {
-                    await ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+                    await connection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
                 }
                 catch
                 {

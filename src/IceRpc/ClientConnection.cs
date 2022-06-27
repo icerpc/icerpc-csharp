@@ -244,7 +244,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <inheritdoc/>
     public void OnAbort(Action<Exception> callback) => _protocolConnection.OnAbort(callback);
 
-     /// <inheritdoc/>
+    /// <inheritdoc/>
     public void OnShutdown(Action<string> callback) => _protocolConnection.OnShutdown(callback);
 
     /// <summary>Gracefully shuts down the connection.</summary>
@@ -269,18 +269,16 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
             if (_shutdownTask is null)
             {
-                bool connect;
                 if (_connectTask is null)
                 {
                     _connectTask = Task.FromException(new ConnectionClosedException());
-                    connect = false;
+                    // and we have nothing else to do, in particular we can't gracefully shutdown a connection without
+                    // connecting it since it has no control stream.
+
+                    return; // ShutdownAsync complete
                 }
-                else
-                {
-                    // the connection is connecting or connected, so ShutdownAsyncCore must call ConnectAsync
-                    connect = true;
-                }
-                _shutdownTask = ShutdownAsyncCore(message, connect, _shutdownTokenSource.Token);
+
+                _shutdownTask = ShutdownAsyncCore(message, _shutdownTokenSource.Token);
             }
         }
 
@@ -340,7 +338,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         }
     }
 
-    private async Task ShutdownAsyncCore(string message, bool connect, CancellationToken cancel)
+    private async Task ShutdownAsyncCore(string message, CancellationToken cancel)
     {
         // Make sure we shutdown the connection asynchronously without holding any mutex lock from the caller.
         await Task.Yield();
@@ -351,11 +349,8 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
         try
         {
-            if (connect)
-            {
-                // Wait for connection establishment to complete before calling ShutdownAsync.
-                await ConnectAsync(linkedTokenSource.Token).ConfigureAwait(false);
-            }
+            // Wait for connection establishment to complete before calling ShutdownAsync.
+            await ConnectAsync(linkedTokenSource.Token).ConfigureAwait(false);
 
             // Shut down the protocol connection.
             await _protocolConnection

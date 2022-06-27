@@ -1019,23 +1019,26 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         // Make sure we shutdown the connection asynchronously without holding any mutex lock from the caller.
         await Task.Yield();
 
-        if (_isAborted)
-        {
-            return;
-        }
-
-        if (_streams.Count == 0)
-        {
-            _streamsCompleted.TrySetResult();
-        }
-
-        var exception = new ConnectionClosedException(message);
-
         // _onShutdown is read-only once _shutdownTask is not null
         _onShutdown?.Invoke(message);
 
         // Send GoAway frame.
-        IceRpcGoAway goAwayFrame = new(_lastRemoteBidirectionalStreamId, _lastRemoteUnidirectionalStreamId, message);
+        IceRpcGoAway goAwayFrame;
+        lock (_mutex)
+        {
+            if (_isAborted)
+            {
+                return;
+            }
+
+            if (_streams.Count == 0)
+            {
+                _streamsCompleted.TrySetResult();
+            }
+
+            goAwayFrame = new(_lastRemoteBidirectionalStreamId, _lastRemoteUnidirectionalStreamId, message);
+        }
+
         await SendControlFrameAsync(
             IceRpcControlFrameType.GoAway,
             (ref SliceEncoder encoder) => goAwayFrame.Encode(ref encoder),
@@ -1055,6 +1058,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     peerGoAwayFrame.LastBidirectionalStreamId :
                     peerGoAwayFrame.LastUnidirectionalStreamId)))).ToArray();
         }
+
+        var exception = new ConnectionClosedException(message);
 
         // Abort streams for invocations that were not dispatched by the peer. The invocations will throw
         // ConnectionClosedException which is retryable.

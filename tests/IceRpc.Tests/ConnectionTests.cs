@@ -236,7 +236,7 @@ public class ConnectionTests
 
     [Test]
     public async Task Resumable_connection_can_reconnect_after_graceful_peer_shutdown(
-        [Values("ice", "icerpc")] string protocol)
+        [Values("icerpc", "ice")] string protocol)
     {
         // Arrange
         ServerConnection? serverConnection = null;
@@ -259,17 +259,37 @@ public class ConnectionTests
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
         using var semaphore = new SemaphoreSlim(0);
-        connection.OnShutdown(message =>
+
+        if (protocol == "ice")
         {
-            try
+            // TODO: with ice, peer shutdown currently results in a local Abort
+            connection.OnAbort(exception =>
             {
-                semaphore.Release(1);
-            }
-            catch (ObjectDisposedException)
+                try
+                {
+                    semaphore.Release(1);
+                }
+                catch (ObjectDisposedException)
+                {
+                    // expected
+                }
+            });
+        }
+        else
+        {
+            connection.OnShutdown(message =>
             {
-                // expected
-            }
-        });
+                try
+                {
+                    semaphore.Release(1);
+                }
+                catch (ObjectDisposedException)
+                {
+                    // expected
+                }
+            });
+        }
+
         await serverConnection!.ShutdownAsync();
         await semaphore.WaitAsync();
 
