@@ -10,7 +10,7 @@ namespace IceRpc.Bidir.Tests;
 public sealed class BidirMiddlewareTests
 {
     [Test]
-    public async Task Bidir_connection_invoke_can_reconnects_after_connection_closed()
+    public async Task Bidir_connection_invoke_can_reconnect_after_connection_closed()
     {
         byte[] relativeOrigin = NewRelativeOrigin();
 

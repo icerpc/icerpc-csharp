@@ -14,7 +14,7 @@ public class BidirMiddleware : IDispatcher
     private readonly Dictionary<Vector128<ulong>, BidirConnection> _connections = new();
     private readonly TimeSpan _reconnectTimeout;
 
-    /// <summary>Constructs a compressor middleware.</summary>
+    /// <summary>Constructs a bidir middleware.</summary>
     /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
     /// <param name="reconnectTimeout">The timeout for reestablish the connection.</param>
     public BidirMiddleware(IDispatcher next, TimeSpan reconnectTimeout)

@@ -50,18 +50,18 @@ internal class BidirConnection : IConnection
                 }
             }
 
-            if (updateTask != null)
+            if (updateTask is not null)
             {
-                using var timeoutTokenSource = new CancellationTokenSource(_reconnectTimeout);
+                using var tokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancel);
+                tokenSource.CancelAfter(_reconnectTimeout);
                 try
                 {
-                    cancel.Register(timeoutTokenSource.Cancel);
-                    connection = await updateTask.WaitAsync(timeoutTokenSource.Token).ConfigureAwait(false);
+                    connection = await updateTask.WaitAsync(tokenSource.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
-                    // Give up on waiting for a new connection and throw the original exception.
-                    Debug.Assert(timeoutTokenSource.IsCancellationRequested);
+                    // The updateTask is completed by UpdateDecoratee and never completes with an exception,
+                    // we give up on waiting for a new connection and throw the original exception.
                     ExceptionDispatchInfo.Throw(ex);
                 }
             }
