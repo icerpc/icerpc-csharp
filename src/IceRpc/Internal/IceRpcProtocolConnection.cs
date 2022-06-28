@@ -73,12 +73,12 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             // stream output.
             await _controlStreamSemaphore.CompleteAndWaitAsync(exception).ConfigureAwait(false);
 
-            if (_controlStream != null)
+            if (_controlStream is not null)
             {
                 await _controlStream.Output.CompleteAsync(exception).ConfigureAwait(false);
             }
 
-            if (_remoteControlStream != null)
+            if (_remoteControlStream is not null)
             {
                 await _remoteControlStream.Input.CompleteAsync(exception).ConfigureAwait(false);
             }
@@ -142,22 +142,17 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         _ = Task.Run(
             async () =>
             {
-                Exception? exception = null;
                 try
                 {
                     await AcceptRequestsAsync(connection).ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (ConnectionClosedException)
                 {
-                    exception = ex;
+                    // The connection is closed or being closed.
                 }
-                finally
+                catch (Exception exception)
                 {
-                    // Protocol connection resource cleanup. This is for now performed by Abort (which should have
-                    // been named CloseAsync like ConnectionCore.CloseAsync).
-                    // TODO: Refactor depending on what we decide for the protocol connection resource cleanup
-                    // (#1397,#1372, #1404, #1400).
-                    Abort(exception ?? new ConnectionClosedException());
+                    Abort(exception);
                 }
             },
             cancel);
@@ -182,11 +177,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             stream = _networkConnection.CreateStream(bidirectional: !request.IsOneway);
 
             // Keep track of the invocation for the shutdown logic.
-            if (!request.IsOneway || request.PayloadStream != null)
+            if (!request.IsOneway || request.PayloadStream is not null)
             {
                 lock (_mutex)
                 {
-                    if (_shutdownTask != null || _isAborted)
+                    if (_shutdownTask is not null || _isAborted)
                     {
                         // Don't process the invocation if the connection is in the process of shutting down or it's
                         // already closed.
@@ -210,7 +205,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                                 if (_streams.Count == 0)
                                 {
-                                    if (_shutdownTask != null)
+                                    if (_shutdownTask is not null)
                                     {
                                         // If shutting down, we can set the _streamsCompleted task completion source
                                         // as completed to allow shutdown to progress.
@@ -235,7 +230,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
         catch (Exception exception)
         {
-            if (stream != null)
+            if (stream is not null)
             {
                 await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
                 if (stream.IsBidirectional)
@@ -253,7 +248,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             return new IncomingResponse(request, connection);
         }
 
-        Debug.Assert(stream != null);
+        Debug.Assert(stream is not null);
         try
         {
             ReadResult readResult = await stream.Input.ReadSegmentAsync(
@@ -424,7 +419,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             FlushResult flushResult = await CopyReaderToWriterAsync(
                 outgoingFrame.Payload,
                 payloadWriter,
-                endStream: payloadStream == null,
+                endStream: payloadStream is null,
                 cancel).ConfigureAwait(false);
 
             if (flushResult.IsCompleted)
@@ -435,7 +430,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 // We complete the payload and payload stream immediately. For example, we've just sent an outgoing
                 // request and we're waiting for the exception to come back.
                 await outgoingFrame.Payload.CompleteAsync().ConfigureAwait(false);
-                if (payloadStream != null)
+                if (payloadStream is not null)
                 {
                     await payloadStream.CompleteAsync().ConfigureAwait(false);
                 }
@@ -458,7 +453,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
         await outgoingFrame.Payload.CompleteAsync().ConfigureAwait(false);
 
-        if (payloadStream == null)
+        if (payloadStream is null)
         {
             await payloadWriter.CompleteAsync().ConfigureAwait(false);
         }
@@ -531,14 +526,12 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     }
                 }
 
+                readResult.ThrowIfCanceled(Protocol.IceRpc);
+
                 if (readResult.IsCompleted)
                 {
                     // We're done if there's no more data to send for the payload.
                     break;
-                }
-                else if (readResult.IsCanceled)
-                {
-                    throw new OperationCanceledException("payload pipe reader was canceled");
                 }
             }
             while (!flushResult.IsCanceled && !flushResult.IsCompleted);
@@ -580,7 +573,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                 lock (_mutex)
                 {
-                    if (_shutdownTask != null || _isAborted)
+                    if (_shutdownTask is not null || _isAborted)
                     {
                         throw new ConnectionClosedException();
                     }
@@ -614,7 +607,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                                 if (_streams.Count == 0)
                                 {
-                                    if (_shutdownTask != null)
+                                    if (_shutdownTask is not null)
                                     {
                                         // If shutting down, we can set the _streamsCompleted task completion source
                                         // as completed to allow shutdown to progress.
@@ -655,7 +648,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     Payload = stream.Input
                 };
 
-                Debug.Assert(cancelDispatchSource != null);
+                Debug.Assert(cancelDispatchSource is not null);
                 _ = Task.Run(() => DispatchRequestAsync(
                     request,
                     stream,
@@ -664,7 +657,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             catch (Exception exception)
             {
-                if (fieldsPipeReader != null)
+                if (fieldsPipeReader is not null)
                 {
                     await fieldsPipeReader.CompleteAsync().ConfigureAwait(false);
                 }
@@ -794,7 +787,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             finally
             {
-                if (fieldsPipeReader != null)
+                if (fieldsPipeReader is not null)
                 {
                     await fieldsPipeReader.CompleteAsync().ConfigureAwait(false);
 
@@ -888,10 +881,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         while (true)
         {
             ReadResult readResult = await input.ReadAsync(cancel).ConfigureAwait(false);
-            if (readResult.IsCanceled)
-            {
-                throw new OperationCanceledException();
-            }
+            readResult.ThrowIfCanceled(Protocol.IceRpc);
+
             if (readResult.Buffer.IsEmpty)
             {
                 throw new InvalidDataException("invalid empty control frame");
@@ -922,10 +913,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             SliceEncoding.Slice2,
             _maxLocalHeaderSize,
             cancel).ConfigureAwait(false);
-        if (readResult.IsCanceled)
-        {
-            throw new OperationCanceledException();
-        }
+
+        readResult.ThrowIfCanceled(Protocol.IceRpc);
 
         try
         {
@@ -954,10 +943,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             SliceEncoding.Slice2,
             _maxLocalHeaderSize,
             cancel).ConfigureAwait(false);
-        if (readResult.IsCanceled)
-        {
-            throw new OperationCanceledException();
-        }
+
+        readResult.ThrowIfCanceled(Protocol.IceRpc);
 
         try
         {
@@ -983,7 +970,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             output.GetSpan()[0] = (byte)frameType;
             output.Advance(1);
 
-            if (encodeAction != null)
+            if (encodeAction is not null)
             {
                 EncodeFrame(output);
             }
@@ -1019,7 +1006,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     private async Task ShutdownAsyncCore(string message, CancellationToken cancel)
     {
-        Debug.Assert(_shutdownTask == null);
+        Debug.Assert(_shutdownTask is null);
 
         // Make sure we shutdown the connection asynchronously without holding any mutex lock from the caller.
         await Task.Yield();

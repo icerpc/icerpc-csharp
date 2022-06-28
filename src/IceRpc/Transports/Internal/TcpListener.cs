@@ -37,11 +37,7 @@ internal sealed class TcpListener : IListener<ISimpleNetworkConnection>
 #pragma warning restore CA2000
     }
 
-    public ValueTask DisposeAsync()
-    {
-        _socket.Dispose();
-        return default;
-    }
+    public void Dispose() => _socket.Dispose();
 
     internal TcpListener(
         Endpoint endpoint,
@@ -59,7 +55,7 @@ internal sealed class TcpListener : IListener<ISimpleNetworkConnection>
 
         _authenticationOptions = authenticationOptions;
 
-        if (_authenticationOptions != null)
+        if (_authenticationOptions is not null)
         {
             // Add the endpoint protocol to the SSL application protocols (used by TLS ALPN)
             _authenticationOptions = _authenticationOptions.Clone();

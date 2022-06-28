@@ -120,15 +120,15 @@ public class TaggedTests
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
         bool hasTaggedMembers =
-            expected.A != null ||
-            expected.B != null ||
-            expected.D != null ||
-            expected.E != null ||
-            expected.F != null ||
-            expected.G != null ||
-            expected.H != null ||
-            expected.I != null ||
-            expected.J != null;
+            expected.A is not null ||
+            expected.B is not null ||
+            expected.D is not null ||
+            expected.E is not null ||
+            expected.F is not null ||
+            expected.G is not null ||
+            expected.H is not null ||
+            expected.I is not null ||
+            expected.J is not null;
 
         encoder.EncodeSize(1); // Instance marker
         byte flags = (byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.IsLastSlice;
@@ -139,7 +139,7 @@ public class TaggedTests
         encoder.EncodeUInt8(flags);
         encoder.EncodeString(ClassWithTaggedMembers.SliceTypeId);
 
-        if (expected.A != null)
+        if (expected.A is not null)
         {
             encoder.EncodeTagged(
                 1,
@@ -148,7 +148,7 @@ public class TaggedTests
                 (ref SliceEncoder encoder, byte value) => encoder.EncodeUInt8(value));
         }
 
-        if (expected.B != null)
+        if (expected.B is not null)
         {
             encoder.EncodeTagged(
                 2,
@@ -157,7 +157,7 @@ public class TaggedTests
                 (ref SliceEncoder encoder, short value) => encoder.EncodeInt16(value));
         }
 
-        if (expected.C != null)
+        if (expected.C is not null)
         {
             encoder.EncodeTagged(
                 3,
@@ -166,7 +166,7 @@ public class TaggedTests
                 (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
         }
 
-        if (expected.D != null)
+        if (expected.D is not null)
         {
             encoder.EncodeTagged(
                 4,
@@ -175,7 +175,7 @@ public class TaggedTests
                 (ref SliceEncoder encoder, long value) => encoder.EncodeInt64(value));
         }
 
-        if (expected.E != null)
+        if (expected.E is not null)
         {
             encoder.EncodeTagged(
                 5,
@@ -184,7 +184,7 @@ public class TaggedTests
                 (ref SliceEncoder encoder, FixedLengthStruct value) => value.Encode(ref encoder));
         }
 
-        if (expected.F != null)
+        if (expected.F is not null)
         {
             encoder.EncodeTagged(
                 6,
@@ -193,7 +193,7 @@ public class TaggedTests
                 (ref SliceEncoder encoder, VarLengthStruct value) => value.Encode(ref encoder));
         }
 
-        if (expected.G != null)
+        if (expected.G is not null)
         {
             encoder.EncodeTagged(
                 7,
@@ -202,7 +202,7 @@ public class TaggedTests
                 (ref SliceEncoder encoder, Tagged.Slice1.MyEnum value) => encoder.EncodeMyEnum(value));
         }
 
-        if (expected.H != null)
+        if (expected.H is not null)
         {
             encoder.EncodeTagged(
                 8,
@@ -211,7 +211,7 @@ public class TaggedTests
                 (ref SliceEncoder encoder, IList<byte> value) => encoder.EncodeSequence(value));
         }
 
-        if (expected.I != null)
+        if (expected.I is not null)
         {
             encoder.EncodeTagged(
                 9,
@@ -220,7 +220,7 @@ public class TaggedTests
                 (ref SliceEncoder encoder, IList<int> value) => encoder.EncodeSequence(value));
         }
 
-        if (expected.J != null)
+        if (expected.J is not null)
         {
             encoder.EncodeTagged(
                 10,
@@ -315,15 +315,15 @@ public class TaggedTests
 
         // Assert
         bool hasTaggedMembers =
-            c.A != null ||
-            c.B != null ||
-            c.D != null ||
-            c.E != null ||
-            c.F != null ||
-            c.G != null ||
-            c.H != null ||
-            c.I != null ||
-            c.J != null;
+            c.A is not null ||
+            c.B is not null ||
+            c.D is not null ||
+            c.E is not null ||
+            c.F is not null ||
+            c.G is not null ||
+            c.H is not null ||
+            c.I is not null ||
+            c.J is not null;
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 

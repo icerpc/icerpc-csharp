@@ -38,7 +38,7 @@ public class TestMemoryPool : MemoryPool<byte>
 
         public void Dispose()
         {
-            if (_pool != null)
+            if (_pool is not null)
             {
                 _pool._stack.Push(Memory);
                 _pool = null;

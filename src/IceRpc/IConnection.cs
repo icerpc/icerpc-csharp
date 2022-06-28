@@ -9,8 +9,8 @@ public interface IConnection
 {
     /// <summary>Gets a value indicating whether a call to <see cref="InvokeAsync"/> can succeed after a preceding call
     /// throws <see cref="ConnectionAbortedException"/>, <see cref="ConnectionClosedException"/>,
-    /// <see cref="ConnectionLostException"/><see cref="ConnectFailedException"/> or
-    /// <see cref="ConnectTimeoutException"/>.</summary>
+    /// <see cref="ConnectionLostException"/><see cref="ConnectFailedException"/> or <see cref="TimeoutException"/>.
+    /// </summary>
     /// <value><c>true</c> when a call to <see cref="InvokeAsync"/> can succeed after such an exception; <c>false</c>
     /// when a new call to <see cref="InvokeAsync"/> will fail.</value>
     bool IsResumable { get; }
@@ -26,6 +26,10 @@ public interface IConnection
     /// <param name="request">The outgoing request being sent.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>The corresponding <see cref="IncomingResponse"/>.</returns>
+    /// <exception cref="ConnectionClosedException">Thrown if the connection is already closed.</exception>
+    /// <exception cref="OperationCanceledException">Thrown if cancellation was requested through the cancellation
+    /// token.</exception>
+    /// <exception cref="TimeoutException">Thrown if the connection establishment timed out.</exception>
     Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel);
 
     /// <summary>Adds a callback that will be executed when the closure of this connection is initiated. The closure of

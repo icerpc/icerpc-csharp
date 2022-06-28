@@ -75,7 +75,7 @@ internal class SimpleNetworkConnectionReader : IDisposable
                     $"the network connection has been idle for longer than {_idleTimeout}"));
             });
 
-        if (keepAliveAction != null)
+        if (keepAliveAction is not null)
         {
             _keepAliveTimer = new Timer(
                 _ =>

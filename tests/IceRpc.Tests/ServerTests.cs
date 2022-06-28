@@ -29,14 +29,14 @@ public class ServerTests
     }
 
     /// <summary>Verifies that calling <see cref="Server.Listen"/> on a disposed server fails with
-    /// <see cref="ObjectDisposedException"/>.</summary>
+    /// <see cref="InvalidOperationException"/>.</summary>
     [Test]
     public async Task Cannot_call_listen_on_a_disposed_server()
     {
         var server = new Server(ConnectionOptions.DefaultDispatcher);
         await server.DisposeAsync();
 
-        Assert.Throws<ObjectDisposedException>(() => server.Listen());
+        Assert.Throws<InvalidOperationException>(() => server.Listen());
     }
 
     /// <summary>Verifies that <see cref="Server.ShutdownComplete"/> task is completed after

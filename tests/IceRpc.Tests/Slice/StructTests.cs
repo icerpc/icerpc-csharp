@@ -76,14 +76,14 @@ public sealed class StructTests
         encoder.EncodeInt32(10);
         encoder.EncodeInt32(20);
 
-        bitSequenceWriter.Write(k != null);
-        if (k != null)
+        bitSequenceWriter.Write(k is not null);
+        if (k is not null)
         {
             encoder.EncodeInt32(k.Value);
         }
 
-        bitSequenceWriter.Write(l != null);
-        if (l != null)
+        bitSequenceWriter.Write(l is not null);
+        if (l is not null)
         {
             encoder.EncodeInt32(l.Value);
         }
@@ -108,7 +108,7 @@ public sealed class StructTests
     {
         var expected = new MyCompactStructWithNullableProxy(
             10,
-            proxy == null ? null : ServicePrx.Parse(proxy));
+            proxy is null ? null : ServicePrx.Parse(proxy));
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
         encoder.EncodeInt32(expected.A);
@@ -126,12 +126,12 @@ public sealed class StructTests
     {
         var expected = new MyCompactStructWithNullableProxy(
             10,
-            proxy == null ? null : ServicePrx.Parse(proxy));
+            proxy is null ? null : ServicePrx.Parse(proxy));
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         var bitSequenceWriter = encoder.GetBitSequenceWriter(1);
         encoder.EncodeInt32(expected.A);
-        if (expected.I == null)
+        if (expected.I is null)
         {
             bitSequenceWriter.Write(false);
         }
@@ -311,7 +311,7 @@ public sealed class StructTests
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(10));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(20));
 
-        if (k != null)
+        if (k is not null)
         {
             Assert.That(bitSequenceReader.Read(), Is.True);
             Assert.That(decoder.DecodeInt32(), Is.EqualTo(k));
@@ -321,7 +321,7 @@ public sealed class StructTests
             Assert.That(bitSequenceReader.Read(), Is.False);
         }
 
-        if (l != null)
+        if (l is not null)
         {
             Assert.That(bitSequenceReader.Read(), Is.True);
             Assert.That(decoder.DecodeInt32(), Is.EqualTo(l));
@@ -340,7 +340,7 @@ public sealed class StructTests
     {
         var expected = new MyCompactStructWithNullableProxy(
             10,
-            proxy == null ? null : ServicePrx.Parse(proxy));
+            proxy is null ? null : ServicePrx.Parse(proxy));
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
 
@@ -358,7 +358,7 @@ public sealed class StructTests
     {
         var expected = new MyCompactStructWithNullableProxy(
             10,
-            proxy == null ? null : ServicePrx.Parse(proxy));
+            proxy is null ? null : ServicePrx.Parse(proxy));
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
 

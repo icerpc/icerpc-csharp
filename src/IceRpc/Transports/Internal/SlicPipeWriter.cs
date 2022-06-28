@@ -31,7 +31,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             // the peer to notify it won't receive additional data.
             if (!_stream.WritesCompleted)
             {
-                if (exception == null && _pipe.Writer.UnflushedBytes > 0)
+                if (exception is null && _pipe.Writer.UnflushedBytes > 0)
                 {
                     throw new NotSupportedException(
                         $"can't complete {nameof(SlicPipeWriter)} with unflushed bytes");
@@ -142,7 +142,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         {
             if (_state.HasFlag(State.PipeReaderCompleted))
             {
-                if (_exception != null)
+                if (_exception is not null)
                 {
                     throw ExceptionUtil.Throw(_exception);
                 }

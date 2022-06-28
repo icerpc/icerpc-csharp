@@ -81,7 +81,7 @@ internal class AsyncSemaphore
     {
         lock (_mutex)
         {
-            if (_exception != null)
+            if (_exception is not null)
             {
                 return;
             }
@@ -103,7 +103,7 @@ internal class AsyncSemaphore
         Task waitForReleaseTask;
         lock (_mutex)
         {
-            if (_waitForReleaseSource != null)
+            if (_waitForReleaseSource is not null)
             {
                 throw new InvalidOperationException($"can't call {nameof(CompleteAndWaitAsync)} twice");
             }
@@ -135,7 +135,7 @@ internal class AsyncSemaphore
 
         lock (_mutex)
         {
-            if (_exception != null)
+            if (_exception is not null)
             {
                 throw ExceptionUtil.Throw(_exception);
             }

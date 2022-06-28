@@ -49,9 +49,9 @@ public class DictionaryDecodingTests
         var bitSequenceWritter = encoder.GetBitSequenceWriter(expected.Count);
         foreach ((int key, string? value) in expected)
         {
-            bitSequenceWritter.Write(value != null);
+            bitSequenceWritter.Write(value is not null);
             encoder.EncodeInt32(key);
-            if (value != null)
+            if (value is not null)
             {
                 encoder.EncodeString(value);
             }

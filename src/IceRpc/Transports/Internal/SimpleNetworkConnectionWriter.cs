@@ -95,7 +95,7 @@ internal class SimpleNetworkConnectionWriter : IBufferWriter<byte>, IDisposable
         }
         finally
         {
-            if (consumed != null)
+            if (consumed is not null)
             {
                 _pipe.Reader.AdvanceTo(consumed.Value);
             }

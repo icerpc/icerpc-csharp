@@ -25,7 +25,7 @@ public static class ProtocolServiceCollectionExtensions
             options =>
             {
                 options.Endpoint = new Endpoint(protocol) { Host = "colochost" };
-                if (dispatcher != null)
+                if (dispatcher is not null)
                 {
                     options.ConnectionOptions.Dispatcher = dispatcher;
                 }
@@ -221,5 +221,6 @@ internal class Listener<T> : IListener<T> where T : INetworkConnection
     }
 
     public Task<T> AcceptAsync() => _listener.AcceptAsync();
-    public ValueTask DisposeAsync() => _listener.DisposeAsync();
+
+    public void Dispose() => _listener.Dispose();
 }

@@ -36,11 +36,11 @@ public class TcpServerTransport : IServerTransport<ISimpleNetworkConnection>
 
         if (TcpClientTransport.CheckParams(endpoint, out string? endpointTransport))
         {
-            if (endpointTransport == null)
+            if (endpointTransport is null)
             {
                 endpoint = endpoint with { Params = endpoint.Params.Add("transport", Name) };
             }
-            else if (endpointTransport == TransportNames.Ssl && authenticationOptions == null)
+            else if (endpointTransport == TransportNames.Ssl && authenticationOptions is null)
             {
                 throw new ArgumentNullException(
                     nameof(authenticationOptions),

@@ -56,7 +56,7 @@ internal class CacheLessLocationResolver : ILocationResolver
         Proxy? proxy = await _endpointFinder.FindAsync(location, cancel).ConfigureAwait(false);
 
         // A well-known proxy resolution can return a proxy with an adapter ID
-        if (proxy != null && proxy.Params.TryGetValue("adapter-id", out string? adapterId))
+        if (proxy is not null && proxy.Params.TryGetValue("adapter-id", out string? adapterId))
         {
             (proxy, _) = await ResolveAsync(
                 new Location { IsAdapterId = true, Value = adapterId },
@@ -114,7 +114,7 @@ internal class LocationResolver : ILocationResolver
             justRefreshed = cacheEntryAge <= _refreshThreshold;
         }
 
-        if (proxy == null || (!_background && expired) || (refreshCache && !justRefreshed))
+        if (proxy is null || (!_background && expired) || (refreshCache && !justRefreshed))
         {
             proxy = await _endpointFinder.FindAsync(location, cancel).ConfigureAwait(false);
             resolved = true;
@@ -126,7 +126,7 @@ internal class LocationResolver : ILocationResolver
         }
 
         // A well-known proxy resolution can return a loc endpoint
-        if (proxy != null && proxy.Params.TryGetValue("adapter-id", out string? adapterId))
+        if (proxy is not null && proxy.Params.TryGetValue("adapter-id", out string? adapterId))
         {
             try
             {
@@ -146,14 +146,14 @@ internal class LocationResolver : ILocationResolver
             {
                 // When the second resolution fails, we clear the cache entry for the initial successful
                 // resolution, since the overall resolution is a failure.
-                if (proxy == null)
+                if (proxy is null)
                 {
                     _endpointCache.Remove(location);
                 }
             }
         }
 
-        return (proxy, proxy != null && !resolved);
+        return (proxy, proxy is not null && !resolved);
     }
 }
 
@@ -181,7 +181,7 @@ internal class LogLocationResolverDecorator : ILocationResolver
             (Proxy? proxy, bool fromCache) =
                 await _decoratee.ResolveAsync(location, refreshCache, cancel).ConfigureAwait(false);
 
-            if (proxy == null)
+            if (proxy is null)
             {
                 _logger.LogFailedToResolve(location.Kind, location);
             }

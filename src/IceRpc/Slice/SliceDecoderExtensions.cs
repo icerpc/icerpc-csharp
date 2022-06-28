@@ -102,7 +102,7 @@ public static class SliceDecoderExtensions
             Span<byte> destination = MemoryMarshal.Cast<T, byte>(value);
             decoder.CopyTo(destination);
 
-            if (checkElement != null)
+            if (checkElement is not null)
             {
                 foreach (T e in value)
                 {

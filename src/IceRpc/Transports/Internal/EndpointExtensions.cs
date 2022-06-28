@@ -74,7 +74,7 @@ internal static class EndpointExtensions
             }
         }
 
-        if (transportCode == null)
+        if (transportCode is null)
         {
             throw new FormatException($"missing t parameter in endpoint '{endpoint}'");
         }

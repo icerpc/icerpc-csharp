@@ -30,7 +30,7 @@ public class BinderInterceptor : IInvoker
 
     Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        if (request.Connection == null)
+        if (request.Connection is null)
         {
             if (request.Features.Get<IEndpointFeature>() is IEndpointFeature endpointFeature)
             {
@@ -48,7 +48,7 @@ public class BinderInterceptor : IInvoker
 
         async Task<IncomingResponse> PerformBindAsync(Endpoint? endpoint, IEnumerable<Endpoint> altEndpoints)
         {
-            if (endpoint == null)
+            if (endpoint is null)
             {
                 throw new NoEndpointException(request.Proxy);
             }

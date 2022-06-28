@@ -31,10 +31,6 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
     /// <inheritdoc/>
     public Endpoint RemoteEndpoint => _clientConnection.RemoteEndpoint;
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-       "Usage",
-       "CA2213: Disposable fields should be disposed",
-       Justification = "correctly disposed by DisposeAsync, Abort and ShutdownAsync")]
     private ClientConnection _clientConnection;
 
     private bool _isResumable = true;
@@ -120,9 +116,11 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
     }
 
     /// <inheritdoc/>
-    public ValueTask DisposeAsync() =>
-        // Perform a speedy graceful shutdown by canceling invocations and dispatches in progress.
-        new(ShutdownAsync("connection disposed", new CancellationToken(canceled: true)));
+    public ValueTask DisposeAsync()
+    {
+        InvokeOnClose();
+        return _clientConnection.DisposeAsync();
+    }
 
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
@@ -185,14 +183,13 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         clientConnection.OnClose(callback);
     }
 
-    /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
-    /// canceled. Shutdown cancellation can lead to a speedier shutdown if dispatch are cancelable.</summary>
+    /// <summary>Gracefully shuts down the connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    public Task ShutdownAsync(CancellationToken cancel = default) => ShutdownAsync("connection shutdown", cancel);
+    public Task ShutdownAsync(CancellationToken cancel = default) =>
+        ShutdownAsync("connection shutdown", cancel: cancel);
 
-    /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
-    /// canceled. Shutdown cancellation can lead to a speedier shutdown if dispatch are cancelable.</summary>
-    /// <param name="message">The message transmitted to the peer (when using the IceRPC protocol).</param>
+    /// <summary>Gracefully shuts down the connection.</summary>
+    /// <param name="message">The message transmitted to the server when using the IceRPC protocol.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     public Task ShutdownAsync(string message, CancellationToken cancel = default)
     {
@@ -211,13 +208,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         // only called from the constructor or with _mutex locked
         clientConnection.OnClose(_onDisconnect + OnClose);
 
-        void OnClose(Exception exception)
-        {
-            if (IsResumable)
-            {
-                RefreshClientConnection(clientConnection);
-            }
-        }
+        void OnClose(Exception exception) => RefreshClientConnection(clientConnection);
 
         return clientConnection;
     }
@@ -246,7 +237,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         {
             // We only create a new connection and assign it to _clientConnection if it matches the clientConnection we
             // just tried. If it's another connection, another thread has already called RefreshClientConnection.
-            if (clientConnection == _clientConnection)
+            if (_isResumable && clientConnection == _clientConnection)
             {
                 _clientConnection = CreateClientConnection();
                 closeOldConnection = true;
@@ -254,9 +245,8 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         }
         if (closeOldConnection)
         {
-            // We call ShutdownAsync and not Abort in case we're in the middle of a graceful shutdown initiated by the
-            // server.
-            _ = clientConnection.ShutdownAsync();
+            // TODO: should we call shutdown in case the connection is being shut down?
+            _ = clientConnection.DisposeAsync().AsTask();
         }
     }
 }

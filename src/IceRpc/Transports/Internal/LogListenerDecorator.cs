@@ -31,11 +31,11 @@ internal sealed class LogListenerDecorator<T> : IListener<T> where T : INetworkC
         }
     }
 
-    public async ValueTask DisposeAsync()
+    public void Dispose()
     {
         try
         {
-            await _decoratee.DisposeAsync().ConfigureAwait(false);
+            _decoratee.Dispose();
         }
         finally
         {

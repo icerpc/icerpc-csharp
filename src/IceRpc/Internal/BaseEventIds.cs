@@ -15,11 +15,8 @@ internal static class BaseEventIds
     /// <summary>The base event ID for transport tracing.</summary>
     internal const int Transport = 3 * EventIdRange;
 
-    /// <summary>The base event ID for Slic tracing.</summary>
-    internal const int Slic = 4 * EventIdRange;
-
     /// <summary>The base event ID for Tcp tracing.</summary>
-    internal const int Tcp = 5 * EventIdRange;
+    internal const int Tcp = 4 * EventIdRange;
 
     private const int EventIdRange = 100;
 }
