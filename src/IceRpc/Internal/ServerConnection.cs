@@ -64,7 +64,8 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
                 _protocolConnection.Abort(exception);
             }
 
-            // TODO: await _protocolConnection.DisposeAsync();
+            await _protocolConnection.DisposeAsync().ConfigureAwait(false);
+
             _protocolConnectionCancellationSource.Dispose();
         }
     }

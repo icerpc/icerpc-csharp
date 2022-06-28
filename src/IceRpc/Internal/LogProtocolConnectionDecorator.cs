@@ -46,6 +46,8 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
         return _information;
     }
 
+    ValueTask IAsyncDisposable.DisposeAsync() => _decoratee.DisposeAsync();
+
     async Task<IncomingResponse> IProtocolConnection.InvokeAsync(
         OutgoingRequest request,
         IConnection connection,

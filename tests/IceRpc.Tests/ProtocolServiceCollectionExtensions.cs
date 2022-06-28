@@ -124,8 +124,9 @@ internal abstract class ClientServerProtocolConnection<T> : IClientServerProtoco
 
     public void Dispose()
     {
-        _client?.Abort(new ConnectionClosedException());
-        _server?.Abort(new ConnectionClosedException());
+        ValueTask? disposeTask;
+        disposeTask = _client?.DisposeAsync();
+        disposeTask = _server?.DisposeAsync();
     }
 
     protected ClientServerProtocolConnection(

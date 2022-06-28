@@ -233,7 +233,8 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
                 _protocolConnection.Abort(exception);
             }
 
-            // TODO: await _protocolConnection.DisposeAsync();
+            await _protocolConnection.DisposeAsync().ConfigureAwait(false);
+
             _protocolConnectionCancellationSource.Dispose();
         }
     }
