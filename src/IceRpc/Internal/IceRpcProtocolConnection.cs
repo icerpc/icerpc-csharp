@@ -49,7 +49,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private readonly TaskCompletionSource<IceRpcGoAway> _waitForGoAwayFrame = new();
 
     // TODO: XXX remove exception?
-    public void Abort(Exception exception) => _abortCancelSource.Cancel();
+    public void Abort(Exception exception)
+    {
+        Console.Error.WriteLine($"ABORTING FROM ABORT {exception}");
+        _abortCancelSource.Cancel();
+    }
 
     public async Task<NetworkConnectionInformation> ConnectAsync(
         bool isServer,
@@ -151,8 +155,25 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     public async ValueTask DisposeAsync()
     {
+        // await Console.Error.WriteLineAsync($"DISPOSING {Environment.StackTrace}").ConfigureAwait(false);
         var exception = new ConnectionClosedException();
         InvokeOnClose(exception);
+
+        IEnumerable<IMultiplexedStream> streams;
+        lock (_mutex)
+        {
+            _shutdownTask ??= Task.CompletedTask;
+            streams = _streams.ToArray();
+        }
+
+        // Abort streams for for pending invocations.
+        foreach (IMultiplexedStream stream in streams)
+        {
+            if (!stream.IsRemote)
+            {
+                stream.Abort(exception);
+            }
+        }
 
         // Cancel pending dispatches.
         foreach (CancellationTokenSource cancelDispatchSource in _cancelDispatchSources.ToArray())
@@ -167,20 +188,18 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
         }
 
-        // Abort streams for invocations
-        // TODO: Should we actually abort all the streams?
-        foreach (IMultiplexedStream stream in _streams.ToArray())
-        {
-            if (!stream.IsRemote)
-            {
-                stream.Abort(exception);
-            }
-        }
+        // TODO: wait for dispatch tasks to complete
 
-        // Wait indefinitely for streams to complete.
+        // Abort all the streams and wait for them indefinitely to complete.
+        foreach (IMultiplexedStream stream in streams)
+        {
+            stream.Abort(exception);
+        }
         await _streamsCompleted.Task.ConfigureAwait(false);
 
-        // TODO: also wait for dispatch tasks to complete
+        // Abort the connection and wait for the pending tasks to return.
+        await Console.Error.WriteLineAsync($"DIPOSE ABORTING CANCEL SOURCE").ConfigureAwait(false);
+        _abortCancelSource.Cancel();
 
         if (_acceptRequestsTask is not null)
         {
@@ -204,7 +223,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
         }
 
-        // No more pending tasks are running, we can safely release the resources now.
+        // No more pending tasks are running, we can safely release the resources.
 
         if (_controlStream is not null)
         {
@@ -425,7 +444,12 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
         catch (OperationCanceledException) when (_abortCancelSource.IsCancellationRequested)
         {
+            await Console.Error.WriteLineAsync($"SHUTDOWN ABORTED").ConfigureAwait(false);
             throw new ConnectionAbortedException();
+        }
+        catch (Exception exception)
+        {
+            await Console.Error.WriteLineAsync($"SHUTDOWN EXCEPTION {exception}").ConfigureAwait(false);
         }
     }
 
@@ -1084,15 +1108,16 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     private async Task ShutdownAsyncCore(string message, CancellationToken cancel)
     {
-        Debug.Assert(_shutdownTask is null);
-
         // Make sure we shutdown the connection asynchronously without holding any mutex lock from the caller.
         await Task.Yield();
+
+        await Console.Error.WriteLineAsync($"SHUTTING DOWN {cancel.IsCancellationRequested} {_abortCancelSource.IsCancellationRequested}").ConfigureAwait(false);
 
         if (_abortCancelSource.IsCancellationRequested)
         {
             throw new ConnectionAbortedException();
         }
+        await Console.Error.WriteLineAsync($"SHUTTING DOWN2 {cancel.IsCancellationRequested} {_abortCancelSource.IsCancellationRequested}").ConfigureAwait(false);
 
         lock (_mutex)
         {
@@ -1106,6 +1131,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
         // TODO: should the on close callback take a nullable exception instead?
         InvokeOnClose(exception);
+        await Console.Error.WriteLineAsync($"SHUTTING DOWN3 {cancel.IsCancellationRequested} {_abortCancelSource.IsCancellationRequested}").ConfigureAwait(false);
 
         // Send GoAway frame.
         IceRpcGoAway goAwayFrame = new(_lastRemoteBidirectionalStreamId, _lastRemoteUnidirectionalStreamId, message);
@@ -1114,8 +1140,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             (ref SliceEncoder encoder) => goAwayFrame.Encode(ref encoder),
             cancel).ConfigureAwait(false);
 
-        // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown has
-        // been initiated by the peer.
+        // Wait for the peer to send back a GoAway frame. The task should already be completed if the shutdown has been
+        // initiated by the peer.
+        await Console.Error.WriteLineAsync("WAIT FOR GOAWAY").ConfigureAwait(false);
         IceRpcGoAway peerGoAwayFrame = await _waitForGoAwayFrame.Task.WaitAsync(cancel).ConfigureAwait(false);
 
         IEnumerable<IMultiplexedStream> invocations;
@@ -1137,14 +1164,18 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
 
         // Wait for streams to complete.
+        await Console.Error.WriteLineAsync("WAIT FOR STREAM TO COMPLETE").ConfigureAwait(false);
         await _streamsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
+        await Console.Error.WriteLineAsync("WAIT FOR REMOTE STREAM TO COMPLETE").ConfigureAwait(false);
 
         // Complete the control stream only once all the streams have completed. We also wait for the peer to close
         // its control stream to ensure the peer's stream are also completed. The network connection can safely be
         // closed only once we ensured streams are completed locally and remotely. Otherwise, we could end up
         // closing the network connection too soon, before the remote streams are completed.
         await _controlStream!.Output.CompleteAsync().ConfigureAwait(false);
-        _ = await _remoteControlStream!.Input.ReadAsync(CancellationToken.None).ConfigureAwait(false);
+        _ = await _remoteControlStream!.Input.ReadAsync(cancel).ConfigureAwait(false);
+
+        await Console.Error.WriteLineAsync("WAIT FOR SHUTDOWN").ConfigureAwait(false);
 
         await _networkConnection.ShutdownAsync(applicationErrorCode: 0, cancel).ConfigureAwait(false);
     }

@@ -11,11 +11,6 @@ internal interface IProtocolConnection : IAsyncDisposable
     /// <summary>Gets the protocol implemented by this protocol connection.</summary>
     Protocol Protocol { get; }
 
-    /// <summary>Aborts the connection.</summary>
-    /// <param name="exception">The exception that caused the abort. Pending invocations will throw this exception.
-    /// </param>
-    void Abort(Exception exception);
-
     /// <summary>Connects the protocol connection.</summary>
     /// <param name="isServer"><c>true</c> if the connection is a server connection, <c>false</c> otherwise.</param>
     /// <param name="connection">The value for <see cref="IncomingFrame.Connection"/> in incoming requests created by
