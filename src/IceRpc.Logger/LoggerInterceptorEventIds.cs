@@ -12,5 +12,5 @@ public enum LoggerInterceptorEventIds
     ReceivedResponse,
 
     /// <summary>A request is being sent.</summary>
-    SendingRequest
+    SendingRequest,
 }
