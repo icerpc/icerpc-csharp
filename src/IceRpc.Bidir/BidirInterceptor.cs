@@ -30,7 +30,7 @@ public class BidirInterceptor : IInvoker
         {
             request.Fields = request.Fields.With(
                 RequestFieldKey.RelativeOrigin,
-                (ref SliceEncoder encoder) => encoder.WriteByteSpan(new ReadOnlySpan<byte>(_relativeOrigin)));
+                (ref SliceEncoder encoder) => encoder.EncodeSpan(new ReadOnlySpan<byte>(_relativeOrigin)));
         }
         return _next.InvokeAsync(request, cancel);
     }

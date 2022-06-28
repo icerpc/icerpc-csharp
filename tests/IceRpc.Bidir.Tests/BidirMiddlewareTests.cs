@@ -1,8 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
 using IceRpc.Transports;
 using NUnit.Framework;
 using System.Buffers;
+using System.IO.Pipelines;
 using System.Security.Cryptography;
 
 namespace IceRpc.Bidir.Tests;
@@ -86,9 +88,20 @@ public sealed class BidirMiddlewareTests
 
     private static byte[] NewRelativeOrigin()
     {
+        var pipe = new Pipe();
+        var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
+
         byte[] relativeOrigin = new byte[16];
         using var provider = RandomNumberGenerator.Create();
         provider.GetBytes(relativeOrigin);
+
+        encoder.EncodeSpan<byte>(relativeOrigin);
+        pipe.Writer.Complete();
+
+        pipe.Reader.TryRead(out ReadResult readResult);
+
+        relativeOrigin = readResult.Buffer.ToArray();
+        pipe.Reader.Complete();
         return relativeOrigin;
     }
 

@@ -2,16 +2,17 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
-using System.Runtime.Intrinsics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace IceRpc.Bidir;
 
-/// <summary>A middleware that keeps the connection of relative proxies associated to the last known client connection.</summary>
+/// <summary>A middleware that keeps the connection of relative proxies associated to the last known client connection.
+/// </summary>
 public class BidirMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;
     private readonly object _mutex = new();
-    private readonly Dictionary<Vector128<ulong>, BidirConnection> _connections = new();
+    private readonly Dictionary<byte[], BidirConnection> _connections = new(RelativeOriginEqualityComparer.Instance);
     private readonly TimeSpan _reconnectTimeout;
 
     /// <summary>Constructs a bidir middleware.</summary>
@@ -28,13 +29,11 @@ public class BidirMiddleware : IDispatcher
         IncomingRequest request,
         CancellationToken cancel = default)
     {
-        if (request.Protocol.HasFields && request.Fields.ContainsKey(RequestFieldKey.RelativeOrigin))
+        if (request.Protocol.HasFields &&
+            request.Fields.DecodeValue(
+                RequestFieldKey.RelativeOrigin,
+                (ref SliceDecoder decoder) => decoder.DecodeSequence<byte>()) is byte[] relativeOrigin)
         {
-            Vector128<ulong> relativeOrigin =
-                request.Fields.DecodeValue(
-                    RequestFieldKey.RelativeOrigin,
-                    (ref SliceDecoder decoder) => Vector128.Create(decoder.DecodeUInt64(), decoder.DecodeUInt64()));
-
             lock (_mutex)
             {
                 if (_connections.TryGetValue(relativeOrigin, out BidirConnection? bidirConnection))
@@ -50,5 +49,35 @@ public class BidirMiddleware : IDispatcher
             }
         }
         return _next.DispatchAsync(request, cancel);
+    }
+
+    private class RelativeOriginEqualityComparer : IEqualityComparer<byte[]>
+    {
+        internal static IEqualityComparer<byte[]> Instance = new RelativeOriginEqualityComparer();
+
+        public bool Equals(byte[]? x, byte[]? y)
+        {
+            if (ReferenceEquals(x, y))
+            {
+                return true;
+            }
+
+            if (x is null || y is null)
+            {
+                return false;
+            }
+
+            return x.Length == y.Length && x.AsSpan().SequenceEqual(y.AsSpan());
+        }
+
+        public int GetHashCode([DisallowNull] byte[] obj)
+        {
+            var hashCode = new HashCode();
+            foreach (byte value in obj)
+            {
+                hashCode.Add(value);
+            }
+            return hashCode.ToHashCode();
+        }
     }
 }
