@@ -539,7 +539,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             }
             else
             {
-                executeCallback = !_shutdownTask.IsCompleted || _shutdownTask.IsCompletedSuccessfully;
+                executeCallback = true;
             }
         }
 
