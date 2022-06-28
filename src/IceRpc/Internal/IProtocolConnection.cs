@@ -40,12 +40,13 @@ internal interface IProtocolConnection
         IConnection connection,
         CancellationToken cancel = default);
 
-    /// <summary>Adds a callback that will be executed when the closure of this connection is initiated. The closure of
-    /// a connection can be initiated by a local call to Abort or ShutdownAsync, by the shutdown of the remote peer, or
-    /// by a transport error. If the connection is already shutting down or closed, this callback is executed
-    /// synchronously with this connection and an instance of <see cref="ConnectionClosedException"/>.</summary>
+    /// <summary>Adds a callback that will be executed when this connection is aborted.</summary>
     /// <param name="callback">The callback to execute. It must not block or throw any exception.</param>
-    void OnClose(Action<Exception> callback);
+    void OnAbort(Action<Exception> callback);
+
+    /// <summary>Adds a callback that will be executed when this connection is shut down gracefully.</summary>
+    /// <param name="callback">The callback to execute. It must not block or throw any exception.</param>
+    void OnShutdown(Action<string> callback);
 
     /// <summary>Shuts down gracefully the connection.</summary>
     /// <param name="message">The reason of the connection shutdown.</param>

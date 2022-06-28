@@ -46,9 +46,9 @@ public sealed class ProtocolConnectionTests
         }
     }
 
-    /// <summary>Verifies that the OnIdle callback is called when idle.</summary>
+    /// <summary>Verifies that the OnShutdown callback is called when idle.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    public async Task OnClose_is_called_when_idle(Protocol protocol)
+    public async Task OnShutdown_is_called_when_idle(Protocol protocol)
     {
         // Arrange
         IServiceCollection services = new ServiceCollection().AddProtocolTest(protocol);
@@ -62,14 +62,21 @@ public sealed class ProtocolConnectionTests
 
         await using var provider = services.BuildServiceProvider();
 
-        TimeSpan clientIdleCalledTime = Timeout.InfiniteTimeSpan;
-        TimeSpan serverIdleCalledTime = Timeout.InfiniteTimeSpan;
+        TimeSpan? clientIdleCalledTime = null;
+        TimeSpan? serverIdleCalledTime = null;
 
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        sut.Client.OnClose(_ => clientIdleCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64));
-        sut.Server.OnClose(_ => serverIdleCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64));
+        sut.Client.OnShutdown(_ => clientIdleCalledTime ??= TimeSpan.FromMilliseconds(Environment.TickCount64));
+        sut.Server.OnShutdown(_ => serverIdleCalledTime ??= TimeSpan.FromMilliseconds(Environment.TickCount64));
+
+        if (protocol == Protocol.Ice)
+        {
+            // TODO: the peer shutdown results in an abort with ice
+            sut.Client.OnAbort(_ => clientIdleCalledTime ??= TimeSpan.FromMilliseconds(Environment.TickCount64));
+            sut.Server.OnAbort(_ => serverIdleCalledTime ??= TimeSpan.FromMilliseconds(Environment.TickCount64));
+        }
 
         // Act
         await Task.Delay(TimeSpan.FromSeconds(1));
@@ -77,19 +84,23 @@ public sealed class ProtocolConnectionTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(clientIdleCalledTime, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
-            Assert.That(serverIdleCalledTime, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
+            Assert.That(clientIdleCalledTime, Is.Not.Null);
+            Assert.That(serverIdleCalledTime, Is.Not.Null);
+            Assert.That(clientIdleCalledTime!.Value, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
+            Assert.That(serverIdleCalledTime!.Value, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
         });
     }
 
-    /// <summary>Verifies that the OnIdle callback is called when idle and after the idle time has been
+    /// <summary>Verifies that the OnShutdown callback is called when idle and after the idle time has been
     /// deferred.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    public async Task OnClose_is_called_when_idle_and_idle_timeout_deferred(Protocol protocol)
+    public async Task OnShutdown_is_called_when_idle_and_idle_timeout_deferred(Protocol protocol)
     {
         // Arrange
         IServiceCollection services = new ServiceCollection().AddProtocolTest(protocol);
 
+        // TODO: why are we using the same timeout for the client and server? This results in a non-deterministic
+        // behavior.
         services
             .AddOptions<ConnectionOptions>()
             .Configure(options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
@@ -99,14 +110,21 @@ public sealed class ProtocolConnectionTests
 
         await using var provider = services.BuildServiceProvider();
 
-        long clientIdleCalledTime = Environment.TickCount64;
-        long serverIdleCalledTime = Environment.TickCount64;
+        long startTime = Environment.TickCount64;
+        long? clientIdleCalledTime = null;
+        long? serverIdleCalledTime = null;
 
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        sut.Client.OnClose(_ => clientIdleCalledTime = Environment.TickCount64 - clientIdleCalledTime);
-        sut.Client.OnClose(_ => serverIdleCalledTime = Environment.TickCount64 - serverIdleCalledTime);
+        sut.Client.OnShutdown(_ => clientIdleCalledTime ??= Environment.TickCount64 - startTime);
+        sut.Server.OnShutdown(_ => serverIdleCalledTime ??= Environment.TickCount64 - startTime);
+        if (protocol == Protocol.Ice)
+        {
+            // TODO: with ice, the shutdown of the peer currently triggers an abort
+            sut.Client.OnAbort(_ => clientIdleCalledTime ??= Environment.TickCount64 - startTime);
+            sut.Server.OnAbort(_ => serverIdleCalledTime ??= Environment.TickCount64 - startTime);
+        }
 
         var request = new OutgoingRequest(new Proxy(protocol));
         IncomingResponse response = await sut.Client.InvokeAsync(request, InvalidConnection.ForProtocol(protocol));
@@ -119,10 +137,10 @@ public sealed class ProtocolConnectionTests
         Assert.Multiple(() =>
         {
             Assert.That(
-                TimeSpan.FromMilliseconds(clientIdleCalledTime),
+                TimeSpan.FromMilliseconds(clientIdleCalledTime!.Value),
                 Is.GreaterThan(TimeSpan.FromMilliseconds(490)).And.LessThan(TimeSpan.FromSeconds(1)));
             Assert.That(
-                TimeSpan.FromMilliseconds(serverIdleCalledTime),
+                TimeSpan.FromMilliseconds(serverIdleCalledTime!.Value),
                 Is.GreaterThan(TimeSpan.FromMilliseconds(490)).And.LessThan(TimeSpan.FromSeconds(1)));
         });
     }
