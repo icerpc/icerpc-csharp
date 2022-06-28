@@ -353,7 +353,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             else
             {
-                executeCallback = !_shutdownTask.IsCompleted || _shutdownTask.IsCompletedSuccessfully;
+                executeCallback = true;
             }
         }
 

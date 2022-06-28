@@ -271,10 +271,8 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             {
                 if (_connectTask is null)
                 {
+                    // we have nothing else to do - this connection was never established
                     _connectTask = Task.FromException(new ConnectionClosedException());
-                    // and we have nothing else to do, in particular we can't gracefully shutdown a connection without
-                    // connecting it since it has no control stream.
-
                     return; // ShutdownAsync complete
                 }
 
