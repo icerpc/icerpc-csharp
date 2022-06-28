@@ -1,7 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
-using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 
 namespace IceRpc.Internal;
@@ -72,8 +71,14 @@ internal class BidirConnection : IConnection
         return response;
     }
 
-    public void OnClose(Action<Exception> callback)
+    public void OnAbort(Action<Exception> callback)
     {
+        // Nothing to do
+    }
+
+    public void OnShutdown(Action<string> callback)
+    {
+        // Nothing to do
     }
 
     internal BidirConnection(IConnection decoratee, TimeSpan reconnectTimeout)

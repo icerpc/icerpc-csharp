@@ -121,7 +121,9 @@ public sealed class BidirMiddlewareTests
             return Task.FromResult(new IncomingResponse(request, this));
         }
 
-        public void OnClose(Action<Exception> callback) => throw new NotImplementedException();
+        public void OnAbort(Action<Exception> callback) => throw new NotImplementedException();
+
+        public void OnShutdown(Action<string> callback) => throw new NotImplementedException();
     }
 
     private class ClosedConnection : IConnection
@@ -140,6 +142,8 @@ public sealed class BidirMiddlewareTests
             throw new ConnectionClosedException();
         }
 
-        public void OnClose(Action<Exception> callback) => throw new NotImplementedException();
+        public void OnAbort(Action<Exception> callback) => throw new NotImplementedException();
+
+        public void OnShutdown(Action<string> callback) => throw new NotImplementedException();
     }
 }
