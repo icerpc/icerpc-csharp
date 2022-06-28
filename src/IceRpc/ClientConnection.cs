@@ -141,8 +141,8 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
     /// <summary>Establishes the connection. This method can be called multiple times, even concurrently.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A task that provides the network connection feature set in requests sent using this connection. This
-    /// task can complete with one of the following exceptions:
+    /// <returns>A task that provides the network connection information feature set in requests sent using this
+    /// connection. This task can complete with one of the following exceptions:
     /// <list type="bullet">
     /// <item><description><see cref="ConnectionAbortedException"/>if the connection was aborted.</description></item>
     /// <item><description><see cref="ObjectDisposedException"/>if this connection is disposed.</description></item>
