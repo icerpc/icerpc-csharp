@@ -29,7 +29,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private readonly TimeSpan _idleTimeout;
     private Timer? _idleTimeoutTimer;
     private bool _isAborted;
-    private bool _isOnCloseCalled;
     private long _lastRemoteBidirectionalStreamId = -1;
     // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
     private long _lastRemoteUnidirectionalStreamId = -1;
@@ -37,7 +36,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private int _maxRemoteHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
     private readonly object _mutex = new();
     private readonly IMultiplexedNetworkConnection _networkConnection;
-    private Action<Exception>? _onClose;
+    private Action<Exception>? _onAbort;
+    private Action<string>? _onShutdown;
     private IMultiplexedStream? _remoteControlStream;
     private Task? _shutdownTask;
     private readonly HashSet<IMultiplexedStream> _streams = new();
@@ -57,7 +57,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             _isAborted = true;
         }
 
-        InvokeOnClose(exception);
+        // _onAbort is read-only once _isAborted is true
+        _onAbort?.Invoke(exception);
 
         _networkConnection.Abort(exception);
 
@@ -318,25 +319,47 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
     }
 
-    public void OnClose(Action<Exception> callback)
+    public void OnAbort(Action<Exception> callback)
     {
         bool executeCallback = false;
 
         lock (_mutex)
         {
-            if (_isOnCloseCalled)
+            if (_isAborted)
             {
                 executeCallback = true;
             }
             else
             {
-                _onClose += callback;
+                _onAbort += callback;
             }
         }
 
         if (executeCallback)
         {
-            callback(new ConnectionClosedException());
+            callback(new ConnectionAbortedException());
+        }
+    }
+
+    public void OnShutdown(Action<string> callback)
+    {
+        bool executeCallback = false;
+
+        lock (_mutex)
+        {
+            if (_shutdownTask is null)
+            {
+                _onShutdown += callback;
+            }
+            else
+            {
+                executeCallback = true;
+            }
+        }
+
+        if (executeCallback)
+        {
+            callback("");
         }
     }
 
@@ -857,21 +880,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
     }
 
-    private void InvokeOnClose(Exception exception)
-    {
-        Action<Exception>? onClose;
-
-        lock (_mutex)
-        {
-            _isOnCloseCalled = true;
-            onClose = _onClose;
-            _onClose = null; // clear _onClose because we want to execute it only once
-        }
-
-        // Execute callbacks (if any) outside lock
-        onClose?.Invoke(exception);
-    }
-
     private async ValueTask ReceiveControlFrameHeaderAsync(
         IceRpcControlFrameType expectedFrameType,
         CancellationToken cancel)
@@ -1011,23 +1019,26 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         // Make sure we shutdown the connection asynchronously without holding any mutex lock from the caller.
         await Task.Yield();
 
-        if (_isAborted)
-        {
-            return;
-        }
-
-        if (_streams.Count == 0)
-        {
-            _streamsCompleted.TrySetResult();
-        }
-
-        var exception = new ConnectionClosedException(message);
-
-        // TODO: should the on close callback take a nullable exception instead?
-        InvokeOnClose(exception);
+        // _onShutdown is read-only once _shutdownTask is not null
+        _onShutdown?.Invoke(message);
 
         // Send GoAway frame.
-        IceRpcGoAway goAwayFrame = new(_lastRemoteBidirectionalStreamId, _lastRemoteUnidirectionalStreamId, message);
+        IceRpcGoAway goAwayFrame;
+        lock (_mutex)
+        {
+            if (_isAborted)
+            {
+                return;
+            }
+
+            if (_streams.Count == 0)
+            {
+                _streamsCompleted.TrySetResult();
+            }
+
+            goAwayFrame = new(_lastRemoteBidirectionalStreamId, _lastRemoteUnidirectionalStreamId, message);
+        }
+
         await SendControlFrameAsync(
             IceRpcControlFrameType.GoAway,
             (ref SliceEncoder encoder) => goAwayFrame.Encode(ref encoder),
@@ -1047,6 +1058,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     peerGoAwayFrame.LastBidirectionalStreamId :
                     peerGoAwayFrame.LastUnidirectionalStreamId)))).ToArray();
         }
+
+        var exception = new ConnectionClosedException(message);
 
         // Abort streams for invocations that were not dispatched by the peer. The invocations will throw
         // ConnectionClosedException which is retryable.

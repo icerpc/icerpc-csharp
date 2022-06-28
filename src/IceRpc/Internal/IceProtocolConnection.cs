@@ -44,7 +44,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private Timer? _idleTimeoutTimer;
     private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
     private bool _isAborted;
-    private bool _isOnCloseCalled;
     private readonly int _maxFrameSize;
     private readonly MemoryPool<byte> _memoryPool;
     private readonly int _minimumSegmentSize;
@@ -54,7 +53,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private readonly SimpleNetworkConnectionReader _networkConnectionReader;
     private readonly SimpleNetworkConnectionWriter _networkConnectionWriter;
     private int _nextRequestId;
-    private Action<Exception>? _onClose;
+    private Action<Exception>? _onAbort;
+    private Action<string>? _onShutdown;
     private readonly IcePayloadPipeWriter _payloadWriter;
     private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly CancellationTokenSource _readCancelSource = new();
@@ -73,7 +73,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             _isAborted = true;
         }
 
-        InvokeOnClose(exception);
+        // _onAbort is read-only once _isAborted is true
+        _onAbort?.Invoke(exception);
 
         // Close the network connection and cancel the pending receive.
         _networkConnection.Dispose();
@@ -504,25 +505,47 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
     }
 
-    public void OnClose(Action<Exception> callback)
+    public void OnAbort(Action<Exception> callback)
     {
         bool executeCallback = false;
 
         lock (_mutex)
         {
-            if (_isOnCloseCalled)
+            if (_isAborted)
             {
                 executeCallback = true;
             }
             else
             {
-                _onClose += callback;
+                _onAbort += callback;
             }
         }
 
         if (executeCallback)
         {
-            callback(new ConnectionClosedException());
+            callback(new ConnectionAbortedException());
+        }
+    }
+
+    public void OnShutdown(Action<string> callback)
+    {
+        bool executeCallback = false;
+
+        lock (_mutex)
+        {
+            if (_shutdownTask is null)
+            {
+                _onShutdown += callback;
+            }
+            else
+            {
+                executeCallback = !_shutdownTask.IsCompleted || _shutdownTask.IsCompletedSuccessfully;
+            }
+        }
+
+        if (executeCallback)
+        {
+            callback("");
         }
     }
 
@@ -682,21 +705,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         {
             responseCompletionSource.TrySetException(exception);
         }
-    }
-
-    private void InvokeOnClose(Exception exception)
-    {
-        Action<Exception>? onClose;
-
-        lock (_mutex)
-        {
-            _isOnCloseCalled = true;
-            onClose = _onClose;
-            _onClose = null; // clear _onClose because we want to execute it only once
-        }
-
-        // Execute callbacks (if any) outside lock
-        onClose?.Invoke(exception);
     }
 
     /// <summary>Read incoming frames and returns on graceful connection shutdown.</summary>
@@ -1244,8 +1252,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
         var exception = new ConnectionClosedException(message);
 
-        // TODO: should the on close callback take a nullable exception instead?
-        InvokeOnClose(exception);
+        // _onShutdown is read-only once _shutdownTask is not null
+        _onShutdown?.Invoke(message);
 
         if (_dispatches.Count == 0 && _invocations.Count == 0)
         {
