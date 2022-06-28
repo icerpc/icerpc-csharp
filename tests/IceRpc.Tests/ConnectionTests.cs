@@ -322,6 +322,32 @@ public class ConnectionTests
     }
 
     [Test]
+    public async Task Resumable_connection_becomes_non_resumable_after_shutdown()
+    {
+        // Arrange
+        IServiceCollection services = new ServiceCollection().AddColocTest(
+            new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
+            Protocol.IceRpc
+        );
+
+        services.AddIceRpcResumableClientConnection(); // overwrites AddIceRpcClientConnection from AddColocTest
+
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        provider.GetRequiredService<Server>().Listen();
+        var connection = provider.GetRequiredService<ResumableClientConnection>();
+        var proxy = Proxy.FromConnection(connection, "/foo");
+
+        await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
+
+        // Act
+        await connection.ShutdownAsync();
+
+        // Assert
+        Assert.That(connection.IsResumable, Is.False);
+    }
+
+    [Test]
     public async Task Connect_sets_network_connection_information([Values("ice", "icerpc")] string protocol)
     {
         // Arrange
@@ -490,10 +516,10 @@ public class ConnectionTests
             NullLogger.Instance);
 
         var endpoint = new Endpoint(Protocol.FromString(protocol))
-            {
-                Host = listener.Endpoint.Host,
-                Port = listener.Endpoint.Port
-            };
+        {
+            Host = listener.Endpoint.Host,
+            Port = listener.Endpoint.Port
+        };
 
         await using var connection = new ClientConnection(new ClientConnectionOptions
         {
@@ -519,7 +545,7 @@ public class ConnectionTests
     }
 
     [Test]
-    public async Task Close_timeout(
+    public async Task Shutdown_timeout(
         [Values("ice", "icerpc")] string protocol,
         [Values] bool closeClientSide)
     {
@@ -541,12 +567,12 @@ public class ConnectionTests
         services
             .AddOptions<ClientConnectionOptions>()
             .Configure(
-                options => options.CloseTimeout = closeClientSide ? TimeSpan.FromSeconds(1) : TimeSpan.FromSeconds(60));
+                options => options.ShutdownTimeout = closeClientSide ? TimeSpan.FromSeconds(1) : TimeSpan.FromSeconds(60));
 
         services
             .AddOptions<ServerOptions>()
             .Configure(
-                options => options.ConnectionOptions.CloseTimeout =
+                options => options.ConnectionOptions.ShutdownTimeout =
                     closeClientSide ? TimeSpan.FromSeconds(60) : TimeSpan.FromSeconds(1));
 
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
@@ -571,14 +597,20 @@ public class ConnectionTests
         // Assert
         if (closeClientSide)
         {
-            // Invocations
-            // TODO: this is not correct, the invocation cancellation must not reach the application code
+            // TODO: not correct
             Assert.That(async () => await pingTask, Throws.InstanceOf<OperationCanceledException>());
         }
         else
         {
-            // Shutdown should trigger the abort of the connection on the client side after the close timeout
-            Assert.ThrowsAsync<ConnectionLostException>(async () => await pingTask);
+            if (protocol == "ice")
+            {
+                // Shutdown should trigger the abort of the connection on the client side after the shutdown timeout
+                Assert.That(async () => await pingTask, Throws.InstanceOf<DispatchException>());
+            }
+            else
+            {
+                Assert.That(async () => await pingTask, Throws.InstanceOf<IceRpcProtocolStreamException>());
+            }
         }
         hold.Release();
     }

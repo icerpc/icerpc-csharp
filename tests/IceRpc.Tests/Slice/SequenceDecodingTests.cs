@@ -102,6 +102,44 @@ public class SequenceDecodingTests
             Throws.InstanceOf<InvalidDataException>());
     }
 
+    private enum TestEnum : short
+    {
+        A = 1,
+        B = 2,
+        C = 3,
+        D = 4,
+    };
+
+    [Test]
+    public void Decode_sequence_with_enum_range_action()
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var expected = new TestEnum[]
+        {
+            TestEnum.A,
+            TestEnum.B,
+            TestEnum.C,
+            TestEnum.D,
+        };
+
+        // Encode the enumerators to a buffer
+        encoder.EncodeSequence(
+            expected,
+            (ref SliceEncoder encoder, TestEnum value) => encoder.EncodeInt16((short)value));
+
+        var checkedValues = new List<TestEnum>();
+        var sut = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+
+        // Act
+        TestEnum[]? decoded = sut.DecodeSequence<TestEnum>(value => checkedValues.Add(value));
+        
+        // Assert
+        Assert.That(decoded, Is.EqualTo(expected));
+        Assert.That(checkedValues, Is.EqualTo(expected));
+    }
+
     [Test]
     public void Decode_sequence_with_bit_sequence_and_custom_max_collection_allocation()
     {
