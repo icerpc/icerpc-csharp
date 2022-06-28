@@ -44,7 +44,6 @@ use trait_visitor::TraitVisitor;
 use crate::code_block::CodeBlock;
 
 pub fn print_errors(parsed_data: ParsedData) {
-    parsed_data.error_reporter.print_errors(&parsed_data.files);
     if parsed_data.error_reporter.has_errors() {
         let counts = parsed_data.error_reporter.get_totals();
         let message = format!(
@@ -52,6 +51,7 @@ pub fn print_errors(parsed_data: ParsedData) {
             counts.0, counts.1
         );
 
+        parsed_data.error_reporter.print_errors(&parsed_data.files);
         println!("{}", &message);
     }
 }
