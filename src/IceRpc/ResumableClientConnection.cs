@@ -95,24 +95,24 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
 
     /// <summary>Establishes the connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A task that indicates the completion of the connect operation.</returns>
-    /// <exception cref="ConnectionClosedException">Thrown if the connection was closed by this client.</exception>
-    public async Task ConnectAsync(CancellationToken cancel = default)
+    /// <returns>A task that provides the network connection information feature set in requests sent using this
+    /// connection. This feature may change if the underlying connection is disconnected and later reconnected.
+    /// </returns>
+    public async Task<INetworkConnectionInformationFeature> ConnectAsync(CancellationToken cancel = default)
     {
         // make a copy of the client connection we're trying with
         ClientConnection clientConnection = _clientConnection;
 
         try
         {
-            await clientConnection.ConnectAsync(cancel).ConfigureAwait(false);
-            return;
+            return await clientConnection.ConnectAsync(cancel).ConfigureAwait(false);
         }
         catch (ConnectionClosedException) when (IsResumable)
         {
             _ = RefreshClientConnectionAsync(clientConnection, graceful: true);
 
             // try again with the latest _clientConnection
-            await _clientConnection.ConnectAsync(cancel).ConfigureAwait(false);
+            return await _clientConnection.ConnectAsync(cancel).ConfigureAwait(false);
         }
     }
 
