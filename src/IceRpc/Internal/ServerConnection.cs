@@ -11,9 +11,6 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
     public bool IsResumable => false;
 
     /// <inheritdoc/>
-    public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
-
-    /// <inheritdoc/>
     public Protocol Protocol => _protocolConnection.Protocol;
 
     // The only reason we have a _connectTask is to wait for its completion during shutdown.
@@ -109,9 +106,7 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
 
             try
             {
-                // Even though this assignment is not atomic, it's ok because nobody can get hold of this connection
-                // before the connection is established.
-                NetworkConnectionInformation = await _protocolConnection.ConnectAsync(
+                _ = await _protocolConnection.ConnectAsync(
                     isServer: true,
                     this,
                     tokenSource.Token).ConfigureAwait(false);

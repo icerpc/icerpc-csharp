@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
@@ -34,6 +35,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             })
         }.ToImmutableDictionary();
 
+    private IFeatureCollection _defaultFeatures = FeatureCollection.Empty;
+
     private readonly IDispatcher _dispatcher;
     private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -50,6 +53,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
     private readonly object _mutex = new();
     private readonly ISimpleNetworkConnection _networkConnection;
+    private INetworkConnectionInformationFeature? _networkConnectionInformationFeature;
     private readonly SimpleNetworkConnectionReader _networkConnectionReader;
     private readonly SimpleNetworkConnectionWriter _networkConnectionWriter;
     private int _nextRequestId;
@@ -118,7 +122,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
     }
 
-    public async Task<NetworkConnectionInformation> ConnectAsync(
+    public async Task<INetworkConnectionInformationFeature> ConnectAsync(
         bool isServer,
         IConnection connection,
         CancellationToken cancel)
@@ -138,11 +142,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
 
         // Connect the network connection
-        NetworkConnectionInformation information;
 
         try
         {
-            information = await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+            _networkConnectionInformationFeature = await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+            _defaultFeatures = new FeatureCollection().With(_networkConnectionInformationFeature).AsReadOnly();
 
             // Wait for the network connection establishment to set the idle timeout. The network connection
             // ConnectAsync implementation would need otherwise to deal with thread safety if Dispose is called
@@ -243,7 +247,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             },
             cancel);
 
-        return information;
+        return _networkConnectionInformationFeature;
 
         static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
         {
@@ -274,6 +278,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 throw new NotSupportedException("PayloadStream must be null with the ice protocol");
             }
+
+            request.Features = request.Features == FeatureCollection.Empty ? _defaultFeatures :
+                request.Features.With(_networkConnectionInformationFeature);
 
             // Read the full payload. This can take some time so this needs to be done before acquiring the write
             // semaphore.
@@ -901,6 +908,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             var request = new IncomingRequest(connection)
             {
+                Features = _defaultFeatures,
                 Fields = fields,
                 Fragment = requestHeader.Fragment,
                 IsOneway = requestId == 0,

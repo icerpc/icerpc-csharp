@@ -5,24 +5,23 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Transports;
 
-/// <summary>The network connection information returned on <see cref="INetworkConnection"/> connection
-/// establishment.</summary>
-public readonly record struct NetworkConnectionInformation
+/// <summary>The default implementation of <see cref="INetworkConnectionInformationFeature"/>.</summary>
+public class NetworkConnectionInformationFeature : INetworkConnectionInformationFeature
 {
-    /// <summary>Gets the local endpoint.</summary>
+    /// <inheritdoc/>
     public EndPoint LocalEndPoint { get; }
 
-    /// <summary>Gets the remote endpoint.</summary>
+    /// <inheritdoc/>
     public EndPoint RemoteEndPoint { get; }
 
-    /// <summary>Gets the peer's remote certificate if TLS is used for the connection, <c>null</c> otherwise.</summary>
+    /// <inheritdoc/>
     public X509Certificate? RemoteCertificate { get; }
 
-    /// <summary>Constructs a new instance of <see cref="NetworkConnectionInformation"/>.</summary>
+    /// <summary>Constructs a network connection information feature.</summary>
     /// <param name="localEndPoint">The local endpoint.</param>
     /// <param name="remoteEndPoint">The remote endpoint.</param>
     /// <param name="remoteCertificate">The optional remote certificate.</param>
-    public NetworkConnectionInformation(
+    public NetworkConnectionInformationFeature(
         EndPoint localEndPoint,
         EndPoint remoteEndPoint,
         X509Certificate? remoteCertificate)

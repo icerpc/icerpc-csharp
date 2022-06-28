@@ -25,15 +25,12 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     public bool IsResumable => false;
 
     /// <inheritdoc/>
-    public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
-
-    /// <inheritdoc/>
     public Protocol Protocol => RemoteEndpoint.Protocol;
 
     /// <inheritdoc/>
     public Endpoint RemoteEndpoint { get; }
 
-    private Task? _connectTask;
+    private Task<INetworkConnectionInformationFeature>? _connectTask;
 
     private readonly TimeSpan _connectTimeout;
     private readonly CancellationTokenSource _connectTokenSource = new();
@@ -144,8 +141,8 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
     /// <summary>Establishes the connection. This method can be called multiple times, even concurrently.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A task that represents the completion of the connect operation. This task can complete with one of the
-    /// following exceptions:
+    /// <returns>A task that provides the network connection feature set in requests sent using this connection. This
+    /// task can complete with one of the following exceptions:
     /// <list type="bullet">
     /// <item><description><see cref="ConnectionAbortedException"/>if the connection was aborted.</description></item>
     /// <item><description><see cref="ObjectDisposedException"/>if this connection is disposed.</description></item>
@@ -155,7 +152,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <see cref="ConnectionOptions.ConnectTimeout"/>.</description></item>
     /// </list>
     /// </returns>
-    public async Task ConnectAsync(CancellationToken cancel = default)
+    public async Task<INetworkConnectionInformationFeature> ConnectAsync(CancellationToken cancel = default)
     {
         lock (_mutex)
         {
@@ -178,7 +175,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 
         try
         {
-            await _connectTask.ConfigureAwait(false);
+            return await _connectTask.ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -272,7 +269,8 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
                 if (_connectTask is null)
                 {
                     // we have nothing else to do - this connection was never established
-                    _connectTask = Task.FromException(new ConnectionClosedException());
+                    _connectTask = Task.FromException<INetworkConnectionInformationFeature>(
+                        new ConnectionClosedException());
                     return; // ShutdownAsync complete
                 }
 
@@ -305,7 +303,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         }
     }
 
-    private async Task ConnectAsyncCore(CancellationToken cancel)
+    private async Task<INetworkConnectionInformationFeature> ConnectAsyncCore(CancellationToken cancel)
     {
         // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
         await Task.Yield();
@@ -315,8 +313,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         linkedTokenSource.CancelAfter(_connectTimeout);
         try
         {
-            // TODO: not quite correct because assignment to NetworkConnectionInformation is not atomic
-            NetworkConnectionInformation = await _protocolConnection.ConnectAsync(
+            return await _protocolConnection.ConnectAsync(
                 isServer: false,
                 this,
                 linkedTokenSource.Token).ConfigureAwait(false);

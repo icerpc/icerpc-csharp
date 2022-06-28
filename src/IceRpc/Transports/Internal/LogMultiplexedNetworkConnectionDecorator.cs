@@ -24,9 +24,9 @@ internal class LogMultiplexedNetworkConnectionDecorator :
     {
         await _decoratee.ShutdownAsync(applicationErrorCode, cancel).ConfigureAwait(false);
 
-        if (Information is NetworkConnectionInformation connectionInformation)
+        if (Feature is INetworkConnectionInformationFeature feature)
         {
-            using IDisposable scope = Logger.StartConnectionScope(connectionInformation, IsServer);
+            using IDisposable scope = Logger.StartConnectionScope(feature, IsServer);
             Logger.LogMultiplexedNetworkConnectionShutdown(applicationErrorCode);
         }
     }

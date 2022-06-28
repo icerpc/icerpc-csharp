@@ -12,11 +12,11 @@ internal class LogTcpNetworkConnectionDecorator : ISimpleNetworkConnection
     private readonly TcpNetworkConnection _decoratee;
     private readonly ILogger _logger;
 
-    public async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
+    public async Task<INetworkConnectionInformationFeature> ConnectAsync(CancellationToken cancel)
     {
         try
         {
-            NetworkConnectionInformation result = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+            INetworkConnectionInformationFeature result = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
 
             if (_decoratee.SslStream is SslStream sslStream)
             {

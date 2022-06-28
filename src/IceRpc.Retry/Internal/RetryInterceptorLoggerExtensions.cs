@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Retry.Internal;
@@ -8,7 +9,7 @@ internal static partial class RetryInterceptorLoggerExtensions
 {
     internal static void LogRetryRequest(
         this ILogger logger,
-        IConnection? connection,
+        INetworkConnectionInformationFeature? feature,
         string path,
         string operation,
         RetryPolicy retryPolicy,
@@ -19,8 +20,8 @@ internal static partial class RetryInterceptorLoggerExtensions
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogRetryRequest(
-                connection?.NetworkConnectionInformation?.LocalEndPoint.ToString() ?? "undefined",
-                connection?.NetworkConnectionInformation?.RemoteEndPoint.ToString() ?? "undefined",
+                feature?.LocalEndPoint.ToString() ?? "undefined",
+                feature?.RemoteEndPoint.ToString() ?? "undefined",
                 path,
                 operation,
                 retryPolicy,

@@ -120,7 +120,7 @@ public class RetryInterceptor : IInvoker
                         attempt++;
 
                         _logger.LogRetryRequest(
-                            request.Connection,
+                            request.Features.Get<INetworkConnectionInformationFeature>(),
                             request.Proxy.Path,
                             request.Operation,
                             retryPolicy,

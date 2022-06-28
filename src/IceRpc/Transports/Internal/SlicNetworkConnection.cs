@@ -113,7 +113,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
     public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel) =>
         _acceptStreamQueue.DequeueAsync(cancel);
 
-    public async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
+    public async Task<INetworkConnectionInformationFeature> ConnectAsync(CancellationToken cancel)
     {
         Debug.Assert(_readFramesTaskCompletionSource is null); // ConnectAsync should be called only once.
 
@@ -129,11 +129,11 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
             _readFramesTaskCompletionSource = new();
         }
 
-        NetworkConnectionInformation information;
+        INetworkConnectionInformationFeature feature;
         try
         {
             // Connect the simple network connection.
-            information = await _simpleNetworkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+            feature = await _simpleNetworkConnection.ConnectAsync(cancel).ConfigureAwait(false);
 
             // Set the idle timeout after the network connection establishment. We don't want the network connection to
             // be disposed because it's idle when the network connection establishment is in progress. This would
@@ -296,7 +296,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
             },
             CancellationToken.None);
 
-        return information;
+        return feature;
 
         static (uint, InitializeBody?) DecodeInitialize(ref SliceDecoder decoder)
         {

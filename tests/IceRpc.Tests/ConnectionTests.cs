@@ -368,28 +368,6 @@ public class ConnectionTests
     }
 
     [Test]
-    public async Task Connect_sets_network_connection_information([Values("ice", "icerpc")] string protocol)
-    {
-        // Arrange
-        IServiceCollection services = new ServiceCollection().AddColocTest(
-            new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))),
-            Protocol.FromString(protocol));
-
-        await using var provider = services.BuildServiceProvider(validateScopes: true);
-
-        provider.GetRequiredService<Server>().Listen();
-        var connection = provider.GetRequiredService<ClientConnection>();
-        var networkConnectionInformation = connection.NetworkConnectionInformation;
-
-        // Act
-        await connection.ConnectAsync(default);
-
-        // Assert
-        Assert.That(networkConnectionInformation, Is.Null);
-        Assert.That(connection.NetworkConnectionInformation, Is.Not.Null);
-    }
-
-    [Test]
     public async Task Shutdown_connection(
         [Values("icerpc", "ice")] string protocol,
         [Values] bool closeClientSide)

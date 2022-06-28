@@ -23,9 +23,6 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
     }
 
     /// <inheritdoc/>
-    public NetworkConnectionInformation? NetworkConnectionInformation => _clientConnection.NetworkConnectionInformation;
-
-    /// <inheritdoc/>
     public Protocol Protocol => _clientConnection.Protocol;
 
     /// <inheritdoc/>

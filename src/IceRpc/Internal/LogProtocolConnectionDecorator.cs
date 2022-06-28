@@ -11,41 +11,46 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
     Protocol IProtocolConnection.Protocol => _decoratee.Protocol;
 
     private readonly IProtocolConnection _decoratee;
-    private NetworkConnectionInformation _information;
+    private INetworkConnectionInformationFeature? _feature;
     private bool _isServer;
     private readonly ILogger _logger;
 
     public void Abort(Exception exception)
     {
-        using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
-        _decoratee.Abort(exception);
-        _logger.LogProtocolConnectionAbort(_decoratee.Protocol, exception);
+        if (_feature is not null)
+        {
+            // TODO: should we log Abort of a non-connected connection?
+
+            using IDisposable connectionScope = _logger.StartConnectionScope(_feature, _isServer);
+            _decoratee.Abort(exception);
+            _logger.LogProtocolConnectionAbort(_decoratee.Protocol, exception);
+        }
     }
 
-    async Task<NetworkConnectionInformation> IProtocolConnection.ConnectAsync(
+    async Task<INetworkConnectionInformationFeature> IProtocolConnection.ConnectAsync(
         bool isServer,
         IConnection connection,
         CancellationToken cancel)
     {
         _isServer = isServer;
-        _information = await _decoratee.ConnectAsync(isServer, connection, cancel).ConfigureAwait(false);
+        _feature = await _decoratee.ConnectAsync(isServer, connection, cancel).ConfigureAwait(false);
 
-        using IDisposable scope = _logger.StartConnectionScope(_information, isServer);
+        using IDisposable scope = _logger.StartConnectionScope(_feature, isServer);
         _logger.LogProtocolConnectionConnect(
             _decoratee.Protocol,
-            _information.LocalEndPoint,
-            _information.RemoteEndPoint);
+            _feature.LocalEndPoint,
+            _feature.RemoteEndPoint);
 
         // TODO: log regular shutdown with message and no exception
 
         _decoratee.OnAbort(
             exception =>
             {
-                using IDisposable scope = _logger.StartClientConnectionScope(_information);
+                using IDisposable scope = _logger.StartClientConnectionScope(_feature);
                 _logger.LogConnectionClosedReason(exception);
             });
 
-        return _information;
+        return _feature;
     }
 
     async Task<IncomingResponse> IProtocolConnection.InvokeAsync(
@@ -53,7 +58,7 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
         IConnection connection,
         CancellationToken cancel)
     {
-        using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
+        using IDisposable connectionScope = _logger.StartConnectionScope(_feature!, _isServer);
         using IDisposable _ = _logger.StartSendRequestScope(request);
         IncomingResponse response = await _decoratee.InvokeAsync(
             request,
@@ -69,7 +74,7 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
 
     async Task IProtocolConnection.ShutdownAsync(string message, CancellationToken cancel)
     {
-        using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
+        using IDisposable connectionScope = _logger.StartConnectionScope(_feature!, _isServer);
         await _decoratee.ShutdownAsync(message, cancel).ConfigureAwait(false);
         using CancellationTokenRegistration _ = cancel.Register(() =>
             {

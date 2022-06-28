@@ -384,9 +384,9 @@ public abstract class SimpleTransportConformanceTests
         ISimpleNetworkConnection clientConnection)
     {
         Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        Task<NetworkConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
+        Task<INetworkConnectionInformationFeature> clientConnectTask = clientConnection.ConnectAsync(default);
         ISimpleNetworkConnection serverConnection = await acceptTask;
-        Task<NetworkConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
+        Task<INetworkConnectionInformationFeature> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
         return new ClientServerSimpleTransportConnection(clientConnection, serverConnection);
     }

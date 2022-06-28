@@ -18,19 +18,19 @@ internal abstract class LogNetworkConnectionDecorator : INetworkConnection
 
     private protected bool IsServer { get; }
 
-    private protected NetworkConnectionInformation? Information { get; set; }
+    private protected INetworkConnectionInformationFeature? Feature { get; set; }
 
     private readonly INetworkConnection _decoratee;
 
     private readonly Endpoint _endpoint;
 
-    public virtual async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
+    public virtual async Task<INetworkConnectionInformationFeature> ConnectAsync(CancellationToken cancel)
     {
         using IDisposable scope = Logger.StartNewConnectionScope(_endpoint, IsServer);
 
         try
         {
-            Information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+            Feature = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -38,19 +38,19 @@ internal abstract class LogNetworkConnectionDecorator : INetworkConnection
             throw;
         }
 
-        Logger.LogNetworkConnectionConnect(Information.Value.LocalEndPoint, Information.Value.RemoteEndPoint);
-        return Information.Value;
+        Logger.LogNetworkConnectionConnect(Feature.LocalEndPoint, Feature.RemoteEndPoint);
+        return Feature;
     }
 
     public void Dispose()
     {
         _decoratee.Dispose();
 
-        if (Information is NetworkConnectionInformation connectionInformation)
+        if (Feature is INetworkConnectionInformationFeature feature)
         {
             // TODO: we start the scope here because DisposeAsync is called directly by Connection, and not
             // through a higher-level interface method such as IProtocolConnection.DisposeAsync.
-            using IDisposable scope = Logger.StartConnectionScope(connectionInformation, IsServer);
+            using IDisposable scope = Logger.StartConnectionScope(feature, IsServer);
             Logger.LogNetworkConnectionDispose();
         }
         // We don't emit a log when closing a connection that was not connected.

@@ -26,9 +26,9 @@ public class SimpleNetworkConnectionReaderTests
         var listener = provider.GetRequiredService<IListener<ISimpleNetworkConnection>>();
         var clientConnection = provider.GetRequiredService<ISimpleNetworkConnection>();
         Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        Task<NetworkConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
+        Task<INetworkConnectionInformationFeature> clientConnectTask = clientConnection.ConnectAsync(default);
         using ISimpleNetworkConnection serverConnection = await acceptTask;
-        Task<NetworkConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
+        Task<INetworkConnectionInformationFeature> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
         int pingCount = 0;
@@ -65,9 +65,9 @@ public class SimpleNetworkConnectionReaderTests
         var listener = provider.GetRequiredService<IListener<ISimpleNetworkConnection>>();
         var clientConnection = provider.GetRequiredService<ISimpleNetworkConnection>();
         Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        Task<NetworkConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
+        Task<INetworkConnectionInformationFeature> clientConnectTask = clientConnection.ConnectAsync(default);
         using ISimpleNetworkConnection serverConnection = await acceptTask;
-        Task<NetworkConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
+        Task<INetworkConnectionInformationFeature> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
         TimeSpan abortCalledTime = Timeout.InfiniteTimeSpan;
@@ -98,9 +98,9 @@ public class SimpleNetworkConnectionReaderTests
         var listener = provider.GetRequiredService<IListener<ISimpleNetworkConnection>>();
         var clientConnection = provider.GetRequiredService<ISimpleNetworkConnection>();
         Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
-        Task<NetworkConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
+        Task<INetworkConnectionInformationFeature> clientConnectTask = clientConnection.ConnectAsync(default);
         using ISimpleNetworkConnection serverConnection = await acceptTask;
-        Task<NetworkConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
+        Task<INetworkConnectionInformationFeature> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
         TimeSpan abortCalledTime = Timeout.InfiniteTimeSpan;

@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
+using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
@@ -22,6 +22,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private IMultiplexedStream? _controlStream;
     private readonly HashSet<CancellationTokenSource> _cancelDispatchSources = new();
     private readonly AsyncSemaphore _controlStreamSemaphore = new(1, 1);
+
+    private IFeatureCollection _defaultFeatures = FeatureCollection.Empty;
+
     private readonly IDispatcher _dispatcher;
 
     // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
@@ -36,6 +39,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private int _maxRemoteHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
     private readonly object _mutex = new();
     private readonly IMultiplexedNetworkConnection _networkConnection;
+    private INetworkConnectionInformationFeature? _networkConnectionInformationFeature;
     private Action<Exception>? _onAbort;
     private Action<string>? _onShutdown;
     private IMultiplexedStream? _remoteControlStream;
@@ -86,14 +90,13 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
     }
 
-    public async Task<NetworkConnectionInformation> ConnectAsync(
+    public async Task<INetworkConnectionInformationFeature> ConnectAsync(
         bool isServer,
         IConnection connection,
         CancellationToken cancel)
     {
-        // Connect the network connection
-        NetworkConnectionInformation networkConnectionInformation =
-            await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+        _networkConnectionInformationFeature = await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+        _defaultFeatures = new FeatureCollection().With(_networkConnectionInformationFeature).AsReadOnly();
 
         _controlStream = _networkConnection.CreateStream(false);
 
@@ -158,7 +161,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             },
             cancel);
 
-        return networkConnectionInformation;
+        return _networkConnectionInformationFeature;
     }
 
     public async Task<IncomingResponse> InvokeAsync(
@@ -173,6 +176,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             {
                 throw new NotSupportedException("the icerpc protocol does not support fragments");
             }
+
+            request.Features = request.Features == FeatureCollection.Empty ? _defaultFeatures :
+                request.Features.With(_networkConnectionInformationFeature);
 
             // Create the stream.
             stream = _networkConnection.CreateStream(bidirectional: !request.IsOneway);
@@ -664,6 +670,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                 var request = new IncomingRequest(connection)
                 {
+                    Features = _defaultFeatures,
                     Fields = fields,
                     IsOneway = !stream.IsBidirectional,
                     Operation = header.Operation,

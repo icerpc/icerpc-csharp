@@ -23,7 +23,7 @@ internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
 
     private readonly List<ArraySegment<byte>> _segments = new();
 
-    public abstract Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel);
+    public abstract Task<INetworkConnectionInformationFeature> ConnectAsync(CancellationToken cancel);
 
     public void Dispose()
     {
@@ -212,7 +212,7 @@ internal class TcpClientNetworkConnection : TcpNetworkConnection
 
     private SslStream? _sslStream;
 
-    public override async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
+    public override async Task<INetworkConnectionInformationFeature> ConnectAsync(CancellationToken cancel)
     {
         Debug.Assert(!_connected);
         _connected = true;
@@ -231,7 +231,7 @@ internal class TcpClientNetworkConnection : TcpNetworkConnection
                 await _sslStream.AuthenticateAsClientAsync(_authenticationOptions, cancel).ConfigureAwait(false);
             }
 
-            return new NetworkConnectionInformation(
+            return new NetworkConnectionInformationFeature(
                 localEndPoint: Socket.LocalEndPoint!,
                 remoteEndPoint: Socket.RemoteEndPoint!,
                 _sslStream?.RemoteCertificate);
@@ -310,7 +310,7 @@ internal class TcpServerNetworkConnection : TcpNetworkConnection
     private readonly Endpoint _localEndpoint;
     private SslStream? _sslStream;
 
-    public override async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
+    public override async Task<INetworkConnectionInformationFeature> ConnectAsync(CancellationToken cancel)
     {
         Debug.Assert(!_connected);
         _connected = true;
@@ -326,7 +326,7 @@ internal class TcpServerNetworkConnection : TcpNetworkConnection
 
             var ipEndPoint = (IPEndPoint)Socket.RemoteEndPoint!;
 
-            return new NetworkConnectionInformation(
+            return new NetworkConnectionInformationFeature(
                 localEndPoint: Socket.LocalEndPoint!,
                 remoteEndPoint: Socket.RemoteEndPoint!,
                 _sslStream?.RemoteCertificate);

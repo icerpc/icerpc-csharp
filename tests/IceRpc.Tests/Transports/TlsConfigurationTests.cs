@@ -94,7 +94,7 @@ public class TlsConfigurationTests
 
         // Perform the TLS handshake by calling connect on the client and server connections and wait for the
         // connection establishment.
-        Task<NetworkConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
+        Task<INetworkConnectionInformationFeature> clientConnectTask = clientConnection.ConnectAsync(default);
         using ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
         await serverConnection.ConnectAsync(default);
         await clientConnectTask;
@@ -148,7 +148,7 @@ public class TlsConfigurationTests
 
         // Perform the TLS handshake by calling connect on the client and server connections and wait for the
         // connection establishment.
-        Task<NetworkConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
+        Task<INetworkConnectionInformationFeature> clientConnectTask = clientConnection.ConnectAsync(default);
         using ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
         await serverConnection.ConnectAsync(default);
         await clientConnectTask;
@@ -179,7 +179,7 @@ public class TlsConfigurationTests
 
         // Start the TLS handshake by calling connect on the client and server connections and wait for the
         // connection establishment.
-        Task<NetworkConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
+        Task<INetworkConnectionInformationFeature> clientConnectTask = clientConnection.ConnectAsync(default);
         using ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
         await serverConnection.ConnectAsync(default);
 

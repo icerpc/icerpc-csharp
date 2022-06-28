@@ -1,5 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Logger;
@@ -24,14 +25,14 @@ public class LoggerInterceptor : IInvoker
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        _logger.LogSendingRequest(request.Connection, request.Proxy.Path, request.Operation);
+        _logger.LogSendingRequest(request.Proxy.Path, request.Operation);
         try
         {
             IncomingResponse response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
             if (!request.IsOneway)
             {
                 _logger.LogReceivedResponse(
-                    request.Connection,
+                    request.Features.Get<INetworkConnectionInformationFeature>(),
                     request.Proxy.Path,
                     request.Operation,
                     response.ResultType);
@@ -40,7 +41,11 @@ public class LoggerInterceptor : IInvoker
         }
         catch (Exception ex)
         {
-            _logger.LogInvokeException(request.Connection, request.Proxy.Path, request.Operation, ex);
+            _logger.LogInvokeException(
+                request.Features.Get<INetworkConnectionInformationFeature>(),
+                request.Proxy.Path,
+                request.Operation,
+                ex);
             throw;
         }
     }
@@ -51,7 +56,7 @@ internal static partial class LoggerInterceptorLoggerExtensions
 {
     internal static void LogInvokeException(
         this ILogger logger,
-        IConnection? connection,
+        INetworkConnectionInformationFeature? feature,
         string path,
         string operation,
         Exception ex)
@@ -59,8 +64,8 @@ internal static partial class LoggerInterceptorLoggerExtensions
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInvokeException(
-                connection?.NetworkConnectionInformation?.LocalEndPoint.ToString() ?? "undefined",
-                connection?.NetworkConnectionInformation?.RemoteEndPoint.ToString() ?? "undefined",
+                feature?.LocalEndPoint.ToString() ?? "undefined",
+                feature?.RemoteEndPoint.ToString() ?? "undefined",
                 path,
                 operation,
                 ex);
@@ -69,7 +74,7 @@ internal static partial class LoggerInterceptorLoggerExtensions
 
     internal static void LogReceivedResponse(
         this ILogger logger,
-        IConnection? connection,
+        INetworkConnectionInformationFeature? feature,
         string path,
         string operation,
         ResultType resultType)
@@ -77,29 +82,23 @@ internal static partial class LoggerInterceptorLoggerExtensions
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogReceivedResponse(
-                connection?.NetworkConnectionInformation?.LocalEndPoint.ToString() ?? "undefined",
-                connection?.NetworkConnectionInformation?.RemoteEndPoint.ToString() ?? "undefined",
+                feature?.LocalEndPoint.ToString() ?? "undefined",
+                feature?.RemoteEndPoint.ToString() ?? "undefined",
                 path,
                 operation,
                 resultType);
         }
     }
 
-    internal static void LogSendingRequest(
+    [LoggerMessage(
+        EventId = (int)LoggerInterceptorEventIds.SendingRequest,
+        EventName = nameof(LoggerInterceptorEventIds.SendingRequest),
+        Level = LogLevel.Information,
+        Message = "sending request (Path={Path}, Operation={Operation})")]
+    internal static partial void LogSendingRequest(
         this ILogger logger,
-        IConnection? connection,
         string path,
-        string operation)
-    {
-        if (logger.IsEnabled(LogLevel.Information))
-        {
-            logger.LogSendingRequest(
-                connection?.NetworkConnectionInformation?.LocalEndPoint.ToString() ?? "undefined",
-                connection?.NetworkConnectionInformation?.RemoteEndPoint.ToString() ?? "undefined",
-                path,
-                operation);
-        }
-    }
+        string operation);
 
     [LoggerMessage(
         EventId = (int)LoggerInterceptorEventIds.InvokeException,
@@ -128,17 +127,4 @@ internal static partial class LoggerInterceptorLoggerExtensions
         string path,
         string operation,
         ResultType resultType);
-
-    [LoggerMessage(
-        EventId = (int)LoggerInterceptorEventIds.SendingRequest,
-        EventName = nameof(LoggerInterceptorEventIds.SendingRequest),
-        Level = LogLevel.Information,
-        Message = "sending request (LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint}, " +
-                  "Path={Path}, Operation={Operation})")]
-    private static partial void LogSendingRequest(
-        this ILogger logger,
-        string localEndpoint,
-        string remoteEndpoint,
-        string path,
-        string operation);
 }

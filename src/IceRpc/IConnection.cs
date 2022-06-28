@@ -15,10 +15,6 @@ public interface IConnection
     /// when a new call to <see cref="InvokeAsync"/> will fail.</value>
     bool IsResumable { get; }
 
-    /// <summary>Gets the network connection information or <c>null</c> if the connection is not connected.
-    /// </summary>
-    NetworkConnectionInformation? NetworkConnectionInformation { get; }
-
     /// <summary>Gets the protocol of this connection.</summary>
     Protocol Protocol { get; }
 

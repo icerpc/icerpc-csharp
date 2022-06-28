@@ -225,7 +225,7 @@ public class TcpTransportTests
         var clientTransport = new TcpClientTransport(new TcpClientTransportOptions());
 
         using var cancellationTokenSource = new CancellationTokenSource();
-        Task<NetworkConnectionInformation> connectTask;
+        Task<INetworkConnectionInformationFeature> connectTask;
         TcpClientNetworkConnection clientConnection;
         while (true)
         {
@@ -284,7 +284,7 @@ public class TcpTransportTests
                     }
                 });
 
-        Task<NetworkConnectionInformation> connectTask =
+        Task<INetworkConnectionInformationFeature> connectTask =
             clientConnection.ConnectAsync(cancellationSource.Token);
 
         ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
@@ -307,9 +307,9 @@ public class TcpTransportTests
             listener.Endpoint,
             authenticationOptions: tls ? DefaultSslClientAuthenticationOptions : null);
 
-        Task<NetworkConnectionInformation> connectTask = clientConnection.ConnectAsync(default);
+        Task<INetworkConnectionInformationFeature> connectTask = clientConnection.ConnectAsync(default);
         ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
-        Task<NetworkConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(cancellationSource.Token);
+        Task<INetworkConnectionInformationFeature> serverConnectTask = serverConnection.ConnectAsync(cancellationSource.Token);
 
         // Act
         var networkConnectionInformation = await connectTask;
@@ -370,9 +370,9 @@ public class TcpTransportTests
             listener.Endpoint,
             authenticationOptions: DefaultSslClientAuthenticationOptions);
 
-        Task<NetworkConnectionInformation> connectTask = clientConnection.ConnectAsync(default);
+        Task<INetworkConnectionInformationFeature> connectTask = clientConnection.ConnectAsync(default);
         ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
-        Task<NetworkConnectionInformation> serverConnectTask =
+        Task<INetworkConnectionInformationFeature> serverConnectTask =
             serverConnection.ConnectAsync(new CancellationToken(canceled: true));
 
         // Act/Assert

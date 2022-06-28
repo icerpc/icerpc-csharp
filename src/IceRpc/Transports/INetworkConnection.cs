@@ -10,7 +10,8 @@ public interface INetworkConnection : IDisposable
 {
     /// <summary>Connects this network connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>The <see cref="NetworkConnectionInformation"/>.</returns>
+    /// <returns>The <see cref="INetworkConnectionInformationFeature"/> that the caller should set in requests sent or
+    /// received over this network connection.</returns>
     /// <exception cref="ConnectFailedException">Thrown if the connection establishment to the per
     /// failed.</exception>
     /// <exception cref="ConnectionLostException">Thrown if the peer closed its side of the connection while the
@@ -21,5 +22,5 @@ public interface INetworkConnection : IDisposable
     /// <remarks>A transport implementation might raise other exceptions. A network connection supporting SSL can
     /// for instance raise <see cref="AuthenticationException"/> if the authentication fails while the connection
     /// is being established.</remarks>
-    Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel);
+    Task<INetworkConnectionInformationFeature> ConnectAsync(CancellationToken cancel);
 }

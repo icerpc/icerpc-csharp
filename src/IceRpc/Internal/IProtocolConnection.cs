@@ -21,9 +21,9 @@ internal interface IProtocolConnection
     /// <param name="connection">The value for <see cref="IncomingFrame.Connection"/> in incoming requests created by
     /// this protocol connection.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>The network connection information.</returns>
+    /// <returns>The network connection information feature.</returns>
     /// <remarks>This method should be called only once.</remarks>
-    Task<NetworkConnectionInformation> ConnectAsync(
+    Task<INetworkConnectionInformationFeature> ConnectAsync(
         bool isServer,
         IConnection connection,
         CancellationToken cancel);

@@ -11,8 +11,6 @@ public static class InvalidConnection
     {
         public bool IsResumable => throw new NotImplementedException();
 
-        public NetworkConnectionInformation? NetworkConnectionInformation => throw new NotImplementedException();
-
         public Protocol Protocol { get; }
 
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>

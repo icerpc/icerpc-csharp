@@ -18,11 +18,12 @@ internal class ColocNetworkConnection : ISimpleNetworkConnection
     private int _state;
     private PipeWriter? _writer;
 
-    public Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
+    public Task<INetworkConnectionInformationFeature> ConnectAsync(CancellationToken cancel)
     {
         (_reader, _writer) = _connect(_endpoint);
         var colocEndPoint = new ColocEndPoint(_endpoint);
-        return Task.FromResult(new NetworkConnectionInformation(colocEndPoint, colocEndPoint, null));
+        return Task.FromResult<INetworkConnectionInformationFeature>(
+            new NetworkConnectionInformationFeature(colocEndPoint, colocEndPoint, null));
     }
 
     public void Dispose()
