@@ -114,16 +114,6 @@ public sealed record class Proxy
         init
         {
             CheckSupportedProtocol(nameof(Fragment));
-
-            try
-            {
-                CheckFragment(value); // make sure it's properly escaped
-            }
-            catch (FormatException ex)
-            {
-                throw new ArgumentException($"invalid fragment", nameof(Fragment), ex);
-            }
-
             if (!Protocol.HasFragment && value.Length > 0)
             {
                 throw new InvalidOperationException($"cannot set {Fragment} on an {Protocol} proxy");
@@ -318,10 +308,10 @@ public sealed record class Proxy
             if (Protocol.IsSupported)
             {
                 Protocol.CheckPath(_path);
-                if (!Protocol.HasFragment && _fragment.Length > 0)
-                {
-                    throw new ArgumentException($"cannot create an {Protocol} proxy with a fragment", nameof(uri));
-                }
+                // if (!Protocol.HasFragment && _fragment.Length > 0)
+                // {
+                //     throw new ArgumentException($"cannot create an {Protocol} proxy with a fragment", nameof(uri));
+                // }
 
                 (ImmutableDictionary<string, string> queryParams, string? altEndpointValue) = uri.ParseQuery();
 
@@ -620,21 +610,6 @@ public sealed record class Proxy
         _params = proxyParams;
         _fragment = fragment;
         _invoker = invoker;
-    }
-
-    /// <summary>Checks if <paramref name="fragment"/> is a properly escaped URI fragment, i.e. it contains only
-    ///  unreserved characters, reserved characters or '%'.</summary>
-    /// <param name="fragment">The fragment to check.</param>
-    /// <exception cref="FormatException">Thrown if the fragment is not valid.</exception>
-    /// <remarks>The fragment of a URI with a supported protocol satisfies these requirements.</remarks>
-    private static void CheckFragment(string fragment)
-    {
-        if (!IsValid(fragment, "\"<>\\^`{|}"))
-        {
-            throw new FormatException(
-                @$"invalid fragment '{fragment
-                }'; a valid fragment contains only unreserved characters, reserved characters or '%'");
-        }
     }
 
     private static bool IsValid(string s, string invalidChars)
