@@ -47,15 +47,15 @@ public sealed class LoggerInterceptorTests
         Assert.That(loggerFactory.Logger, Is.Not.Null);
 
         List<TestLoggerEntry> entries = loggerFactory.Logger.Entries;
-        Assert.That(entries.Count, Is.EqualTo(1));
-        Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerInterceptorEventIds.InvokeException));
+        Assert.That(entries.Count, Is.EqualTo(2));
+        Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerInterceptorEventIds.SendingRequest));
         CheckEntryState(entries[0]);
+        Assert.That(entries[1].EventId.Id, Is.EqualTo((int)LoggerInterceptorEventIds.InvokeException));
+        CheckEntryState(entries[1]);
     }
 
     private static void CheckEntryState(TestLoggerEntry entry)
     {
-        Assert.That(entry.State["LocalEndpoint"], Is.EqualTo("undefined"));
-        Assert.That(entry.State["RemoteEndpoint"], Is.EqualTo("undefined"));
         Assert.That(entry.State["Operation"], Is.EqualTo("operation"));
         Assert.That(entry.State["Path"], Is.EqualTo("/path"));
     }
