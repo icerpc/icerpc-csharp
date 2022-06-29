@@ -188,6 +188,12 @@ public class ConnectionTests
 
         using var semaphore = new SemaphoreSlim(0);
         connection.OnShutdown(message => semaphore.Release(1));
+        if (protocol == "ice")
+        {
+            // TODO: with ice, a graceful shutdown from the peer results in an Abort.
+            connection.OnAbort(exception => semaphore.Release(1));
+        }
+
         await semaphore.WaitAsync();
 
         // Act/Assert
