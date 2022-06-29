@@ -265,7 +265,6 @@ internal class SynchronizedProtocolConnectionDecorator : IProtocolConnection
         catch (OperationCanceledException) when (_disposeCancellationSource.IsCancellationRequested)
         {
             // DisposeAsync has been called.
-            Debug.Assert(_disposeTask is not null);
             throw new ConnectionAbortedException($"connection {state} aborted because the connection was disposed");
         }
         catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
