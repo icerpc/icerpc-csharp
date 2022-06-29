@@ -25,7 +25,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private int _headerSizeLength = 2;
     private readonly TimeSpan _idleTimeout;
     private Timer? _idleTimeoutTimer;
-    private readonly bool _isServer;
     private long _lastRemoteBidirectionalStreamId = -1;
     // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
     private long _lastRemoteUnidirectionalStreamId = -1;
@@ -420,26 +419,23 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     internal static IProtocolConnection Create(
         IMultiplexedNetworkConnection networkConnection,
-        bool isServer,
         ConnectionOptions options) =>
         // Dispose objects before losing scope, the icerpc protocol connection is disposed by the decorator.
 #pragma warning disable CA2000
         new SynchronizedProtocolConnectionDecorator(
-            new IceRpcProtocolConnection(networkConnection, isServer, options),
+            new IceRpcProtocolConnection(networkConnection, options),
             options.ConnectTimeout,
             options.ShutdownTimeout);
 #pragma warning restore CA2000
 
     private IceRpcProtocolConnection(
         IMultiplexedNetworkConnection networkConnection,
-        bool isServer,
         ConnectionOptions options)
     {
         _networkConnection = networkConnection;
         _dispatcher = options.Dispatcher;
         _idleTimeout = options.IdleTimeout;
         _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
-        _isServer = isServer;
     }
 
     private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeFieldDictionary<TKey>(
@@ -1058,6 +1054,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         IceRpcGoAway goAwayFrame;
         lock (_mutex)
         {
+            Debug.Assert(_shutdownTask is not null);
             if (_streams.Count == 0)
             {
                 _streamsCompleted.TrySetResult();

@@ -547,12 +547,6 @@ public sealed class ProtocolConnectionTests
         var shutdownTask = sut.Server.ShutdownAsync("");
 
         // Assert
-
-        // Ensure the server connection is being shutdown first.
-        using var semaphore = new SemaphoreSlim(0);
-        sut.Server.OnShutdown(message => semaphore.Release(1));
-        await semaphore.WaitAsync();
-
         var invokeTask2 = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
         hold.Release();
         Assert.Multiple(() =>

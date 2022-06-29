@@ -96,7 +96,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
                     logger);
             }
 
-            _protocolConnection = IceRpcProtocolConnection.Create(networkConnection, isServer: false, options);
+            _protocolConnection = IceRpcProtocolConnection.Create(networkConnection, options);
         }
 
         // TODO: log level

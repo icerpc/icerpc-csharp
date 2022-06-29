@@ -154,6 +154,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         IEnumerable<CancellationTokenSource> dispatches;
                         lock (_mutex)
                         {
+                            _shutdownTask = Task.CompletedTask; // Prevent new invocations from being accepted.
                             invocations = _invocations.Values.ToArray();
                             dispatches = _dispatches.ToArray();
                         }
@@ -611,6 +612,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 EncodeValidateConnectionFrame(_networkConnectionWriter);
                 // The flush can't be canceled because it would lead to the writing of an incomplete frame.
                 await _networkConnectionWriter.FlushAsync(_disposeCancelSource.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Connection disposed.
             }
             catch (Exception exception)
             {

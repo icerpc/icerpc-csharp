@@ -248,9 +248,6 @@ internal class SynchronizedProtocolConnectionDecorator : IProtocolConnection
         TimeSpan timeout,
         CancellationToken cancel)
     {
-        // Make sure we execute the function without holding the state machine mutex lock.
-        await Task.Yield();
-
         // Cancel the state function either if DisposeAsync is called, the given cancellation token is canceled or the
         // timeout is triggered.
         using var linkedCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(
