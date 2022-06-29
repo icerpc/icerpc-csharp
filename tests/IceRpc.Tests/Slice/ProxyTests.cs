@@ -3,6 +3,7 @@
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using NUnit.Framework;
+using System.Collections.Immutable;
 
 namespace IceRpc.Tests.Slice;
 
@@ -61,6 +62,50 @@ public class ProxyTests
         ServicePrx? decoded = decoder.DecodeNullablePrx<ServicePrx>();
 
         Assert.That(decoded?.Proxy, Is.EqualTo(expected));
+    }
+
+    [Test]
+    public async Task Cannot_set_alt_endpoints_when_endpoint_is_empty()
+    {
+        // Arrange
+        // Construct a relative proxy since it will have an empty endpoint.
+        await using var connection = new ClientConnection("icerpc://localhost");
+        var proxy = Proxy.FromConnection(connection, "/foo");
+
+        // Constructing alternate endpoints.
+        Endpoint altEndpoint = Endpoint.FromString("icerpc://localhost:10000?transport=foobar");
+        ImmutableList<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty.Add(altEndpoint);
+
+        // Act/Assert
+        Assert.Throws<InvalidOperationException>(() => proxy.AltEndpoints = altEndpoints);
+        return;
+    }
+
+    [Test]
+    public void Cannot_clear_endpoints_when_alt_endpoints_is_not_empty()
+    {
+        // Arrange
+        // Creating a proxy with an endpoint.
+        var proxy = new Proxy(new Uri("icerpc://localhost:8080/foo"));
+
+        // Constructing alternate endpoints.
+        Endpoint altEndpoint = Endpoint.FromString("icerpc://localhost:10000?transport=foobar");
+        ImmutableList<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty.Add(altEndpoint);
+
+        proxy.AltEndpoints = altEndpoints;
+
+        // Act/Assert
+        Assert.Throws<InvalidOperationException>(() => proxy.Endpoint = null);
+    }
+
+    [Test]
+    public void Invalid_fragment_throws_exception()
+    {
+        // Arrange
+        var uri = new Uri("ice://localhost:8080/foo#tes^t<^");
+
+        // Act/Assert
+        Assert.Throws<ArgumentException>(() => new Proxy(uri));
     }
 
     /// <summary>Verifies that calling <see cref="SliceDecoder.DecodeProxy"/> correctly decodes a proxy.</summary>
