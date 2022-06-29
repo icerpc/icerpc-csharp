@@ -15,7 +15,7 @@ public class ConnectionTests
 {
     /// <summary>Verifies that aborting the connection aborts the invocations.</summary>
     [Test]
-    public async Task Aborting_the_client_connection_aborts_the_invocations([Values("ice", "icerpc")] string protocol)
+    public async Task Disposing_the_client_connection_aborts_the_invocations([Values("ice", "icerpc")] string protocol)
     {
         // Arrange
         using var start = new SemaphoreSlim(0);
@@ -41,7 +41,7 @@ public class ConnectionTests
         await start.WaitAsync(); // Wait for dispatch to start
 
         // Act
-        connection.Abort();
+        await connection.DisposeAsync();
 
         // Assert
         Assert.That(async () => await invokeTask, Throws.TypeOf<ConnectionAbortedException>());
@@ -49,7 +49,7 @@ public class ConnectionTests
 
     /// <summary>Verifies that aborting the server connection aborts the invocations.</summary>
     [Test]
-    public async Task Aborting_the_server_connection_aborts_the_invocations([Values("ice", "icerpc")] string protocol)
+    public async Task Disposing_the_server_connection_aborts_the_invocations([Values("ice", "icerpc")] string protocol)
     {
         // Arrange
         using var start = new SemaphoreSlim(0);
@@ -77,15 +77,15 @@ public class ConnectionTests
         await start.WaitAsync(); // Wait for dispatch to start
 
         // Act
-        serverConnection!.Abort(); // TODO: move Abort to IConnection?
+        await serverConnection!.DisposeAsync();
 
         // Assert
         Assert.That(async () => await invokeTask, Throws.TypeOf<ConnectionLostException>());
     }
 
-    /// <summary>Verifies that aborting the connection executes the OnClose callback.</summary>
+    /// <summary>Verifies that disposing the connection executes the OnAbort callback.</summary>
     [Test]
-    public async Task Connection_closed_event(
+    public async Task Connection_abort_callback(
         [Values("ice", "icerpc")] string protocol,
         [Values(true, false)] bool closeClientConnection)
     {
@@ -95,7 +95,7 @@ public class ConnectionTests
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
             serverConnection = (ServerConnection)request.Connection;
-            serverConnection.OnClose(_ => serverConnectionClosed.SetResult(null));
+            serverConnection.OnAbort(_ => serverConnectionClosed.SetResult(null));
             return new(new OutgoingResponse(request));
         });
 
@@ -107,7 +107,7 @@ public class ConnectionTests
         var server = provider.GetRequiredService<Server>();
         server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
-        clientConnection.OnClose(_ => clientConnectionClosed.SetResult(null));
+        clientConnection.OnAbort(_ => clientConnectionClosed.SetResult(null));
 
         var proxy = Proxy.FromConnection(clientConnection, "/foo");
 
@@ -116,16 +116,22 @@ public class ConnectionTests
         // Act
         if (closeClientConnection)
         {
-            clientConnection.Abort();
+            await clientConnection.DisposeAsync();
         }
         else
         {
-            serverConnection!.Abort();
+            await serverConnection!.DisposeAsync();
         }
 
         // Assert
-        Assert.That(async () => await serverConnectionClosed.Task, Throws.Nothing);
-        Assert.That(async () => await clientConnectionClosed.Task, Throws.Nothing);
+        if (closeClientConnection)
+        {
+            Assert.That(async () => await serverConnectionClosed.Task, Throws.Nothing);
+        }
+        else
+        {
+            Assert.That(async () => await clientConnectionClosed.Task, Throws.Nothing);
+        }
     }
 
     /// <summary>Verifies that connect establishment timeouts after the <see cref="ConnectionOptions.ConnectTimeout"/>
@@ -143,7 +149,7 @@ public class ConnectionTests
         await using var connection = new ClientConnection(new ClientConnectionOptions
         {
             RemoteEndpoint = listener.Endpoint,
-            ConnectTimeout = TimeSpan.FromMilliseconds(100),
+            ConnectTimeout = TimeSpan.FromMilliseconds(100)
         });
 
         // Assert
@@ -181,7 +187,7 @@ public class ConnectionTests
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
         using var semaphore = new SemaphoreSlim(0);
-        connection.OnClose(exception => semaphore.Release(1));
+        connection.OnShutdown(message => semaphore.Release(1));
         await semaphore.WaitAsync();
 
         // Act/Assert
@@ -217,7 +223,7 @@ public class ConnectionTests
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
         using var semaphore = new SemaphoreSlim(0);
-        connection.OnDisconnect(exception =>
+        connection.OnShutdown(message =>
         {
             try
             {
@@ -236,7 +242,7 @@ public class ConnectionTests
 
     [Test]
     public async Task Resumable_connection_can_reconnect_after_graceful_peer_shutdown(
-        [Values("ice", "icerpc")] string protocol)
+        [Values("icerpc", "ice")] string protocol)
     {
         // Arrange
         ServerConnection? serverConnection = null;
@@ -259,7 +265,8 @@ public class ConnectionTests
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
         using var semaphore = new SemaphoreSlim(0);
-        connection.OnDisconnect(exception =>
+
+        connection.OnShutdown(message =>
         {
             try
             {
@@ -270,6 +277,7 @@ public class ConnectionTests
                 // expected
             }
         });
+
         await serverConnection!.ShutdownAsync();
         await semaphore.WaitAsync();
 
@@ -303,7 +311,7 @@ public class ConnectionTests
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
         using var semaphore = new SemaphoreSlim(0);
-        connection.OnDisconnect(exception =>
+        connection.OnAbort(exception =>
         {
             try
             {
@@ -314,7 +322,7 @@ public class ConnectionTests
                 // expected
             }
         });
-        serverConnection!.Abort();
+        await serverConnection!.DisposeAsync();
         await semaphore.WaitAsync();
 
         // Act/Assert
@@ -365,16 +373,17 @@ public class ConnectionTests
         await connection.ConnectAsync(default);
 
         // Assert
-        Assert.That(networkConnectionInformation, Is.Null);
-        Assert.That(connection.NetworkConnectionInformation, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(networkConnectionInformation, Is.Null);
+            Assert.That(connection.NetworkConnectionInformation, Is.Not.Null);
+        });
     }
 
     [Test]
     public async Task Shutdown_connection(
-        // [Values("icerpc", "ice")] string protocol,
-        // [Values] bool closeClientSide)
-        [Values("icerpc")] string protocol,
-        [Values(false)] bool closeClientSide)
+        [Values("icerpc", "ice")] string protocol,
+        [Values] bool closeClientSide)
     {
         // Arrange
         using var start = new SemaphoreSlim(0);
@@ -405,25 +414,12 @@ public class ConnectionTests
             serverConnection!.ShutdownAsync(default);
 
         // Assert
-        if (closeClientSide && protocol == "ice")
-        {
-            await shutdownTask;
-
-            // With the Ice protocol, when closing the connection with a pending invocation, invocations are
-            // canceled immediately. The Ice protocol doesn't support reliably waiting for the response.
-            // TODO: throwing OperationCanceledException is not correct.
-            Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
-            Assert.That(hold.Release(), Is.EqualTo(0));
-        }
-        else
+        Assert.Multiple(() =>
         {
             Assert.That(hold.Release(), Is.EqualTo(0));
-
-            await shutdownTask;
-
-            // Ensure the invocation is successful.
-            Assert.DoesNotThrowAsync(async () => await pingTask);
-        }
+            Assert.That(async () => await shutdownTask, Throws.Nothing);
+            Assert.That(async () => await pingTask, Throws.Nothing);
+        });
     }
 
     [Test]
@@ -538,7 +534,7 @@ public class ConnectionTests
             Assert.That(connectTask.IsCompleted, Is.False);
             Assert.That(shutdownTask.IsCompleted, Is.False);
         });
-        connection.Abort();
+        await connection.DisposeAsync();
         Assert.Multiple(() =>
         {
             Assert.That(async () => await connectTask, Throws.TypeOf<ConnectionAbortedException>());
@@ -556,13 +552,15 @@ public class ConnectionTests
         using var hold = new SemaphoreSlim(0);
 
         ServerConnection? serverConnection = null;
-        var dispatcher = new InlineDispatcher(async (request, cancel) =>
+        IDispatcher dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
             serverConnection = (ServerConnection)request.Connection;
             start.Release();
             await hold.WaitAsync(cancel);
             return new OutgoingResponse(request);
         });
+
+        dispatcher = new Logger.LoggerMiddleware(dispatcher, LogAttributeLoggerFactory.Instance);
 
         IServiceCollection services = new ServiceCollection().AddColocTest(dispatcher, Protocol.FromString(protocol));
 
@@ -582,37 +580,32 @@ public class ConnectionTests
         var server = provider.GetRequiredService<Server>();
         server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
-        var proxy = ServicePrx.FromConnection(clientConnection, "/path");
+        var proxy = ServicePrx.FromConnection(clientConnection, "/path", invoker: new Logger.LoggerInterceptor(Proxy.DefaultInvoker, LogAttributeLoggerFactory.Instance));
         var pingTask = proxy.IcePingAsync();
         await start.WaitAsync();
 
         // Act
+        Task shutdownTask;
         if (closeClientSide)
         {
-            _ = clientConnection.DisposeAsync().AsTask();
+            shutdownTask = clientConnection.ShutdownAsync();
         }
         else
         {
-            _ = serverConnection!.DisposeAsync().AsTask();
+            shutdownTask = serverConnection!.ShutdownAsync();
         }
 
         // Assert
+        Assert.That(async () => await shutdownTask, Throws.InstanceOf<TimeoutException>());
         if (closeClientSide)
         {
-            // TODO: not correct
-            Assert.That(async () => await pingTask, Throws.InstanceOf<OperationCanceledException>());
+            await clientConnection.DisposeAsync();
+            Assert.That(async () => await pingTask, Throws.InstanceOf<ConnectionAbortedException>());
         }
         else
         {
-            if (protocol == "ice")
-            {
-                // Shutdown should trigger the abort of the connection on the client side after the shutdown timeout
-                Assert.That(async () => await pingTask, Throws.InstanceOf<DispatchException>());
-            }
-            else
-            {
-                Assert.That(async () => await pingTask, Throws.InstanceOf<IceRpcProtocolStreamException>());
-            }
+            await serverConnection!.DisposeAsync();
+            Assert.That(async () => await pingTask, Throws.InstanceOf<ConnectionLostException>());
         }
         hold.Release();
     }

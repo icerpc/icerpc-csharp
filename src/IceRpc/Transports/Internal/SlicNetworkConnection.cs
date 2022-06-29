@@ -290,7 +290,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
                 }
                 finally
                 {
-                    Abort(exception ?? new ConnectionClosedException());
+                    Abort(exception ?? new ConnectionClosedException("connection gracefully closed"));
                     _readFramesTaskCompletionSource.SetResult();
                 }
             },
@@ -316,7 +316,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         // TODO: Cache SlicMultiplexedStream
         new SlicMultiplexedStream(this, bidirectional, remote: false);
 
-    public void Dispose() => Abort(new ConnectionClosedException());
+    public void Dispose() => Abort(new ConnectionClosedException("connection disposed"));
 
     public async Task ShutdownAsync(ulong applicationErrorCode, CancellationToken cancel)
     {
@@ -329,9 +329,10 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
                 streamId: null,
                 new CloseBody(applicationErrorCode).Encode,
                 cancel).ConfigureAwait(false);
-
-            // Prevent further writes.
-            _writeSemaphore.Complete(new ConnectionClosedException());
+        }
+        catch
+        {
+            // Ignore, this can occur if the peer already close the connection.
         }
         finally
         {

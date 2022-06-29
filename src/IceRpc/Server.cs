@@ -151,14 +151,16 @@ public sealed class Server : IAsyncDisposable
             {
                 PerformListen(
                     _simpleServerTransport,
-                    (networkConnection, options) => new IceProtocolConnection(networkConnection, options),
+                    (networkConnection, options) =>
+                        IceProtocolConnection.Create(networkConnection, isServer: true, options),
                     LogSimpleNetworkConnectionDecorator.Decorate);
             }
             else
             {
                 PerformListen(
                     _multiplexedServerTransport,
-                    (networkConnection, options) => new IceRpcProtocolConnection(networkConnection, options),
+                    (networkConnection, options) =>
+                        IceRpcProtocolConnection.Create(networkConnection, isServer: true, options),
                     LogMultiplexedNetworkConnectionDecorator.Decorate);
             }
         }
@@ -185,7 +187,7 @@ public sealed class Server : IAsyncDisposable
 
                 Func<T, ConnectionOptions, IProtocolConnection> decoratee = protocolConnectionFactory;
                 protocolConnectionFactory = (T networkConnection, ConnectionOptions options) =>
-                    new LogProtocolConnectionDecorator(decoratee(networkConnection, options), logger);
+                    new LogProtocolConnectionDecorator(decoratee(networkConnection, options), isServer: true, logger);
             }
 
             // Run task to start accepting new connections.
@@ -226,14 +228,14 @@ public sealed class Server : IAsyncDisposable
 
                 // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                var connection = new ServerConnection(protocolConnection, _options.ConnectionOptions);
+                var connection = new ServerConnection(protocolConnection);
 #pragma warning restore CA2000
 
                 lock (_mutex)
                 {
                     if (_isReadOnly)
                     {
-                        connection.Abort();
+                        ValueTask _ = connection.DisposeAsync();
                         return;
                     }
 
@@ -242,7 +244,8 @@ public sealed class Server : IAsyncDisposable
 
                 // Schedule removal after addition. We do this outside the mutex lock otherwise
                 // await serverConnection.ShutdownAsync could be called within this lock.
-                connection.OnClose(exception => _ = RemoveFromCollectionAsync(connection));
+                connection.OnAbort(exception => _ = RemoveFromCollectionAsync(connection, graceful: false));
+                connection.OnShutdown(message => _ = RemoveFromCollectionAsync(connection, graceful: true));
 
                 // We don't wait for the connection to be activated. This could take a while for some transports
                 // such as TLS based transports where the handshake requires few round trips between the client
@@ -253,17 +256,38 @@ public sealed class Server : IAsyncDisposable
         }
 
         // Remove the connection from _connections once shutdown completes
-        async Task RemoveFromCollectionAsync(ServerConnection connection)
+        async Task RemoveFromCollectionAsync(ServerConnection connection, bool graceful)
         {
+            lock (_mutex)
+            {
+                if (_isReadOnly)
+                {
+                    return; // already shutting down / disposed / being disposed by another thread
+                }
+            }
+
+            if (graceful)
+            {
+                // Wait for the current shutdown to complete
+                try
+                {
+                    await connection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // OnAbort will take care of cleaning up
+                    return;
+                }
+            }
+
             await connection.DisposeAsync().ConfigureAwait(false);
 
             lock (_mutex)
             {
-                // the _connections collection is read-only when disposed or shutting down
+                // the _connections collection is read-only when shutting down or disposing.
                 if (!_isReadOnly)
                 {
-                    bool removed = _connections.Remove(connection);
-                    Debug.Assert(removed);
+                    _ = _connections.Remove(connection);
                 }
             }
         }

@@ -11,9 +11,6 @@ public enum ConnectionEventIds
     /// <summary>The exception that triggered the closure of a connection.</summary>
     ConnectionClosedReason,
 
-    /// <summary>The protocol connection was aborted.</summary>
-    ProtocolConnectionAbort,
-
     /// <summary>Established a protocol connection.</summary>
     ProtocolConnectionConnect,
 

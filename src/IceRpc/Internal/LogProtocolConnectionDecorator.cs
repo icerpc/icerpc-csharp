@@ -12,31 +12,24 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
 
     private readonly IProtocolConnection _decoratee;
     private NetworkConnectionInformation _information;
-    private bool _isServer;
+    private readonly bool _isServer;
     private readonly ILogger _logger;
 
-    public void Abort(Exception exception)
-    {
-        using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
-        _decoratee.Abort(exception);
-        _logger.LogProtocolConnectionAbort(_decoratee.Protocol, exception);
-    }
-
     async Task<NetworkConnectionInformation> IProtocolConnection.ConnectAsync(
-        bool isServer,
         IConnection connection,
         CancellationToken cancel)
     {
-        _isServer = isServer;
-        _information = await _decoratee.ConnectAsync(isServer, connection, cancel).ConfigureAwait(false);
+        _information = await _decoratee.ConnectAsync(connection, cancel).ConfigureAwait(false);
 
-        using IDisposable scope = _logger.StartConnectionScope(_information, isServer);
+        using IDisposable scope = _logger.StartConnectionScope(_information, _isServer);
         _logger.LogProtocolConnectionConnect(
             _decoratee.Protocol,
             _information.LocalEndPoint,
             _information.RemoteEndPoint);
 
-        _decoratee.OnClose(
+        // TODO: log regular shutdown with message and no exception
+
+        _decoratee.OnAbort(
             exception =>
             {
                 using IDisposable scope = _logger.StartClientConnectionScope(_information);
@@ -63,7 +56,9 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
         return response;
     }
 
-    void IProtocolConnection.OnClose(Action<Exception> callback) => _decoratee.OnClose(callback);
+    void IProtocolConnection.OnAbort(Action<Exception> callback) => _decoratee.OnAbort(callback);
+
+    void IProtocolConnection.OnShutdown(Action<string> callback) => _decoratee.OnShutdown(callback);
 
     async Task IProtocolConnection.ShutdownAsync(string message, CancellationToken cancel)
     {
@@ -82,9 +77,10 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
         _logger.LogProtocolConnectionShutdown(_decoratee.Protocol, message);
     }
 
-    internal LogProtocolConnectionDecorator(IProtocolConnection decoratee, ILogger logger)
+    internal LogProtocolConnectionDecorator(IProtocolConnection decoratee, bool isServer, ILogger logger)
     {
         _decoratee = decoratee;
+        _isServer = isServer;
         _logger = logger;
     }
 }

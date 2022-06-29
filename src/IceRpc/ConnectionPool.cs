@@ -251,7 +251,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
             }
             if (scheduleRemoveFromClosed)
             {
-                _ = RemoveFromClosedAsync(connection);
+                _ = RemoveFromClosedAsync(connection, graceful: false);
             }
 
             throw;
@@ -278,13 +278,14 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
             {
                 // Schedule removal after addition. We do this outside the mutex lock otherwise RemoveFromActive could
                 // call await clientConnection.ShutdownAsync within this lock.
-                connection.OnClose(RemoveFromActive);
+                connection.OnAbort(exception => RemoveFromActive(graceful: false));
+                connection.OnShutdown(message => RemoveFromActive(graceful: true));
             }
         }
 
         return connection;
 
-        void RemoveFromActive(Exception exception)
+        void RemoveFromActive(bool graceful)
         {
             Debug.Assert(connection is not null);
 
@@ -304,21 +305,34 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
 
             if (scheduleRemoveFromClosed)
             {
-                _ = RemoveFromClosedAsync(connection);
+                _ = RemoveFromClosedAsync(connection, graceful);
             }
         }
 
         // Remove connection from _shutdownPendingConnections once the dispose is complete
-        async Task RemoveFromClosedAsync(ClientConnection clientConnection)
+        async Task RemoveFromClosedAsync(ClientConnection clientConnection, bool graceful)
         {
+            if (graceful)
+            {
+                // wait for current shutdown to complete
+                try
+                {
+                    await clientConnection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // OnAbort will clean it up
+                    return;
+                }
+            }
+
             await clientConnection.DisposeAsync().ConfigureAwait(false);
 
             lock (_mutex)
             {
                 if (!_isReadOnly)
                 {
-                    bool removed = _shutdownPendingConnections.Remove(clientConnection);
-                    Debug.Assert(removed);
+                    _ = _shutdownPendingConnections.Remove(clientConnection);
                 }
             }
         }

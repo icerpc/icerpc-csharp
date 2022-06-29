@@ -24,7 +24,7 @@ public sealed class IceRpcProtocolConnectionTests
 
     /// <summary>Verifies that aborting the client connection cancels the dispatches.</summary>
     [Test]
-    public async Task Abort_cancels_dispatches()
+    public async Task Dispose_cancels_dispatches()
     {
         // Arrange
         using var start = new SemaphoreSlim(0);
@@ -55,59 +55,10 @@ public sealed class IceRpcProtocolConnectionTests
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
-        sut.Server.Abort(new ConnectionAbortedException());
+        await sut.Server.DisposeAsync();
 
         // Assert
         Assert.That(async () => await tcs.Task, Throws.Nothing);
-        hold.Release();
-    }
-
-    /// <summary>Verifies that if the shutdown cancellation cancels pending invocations and dispatches.</summary>
-    [Test]
-    public async Task Shutdown_cancellation_cancels_invocations_and_dispatches()
-    {
-        // Arrange
-        using var start = new SemaphoreSlim(0);
-        using var hold = new SemaphoreSlim(0);
-        var tcs = new TaskCompletionSource();
-
-        var dispatcher = new InlineDispatcher(async (request, cancel) =>
-        {
-            start.Release();
-            try
-            {
-                await hold.WaitAsync(cancel);
-            }
-            catch (OperationCanceledException)
-            {
-                tcs.SetResult();
-            }
-            return new OutgoingResponse(request);
-        });
-
-        await using var provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.IceRpc, dispatcher)
-            .BuildServiceProvider(validateScopes: true);
-
-        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-
-        var invokeTask = sut.Client.InvokeAsync(
-            new OutgoingRequest(new Proxy(Protocol.IceRpc)),
-            InvalidConnection.IceRpc);
-
-        await start.WaitAsync(); // Wait for the dispatch to start
-
-        // Act
-        Task shutdownTask = sut.Client.ShutdownAsync("", new CancellationToken(canceled: true));
-
-        // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
-            Assert.That(async () => await shutdownTask, Throws.Nothing);
-            Assert.That(async () => await tcs.Task, Throws.Nothing);
-        });
         hold.Release();
     }
 
