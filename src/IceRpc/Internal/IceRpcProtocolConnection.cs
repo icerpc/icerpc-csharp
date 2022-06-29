@@ -426,7 +426,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 #pragma warning disable CA2000
         new SynchronizedProtocolConnectionDecorator(
             new IceRpcProtocolConnection(networkConnection, isServer, options),
-            isServer,
             options.ConnectTimeout,
             options.ShutdownTimeout);
 #pragma warning restore CA2000
