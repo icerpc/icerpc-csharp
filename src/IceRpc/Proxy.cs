@@ -308,10 +308,10 @@ public sealed record class Proxy
             if (Protocol.IsSupported)
             {
                 Protocol.CheckPath(_path);
-                // if (!Protocol.HasFragment && _fragment.Length > 0)
-                // {
-                //     throw new ArgumentException($"cannot create an {Protocol} proxy with a fragment", nameof(uri));
-                // }
+                if (!Protocol.HasFragment && _fragment.Length > 0)
+                {
+                    throw new ArgumentException($"cannot create an {Protocol} proxy with a fragment", nameof(uri));
+                }
 
                 (ImmutableDictionary<string, string> queryParams, string? altEndpointValue) = uri.ParseQuery();
 
