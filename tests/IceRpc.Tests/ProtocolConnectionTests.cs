@@ -226,13 +226,10 @@ public sealed class ProtocolConnectionTests
         await sut.ConnectAsync();
         _ = sut.Client.ShutdownAsync("");
 
-        // Act
-        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(
+        // Act/Assert
+        Assert.ThrowsAsync<ConnectionClosedException>(() => sut.Client.InvokeAsync(
             new OutgoingRequest(new Proxy(protocol)),
-            connection);
-
-        // Assert
-        Assert.ThrowsAsync<ConnectionClosedException>(async () => await invokeTask);
+            connection));
     }
 
     /// <summary>Ensures that the request payload is completed on a valid request.</summary>
