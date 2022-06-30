@@ -198,14 +198,25 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     public async ValueTask DisposeAsync()
     {
         IEnumerable<CancellationTokenSource> dispatches;
+        IEnumerable<TaskCompletionSource<PipeReader>> invocations;
         lock (_mutex)
         {
-            _shutdownTask ??= Task.CompletedTask;
+            // If ShutdownAsync wasn't called already, we start a graceful shutdown.
+            _shutdownTask ??= ShutdownAsyncCore("connection disposed", CancellationToken.None);
+
             if (_dispatches.Count == 0 && _invocations.Count == 0)
             {
                 _dispatchesAndInvocationsCompleted.TrySetResult();
             }
             dispatches = _dispatches.ToArray();
+            invocations = _invocations.Values.ToArray();
+        }
+
+        // If shutdown was canceled, perform an non-graceful shutdown of the connection.
+        if (_shutdownCancelSource.IsCancellationRequested)
+        {
+            _disposeCancelSource.Cancel();
+            _networkConnection.Dispose();
         }
 
         // Cancel dispatches.
@@ -221,18 +232,14 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             }
         }
 
-        // Cancel the ReadFrameAsync, ShutdownAsyncCore and PingAsync tasks.
-        _disposeCancelSource.Cancel();
-        _shutdownCancelSource.Cancel();
-
-        // Wait indefinitely for dispatches and invocations to complete.
-        await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
-
-        if (_readFramesTask is not null)
+        // Cancel invocations.
+        var exception = new ConnectionAbortedException("connection disposed");
+        foreach (TaskCompletionSource<PipeReader> invocation in invocations)
         {
-            await _readFramesTask.ConfigureAwait(false);
+            invocation.TrySetException(exception);
         }
 
+        // Wait for shutdown to complete.
         try
         {
             await _shutdownTask.ConfigureAwait(false);
@@ -240,6 +247,14 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         catch
         {
             // Expected if shutdown canceled or failed.
+        }
+
+        // Cancel the ReadFrameAsync and PingAsync tasks.
+        _disposeCancelSource.Cancel();
+
+        if (_readFramesTask is not null)
+        {
+            await _readFramesTask.ConfigureAwait(false);
         }
 
         await _pingTask.ConfigureAwait(false);
@@ -370,7 +385,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         {
             PipeReader frameReader = await responseCompletionSource.Task.WaitAsync(
                 linkedCancelSource.Token).ConfigureAwait(false);
-
             try
             {
                 if (!frameReader.TryRead(out ReadResult readResult))
@@ -531,9 +545,20 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             _shutdownTask ??= ShutdownAsyncCore(message, _shutdownCancelSource.Token);
         }
 
+        using CancellationTokenRegistration _ = cancel.Register(() =>
+        {
+            try
+            {
+                _shutdownCancelSource.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        });
+
         try
         {
-            await _shutdownTask.WaitAsync(cancel).ConfigureAwait(false);
+            await _shutdownTask.ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
         {
@@ -999,6 +1024,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 }
                 catch (OperationCanceledException) when (_disposeCancelSource.IsCancellationRequested)
                 {
+                    // The connection was disposed. The request will be cleaned up by the code bellow.
                     response = new OutgoingResponse(request);
                 }
                 catch (Exception exception)

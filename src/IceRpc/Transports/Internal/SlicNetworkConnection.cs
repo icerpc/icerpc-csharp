@@ -316,7 +316,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         // TODO: Cache SlicMultiplexedStream
         new SlicMultiplexedStream(this, bidirectional, remote: false);
 
-    public void Dispose() => Abort(new ConnectionClosedException("connection disposed"));
+    public void Dispose() => Abort(new ConnectionAbortedException("connection disposed"));
 
     public async Task ShutdownAsync(ulong applicationErrorCode, CancellationToken cancel)
     {

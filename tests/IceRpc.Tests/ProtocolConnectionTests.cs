@@ -168,14 +168,28 @@ public sealed class ProtocolConnectionTests
         IConnection connection = provider.GetRequiredService<IConnection>();
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(protocol)), connection);
+        var request = new OutgoingRequest(new Proxy(protocol));
+        var invokeTask = sut.Client.InvokeAsync(request, connection);
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
         await sut.Server.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await invokeTask, Throws.TypeOf<ConnectionLostException>());
+        if (protocol == Protocol.Ice)
+        {
+            Assert.That(
+                async() =>
+                {
+                    IncomingResponse response = await invokeTask;
+                    throw await response.DecodeFailureAsync(request);
+                },
+                Throws.TypeOf<DispatchException>());
+        }
+        else
+        {
+            Assert.That(async () => await invokeTask, Throws.TypeOf<IceRpcProtocolStreamException>());
+        }
 
         hold.Release();
     }

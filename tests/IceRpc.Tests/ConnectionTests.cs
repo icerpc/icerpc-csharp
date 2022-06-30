@@ -73,14 +73,28 @@ public class ConnectionTests
 
         var proxy = Proxy.FromConnection(connection, "/foo");
 
-        var invokeTask = proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
+        var request = new OutgoingRequest(proxy);
+        var invokeTask = proxy.Invoker.InvokeAsync(request);
         await start.WaitAsync(); // Wait for dispatch to start
 
         // Act
         await serverConnection!.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await invokeTask, Throws.TypeOf<ConnectionLostException>());
+        if (protocol == "ice")
+        {
+            Assert.That(
+                async () =>
+                {
+                    IncomingResponse response = await invokeTask;
+                    throw await response.DecodeFailureAsync(request);
+                },
+                Throws.TypeOf<DispatchException>());
+        }
+        else
+        {
+            Assert.That(async () => await invokeTask, Throws.TypeOf<IceRpcProtocolStreamException>());
+        }
     }
 
     /// <summary>Verifies that disposing the connection executes the OnAbort callback.</summary>
@@ -116,10 +130,26 @@ public class ConnectionTests
         // Act
         if (closeClientConnection)
         {
+            // We abort the connection by first cancelling the shutdown and then dispose it.
+            try
+            {
+                await clientConnection.ShutdownAsync(new CancellationToken(true));
+            }
+            catch
+            {
+            }
             await clientConnection.DisposeAsync();
         }
         else
         {
+            // We abort the connection by first cancelling the shutdown and then dispose it.
+            try
+            {
+                await serverConnection!.ShutdownAsync(new CancellationToken(true));
+            }
+            catch
+            {
+            }
             await serverConnection!.DisposeAsync();
         }
 
@@ -323,6 +353,13 @@ public class ConnectionTests
                 // expected
             }
         });
+        try
+        {
+            await serverConnection!.ShutdownAsync(new CancellationToken(true));
+        }
+        catch
+        {
+        }
         await serverConnection!.DisposeAsync();
         await semaphore.WaitAsync();
 
@@ -435,7 +472,6 @@ public class ConnectionTests
     }
 
     [Test]
-    [Ignore("DisposeAsync should perform the graceful shutdown after cancellation of dispatches")]
     public async Task Dispose_aborts_shutdown(
         [Values("ice", "icerpc")] string protocol,
         [Values(true, false)] bool closeClientSide)
@@ -496,7 +532,6 @@ public class ConnectionTests
             }
             else
             {
-                // TODO: this should raise DispatchException and IceRpcProtocolStreamException
                 Assert.That(async () => await pingTask, Throws.TypeOf<ConnectionLostException>());
             }
         });

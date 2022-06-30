@@ -199,10 +199,10 @@ public abstract class MultiplexedTransportConformanceTests
 
         // Assert
 
-        // The streams of the disposed connection get ConnectionClosedException and the streams of the peer connection
+        // The streams of the disposed connection get ConnectionAbortedException and the streams of the peer connection
         // get ConnectionLostException.
         IMultiplexedStream disposedStream = disposedConnection.CreateStream(true);
-        Assert.ThrowsAsync<ConnectionClosedException>(
+        Assert.ThrowsAsync<ConnectionAbortedException>(
             async () => await disposedStream.Output.WriteAsync(_oneBytePayload));
 
         IMultiplexedStream peerStream = peerConnection.CreateStream(true);
@@ -338,10 +338,10 @@ public abstract class MultiplexedTransportConformanceTests
 
         // Assert
 
-        // The streams of the disposed connection get ConnectionClosedException and the streams of the peer connection
+        // The streams of the disposed connection get ConnectionAbortedException and the streams of the peer connection
         // get ConnectionLostException.
-        Assert.ThrowsAsync<ConnectionClosedException>(async () => await disposedStream.Input.ReadAsync());
-        Assert.ThrowsAsync<ConnectionClosedException>(
+        Assert.ThrowsAsync<ConnectionAbortedException>(async () => await disposedStream.Input.ReadAsync());
+        Assert.ThrowsAsync<ConnectionAbortedException>(
             async () => await disposedStream.Output.WriteAsync(_oneBytePayload));
 
         Assert.ThrowsAsync<ConnectionLostException>(async () => await peerStream.Input.ReadAsync());
