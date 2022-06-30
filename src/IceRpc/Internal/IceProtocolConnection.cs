@@ -535,7 +535,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         {
             await _shutdownTask.WaitAsync(cancel).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
+        catch (OperationCanceledException) when (_shutdownCancelSource.IsCancellationRequested)
         {
             throw new ConnectionAbortedException("shutdown canceled");
         }
@@ -1279,9 +1279,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 _writeSemaphore.Release();
             }
 
-            // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the connection
-            // closure here. We can't just return and close the underlying transport since this could abort the receive of
-            // the dispatch responses and close connection frame by the peer.
+            // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
+            // connection closure here. We can't just return and close the underlying transport since this could abort
+            // the receive of the dispatch responses and close connection frame by the peer.
             await _pendingClose.Task.WaitAsync(cancel).ConfigureAwait(false);
         }
         catch

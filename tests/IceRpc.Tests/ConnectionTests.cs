@@ -435,8 +435,8 @@ public class ConnectionTests
     }
 
     [Test]
-    [Ignore("pending IProtocolConnection update")]
-    public async Task Shutdown_cancellation(
+    [Repeat(100)]
+    public async Task Dispose_aborts_shutdown(
         [Values("ice", "icerpc")] string protocol,
         [Values(true, false)] bool closeClientSide)
     {
@@ -473,35 +473,32 @@ public class ConnectionTests
         var proxy = ServicePrx.FromConnection(clientConnection, "/path");
         var pingTask = proxy.IcePingAsync();
         await start.WaitAsync();
-        Task shutdownTask = closeClientSide ?
-            clientConnection.ShutdownAsync(shutdownCancellationSource.Token) :
-            serverConnection!.ShutdownAsync(shutdownCancellationSource.Token);
+        Task shutdownTask = closeClientSide ? clientConnection.ShutdownAsync() : serverConnection!.ShutdownAsync();
 
         // Act
-        shutdownCancellationSource.Cancel();
-
-        // Assert
         if (closeClientSide)
         {
-            Assert.That(async () => await shutdownTask, Throws.Nothing);
-
-            Assert.That(async () => await pingTask, Throws.InstanceOf<OperationCanceledException>());
-            Assert.That(async () => await dispatchCompletionSource.Task, Throws.Nothing);
+            await clientConnection.DisposeAsync();
         }
         else
         {
-            Assert.That(shutdownTask.IsCompleted, Is.False);
-            Assert.That(async () => await dispatchCompletionSource.Task, Throws.Nothing);
+            await serverConnection!.DisposeAsync();
+        }
 
-            if (protocol == "ice")
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(async () => await shutdownTask, Throws.InstanceOf<ConnectionAbortedException>());
+            Assert.That(async () => await dispatchCompletionSource.Task, Throws.Nothing);
+            if (closeClientSide)
             {
-                Assert.That(async () => await pingTask, Throws.TypeOf<DispatchException>());
+                Assert.That(async () => await pingTask, Throws.InstanceOf<ConnectionAbortedException>());
             }
             else
             {
-                Assert.That(async () => await pingTask, Throws.TypeOf<IceRpcProtocolStreamException>());
+                Assert.That(async () => await pingTask, Throws.TypeOf<ConnectionLostException>());
             }
-        }
+        });
     }
 
     [Test]
@@ -561,14 +558,13 @@ public class ConnectionTests
             return new OutgoingResponse(request);
         });
 
-        dispatcher = new Logger.LoggerMiddleware(dispatcher, LogAttributeLoggerFactory.Instance);
-
         IServiceCollection services = new ServiceCollection().AddColocTest(dispatcher, Protocol.FromString(protocol));
 
         services
             .AddOptions<ClientConnectionOptions>()
             .Configure(
-                options => options.ShutdownTimeout = closeClientSide ? TimeSpan.FromSeconds(1) : TimeSpan.FromSeconds(60));
+                options => options.ShutdownTimeout =
+                    closeClientSide ? TimeSpan.FromSeconds(1) : TimeSpan.FromSeconds(60));
 
         services
             .AddOptions<ServerOptions>()
@@ -581,7 +577,7 @@ public class ConnectionTests
         var server = provider.GetRequiredService<Server>();
         server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
-        var proxy = ServicePrx.FromConnection(clientConnection, "/path", invoker: new Logger.LoggerInterceptor(Proxy.DefaultInvoker, LogAttributeLoggerFactory.Instance));
+        var proxy = ServicePrx.FromConnection(clientConnection, "/path");
         var pingTask = proxy.IcePingAsync();
         await start.WaitAsync();
 

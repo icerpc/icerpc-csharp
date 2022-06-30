@@ -342,7 +342,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             {
                 exception = new ConnectionAbortedException();
             }
-
             await stream.Input.CompleteAsync(exception).ConfigureAwait(false);
             // TODO: Should we wrap unexpected exceptions with ConnectionLostException?
             throw;
@@ -396,22 +395,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             _shutdownTask ??= ShutdownAsyncCore(message, _shutdownCancelSource.Token);
         }
 
-        using CancellationTokenRegistration _ = cancel.Register(() =>
-        {
-            try
-            {
-                _shutdownCancelSource.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-            }
-        });
-
         try
         {
-            await _shutdownTask.ConfigureAwait(false);
+            await _shutdownTask.WaitAsync(cancel).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
+        catch (OperationCanceledException) when (_shutdownCancelSource.IsCancellationRequested)
         {
             throw new ConnectionAbortedException("shutdown canceled");
         }
@@ -637,7 +625,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
 
             CancellationTokenSource? dispatchCancelSource = null;
-
             lock (_mutex)
             {
                 if (_shutdownTask is not null)
@@ -648,7 +635,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 {
                     dispatchCancelSource = new();
                     _dispatchCancelSources.Add(dispatchCancelSource);
-
                     if (stream.IsBidirectional)
                     {
                         _lastRemoteBidirectionalStreamId = stream.Id;
@@ -690,11 +676,13 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                             _dispatchCancelSources.Remove(dispatchCancelSource);
                         }
 
-                        // If the stream is shutdown because the connection is aborted, make sure to cancel
-                        // the dispatch.
-                        if (_disposeCancelSource.IsCancellationRequested)
+                        // If the stream is shutdown, cancel the dispatch.
+                        try
                         {
                             dispatchCancelSource.Cancel();
+                        }
+                        catch (ObjectDisposedException)
+                        {
                         }
 
                         dispatchCancelSource.Dispose();
@@ -1082,12 +1070,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     peerGoAwayFrame.LastUnidirectionalStreamId)))).ToArray();
         }
 
-        var exception = new ConnectionClosedException(message);
-
         // Abort streams for invocations that were not dispatched by the peer. The invocations will throw
         // ConnectionClosedException which is retryable.
         // TODO: we should shutdown the connection instead. This will avoid sending StopSending and Reset frames for
         // each pending streams.
+        var exception = new ConnectionClosedException(message);
         foreach (IMultiplexedStream stream in invocations)
         {
             stream.Abort(exception);

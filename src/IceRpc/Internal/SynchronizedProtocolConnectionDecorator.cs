@@ -16,7 +16,7 @@ internal class SynchronizedProtocolConnectionDecorator : IProtocolConnection
     private Task<NetworkConnectionInformation>? _connectTask;
     private readonly TimeSpan _connectTimeout;
     private readonly IProtocolConnection _decoratee;
-    private readonly CancellationTokenSource _disposeCancellationSource = new();
+    private readonly CancellationTokenSource _disposeCancelSource = new();
     private Task? _disposeTask;
     private readonly object _mutex = new();
     private Action<Exception>? _onAbort;
@@ -172,7 +172,7 @@ internal class SynchronizedProtocolConnectionDecorator : IProtocolConnection
             await Task.Yield();
 
             // Cancel pending ConnectAsync or ShutdownAsync.
-            _disposeCancellationSource.Cancel();
+            _disposeCancelSource.Cancel();
 
             // Wait for ConnectAsync to complete.
             if (_connectTask is not null)
@@ -187,7 +187,7 @@ internal class SynchronizedProtocolConnectionDecorator : IProtocolConnection
                 }
             }
 
-            // Wait for ShutdownAsync to complete.
+            // Cancel shutdown if it's running and wait its completion.
             if (_shutdownTask is not null)
             {
                 try
@@ -204,7 +204,7 @@ internal class SynchronizedProtocolConnectionDecorator : IProtocolConnection
             await _decoratee.DisposeAsync().ConfigureAwait(false);
 
             // Cleans up disposable resources.
-            _disposeCancellationSource.Dispose();
+            _disposeCancelSource.Dispose();
         }
     }
 
@@ -251,7 +251,7 @@ internal class SynchronizedProtocolConnectionDecorator : IProtocolConnection
         // Cancel the state function either if DisposeAsync is called, the given cancellation token is canceled or the
         // timeout is triggered.
         using var linkedCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(
-            _disposeCancellationSource.Token,
+            _disposeCancelSource.Token,
             cancel);
         linkedCancellationSource.CancelAfter(timeout);
 
@@ -259,7 +259,7 @@ internal class SynchronizedProtocolConnectionDecorator : IProtocolConnection
         {
             return await stateFunc(linkedCancellationSource.Token).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (_disposeCancellationSource.IsCancellationRequested)
+        catch (OperationCanceledException) when (_disposeCancelSource.IsCancellationRequested)
         {
             // DisposeAsync has been called.
             throw new ConnectionAbortedException($"connection {state} aborted because the connection was disposed");

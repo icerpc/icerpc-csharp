@@ -169,12 +169,9 @@ public sealed class IceProtocolConnectionTests
 
         // Make sure the second request is received and blocked on the dispatch semaphore.
         await Task.Delay(200);
-        Assert.That(dispatchCount, Is.EqualTo(1));
 
         // Act
-        ValueTask disposeTask = sut.Server.DisposeAsync();
-        await invokeTask;
-        await disposeTask;
+        await sut.Server.DisposeAsync();
 
         // Assert
         Assert.That(dispatchCount, Is.EqualTo(1));
