@@ -29,7 +29,7 @@ public sealed class TelemetryInterceptorTests
 
         var sut = new TelemetryInterceptor(invoker, activitySource);
 
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc) { Path = "/path" })
+        var request = new OutgoingRequest(Proxy.Parse("icerpc:/path"))
         {
             Operation = "Op"
         };
@@ -77,7 +77,7 @@ public sealed class TelemetryInterceptorTests
         using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
 
         var sut = new TelemetryInterceptor(invoker, activitySource);
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc) { Path = "/" })
+        var request = new OutgoingRequest(Proxy.Parse("icerpc:"))
         {
             Operation = "op"
         };

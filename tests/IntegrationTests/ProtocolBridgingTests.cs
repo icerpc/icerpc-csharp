@@ -133,11 +133,8 @@ public sealed class ProtocolBridgingTests
         {
             IDispatchInformationFeature dispatchInformation = features.Get<IDispatchInformationFeature>()!;
 
-            var proxy = new Proxy(dispatchInformation.Connection.Protocol)
-            {
-                Path = dispatchInformation.Path,
-                Endpoint = _publishedEndpoint
-            };
+            var proxy = Proxy.Parse($"{dispatchInformation.Connection.Protocol}:{dispatchInformation.Path}");
+            proxy.Endpoint = _publishedEndpoint;
 
             return new(new ProtocolBridgingTestPrx(proxy));
         }

@@ -266,24 +266,6 @@ public sealed record class Proxy
         }
     }
 
-    /// <summary>Constructs a proxy from a protocol.</summary>
-    /// <param name="protocol">The protocol.</param>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="protocol"/> is not a supported protocol or
-    /// <see cref="Protocol.Relative"/>.</exception>
-    public Proxy(Protocol protocol)
-    {
-        if (protocol.IsSupported || protocol == Protocol.Relative)
-        {
-            Protocol = protocol;
-        }
-        else
-        {
-            throw new ArgumentException(
-                $"protocol must be {nameof(Protocol.Relative)} or a supported protocol",
-                nameof(protocol));
-        }
-    }
-
     /// <summary>Constructs a proxy from a URI.</summary>
     public Proxy(Uri uri)
     {
@@ -291,6 +273,10 @@ public sealed record class Proxy
         {
             Protocol = Protocol.FromString(uri.Scheme);
             _path = uri.AbsolutePath;
+            if (_path.Length == 0)
+            {
+                _path = "/";
+            }
             _fragment = uri.Fragment.Length > 0 ? uri.Fragment[1..] : ""; // remove leading #
 
             if (Protocol.IsSupported)
@@ -497,6 +483,7 @@ public sealed record class Proxy
         }
         else
         {
+            // A proxy constructed from a connection.
             sb.Append(Protocol);
             sb.Append(':');
             sb.Append(Path);
@@ -644,6 +631,24 @@ public sealed record class Proxy
     /// <returns><c>true</c> if <paramref name="value"/> is a valid parameter value; otherwise, <c>false</c>.
     /// </returns>
     private static bool IsValidParamValue(string value) => IsValid(value, "\"<>#&\\^`{|}");
+
+    /// <summary>Constructs a proxy from a protocol.</summary>
+    /// <param name="protocol">The protocol.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="protocol"/> is not a supported protocol or
+    /// <see cref="Protocol.Relative"/>.</exception>
+    private Proxy(Protocol protocol)
+    {
+        if (protocol.IsSupported || protocol == Protocol.Relative)
+        {
+            Protocol = protocol;
+        }
+        else
+        {
+            throw new ArgumentException(
+                $"protocol must be {nameof(Protocol.Relative)} or a supported protocol",
+                nameof(protocol));
+        }
+    }
 
     private void CheckSupportedProtocol(string propertyName)
     {

@@ -32,7 +32,9 @@ internal class LocatorEndpointFinder : IEndpointFinder
 
                 if (prx?.Proxy is Proxy proxy)
                 {
-                    return proxy.Protocol == Protocol.Ice && proxy.Endpoint is not null ? proxy :
+                    return proxy.Protocol == Protocol.Ice &&
+                        proxy.Endpoint is Endpoint endpoint &&
+                        endpoint.Host.Length > 0 ? proxy :
                         throw new InvalidDataException($"findAdapterById returned invalid proxy '{proxy}'");
                 }
                 else

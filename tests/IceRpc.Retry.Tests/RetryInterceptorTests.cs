@@ -40,7 +40,7 @@ public sealed class RetryInterceptorTests
             }
         });
 
-        var proxy = new Proxy(Protocol.IceRpc);
+        var proxy = Proxy.Parse("icerpc:");
         using var loggerFactory = new TestLoggerFactory();
         var sut = new RetryInterceptor(invoker, new RetryOptions(), loggerFactory);
 
@@ -77,7 +77,7 @@ public sealed class RetryInterceptorTests
             throw exception;
         });
 
-        var proxy = new Proxy(Protocol.IceRpc);
+        var proxy = Proxy.Parse("icerpc:");
         var sut = new RetryInterceptor(invoker, new RetryOptions());
 
         var request = new OutgoingRequest(proxy) { Operation = "Op" };
@@ -101,7 +101,7 @@ public sealed class RetryInterceptorTests
             });
         });
 
-        var proxy = new Proxy(Protocol.IceRpc);
+        var proxy = Proxy.Parse("icerpc:");
         var sut = new RetryInterceptor(invoker, new RetryOptions());
 
         var request = new OutgoingRequest(proxy) { Operation = "Op" };
@@ -144,7 +144,7 @@ public sealed class RetryInterceptorTests
         });
 
         var sut = new RetryInterceptor(invoker, new RetryOptions());
-        var proxy = new Proxy(Protocol.IceRpc);
+        var proxy = Proxy.Parse("icerpc:");
         var request = new OutgoingRequest(proxy) { Operation = "Op" };
 
         // Act
@@ -182,7 +182,7 @@ public sealed class RetryInterceptorTests
             }
         });
 
-        var proxy = new Proxy(Protocol.IceRpc);
+        var proxy = Proxy.Parse("icerpc:");
         var sut = new RetryInterceptor(invoker, new RetryOptions());
 
         var request = new OutgoingRequest(proxy) { Operation = "Op" };
@@ -212,7 +212,7 @@ public sealed class RetryInterceptorTests
         });
 
         var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = maxAttempts });
-        var proxy = new Proxy(Protocol.IceRpc);
+        var proxy = Proxy.Parse("icerpc:");
         var request = new OutgoingRequest(proxy)
         {
             Operation = "Op"
@@ -241,7 +241,7 @@ public sealed class RetryInterceptorTests
         });
 
         var sut = new RetryInterceptor(invoker, new RetryOptions());
-        var proxy = new Proxy(Protocol.IceRpc);
+        var proxy = Proxy.Parse("icerpc:");
         var request = new OutgoingRequest(proxy) { Operation = "Op" };
 
         // Act
@@ -269,7 +269,7 @@ public sealed class RetryInterceptorTests
         });
 
         var sut = new RetryInterceptor(invoker, new RetryOptions());
-        var proxy = new Proxy(Protocol.IceRpc);
+        var proxy = Proxy.Parse("icerpc:");
         var request = new OutgoingRequest(proxy)
         {
             Fields = new Dictionary<RequestFieldKey, OutgoingFieldValue>

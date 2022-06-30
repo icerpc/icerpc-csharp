@@ -95,7 +95,7 @@ public class LocatorInterceptorTests
         var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request, request.Connection!)));
         var locationResolver = new MockNonCachedLocationResolver();
         var sut = new LocatorInterceptor(invoker, locationResolver);
-        var proxy = new Proxy(Protocol.Ice) { Path = "/foo" };
+        var proxy = Proxy.Parse("ice:/foo");
         var request = new OutgoingRequest(proxy);
 
         await sut.InvokeAsync(request, default);

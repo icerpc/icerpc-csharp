@@ -37,10 +37,10 @@ public class LocatorEndpointFinderTests
 
     /// <summary>Verifies that <see cref="LocatorEndpointFinder"/> correctly resolves an object ID.</summary>
     [Test]
-    public void Find_adapter_by_id_returning_a_proxy_without_endpoint_fails()
+    public void Find_adapter_by_id_returning_a_proxy_without_host_fails()
     {
         IEndpointFinder endpointFinder = new LocatorEndpointFinder(
-            new FakeLocatorPrx(new ServicePrx(new Proxy(Protocol.Ice) { Path = "/dummy" }), adapterId: true));
+            new FakeLocatorPrx(ServicePrx.Parse("ice:/dummy"), adapterId: true));
         var location = new Location { IsAdapterId = true, Value = "good" };
 
         Assert.That(
@@ -79,7 +79,7 @@ public class LocatorEndpointFinderTests
     public void Find_object_by_id_returning_proxy_without_endpoint_fails()
     {
         IEndpointFinder endpointFinder = new LocatorEndpointFinder(
-            new FakeLocatorPrx(new ServicePrx(new Proxy(Protocol.Ice) { Path = "/dummy" }), adapterId: false));
+            new FakeLocatorPrx(ServicePrx.Parse("ice:/dummy"), adapterId: false));
         var location = new Location { IsAdapterId = false, Value = "good" };
 
         Assert.That(

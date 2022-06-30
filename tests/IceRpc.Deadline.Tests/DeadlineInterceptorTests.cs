@@ -30,7 +30,7 @@ public sealed class DeadlineInterceptorTests
             invoker,
             defaultTimeout: TimeSpan.FromMilliseconds(10),
             alwaysEnforceDeadline: false);
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var request = new OutgoingRequest(Proxy.Parse("icerpc:"));
 
         // Act
         Assert.ThrowsAsync<TimeoutException>(async () => await sut.InvokeAsync(request, CancellationToken.None));
@@ -68,7 +68,7 @@ public sealed class DeadlineInterceptorTests
             defaultTimeout: TimeSpan.FromSeconds(120),
             alwaysEnforceDeadline: false);
 
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
+        var request = new OutgoingRequest(Proxy.Parse("icerpc:"))
         {
             Features = features
         };
@@ -98,7 +98,7 @@ public sealed class DeadlineInterceptorTests
         });
 
         var sut = new DeadlineInterceptor(invoker, timeout, alwaysEnforceDeadline: false);
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var request = new OutgoingRequest(Proxy.Parse("icerpc:"));
         DateTime expectedDeadline = DateTime.UtcNow + timeout;
 
         // Act
@@ -120,7 +120,7 @@ public sealed class DeadlineInterceptorTests
         });
 
         var sut = new DeadlineInterceptor(invoker, Timeout.InfiniteTimeSpan, alwaysEnforceDeadline: false);
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
+        var request = new OutgoingRequest(Proxy.Parse("icerpc:"))
         {
             Features = new FeatureCollection().With<IDeadlineFeature>(
                 DeadlineFeature.FromTimeout(TimeSpan.FromMilliseconds(100)))
@@ -150,7 +150,7 @@ public sealed class DeadlineInterceptorTests
             invoker,
             defaultTimeout: Timeout.InfiniteTimeSpan,
             alwaysEnforceDeadline: true);
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
+        var request = new OutgoingRequest(Proxy.Parse("icerpc:"))
         {
             Features = new FeatureCollection().With<IDeadlineFeature>(
                 DeadlineFeature.FromTimeout(TimeSpan.FromMilliseconds(100)))

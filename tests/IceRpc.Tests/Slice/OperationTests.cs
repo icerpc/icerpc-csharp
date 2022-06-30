@@ -324,7 +324,7 @@ public class OperationTests
         PipeReader payload = IMyOperationsA.Response.OpReadOnlyMemory(readOnlyMemory);
 
         // Assert
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var request = new OutgoingRequest(Proxy.Parse("icerpc:"));
         var response = new IncomingResponse(request, InvalidConnection.IceRpc)
         {
             Payload = payload
@@ -366,7 +366,7 @@ public class OperationTests
         PipeReader payload = IMyOperationsA.Response.OpReadOnlyMemoryOptional(readOnlyMemory);
 
         // Assert
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var request = new OutgoingRequest(Proxy.Parse("icerpc:"));
         var response = new IncomingResponse(request, InvalidConnection.IceRpc)
         {
             Payload = payload
@@ -408,7 +408,7 @@ public class OperationTests
         PipeReader payload = IMyOperationsA.Response.OpReadOnlyMemoryTagged(readOnlyMemory);
 
         // Assert
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var request = new OutgoingRequest(Proxy.Parse("icerpc:"));
         var response = new IncomingResponse(request, InvalidConnection.IceRpc)
         {
             Payload = payload

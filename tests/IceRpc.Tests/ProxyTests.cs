@@ -176,12 +176,12 @@ public class ProxyTests
     };
 
     /// <summary>Verifies that the "fragment" cannot be set when the protocol has no fragment.</summary>
-    [TestCase("icerpc")]
+    [TestCase("icerpc:")]
     [TestCase("")]
-    public void Cannot_set_fragment_if_protocol_has_no_fragment(string protocolName)
+    public void Cannot_set_fragment_if_protocol_has_no_fragment(string prefix)
     {
-        var protocol = Protocol.FromString(protocolName);
-        var proxy = new Proxy(protocol);
+        var proxy = Proxy.Parse($"{prefix}/path");
+        Protocol protocol = proxy.Protocol;
 
         Assert.That(
             () => proxy = proxy with { Fragment = "bar" },
@@ -388,7 +388,7 @@ public class ProxyTests
     [Test]
     public void Set_fragment_on_an_ice_proxy()
     {
-        var proxy = new Proxy(Protocol.Ice);
+        var proxy = Proxy.Parse("ice:/path");
 
         proxy = proxy with { Fragment = "bar" };
 

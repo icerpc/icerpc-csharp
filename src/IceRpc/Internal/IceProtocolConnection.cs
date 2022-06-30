@@ -410,7 +410,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                 // For compatibility with ZeroC Ice "indirect" proxies
                 IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields =
-                    replyStatus == ReplyStatus.ObjectNotExistException && request.Proxy.Endpoint is null ?
+                    replyStatus == ReplyStatus.ObjectNotExistException &&
+                    request.Proxy.Endpoint is Endpoint endpoint &&
+                    endpoint.Host.Length == 0 ?
                     _otherReplicaFields :
                     ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
 

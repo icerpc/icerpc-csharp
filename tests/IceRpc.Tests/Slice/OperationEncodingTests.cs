@@ -70,7 +70,7 @@ public class OperationEncodingTests
     [Test]
     public async Task Slice2_operation_decode_with_single_return()
     {
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var request = new OutgoingRequest(Proxy.Parse("icerpc:"));
         var response = new IncomingResponse(request, InvalidConnection.IceRpc)
         {
             Payload = Encode(10)
@@ -151,7 +151,7 @@ public class OperationEncodingTests
     [Test]
     public async Task Slice2_operation_decode_with_multiple_return()
     {
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var request = new OutgoingRequest(Proxy.Parse("icerpc:"));
         var response = new IncomingResponse(request, InvalidConnection.IceRpc)
         {
             Payload = Encode(10, "hello world!")
@@ -313,7 +313,7 @@ public class OperationEncodingTests
     {
         const int p1 = 10;
         const string p2 = "hello world!";
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var request = new OutgoingRequest(Proxy.Parse("icerpc:"));
         var response = new IncomingResponse(request, InvalidConnection.IceRpc)
         {
             Payload = Encode(p1, p2, p3, p4)
@@ -483,7 +483,7 @@ public class OperationEncodingTests
     {
         const int p1 = 10;
         const string p2 = "hello world!";
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var request = new OutgoingRequest(Proxy.Parse("icerpc:"));
         var response = new IncomingResponse(request, InvalidConnection.IceRpc)
         {
             Payload = Encode(p1, p2, p3, p4)

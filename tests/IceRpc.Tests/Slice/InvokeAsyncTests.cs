@@ -16,11 +16,9 @@ public class InvokeAsyncTests
     {
         var responsePayload = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
 
-        var sut = new ServicePrx(new Proxy(Protocol.IceRpc)
-        {
-            Invoker = new InlineInvoker((request, cancel) =>
-                Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc) { Payload = responsePayload }))
-        });
+        var sut = ServicePrx.Parse("icerpc:");
+        sut.Proxy.Invoker = new InlineInvoker((request, cancel) =>
+            Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc) { Payload = responsePayload }));
 
         var requestPayload = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
 
@@ -48,10 +46,8 @@ public class InvokeAsyncTests
     [Test]
     public void InvokeAsync_completes_all_payloads_on_outgoing_exception()
     {
-        var sut = new ServicePrx(new Proxy(Protocol.IceRpc)
-        {
-            Invoker = new InlineInvoker((request, cancel) => throw new InvalidDataException("error"))
-        });
+        var sut = ServicePrx.Parse("icerpc:");
+        sut.Proxy.Invoker = new InlineInvoker((request, cancel) => throw new InvalidDataException("error"));
 
         var requestPayload = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
         var requestPayloadStream = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
