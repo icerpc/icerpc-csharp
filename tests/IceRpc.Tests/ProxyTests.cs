@@ -94,8 +94,6 @@ public class ProxyTests
             "ice://host/",                  // empty identity name
             "ice://host//",                 // empty identity name
             "ice:/path?alt-endpoint=foo",   // alt-endpoint proxy parameter
-            "ice:/path?adapter-id",         // empty adapter-id
-            "ice:/path?adapter-id=foo&foo", // extra parameter
         };
 
     /// <summary>A collection of proxy strings that are valid, with its expected path and
@@ -177,33 +175,6 @@ public class ProxyTests
         },
     };
 
-    /// <summary>Verifies that adapter-id param cannot be set to an empty value.</summary>
-    [Test]
-    public void Adapter_id_cannot_be_empty()
-    {
-        // Arrange
-        var proxy = Proxy.Parse("ice://localhost/hello");
-
-        // Act/Assert
-        Assert.That(() => proxy.Params = proxy.Params.SetItem("adapter-id", ""), Throws.ArgumentException);
-    }
-
-    /// <summary>Verifies that the proxy endpoint cannot be set when the proxy contains any params.</summary>
-    [Test]
-    public void Cannot_set_endpoint_on_a_proxy_with_parameters()
-    {
-        // Arrange
-        var proxy = new Proxy(Protocol.Ice)
-        {
-            Params = new Dictionary<string, string> { ["adapter-id"] = "value" }.ToImmutableDictionary(),
-        };
-
-        // Act/Assert
-        Assert.That(
-            () => proxy.Endpoint = new Endpoint(proxy.Protocol) { Host = "localhost" },
-            Throws.TypeOf<InvalidOperationException>());
-    }
-
     /// <summary>Verifies that the "fragment" cannot be set when the protocol has no fragment.</summary>
     [TestCase("icerpc")]
     [TestCase("")]
@@ -217,17 +188,6 @@ public class ProxyTests
             Throws.TypeOf<InvalidOperationException>());
 
         Assert.That(protocol.HasFragment, Is.False);
-    }
-
-    /// <summary>Verifies that the proxy params cannot be set when the proxy has an endpoint.</summary>
-    [Test]
-    public void Cannot_set_params_on_a_proxy_with_endpoints()
-    {
-        var proxy = Proxy.Parse("icerpc://localhost/hello");
-
-        Assert.That(
-            () => proxy.Params = proxy.Params.Add("name", "value"),
-            Throws.TypeOf<InvalidOperationException>());
     }
 
     /// <summary>Verifies that a proxy can be converted into a string using any of the supported formats.</summary>

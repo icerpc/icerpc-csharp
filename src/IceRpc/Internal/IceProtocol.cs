@@ -46,26 +46,6 @@ internal sealed class IceProtocol : Protocol
         }
     }
 
-    /// <summary>Checks if the proxy parameters are valid. The only valid parameter is adapter-id with a non-empty
-    /// value.</summary>
-    internal override void CheckProxyParams(ImmutableDictionary<string, string> proxyParams)
-    {
-        foreach ((string name, string value) in proxyParams)
-        {
-            if (name == "adapter-id")
-            {
-                if (value.Length == 0)
-                {
-                    throw new FormatException("the value of the adapter-id parameter cannot be empty");
-                }
-            }
-            else
-            {
-                throw new FormatException($"'{name}' is not a valid ice proxy parameter");
-            }
-        }
-    }
-
     private IceProtocol()
         : base(IceName)
     {

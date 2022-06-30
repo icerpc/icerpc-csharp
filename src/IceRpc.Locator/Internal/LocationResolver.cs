@@ -49,14 +49,15 @@ internal class CacheLessLocationResolver : ILocationResolver
         bool refreshCache,
         CancellationToken cancel) => ResolveAsync(location, cancel);
 
-    private async ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(
-        Location location,
-        CancellationToken cancel)
+    private async ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(Location location, CancellationToken cancel)
     {
         Proxy? proxy = await _endpointFinder.FindAsync(location, cancel).ConfigureAwait(false);
 
         // A well-known proxy resolution can return a proxy with an adapter ID
-        if (proxy is not null && proxy.Params.TryGetValue("adapter-id", out string? adapterId))
+        if (proxy is not null &&
+            proxy.Endpoint is Endpoint endpoint &&
+            endpoint.Host.Length == 0 &&
+            endpoint.Params.TryGetValue("adapter-id", out string? adapterId))
         {
             (proxy, _) = await ResolveAsync(
                 new Location { IsAdapterId = true, Value = adapterId },
@@ -126,7 +127,9 @@ internal class LocationResolver : ILocationResolver
         }
 
         // A well-known proxy resolution can return a loc endpoint
-        if (proxy is not null && proxy.Params.TryGetValue("adapter-id", out string? adapterId))
+        if (proxy is not null &&
+            proxy.Endpoint is Endpoint endpoint && endpoint.Host.Length == 0 &&
+            endpoint.Params.TryGetValue("adapter-id", out string? adapterId))
         {
             try
             {

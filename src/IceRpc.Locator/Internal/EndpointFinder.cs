@@ -57,7 +57,8 @@ internal class LocatorEndpointFinder : IEndpointFinder
                 {
                     // findObjectById can return an indirect proxy with an adapter ID
                     return proxy.Protocol == Protocol.Ice &&
-                        (proxy.Endpoint is not null || proxy.Params.ContainsKey("adapter-id")) ? proxy :
+                        proxy.Endpoint is Endpoint endpoint &&
+                        (endpoint.Host.Length > 0 || endpoint.Params.ContainsKey("adapter-id")) ? proxy :
                             throw new InvalidDataException($"findObjectById returned invalid proxy '{proxy}'");
                 }
                 else

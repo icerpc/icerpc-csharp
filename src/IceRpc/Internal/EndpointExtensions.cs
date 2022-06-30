@@ -12,7 +12,7 @@ internal static class EndpointExtensions
     /// <param name="sb">The string builder.</param>
     /// <param name="endpoint">The endpoint to append.</param>
     /// <param name="path">The path of the endpoint URI. Use this parameter to start building a proxy URI.</param>
-    /// <param name="includeScheme">When true, first appends the endpoint's protocol followed by ://.</param>
+    /// <param name="includeScheme">When true, first appends the endpoint's protocol followed by : or ://.</param>
     /// <param name="paramSeparator">The character that separates parameters in the query component of the URI.
     /// </param>
     /// <returns>The string builder <paramref name="sb"/>.</returns>
@@ -23,27 +23,38 @@ internal static class EndpointExtensions
         bool includeScheme = true,
         char paramSeparator = '&')
     {
-        if (includeScheme)
+        if (endpoint.Host.Length == 0)
         {
-            sb.Append(endpoint.Protocol);
-            sb.Append("://");
-        }
-
-        if (endpoint.Host.Contains(':', StringComparison.Ordinal))
-        {
-            sb.Append('[');
-            sb.Append(endpoint.Host);
-            sb.Append(']');
+            if (includeScheme)
+            {
+                sb.Append(endpoint.Protocol);
+                sb.Append(':');
+            }
         }
         else
         {
-            sb.Append(endpoint.Host);
-        }
+            if (includeScheme)
+            {
+                sb.Append(endpoint.Protocol);
+                sb.Append("://");
+            }
 
-        if (endpoint.Port != endpoint.Protocol.DefaultUriPort)
-        {
-            sb.Append(':');
-            sb.Append(endpoint.Port.ToString(CultureInfo.InvariantCulture));
+            if (endpoint.Host.Contains(':', StringComparison.Ordinal))
+            {
+                sb.Append('[');
+                sb.Append(endpoint.Host);
+                sb.Append(']');
+            }
+            else
+            {
+                sb.Append(endpoint.Host);
+            }
+
+            if (endpoint.Port != endpoint.Protocol.DefaultUriPort)
+            {
+                sb.Append(':');
+                sb.Append(endpoint.Port.ToString(CultureInfo.InvariantCulture));
+            }
         }
 
         if (path.Length > 0)

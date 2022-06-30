@@ -47,6 +47,8 @@ public class EndpointTests
             ("icerpc://host:10000?transport=foobar", "host", 10000, new Dictionary<string, string>() { ["transport"] = "foobar" }),
             ("icerpc://host", "host", 4062, null),
             ("icerpc://[::0]", "::", 4062, null),
+            ("icerpc://", "", 4062, null),
+            ("ice:///", "", 4061, null),
             ("ice://[::0]?foo=bar&xyz=true",
              "::",
              4061,
@@ -141,10 +143,7 @@ public class EndpointTests
     [TestCase("icerpc://host:10000?alt-endpoint=host2")]           // alt-endpoint is proxy only
     [TestCase("icerpc://host:10000?=bar")]                         // empty param name
     [TestCase("icerpc:///foo")]                                    // path, empty authority
-    [TestCase("icerpc:///")]                                       // empty authority
-    [TestCase("icerpc://")]                                        // empty authority
-    [TestCase("icerpc:/foo")]                                      // no authority
-    [TestCase("icerpc:")]                                          // no authority
+    [TestCase("icerpc:/foo")]                                      // unexpected path
     [TestCase("foo://host:10000")]                                 // protocol not supported
     [TestCase("icerpc://user:password@host:10000")]                // bad user-info
     [TestCase("icerpc://host:70000")]                              // bad port
@@ -210,7 +209,7 @@ public class EndpointTests
     [TestCase("::1.2")]
     public void Setting_invalid_endpoint_host_fails(string host)
     {
-        var endpoint = Endpoint.FromString("icerpc://localhost");
+        var endpoint = Endpoint.FromString("icerpc://localhost:10000");
 
         Assert.Throws<ArgumentException>(() => _ = endpoint with { Host = host });
 

@@ -38,7 +38,7 @@ public class LocatorInterceptorTests
         var sut = new LocatorInterceptor(invoker, locationResolver);
         var proxy = new Proxy(Protocol.Ice)
         {
-            Params = new Dictionary<string, string> { ["adapter-id"] = "foo" }.ToImmutableDictionary()
+            Endpoint = "ice:?adapter-id=foo"
         };
         var request = new OutgoingRequest(proxy);
 
@@ -46,7 +46,7 @@ public class LocatorInterceptorTests
 
         IEndpointFeature? endpointFeature = request.Features.Get<IEndpointFeature>();
         Assert.That(endpointFeature, Is.Not.Null);
-        Assert.That(endpointFeature.Endpoint, Is.EqualTo(expected.Endpoint));
+        Assert.That(endpointFeature!.Endpoint, Is.EqualTo(expected.Endpoint));
     }
 
     /// <summary>Verifies that the locator interceptor correctly resolves a well-known proxy using the given
@@ -58,7 +58,7 @@ public class LocatorInterceptorTests
         var expected = Proxy.Parse("ice://localhost:10000/foo");
         var locationResolver = new MockLocationResolver(expected, adapterId: false);
         var sut = new LocatorInterceptor(invoker, locationResolver);
-        var proxy = new Proxy(Protocol.Ice) { Path = "/foo" };
+        var proxy = Proxy.Parse("ice:/foo");
         var request = new OutgoingRequest(proxy);
 
         await sut.InvokeAsync(request, default);
@@ -77,7 +77,7 @@ public class LocatorInterceptorTests
         var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request, request.Connection!)));
         var locationResolver = new MockCachedLocationResolver();
         var sut = new LocatorInterceptor(invoker, locationResolver);
-        var proxy = new Proxy(Protocol.Ice) { Path = "/foo" };
+        var proxy = Proxy.Parse("ice:/foo");
         var request = new OutgoingRequest(proxy);
 
         await sut.InvokeAsync(request, default);

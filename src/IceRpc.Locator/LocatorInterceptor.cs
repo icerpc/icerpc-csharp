@@ -50,9 +50,10 @@ public class LocatorInterceptor : IInvoker
                 location = cachedResolution.Location;
                 refreshCache = true;
             }
-            else if (endpointFeature.Endpoint is null)
+            else if (endpointFeature.Endpoint is null &&
+                request.Proxy.Endpoint is Endpoint endpoint && endpoint.Host.Length == 0)
             {
-                if (request.Proxy.Params.TryGetValue("adapter-id", out string? adapterId))
+                if (endpoint.Params.TryGetValue("adapter-id", out string? adapterId))
                 {
                     location = new Location { IsAdapterId = true, Value = adapterId };
                 }

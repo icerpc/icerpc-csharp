@@ -15,7 +15,8 @@ public sealed class EndpointFeature : IEndpointFeature
     /// <param name="proxy">The proxy to copy the endpoints from.</param>
     public EndpointFeature(Proxy proxy)
     {
-        Endpoint = proxy.Endpoint;
+        // We only set Endpoint if it has a non-empty host
+        Endpoint = proxy.Endpoint is Endpoint endpoint && endpoint.Host.Length == 0 ? null : proxy.Endpoint;
         AltEndpoints = proxy.AltEndpoints;
     }
 }

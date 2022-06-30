@@ -317,24 +317,31 @@ public ref partial struct SliceEncoder
 
             if (proxy.Endpoint is Endpoint endpoint)
             {
-                EncodeSize(1 + proxy.AltEndpoints.Count); // endpoint count
-                EncodeEndpoint(endpoint);
-                foreach (Endpoint altEndpoint in proxy.AltEndpoints)
+                if (endpoint.Host.Length > 0)
                 {
-                    EncodeEndpoint(altEndpoint);
+                    EncodeSize(1 + proxy.AltEndpoints.Count); // endpoint count
+                    EncodeEndpoint(endpoint);
+                    foreach (Endpoint altEndpoint in proxy.AltEndpoints)
+                    {
+                        EncodeEndpoint(altEndpoint);
+                    }
+                }
+                else
+                {
+                    EncodeSize(0); // 0 endpoints
+                    int maxCount = endpoint.Params.TryGetValue("adapter-id", out string? adapterId) ? 1 : 0;
+
+                    if (endpoint.Params.Count > maxCount)
+                    {
+                        throw new NotSupportedException(
+                            "cannot encode endpoint with empty host name and parameter other than adapter-id using Slice1");
+                    }
+                    EncodeString(adapterId ?? "");
                 }
             }
             else
             {
-                EncodeSize(0); // 0 endpoints
-                int maxCount = proxy.Params.TryGetValue("adapter-id", out string? adapterId) ? 1 : 0;
-
-                if (proxy.Params.Count > maxCount)
-                {
-                    throw new NotSupportedException(
-                        "cannot encode proxy with parameter other than adapter-id using Slice1");
-                }
-                EncodeString(adapterId ?? "");
+                throw new NotSupportedException("cannot encode proxy with no endpoint using Slice1");
             }
         }
         else

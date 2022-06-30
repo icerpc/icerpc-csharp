@@ -45,6 +45,13 @@ public sealed record class Proxy
                         $"the {nameof(AltEndpoints)} endpoints must use the proxy's protocol {Protocol}",
                         nameof(value));
                 }
+
+                if (value.Any(e => e.Host.Length == 0))
+                {
+                    throw new ArgumentException(
+                        $"an {nameof(AltEndpoints)} endpoint cannot have an empty host",
+                        nameof(value));
+                }
             }
             // else, no need to check anything, an empty list is always fine.
 
@@ -89,18 +96,19 @@ public sealed record class Proxy
                     nameof(value));
             }
 
-            if (value is not null)
+            if (_altEndpoints.Count > 0)
             {
-                if (_params.Count > 0)
+                if (value is null)
                 {
                     throw new InvalidOperationException(
-                        $"cannot set {nameof(Endpoint)} on a proxy with parameters");
+                        $"cannot clear {nameof(Endpoint)} when {nameof(AltEndpoints)} is not empty");
                 }
-            }
-            else if (_altEndpoints.Count > 0)
-            {
-                throw new InvalidOperationException(
-                    $"cannot clear {nameof(Endpoint)} when {nameof(AltEndpoints)} is not empty");
+                else if (value.Value.Host.Length == 0)
+                {
+                    throw new InvalidOperationException(
+                        @$"cannot set {nameof(Endpoint)
+                        } to an endpoint with an empty host when {nameof(AltEndpoints)} is not empty");
+                }
             }
             _endpoint = value;
             OriginalUri = null;
@@ -176,35 +184,6 @@ public sealed record class Proxy
         }
     }
 
-    /// <summary>Gets or sets the parameters of this proxy. Always empty when <see cref="Endpoint"/> is not null.
-    /// </summary>
-    public ImmutableDictionary<string, string> Params
-    {
-        get => _params;
-        set
-        {
-            CheckSupportedProtocol(nameof(Params));
-
-            try
-            {
-                CheckParams(value); // general checking (properly escape, no empty name)
-                Protocol.CheckProxyParams(value); // protocol-specific checking
-            }
-            catch (FormatException ex)
-            {
-                throw new ArgumentException($"invalid parameters", nameof(Params), ex);
-            }
-
-            if (_endpoint is not null && value.Count > 0)
-            {
-                throw new InvalidOperationException($"cannot set {nameof(Params)} on a proxy with an endpoint");
-            }
-
-            _params = value;
-            OriginalUri = null;
-        }
-    }
-
     /// <summary>Gets the proxy's protocol .</summary>
     public Protocol Protocol { get; }
 
@@ -213,7 +192,6 @@ public sealed record class Proxy
     private Endpoint? _endpoint;
     private string _fragment = "";
     private IInvoker _invoker = DefaultInvoker;
-    private ImmutableDictionary<string, string> _params = ImmutableDictionary<string, string>.Empty;
     private string _path = "/";
 
     /// <summary>Creates a proxy from a connection and a path.</summary>
@@ -335,7 +313,9 @@ public sealed record class Proxy
                     string host = uri.IdnHost;
                     if (host.Length == 0)
                     {
-                        throw new ArgumentException("cannot create an endpoint with an empty host", nameof(uri));
+                        throw new ArgumentException(
+                            "cannot create an endpoint with a non-empty authority and an empty host",
+                            nameof(uri));
                     }
 
                     _endpoint = new Endpoint(
@@ -353,8 +333,15 @@ public sealed record class Proxy
 
                             // The separator for endpoint parameters in alt-endpoint is $, so we replace these '$'
                             // by '&' before sending the string to Endpoint.FromString which uses '&' as separator.
-                            _altEndpoints = _altEndpoints.Add(
-                                IceRpc.Endpoint.FromString(altUriString.Replace('$', '&')));
+                            var altEndpoint = IceRpc.Endpoint.FromString(altUriString.Replace('$', '&'));
+
+                            if (altEndpoint.Host.Length == 0)
+                            {
+                                throw new FormatException(
+                                    $"invalid alt-endpoint with empty host in proxy URI '{uri.OriginalString}'");
+                            }
+
+                            _altEndpoints = _altEndpoints.Add(altEndpoint);
                         }
                     }
                 }
@@ -370,8 +357,11 @@ public sealed record class Proxy
                         throw new FormatException($"invalid alt-endpoint parameter in URI '{uri.OriginalString}'");
                     }
 
-                    Protocol.CheckProxyParams(queryParams);
-                    Params = queryParams;
+                    _endpoint = new Endpoint(
+                        Protocol,
+                        host: "",
+                        port: (ushort)Protocol.DefaultUriPort,
+                        queryParams);
                 }
             }
 
@@ -443,10 +433,6 @@ public sealed record class Proxy
             return false;
         }
         if (!_altEndpoints.SequenceEqual(other._altEndpoints))
-        {
-            return false;
-        }
-        if (!Params.DictionaryEqual(other.Params))
         {
             return false;
         }
@@ -530,17 +516,6 @@ public sealed record class Proxy
             }
         }
 
-        foreach ((string name, string value) in Params)
-        {
-            StartQueryOption(sb, ref firstOption);
-            sb.Append(name);
-            if (value.Length > 0)
-            {
-                sb.Append('=');
-                sb.Append(value);
-            }
-        }
-
         if (Fragment.Length > 0)
         {
             sb.Append('#');
@@ -609,7 +584,6 @@ public sealed record class Proxy
         string path,
         Endpoint? endpoint,
         ImmutableList<Endpoint> altEndpoints,
-        ImmutableDictionary<string, string> proxyParams,
         string fragment,
         IInvoker invoker)
     {
@@ -617,7 +591,6 @@ public sealed record class Proxy
         _path = path;
         _endpoint = endpoint;
         _altEndpoints = altEndpoints;
-        _params = proxyParams;
         _fragment = fragment;
         _invoker = invoker;
     }

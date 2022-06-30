@@ -112,15 +112,6 @@ public class Protocol : IEquatable<Protocol>
         // by default, any URI absolute path is ok
         Debug.Assert(IsSupported || this == Relative);
 
-    /// <summary>Checks if these proxy parameters are valid for this protocol.</summary>
-    /// <param name="proxyParams">The proxy parameters to check.</param>
-    /// <exception cref="FormatException">Thrown if the proxy parameters are not valid.</exception>
-    /// <remarks>This method does not and should not check if the parameter names and values are properly escaped;
-    /// it does not check for the invalid empty and alt-endpoint parameter names either.</remarks>
-    internal virtual void CheckProxyParams(ImmutableDictionary<string, string> proxyParams) =>
-        // by default, any dictionary is ok
-        Debug.Assert(IsSupported || this == Relative);
-
     internal byte ToByte() => Name switch
     {
         IceName => 1,

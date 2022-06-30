@@ -1121,17 +1121,18 @@ public ref partial struct SliceDecoder
 
         int count = DecodeSize();
 
-        Endpoint? endpoint = null;
+        Endpoint endpoint;
         IEnumerable<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
         var protocol = Protocol.FromByte(proxyData.ProtocolMajor);
-        ImmutableDictionary<string, string> proxyParams = ImmutableDictionary<string, string>.Empty;
 
         if (count == 0)
         {
+            ImmutableDictionary<string, string> endpointParams = ImmutableDictionary<string, string>.Empty;
             if (DecodeString() is string adapterId && adapterId.Length > 0)
             {
-                proxyParams = proxyParams.Add("adapter-id", adapterId);
+                endpointParams = endpointParams.Add("adapter-id", adapterId);
             }
+            endpoint = new Endpoint(protocol, host: "", port: (ushort)protocol.DefaultUriPort, endpointParams);
         }
         else
         {
@@ -1163,7 +1164,6 @@ public ref partial struct SliceDecoder
                 path,
                 endpoint,
                 altEndpoints.ToImmutableList(),
-                proxyParams,
                 proxyData.Fragment,
                 _invoker);
         }

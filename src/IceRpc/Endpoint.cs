@@ -22,7 +22,16 @@ public readonly record struct Endpoint
         get => _host;
         init
         {
-            if (Uri.CheckHostName(value) == UriHostNameType.Unknown)
+            if (value.Length == 0)
+            {
+                if (_port != Protocol.DefaultUriPort)
+                {
+                    throw new ArgumentException(
+                        $"cannot clear {nameof(Host)} unless the port is set to the default port",
+                        nameof(value));
+                }
+            }
+            else if (Uri.CheckHostName(value) == UriHostNameType.Unknown)
             {
                 throw new ArgumentException($"cannot set {nameof(Host)} to '{value}'", nameof(value));
             }
@@ -37,6 +46,13 @@ public readonly record struct Endpoint
         get => _port;
         init
         {
+            if (_host.Length == 0)
+            {
+                throw new ArgumentException(
+                    $"cannot set {nameof(Port)} on an endpoint with an empty host",
+                    nameof(value));
+            }
+
             _port = value;
             OriginalUri = null; // new port invalidates OriginalUri
         }
@@ -115,8 +131,8 @@ public readonly record struct Endpoint
     /// <summary>Constructs an endpoint from a <see cref="Uri"/>.</summary>
     /// <param name="uri">An absolute URI.</param>
     /// <exception cref="ArgumentException">Thrown if the <paramref name="uri"/> is not an absolute URI, or if its
-    /// scheme is not a supported protocol, or if it has a non-empty path or fragment, or if it has an empty host,
-    /// or if its query can't be parsed or if it has an alt-endpoint query parameter.</exception>
+    /// scheme is not a supported protocol, or if it has a non-empty path or fragment or if it has an alt-endpoint query
+    /// parameter.</exception>
     /// <exception cref="FormatException">Thrown if the query portion of the URI cannot be parsed.</exception>
     public Endpoint(Uri uri)
     {
@@ -129,18 +145,29 @@ public readonly record struct Endpoint
         {
             throw new ArgumentException($"cannot create an endpoint with protocol '{Protocol}'", nameof(uri));
         }
-        _host = uri.IdnHost;
-        if (_host.Length == 0)
+
+        if (uri.Authority.Length > 0)
         {
-            throw new ArgumentException("cannot create an endpoint with an empty host", nameof(uri));
+            _host = uri.IdnHost;
+            if (_host.Length == 0)
+            {
+                throw new ArgumentException(
+                    "cannot create an endpoint with a non-empty authority and an empty host",
+                    nameof(uri));
+            }
+
+            // bug if it throws OverflowException
+            _port = checked((ushort)(uri.Port == -1 ? Protocol.DefaultUriPort : uri.Port));
+
+            if (uri.UserInfo.Length > 0)
+            {
+                throw new ArgumentException("cannot create an endpoint with a user info", nameof(uri));
+            }
         }
-
-        // bug if it throws OverflowException
-        _port = checked((ushort)(uri.Port == -1 ? Protocol.DefaultUriPort : uri.Port));
-
-        if (uri.UserInfo.Length > 0)
+        else
         {
-            throw new ArgumentException("cannot create an endpoint with a user info", nameof(uri));
+            _host = "";
+            _port = (ushort)Protocol.DefaultUriPort;
         }
 
         if (uri.AbsolutePath.Length > 1)
