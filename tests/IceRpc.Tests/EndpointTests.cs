@@ -216,10 +216,11 @@ public class EndpointTests
         var endpoint = new Endpoint(uri);
 
         // Act
-        var endpointUri = endpoint.ToUri();
+        var result = endpoint.ToUri();
 
         // Assert
-        Assert.That(endpointUri, Is.EqualTo(uri));
+        Assert.That(endpoint.OriginalUri, Is.EqualTo(uri));
+        Assert.That(result, Is.EqualTo(uri));
     }
 
     [Test]
@@ -227,13 +228,14 @@ public class EndpointTests
     {
         // Arrange
         var endpoint = Endpoint.FromString("icerpc://localhost");
+        endpoint = endpoint with { Host = "foo" }; // new host invalidates OriginalUri
 
         // Act
         var endpointUri = endpoint.ToUri();
 
         // Assert
         Assert.That(endpointUri.Scheme, Is.EqualTo("icerpc"));
-        Assert.That(endpointUri.Host, Is.EqualTo("localhost"));
+        Assert.That(endpointUri.Host, Is.EqualTo("foo"));
     }
 
     /// <summary>Verifies that setting the endpoint parameters works.</summary>
