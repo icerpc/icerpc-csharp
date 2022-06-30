@@ -159,7 +159,6 @@ internal class SynchronizedProtocolConnectionDecorator : IProtocolConnection
         // shutting down and at the same time or shortly after dispose the same connection because of its own disposal.
         // We want to second disposal to "hang" if there is (for example) a bug in the dispatch code that causes the
         // DisposeAsync to hang.
-
         lock (_mutex)
         {
             _disposeTask ??= DisposeAsyncCore();

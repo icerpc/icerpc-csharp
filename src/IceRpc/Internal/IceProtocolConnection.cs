@@ -135,7 +135,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     // Unblock ShutdownAsync which might be waiting for the connection to be disposed.
                     _pendingClose.TrySetResult();
                 }
-                catch (OperationCanceledException) when (_disposeCancelSource.IsCancellationRequested)
+                catch (OperationCanceledException) when (_shutdownTask is not null)
                 {
                     // Expected if DisposeAsync has been called.
                 }
@@ -535,7 +535,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         {
             await _shutdownTask.WaitAsync(cancel).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (_shutdownCancelSource.IsCancellationRequested)
+        catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
         {
             throw new ConnectionAbortedException("shutdown canceled");
         }

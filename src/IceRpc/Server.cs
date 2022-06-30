@@ -275,8 +275,6 @@ public sealed class Server : IAsyncDisposable
                 }
                 catch
                 {
-                    // OnAbort will take care of cleaning up
-                    return;
                 }
             }
 

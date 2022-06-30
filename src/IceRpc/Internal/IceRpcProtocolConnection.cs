@@ -119,7 +119,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         }
                     }
                 }
-                catch (OperationCanceledException) when (_disposeCancelSource.IsCancellationRequested)
+                catch (ConnectionClosedException) when (_shutdownTask is not null)
+                {
+                    // The Slic connection has been gracefully shutdown.
+                }
+                catch (OperationCanceledException) when (_shutdownTask is not null)
                 {
                     // Expected if DisposeAsync has been called.
                 }

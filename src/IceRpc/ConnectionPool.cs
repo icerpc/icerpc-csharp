@@ -321,8 +321,6 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
                 }
                 catch
                 {
-                    // OnAbort will clean it up
-                    return;
                 }
             }
 
