@@ -147,33 +147,19 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 }
                 finally
                 {
-                    // Cancel invocations and dispatches
+                    // Cancel invocations, otherwise the pending invocations could hang indefinitely until the caller
+                    // calls DisposeAsync.
                     if (exception != null)
                     {
                         IEnumerable<TaskCompletionSource<PipeReader>> invocations;
-                        IEnumerable<CancellationTokenSource> dispatches;
                         lock (_mutex)
                         {
                             _shutdownTask = Task.CompletedTask; // Prevent new invocations from being accepted.
                             invocations = _invocations.Values.ToArray();
-                            dispatches = _dispatches.ToArray();
                         }
-
                         foreach (TaskCompletionSource<PipeReader> responseCompletionSource in invocations)
                         {
                             responseCompletionSource.TrySetException(exception);
-                        }
-
-                        foreach (CancellationTokenSource dispatchCancelSource in dispatches)
-                        {
-                            try
-                            {
-                                dispatchCancelSource.Cancel();
-                            }
-                            catch (ObjectDisposedException)
-                            {
-                                // Ignore, the dispatch completed concurrently.
-                            }
                         }
                     }
                 }
@@ -1281,14 +1267,13 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
         InvokeOnShutdown(message);
 
-        IEnumerable<TaskCompletionSource<PipeReader>> invocations;
         lock (_mutex)
         {
+            Debug.Assert(_shutdownTask is not null);
             if (_dispatches.Count == 0 && _invocations.Count == 0)
             {
                 _dispatchesAndInvocationsCompleted.TrySetResult();
             }
-            invocations = _invocations.Values.ToArray();
         }
 
         // Wait for dispatches and invocations to complete.

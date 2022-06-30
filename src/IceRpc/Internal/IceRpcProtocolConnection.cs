@@ -120,7 +120,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 }
                 catch (ConnectionClosedException) when (_shutdownTask is not null)
                 {
-                    // The Slic connection has been gracefully shutdown.
+                    // Expected when shutting down and the network connection is gracefully shutdown.
                 }
                 catch (OperationCanceledException) when (_shutdownTask is not null)
                 {
@@ -129,6 +129,25 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 catch (Exception exception)
                 {
                     _onAbort?.Invoke(exception);
+
+                    // Cancel streams for pending invocations, otherwise the pending invocations could hang indefinitely
+                    // until the caller calls DisposeAsync.
+                    if (exception != null)
+                    {
+                        IEnumerable<IMultiplexedStream> streams;
+                        lock (_mutex)
+                        {
+                            _shutdownTask = Task.CompletedTask; // Prevent new invocations from being accepted.
+                            streams = _streams.ToArray();
+                        }
+                        foreach (IMultiplexedStream stream in streams)
+                        {
+                            if (!stream.IsRemote)
+                            {
+                                stream.Abort(exception);
+                            }
+                        }
+                    }
                 }
             },
             CancellationToken.None);
@@ -196,12 +215,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         {
             // Expected if shutdown canceled or failed.
         }
-
-        // var exception = new ConnectionAbortedException("connected disposed");
-        // foreach (IMultiplexedStream stream in streams)
-        // {
-        //     stream.Abort(exception);
-        // }
 
         // Cancel the remaining tasks (AcceptRequestsAsync, WaitForGoAway, ...).
         _disposeCancelSource.Cancel();
