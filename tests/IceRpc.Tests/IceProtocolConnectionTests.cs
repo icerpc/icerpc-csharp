@@ -132,13 +132,19 @@ public sealed class IceProtocolConnectionTests
     public async Task Connection_with_dispatches_waiting_for_concurrent_dispatch_unblocks_on_dispose()
     {
         // Arrange
-        using var semaphore = new SemaphoreSlim(0);
         int dispatchCount = 0;
         var dispatcher = new InlineDispatcher(
             async (request, cancel) =>
             {
                 ++dispatchCount;
-                await semaphore.WaitAsync(CancellationToken.None);
+                try
+                {
+                    // Wait for the dispatch to be canceled by DisposeAsync
+                    await Task.Delay(Timeout.InfiniteTimeSpan, cancel);
+                }
+                catch
+                {
+                }
                 return new OutgoingResponse(request);
             });
 
@@ -155,15 +161,19 @@ public sealed class IceProtocolConnectionTests
 
         // Perform two invocations. The first blocks so the second won't be dispatched. It will block on the dispatch
         // semaphore which is canceled on dispose.
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.Ice)), InvalidConnection.Ice, default);
+        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(
+            new OutgoingRequest(new Proxy(Protocol.Ice)),
+            InvalidConnection.Ice,
+            default);
         _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.Ice)), InvalidConnection.Ice, default);
 
         // Make sure the second request is received and blocked on the dispatch semaphore.
         await Task.Delay(200);
+        Assert.That(dispatchCount, Is.EqualTo(1));
 
         // Act
         ValueTask disposeTask = sut.Server.DisposeAsync();
-        semaphore.Release();
+        await invokeTask;
         await disposeTask;
 
         // Assert

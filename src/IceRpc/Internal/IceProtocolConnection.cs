@@ -910,6 +910,21 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 Payload = requestFrameReader,
             };
 
+            if (_dispatchSemaphore is AsyncSemaphore dispatchSemaphore)
+            {
+                // This prevents us from receiving any frame until EnterAsync returns.
+                try
+                {
+                    await dispatchSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+                }
+                catch
+                {
+                    Debug.Assert(_shutdownTask is not null);
+
+                    // continue to cleanup the request below.
+                }
+            }
+
             CancellationTokenSource? dispatchCancelSource = null;
             bool isClosed = false;
             lock (_mutex)
@@ -948,34 +963,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             else
             {
                 Debug.Assert(dispatchCancelSource is not null);
-
-                if (_dispatchSemaphore is AsyncSemaphore dispatchSemaphore)
-                {
-                    // This prevents us from receiving any frame until WaitAsync returns.
-                    try
-                    {
-                        await dispatchSemaphore.EnterAsync(cancel).ConfigureAwait(false);
-                    }
-                    catch
-                    {
-                        // The semaphore acquisition is canceled on DisposeAsync.
-                        Debug.Assert(_disposeCancelSource.IsCancellationRequested);
-
-                        // Cleanup the dispatch.
-                        lock (_mutex)
-                        {
-                            if (_dispatches.Remove(dispatchCancelSource))
-                            {
-                                if (_invocations.Count == 0 && _dispatches.Count == 0)
-                                {
-                                    _dispatchesAndInvocationsCompleted.TrySetResult();
-                                }
-                            }
-                        }
-                        await request.Payload.CompleteAsync(new ConnectionAbortedException()).ConfigureAwait(false);
-                        throw;
-                    }
-                }
 
                 // The scheduling of the task can't be canceled since we want to make sure DispatchRequestAsync will
                 // cleanup the dispatch if DisposeAsync is called.
