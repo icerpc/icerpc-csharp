@@ -102,10 +102,10 @@ public class ProxyTests
     public void Invalid_fragment_throws_exception()
     {
         // Arrange
-        var uri = new Uri("ice://localhost:8080/foo#tes^t<^");
+        var proxy = new Proxy(Protocol.IceRpc);
 
         // Act/Assert
-        Assert.Throws<ArgumentException>(() => new Proxy(uri));
+        Assert.Throws<ArgumentException>(() => proxy = proxy with { Fragment = "foo<" });
     }
 
     /// <summary>Verifies that calling <see cref="SliceDecoder.DecodeProxy"/> correctly decodes a proxy.</summary>
