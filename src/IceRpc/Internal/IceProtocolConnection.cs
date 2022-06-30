@@ -606,12 +606,19 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             // Make sure we execute the function without holding the connection mutex lock.
             await Task.Yield();
 
-            await _writeSemaphore.EnterAsync(_disposeCancelSource.Token).ConfigureAwait(false);
             try
             {
-                EncodeValidateConnectionFrame(_networkConnectionWriter);
-                // The flush can't be canceled because it would lead to the writing of an incomplete frame.
-                await _networkConnectionWriter.FlushAsync(_disposeCancelSource.Token).ConfigureAwait(false);
+                await _writeSemaphore.EnterAsync(_disposeCancelSource.Token).ConfigureAwait(false);
+                try
+                {
+                    EncodeValidateConnectionFrame(_networkConnectionWriter);
+                    // The flush can't be canceled because it would lead to the writing of an incomplete frame.
+                    await _networkConnectionWriter.FlushAsync(_disposeCancelSource.Token).ConfigureAwait(false);
+                }
+                finally
+                {
+                    _writeSemaphore.Release();
+                }
             }
             catch (OperationCanceledException)
             {
@@ -620,10 +627,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             catch (Exception exception)
             {
                 InvokeOnAbort(exception);
-            }
-            finally
-            {
-                _writeSemaphore.Release();
             }
 
             static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
