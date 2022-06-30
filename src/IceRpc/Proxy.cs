@@ -115,11 +115,11 @@ public sealed record class Proxy
         }
     }
 
-    /// <summary>Gets or initializes the fragment.</summary>
+    /// <summary>Gets or sets the fragment.</summary>
     public string Fragment
     {
         get => _fragment;
-        init
+        set
         {
             CheckSupportedProtocol(nameof(Fragment));
 
@@ -157,11 +157,11 @@ public sealed record class Proxy
     /// properties such as <see cref="Endpoint"/> have not been updated.</summary>
     public Uri? OriginalUri { get; private set; }
 
-    /// <summary>Gets or initializes the path of this proxy.</summary>
+    /// <summary>Gets or sets the path of this proxy.</summary>
     public string Path
     {
         get => _path;
-        init
+        set
         {
             if (Protocol == Protocol.Relative || Protocol.IsSupported)
             {

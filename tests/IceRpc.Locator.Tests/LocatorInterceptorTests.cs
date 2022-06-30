@@ -36,10 +36,7 @@ public class LocatorInterceptorTests
         var expected = Proxy.Parse("ice://localhost:10000/foo");
         var locationResolver = new MockLocationResolver(expected, adapterId: true);
         var sut = new LocatorInterceptor(invoker, locationResolver);
-        var proxy = new Proxy(Protocol.Ice)
-        {
-            Endpoint = "ice:?adapter-id=foo"
-        };
+        var proxy = Proxy.Parse("ice:/foo/bar?adapter-id=foo");
         var request = new OutgoingRequest(proxy);
 
         await sut.InvokeAsync(request, default);
