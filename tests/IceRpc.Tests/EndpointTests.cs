@@ -191,6 +191,7 @@ public class EndpointTests
     [Test]
     public void Construction_with_unsupported_protocol_fails()
     {
+        // Arrange
         var unsupportedProtocol = Protocol.FromString("foo");
 
         // Act / Assert
@@ -200,6 +201,7 @@ public class EndpointTests
     [Test]
     public void Construction_with_relative_uri_fails()
     {
+        // Arrange
         var relativeUri = new Uri("foo", UriKind.Relative);
 
         // Act / Assert
@@ -209,6 +211,7 @@ public class EndpointTests
     [Test]
     public void To_Uri_returns_uri_from_Endpoint_uri_constructor()
     {
+        // Arrange
         var uri = new Uri("icerpc://bar:1234");
         var endpoint = new Endpoint(uri);
 
@@ -222,6 +225,7 @@ public class EndpointTests
     [Test]
     public void To_Uri_returns_new_uri_when_not_using_Endpoint_uri_constructor()
     {
+        // Arrange
         var endpoint = Endpoint.FromString("icerpc://localhost");
 
         // Act
