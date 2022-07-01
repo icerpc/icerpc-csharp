@@ -463,7 +463,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         {
                             _dispatchesAndInvocationsCompleted.TrySetResult();
                         }
-                        else if (!_disposeCancelSource.IsCancellationRequested)
+                        else
                         {
                             _idleTimeoutTimer?.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
                         }
@@ -1174,7 +1174,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                                 {
                                     _dispatchesAndInvocationsCompleted.TrySetResult();
                                 }
-                                else if (!_disposeCancelSource.IsCancellationRequested)
+                                else
                                 {
                                     _idleTimeoutTimer?.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
                                 }

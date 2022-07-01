@@ -309,7 +309,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                                         // as completed to allow shutdown to progress.
                                         _streamsCompleted.TrySetResult();
                                     }
-                                    else if (!_disposeCancelSource.IsCancellationRequested)
+                                    else
                                     {
                                         // Enable the idle check.
                                         _idleTimeoutTimer?.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
@@ -328,11 +328,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
         catch (Exception exception)
         {
-            if (exception is OperationCanceledException && !_disposeCancelSource.IsCancellationRequested)
-            {
-                exception = new ConnectionAbortedException();
-            }
-
             if (stream is not null)
             {
                 await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
@@ -342,7 +337,14 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 }
             }
 
-            throw exception;
+            if (exception is OperationCanceledException && !_disposeCancelSource.IsCancellationRequested)
+            {
+                throw new ConnectionAbortedException();
+            }
+            else
+            {
+                throw;
+            }
         }
 
         if (request.IsOneway)
@@ -723,7 +725,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                                     // as completed to allow shutdown to progress.
                                     _streamsCompleted.TrySetResult();
                                 }
-                                else if (!_disposeCancelSource.IsCancellationRequested)
+                                else
                                 {
                                     // Enable the idle check.
                                     _idleTimeoutTimer?.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
