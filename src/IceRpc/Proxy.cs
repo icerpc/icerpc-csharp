@@ -312,7 +312,9 @@ public sealed record class Proxy
         if (uri.IsAbsoluteUri)
         {
             Protocol = Protocol.FromString(uri.Scheme);
-            _path = uri.AbsolutePath;
+
+            // The AbsolutePath is empty for a URI such as "icerpc:?foo=bar"
+            _path = uri.AbsolutePath.Length > 0 ? uri.AbsolutePath : "/";
             _fragment = uri.Fragment.Length > 0 ? uri.Fragment[1..] : ""; // remove leading #
 
             if (Protocol.IsSupported)

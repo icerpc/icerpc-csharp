@@ -98,8 +98,7 @@ public class ProxyTests
             "ice:/path?adapter-id=foo&foo", // extra parameter
         };
 
-    /// <summary>A collection of proxy strings that are valid, with its expected path and
-    /// fragment.</summary>
+    /// <summary>A collection of proxy strings that are valid, with its expected path and fragment.</summary>
     private static readonly (string Str, string Path, string Fragment)[] _validUriFormatProxies = new (string, string, string)[]
         {
             ("icerpc://host.zeroc.com/path?encoding=foo", "/path", ""),
@@ -110,6 +109,8 @@ public class ProxyTests
             ("ice://host.zeroc.com/identity?xyz=false", "/identity", ""),
             ("ice://host.zeroc.com/identity?xyz=true", "/identity", ""),
             ("ice:/path?adapter-id=foo", "/path", ""),
+            ("icerpc:?foo=bar", "/", ""),
+            ("icerpc://host.zeroc.com", "/", ""),
             ("icerpc://host.zeroc.com:1000/category/name", "/category/name", ""),
             ("icerpc://host.zeroc.com:1000/loc0/loc1/category/name", "/loc0/loc1/category/name", ""),
             ("icerpc://host.zeroc.com/category/name%20with%20space", "/category/name%20with%20space", ""),
