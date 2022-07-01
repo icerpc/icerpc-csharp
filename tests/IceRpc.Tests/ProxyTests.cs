@@ -201,7 +201,7 @@ public class ProxyTests
 
         // Act/Assert
         Assert.That(
-            () => proxy.Endpoint = new Endpoint(proxy.Protocol) { Host = "localhost" },
+            () => proxy.Endpoint = new Endpoint(proxy.Protocol!) { Host = "localhost" },
             Throws.TypeOf<InvalidOperationException>());
     }
 
@@ -210,14 +210,15 @@ public class ProxyTests
     [TestCase("")]
     public void Cannot_set_fragment_if_protocol_has_no_fragment(string protocolName)
     {
-        var protocol = Protocol.FromString(protocolName);
+        Protocol? protocol = protocolName.Length > 0 ? Protocol.FromString(protocolName) : null;
         var proxy = new Proxy(protocol);
 
-        Assert.That(
-            () => proxy = proxy with { Fragment = "bar" },
-            Throws.TypeOf<InvalidOperationException>());
+        Assert.That(() => proxy.Fragment = "bar", Throws.TypeOf<InvalidOperationException>());
 
-        Assert.That(protocol.HasFragment, Is.False);
+        if (protocol is not null)
+        {
+            Assert.That(protocol.HasFragment, Is.False);
+        }
     }
 
     /// <summary>Verifies that the proxy params cannot be set when the proxy has an endpoint.</summary>
@@ -283,7 +284,7 @@ public class ProxyTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(proxy.Protocol, Is.EqualTo(Protocol.Relative));
+            Assert.That(proxy.Protocol, Is.Null);
             Assert.That(proxy.Path, Is.EqualTo(path));
             Assert.That(proxy.Endpoint, Is.Null);
         });
@@ -434,7 +435,7 @@ public class ProxyTests
         proxy = proxy with { Fragment = "bar" };
 
         Assert.That(proxy.Fragment, Is.EqualTo("bar"));
-        Assert.That(proxy.Protocol.HasFragment, Is.True);
+        Assert.That(proxy.Protocol!.HasFragment, Is.True);
     }
 
     private class ReceiveProxyTest : Service, IReceiveProxyTest

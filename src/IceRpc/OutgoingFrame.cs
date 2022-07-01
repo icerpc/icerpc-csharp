@@ -36,22 +36,9 @@ public abstract class OutgoingFrame
 
     /// <summary>Constructs an outgoing frame.</summary>
     /// <param name="protocol">The protocol used to send the frame.</param>
-    protected OutgoingFrame(Protocol protocol)
-    {
-        if (!protocol.IsSupported)
-        {
-            if (protocol == Protocol.Relative)
-            {
-                throw new NotSupportedException($"cannot create an outgoing frame for a relative proxy");
-            }
-            else
-            {
-                throw new NotSupportedException($"cannot create an outgoing frame for protocol '{protocol}'");
-            }
-        }
-
-        Protocol = protocol;
-    }
+    protected OutgoingFrame(Protocol protocol) =>
+        Protocol = protocol.IsSupported ? protocol :
+            throw new NotSupportedException($"cannot create an outgoing frame for protocol '{protocol}'");
 
     /// <summary>Returns the payload writer to use when sending the payload.</summary>
     internal PipeWriter GetPayloadWriter(PipeWriter writer)

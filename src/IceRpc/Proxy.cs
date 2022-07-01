@@ -124,7 +124,7 @@ public sealed record class Proxy
                 throw new ArgumentException($"invalid fragment", nameof(Fragment), ex);
             }
 
-            if (!Protocol.HasFragment && value.Length > 0)
+            if (!Protocol!.HasFragment && value.Length > 0)
             {
                 throw new InvalidOperationException($"cannot set {Fragment} on an {Protocol} proxy");
             }
@@ -155,12 +155,12 @@ public sealed record class Proxy
         get => _path;
         set
         {
-            if (Protocol == Protocol.Relative || Protocol.IsSupported)
+            if (Protocol is null || Protocol.IsSupported)
             {
                 try
                 {
                     CheckPath(value); // make sure it's properly escaped
-                    Protocol.CheckPath(value); // make sure the protocol is happy with this path
+                    Protocol?.CheckPath(value); // make sure the protocol is happy with this path
                 }
                 catch (FormatException ex)
                 {
@@ -188,7 +188,7 @@ public sealed record class Proxy
             try
             {
                 CheckParams(value); // general checking (properly escape, no empty name)
-                Protocol.CheckProxyParams(value); // protocol-specific checking
+                Protocol!.CheckProxyParams(value); // protocol-specific checking
             }
             catch (FormatException ex)
             {
@@ -205,8 +205,9 @@ public sealed record class Proxy
         }
     }
 
-    /// <summary>Gets the proxy's protocol .</summary>
-    public Protocol Protocol { get; }
+    /// <summary>Gets the proxy's protocol.</summary>
+    /// <value>The protocol of the proxy. It corresponds to the URI scheme and is null for a relative proxy.</value>
+    public Protocol? Protocol { get; }
 
     private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
     private volatile IConnection? _connection;
@@ -232,7 +233,7 @@ public sealed record class Proxy
     /// <summary>Creates a relative proxy.</summary>
     /// <param name="path">The path.</param>
     /// <returns>The new relative proxy.</returns>
-    public static Proxy FromPath(string path) => new(Protocol.Relative) { Path = path };
+    public static Proxy FromPath(string path) => new(protocol: null) { Path = path };
 
     /// <summary>Creates a proxy from a string and an invoker.</summary>
     /// <param name="s">The string to parse.</param>
@@ -289,22 +290,12 @@ public sealed record class Proxy
     }
 
     /// <summary>Constructs a proxy from a protocol.</summary>
-    /// <param name="protocol">The protocol.</param>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="protocol"/> is not a supported protocol or
-    /// <see cref="Protocol.Relative"/>.</exception>
-    public Proxy(Protocol protocol)
-    {
-        if (protocol.IsSupported || protocol == Protocol.Relative)
-        {
-            Protocol = protocol;
-        }
-        else
-        {
-            throw new ArgumentException(
-                $"protocol must be {nameof(Protocol.Relative)} or a supported protocol",
-                nameof(protocol));
-        }
-    }
+    /// <param name="protocol">The protocol, or null for a relative proxy.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="protocol"/> is not null or a supported protocol.
+    /// </exception>
+    public Proxy(Protocol? protocol) =>
+        Protocol = protocol is null || protocol.IsSupported ? protocol :
+            throw new ArgumentException($"protocol must be null or a supported protocol", nameof(protocol));
 
     /// <summary>Constructs a proxy from a URI.</summary>
     public Proxy(Uri uri)
@@ -382,7 +373,7 @@ public sealed record class Proxy
         else
         {
             // relative proxy
-            Protocol = Protocol.Relative;
+            Protocol = null;
             _path = uri.ToString();
             CheckPath(_path);
         }
@@ -407,7 +398,7 @@ public sealed record class Proxy
             return false;
         }
 
-        if (Protocol == Protocol.Relative)
+        if (Protocol is null)
         {
             return Path == other.Path;
         }
@@ -459,7 +450,7 @@ public sealed record class Proxy
     /// <inheritdoc/>
     public override int GetHashCode()
     {
-        if (Protocol == Protocol.Relative)
+        if (Protocol is null)
         {
             return Path.GetHashCode(StringComparison.Ordinal);
         }
@@ -492,7 +483,7 @@ public sealed record class Proxy
     /// <summary>Converts this proxy into a string.</summary>
     public override string ToString()
     {
-        if (Protocol == Protocol.Relative)
+        if (Protocol is null)
         {
             return Path;
         }
@@ -567,8 +558,7 @@ public sealed record class Proxy
 
     /// <summary>Converts this proxy into a Uri.</summary>
     public Uri ToUri() =>
-        OriginalUri ?? (Protocol == Protocol.Relative ?
-            new Uri(Path, UriKind.Relative) : new Uri(ToString(), UriKind.Absolute));
+        OriginalUri ?? (Protocol is null ? new Uri(Path, UriKind.Relative) : new Uri(ToString(), UriKind.Absolute));
 
     /// <summary>Checks if <paramref name="params"/> contains properly escaped names and values.</summary>
     /// <param name="params">The dictionary to check.</param>
@@ -676,7 +666,7 @@ public sealed record class Proxy
 
     private void CheckSupportedProtocol(string propertyName)
     {
-        if (Protocol == Protocol.Relative)
+        if (Protocol is null)
         {
             throw new InvalidOperationException($"cannot set {propertyName} on a relative proxy");
         }

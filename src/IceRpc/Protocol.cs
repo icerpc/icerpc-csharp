@@ -17,9 +17,6 @@ public class Protocol : IEquatable<Protocol>
     /// <summary>Gets the <c>icerpc</c> protocol.</summary>
     public static Protocol IceRpc => IceRpcProtocol.Instance;
 
-    /// <summary>Gets the protocol of relative proxies.</summary>
-    public static Protocol Relative { get; } = new(RelativeName);
-
     /// <summary>Gets the default port for this protocol.</summary>
     /// <value>The value is either -1 (no default port) or between 0 and 65,535.</value>
     public virtual int DefaultUriPort => -1;
@@ -50,8 +47,6 @@ public class Protocol : IEquatable<Protocol>
     internal const string IceName = "ice";
     internal const string IceRpcName = "icerpc";
 
-    private protected const string RelativeName = "";
-
     /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
     /// <param name="lhs">The left hand side operand.</param>
     /// <param name="rhs">The right hand side operand.</param>
@@ -76,7 +71,6 @@ public class Protocol : IEquatable<Protocol>
         {
             IceName => Ice,
             IceRpcName => IceRpc,
-            RelativeName => Relative,
             _ => new Protocol(name)
         };
     }
@@ -110,7 +104,7 @@ public class Protocol : IEquatable<Protocol>
     /// <exception cref="FormatException">Thrown if the path is not valid.</exception>
     internal virtual void CheckPath(string uriPath) =>
         // by default, any URI absolute path is ok
-        Debug.Assert(IsSupported || this == Relative);
+        Debug.Assert(IsSupported);
 
     /// <summary>Checks if these proxy parameters are valid for this protocol.</summary>
     /// <param name="proxyParams">The proxy parameters to check.</param>
@@ -119,7 +113,7 @@ public class Protocol : IEquatable<Protocol>
     /// it does not check for the invalid empty and alt-endpoint parameter names either.</remarks>
     internal virtual void CheckProxyParams(ImmutableDictionary<string, string> proxyParams) =>
         // by default, any dictionary is ok
-        Debug.Assert(IsSupported || this == Relative);
+        Debug.Assert(IsSupported);
 
     internal byte ToByte() => Name switch
     {

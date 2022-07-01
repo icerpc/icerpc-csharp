@@ -305,11 +305,16 @@ public ref partial struct SliceEncoder
             const byte encodingMajor = 1;
             const byte encodingMinor = 1;
 
+            if (proxy.Protocol is not Protocol protocol)
+            {
+                throw new NotSupportedException("cannot encode relative proxy with Slice1");
+            }
+
             var proxyData = new ProxyData(
                 proxy.Fragment,
                 InvocationMode.Twoway,
                 secure: false,
-                protocolMajor: proxy.Protocol.ToByte(),
+                protocolMajor: protocol.ToByte(),
                 protocolMinor: 0,
                 encodingMajor,
                 encodingMinor);
