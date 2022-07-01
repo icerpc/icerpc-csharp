@@ -52,7 +52,7 @@ public sealed class OutgoingRequest : OutgoingFrame
     /// <param name="proxy">The <see cref="Proxy"/> used to send the request.</param>
     public OutgoingRequest(Proxy proxy)
         : base(proxy.Protocol ??
-            throw new ArgumentException("cannot recreate outgoing request for relative proxy", nameof(proxy)))
+            throw new ArgumentException("cannot create an outgoing request with a relative proxy", nameof(proxy)))
     {
         Connection = proxy.Connection;
         Proxy = proxy;
