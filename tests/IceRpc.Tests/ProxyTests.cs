@@ -205,7 +205,7 @@ public class ProxyTests
             Throws.TypeOf<InvalidOperationException>());
     }
 
-    /// <summary>Verifies that the "fragment" cannot be set when the protocol has no fragment.</summary>
+    /// <summary>Verifies that the "fragment" cannot be set when the protocol is null or has no fragment.</summary>
     [TestCase("icerpc")]
     [TestCase("")]
     public void Cannot_set_fragment_if_protocol_has_no_fragment(string protocolName)
