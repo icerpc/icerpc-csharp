@@ -110,7 +110,7 @@ public class RetryInterceptor : IInvoker
                     // Check if we can retry
                     if (attempt < _options.MaxAttempts && retryPolicy != RetryPolicy.NoRetry && decorator.IsResettable)
                     {
-                        if (request.Connection is IClientConnection clientConnection &&
+                        if (endpointFeature.Connection is IClientConnection clientConnection &&
                              retryPolicy == RetryPolicy.OtherReplica)
                         {
                             endpointFeature.RemoveEndpoint(clientConnection.RemoteEndpoint);
@@ -120,7 +120,7 @@ public class RetryInterceptor : IInvoker
                         attempt++;
 
                         _logger.LogRetryRequest(
-                            request.Connection,
+                            endpointFeature.Connection,
                             request.Proxy.Path,
                             request.Operation,
                             retryPolicy,
@@ -134,11 +134,11 @@ public class RetryInterceptor : IInvoker
                         }
 
                         // Clear connection is the retry policy is other replica or the current connection is unusable.
-                        if (request.Connection is IConnection connection &&
+                        if (endpointFeature is IConnection connection &&
                             (retryPolicy == RetryPolicy.OtherReplica ||
                                 (!connection.IsResumable && IsDeadConnectionException(exception))))
                         {
-                            request.Connection = null;
+                            endpointFeature.Connection = null;
                         }
 
                         decorator.Reset();

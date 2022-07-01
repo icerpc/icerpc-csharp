@@ -28,12 +28,13 @@ public class LocatorInterceptor : IInvoker
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        if (request.Connection is null && request.Protocol == Protocol.Ice)
+        IEndpointFeature? endpointFeature = request.Features.Get<IEndpointFeature>();
+
+        if (endpointFeature?.Connection is null && request.Protocol == Protocol.Ice)
         {
             Location location = default;
             bool refreshCache = false;
 
-            IEndpointFeature? endpointFeature = request.Features.Get<IEndpointFeature>();
             if (endpointFeature is null)
             {
                 endpointFeature = new EndpointFeature(request.Proxy);
