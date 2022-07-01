@@ -224,7 +224,7 @@ public class EndpointTests
     }
 
     [Test]
-    public void To_Uri_returns_new_uri_when_not_using_Endpoint_uri_constructor()
+    public void Original_uri_set_to_null_when_setting_property()
     {
         // Arrange
         var endpoint = Endpoint.FromString("icerpc://localhost");
@@ -236,6 +236,7 @@ public class EndpointTests
         // Assert
         Assert.That(endpointUri.Scheme, Is.EqualTo("icerpc"));
         Assert.That(endpointUri.Host, Is.EqualTo("foo"));
+        Assert.That(endpoint.OriginalUri, Is.Null);
     }
 
     /// <summary>Verifies that setting the endpoint parameters works.</summary>
