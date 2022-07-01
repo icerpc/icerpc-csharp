@@ -11,7 +11,6 @@ public class LocatorInterceptorTests
 {
     /// <summary>Verifies that the location resolver is not called when the request carries a connection.</summary>
     [Test]
-    [Ignore("refactoring")]
     public async Task Location_resolver_not_called_if_the_request_has_a_connection()
     {
         var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request, InvalidConnection.Ice)));
@@ -23,6 +22,9 @@ public class LocatorInterceptorTests
         var sut = new LocatorInterceptor(invoker, locationResolver);
         var proxy = Proxy.FromConnection(connection, "/path");
         var request = new OutgoingRequest(proxy);
+        IEndpointFeature endpointFeature = new EndpointFeature(proxy);
+        endpointFeature.Connection = connection;
+        request.Features = request.Features.With(endpointFeature);
 
         await sut.InvokeAsync(request, default);
 

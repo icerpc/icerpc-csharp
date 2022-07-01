@@ -80,8 +80,7 @@ public class ProxyTests
         Assert.That(decoded.Proxy, Is.EqualTo(expected));
     }
 
-    /*
-    /// <summary>Verifies that a relative proxy gets the decoder connection.</summary>
+    /// <summary>Verifies that a relative proxy gets the decoder's connection as invoker.</summary>
     [Test]
     public async Task Decode_relative_proxy()
     {
@@ -96,9 +95,8 @@ public class ProxyTests
                 encoding: SliceEncoding.Slice2,
                 connection: connection);
 
-            return decoder.DecodePrx<ServicePrx>().Proxy.Connection;
+            return decoder.DecodePrx<ServicePrx>().Proxy.Invoker;
         },
         Is.EqualTo(connection));
     }
-    */
 }

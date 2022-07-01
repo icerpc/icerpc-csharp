@@ -365,7 +365,6 @@ public class ProxyTests
 
     /// <summary>Verifies that a proxy received over an outgoing connection inherits the callers invoker.</summary>
     [Test]
-    [Ignore("refactoring")]
     public async Task Proxy_received_over_an_outgoing_connection_inherits_the_callers_invoker()
     {
         await using ServiceProvider provider = new ServiceCollection()
@@ -373,8 +372,9 @@ public class ProxyTests
             .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
-        var invoker = new Pipeline();
-        var prx = ReceiveProxyTestPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
+        IConnection connection = provider.GetRequiredService<ClientConnection>();
+        IInvoker invoker = new Pipeline().Into(connection);
+        var prx = ReceiveProxyTestPrx.FromConnection(connection);
         prx.Proxy.Invoker = invoker;
 
         ReceiveProxyTestPrx received = await prx.ReceiveProxyAsync();

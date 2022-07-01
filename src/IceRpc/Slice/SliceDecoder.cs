@@ -53,7 +53,7 @@ public ref partial struct SliceDecoder
 
     private ClassContext _classContext;
 
-    // Connection used when decoding relative proxies.
+    // Connection is used when decoding relative proxies. It's the connection over which this proxy was received.
     private readonly IConnection? _connection;
 
     // The number of bytes already allocated for strings, dictionaries and sequences.
@@ -62,8 +62,9 @@ public ref partial struct SliceDecoder
     // The current depth when decoding a type recursively.
     private int _currentDepth;
 
-    // Invoker used when decoding proxies.
-    private readonly IInvoker _invoker;
+    // Invoker used when decoding proxies. It's the invoker that was used to send the request unless overwritten
+    // with SliceDecodeFeature.
+    private readonly IInvoker? _invoker;
 
     // The maximum number of bytes that can be allocated for strings, dictionaries and sequences.
     private readonly int _maxCollectionAllocation;
@@ -109,7 +110,7 @@ public ref partial struct SliceDecoder
         _currentDepth = 0;
 
         _connection = connection;
-        _invoker = invoker ?? Proxy.DefaultInvoker;
+        _invoker = invoker;
         _prxEncodeFeature = prxEncodeFeature;
 
         _maxCollectionAllocation = maxCollectionAllocation == -1 ? 8 * (int)buffer.Length :
@@ -391,7 +392,10 @@ public ref partial struct SliceDecoder
                     }
 
                     var proxy = Proxy.FromConnection(_connection, proxyString);
-                    proxy.Invoker = _invoker;
+                    if (_invoker is not null)
+                    {
+                        proxy.Invoker = _invoker;
+                    }
                     return new TPrx
                     {
                         Proxy = proxy,
@@ -402,7 +406,7 @@ public ref partial struct SliceDecoder
                 {
                     var proxy = new Proxy(new Uri(proxyString, UriKind.Absolute));
                     Debug.Assert(proxy.Protocol is not null); // null protocol == relative proxy
-                    if (proxy.Protocol.IsSupported)
+                    if (proxy.Protocol.IsSupported && _invoker is not null)
                     {
                         proxy.Invoker = _invoker;
                     }
@@ -1169,7 +1173,7 @@ public ref partial struct SliceDecoder
                 altEndpoints.ToImmutableList(),
                 proxyParams,
                 proxyData.Fragment,
-                _invoker);
+                _invoker ?? Proxy.DefaultInvoker);
         }
         catch (InvalidDataException)
         {
