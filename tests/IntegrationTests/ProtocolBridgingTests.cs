@@ -68,7 +68,7 @@ public sealed class ProtocolBridgingTests
         // TODO: test with the other encoding; currently, the encoding is always slice2
 
         ProtocolBridgingTestPrx newPrx = await TestProxyAsync(forwarderServicePrx, direct: false);
-        Assert.That((object)newPrx.Proxy.Protocol.Name, Is.EqualTo(targetProtocol));
+        Assert.That((object)newPrx.Proxy.Protocol!.Name, Is.EqualTo(targetProtocol));
         _ = await TestProxyAsync(newPrx, direct: true);
 
         foreach (Server server in serviceProvider.GetServices<Server>())
@@ -160,7 +160,7 @@ public sealed class ProtocolBridgingTests
         {
             // First create an outgoing request to _target from the incoming request:
 
-            Protocol targetProtocol = _target.Protocol;
+            Protocol targetProtocol = _target.Protocol!;
 
             var outgoingRequest = new OutgoingRequest(_target)
             {

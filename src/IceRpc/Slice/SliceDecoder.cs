@@ -398,6 +398,7 @@ public ref partial struct SliceDecoder
                 else
                 {
                     var proxy = new Proxy(new Uri(proxyString, UriKind.Absolute));
+                    Debug.Assert(proxy.Protocol is not null); // null protocol == relative proxy
                     if (proxy.Protocol.IsSupported)
                     {
                         proxy.Invoker = _invoker;
