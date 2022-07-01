@@ -11,6 +11,13 @@ internal class InvokerBuilder : IInvokerBuilder
     private readonly Pipeline _pipeline = new();
 
     /// <inheritdoc/>
+    public IInvokerBuilder Into(IInvoker invoker)
+    {
+        _pipeline.Into(invoker);
+        return this;
+    }
+
+    /// <inheritdoc/>
     public IInvokerBuilder Use(Func<IInvoker, IInvoker> interceptor)
     {
         _pipeline.Use(interceptor);

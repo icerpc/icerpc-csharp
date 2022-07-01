@@ -8,6 +8,11 @@ public interface IInvokerBuilder
     /// <summary>Gets the service provider.</summary>
     IServiceProvider ServiceProvider { get; }
 
+    /// <summary>Sets the last invoker of the invocation pipeline.</summary>
+    /// <param name="invoker">The last invoker.</param>
+    /// <returns>This builder.</returns>
+    IInvokerBuilder Into(IInvoker invoker);
+
     /// <summary>Registers an interceptor.</summary>
     /// <param name="interceptor">The interceptor to register.</param>
     /// <returns>This builder.</returns>

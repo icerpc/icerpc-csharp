@@ -8,6 +8,7 @@ namespace IceRpc;
 public sealed class Pipeline : IInvoker
 {
     private readonly Stack<Func<IInvoker, IInvoker>> _interceptorStack = new();
+    private IInvoker _into = Proxy.DefaultInvoker;
     private readonly Lazy<IInvoker> _invoker;
 
     /// <summary>Constructs a pipeline.</summary>
@@ -17,8 +18,25 @@ public sealed class Pipeline : IInvoker
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default) =>
         _invoker.Value.InvokeAsync(request, cancel);
 
+    /// <summary>Sets the last invoker of this pipeline. The pipeline flows into this invoker.</summary>
+    /// <param name="invoker">The last invoker.</param>
+    /// <returns>This pipeline.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if this method is called after the first call to
+    /// <see cref="InvokeAsync"/>.</exception>
+    public Pipeline Into(IInvoker invoker)
+    {
+        if (_invoker.IsValueCreated)
+        {
+            throw new InvalidOperationException($"{nameof(Into)} must be called before {nameof(InvokeAsync)}");
+        }
+
+        _into = invoker;
+        return this;
+    }
+
     /// <summary>Installs an interceptor at the end of the pipeline.</summary>
     /// <param name="interceptor">The interceptor to install.</param>
+    /// <returns>This pipeline.</returns>
     /// <exception cref="InvalidOperationException">Thrown if this method is called after the first call to
     /// <see cref="InvokeAsync"/>.</exception>
     public Pipeline Use(Func<IInvoker, IInvoker> interceptor)
@@ -26,7 +44,7 @@ public sealed class Pipeline : IInvoker
         if (_invoker.IsValueCreated)
         {
             throw new InvalidOperationException(
-                "interceptors must be installed before the first call to InvokeAsync");
+                $"interceptors must be installed before the first call to {nameof(InvokeAsync)}");
         }
         _interceptorStack.Push(interceptor);
         return this;
@@ -38,7 +56,7 @@ public sealed class Pipeline : IInvoker
     /// <returns>The pipeline of invokers.</returns>
     private IInvoker CreateInvokerPipeline()
     {
-        IInvoker pipeline = Proxy.DefaultInvoker;
+        IInvoker pipeline = _into;
 
         foreach (Func<IInvoker, IInvoker> interceptor in _interceptorStack)
         {
