@@ -23,6 +23,8 @@ using var tracerProvider = Sdk.CreateTracerProviderBuilder()
 
 await using var connection = new ClientConnection("icerpc://127.0.0.1");
 
+pipeline.Into(connection);
+
 IHelloPrx hello = HelloPrx.FromConnection(connection, invoker: pipeline);
 
 Console.Write("To say hello to the server, type your name: ");

@@ -29,7 +29,8 @@ public class OperationGeneratedCodeTests
                     compressRequestFeature =
                         request.Features.Get<ICompressFeature>() is ICompressFeature compress && compress.Value;
                     return response;
-                })))
+                }))
+                .Into<ClientConnection>())
             .AddColocTest(builder =>
             {
                 builder.UseDeflate();

@@ -13,6 +13,7 @@ namespace IceRpc.IntegrationTests;
 
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 [Parallelizable(ParallelScope.All)]
+[Ignore("until connection pool is an invoker")]
 public sealed class ProtocolBridgingTests
 {
     [Test]
