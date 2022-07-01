@@ -233,7 +233,7 @@ public sealed record class Proxy
     /// <summary>Creates a relative proxy.</summary>
     /// <param name="path">The path.</param>
     /// <returns>The new relative proxy.</returns>
-    public static Proxy FromPath(string path) => new(protocol: null) { Path = path };
+    public static Proxy FromPath(string path) => new() { Path = path };
 
     /// <summary>Creates a proxy from a string and an invoker.</summary>
     /// <param name="s">The string to parse.</param>
@@ -293,7 +293,7 @@ public sealed record class Proxy
     /// <param name="protocol">The protocol, or null for a relative proxy.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="protocol"/> is not null or a supported protocol.
     /// </exception>
-    public Proxy(Protocol? protocol) =>
+    public Proxy(Protocol? protocol = null) =>
         Protocol = protocol is null || protocol.IsSupported ? protocol :
             throw new ArgumentException($"protocol must be null or a supported protocol", nameof(protocol));
 
