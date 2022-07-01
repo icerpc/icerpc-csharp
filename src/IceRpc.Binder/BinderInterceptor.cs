@@ -9,58 +9,46 @@ namespace IceRpc.Binder;
 /// retrieves a connection from its client connection provider and sets the request's connection.</summary>
 public class BinderInterceptor : IInvoker
 {
-    private readonly bool _cacheConnection;
     private readonly IClientConnectionProvider _clientConnectionProvider;
     private readonly IInvoker _next;
 
     /// <summary>Constructs a binder interceptor.</summary>
     /// <param name="next">The next invoker in the pipeline.</param>
     /// <param name="clientConnectionProvider">The client connection provider.</param>
-    /// <param name="cacheConnection">When <c>true</c> (the default), the binder stores the connection it retrieves
-    /// from its client connection provider in the proxy that created the request.</param>
-    public BinderInterceptor(
-        IInvoker next,
-        IClientConnectionProvider clientConnectionProvider,
-        bool cacheConnection = true)
+    public BinderInterceptor(IInvoker next, IClientConnectionProvider clientConnectionProvider)
     {
         _next = next;
         _clientConnectionProvider = clientConnectionProvider;
-        _cacheConnection = cacheConnection;
     }
 
     Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        if (request.Connection is null)
+        if (request.Features.Get<IEndpointFeature>() is IEndpointFeature endpointFeature)
         {
-            if (request.Features.Get<IEndpointFeature>() is IEndpointFeature endpointFeature)
+            if (endpointFeature.Connection is not null)
             {
-                return PerformBindAsync(endpointFeature.Endpoint, endpointFeature.AltEndpoints);
-            }
-            else
-            {
-                return PerformBindAsync(request.Proxy.Endpoint, request.Proxy.AltEndpoints);
+                return _next.InvokeAsync(request, cancel);
             }
         }
         else
         {
-            return _next.InvokeAsync(request, cancel);
+            endpointFeature = new EndpointFeature(request.Proxy);
+            request.Features = request.Features.With(endpointFeature);
         }
+        return PerformBindAsync();
 
-        async Task<IncomingResponse> PerformBindAsync(Endpoint? endpoint, IEnumerable<Endpoint> altEndpoints)
+        async Task<IncomingResponse> PerformBindAsync()
         {
-            if (endpoint is null)
+            if (endpointFeature.Endpoint is null)
             {
                 throw new NoEndpointException(request.Proxy);
             }
 
-            request.Connection = await _clientConnectionProvider.GetClientConnectionAsync(
-                endpoint.Value,
-                altEndpoints,
+            endpointFeature.Connection = await _clientConnectionProvider.GetClientConnectionAsync(
+                endpointFeature.Endpoint.Value,
+                endpointFeature.AltEndpoints,
                 cancel).ConfigureAwait(false);
-            if (_cacheConnection)
-            {
-                request.Proxy.Connection = request.Connection;
-            }
+
             return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
         }
     }

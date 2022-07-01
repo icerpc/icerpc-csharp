@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Internal;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -15,11 +16,12 @@ namespace IceRpc;
 /// <seealso cref="Slice.IPrx"/>
 public sealed record class Proxy
 {
-    /// <summary>Gets the default invoker of proxies.</summary>
+    /// <summary>Gets the default invoker of proxies. This invoker always throws
+    /// <see cref="InvalidOperationException"/>.</summary>
     public static IInvoker DefaultInvoker { get; } =
-        new InlineInvoker((request, cancel) =>
-            request.Connection?.InvokeAsync(request, cancel) ??
-                throw new ArgumentNullException(nameof(request), $"{nameof(request.Connection)} is null"));
+         new InlineInvoker((request, cancel) =>
+             request.Features.Get<IEndpointFeature>()?.Connection?.InvokeAsync(request, cancel) ??
+                 throw new ArgumentNullException(nameof(request), "connection is null"));
 
     /// <summary>Gets or sets the secondary endpoints of this proxy.</summary>
     /// <value>The secondary endpoints of this proxy.</value>
@@ -50,26 +52,6 @@ public sealed record class Proxy
 
             _altEndpoints = value;
             OriginalUri = null;
-        }
-    }
-
-    /// <summary>Gets or sets the connection of this proxy. Setting the connection does not affect the proxy
-    /// endpoints (if any).</summary>
-    /// <value>The connection for this proxy, or null if the proxy does not have a connection.</value>
-    public IConnection? Connection
-    {
-        get => _connection;
-
-        set
-        {
-            CheckSupportedProtocol(nameof(Connection));
-            if (value?.Protocol is Protocol newProtocol && newProtocol != Protocol)
-            {
-                throw new ArgumentException(
-                    $"the {nameof(Connection)} protocol must match the proxy's protocol '{Protocol}'",
-                    nameof(value));
-            }
-            _connection = value;
         }
     }
 
@@ -210,7 +192,6 @@ public sealed record class Proxy
     public Protocol? Protocol { get; }
 
     private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
-    private volatile IConnection? _connection;
     private Endpoint? _endpoint;
     private string _fragment = "";
     private IInvoker _invoker = DefaultInvoker;
@@ -220,14 +201,12 @@ public sealed record class Proxy
     /// <summary>Creates a proxy from a connection and a path.</summary>
     /// <param name="connection">The connection of the new proxy.</param>
     /// <param name="path">The path of the proxy.</param>
-    /// <param name="invoker">The invoker of the new proxy.</param>
     /// <returns>The new proxy.</returns>
-    public static Proxy FromConnection(IConnection connection, string path, IInvoker? invoker = null) =>
+    public static Proxy FromConnection(IConnection connection, string path) =>
         new(connection.Protocol)
         {
             Path = path,
-            Connection = connection,
-            Invoker = invoker ?? DefaultInvoker
+            Invoker = connection
         };
 
     /// <summary>Creates a relative proxy.</summary>
@@ -430,11 +409,6 @@ public sealed record class Proxy
             return false;
         }
 
-        // Only compare the connections of endpointless proxies.
-        if (_endpoint is null && _connection != other._connection)
-        {
-            return false;
-        }
         if (!_altEndpoints.SequenceEqual(other._altEndpoints))
         {
             return false;
@@ -472,10 +446,6 @@ public sealed record class Proxy
         if (_endpoint is not null)
         {
             hash.Add(_endpoint);
-        }
-        else if (_connection is not null)
-        {
-            hash.Add(_connection);
         }
         return hash.ToHashCode();
     }

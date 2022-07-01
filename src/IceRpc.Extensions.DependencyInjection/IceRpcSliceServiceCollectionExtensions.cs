@@ -28,12 +28,11 @@ public static class IceRpcSliceServiceCollectionExtensions
                 if (proxyString.StartsWith('/'))
                 {
                     IClientConnection connection = provider.GetRequiredService<IClientConnection>();
-                    proxy = Proxy.FromConnection(connection, proxyString, invoker);
+                    proxy = Proxy.FromConnection(connection, proxyString);
                 }
                 else
                 {
                     proxy = Proxy.Parse(proxyString, invoker);
-                    proxy.Connection = provider.GetService<IClientConnection>();
                 }
 
                 return new TPrxImplementation

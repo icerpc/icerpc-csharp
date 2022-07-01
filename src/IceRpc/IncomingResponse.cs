@@ -21,9 +21,6 @@ public sealed class IncomingResponse : IncomingFrame
     /// <summary>Constructs an incoming response with empty fields.</summary>
     /// <param name="request">The corresponding outgoing request.</param>
     /// <param name="connection">The connection that received the response.</param>
-    /// <remarks>While <paramref name="connection"/> is usually the same as the request's
-    /// <see cref="OutgoingRequest.Connection"/>, it may be a different connection since an invoker can ignore the
-    /// request's connection when sending the request.</remarks>
     public IncomingResponse(OutgoingRequest request, IConnection connection)
         : this(request, connection, ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty, null)
     {
@@ -33,9 +30,6 @@ public sealed class IncomingResponse : IncomingFrame
     /// <param name="request">The corresponding outgoing request.</param>
     /// <param name="connection">The connection that received the response.</param>
     /// <param name="fields">The fields of this response.</param>
-    /// <remarks>While <paramref name="connection"/> is usually the same as the request's
-    /// <see cref="OutgoingRequest.Connection"/>, it may be a different connection since an invoker can ignore the
-    /// request's connection when sending the request.</remarks>
     public IncomingResponse(
         OutgoingRequest request,
         IConnection connection,

@@ -121,14 +121,11 @@ fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
         r#"/// <summary>Creates a new <see cref="{prx_impl}"/> from the give connection and path.</summary>
 /// <param name="connection">The connection of the new proxy.</param>
 /// <param name="path">The path of the proxy. If null, the path is set to <see cref="DefaultPath"/>.</param>
-/// <param name="invoker">The invoker. If null and connection is an incoming connection, the invoker is set to
-/// the server's invoker.</param>
 /// <returns>The new proxy.</returns>
 public static {prx_impl} FromConnection(
     IceRpc.IConnection connection,
-    string? path = null,
-    IceRpc.IInvoker? invoker = null) =>
-    new(IceRpc.Proxy.FromConnection(connection, path ?? DefaultPath, invoker));
+    string? path = null) =>
+    new(IceRpc.Proxy.FromConnection(connection, path ?? DefaultPath));
 
 /// <summary>Creates a new relative proxy with the given path.</summary>
 /// <param name="path">The path.</param>
