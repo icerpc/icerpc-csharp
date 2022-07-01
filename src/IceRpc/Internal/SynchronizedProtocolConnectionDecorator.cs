@@ -186,7 +186,7 @@ internal class SynchronizedProtocolConnectionDecorator : IProtocolConnection
                 }
             }
 
-            // Cancel shutdown if it's running and wait its completion.
+            // Wait for ShutdownAsync to complete.
             if (_shutdownTask is not null)
             {
                 try

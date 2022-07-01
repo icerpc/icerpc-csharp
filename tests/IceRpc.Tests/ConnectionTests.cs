@@ -130,7 +130,7 @@ public class ConnectionTests
         // Act
         if (closeClientConnection)
         {
-            // We abort the connection by first cancelling the shutdown and then dispose it.
+            // We abort the connection by first canceling the shutdown and then dispose it.
             try
             {
                 await clientConnection.ShutdownAsync(new CancellationToken(true));
@@ -142,7 +142,7 @@ public class ConnectionTests
         }
         else
         {
-            // We abort the connection by first cancelling the shutdown and then dispose it.
+            // We abort the connection by first canceling the shutdown and then dispose it.
             try
             {
                 await serverConnection!.ShutdownAsync(new CancellationToken(true));
@@ -419,6 +419,7 @@ public class ConnectionTests
     }
 
     [Test]
+    [Repeat(100)]
     public async Task Shutdown_connection(
         [Values("icerpc", "ice")] string protocol,
         [Values] bool closeClientSide)

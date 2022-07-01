@@ -145,8 +145,8 @@ public sealed class ProtocolConnectionTests
         });
     }
 
-    /// <summary>Verifies that disposing a server connection aborts pending invocations, peer invocations will fail with
-    /// <see cref="ConnectionLostException"/>.</summary>
+    /// <summary>Verifies that disposing a server connection cancels pending dispatches, peer invocations will fail with
+    /// <see cref="DispatchException"/> or <see cref="IceRpcProtocolStreamException"/>.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
     public async Task Disposing_server_connection_aborts_pending_invocations(Protocol protocol)
     {

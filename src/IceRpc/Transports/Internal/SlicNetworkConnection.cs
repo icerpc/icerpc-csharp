@@ -321,26 +321,33 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
     public async Task ShutdownAsync(ulong applicationErrorCode, CancellationToken cancel)
     {
         // Send the close frame.
-        await _writeSemaphore.EnterAsync(cancel).ConfigureAwait(false);
         try
         {
-            await WriteFrameAsync(
-                FrameType.Close,
-                streamId: null,
-                new CloseBody(applicationErrorCode).Encode,
-                cancel).ConfigureAwait(false);
+            await _writeSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+            try
+            {
+                await WriteFrameAsync(
+                    FrameType.Close,
+                    streamId: null,
+                    new CloseBody(applicationErrorCode).Encode,
+                    cancel).ConfigureAwait(false);
+            }
+            finally
+            {
+                _writeSemaphore.Release();
+            }
+
+            // Shutdown the simple network connection.
+            await _simpleNetworkConnection.ShutdownAsync(cancel).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch
         {
             // Ignore, this can occur if the peer already close the connection.
         }
-        finally
-        {
-            _writeSemaphore.Release();
-        }
-
-        // Shutdown the simple network connection.
-        await _simpleNetworkConnection.ShutdownAsync(cancel).ConfigureAwait(false);
     }
 
     internal SlicNetworkConnection(
