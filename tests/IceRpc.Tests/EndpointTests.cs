@@ -188,6 +188,57 @@ public class EndpointTests
         Assert.That(endpoint.Host, Is.EqualTo(host));
     }
 
+    [Test]
+    public void Construction_with_unsupported_protocol_fails()
+    {
+        // Arrange
+        var unsupportedProtocol = Protocol.FromString("foo");
+
+        // Act / Assert
+        Assert.Throws<ArgumentException>(() => new Endpoint(unsupportedProtocol));
+    }
+
+    [Test]
+    public void Construction_with_relative_uri_fails()
+    {
+        // Arrange
+        var relativeUri = new Uri("foo", UriKind.Relative);
+
+        // Act / Assert
+        Assert.Throws<ArgumentException>(() => new Endpoint(relativeUri));
+    }
+
+    [Test]
+    public void To_Uri_returns_uri_from_Endpoint_uri_constructor()
+    {
+        // Arrange
+        var uri = new Uri("icerpc://bar:1234");
+        var endpoint = new Endpoint(uri);
+
+        // Act
+        var result = endpoint.ToUri();
+
+        // Assert
+        Assert.That(endpoint.OriginalUri, Is.EqualTo(uri));
+        Assert.That(result, Is.EqualTo(uri));
+    }
+
+    [Test]
+    public void Original_uri_set_to_null_when_setting_property()
+    {
+        // Arrange
+        var endpoint = Endpoint.FromString("icerpc://localhost");
+        endpoint = endpoint with { Host = "foo" }; // new host invalidates OriginalUri
+
+        // Act
+        var endpointUri = endpoint.ToUri();
+
+        // Assert
+        Assert.That(endpointUri.Scheme, Is.EqualTo("icerpc"));
+        Assert.That(endpointUri.Host, Is.EqualTo("foo"));
+        Assert.That(endpoint.OriginalUri, Is.Null);
+    }
+
     /// <summary>Verifies that setting the endpoint parameters works.</summary>
     /// <param name="name">The name of the endpoint parameter to set.</param>
     /// <param name="value">The value of the endpoint parameter to set.</param>
