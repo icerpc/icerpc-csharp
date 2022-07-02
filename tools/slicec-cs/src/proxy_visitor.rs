@@ -158,7 +158,7 @@ public {prx_impl}(string path) => Proxy = new() {{ Path = path }};
 /// <param name="invoker">The invocation pipeline of the proxy.</param>
 /// <param name="path">The path of the proxy. If null, the path is set to <see cref="DefaultPath"/>.</param>
 /// <param name="protocol">The protocol of the proxy. If null, the protocol is set to IceRpc.</param>
-public {prx_impl}(IceRpc.IInvoker invoker, string? path = null, Protocol? protocol = null)
+public {prx_impl}(IceRpc.IInvoker invoker, string? path = null, IceRpc.Protocol? protocol = null)
 {{
     Invoker = invoker;
     Proxy = new(protocol ?? IceRpc.Protocol.IceRpc) {{ Path = path ?? DefaultPath }};
