@@ -27,9 +27,8 @@ public static class IceRpcServiceCollectionExtensions
                     provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()))
             .AddSingleton<IClientConnection>(provider => provider.GetRequiredService<ClientConnection>());
 
-    /// <summary>Adds <see cref="ConnectionPool"/> connection provider to this service collection.</summary>
+    /// <summary>Adds <see cref="ConnectionPool"/> to this service collection.</summary>
     /// <param name="services">The service collection to add services to.</param>
-    /// <seealso cref="IClientConnectionProvider"/>
     public static IServiceCollection AddIceRpcConnectionPool(this IServiceCollection services) =>
         services
             .TryAddIceRpcClientTransport()
@@ -38,8 +37,7 @@ public static class IceRpcServiceCollectionExtensions
                     provider.GetRequiredService<IOptions<ConnectionPoolOptions>>().Value,
                     loggerFactory: provider.GetService<ILoggerFactory>(),
                     provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                    provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()))
-            .AddSingleton<IClientConnectionProvider>(provider => provider.GetRequiredService<ConnectionPool>());
+                    provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()));
 
     /// <summary>Adds an <see cref="IDispatcher"/> singleton to this service collection using a builder.</summary>
     /// <param name="services">The service collection to add services to.</param>
