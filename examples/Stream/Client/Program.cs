@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 
 // Establish the connection to the server
 await using var connection = new ClientConnection("icerpc://127.0.0.1");
-INumberStreamPrx numberStreamPrx = NumberStreamPrx.FromConnection(connection);
+var numberStreamPrx = new NumberStreamPrx(connection);
 
 // Continues to stream data until either the client or server are shut down
 Console.WriteLine("Client is streaming data...");

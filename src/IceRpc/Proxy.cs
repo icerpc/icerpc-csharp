@@ -195,22 +195,6 @@ public sealed record class Proxy
     private ImmutableDictionary<string, string> _params = ImmutableDictionary<string, string>.Empty;
     private string _path = "/";
 
-    /// <summary>Creates a proxy from a connection and a path.</summary>
-    /// <param name="connection">The connection of the new proxy.</param>
-    /// <param name="path">The path of the proxy.</param>
-    /// <returns>The new proxy.</returns>
-    public static Proxy FromConnection(IConnection connection, string path) =>
-        new(connection.Protocol)
-        {
-            Path = path,
-            Invoker = connection
-        };
-
-    /// <summary>Creates a relative proxy.</summary>
-    /// <param name="path">The path.</param>
-    /// <returns>The new relative proxy.</returns>
-    public static Proxy FromPath(string path) => new() { Path = path };
-
     /// <summary>Creates a proxy from a string and an invoker.</summary>
     /// <param name="s">The string to parse.</param>
     /// <param name="invoker">The invoker of the new proxy.</param>

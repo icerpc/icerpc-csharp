@@ -25,7 +25,7 @@ await using var connection = new ClientConnection("icerpc://127.0.0.1");
 
 pipeline.Into(connection);
 
-var hello = HelloPrx.FromConnection(connection);
+var hello = new HelloPrx(connection);
 hello.Proxy.Invoker = pipeline;
 
 Console.Write("To say hello to the server, type your name: ");

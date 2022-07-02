@@ -28,7 +28,7 @@ public static class IceRpcSliceServiceCollectionExtensions
                 if (proxyString.StartsWith('/'))
                 {
                     IClientConnection connection = provider.GetRequiredService<IClientConnection>();
-                    proxy = Proxy.FromConnection(connection, proxyString);
+                    proxy = new(connection.Protocol) { Invoker = connection, Path = proxyString };
                 }
                 else
                 {

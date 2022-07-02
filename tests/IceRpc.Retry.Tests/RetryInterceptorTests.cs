@@ -320,7 +320,7 @@ public sealed class RetryInterceptorTests
             });
         });
 
-        var proxy = Proxy.FromConnection(connection1, "/path");
+        var proxy = new Proxy(connection1.Protocol) { Invoker = connection1, Path = "/path" };
         proxy.Endpoint = connection1.RemoteEndpoint;
         proxy.AltEndpoints = new List<Endpoint>
         {

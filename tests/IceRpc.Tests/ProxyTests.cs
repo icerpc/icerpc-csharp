@@ -265,7 +265,7 @@ public class ProxyTests
     {
         await using var connection = new ClientConnection(new Endpoint(Protocol.IceRpc));
 
-        var proxy = Proxy.FromConnection(connection, "/");
+        var proxy = new Proxy(connection.Protocol) { Invoker = connection, Path = "/" };
 
         Assert.Multiple(() =>
         {
@@ -335,7 +335,7 @@ public class ProxyTests
             .AddColocTest(router)
             .BuildServiceProvider(validateScopes: true);
 
-        var prx = SendProxyTestPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
+        var prx = new SendProxyTestPrx(provider.GetRequiredService<ClientConnection>());
         provider.GetRequiredService<Server>().Listen();
 
         await prx.SendProxyAsync(prx);
@@ -354,7 +354,7 @@ public class ProxyTests
             .AddColocTest(service)
             .BuildServiceProvider(validateScopes: true);
 
-        var prx = SendProxyTestPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
+        var prx = new SendProxyTestPrx(provider.GetRequiredService<ClientConnection>());
         provider.GetRequiredService<Server>().Listen();
 
         await prx.SendProxyAsync(prx);
@@ -374,7 +374,7 @@ public class ProxyTests
         provider.GetRequiredService<Server>().Listen();
         IConnection connection = provider.GetRequiredService<ClientConnection>();
         IInvoker invoker = new Pipeline().Into(connection);
-        var prx = ReceiveProxyTestPrx.FromConnection(connection);
+        var prx = new ReceiveProxyTestPrx(connection);
         prx.Proxy.Invoker = invoker;
 
         ReceiveProxyTestPrx received = await prx.ReceiveProxyAsync();

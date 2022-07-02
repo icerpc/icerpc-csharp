@@ -46,7 +46,7 @@ public class OperationGeneratedCodeTests
             .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
-        var prx = MyOperationsAPrx.FromConnection(provider.GetRequiredService<ClientConnection>(), "/");
+        var prx = new MyOperationsAPrx(provider.GetRequiredService<ClientConnection>(), "/");
         prx.Proxy.Invoker = provider.GetRequiredService<IInvoker>();
 
         // Act

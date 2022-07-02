@@ -391,7 +391,7 @@ public ref partial struct SliceDecoder
                             "cannot decode a relative proxy from an decoder with a null Connection");
                     }
 
-                    var proxy = Proxy.FromConnection(_connection, proxyString);
+                    var proxy = new Proxy(_connection.Protocol) { Invoker = _connection, Path = proxyString };
                     if (_invoker is not null)
                     {
                         proxy.Invoker = _invoker;

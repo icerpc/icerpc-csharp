@@ -79,7 +79,7 @@ private static readonly IActivator _defaultActivator =
     SliceDecoder.GetActivator(typeof({prx_impl}).Assembly);
 
 /// <inheritdoc/>
-public ISliceEncodeFeature? EncodeFeature {{ get; init; }}
+public ISliceEncodeFeature? EncodeFeature {{ get; init; }} = null;
 
 /// <inheritdoc/>
 public IceRpc.Proxy Proxy {{ get; init; }}"#,
@@ -118,16 +118,7 @@ public static implicit operator {base_impl}({prx_impl} prx) => new(prx.Proxy, pr
 
 fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
     format!(
-        r#"/// <summary>Creates a new <see cref="{prx_impl}"/> from the give connection and path.</summary>
-/// <param name="connection">The connection of the new proxy.</param>
-/// <param name="path">The path of the proxy. If null, the path is set to <see cref="DefaultPath"/>.</param>
-/// <returns>The new proxy.</returns>
-public static {prx_impl} FromConnection(
-    IceRpc.IConnection connection,
-    string? path = null) =>
-    new(IceRpc.Proxy.FromConnection(connection, path ?? DefaultPath));
-
-/// <summary>Creates a new <see cref="{prx_impl}"/> from a string and invoker.</summary>
+        r#"/// <summary>Creates a new <see cref="{prx_impl}"/> from a string and invoker.</summary>
 /// <param name="s">The string representation of the proxy.</param>
 /// <param name="invoker">The invoker of the new proxy.</param>
 /// <returns>The new proxy.</returns>
@@ -166,10 +157,14 @@ public {prx_impl}(IceRpc.Proxy proxy, ISliceEncodeFeature? encodeFeature = null)
 
 /// <summary>Constructs a relative proxy from a path.</summary>
 /// <param name="path">The path.</param>
-public {prx_impl}(string path)
-    : this(new IceRpc.Proxy {{ Path = path }})
-{{
-}}
+public {prx_impl}(string path) => Proxy = new() {{ Path = path }};
+
+/// <summary>Constructs a proxy from an invoker, a path and a protocol.</summary>
+/// <param name="invoker">The invocation pipeline of the new proxy.</param>
+/// <param name="path">The path of the proxy. If null, the path is set to <see cref="DefaultPath"/>.</param>
+/// <param name="protocol">The protocol of the proxy. If null, the protocol is set to IceRpc.</param>
+public {prx_impl}(IceRpc.IInvoker invoker, string? path = null, Protocol? protocol = null) =>
+    Proxy = new(protocol ?? IceRpc.Protocol.IceRpc) {{ Invoker = invoker, Path = path ?? DefaultPath }};
 
 /// <inheritdoc/>
 public override string ToString() => Proxy.ToString();"#,
