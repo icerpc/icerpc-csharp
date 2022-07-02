@@ -20,7 +20,7 @@ public class LocatorInterceptorTests
         });
         var locationResolver = new NotCalledLocationResolver();
         var sut = new LocatorInterceptor(invoker, locationResolver);
-        var proxy = new Proxy(connection.Protocol) { Invoker = connection, Path = "/path" };
+        var proxy = new Proxy(connection.Protocol) { Path = "/path" };
         var request = new OutgoingRequest(proxy);
         IEndpointFeature endpointFeature = new EndpointFeature(proxy);
         endpointFeature.Connection = connection;

@@ -259,21 +259,6 @@ public class ProxyTests
         Assert.That(hashCode1, Is.EqualTo(proxy2.GetHashCode()));
     }
 
-    /// <summary>Verifies that a proxy created from a connection has the expected path and connection.</summary>
-    [Test]
-    public async Task From_connection_returns_proxy_with_expected_path_and_connection()
-    {
-        await using var connection = new ClientConnection(new Endpoint(Protocol.IceRpc));
-
-        var proxy = new Proxy(connection.Protocol) { Invoker = connection, Path = "/" };
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(proxy.Path, Is.EqualTo("/"));
-            Assert.That(proxy.Invoker, Is.EqualTo(connection));
-        });
-    }
-
     /// <summary>Verifies that a proxy created from a path has the expected protocol, path and endpoint properties.
     /// </summary>
     [TestCase("/")]
@@ -341,7 +326,7 @@ public class ProxyTests
         await prx.SendProxyAsync(prx);
 
         Assert.That(service.ReceivedPrx, Is.Not.Null);
-        Assert.That(service.ReceivedPrx.Value.Proxy.Invoker, Is.EqualTo(pipeline));
+        Assert.That(service.ReceivedPrx.Value.Invoker, Is.EqualTo(pipeline));
     }
 
     /// <summary>Verifies that a proxy received over an incoming connection uses the default invoker.</summary>
@@ -360,7 +345,7 @@ public class ProxyTests
         await prx.SendProxyAsync(prx);
 
         Assert.That(service.ReceivedPrx, Is.Not.Null);
-        Assert.That(service.ReceivedPrx.Value.Proxy.Invoker, Is.EqualTo(Proxy.DefaultInvoker));
+        Assert.That(service.ReceivedPrx.Value.Invoker, Is.EqualTo(NullInvoker.Instance));
     }
 
     /// <summary>Verifies that a proxy received over an outgoing connection inherits the callers invoker.</summary>
@@ -374,12 +359,11 @@ public class ProxyTests
         provider.GetRequiredService<Server>().Listen();
         IConnection connection = provider.GetRequiredService<ClientConnection>();
         IInvoker invoker = new Pipeline().Into(connection);
-        var prx = new ReceiveProxyTestPrx(connection);
-        prx.Proxy.Invoker = invoker;
+        var prx = new ReceiveProxyTestPrx(invoker);
 
         ReceiveProxyTestPrx received = await prx.ReceiveProxyAsync();
 
-        Assert.That(received.Proxy.Invoker, Is.EqualTo(invoker));
+        Assert.That(received.Invoker, Is.EqualTo(invoker));
     }
 
     /// <summary>Verifies that setting the alt endpoints containing endpoints that uses a protocol different than the

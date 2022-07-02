@@ -161,7 +161,7 @@ public class StreamTests
             SliceEncoding.Slice2,
             decodeFeature: null,
             defaultActivator: null,
-            defaultInvoker: Proxy.DefaultInvoker,
+            defaultInvoker: NullInvoker.Instance,
             prxEncodeFeature: null,
             (ref SliceDecoder decoder) => decoder.DecodeInt32(),
             elementSize: 4);
@@ -223,7 +223,7 @@ public class StreamTests
             SliceEncoding.Slice2,
             decodeFeature: null,
             defaultActivator: null,
-            defaultInvoker: Proxy.DefaultInvoker,
+            defaultInvoker: NullInvoker.Instance,
             prxEncodeFeature: null,
             (ref SliceDecoder decoder) => decoder.DecodeString());
 

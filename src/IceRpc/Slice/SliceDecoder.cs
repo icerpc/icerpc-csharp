@@ -363,7 +363,14 @@ public ref partial struct SliceDecoder
             throw new InvalidOperationException($"decoding a nullable Prx with {Encoding} requires a bit sequence");
         }
         string path = this.DecodeIdentityPath();
-        return path != "/" ? new TPrx { Proxy = DecodeProxy(path), EncodeFeature = _prxEncodeFeature } : null;
+        return path != "/" ?
+            new TPrx
+            {
+                Proxy = DecodeProxy(path),
+                Invoker = _invoker ?? NullInvoker.Instance,
+                EncodeFeature = _prxEncodeFeature
+            }
+            : null;
     }
 
     /// <summary>Decodes a Prx struct.</summary>
@@ -374,8 +381,14 @@ public ref partial struct SliceDecoder
         if (Encoding == SliceEncoding.Slice1)
         {
             string path = this.DecodeIdentityPath();
-            return path != "/" ? new TPrx { Proxy = DecodeProxy(path), EncodeFeature = _prxEncodeFeature } :
-                throw new InvalidDataException("decoded null for a non-nullable proxy");
+            return path != "/" ?
+                new TPrx
+                {
+                    Proxy = DecodeProxy(path),
+                    Invoker = _invoker ?? NullInvoker.Instance,
+                    EncodeFeature = _prxEncodeFeature
+                }
+                : throw new InvalidDataException("decoded null for a non-nullable proxy");
         }
         else
         {
@@ -391,14 +404,11 @@ public ref partial struct SliceDecoder
                             "cannot decode a relative proxy from an decoder with a null Connection");
                     }
 
-                    var proxy = new Proxy(_connection.Protocol) { Invoker = _connection, Path = proxyString };
-                    if (_invoker is not null)
-                    {
-                        proxy.Invoker = _invoker;
-                    }
+                    var proxy = new Proxy(_connection.Protocol) { Path = proxyString };
                     return new TPrx
                     {
                         Proxy = proxy,
+                        Invoker = _invoker ?? _connection,
                         EncodeFeature = _prxEncodeFeature
                     };
                 }
@@ -406,13 +416,10 @@ public ref partial struct SliceDecoder
                 {
                     var proxy = new Proxy(new Uri(proxyString, UriKind.Absolute));
                     Debug.Assert(proxy.Protocol is not null); // null protocol == relative proxy
-                    if (proxy.Protocol.IsSupported && _invoker is not null)
-                    {
-                        proxy.Invoker = _invoker;
-                    }
                     return new TPrx
                     {
                         Proxy = proxy,
+                        Invoker = proxy.Protocol.IsSupported && _invoker is not null ? _invoker : NullInvoker.Instance,
                         EncodeFeature = _prxEncodeFeature
                     };
                 }
@@ -1172,8 +1179,7 @@ public ref partial struct SliceDecoder
                 endpoint,
                 altEndpoints.ToImmutableList(),
                 proxyParams,
-                proxyData.Fragment,
-                _invoker ?? Proxy.DefaultInvoker);
+                proxyData.Fragment);
         }
         catch (InvalidDataException)
         {

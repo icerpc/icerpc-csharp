@@ -8,7 +8,7 @@ namespace IceRpc;
 public sealed class Pipeline : IInvoker
 {
     private readonly Stack<Func<IInvoker, IInvoker>> _interceptorStack = new();
-    private IInvoker _into = Proxy.DefaultInvoker;
+    private IInvoker _into = NullInvoker.Instance;
     private readonly Lazy<IInvoker> _invoker;
 
     /// <summary>Constructs a pipeline.</summary>

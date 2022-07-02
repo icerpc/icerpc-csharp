@@ -35,7 +35,7 @@ public sealed class ProtocolBridgingTests
             .AddColocTransport()
             .AddIceRpcConnectionPool()
             .AddSingleton<IProtocolBridgingTest>(targetService)
-            .AddSingleton(_ => new Forwarder(targetServicePrx.Proxy))
+            .AddSingleton(_ => new Forwarder(new ServicePrx { Proxy = targetServicePrx.Proxy, Invoker = targetServicePrx.Invoker }))
             .AddIceRpcServer(
                 "forwarder",
                 builder => builder
@@ -57,8 +57,8 @@ public sealed class ProtocolBridgingTests
 
         await using ServiceProvider serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-        forwarderServicePrx.Proxy.Invoker = serviceProvider.GetRequiredService<IInvoker>();
-        targetServicePrx.Proxy.Invoker = serviceProvider.GetRequiredService<IInvoker>();
+        forwarderServicePrx = forwarderServicePrx with { Invoker = serviceProvider.GetRequiredService<IInvoker>() };
+        targetServicePrx = targetServicePrx with { Invoker = serviceProvider.GetRequiredService<IInvoker>() };
 
         foreach (Server server in serviceProvider.GetServices<Server>())
         {
@@ -139,7 +139,7 @@ public sealed class ProtocolBridgingTests
                 Endpoint = _publishedEndpoint
             };
 
-            return new(new ProtocolBridgingTestPrx(proxy));
+            return new(new ProtocolBridgingTestPrx { Proxy = proxy });
         }
 
         public ValueTask OpOnewayAsync(int x, IFeatureCollection features, CancellationToken cancel) => default;
@@ -152,7 +152,7 @@ public sealed class ProtocolBridgingTests
 
     public sealed class Forwarder : IDispatcher
     {
-        private readonly Proxy _target;
+        private readonly ServicePrx _target;
 
         async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(
             IncomingRequest incomingRequest,
@@ -160,10 +160,11 @@ public sealed class ProtocolBridgingTests
         {
             // First create an outgoing request to _target from the incoming request:
 
-            Protocol targetProtocol = _target.Protocol!;
+            Protocol targetProtocol = _target.Proxy.Protocol!;
 
-            var outgoingRequest = new OutgoingRequest(_target)
+            var outgoingRequest = new OutgoingRequest(_target.Proxy)
             {
+                Invoker = _target.Invoker,
                 IsOneway = incomingRequest.IsOneway,
                 Operation = incomingRequest.Operation,
                 Payload = incomingRequest.Payload,
@@ -204,6 +205,6 @@ public sealed class ProtocolBridgingTests
             };
         }
 
-        internal Forwarder(Proxy target) => _target = target;
+        internal Forwarder(ServicePrx target) => _target = target;
     }
 }

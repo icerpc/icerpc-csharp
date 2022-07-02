@@ -15,11 +15,6 @@ namespace IceRpc;
 /// <seealso cref="Slice.IPrx"/>
 public sealed record class Proxy
 {
-    /// <summary>Gets the default invoker of proxies. This invoker always throws
-    /// <see cref="InvalidOperationException"/>.</summary>
-    public static IInvoker DefaultInvoker { get; } =
-        new InlineInvoker((request, cancel) => throw new InvalidOperationException("reached default invoker"));
-
     /// <summary>Gets or sets the secondary endpoints of this proxy.</summary>
     /// <value>The secondary endpoints of this proxy.</value>
     public ImmutableList<Endpoint> AltEndpoints
@@ -113,17 +108,6 @@ public sealed record class Proxy
         }
     }
 
-    /// <summary>Gets or sets the invoker of this proxy.</summary>
-    public IInvoker Invoker
-    {
-        get => _invoker;
-        set
-        {
-            CheckSupportedProtocol(nameof(Invoker));
-            _invoker = value;
-        }
-    }
-
     /// <summary>Gets the URI used to create this proxy, if this proxy was created from a URI and URI-derived
     /// properties such as <see cref="Endpoint"/> have not been updated.</summary>
     public Uri? OriginalUri { get; private set; }
@@ -191,55 +175,33 @@ public sealed record class Proxy
     private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
     private Endpoint? _endpoint;
     private string _fragment = "";
-    private IInvoker _invoker = DefaultInvoker;
     private ImmutableDictionary<string, string> _params = ImmutableDictionary<string, string>.Empty;
     private string _path = "/";
 
-    /// <summary>Creates a proxy from a string and an invoker.</summary>
+    /// <summary>Creates a proxy from a URI string.</summary>
     /// <param name="s">The string to parse.</param>
-    /// <param name="invoker">The invoker of the new proxy.</param>
     /// <returns>The parsed proxy.</returns>
-    public static Proxy Parse(string s, IInvoker? invoker = null)
+    public static Proxy Parse(string s)
     {
-        Proxy proxy;
-
         try
         {
-            proxy = s.StartsWith('/') ? new Proxy { Path = s } : new Proxy(new Uri(s, UriKind.Absolute));
+            return s.StartsWith('/') ? new Proxy { Path = s } : new Proxy(new Uri(s, UriKind.Absolute));
         }
         catch (ArgumentException ex)
         {
             throw new FormatException($"cannot parse URI '{s}'", ex);
         }
-
-        if (invoker is not null)
-        {
-            try
-            {
-                proxy.Invoker = invoker;
-            }
-            catch (InvalidOperationException ex)
-            {
-                throw new ArgumentException($"cannot set invoker on proxy '{proxy}'", ex);
-            }
-        }
-
-        return proxy;
     }
 
-    /// <summary>Tries to create a proxy from a string and invoker.</summary>
-    /// <param name="s">The string to parse.</param>
-    /// <param name="invoker">The invoker. <c>null</c> is equivalent to <see cref="DefaultInvoker"/>.</param>
+    /// <summary>Tries to create a proxy from a URI string.</summary>
+    /// <param name="s">The URI string to parse.</param>
     /// <param name="proxy">The parsed proxy.</param>
     /// <returns><c>true</c> when the string is parsed successfully; otherwise, <c>false</c>.</returns>
-    public static bool TryParse(
-        string s,
-        IInvoker? invoker,
-        [NotNullWhen(true)] out Proxy? proxy)
+    public static bool TryParse(string s, [NotNullWhen(true)] out Proxy? proxy)
     {
         try
         {
-            proxy = Parse(s, invoker);
+            proxy = Parse(s);
             return true;
         }
         catch (FormatException)
@@ -385,11 +347,6 @@ public sealed record class Proxy
             return false;
         }
 
-        if (Invoker != other.Invoker)
-        {
-            return false;
-        }
-
         if (!_altEndpoints.SequenceEqual(other._altEndpoints))
         {
             return false;
@@ -422,7 +379,6 @@ public sealed record class Proxy
         hash.Add(Protocol);
         hash.Add(Path);
         hash.Add(Fragment);
-        hash.Add(Invoker);
 
         if (_endpoint is not null)
         {
@@ -553,8 +509,7 @@ public sealed record class Proxy
         Endpoint? endpoint,
         ImmutableList<Endpoint> altEndpoints,
         ImmutableDictionary<string, string> proxyParams,
-        string fragment,
-        IInvoker invoker)
+        string fragment)
     {
         Protocol = protocol;
         _path = path;
@@ -562,7 +517,6 @@ public sealed record class Proxy
         _altEndpoints = altEndpoints;
         _params = proxyParams;
         _fragment = fragment;
-        _invoker = invoker;
     }
 
     /// <summary>Checks if <paramref name="fragment"/> is a properly escaped URI fragment, i.e. it contains only

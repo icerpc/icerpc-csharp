@@ -15,6 +15,10 @@ public sealed class OutgoingRequest : OutgoingFrame
     public IDictionary<RequestFieldKey, OutgoingFieldValue> Fields { get; set; } =
         ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty;
 
+    /// <summary>Gets or initializes the invoker that is sending this request.</summary>
+    // TODO: move somewhere else. This is used to set the invoker when decoding Slice proxies in responses.
+    public IInvoker Invoker { get; init; } = NullInvoker.Instance;
+
     /// <summary>Gets a value indicating whether this request is oneway or two-way.</summary>
     /// <value><c>true</c> for oneway requests, <c>false</c> otherwise. The default is <c>false</c>.</value>
     public bool IsOneway { get; init; }

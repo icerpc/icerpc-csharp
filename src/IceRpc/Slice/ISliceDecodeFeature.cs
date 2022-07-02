@@ -21,7 +21,7 @@ public interface ISliceDecodeFeature
     int MaxSegmentSize { get; }
 
     /// <summary>Gets the invoker assigned to decoded proxies. When null, a proxy decoded from an incoming request
-    /// gets <see cref="Proxy.DefaultInvoker"/> while a proxy decoded from an incoming response gets the invoker of the
+    /// gets <see cref="NullInvoker.Instance"/> while a proxy decoded from an incoming response gets the invoker of the
     /// proxy that created the request.</summary>
     IInvoker? ProxyInvoker { get; }
 

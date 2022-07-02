@@ -42,9 +42,9 @@ public static class PrxExtensions
         this IPrx prx,
         IFeatureCollection? features = null,
         CancellationToken cancel = default) where TPrx : struct, IPrx =>
-        await new ServicePrx(prx.Proxy).IceIsAAsync(typeof(TPrx).GetSliceTypeId()!, features, cancel).
-            ConfigureAwait(false) ?
-            new TPrx { EncodeFeature = prx.EncodeFeature, Proxy = prx.Proxy } : null;
+        await prx.ToPrx<ServicePrx>().IceIsAAsync(typeof(TPrx).GetSliceTypeId()!, features, cancel)
+            .ConfigureAwait(false) ?
+            prx.ToPrx<TPrx>() : null;
 
     /// <summary>Sends a request to a service and decodes the response.</summary>
     /// <typeparam name="TPrx">The type of the Prx struct.</typeparam>
@@ -79,17 +79,18 @@ public static class PrxExtensions
                 $"when {nameof(payloadStream)} is not null, {nameof(payload)} cannot be null");
         }
 
+        IInvoker invoker = prx.Invoker;
+
         var request = new OutgoingRequest(prx.Proxy)
         {
             Features = features ?? FeatureCollection.Empty,
             Fields = idempotent ?
                 _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
+            Invoker = invoker,
             Operation = operation,
             Payload = payload ?? EmptyPipeReader.Instance,
             PayloadStream = payloadStream
         };
-
-        IInvoker invoker = prx.Proxy.Invoker;
 
         try
         {
@@ -160,18 +161,19 @@ public static class PrxExtensions
                 $"when {nameof(payloadStream)} is not null, {nameof(payload)} cannot be null");
         }
 
+        IInvoker invoker = prx.Invoker;
+
         var request = new OutgoingRequest(prx.Proxy)
         {
             Features = features ?? FeatureCollection.Empty,
             Fields = idempotent ?
                 _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
+            Invoker = invoker,
             IsOneway = oneway,
             Operation = operation,
             Payload = payload ?? EmptyPipeReader.Instance,
             PayloadStream = payloadStream
         };
-
-        IInvoker invoker = prx.Proxy.Invoker;
 
         try
         {
@@ -217,11 +219,5 @@ public static class PrxExtensions
     /// <param name="prx">The source Prx.</param>
     /// <returns>A new TPrx instance.</returns>
     public static TPrx ToPrx<TPrx>(this IPrx prx) where TPrx : struct, IPrx =>
-        new() { EncodeFeature = prx.EncodeFeature, Proxy = prx.Proxy };
-
-    /// <summary>Converts this Prx struct into a string.</summary>
-    /// <typeparam name="TPrx">The type of source Prx struct.</typeparam>
-    /// <param name="prx">The Prx struct.</param>
-    public static string ToString<TPrx>(this TPrx prx) where TPrx : struct, IPrx =>
-        prx.Proxy.ToString();
+        new() { EncodeFeature = prx.EncodeFeature, Invoker = prx.Invoker, Proxy = prx.Proxy };
 }

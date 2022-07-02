@@ -95,7 +95,7 @@ public class ProxyTests
                 encoding: SliceEncoding.Slice2,
                 connection: connection);
 
-            return decoder.DecodePrx<ServicePrx>().Proxy.Invoker;
+            return decoder.DecodePrx<ServicePrx>().Invoker;
         },
         Is.EqualTo(connection));
     }
