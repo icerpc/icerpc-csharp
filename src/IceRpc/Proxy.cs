@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Features;
 using IceRpc.Internal;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -19,9 +18,7 @@ public sealed record class Proxy
     /// <summary>Gets the default invoker of proxies. This invoker always throws
     /// <see cref="InvalidOperationException"/>.</summary>
     public static IInvoker DefaultInvoker { get; } =
-         new InlineInvoker((request, cancel) =>
-             request.Features.Get<IEndpointFeature>()?.Connection?.InvokeAsync(request, cancel) ??
-                 throw new ArgumentNullException(nameof(request), "connection is null"));
+        new InlineInvoker((request, cancel) => throw new InvalidOperationException("reached default invoker"));
 
     /// <summary>Gets or sets the secondary endpoints of this proxy.</summary>
     /// <value>The secondary endpoints of this proxy.</value>
