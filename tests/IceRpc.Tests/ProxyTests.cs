@@ -280,7 +280,7 @@ public class ProxyTests
     [TestCase("/foo/bar/")]
     public void From_path(string path)
     {
-        var proxy = Proxy.FromPath(path);
+        var proxy = new Proxy { Path = path };
 
         Assert.Multiple(() =>
         {
@@ -428,7 +428,7 @@ public class ProxyTests
     private class ReceiveProxyTest : Service, IReceiveProxyTest
     {
         public ValueTask<ReceiveProxyTestPrx> ReceiveProxyAsync(IFeatureCollection features, CancellationToken cancel) =>
-            new(ReceiveProxyTestPrx.FromPath("/hello"));
+            new(new ReceiveProxyTestPrx("/hello"));
     }
 
     private class SendProxyTest : Service, ISendProxyTest

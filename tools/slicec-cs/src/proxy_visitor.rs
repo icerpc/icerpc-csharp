@@ -127,11 +127,6 @@ public static {prx_impl} FromConnection(
     string? path = null) =>
     new(IceRpc.Proxy.FromConnection(connection, path ?? DefaultPath));
 
-/// <summary>Creates a new relative proxy with the given path.</summary>
-/// <param name="path">The path.</param>
-/// <returns>The new relative proxy.</returns>
-public static {prx_impl} FromPath(string path) => new(IceRpc.Proxy.FromPath(path));
-
 /// <summary>Creates a new <see cref="{prx_impl}"/> from a string and invoker.</summary>
 /// <param name="s">The string representation of the proxy.</param>
 /// <param name="invoker">The invoker of the new proxy.</param>
@@ -167,6 +162,13 @@ public {prx_impl}(IceRpc.Proxy proxy, ISliceEncodeFeature? encodeFeature = null)
 {{
     Proxy = proxy;
     EncodeFeature = encodeFeature;
+}}
+
+/// <summary>Constructs a relative proxy from a path.</summary>
+/// <param name="path">The path.</param>
+public {prx_impl}(string path)
+    : this(new IceRpc.Proxy {{ Path = path }})
+{{
 }}
 
 /// <inheritdoc/>

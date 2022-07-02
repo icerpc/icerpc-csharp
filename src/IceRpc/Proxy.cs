@@ -221,7 +221,7 @@ public sealed record class Proxy
 
         try
         {
-            proxy = s.StartsWith('/') ? FromPath(s) : new Proxy(new Uri(s, UriKind.Absolute));
+            proxy = s.StartsWith('/') ? new Proxy { Path = s } : new Proxy(new Uri(s, UriKind.Absolute));
         }
         catch (ArgumentException ex)
         {
