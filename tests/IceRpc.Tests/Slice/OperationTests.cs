@@ -330,7 +330,12 @@ public class OperationTests
             Payload = payload
         };
         Assert.That(
-            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryAsync(response, request, null, default),
+            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryAsync(
+                response,
+                request,
+                NullInvoker.Instance,
+                null,
+                default),
             Is.EqualTo(new int[] { 1, 2, 3 }));
     }
 
@@ -372,7 +377,12 @@ public class OperationTests
             Payload = payload
         };
         Assert.That(
-            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryOptionalAsync(response, request, null, default),
+            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryOptionalAsync(
+                response,
+                request,
+                NullInvoker.Instance,
+                null,
+                default),
             Is.EqualTo(p));
     }
 
@@ -414,7 +424,12 @@ public class OperationTests
             Payload = payload
         };
         Assert.That(
-            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryTaggedAsync(response, request, null, default),
+            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryTaggedAsync(
+                response,
+                request,
+                NullInvoker.Instance,
+                null,
+                default),
             Is.EqualTo(p));
     }
 

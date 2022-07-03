@@ -11,6 +11,7 @@ namespace IceRpc.Slice;
 /// <typeparam name="T">The type of the return value to read.</typeparam>
 /// <param name="response">The incoming response.</param>
 /// <param name="request">The outgoing request.</param>
+/// <param name="prxInvoker">The invoker of the proxy that sent the request.</param>
 /// <param name="encodeFeature">The encode feature of the Prx struct that sent the request.</param>
 /// <param name="cancel">The cancellation token.</param>
 /// <returns>A value task that contains the return value or a <see cref="RemoteException"/> when the response
@@ -18,6 +19,7 @@ namespace IceRpc.Slice;
 public delegate ValueTask<T> ResponseDecodeFunc<T>(
     IncomingResponse response,
     OutgoingRequest request,
+    IInvoker prxInvoker,
     ISliceEncodeFeature? encodeFeature,
     CancellationToken cancel);
 
@@ -79,14 +81,11 @@ public static class PrxExtensions
                 $"when {nameof(payloadStream)} is not null, {nameof(payload)} cannot be null");
         }
 
-        IInvoker invoker = prx.Invoker;
-
         var request = new OutgoingRequest(prx.Proxy)
         {
             Features = features ?? FeatureCollection.Empty,
             Fields = idempotent ?
                 _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
-            Invoker = invoker,
             Operation = operation,
             Payload = payload ?? EmptyPipeReader.Instance,
             PayloadStream = payloadStream
@@ -95,7 +94,7 @@ public static class PrxExtensions
         try
         {
             // We perform as much work as possible in a non async method to throw exceptions synchronously.
-            return ReadResponseAsync(invoker.InvokeAsync(request, cancel), request);
+            return ReadResponseAsync(prx.Invoker.InvokeAsync(request, cancel), request);
         }
         catch (Exception exception)
         {
@@ -111,7 +110,8 @@ public static class PrxExtensions
             try
             {
                 IncomingResponse response = await responseTask.ConfigureAwait(false);
-                return await responseDecodeFunc(response, request, prx.EncodeFeature, cancel).ConfigureAwait(false);
+                return await responseDecodeFunc(response, request, prx.Invoker, prx.EncodeFeature, cancel)
+                    .ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -161,14 +161,11 @@ public static class PrxExtensions
                 $"when {nameof(payloadStream)} is not null, {nameof(payload)} cannot be null");
         }
 
-        IInvoker invoker = prx.Invoker;
-
         var request = new OutgoingRequest(prx.Proxy)
         {
             Features = features ?? FeatureCollection.Empty,
             Fields = idempotent ?
                 _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
-            Invoker = invoker,
             IsOneway = oneway,
             Operation = operation,
             Payload = payload ?? EmptyPipeReader.Instance,
@@ -178,7 +175,7 @@ public static class PrxExtensions
         try
         {
             // We perform as much work as possible in a non async method to throw exceptions synchronously.
-            return ReadResponseAsync(invoker.InvokeAsync(request, cancel), request);
+            return ReadResponseAsync(prx.Invoker.InvokeAsync(request, cancel), request);
         }
         catch (Exception exception)
         {
@@ -199,6 +196,7 @@ public static class PrxExtensions
                     request,
                     encoding,
                     defaultActivator,
+                    prx.Invoker,
                     prx.EncodeFeature,
                     cancel).ConfigureAwait(false);
             }

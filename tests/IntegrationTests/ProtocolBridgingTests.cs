@@ -164,7 +164,6 @@ public sealed class ProtocolBridgingTests
 
             var outgoingRequest = new OutgoingRequest(_target.Proxy)
             {
-                Invoker = _target.Invoker,
                 IsOneway = incomingRequest.IsOneway,
                 Operation = incomingRequest.Operation,
                 Payload = incomingRequest.Payload,

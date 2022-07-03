@@ -10,7 +10,7 @@ namespace IceRpc.Tests.Slice;
 public class SequenceMappingTests
 {
     [Test]
-    public async Task Return_tuple_with_elements_usig_cs_generic_attribute()
+    public async Task Return_tuple_with_elements_using_cs_generic_attribute()
     {
         PipeReader responsePayload = ISequenceMappingOperations.Response.OpReturnTuple(
             new int[] { 1, 2, 3 },
@@ -22,14 +22,19 @@ public class SequenceMappingTests
         };
 
         (CustomSequence<int> r1, CustomSequence<int> r2) =
-            await SequenceMappingOperationsPrx.Response.OpReturnTupleAsync(response, request, null, default);
+            await SequenceMappingOperationsPrx.Response.OpReturnTupleAsync(
+                response,
+                request,
+                NullInvoker.Instance,
+                null,
+                default);
 
         Assert.That(r1, Is.EqualTo(new CustomSequence<int>(new int[] { 1, 2, 3 })));
         Assert.That(r2, Is.EqualTo(new CustomSequence<int>(new int[] { 1, 2, 3 })));
     }
 
     [Test]
-    public async Task Return_single_type_usig_cs_generic_attribute()
+    public async Task Return_single_type_using_cs_generic_attribute()
     {
         PipeReader responsePayload = ISequenceMappingOperations.Response.OpReturnSingleType(new int[] { 1, 2, 3 });
         var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
@@ -40,7 +45,12 @@ public class SequenceMappingTests
 
         // TODO bogus mapping this should return CustomSequence<int>
         int[] r =
-            await SequenceMappingOperationsPrx.Response.OpReturnSingleTypeAsync(response, request, null, default);
+            await SequenceMappingOperationsPrx.Response.OpReturnSingleTypeAsync(
+                response,
+                request,
+                NullInvoker.Instance,
+                null,
+                default);
 
         Assert.That(r, Is.EqualTo(new int[] { 1, 2, 3 }));
     }
@@ -85,7 +95,12 @@ public class SequenceMappingTests
         };
 
         ValueTask<IList<IList<MyStruct>>[]> result =
-            SequenceMappingOperationsPrx.Response.OpStructNestedSequenceAsync(response, request, null, default);
+            SequenceMappingOperationsPrx.Response.OpStructNestedSequenceAsync(
+                response,
+                request,
+                NullInvoker.Instance,
+                null,
+                default);
 
         Assert.That(await result, Is.EqualTo(data));
     }
@@ -107,7 +122,12 @@ public class SequenceMappingTests
         };
 
         ValueTask<IList<IList<byte>>[]> result =
-            SequenceMappingOperationsPrx.Response.OpNumericTypeNestedSequenceAsync(response, request, null, default);
+            SequenceMappingOperationsPrx.Response.OpNumericTypeNestedSequenceAsync(
+                response,
+                request,
+                NullInvoker.Instance,
+                null,
+                default);
 
         Assert.That(await result, Is.EqualTo(data));
     }

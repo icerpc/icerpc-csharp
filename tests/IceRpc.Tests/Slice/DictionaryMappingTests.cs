@@ -10,7 +10,7 @@ namespace IceRpc.Tests.Slice;
 public class DictionaryMappingTests
 {
     [Test]
-    public async Task Return_tuple_with_elements_usig_cs_generic_attribute()
+    public async Task Return_tuple_with_elements_using_cs_generic_attribute()
     {
         PipeReader responsePayload = IDictionaryMappingOperations.Response.OpReturnTuple(
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 },
@@ -22,7 +22,12 @@ public class DictionaryMappingTests
         };
 
         (CustomDictionary<int, int> r1, CustomDictionary<int, int> r2) =
-            await DictionaryMappingOperationsPrx.Response.OpReturnTupleAsync(response, request, null, default);
+            await DictionaryMappingOperationsPrx.Response.OpReturnTupleAsync(
+                response,
+                request,
+                NullInvoker.Instance,
+                null,
+                default);
 
         Assert.That(r1, Is.EqualTo(new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 }));
         Assert.That(r2, Is.EqualTo(new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 }));
@@ -43,6 +48,7 @@ public class DictionaryMappingTests
         Dictionary<int, int> r = await DictionaryMappingOperationsPrx.Response.OpReturnSingleTypeAsync(
             response,
             request,
+            NullInvoker.Instance,
             encodeFeature: null,
             default);
 

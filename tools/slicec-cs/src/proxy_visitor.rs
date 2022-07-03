@@ -481,6 +481,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         builder.add_comment("summary", &format!(r#"The <see cref="ResponseDecodeFunc{{T}}"/> for the return value type of operation {}."#, operation.identifier()));
         builder.add_parameter("IceRpc.IncomingResponse", "response", None, None);
         builder.add_parameter("IceRpc.OutgoingRequest", "request", None, None);
+        builder.add_parameter("IceRpc.IInvoker", "prxInvoker", None, None);
         builder.add_parameter(
             "ISliceEncodeFeature?",
             "encodeFeature",
@@ -517,6 +518,7 @@ await response.DecodeVoidReturnValueAsync(
     request,
     {encoding},
     _defaultActivator,
+    prxInvoker,
     encodeFeature,
     cancel).ConfigureAwait(false);
 
@@ -540,6 +542,7 @@ var {return_value} = await response.DecodeReturnValueAsync(
     request,
     {encoding},
     _defaultActivator,
+    prxInvoker,
     encodeFeature,
     {response_decode_func},
     cancel).ConfigureAwait(false);
@@ -570,6 +573,7 @@ response.DecodeReturnValueAsync(
     request,
     {encoding},
     _defaultActivator,
+    prxInvoker,
     encodeFeature,
     {response_decode_func},
     cancel)",
