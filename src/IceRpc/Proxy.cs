@@ -217,7 +217,7 @@ public sealed record class Proxy
     /// </exception>
     public Proxy(Protocol? protocol = null) =>
         Protocol = protocol is null || protocol.IsSupported ? protocol :
-            throw new ArgumentException($"protocol must be null or a supported protocol", nameof(protocol));
+            throw new ArgumentException("protocol must be null or a supported protocol", nameof(protocol));
 
     /// <summary>Constructs a proxy from a URI.</summary>
     public Proxy(Uri uri)

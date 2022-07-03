@@ -12,6 +12,6 @@ public interface IPrx
     /// <summary>Gets or initializes the invocation pipeline of this proxy.</summary>
     IInvoker Invoker { get; init; }
 
-    /// <summary>Gets or initializes the proxy data.</summary>
+    /// <summary>Gets or initializes the underlying untyped proxy.</summary>
     Proxy Proxy { get; init; }
 }
