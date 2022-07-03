@@ -21,16 +21,6 @@ public class OperationGeneratedCodeTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddSingleton<MyOperationsA>()
-            .AddIceRpcInvoker(builder => builder
-                .UseDeflate()
-                .Use(next => new InlineInvoker(async (request, cancel) =>
-                {
-                    IncomingResponse response = await next.InvokeAsync(request, cancel);
-                    compressRequestFeature =
-                        request.Features.Get<ICompressFeature>() is ICompressFeature compress && compress.Value;
-                    return response;
-                }))
-                .Into<ClientConnection>())
             .AddColocTest(builder =>
             {
                 builder.UseDeflate();
@@ -43,10 +33,21 @@ public class OperationGeneratedCodeTests
                 }));
                 builder.Map<MyOperationsA>("/");
             })
+            .AddIceRpcInvoker(builder => builder
+                .UseDeflate()
+                .Use(next => new InlineInvoker(async (request, cancel) =>
+                {
+                    IncomingResponse response = await next.InvokeAsync(request, cancel);
+                    compressRequestFeature =
+                        request.Features.Get<ICompressFeature>() is ICompressFeature compress && compress.Value;
+                    return response;
+                }))
+                .Into<ClientConnection>())
+            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>("icerpc:/")
             .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
-        var prx = new MyOperationsAPrx(provider.GetRequiredService<IInvoker>(), "/");
+        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
 
         // Act
         int r = await prx.OpWithCompressArgsAndReturnAttributeAsync(10);
