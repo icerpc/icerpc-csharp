@@ -9,9 +9,9 @@ public interface IInvokerBuilder
     IServiceProvider ServiceProvider { get; }
 
     /// <summary>Sets the last invoker of the invocation pipeline.</summary>
-    /// <param name="invoker">The last invoker.</param>
+    /// <param name="lastInvoker">The last invoker.</param>
     /// <returns>This builder.</returns>
-    IInvokerBuilder Into(IInvoker invoker);
+    IInvokerBuilder Into(IInvoker lastInvoker);
 
     /// <summary>Registers an interceptor.</summary>
     /// <param name="interceptor">The interceptor to register.</param>

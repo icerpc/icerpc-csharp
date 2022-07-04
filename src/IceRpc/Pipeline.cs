@@ -8,8 +8,8 @@ namespace IceRpc;
 public sealed class Pipeline : IInvoker
 {
     private readonly Stack<Func<IInvoker, IInvoker>> _interceptorStack = new();
-    private IInvoker _into = NullInvoker.Instance;
     private readonly Lazy<IInvoker> _invoker;
+    private IInvoker _lastInvoker = NullInvoker.Instance;
 
     /// <summary>Constructs a pipeline.</summary>
     public Pipeline() => _invoker = new Lazy<IInvoker>(CreateInvokerPipeline);
@@ -19,18 +19,18 @@ public sealed class Pipeline : IInvoker
         _invoker.Value.InvokeAsync(request, cancel);
 
     /// <summary>Sets the last invoker of this pipeline. The pipeline flows into this invoker.</summary>
-    /// <param name="invoker">The last invoker.</param>
+    /// <param name="lastInvoker">The last invoker.</param>
     /// <returns>This pipeline.</returns>
     /// <exception cref="InvalidOperationException">Thrown if this method is called after the first call to
     /// <see cref="InvokeAsync"/>.</exception>
-    public Pipeline Into(IInvoker invoker)
+    public Pipeline Into(IInvoker lastInvoker)
     {
         if (_invoker.IsValueCreated)
         {
             throw new InvalidOperationException($"{nameof(Into)} must be called before {nameof(InvokeAsync)}");
         }
 
-        _into = invoker;
+        _lastInvoker = lastInvoker;
         return this;
     }
 
@@ -56,7 +56,7 @@ public sealed class Pipeline : IInvoker
     /// <returns>The pipeline of invokers.</returns>
     private IInvoker CreateInvokerPipeline()
     {
-        IInvoker pipeline = _into;
+        IInvoker pipeline = _lastInvoker;
 
         foreach (Func<IInvoker, IInvoker> interceptor in _interceptorStack)
         {
