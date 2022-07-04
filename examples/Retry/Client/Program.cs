@@ -36,16 +36,14 @@ await using var connectionPool = new ConnectionPool(
     new ConnectionPoolOptions { PreferExistingConnection = true },
     loggerFactory: loggerFactory);
 
-// Setup the invocation pipeline with the retry, binder and logger interceptors, the retry interceptor is always
-// configured before the binder interceptor, this allows the retry interceptor to influence the endpoints used by
-// the binder interceptor.
+// Create an invocation pipeline with the retry and logger interceptors.
 var pipeline = new Pipeline()
     .UseRetry(
         // Make up to 5 attempts before giving up
         new RetryOptions { MaxAttempts = 5 },
         loggerFactory)
-    .UseBinder(connectionProvider: connectionPool)
-    .UseLogger(loggerFactory);
+    .UseLogger(loggerFactory)
+    .Into(connectionPool);
 
 string endpoint = "icerpc://127.0.0.1:10000/hello?alt-endpoint=127.0.0.1:10001";
 for (int i = 2; i < serverInstances; i++)

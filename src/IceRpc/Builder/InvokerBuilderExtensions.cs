@@ -4,10 +4,22 @@ using IceRpc.Features;
 
 namespace IceRpc.Builder;
 
-/// <summary>This class provide extension methods to add built-in interceptors to an <see cref="IInvokerBuilder"/>.
+/// <summary>This class provide extension methods for interface <see cref="IInvokerBuilder"/>.
 /// </summary>
 public static class InvokerBuilderExtensions
 {
+    /// <summary>Sets the last invoker of the invocation pipeline to be a DI service managed by the service provider.
+    /// </summary>
+    /// <typeparam name="TService">The type of the DI service.</typeparam>
+    /// <returns>This builder.</returns>
+    public static IInvokerBuilder Into<TService>(this IInvokerBuilder builder) where TService : IInvoker
+    {
+        object? into = builder.ServiceProvider.GetService(typeof(TService));
+        return into is not null ? builder.Into((IInvoker)into) :
+            throw new InvalidOperationException(
+                $"could not find service of type {typeof(TService)} in service container");
+    }
+
     /// <summary>Adds an interceptor that sets a feature in all requests.</summary>
     /// <typeparam name="TFeature">The type of the feature.</typeparam>
     /// <param name="builder">The builder being configured.</param>

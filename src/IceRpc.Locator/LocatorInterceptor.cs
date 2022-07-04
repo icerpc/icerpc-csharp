@@ -7,9 +7,8 @@ using System.Diagnostics;
 
 namespace IceRpc.Locator;
 
-/// <summary>A locator interceptor intercepts ice requests that have no connection and have either no endpoint, and
-/// attempts to assign a usable endpoint (and alt-endpoints) to such requests. This interceptor is typically installed
-/// between the retry and binder interceptors.</summary>
+/// <summary>A locator interceptor intercepts ice requests that have no connection and no endpoint, and attempts to
+/// assign a usable endpoint (and alt-endpoints) to such requests.</summary>
 public class LocatorInterceptor : IInvoker
 {
     private readonly IInvoker _next;
@@ -28,12 +27,13 @@ public class LocatorInterceptor : IInvoker
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        if (request.Connection is null && request.Protocol == Protocol.Ice)
+        IEndpointFeature? endpointFeature = request.Features.Get<IEndpointFeature>();
+
+        if (endpointFeature?.Connection is null && request.Protocol == Protocol.Ice)
         {
             Location location = default;
             bool refreshCache = false;
 
-            IEndpointFeature? endpointFeature = request.Features.Get<IEndpointFeature>();
             if (endpointFeature is null)
             {
                 endpointFeature = new EndpointFeature(request.Proxy);

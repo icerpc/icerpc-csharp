@@ -79,7 +79,10 @@ private static readonly IActivator _defaultActivator =
     SliceDecoder.GetActivator(typeof({prx_impl}).Assembly);
 
 /// <inheritdoc/>
-public ISliceEncodeFeature? EncodeFeature {{ get; init; }}
+public ISliceEncodeFeature? EncodeFeature {{ get; init; }} = null;
+
+/// <inheritdoc/>
+public IceRpc.IInvoker Invoker {{ get; init; }} = IceRpc.NullInvoker.Instance;
 
 /// <inheritdoc/>
 public IceRpc.Proxy Proxy {{ get; init; }}"#,
@@ -92,7 +95,8 @@ public IceRpc.Proxy Proxy {{ get; init; }}"#,
                 format!(
                     r#"
 /// <summary>Implicit conversion to <see cref="{base_impl}"/>.</summary>
-public static implicit operator {base_impl}({prx_impl} prx) => new(prx.Proxy, prx.EncodeFeature);"#,
+public static implicit operator {base_impl}({prx_impl} prx) =>
+    new() {{ Invoker = prx.Invoker, Proxy = prx.Proxy, EncodeFeature = prx.EncodeFeature }};"#,
                     base_impl = base_impl,
                     prx_impl = prx_impl
                 )
@@ -118,42 +122,25 @@ public static implicit operator {base_impl}({prx_impl} prx) => new(prx.Proxy, pr
 
 fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
     format!(
-        r#"/// <summary>Creates a new <see cref="{prx_impl}"/> from the give connection and path.</summary>
-/// <param name="connection">The connection of the new proxy.</param>
-/// <param name="path">The path of the proxy. If null, the path is set to <see cref="DefaultPath"/>.</param>
-/// <param name="invoker">The invoker. If null and connection is an incoming connection, the invoker is set to
-/// the server's invoker.</param>
+        r#"/// <summary>Creates a new <see cref="{prx_impl}"/> from a URI string and an invoker.</summary>
+/// <param name="s">The URI string representation of the proxy.</param>
+/// <param name="invoker">The invocation pipeline of the new proxy.</param>
 /// <returns>The new proxy.</returns>
-public static {prx_impl} FromConnection(
-    IceRpc.IConnection connection,
-    string? path = null,
-    IceRpc.IInvoker? invoker = null) =>
-    new(IceRpc.Proxy.FromConnection(connection, path ?? DefaultPath, invoker));
-
-/// <summary>Creates a new relative proxy with the given path.</summary>
-/// <param name="path">The path.</param>
-/// <returns>The new relative proxy.</returns>
-public static {prx_impl} FromPath(string path) => new(IceRpc.Proxy.FromPath(path));
-
-/// <summary>Creates a new <see cref="{prx_impl}"/> from a string and invoker.</summary>
-/// <param name="s">The string representation of the proxy.</param>
-/// <param name="invoker">The invoker of the new proxy.</param>
-/// <returns>The new proxy.</returns>
-/// <exception cref="global::System.FormatException"><c>s</c> does not contain a valid string representation
+/// <exception cref="global::System.FormatException"><c>s</c> does not contain a valid URI string representation
 /// of a proxy.</exception>
 public static {prx_impl} Parse(string s, IceRpc.IInvoker? invoker = null) =>
-    new(IceRpc.Proxy.Parse(s, invoker));
+    new() {{ Invoker = invoker ?? IceRpc.NullInvoker.Instance, Proxy = IceRpc.Proxy.Parse(s) }};
 
-/// <summary>Creates a new <see cref="{prx_impl}"/> from a string and invoker.</summary>
-/// <param name="s">The proxy string representation.</param>
-/// <param name="invoker">The invoker of the new proxy.</param>
+/// <summary>Tries to creates a new <see cref="{prx_impl}"/> from a URI string and an invoker.</summary>
+/// <param name="s">The URI string representation of the proxy.</param>
+/// <param name="invoker">The invocation pipeline of the new proxy.</param>
 /// <param name="prx">The new proxy.</param>
 /// <returns><c>true</c> if the s parameter was parsed successfully; otherwise, <c>false</c>.</returns>
 public static bool TryParse(string s, IceRpc.IInvoker? invoker, out {prx_impl} prx)
 {{
-    if (IceRpc.Proxy.TryParse(s, invoker, out IceRpc.Proxy? proxy))
+    if (IceRpc.Proxy.TryParse(s, out IceRpc.Proxy? proxy))
     {{
-        prx = new(proxy);
+        prx = new() {{ Invoker = invoker ?? IceRpc.NullInvoker.Instance, Proxy = proxy }};
         return true;
     }}
     else
@@ -163,13 +150,18 @@ public static bool TryParse(string s, IceRpc.IInvoker? invoker, out {prx_impl} p
     }}
 }}
 
-/// <summary>Constructs an instance of <see cref="{prx_impl}"/> from a proxy.</summary>
-/// <param name="proxy">The proxy to the remote service.</param>
-/// <param name="encodeFeature">The Slice encode feature (optional).</param>
-public {prx_impl}(IceRpc.Proxy proxy, ISliceEncodeFeature? encodeFeature = null)
+/// <summary>Constructs a relative proxy from a path.</summary>
+/// <param name="path">The path.</param>
+public {prx_impl}(string path) => Proxy = new() {{ Path = path }};
+
+/// <summary>Constructs a proxy from an invoker, a path and a protocol.</summary>
+/// <param name="invoker">The invocation pipeline of the proxy.</param>
+/// <param name="path">The path of the proxy. If null, the path is set to <see cref="DefaultPath"/>.</param>
+/// <param name="protocol">The protocol of the proxy. If null, the protocol is set to IceRpc.</param>
+public {prx_impl}(IceRpc.IInvoker invoker, string? path = null, IceRpc.Protocol? protocol = null)
 {{
-    Proxy = proxy;
-    EncodeFeature = encodeFeature;
+    Invoker = invoker;
+    Proxy = new(protocol ?? IceRpc.Protocol.IceRpc) {{ Path = path ?? DefaultPath }};
 }}
 
 /// <inheritdoc/>
@@ -335,7 +327,7 @@ fn proxy_base_operation_impl(operation: &Operation) -> CodeBlock {
 
     builder.set_body(
         format!(
-            "new {base_prx_impl}(Proxy).{async_name}({operation_params})",
+            "(({base_prx_impl})this).{async_name}({operation_params})",
             base_prx_impl = operation.parent().unwrap().proxy_implementation_name(),
             async_name = async_name,
             operation_params = operation_params.join(", ")
@@ -489,6 +481,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         builder.add_comment("summary", &format!(r#"The <see cref="ResponseDecodeFunc{{T}}"/> for the return value type of operation {}."#, operation.identifier()));
         builder.add_parameter("IceRpc.IncomingResponse", "response", None, None);
         builder.add_parameter("IceRpc.OutgoingRequest", "request", None, None);
+        builder.add_parameter("IceRpc.IInvoker", "prxInvoker", None, None);
         builder.add_parameter(
             "ISliceEncodeFeature?",
             "encodeFeature",
@@ -525,6 +518,7 @@ await response.DecodeVoidReturnValueAsync(
     request,
     {encoding},
     _defaultActivator,
+    prxInvoker,
     encodeFeature,
     cancel).ConfigureAwait(false);
 
@@ -548,6 +542,7 @@ var {return_value} = await response.DecodeReturnValueAsync(
     request,
     {encoding},
     _defaultActivator,
+    prxInvoker,
     encodeFeature,
     {response_decode_func},
     cancel).ConfigureAwait(false);
@@ -578,6 +573,7 @@ response.DecodeReturnValueAsync(
     request,
     {encoding},
     _defaultActivator,
+    prxInvoker,
     encodeFeature,
     {response_decode_func},
     cancel)",

@@ -228,7 +228,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     }
 
     /// <inheritdoc/>
-    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default)
     {
         return _connectTask is not null && _connectTask.IsCompletedSuccessfully ?
             _protocolConnection.InvokeAsync(request, this, cancel) :

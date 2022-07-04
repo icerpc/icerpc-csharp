@@ -11,6 +11,7 @@ namespace IceRpc.Slice;
 /// <typeparam name="T">The type of the return value to read.</typeparam>
 /// <param name="response">The incoming response.</param>
 /// <param name="request">The outgoing request.</param>
+/// <param name="prxInvoker">The invoker of the proxy that sent the request.</param>
 /// <param name="encodeFeature">The encode feature of the Prx struct that sent the request.</param>
 /// <param name="cancel">The cancellation token.</param>
 /// <returns>A value task that contains the return value or a <see cref="RemoteException"/> when the response
@@ -18,6 +19,7 @@ namespace IceRpc.Slice;
 public delegate ValueTask<T> ResponseDecodeFunc<T>(
     IncomingResponse response,
     OutgoingRequest request,
+    IInvoker prxInvoker,
     ISliceEncodeFeature? encodeFeature,
     CancellationToken cancel);
 
@@ -42,9 +44,9 @@ public static class PrxExtensions
         this IPrx prx,
         IFeatureCollection? features = null,
         CancellationToken cancel = default) where TPrx : struct, IPrx =>
-        await new ServicePrx(prx.Proxy).IceIsAAsync(typeof(TPrx).GetSliceTypeId()!, features, cancel).
-            ConfigureAwait(false) ?
-            new TPrx { EncodeFeature = prx.EncodeFeature, Proxy = prx.Proxy } : null;
+        await prx.ToPrx<ServicePrx>().IceIsAAsync(typeof(TPrx).GetSliceTypeId()!, features, cancel)
+            .ConfigureAwait(false) ?
+            prx.ToPrx<TPrx>() : null;
 
     /// <summary>Sends a request to a service and decodes the response.</summary>
     /// <typeparam name="TPrx">The type of the Prx struct.</typeparam>
@@ -89,12 +91,10 @@ public static class PrxExtensions
             PayloadStream = payloadStream
         };
 
-        IInvoker invoker = prx.Proxy.Invoker;
-
         try
         {
             // We perform as much work as possible in a non async method to throw exceptions synchronously.
-            return ReadResponseAsync(invoker.InvokeAsync(request, cancel), request);
+            return ReadResponseAsync(prx.Invoker.InvokeAsync(request, cancel), request);
         }
         catch (Exception exception)
         {
@@ -110,7 +110,8 @@ public static class PrxExtensions
             try
             {
                 IncomingResponse response = await responseTask.ConfigureAwait(false);
-                return await responseDecodeFunc(response, request, prx.EncodeFeature, cancel).ConfigureAwait(false);
+                return await responseDecodeFunc(response, request, prx.Invoker, prx.EncodeFeature, cancel)
+                    .ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -171,12 +172,10 @@ public static class PrxExtensions
             PayloadStream = payloadStream
         };
 
-        IInvoker invoker = prx.Proxy.Invoker;
-
         try
         {
             // We perform as much work as possible in a non async method to throw exceptions synchronously.
-            return ReadResponseAsync(invoker.InvokeAsync(request, cancel), request);
+            return ReadResponseAsync(prx.Invoker.InvokeAsync(request, cancel), request);
         }
         catch (Exception exception)
         {
@@ -197,6 +196,7 @@ public static class PrxExtensions
                     request,
                     encoding,
                     defaultActivator,
+                    prx.Invoker,
                     prx.EncodeFeature,
                     cancel).ConfigureAwait(false);
             }
@@ -217,11 +217,5 @@ public static class PrxExtensions
     /// <param name="prx">The source Prx.</param>
     /// <returns>A new TPrx instance.</returns>
     public static TPrx ToPrx<TPrx>(this IPrx prx) where TPrx : struct, IPrx =>
-        new() { EncodeFeature = prx.EncodeFeature, Proxy = prx.Proxy };
-
-    /// <summary>Converts this Prx struct into a string.</summary>
-    /// <typeparam name="TPrx">The type of source Prx struct.</typeparam>
-    /// <param name="prx">The Prx struct.</param>
-    public static string ToString<TPrx>(this TPrx prx) where TPrx : struct, IPrx =>
-        prx.Proxy.ToString();
+        new() { EncodeFeature = prx.EncodeFeature, Invoker = prx.Invoker, Proxy = prx.Proxy };
 }

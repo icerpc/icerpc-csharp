@@ -11,8 +11,8 @@ var options = new ClientConnectionOptions
 
 await using var connection = new ClientConnection(options);
 
-var alertSystem = AlertSystemPrx.FromConnection(connection);
-var alertObserver = AlertObserverPrx.FromPath("/");
+var alertSystem = new AlertSystemPrx(connection);
+var alertObserver = new AlertObserverPrx("/");
 
 Console.WriteLine("Waiting for Alert ...");
 await alertSystem.AddObserverAsync(alertObserver);

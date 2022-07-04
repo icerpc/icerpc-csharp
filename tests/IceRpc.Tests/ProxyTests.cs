@@ -259,28 +259,13 @@ public class ProxyTests
         Assert.That(hashCode1, Is.EqualTo(proxy2.GetHashCode()));
     }
 
-    /// <summary>Verifies that a proxy created from a connection has the expected path and connection.</summary>
-    [Test]
-    public async Task From_connection_returns_proxy_with_expected_path_and_connection()
-    {
-        await using var connection = new ClientConnection(new Endpoint(Protocol.IceRpc));
-
-        var proxy = Proxy.FromConnection(connection, "/");
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(proxy.Path, Is.EqualTo("/"));
-            Assert.That(proxy.Connection, Is.EqualTo(connection));
-        });
-    }
-
     /// <summary>Verifies that a proxy created from a path has the expected protocol, path and endpoint properties.
     /// </summary>
     [TestCase("/")]
     [TestCase("/foo/bar/")]
     public void From_path(string path)
     {
-        var proxy = Proxy.FromPath(path);
+        var proxy = new Proxy { Path = path };
 
         Assert.Multiple(() =>
         {
@@ -335,13 +320,13 @@ public class ProxyTests
             .AddColocTest(router)
             .BuildServiceProvider(validateScopes: true);
 
-        var prx = SendProxyTestPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
+        var prx = new SendProxyTestPrx(provider.GetRequiredService<ClientConnection>());
         provider.GetRequiredService<Server>().Listen();
 
         await prx.SendProxyAsync(prx);
 
         Assert.That(service.ReceivedPrx, Is.Not.Null);
-        Assert.That(service.ReceivedPrx.Value.Proxy.Invoker, Is.EqualTo(pipeline));
+        Assert.That(service.ReceivedPrx.Value.Invoker, Is.EqualTo(pipeline));
     }
 
     /// <summary>Verifies that a proxy received over an incoming connection uses the default invoker.</summary>
@@ -354,13 +339,13 @@ public class ProxyTests
             .AddColocTest(service)
             .BuildServiceProvider(validateScopes: true);
 
-        var prx = SendProxyTestPrx.FromConnection(provider.GetRequiredService<ClientConnection>());
+        var prx = new SendProxyTestPrx(provider.GetRequiredService<ClientConnection>());
         provider.GetRequiredService<Server>().Listen();
 
         await prx.SendProxyAsync(prx);
 
         Assert.That(service.ReceivedPrx, Is.Not.Null);
-        Assert.That(service.ReceivedPrx.Value.Proxy.Invoker, Is.EqualTo(Proxy.DefaultInvoker));
+        Assert.That(service.ReceivedPrx.Value.Invoker, Is.EqualTo(NullInvoker.Instance));
     }
 
     /// <summary>Verifies that a proxy received over an outgoing connection inherits the callers invoker.</summary>
@@ -372,14 +357,13 @@ public class ProxyTests
             .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
-        var invoker = new Pipeline();
-        var prx = ReceiveProxyTestPrx.FromConnection(
-            provider.GetRequiredService<ClientConnection>(),
-            invoker: invoker);
+        IConnection connection = provider.GetRequiredService<ClientConnection>();
+        IInvoker invoker = new Pipeline().Into(connection);
+        var prx = new ReceiveProxyTestPrx(invoker);
 
         ReceiveProxyTestPrx received = await prx.ReceiveProxyAsync();
 
-        Assert.That(received.Proxy.Invoker, Is.EqualTo(invoker));
+        Assert.That(received.Invoker, Is.EqualTo(invoker));
     }
 
     /// <summary>Verifies that setting the alt endpoints containing endpoints that uses a protocol different than the
@@ -396,19 +380,6 @@ public class ProxyTests
 
         // Ensure the alt endpoints weren't updated
         Assert.That(proxy.AltEndpoints, Is.Empty);
-    }
-
-    /// <summary>Verifies that the proxy protocol and proxy connection protocol remain the same.</summary>
-    [Test]
-    public async Task Proxy_and_proxy_connection_have_the_same_protocol()
-    {
-        var connectionOptions = new ClientConnectionOptions { RemoteEndpoint = "icerpc://localhost" };
-        await using var connection = new ClientConnection(connectionOptions);
-        var proxy = Proxy.FromConnection(connection, "/");
-        connectionOptions.RemoteEndpoint = "ice://localhost";
-        await using var connection2 = new ClientConnection(connectionOptions);
-
-        Assert.That(() => proxy.Connection = connection2, Throws.ArgumentException);
     }
 
     /// <summary>Verifies that setting an endpoint that uses a protocol different than the proxy protocol throws
@@ -441,7 +412,7 @@ public class ProxyTests
     private class ReceiveProxyTest : Service, IReceiveProxyTest
     {
         public ValueTask<ReceiveProxyTestPrx> ReceiveProxyAsync(IFeatureCollection features, CancellationToken cancel) =>
-            new(ReceiveProxyTestPrx.FromPath("/hello"));
+            new(new ReceiveProxyTestPrx("/hello"));
     }
 
     private class SendProxyTest : Service, ISendProxyTest
