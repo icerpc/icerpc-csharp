@@ -13,8 +13,8 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// <summary>Extension methods for setting up IceRpc services in an <see cref="IServiceCollection"/>.</summary>
 public static class IceRpcServiceCollectionExtensions
 {
-    /// <summary>Adds <see cref="ClientConnection"/> and <see cref="IClientConnection"/> singleton to this service
-    /// collection.</summary>
+    /// <summary>Adds a <see cref="ClientConnection"/>, <see cref="IClientConnection"/> and <see cref="IInvoker"/>
+    /// singleton to this service collection.</summary>
     /// <param name="services">The service collection to add services to.</param>
     public static IServiceCollection AddIceRpcClientConnection(this IServiceCollection services) =>
         services
@@ -25,11 +25,12 @@ public static class IceRpcServiceCollectionExtensions
                     loggerFactory: provider.GetService<ILoggerFactory>(),
                     provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
                     provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()))
-            .AddSingleton<IClientConnection>(provider => provider.GetRequiredService<ClientConnection>());
+            .AddSingleton<IClientConnection>(provider => provider.GetRequiredService<ClientConnection>())
+            .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ClientConnection>());
 
-    /// <summary>Adds <see cref="ConnectionPool"/> connection provider to this service collection.</summary>
+    /// <summary>Adds a <see cref="ConnectionPool"/> and <see cref="IInvoker"/> singleton to this service collection.
+    /// </summary>
     /// <param name="services">The service collection to add services to.</param>
-    /// <seealso cref="IClientConnectionProvider"/>
     public static IServiceCollection AddIceRpcConnectionPool(this IServiceCollection services) =>
         services
             .TryAddIceRpcClientTransport()
@@ -39,7 +40,7 @@ public static class IceRpcServiceCollectionExtensions
                     loggerFactory: provider.GetService<ILoggerFactory>(),
                     provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
                     provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()))
-            .AddSingleton<IClientConnectionProvider>(provider => provider.GetRequiredService<ConnectionPool>());
+            .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ConnectionPool>());
 
     /// <summary>Adds an <see cref="IDispatcher"/> singleton to this service collection using a builder.</summary>
     /// <param name="services">The service collection to add services to.</param>
@@ -69,8 +70,8 @@ public static class IceRpcServiceCollectionExtensions
                 return builder.Build();
             });
 
-    /// <summary>Adds <see cref="ResumableClientConnection"/> and <see cref="IClientConnection"/> singleton to this service
-    /// collection.</summary>
+    /// <summary>Adds a <see cref="ResumableClientConnection"/>, <see cref="IClientConnection"/> and
+    /// <see cref="IInvoker"/> singleton to this service collection.</summary>
     /// <param name="services">The service collection to add services to.</param>
     public static IServiceCollection AddIceRpcResumableClientConnection(this IServiceCollection services) =>
         services
@@ -81,7 +82,8 @@ public static class IceRpcServiceCollectionExtensions
                     loggerFactory: provider.GetService<ILoggerFactory>(),
                     provider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
                     provider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>()))
-            .AddSingleton<IClientConnection>(provider => provider.GetRequiredService<ResumableClientConnection>());
+            .AddSingleton<IClientConnection>(provider => provider.GetRequiredService<ResumableClientConnection>())
+            .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ResumableClientConnection>());
 
     /// <summary>Adds a <see cref="Server"/> to this service collection.</summary>
     /// <param name="services">The service collection to add services to.</param>

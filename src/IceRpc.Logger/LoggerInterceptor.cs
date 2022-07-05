@@ -1,5 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Logger;
@@ -24,14 +25,16 @@ public class LoggerInterceptor : IInvoker
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        _logger.LogSendingRequest(request.Connection, request.Proxy.Path, request.Operation);
+        IConnection? connection = request.Features.Get<IEndpointFeature>()?.Connection;
+
+        _logger.LogSendingRequest(connection, request.Proxy.Path, request.Operation);
         try
         {
             IncomingResponse response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
             if (!request.IsOneway)
             {
                 _logger.LogReceivedResponse(
-                    request.Connection,
+                    connection,
                     request.Proxy.Path,
                     request.Operation,
                     response.ResultType);
@@ -40,7 +43,7 @@ public class LoggerInterceptor : IInvoker
         }
         catch (Exception ex)
         {
-            _logger.LogInvokeException(request.Connection, request.Proxy.Path, request.Operation, ex);
+            _logger.LogInvokeException(connection, request.Proxy.Path, request.Operation, ex);
             throw;
         }
     }

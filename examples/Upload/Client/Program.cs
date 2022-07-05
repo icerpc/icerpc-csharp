@@ -6,7 +6,7 @@ using System.IO.Pipelines;
 
 // Establish the connection to the server
 await using var connection = new ClientConnection("icerpc://127.0.0.1");
-IUploaderPrx uploader = UploaderPrx.FromConnection(connection);
+var uploader = new UploaderPrx(connection);
 
 // Create a FileStream for the image to be uploaded. This stream will be disposed by IceRPC when it completes the
 // `PipeReader`.

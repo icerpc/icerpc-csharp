@@ -16,7 +16,7 @@ public class ServiceTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new Service(), Protocol.FromString(protocol))
-            .AddIceRpcPrx<IServicePrx, ServicePrx>("/service")
+            .AddIceRpcPrx<IServicePrx, ServicePrx>($"{protocol}:/service")
             .BuildServiceProvider(validateScopes: true);
         IServicePrx prx = provider.GetRequiredService<IServicePrx>();
         var server = provider.GetRequiredService<Server>();

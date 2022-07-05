@@ -6,7 +6,6 @@
           "src": "../",
           "files": [
               "src/IceRpc/bin/**/IceRpc.dll",
-              "src/IceRpc.Binder/bin/**/IceRpc.Binder.dll",
               "src/IceRpc.Coloc/bin/**/IceRpc.Coloc.dll",
               "src/IceRpc.Deadline/bin/**/IceRpc.Deadline.dll",
               "src/IceRpc.Deflate/bin/**/IceRpc.Deflate.dll",

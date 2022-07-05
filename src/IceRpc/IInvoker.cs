@@ -26,3 +26,19 @@ public class InlineInvoker : IInvoker
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
         _function(request, cancel);
 }
+
+/// <summary>A trivial invoker that always throws <see cref="InvalidOperationException"/>.</summary>
+public class NullInvoker : IInvoker
+{
+    /// <summary>Gets the unique instance of this class.</summary>
+    public static NullInvoker Instance { get; } = new();
+
+    /// <inheritdoc/>
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
+        throw new InvalidOperationException("invoked null invoker");
+
+    private NullInvoker()
+    {
+        // Ensures it's a singleton.
+    }
+}
