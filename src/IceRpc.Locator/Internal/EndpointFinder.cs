@@ -5,8 +5,8 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Locator.Internal;
 
-/// <summary>An endpoint finder finds the endpoint(s) of a location. These endpoint(s) are carried by a dummy proxy.
-/// When this dummy proxy is not null, its service address Endpoint property is guaranteed to be not null.
+/// <summary>An endpoint finder finds the endpoint(s) of a location. These endpoint(s) are carried by a dummy service
+/// address. When this dummy service address is not null, its Endpoint property is guaranteed to be not null.
 /// Unlike <see cref="ILocationResolver"/>, an endpoint finder does not provide cache-related parameters and typically
 /// does not maintain a cache.</summary>
 internal interface IEndpointFinder
