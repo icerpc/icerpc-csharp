@@ -171,7 +171,7 @@ internal sealed class ClientServerIceProtocolConnection : ClientServerProtocolCo
         ISimpleNetworkConnection networkConnection,
         bool isServer,
         ConnectionOptions options) =>
-        IceProtocolConnection.Create(networkConnection, isServer, options);
+        new IceProtocolConnection(networkConnection, isServer, options);
 }
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage(
@@ -196,7 +196,7 @@ internal sealed class ClientServerIceRpcProtocolConnection :
         IMultiplexedNetworkConnection networkConnection,
         bool isServer,
         ConnectionOptions options) =>
-        IceRpcProtocolConnection.Create(networkConnection, options);
+        new IceRpcProtocolConnection(networkConnection, options);
 }
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage(

@@ -101,19 +101,15 @@ public class ConnectionTests
     [Test]
     public async Task Connection_abort_callback(
         [Values("ice", "icerpc")] string protocol,
-        [Values(true, false)] bool closeClientConnection)
+        [Values(true, false)] bool abortClientConnection)
     {
         // Arrange
         ServerConnection? serverConnection = null;
-        var serverConnectionClosed = new TaskCompletionSource<object?>();
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
             serverConnection = (ServerConnection)request.Connection;
-            serverConnection.OnAbort(_ => serverConnectionClosed.SetResult(null));
             return new(new OutgoingResponse(request));
         });
-
-        var clientConnectionClosed = new TaskCompletionSource<object?>();
 
         IServiceCollection services = new ServiceCollection().AddColocTest(dispatcher, Protocol.FromString(protocol));
 
@@ -121,47 +117,47 @@ public class ConnectionTests
         var server = provider.GetRequiredService<Server>();
         server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
-        clientConnection.OnAbort(_ => clientConnectionClosed.SetResult(null));
 
         var proxy = Proxy.FromConnection(clientConnection, "/foo");
 
         await proxy.Invoker.InvokeAsync(new OutgoingRequest(proxy));
 
-        // Act
-        if (closeClientConnection)
+        var onAbortCalled = new TaskCompletionSource<object?>();
+        if (abortClientConnection)
         {
-            // We abort the connection by first canceling the shutdown and then dispose it.
+            serverConnection!.OnAbort(_ => onAbortCalled.SetResult(null));
             try
             {
                 await clientConnection.ShutdownAsync(new CancellationToken(true));
             }
-            catch
+            catch (OperationCanceledException)
             {
             }
-            await clientConnection.DisposeAsync();
         }
         else
         {
-            // We abort the connection by first canceling the shutdown and then dispose it.
+            clientConnection.OnAbort(_ => onAbortCalled.SetResult(null));
             try
             {
                 await serverConnection!.ShutdownAsync(new CancellationToken(true));
             }
-            catch
+            catch (OperationCanceledException)
             {
             }
+        }
+
+        // Act
+        if (abortClientConnection)
+        {
+            await clientConnection.DisposeAsync();
+        }
+        else
+        {
             await serverConnection!.DisposeAsync();
         }
 
         // Assert
-        if (closeClientConnection)
-        {
-            Assert.That(async () => await serverConnectionClosed.Task, Throws.Nothing);
-        }
-        else
-        {
-            Assert.That(async () => await clientConnectionClosed.Task, Throws.Nothing);
-        }
+        Assert.That(async () => await onAbortCalled.Task, Throws.Nothing);
     }
 
     /// <summary>Verifies that connect establishment timeouts after the <see cref="ConnectionOptions.ConnectTimeout"/>

@@ -152,7 +152,7 @@ public sealed class Server : IAsyncDisposable
                 PerformListen(
                     _simpleServerTransport,
                     (networkConnection, options) =>
-                        IceProtocolConnection.Create(networkConnection, isServer: true, options),
+                        new IceProtocolConnection(networkConnection, isServer: true, options),
                     LogSimpleNetworkConnectionDecorator.Decorate);
             }
             else
@@ -160,7 +160,7 @@ public sealed class Server : IAsyncDisposable
                 PerformListen(
                     _multiplexedServerTransport,
                     (networkConnection, options) =>
-                        IceRpcProtocolConnection.Create(networkConnection, options),
+                        new IceRpcProtocolConnection(networkConnection, options),
                     LogMultiplexedNetworkConnectionDecorator.Decorate);
             }
         }
