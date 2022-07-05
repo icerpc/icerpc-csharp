@@ -35,7 +35,7 @@ internal class LocatorEndpointFinder : IEndpointFinder
                     return serviceAddress.Protocol == Protocol.Ice && serviceAddress.Endpoint is not null ?
                         serviceAddress :
                         throw new InvalidDataException(
-                            $"findAdapterById returned invalid proxy '{serviceAddress}'");
+                            $"findAdapterById returned invalid service address '{serviceAddress}'");
                 }
                 else
                 {
@@ -57,12 +57,12 @@ internal class LocatorEndpointFinder : IEndpointFinder
 
                 if (prx?.ServiceAddress is ServiceAddress serviceAddress)
                 {
-                    // findObjectById can return an indirect proxy with an adapter ID
+                    // findObjectById can return an indirect service address with an adapter ID
                     return serviceAddress.Protocol == Protocol.Ice &&
                         (serviceAddress.Endpoint is not null || serviceAddress.Params.ContainsKey("adapter-id")) ?
                             serviceAddress :
                             throw new InvalidDataException(
-                                $"findObjectById returned invalid proxy '{serviceAddress}'");
+                                $"findObjectById returned invalid service address '{serviceAddress}'");
                 }
                 else
                 {

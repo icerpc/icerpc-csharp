@@ -14,11 +14,11 @@ public sealed class EndpointFeature : IEndpointFeature
     /// <inheritdoc/>
     public Endpoint? Endpoint { get; set; }
 
-    /// <summary>Constructs an endpoint feature that uses a proxy's endpoints.</summary>
-    /// <param name="proxy">The proxy to copy the endpoints from.</param>
-    public EndpointFeature(ServiceAddress proxy)
+    /// <summary>Constructs an endpoint feature that uses the endpoints of a service address.</summary>
+    /// <param name="serviceAddress">The service address to copy the endpoints from.</param>
+    public EndpointFeature(ServiceAddress serviceAddress)
     {
-        Endpoint = proxy.Endpoint;
-        AltEndpoints = proxy.AltEndpoints;
+        Endpoint = serviceAddress.Endpoint;
+        AltEndpoints = serviceAddress.AltEndpoints;
     }
 }

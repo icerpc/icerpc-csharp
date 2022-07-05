@@ -17,9 +17,9 @@ public class LocatorEndpointFinderTests
         IEndpointFinder endpointFinder = new LocatorEndpointFinder(new FakeLocatorPrx(expectedServiceAddress, adapterId: true));
         var location = new Location { IsAdapterId = true, Value = "good" };
 
-        ServiceAddress? proxy = await endpointFinder.FindAsync(location, default);
+        ServiceAddress? serviceAddress = await endpointFinder.FindAsync(location, default);
 
-        Assert.That(proxy, Is.EqualTo(expectedServiceAddress.ServiceAddress));
+        Assert.That(serviceAddress, Is.EqualTo(expectedServiceAddress.ServiceAddress));
     }
 
     /// <summary>Verifies that <see cref="LocatorEndpointFinder"/> correctly handles
@@ -30,9 +30,9 @@ public class LocatorEndpointFinderTests
         IEndpointFinder endpointFinder = new LocatorEndpointFinder(new NotFoundLocatorPrx());
         var location = new Location { IsAdapterId = true, Value = "good" };
 
-        ServiceAddress? proxy = await endpointFinder.FindAsync(location, default);
+        ServiceAddress? serviceAddress = await endpointFinder.FindAsync(location, default);
 
-        Assert.That(proxy, Is.Null);
+        Assert.That(serviceAddress, Is.Null);
     }
 
     /// <summary>Verifies that <see cref="LocatorEndpointFinder"/> correctly resolves an object ID.</summary>
@@ -56,9 +56,9 @@ public class LocatorEndpointFinderTests
         IEndpointFinder endpointFinder = new LocatorEndpointFinder(new FakeLocatorPrx(expectedServiceAddress, adapterId: false));
         var location = new Location { IsAdapterId = false, Value = "good" };
 
-        ServiceAddress? proxy = await endpointFinder.FindAsync(location, default);
+        ServiceAddress? serviceAddress = await endpointFinder.FindAsync(location, default);
 
-        Assert.That(proxy, Is.EqualTo(expectedServiceAddress.ServiceAddress));
+        Assert.That(serviceAddress, Is.EqualTo(expectedServiceAddress.ServiceAddress));
     }
 
     /// <summary>Verifies that <see cref="LocatorEndpointFinder"/> correctly handles
@@ -69,9 +69,9 @@ public class LocatorEndpointFinderTests
         IEndpointFinder endpointFinder = new LocatorEndpointFinder(new NotFoundLocatorPrx());
         var location = new Location { IsAdapterId = false, Value = "good" };
 
-        ServiceAddress? proxy = await endpointFinder.FindAsync(location, default);
+        ServiceAddress? serviceAddress = await endpointFinder.FindAsync(location, default);
 
-        Assert.That(proxy, Is.Null);
+        Assert.That(serviceAddress, Is.Null);
     }
 
     /// <summary>Verifies that <see cref="LocatorEndpointFinder"/> correctly resolves an object ID.</summary>
@@ -188,7 +188,7 @@ public class LocatorEndpointFinderTests
         public Dictionary<Location, ServiceAddress> Cache { get; } = new();
 
         public void Remove(Location location) => Cache.Remove(location);
-        public void Set(Location location, ServiceAddress proxy) => Cache[location] = proxy;
+        public void Set(Location location, ServiceAddress serviceAddress) => Cache[location] = serviceAddress;
         public bool TryGetValue(Location location, out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) value) =>
             throw new NotImplementedException();
     }

@@ -66,7 +66,7 @@ impl<'a> Visitor for ProxyVisitor<'_> {
         );
 
         proxy_impl_builder.add_bases(&prx_impl_bases)
-            .add_comment("summary", &format!(r#"Typed proxy record struct. It implements <see cref="{}"/> by sending requests to a remote IceRPC service."#, prx_interface))
+            .add_comment("summary", &format!(r#"Proxy record struct. It implements <see cref="{}"/> by sending requests to a remote IceRPC service."#, prx_interface))
             .add_type_id_attribute(interface_def)
             .add_container_attributes(interface_def)
             .add_block(request_class(interface_def))

@@ -14,8 +14,8 @@ public sealed class InvocationEventSourceTests
         using var eventListener = new TestEventListener(expectedEventId);
         using var eventSource = new InvocationEventSource(Guid.NewGuid().ToString());
         eventListener.EnableEvents(eventSource, EventLevel.Verbose);
-        var proxy = new ServiceAddress(Protocol.IceRpc) { Path = "/test" };
-        var request = new OutgoingRequest(proxy) { Operation = "Op" };
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc) { Path = "/test" };
+        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
 
         eventSource.RequestStart(request);
 
@@ -36,8 +36,8 @@ public sealed class InvocationEventSourceTests
         using var eventListener = new TestEventListener(expectedEventId);
         using var eventSource = new InvocationEventSource(Guid.NewGuid().ToString());
         eventListener.EnableEvents(eventSource, EventLevel.Verbose);
-        var proxy = new ServiceAddress(Protocol.IceRpc) { Path = "/test" };
-        var request = new OutgoingRequest(proxy) { Operation = "Op" };
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc) { Path = "/test" };
+        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
 
         eventSource.RequestStop(request);
 
@@ -58,8 +58,8 @@ public sealed class InvocationEventSourceTests
         using var eventListener = new TestEventListener(expectedEventId);
         using var eventSource = new InvocationEventSource(Guid.NewGuid().ToString());
         eventListener.EnableEvents(eventSource, EventLevel.Verbose);
-        var proxy = new ServiceAddress(Protocol.IceRpc) { Path = "/test" };
-        var request = new OutgoingRequest(proxy) { Operation = "Op" };
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc) { Path = "/test" };
+        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
 
         eventSource.RequestCanceled(request);
 
@@ -80,8 +80,8 @@ public sealed class InvocationEventSourceTests
         using var eventListener = new TestEventListener(expectedEventId);
         using var eventSource = new InvocationEventSource(Guid.NewGuid().ToString());
         eventListener.EnableEvents(eventSource, EventLevel.Verbose);
-        var proxy = new ServiceAddress(Protocol.IceRpc) { Path = "/test" };
-        var request = new OutgoingRequest(proxy) { Operation = "Op" };
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc) { Path = "/test" };
+        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
 
         eventSource.RequestFailed(request, "IceRpc.RemoteException");
 
