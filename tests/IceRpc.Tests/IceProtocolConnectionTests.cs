@@ -26,13 +26,15 @@ public sealed class IceProtocolConnectionTests
     {
         get
         {
-            // Service not found failure with endpointless proxy gets OtherReplica retry policy response field.
+            // Service not found failure with endpointless service address gets OtherReplica retry policy response
+            // field.
             yield return new TestCaseData(
                 new ServiceAddress(Protocol.Ice),
                 DispatchErrorCode.ServiceNotFound,
                 RetryPolicy.OtherReplica);
 
-            // Service not found failure with a proxy that has endpoints does not get a retry policy response field
+            // Service not found failure with a service address that has endpoints does not get a retry policy response
+            // field
             yield return new TestCaseData(
                 ServiceAddress.Parse("ice://localhost/service"),
                 DispatchErrorCode.ServiceNotFound,
@@ -174,7 +176,7 @@ public sealed class IceProtocolConnectionTests
     /// <summary>Verifies that a failure response contains the expected retry policy field.</summary>
     [Test, TestCaseSource(nameof(DispatchExceptionRetryPolicySource))]
     public async Task Dispatch_failure_response_contain_the_expected_retry_policy_field(
-        ServiceAddress proxy,
+        ServiceAddress serviceAddress,
         DispatchErrorCode errorCode,
         RetryPolicy? expectedRetryPolicy)
     {
@@ -188,7 +190,7 @@ public sealed class IceProtocolConnectionTests
 
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        var request = new OutgoingRequest(proxy);
+        var request = new OutgoingRequest(serviceAddress);
 
         // Act
         var response = await sut.Client.InvokeAsync(request, InvalidConnection.Ice);
