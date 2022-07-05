@@ -277,7 +277,7 @@ public ref partial struct SliceEncoder
 
     /// <summary>Encodes a nullable proxy (Slice1 only).</summary>
     /// <param name="proxy">The proxy to encode, or null.</param>
-    public void EncodeNullableProxy(Proxy? proxy)
+    public void EncodeNullableProxy(ServiceAddress? proxy)
     {
         if (Encoding != SliceEncoding.Slice1)
         {
@@ -297,7 +297,7 @@ public ref partial struct SliceEncoder
 
     /// <summary>Encodes a non-null proxy.</summary>
     /// <param name="proxy">The proxy to encode.</param>
-    public void EncodeProxy(Proxy proxy)
+    public void EncodeProxy(ServiceAddress proxy)
     {
         if (Encoding == SliceEncoding.Slice1)
         {

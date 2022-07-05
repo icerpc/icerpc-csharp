@@ -16,7 +16,7 @@ public sealed class EndpointFeature : IEndpointFeature
 
     /// <summary>Constructs an endpoint feature that uses a proxy's endpoints.</summary>
     /// <param name="proxy">The proxy to copy the endpoints from.</param>
-    public EndpointFeature(Proxy proxy)
+    public EndpointFeature(ServiceAddress proxy)
     {
         Endpoint = proxy.Endpoint;
         AltEndpoints = proxy.AltEndpoints;

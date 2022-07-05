@@ -13,10 +13,10 @@ public class CacheLessLocationResolverTests
         [Values(true, false)] bool isAdapterId,
         [Values(true, false)] bool refreshCache)
     {
-        var expectedProxy = Proxy.Parse("ice://localhost:10000/dummy");
+        var expectedProxy = ServiceAddress.Parse("ice://localhost:10000/dummy");
         ILocationResolver locationResolver = new CacheLessLocationResolver(new FakeEndpointFinder(expectedProxy));
 
-        (Proxy? proxy, bool fromCache) =
+        (ServiceAddress? proxy, bool fromCache) =
             await locationResolver.ResolveAsync(
                 new Location { IsAdapterId = isAdapterId, Value = "good" },
                 refreshCache: refreshCache,
@@ -31,10 +31,10 @@ public class CacheLessLocationResolverTests
         [Values(true, false)] bool isAdapterId,
         [Values(true, false)] bool refreshCache)
     {
-        var expectedProxy = Proxy.Parse("ice://localhost:10000/dummy");
+        var expectedProxy = ServiceAddress.Parse("ice://localhost:10000/dummy");
         ILocationResolver locationResolver = new CacheLessLocationResolver(new FakeEndpointFinder(expectedProxy));
 
-        (Proxy? proxy, bool fromCache) =
+        (ServiceAddress? proxy, bool fromCache) =
             await locationResolver.ResolveAsync(
                 new Location { IsAdapterId = isAdapterId, Value = "bad" },
                 refreshCache: refreshCache,
@@ -46,11 +46,11 @@ public class CacheLessLocationResolverTests
 
     private class FakeEndpointFinder : IEndpointFinder
     {
-        private readonly Proxy _proxy;
+        private readonly ServiceAddress _proxy;
 
-        public FakeEndpointFinder(Proxy proxy) => _proxy = proxy;
+        public FakeEndpointFinder(ServiceAddress proxy) => _proxy = proxy;
 
-        Task<Proxy?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel) =>
+        Task<ServiceAddress?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel) =>
             Task.FromResult(location.Value == "good" ? _proxy : null);
     }
 }

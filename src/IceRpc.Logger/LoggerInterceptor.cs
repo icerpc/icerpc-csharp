@@ -27,7 +27,7 @@ public class LoggerInterceptor : IInvoker
     {
         IConnection? connection = request.Features.Get<IEndpointFeature>()?.Connection;
 
-        _logger.LogSendingRequest(connection, request.Proxy.Path, request.Operation);
+        _logger.LogSendingRequest(connection, request.ServiceAddress.Path, request.Operation);
         try
         {
             IncomingResponse response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
@@ -35,7 +35,7 @@ public class LoggerInterceptor : IInvoker
             {
                 _logger.LogReceivedResponse(
                     connection,
-                    request.Proxy.Path,
+                    request.ServiceAddress.Path,
                     request.Operation,
                     response.ResultType);
             }
@@ -43,7 +43,7 @@ public class LoggerInterceptor : IInvoker
         }
         catch (Exception ex)
         {
-            _logger.LogInvokeException(connection, request.Proxy.Path, request.Operation, ex);
+            _logger.LogInvokeException(connection, request.ServiceAddress.Path, request.Operation, ex);
             throw;
         }
     }

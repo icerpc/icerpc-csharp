@@ -12,7 +12,7 @@ public class NoEndpointException : Exception
 
     /// <summary>Constructs a new instance of the <see cref="NoEndpointException"/> class.</summary>
     /// <param name="proxy">The proxy with no endpoint or no usable endpoint.</param>
-    public NoEndpointException(Proxy proxy)
+    public NoEndpointException(ServiceAddress proxy)
         : base($"proxy '{proxy}' has no usable endpoint")
     {
     }

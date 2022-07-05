@@ -25,7 +25,7 @@ public static class IceRpcSliceServiceCollectionExtensions
                 {
                     EncodeFeature = provider.GetService<ISliceEncodeFeature>(),
                     Invoker = provider.GetRequiredService<IInvoker>(),
-                    Proxy = Proxy.Parse(proxyString),
+                    ServiceAddress = ServiceAddress.Parse(proxyString),
                 });
 
     /// <summary>Adds a Prx singleton to this service collection, using the Prx interface default path and a protocol.

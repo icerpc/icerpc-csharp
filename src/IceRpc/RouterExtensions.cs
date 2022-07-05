@@ -30,7 +30,7 @@ public static class RouterExtensions
     /// <exception cref="FormatException">Thrown if <paramref name="prefix"/> is not a valid path.</exception>
     public static Router Route(this Router router, string prefix, Action<Router> configure)
     {
-        Proxy.CheckPath(prefix);
+        ServiceAddress.CheckPath(prefix);
         var subRouter = new Router($"{router.AbsolutePrefix}{prefix}");
         configure(subRouter);
         router.Mount(prefix, subRouter);

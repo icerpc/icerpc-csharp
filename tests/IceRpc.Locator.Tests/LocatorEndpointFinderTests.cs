@@ -17,9 +17,9 @@ public class LocatorEndpointFinderTests
         IEndpointFinder endpointFinder = new LocatorEndpointFinder(new FakeLocatorPrx(expectedProxy, adapterId: true));
         var location = new Location { IsAdapterId = true, Value = "good" };
 
-        Proxy? proxy = await endpointFinder.FindAsync(location, default);
+        ServiceAddress? proxy = await endpointFinder.FindAsync(location, default);
 
-        Assert.That(proxy, Is.EqualTo(expectedProxy.Proxy));
+        Assert.That(proxy, Is.EqualTo(expectedProxy.ServiceAddress));
     }
 
     /// <summary>Verifies that <see cref="LocatorEndpointFinder"/> correctly handles
@@ -30,7 +30,7 @@ public class LocatorEndpointFinderTests
         IEndpointFinder endpointFinder = new LocatorEndpointFinder(new NotFoundLocatorPrx());
         var location = new Location { IsAdapterId = true, Value = "good" };
 
-        Proxy? proxy = await endpointFinder.FindAsync(location, default);
+        ServiceAddress? proxy = await endpointFinder.FindAsync(location, default);
 
         Assert.That(proxy, Is.Null);
     }
@@ -56,9 +56,9 @@ public class LocatorEndpointFinderTests
         IEndpointFinder endpointFinder = new LocatorEndpointFinder(new FakeLocatorPrx(expectedProxy, adapterId: false));
         var location = new Location { IsAdapterId = false, Value = "good" };
 
-        Proxy? proxy = await endpointFinder.FindAsync(location, default);
+        ServiceAddress? proxy = await endpointFinder.FindAsync(location, default);
 
-        Assert.That(proxy, Is.EqualTo(expectedProxy.Proxy));
+        Assert.That(proxy, Is.EqualTo(expectedProxy.ServiceAddress));
     }
 
     /// <summary>Verifies that <see cref="LocatorEndpointFinder"/> correctly handles
@@ -69,7 +69,7 @@ public class LocatorEndpointFinderTests
         IEndpointFinder endpointFinder = new LocatorEndpointFinder(new NotFoundLocatorPrx());
         var location = new Location { IsAdapterId = false, Value = "good" };
 
-        Proxy? proxy = await endpointFinder.FindAsync(location, default);
+        ServiceAddress? proxy = await endpointFinder.FindAsync(location, default);
 
         Assert.That(proxy, Is.Null);
     }
@@ -107,16 +107,17 @@ public class LocatorEndpointFinderTests
     {
         var endpointCache = new EndpointCache();
         var location = new Location { IsAdapterId = false, Value = "good" };
-        var expectedProxy = Proxy.Parse("ice://localhost/dummy:10000");
+        var expectedServiceAddress = ServiceAddress.Parse("ice://localhost/dummy:10000");
         IEndpointFinder endpointFinder = new CacheUpdateEndpointFinderDecorator(
-            new LocatorEndpointFinder(new FakeLocatorPrx(new ServicePrx { Proxy = expectedProxy }, adapterId: false)),
+            new LocatorEndpointFinder(
+                new FakeLocatorPrx(new ServicePrx { ServiceAddress = expectedServiceAddress }, adapterId: false)),
             endpointCache);
 
         _ = await endpointFinder.FindAsync(location, default);
 
         Assert.That(endpointCache.Cache.Count, Is.EqualTo(1));
         Assert.That(endpointCache.Cache.ContainsKey(location), Is.True);
-        Assert.That(endpointCache.Cache[location], Is.EqualTo(expectedProxy));
+        Assert.That(endpointCache.Cache[location], Is.EqualTo(expectedServiceAddress));
     }
 
     /// <summary>Verifies that <see cref="CacheUpdateEndpointFinderDecorator"/> removes not found entries
@@ -126,7 +127,7 @@ public class LocatorEndpointFinderTests
     {
         var endpointCache = new EndpointCache();
         var location = new Location { IsAdapterId = false, Value = "good" };
-        var expectedProxy = Proxy.Parse("ice://localhost/dummy:10000");
+        var expectedProxy = ServiceAddress.Parse("ice://localhost/dummy:10000");
         endpointCache.Cache[location] = expectedProxy;
 
         IEndpointFinder endpointFinder = new CacheUpdateEndpointFinderDecorator(
@@ -153,9 +154,9 @@ public class LocatorEndpointFinderTests
 
         // Act
         blockingEndpointFinder.Release(1);
-        Proxy? p1 = await t1;
-        Proxy? p2 = await t2;
-        Proxy? p3 = await t3;
+        ServiceAddress? p1 = await t1;
+        ServiceAddress? p2 = await t2;
+        ServiceAddress? p3 = await t3;
 
         // Assert
         Assert.That(blockingEndpointFinder.Count, Is.EqualTo(1));
@@ -173,22 +174,22 @@ public class LocatorEndpointFinderTests
 
         void IDisposable.Dispose() => _semaphore.Dispose();
 
-        async Task<Proxy?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel)
+        async Task<ServiceAddress?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel)
         {
             await _semaphore.WaitAsync(cancel);
             Interlocked.Increment(ref Count);
 
-            return Proxy.Parse("dummy://localhost:10000");
+            return ServiceAddress.Parse("dummy://localhost:10000");
         }
     }
 
     private class EndpointCache : IEndpointCache
     {
-        public Dictionary<Location, Proxy> Cache { get; } = new();
+        public Dictionary<Location, ServiceAddress> Cache { get; } = new();
 
         public void Remove(Location location) => Cache.Remove(location);
-        public void Set(Location location, Proxy proxy) => Cache[location] = proxy;
-        public bool TryGetValue(Location location, out (TimeSpan InsertionTime, Proxy Proxy) value) =>
+        public void Set(Location location, ServiceAddress proxy) => Cache[location] = proxy;
+        public bool TryGetValue(Location location, out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) value) =>
             throw new NotImplementedException();
     }
 

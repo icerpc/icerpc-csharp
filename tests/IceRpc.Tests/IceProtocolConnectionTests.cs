@@ -28,19 +28,19 @@ public sealed class IceProtocolConnectionTests
         {
             // Service not found failure with endpointless proxy gets OtherReplica retry policy response field.
             yield return new TestCaseData(
-                new Proxy(Protocol.Ice),
+                new ServiceAddress(Protocol.Ice),
                 DispatchErrorCode.ServiceNotFound,
                 RetryPolicy.OtherReplica);
 
             // Service not found failure with a proxy that has endpoints does not get a retry policy response field
             yield return new TestCaseData(
-                Proxy.Parse("ice://localhost/service"),
+                ServiceAddress.Parse("ice://localhost/service"),
                 DispatchErrorCode.ServiceNotFound,
                 null);
 
             // No retry policy field with other dispatch errors
             yield return new TestCaseData(
-                new Proxy(Protocol.Ice),
+                new ServiceAddress(Protocol.Ice),
                 DispatchErrorCode.UnhandledException,
                 null);
         }
@@ -99,7 +99,7 @@ public sealed class IceProtocolConnectionTests
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        var request = new OutgoingRequest(new Proxy(Protocol.Ice));
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
         var responseTasks = new List<Task<IncomingResponse>>();
 
         // Act
@@ -156,8 +156,8 @@ public sealed class IceProtocolConnectionTests
 
         // Perform two invocations. The first blocks so the second won't be dispatched. It will block on the dispatch
         // semaphore.
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.Ice)), InvalidConnection.Ice, default);
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.Ice)), InvalidConnection.Ice, default);
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.Ice)), InvalidConnection.Ice, default);
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.Ice)), InvalidConnection.Ice, default);
 
         // Make sure the second request is received and blocked on the dispatch semaphore.
         await Task.Delay(200);
@@ -174,7 +174,7 @@ public sealed class IceProtocolConnectionTests
     /// <summary>Verifies that a failure response contains the expected retry policy field.</summary>
     [Test, TestCaseSource(nameof(DispatchExceptionRetryPolicySource))]
     public async Task Dispatch_failure_response_contain_the_expected_retry_policy_field(
-        Proxy proxy,
+        ServiceAddress proxy,
         DispatchErrorCode errorCode,
         RetryPolicy? expectedRetryPolicy)
     {
@@ -216,7 +216,7 @@ public sealed class IceProtocolConnectionTests
 
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        var request = new OutgoingRequest(new Proxy(Protocol.Ice));
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
 
         // Act
         var response = await sut.Client.InvokeAsync(request, InvalidConnection.Ice);
@@ -250,7 +250,7 @@ public sealed class IceProtocolConnectionTests
 
         // Act
         _ = sut.Client.InvokeAsync(
-            new OutgoingRequest(new Proxy(Protocol.Ice)),
+            new OutgoingRequest(new ServiceAddress(Protocol.Ice)),
             InvalidConnection.Ice);
 
         // Assert
@@ -283,7 +283,7 @@ public sealed class IceProtocolConnectionTests
         await sut.ConnectAsync();
 
         var invokeTask = sut.Client.InvokeAsync(
-            new OutgoingRequest(new Proxy(Protocol.Ice)),
+            new OutgoingRequest(new ServiceAddress(Protocol.Ice)),
             InvalidConnection.Ice);
 
         await start.WaitAsync(); // Wait for the dispatch to start

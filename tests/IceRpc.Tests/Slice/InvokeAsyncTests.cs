@@ -18,7 +18,7 @@ public class InvokeAsyncTests
 
         var sut = new ServicePrx
         {
-            Proxy = new Proxy(Protocol.IceRpc),
+            ServiceAddress = new ServiceAddress(Protocol.IceRpc),
             Invoker = new InlineInvoker((request, cancel) =>
                 Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc) { Payload = responsePayload }))
         };
@@ -51,7 +51,7 @@ public class InvokeAsyncTests
     {
         var sut = new ServicePrx
         {
-            Proxy = new Proxy(Protocol.IceRpc),
+            ServiceAddress = new ServiceAddress(Protocol.IceRpc),
             Invoker = new InlineInvoker((request, cancel) => throw new InvalidDataException("error"))
         };
 

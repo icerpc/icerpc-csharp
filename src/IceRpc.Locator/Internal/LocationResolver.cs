@@ -18,12 +18,12 @@ internal static partial class LocatorLoggerExtensions
         EventId = (int)LocationEventIds.Resolved,
         EventName = nameof(LocationEventIds.Resolved),
         Level = LogLevel.Debug,
-        Message = "resolved {LocationKind} '{Location}' = '{Proxy}'")]
+        Message = "resolved {LocationKind} '{Location}' = '{ServiceAddress}'")]
     internal static partial void LogResolved(
         this ILogger logger,
         string locationKind,
         Location location,
-        Proxy proxy);
+        ServiceAddress serviceAddress);
 
     [LoggerMessage(
         EventId = (int)LocationEventIds.FailedToResolve,
@@ -44,26 +44,26 @@ internal class CacheLessLocationResolver : ILocationResolver
 
     internal CacheLessLocationResolver(IEndpointFinder endpointFinder) => _endpointFinder = endpointFinder;
 
-    ValueTask<(Proxy? Proxy, bool FromCache)> ILocationResolver.ResolveAsync(
+    ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ILocationResolver.ResolveAsync(
         Location location,
         bool refreshCache,
         CancellationToken cancel) => ResolveAsync(location, cancel);
 
-    private async ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(
+    private async ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         CancellationToken cancel)
     {
-        Proxy? proxy = await _endpointFinder.FindAsync(location, cancel).ConfigureAwait(false);
+        ServiceAddress? serviceAddress = await _endpointFinder.FindAsync(location, cancel).ConfigureAwait(false);
 
-        // A well-known proxy resolution can return a proxy with an adapter ID
-        if (proxy is not null && proxy.Params.TryGetValue("adapter-id", out string? adapterId))
+        // A well-known serviceAddress resolution can return a serviceAddress with an adapter ID
+        if (serviceAddress is not null && serviceAddress.Params.TryGetValue("adapter-id", out string? adapterId))
         {
-            (proxy, _) = await ResolveAsync(
+            (serviceAddress, _) = await ResolveAsync(
                 new Location { IsAdapterId = true, Value = adapterId },
                 cancel).ConfigureAwait(false);
         }
 
-        return (proxy, false);
+        return (serviceAddress, false);
     }
 }
 
@@ -91,69 +91,69 @@ internal class LocationResolver : ILocationResolver
         _ttl = ttl;
     }
 
-    public ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(
+    public ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,
         CancellationToken cancel) => PerformResolveAsync(location, refreshCache, cancel);
 
-    private async ValueTask<(Proxy? Proxy, bool FromCache)> PerformResolveAsync(
+    private async ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> PerformResolveAsync(
         Location location,
         bool refreshCache,
         CancellationToken cancel)
     {
-        Proxy? proxy = null;
+        ServiceAddress? serviceAddress = null;
         bool expired = false;
         bool justRefreshed = false;
         bool resolved = false;
 
-        if (_endpointCache.TryGetValue(location, out (TimeSpan InsertionTime, Proxy Proxy) entry))
+        if (_endpointCache.TryGetValue(location, out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) entry))
         {
-            proxy = entry.Proxy;
+            serviceAddress = entry.ServiceAddress;
             TimeSpan cacheEntryAge = TimeSpan.FromMilliseconds(Environment.TickCount64) - entry.InsertionTime;
             expired = _ttl != Timeout.InfiniteTimeSpan && cacheEntryAge > _ttl;
             justRefreshed = cacheEntryAge <= _refreshThreshold;
         }
 
-        if (proxy is null || (!_background && expired) || (refreshCache && !justRefreshed))
+        if (serviceAddress is null || (!_background && expired) || (refreshCache && !justRefreshed))
         {
-            proxy = await _endpointFinder.FindAsync(location, cancel).ConfigureAwait(false);
+            serviceAddress = await _endpointFinder.FindAsync(location, cancel).ConfigureAwait(false);
             resolved = true;
         }
         else if (_background && expired)
         {
-            // We retrieved an expired proxy from the cache, so we launch a refresh in the background.
+            // We retrieved an expired serviceAddress from the cache, so we launch a refresh in the background.
             _ = _endpointFinder.FindAsync(location, cancel: default).ConfigureAwait(false);
         }
 
-        // A well-known proxy resolution can return a proxy with an adapter-id
-        if (proxy is not null && proxy.Params.TryGetValue("adapter-id", out string? adapterId))
+        // A well-known serviceAddress resolution can return a serviceAddress with an adapter-id
+        if (serviceAddress is not null && serviceAddress.Params.TryGetValue("adapter-id", out string? adapterId))
         {
             try
             {
                 // Resolves adapter ID recursively, by checking first the cache. If we resolved the well-known
-                // proxy, we request a cache refresh for the adapter ID.
-                (proxy, _) = await PerformResolveAsync(
+                // serviceAddress, we request a cache refresh for the adapter ID.
+                (serviceAddress, _) = await PerformResolveAsync(
                     new Location { IsAdapterId = true, Value = adapterId },
                     refreshCache || resolved,
                     cancel).ConfigureAwait(false);
             }
             catch
             {
-                proxy = null;
+                serviceAddress = null;
                 throw;
             }
             finally
             {
                 // When the second resolution fails, we clear the cache entry for the initial successful
                 // resolution, since the overall resolution is a failure.
-                if (proxy is null)
+                if (serviceAddress is null)
                 {
                     _endpointCache.Remove(location);
                 }
             }
         }
 
-        return (proxy, proxy is not null && !resolved);
+        return (serviceAddress, serviceAddress is not null && !resolved);
     }
 }
 
@@ -169,7 +169,7 @@ internal class LogLocationResolverDecorator : ILocationResolver
         _logger = logger;
     }
 
-    async ValueTask<(Proxy? Proxy, bool FromCache)> ILocationResolver.ResolveAsync(
+    async ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ILocationResolver.ResolveAsync(
         Location location,
         bool refreshCache,
         CancellationToken cancel)
@@ -178,19 +178,19 @@ internal class LogLocationResolverDecorator : ILocationResolver
 
         try
         {
-            (Proxy? proxy, bool fromCache) =
+            (ServiceAddress? serviceAddress, bool fromCache) =
                 await _decoratee.ResolveAsync(location, refreshCache, cancel).ConfigureAwait(false);
 
-            if (proxy is null)
+            if (serviceAddress is null)
             {
                 _logger.LogFailedToResolve(location.Kind, location);
             }
             else
             {
-                _logger.LogResolved(location.Kind, location, proxy);
+                _logger.LogResolved(location.Kind, location, serviceAddress);
             }
 
-            return (proxy, fromCache);
+            return (serviceAddress, fromCache);
         }
         catch (Exception ex)
         {

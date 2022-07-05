@@ -24,10 +24,10 @@ public sealed class ProtocolBridgingTests
         Endpoint targetEndpoint = $"{targetProtocol}://colochost2";
 
         var forwarderServicePrx = ProtocolBridgingTestPrx.Parse($"{forwarderProtocol}:/forward");
-        forwarderServicePrx.Proxy.Endpoint = forwarderEndpoint;
+        forwarderServicePrx.ServiceAddress.Endpoint = forwarderEndpoint;
 
         var targetServicePrx = ProtocolBridgingTestPrx.Parse($"{targetProtocol}:/target");
-        targetServicePrx.Proxy.Endpoint = targetEndpoint;
+        targetServicePrx.ServiceAddress.Endpoint = targetEndpoint;
 
         var targetService = new ProtocolBridgingTest(targetEndpoint);
 
@@ -68,7 +68,7 @@ public sealed class ProtocolBridgingTests
         // TODO: test with the other encoding; currently, the encoding is always slice2
 
         ProtocolBridgingTestPrx newPrx = await TestProxyAsync(forwarderServicePrx, direct: false);
-        Assert.That((object)newPrx.Proxy.Protocol!.Name, Is.EqualTo(targetProtocol));
+        Assert.That((object)newPrx.ServiceAddress.Protocol!.Name, Is.EqualTo(targetProtocol));
         _ = await TestProxyAsync(newPrx, direct: true);
 
         foreach (Server server in serviceProvider.GetServices<Server>())
@@ -79,7 +79,7 @@ public sealed class ProtocolBridgingTests
         async Task<ProtocolBridgingTestPrx> TestProxyAsync(ProtocolBridgingTestPrx prx, bool direct)
         {
             var expectedPath = direct ? "/target" : "/forward";
-            Assert.That(prx.Proxy.Path, Is.EqualTo(expectedPath));
+            Assert.That(prx.ServiceAddress.Path, Is.EqualTo(expectedPath));
             Assert.That(await prx.OpAsync(13), Is.EqualTo(13));
             IFeatureCollection features = new FeatureCollection().With<IRequestContextFeature>(
                 new RequestContextFeature
@@ -133,13 +133,13 @@ public sealed class ProtocolBridgingTests
         {
             IDispatchInformationFeature dispatchInformation = features.Get<IDispatchInformationFeature>()!;
 
-            var proxy = new Proxy(dispatchInformation.Connection.Protocol)
+            var serviceAddress = new ServiceAddress(dispatchInformation.Connection.Protocol)
             {
                 Path = dispatchInformation.Path,
                 Endpoint = _publishedEndpoint
             };
 
-            return new(new ProtocolBridgingTestPrx { Proxy = proxy });
+            return new(new ProtocolBridgingTestPrx { ServiceAddress = serviceAddress });
         }
 
         public ValueTask OpOnewayAsync(int x, IFeatureCollection features, CancellationToken cancel) => default;
@@ -160,9 +160,9 @@ public sealed class ProtocolBridgingTests
         {
             // First create an outgoing request to _target from the incoming request:
 
-            Protocol targetProtocol = _target.Proxy.Protocol!;
+            Protocol targetProtocol = _target.ServiceAddress.Protocol!;
 
-            var outgoingRequest = new OutgoingRequest(_target.Proxy)
+            var outgoingRequest = new OutgoingRequest(_target.ServiceAddress)
             {
                 IsOneway = incomingRequest.IsOneway,
                 Operation = incomingRequest.Operation,

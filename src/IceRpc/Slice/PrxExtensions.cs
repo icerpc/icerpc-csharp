@@ -81,7 +81,7 @@ public static class PrxExtensions
                 $"when {nameof(payloadStream)} is not null, {nameof(payload)} cannot be null");
         }
 
-        var request = new OutgoingRequest(prx.Proxy)
+        var request = new OutgoingRequest(prx.ServiceAddress)
         {
             Features = features ?? FeatureCollection.Empty,
             Fields = idempotent ?
@@ -161,7 +161,7 @@ public static class PrxExtensions
                 $"when {nameof(payloadStream)} is not null, {nameof(payload)} cannot be null");
         }
 
-        var request = new OutgoingRequest(prx.Proxy)
+        var request = new OutgoingRequest(prx.ServiceAddress)
         {
             Features = features ?? FeatureCollection.Empty,
             Fields = idempotent ?
@@ -217,5 +217,5 @@ public static class PrxExtensions
     /// <param name="prx">The source Prx.</param>
     /// <returns>A new TPrx instance.</returns>
     public static TPrx ToPrx<TPrx>(this IPrx prx) where TPrx : struct, IPrx =>
-        new() { EncodeFeature = prx.EncodeFeature, Invoker = prx.Invoker, Proxy = prx.Proxy };
+        new() { EncodeFeature = prx.EncodeFeature, Invoker = prx.Invoker, ServiceAddress = prx.ServiceAddress };
 }

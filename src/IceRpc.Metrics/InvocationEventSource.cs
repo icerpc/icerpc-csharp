@@ -78,7 +78,7 @@ public sealed class InvocationEventSource : EventSource
         Interlocked.Increment(ref _currentRequests);
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
-            RequestStart(request.Proxy.Path, request.Operation);
+            RequestStart(request.ServiceAddress.Path, request.Operation);
         }
     }
 
@@ -88,7 +88,7 @@ public sealed class InvocationEventSource : EventSource
         Interlocked.Decrement(ref _currentRequests);
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
-            RequestStop(request.Proxy.Path, request.Operation);
+            RequestStop(request.ServiceAddress.Path, request.Operation);
         }
     }
 
@@ -98,7 +98,7 @@ public sealed class InvocationEventSource : EventSource
         Interlocked.Increment(ref _canceledRequests);
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
-            RequestCanceled(request.Proxy.Path, request.Operation);
+            RequestCanceled(request.ServiceAddress.Path, request.Operation);
         }
     }
 
@@ -112,7 +112,7 @@ public sealed class InvocationEventSource : EventSource
         Interlocked.Increment(ref _failedRequests);
         if (IsEnabled(EventLevel.Informational, EventKeywords.None))
         {
-            RequestFailed(request.Proxy.Path, request.Operation, exception);
+            RequestFailed(request.ServiceAddress.Path, request.Operation, exception);
         }
     }
 

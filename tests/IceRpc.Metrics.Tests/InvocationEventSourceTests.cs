@@ -14,7 +14,7 @@ public sealed class InvocationEventSourceTests
         using var eventListener = new TestEventListener(expectedEventId);
         using var eventSource = new InvocationEventSource(Guid.NewGuid().ToString());
         eventListener.EnableEvents(eventSource, EventLevel.Verbose);
-        var proxy = new Proxy(Protocol.IceRpc) { Path = "/test" };
+        var proxy = new ServiceAddress(Protocol.IceRpc) { Path = "/test" };
         var request = new OutgoingRequest(proxy) { Operation = "Op" };
 
         eventSource.RequestStart(request);
@@ -25,7 +25,7 @@ public sealed class InvocationEventSourceTests
         Assert.That(eventData.EventName, Is.EqualTo("RequestStart"));
         Assert.That(eventData.Level, Is.EqualTo(EventLevel.Informational));
         Assert.That(eventData.EventSource, Is.SameAs(eventSource));
-        Assert.That(eventData.Payload![0], Is.EqualTo(request.Proxy.Path));
+        Assert.That(eventData.Payload![0], Is.EqualTo(request.ServiceAddress.Path));
         Assert.That(eventData.Payload![1], Is.EqualTo(request.Operation));
     }
 
@@ -36,7 +36,7 @@ public sealed class InvocationEventSourceTests
         using var eventListener = new TestEventListener(expectedEventId);
         using var eventSource = new InvocationEventSource(Guid.NewGuid().ToString());
         eventListener.EnableEvents(eventSource, EventLevel.Verbose);
-        var proxy = new Proxy(Protocol.IceRpc) { Path = "/test" };
+        var proxy = new ServiceAddress(Protocol.IceRpc) { Path = "/test" };
         var request = new OutgoingRequest(proxy) { Operation = "Op" };
 
         eventSource.RequestStop(request);
@@ -47,7 +47,7 @@ public sealed class InvocationEventSourceTests
         Assert.That(eventData.EventName, Is.EqualTo("RequestStop"));
         Assert.That(eventData.Level, Is.EqualTo(EventLevel.Informational));
         Assert.That(eventData.EventSource, Is.SameAs(eventSource));
-        Assert.That(eventData.Payload![0], Is.EqualTo(request.Proxy.Path));
+        Assert.That(eventData.Payload![0], Is.EqualTo(request.ServiceAddress.Path));
         Assert.That(eventData.Payload![1], Is.EqualTo(request.Operation));
     }
 
@@ -58,7 +58,7 @@ public sealed class InvocationEventSourceTests
         using var eventListener = new TestEventListener(expectedEventId);
         using var eventSource = new InvocationEventSource(Guid.NewGuid().ToString());
         eventListener.EnableEvents(eventSource, EventLevel.Verbose);
-        var proxy = new Proxy(Protocol.IceRpc) { Path = "/test" };
+        var proxy = new ServiceAddress(Protocol.IceRpc) { Path = "/test" };
         var request = new OutgoingRequest(proxy) { Operation = "Op" };
 
         eventSource.RequestCanceled(request);
@@ -69,7 +69,7 @@ public sealed class InvocationEventSourceTests
         Assert.That(eventData.EventName, Is.EqualTo("RequestCanceled"));
         Assert.That(eventData.Level, Is.EqualTo(EventLevel.Informational));
         Assert.That(eventData.EventSource, Is.SameAs(eventSource));
-        Assert.That(eventData.Payload![0], Is.EqualTo(request.Proxy.Path));
+        Assert.That(eventData.Payload![0], Is.EqualTo(request.ServiceAddress.Path));
         Assert.That(eventData.Payload![1], Is.EqualTo(request.Operation));
     }
 
@@ -80,7 +80,7 @@ public sealed class InvocationEventSourceTests
         using var eventListener = new TestEventListener(expectedEventId);
         using var eventSource = new InvocationEventSource(Guid.NewGuid().ToString());
         eventListener.EnableEvents(eventSource, EventLevel.Verbose);
-        var proxy = new Proxy(Protocol.IceRpc) { Path = "/test" };
+        var proxy = new ServiceAddress(Protocol.IceRpc) { Path = "/test" };
         var request = new OutgoingRequest(proxy) { Operation = "Op" };
 
         eventSource.RequestFailed(request, "IceRpc.RemoteException");
@@ -91,7 +91,7 @@ public sealed class InvocationEventSourceTests
         Assert.That(eventData.EventName, Is.EqualTo("RequestFailed"));
         Assert.That(eventData.Level, Is.EqualTo(EventLevel.Informational));
         Assert.That(eventData.EventSource, Is.SameAs(eventSource));
-        Assert.That(eventData.Payload![0], Is.EqualTo(request.Proxy.Path));
+        Assert.That(eventData.Payload![0], Is.EqualTo(request.ServiceAddress.Path));
         Assert.That(eventData.Payload![1], Is.EqualTo(request.Operation));
         Assert.That(eventData.Payload![2], Is.EqualTo("IceRpc.RemoteException"));
     }

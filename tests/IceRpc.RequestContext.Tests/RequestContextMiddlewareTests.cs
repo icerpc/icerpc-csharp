@@ -14,7 +14,7 @@ public sealed class RequestContextMiddlewareTests
     public async Task Context_feature_is_set_from_context_field()
     {
         var context = new Dictionary<string, string> { ["Foo"] = "Bar" };
-        var prx = new Proxy(Protocol.IceRpc);
+        var prx = new ServiceAddress(Protocol.IceRpc);
 
         var pipeReader = EncodeContextField(context);
         ReadOnlySequence<byte> encoded = default;

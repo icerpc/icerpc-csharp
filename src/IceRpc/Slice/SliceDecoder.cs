@@ -366,7 +366,7 @@ public ref partial struct SliceDecoder
         return path != "/" ?
             new TPrx
             {
-                Proxy = DecodeProxy(path),
+                ServiceAddress = DecodeProxy(path),
                 Invoker = _invoker ?? NullInvoker.Instance,
                 EncodeFeature = _prxEncodeFeature
             }
@@ -384,7 +384,7 @@ public ref partial struct SliceDecoder
             return path != "/" ?
                 new TPrx
                 {
-                    Proxy = DecodeProxy(path),
+                    ServiceAddress = DecodeProxy(path),
                     Invoker = _invoker ?? NullInvoker.Instance,
                     EncodeFeature = _prxEncodeFeature
                 }
@@ -404,21 +404,21 @@ public ref partial struct SliceDecoder
                             "cannot decode a relative proxy from an decoder with a null Connection");
                     }
 
-                    var proxy = new Proxy(_connection.Protocol) { Path = proxyString };
+                    var proxy = new ServiceAddress(_connection.Protocol) { Path = proxyString };
                     return new TPrx
                     {
-                        Proxy = proxy,
+                        ServiceAddress = proxy,
                         Invoker = _invoker ?? _connection,
                         EncodeFeature = _prxEncodeFeature
                     };
                 }
                 else
                 {
-                    var proxy = new Proxy(new Uri(proxyString, UriKind.Absolute));
+                    var proxy = new ServiceAddress(new Uri(proxyString, UriKind.Absolute));
                     Debug.Assert(proxy.Protocol is not null); // null protocol == relative proxy
                     return new TPrx
                     {
-                        Proxy = proxy,
+                        ServiceAddress = proxy,
                         Invoker = proxy.Protocol.IsSupported && _invoker is not null ? _invoker : NullInvoker.Instance,
                         EncodeFeature = _prxEncodeFeature
                     };
@@ -1120,7 +1120,7 @@ public ref partial struct SliceDecoder
     /// <summary>Helper method to decode a proxy encoded with Slice1.</summary>
     /// <param name="path">The decoded path.</param>
     /// <returns>The decoded proxy.</returns>
-    private Proxy DecodeProxy(string path)
+    private ServiceAddress DecodeProxy(string path)
     {
         var proxyData = new ProxyData(ref this);
 
@@ -1173,7 +1173,7 @@ public ref partial struct SliceDecoder
                 throw new InvalidDataException($"unexpected fragment in {protocol} proxy");
             }
 
-            return new Proxy(
+            return new ServiceAddress(
                 protocol,
                 path,
                 endpoint,

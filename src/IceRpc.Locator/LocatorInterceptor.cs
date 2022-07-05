@@ -36,7 +36,7 @@ public class LocatorInterceptor : IInvoker
 
             if (endpointFeature is null)
             {
-                endpointFeature = new EndpointFeature(request.Proxy);
+                endpointFeature = new EndpointFeature(request.ServiceAddress);
                 request.Features = request.Features.With(endpointFeature);
             }
 
@@ -52,15 +52,15 @@ public class LocatorInterceptor : IInvoker
             }
             else if (endpointFeature.Endpoint is null)
             {
-                location = request.Proxy.Params.TryGetValue("adapter-id", out string? adapterId) ?
+                location = request.ServiceAddress.Params.TryGetValue("adapter-id", out string? adapterId) ?
                     new Location { IsAdapterId = true, Value = adapterId } :
-                    new Location { Value = request.Proxy.Path };
+                    new Location { Value = request.ServiceAddress.Path };
             }
             // else it could be a retry where the first attempt provided non-cached endpoint(s)
 
             if (location != default)
             {
-                (Proxy? proxy, bool fromCache) = await _locationResolver.ResolveAsync(
+                (ServiceAddress? proxy, bool fromCache) = await _locationResolver.ResolveAsync(
                     location,
                     refreshCache,
                     cancel).ConfigureAwait(false);
@@ -121,20 +121,20 @@ public readonly record struct Location
     public override string ToString() => Value;
 }
 
-/// <summary>A location resolver resolves a location into one or more endpoints carried by a dummy proxy, and
+/// <summary>A location resolver resolves a location into one or more endpoints carried by a dummy service address, and
 /// optionally maintains a cache for these resolutions. It's consumed by <see cref="LocatorInterceptor"/>.
 /// </summary>
 public interface ILocationResolver
 {
-    /// <summary>Resolves a location into one or more endpoints carried by a dummy proxy.</summary>
+    /// <summary>Resolves a location into one or more endpoints carried by a dummy service address.</summary>
     /// <param name="location">The location.</param>
     /// <param name="refreshCache">When <c>true</c>, requests a cache refresh.</param>
     /// <param name="cancel">The cancellation token.</param>
-    /// <returns>A tuple with a nullable dummy proxy that holds the endpoint(s) (if resolved), and a bool that
-    /// indicates whether these endpoints were retrieved from the implementation's cache. Proxy is null when
-    /// the location resolver fails to resolve a location. When Proxy is not null, its Endpoint must be not null.
-    /// </returns>
-    ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(
+    /// <returns>A tuple with a nullable dummy service address that holds the endpoint(s) (if resolved), and a bool that
+    /// indicates whether these endpoints were retrieved from the implementation's cache. ServiceAddress is null when
+    /// the location resolver fails to resolve a location. When ServiceAddress is not null, its Endpoint must be not
+    /// null.</returns>
+    ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
         bool refreshCache,
         CancellationToken cancel);
@@ -197,7 +197,7 @@ public class LocatorLocationResolver : ILocationResolver
         }
     }
 
-    ValueTask<(Proxy? Proxy, bool FromCache)> ILocationResolver.ResolveAsync(
+    ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ILocationResolver.ResolveAsync(
         Location location,
         bool refreshCache,
         CancellationToken cancel) => _locationResolver.ResolveAsync(location, refreshCache, cancel);

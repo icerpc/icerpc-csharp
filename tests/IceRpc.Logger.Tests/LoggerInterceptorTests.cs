@@ -13,7 +13,7 @@ public sealed class LoggerInterceptorTests
         var invoker = new InlineInvoker(
             (request, cancel) => Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc)));
         using var loggerFactory = new TestLoggerFactory();
-        var prx = new Proxy(Protocol.IceRpc) { Path = "/path" };
+        var prx = new ServiceAddress(Protocol.IceRpc) { Path = "/path" };
         var request = new OutgoingRequest(prx) { Operation = "operation" };
         var sut = new LoggerInterceptor(invoker, loggerFactory);
 
@@ -33,7 +33,7 @@ public sealed class LoggerInterceptorTests
     {
         var invoker = new InlineInvoker((request, cancel) => throw new InvalidOperationException());
         using var loggerFactory = new TestLoggerFactory();
-        var prx = new Proxy(Protocol.IceRpc) { Path = "/path" };
+        var prx = new ServiceAddress(Protocol.IceRpc) { Path = "/path" };
         var request = new OutgoingRequest(prx) { Operation = "operation" };
         var sut = new LoggerInterceptor(invoker, loggerFactory);
 

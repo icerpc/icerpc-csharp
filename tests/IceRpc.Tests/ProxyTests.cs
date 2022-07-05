@@ -183,7 +183,7 @@ public class ProxyTests
     public void Adapter_id_cannot_be_empty()
     {
         // Arrange
-        var proxy = Proxy.Parse("ice://localhost/hello");
+        var proxy = ServiceAddress.Parse("ice://localhost/hello");
 
         // Act/Assert
         Assert.That(() => proxy.Params = proxy.Params.SetItem("adapter-id", ""), Throws.ArgumentException);
@@ -194,7 +194,7 @@ public class ProxyTests
     public void Cannot_set_endpoint_on_a_proxy_with_parameters()
     {
         // Arrange
-        var proxy = new Proxy(Protocol.Ice)
+        var proxy = new ServiceAddress(Protocol.Ice)
         {
             Params = new Dictionary<string, string> { ["adapter-id"] = "value" }.ToImmutableDictionary(),
         };
@@ -211,7 +211,7 @@ public class ProxyTests
     public void Cannot_set_fragment_if_protocol_has_no_fragment(string protocolName)
     {
         Protocol? protocol = protocolName.Length > 0 ? Protocol.FromString(protocolName) : null;
-        var proxy = new Proxy(protocol);
+        var proxy = new ServiceAddress(protocol);
 
         Assert.That(() => proxy.Fragment = "bar", Throws.TypeOf<InvalidOperationException>());
 
@@ -225,7 +225,7 @@ public class ProxyTests
     [Test]
     public void Cannot_set_params_on_a_proxy_with_endpoints()
     {
-        var proxy = Proxy.Parse("icerpc://localhost/hello");
+        var proxy = ServiceAddress.Parse("icerpc://localhost/hello");
 
         Assert.That(
             () => proxy.Params = proxy.Params.Add("name", "value"),
@@ -237,11 +237,11 @@ public class ProxyTests
     [Test, TestCaseSource(nameof(ProxyToStringSource))]
     public void Convert_a_proxy_to_a_string(string str)
     {
-        var proxy = Proxy.Parse(str);
+        var proxy = ServiceAddress.Parse(str);
 
         string str2 = proxy.ToString();
 
-        Assert.That(Proxy.Parse(str2), Is.EqualTo(proxy));
+        Assert.That(ServiceAddress.Parse(str2), Is.EqualTo(proxy));
     }
 
     /// <summary>Verifies that two equal proxies always produce the same hash code.</summary>
@@ -249,8 +249,8 @@ public class ProxyTests
     [Test, TestCaseSource(nameof(ProxyHashCodeSource))]
     public void Equal_proxies_produce_the_same_hash_code(string str)
     {
-        var proxy1 = Proxy.Parse(str);
-        var proxy2 = Proxy.Parse(proxy1.ToString());
+        var proxy1 = ServiceAddress.Parse(str);
+        var proxy2 = ServiceAddress.Parse(proxy1.ToString());
 
         var hashCode1 = proxy1.GetHashCode();
 
@@ -265,7 +265,7 @@ public class ProxyTests
     [TestCase("/foo/bar/")]
     public void From_path(string path)
     {
-        var proxy = new Proxy { Path = path };
+        var proxy = new ServiceAddress { Path = path };
 
         Assert.Multiple(() =>
         {
@@ -283,7 +283,7 @@ public class ProxyTests
     [Test, TestCaseSource(nameof(ProxyParseSource))]
     public void Parse_a_proxy_string(string str, string path, string fragment)
     {
-        var proxy = Proxy.Parse(str);
+        var proxy = ServiceAddress.Parse(str);
 
         Assert.That(proxy.Path, Is.EqualTo(path));
         Assert.That(proxy.Fragment, Is.EqualTo(fragment));
@@ -295,12 +295,12 @@ public class ProxyTests
     /// <param name="format">The format use to parse the string as a proxy.</param>
     [Test, TestCaseSource(nameof(ProxyParseInvalidSource))]
     public void Parse_an_invalid_proxy_string(string str) =>
-        Assert.Throws(Is.InstanceOf<FormatException>(), () => Proxy.Parse(str));
+        Assert.Throws(Is.InstanceOf<FormatException>(), () => ServiceAddress.Parse(str));
 
     [Test, TestCaseSource(nameof(AltEndpointsSource))]
     public void Parse_proxy_alt_endpoints(string str, Endpoint[] altEndpoints)
     {
-        var proxy = Proxy.Parse(str);
+        var proxy = ServiceAddress.Parse(str);
 
         Assert.That(proxy.AltEndpoints, Is.EqualTo(altEndpoints));
     }
@@ -371,9 +371,9 @@ public class ProxyTests
     [Test]
     public void Setting_alt_endpoints_with_a_different_protocol_fails()
     {
-        var proxy = Proxy.Parse("ice://host.zeroc.com:10000/hello");
-        var endpoint1 = Proxy.Parse("ice://host.zeroc.com:10001/hello").Endpoint!.Value;
-        var endpoint2 = Proxy.Parse("icerpc://host.zeroc.com/hello").Endpoint!.Value;
+        var proxy = ServiceAddress.Parse("ice://host.zeroc.com:10000/hello");
+        var endpoint1 = ServiceAddress.Parse("ice://host.zeroc.com:10001/hello").Endpoint!.Value;
+        var endpoint2 = ServiceAddress.Parse("icerpc://host.zeroc.com/hello").Endpoint!.Value;
         var altEndpoints = new Endpoint[] { endpoint1, endpoint2 }.ToImmutableList();
 
         Assert.That(() => proxy.AltEndpoints = altEndpoints, Throws.ArgumentException);
@@ -387,9 +387,9 @@ public class ProxyTests
     [Test]
     public void Setting_endpoint_with_a_different_protocol_fails()
     {
-        var proxy = Proxy.Parse("ice://host.zeroc.com/hello");
+        var proxy = ServiceAddress.Parse("ice://host.zeroc.com/hello");
         var endpoint = proxy.Endpoint;
-        var newEndpoint = Proxy.Parse("icerpc://host.zeroc.com/hello").Endpoint!.Value;
+        var newEndpoint = ServiceAddress.Parse("icerpc://host.zeroc.com/hello").Endpoint!.Value;
 
         Assert.That(() => proxy.Endpoint = newEndpoint, Throws.ArgumentException);
 
@@ -401,7 +401,7 @@ public class ProxyTests
     [Test]
     public void Set_fragment_on_an_ice_proxy()
     {
-        var proxy = new Proxy(Protocol.Ice);
+        var proxy = new ServiceAddress(Protocol.Ice);
 
         proxy = proxy with { Fragment = "bar" };
 
