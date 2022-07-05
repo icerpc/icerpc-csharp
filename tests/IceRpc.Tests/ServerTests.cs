@@ -12,7 +12,7 @@ public class ServerTests
     [Test]
     public async Task DNS_name_cannot_be_used_in_a_server_endpoint()
     {
-        await using var server = new Server(ConnectionOptions.DefaultDispatcher, "icerpc://foo:10000");
+        await using var server = new Server(NullDispatcher.Instance, "icerpc://foo:10000");
 
         Assert.Throws<NotSupportedException>(() => server.Listen());
     }
@@ -22,7 +22,7 @@ public class ServerTests
     [Test]
     public async Task Cannot_call_listen_twice()
     {
-        await using var server = new Server(ConnectionOptions.DefaultDispatcher);
+        await using var server = new Server(NullDispatcher.Instance);
         server.Listen();
 
         Assert.Throws<InvalidOperationException>(() => server.Listen());
@@ -33,7 +33,7 @@ public class ServerTests
     [Test]
     public async Task Cannot_call_listen_on_a_disposed_server()
     {
-        var server = new Server(ConnectionOptions.DefaultDispatcher);
+        var server = new Server(NullDispatcher.Instance);
         await server.DisposeAsync();
 
         Assert.Throws<InvalidOperationException>(() => server.Listen());
@@ -44,7 +44,7 @@ public class ServerTests
     [Test]
     public async Task The_shutdown_complete_task_is_completed_after_shutdow()
     {
-        await using var server = new Server(ConnectionOptions.DefaultDispatcher);
+        await using var server = new Server(NullDispatcher.Instance);
 
         await server.ShutdownAsync();
 
