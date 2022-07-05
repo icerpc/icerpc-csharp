@@ -41,11 +41,11 @@ public sealed class OutgoingRequest : OutgoingFrame
     private IncomingResponse? _response;
 
     /// <summary>Constructs an outgoing request.</summary>
-    /// <param name="serviceAddress">The address of the service.</param>
+    /// <param name="serviceAddress">The address of the target service.</param>
     public OutgoingRequest(ServiceAddress serviceAddress)
         : base(serviceAddress.Protocol ??
             throw new ArgumentException(
-                "cannot create an outgoing request with a relative service address",
+                "cannot create an outgoing request with a path-only service address",
                 nameof(serviceAddress))) =>
         ServiceAddress = serviceAddress;
 

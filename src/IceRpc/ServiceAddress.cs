@@ -149,7 +149,7 @@ public sealed record class ServiceAddress
             try
             {
                 CheckParams(value); // general checking (properly escape, no empty name)
-                Protocol!.CheckProxyParams(value); // protocol-specific checking
+                Protocol!.CheckServiceAddressParams(value); // protocol-specific checking
             }
             catch (FormatException ex)
             {
@@ -168,7 +168,7 @@ public sealed record class ServiceAddress
     }
 
     /// <summary>Gets the protocol of this service address.</summary>
-    /// <value>The protocol of the service address. It corresponds to the URI scheme and is null for a relative service
+    /// <value>The protocol of the service address. It corresponds to the URI scheme and is null for a path-only service
     /// address.</value>
     public Protocol? Protocol { get; }
 
@@ -213,7 +213,7 @@ public sealed record class ServiceAddress
     }
 
     /// <summary>Constructs a service address from a protocol.</summary>
-    /// <param name="protocol">The protocol, or null for a relative service address.</param>
+    /// <param name="protocol">The protocol, or null for a path-only service address.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="protocol"/> is not null or a supported protocol.
     /// </exception>
     public ServiceAddress(Protocol? protocol = null) =>
@@ -288,7 +288,7 @@ public sealed record class ServiceAddress
                         throw new FormatException($"invalid alt-endpoint parameter in URI '{uri.OriginalString}'");
                     }
 
-                    Protocol.CheckProxyParams(queryParams);
+                    Protocol.CheckServiceAddressParams(queryParams);
                     Params = queryParams;
                 }
             }
@@ -297,7 +297,7 @@ public sealed record class ServiceAddress
         }
         else
         {
-            // relative service address
+            // path-only service address
             Protocol = null;
             _path = uri.ToString();
             CheckPath(_path);
@@ -334,7 +334,7 @@ public sealed record class ServiceAddress
             return OriginalUri == other.OriginalUri;
         }
 
-        // else non-relative proxies with a supported protocol
+        // else proxies with a supported protocol
 
         if (Path != other.Path)
         {
@@ -375,7 +375,7 @@ public sealed record class ServiceAddress
             return OriginalUri.GetHashCode();
         }
 
-        // else non-relative service address with a supported protocol
+        // else service address with a supported protocol
 
         // We only hash a subset of the properties to keep GetHashCode reasonably fast.
         var hash = new HashCode();
@@ -577,7 +577,7 @@ public sealed record class ServiceAddress
     {
         if (Protocol is null)
         {
-            throw new InvalidOperationException($"cannot set {propertyName} on a relative service address");
+            throw new InvalidOperationException($"cannot set {propertyName} on a path-only service address");
         }
         else if (!Protocol.IsSupported)
         {

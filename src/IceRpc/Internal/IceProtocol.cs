@@ -48,7 +48,7 @@ internal sealed class IceProtocol : Protocol
 
     /// <summary>Checks if the proxy parameters are valid. The only valid parameter is adapter-id with a non-empty
     /// value.</summary>
-    internal override void CheckProxyParams(ImmutableDictionary<string, string> proxyParams)
+    internal override void CheckServiceAddressParams(ImmutableDictionary<string, string> proxyParams)
     {
         foreach ((string name, string value) in proxyParams)
         {
