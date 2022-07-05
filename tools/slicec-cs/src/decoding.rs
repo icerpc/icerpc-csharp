@@ -61,7 +61,7 @@ fn decode_member(
     if data_type.is_optional {
         match data_type.concrete_type() {
             Types::Interface(_) if encoding == Encoding::Slice1 => {
-                writeln!(code, "decoder.DecodeNullablePrx<{}>();", type_string);
+                writeln!(code, "decoder.DecodeNullableProxy<{}>();", type_string);
                 return code;
             }
             _ if data_type.is_class_type() => {
@@ -375,7 +375,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
         TypeRefs::Interface(_) => {
             if encoding == Encoding::Slice1 && type_ref.is_optional {
                 format!(
-                    "(ref SliceDecoder decoder) => decoder.DecodeNullablePrx<{}>()",
+                    "(ref SliceDecoder decoder) => decoder.DecodeNullableProxy<{}>()",
                     type_name
                 )
             } else {

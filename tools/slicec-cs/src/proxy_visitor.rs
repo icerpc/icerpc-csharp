@@ -22,8 +22,8 @@ pub struct ProxyVisitor<'a> {
 impl<'a> Visitor for ProxyVisitor<'_> {
     fn visit_interface_start(&mut self, interface_def: &Interface) {
         let namespace = interface_def.namespace();
-        let proxy_interface = interface_def.proxy_name(); // IFooPrx
-        let proxy_impl: String = interface_def.proxy_implementation_name(); // FooPrx
+        let proxy_interface = interface_def.proxy_name(); // IFooProxy
+        let proxy_impl: String = interface_def.proxy_implementation_name(); // FooProxy
         let access = interface_def.access_modifier();
         let all_bases: Vec<&Interface> = interface_def.all_base_interfaces();
         let bases: Vec<&Interface> = interface_def.base_interfaces();
@@ -451,7 +451,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
     class_builder.add_comment(
         "summary",
         &format!(
-            r#"Holds a <see cref="IceRpc.Slice.ResponseDecodeFunc{{T}}"/> for each non-void remote operation defined in <see cref="{}Prx"/>."#,
+            r#"Holds a <see cref="IceRpc.Slice.ResponseDecodeFunc{{T}}"/> for each non-void remote operation defined in <see cref="{}Proxy"/>."#,
             interface_def.interface_name()));
 
     for operation in operations {

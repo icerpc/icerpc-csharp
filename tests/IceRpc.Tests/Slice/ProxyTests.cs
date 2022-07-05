@@ -2,6 +2,8 @@
 
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
+using IceRpc.Tests.Common;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice;
@@ -58,7 +60,7 @@ public class ProxyTests
         encoder.EncodeNullableServiceAddress(expected);
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
-        ServicePrx? decoded = decoder.DecodeNullablePrx<ServicePrx>();
+        ServiceProxy? decoded = decoder.DecodeNullableProxy<ServiceProxy>();
 
         Assert.That(decoded?.ServiceAddress, Is.EqualTo(expected));
     }
@@ -75,7 +77,7 @@ public class ProxyTests
         encoder.EncodeServiceAddress(value);
         var sut = new SliceDecoder(bufferWriter.WrittenMemory, encoding: encoding);
 
-        ServicePrx decoded = sut.DecodeProxy<ServicePrx>();
+        ServiceProxy decoded = sut.DecodeProxy<ServiceProxy>();
 
         Assert.That(decoded.ServiceAddress, Is.EqualTo(expected));
     }
@@ -95,8 +97,46 @@ public class ProxyTests
                 encoding: SliceEncoding.Slice2,
                 connection: connection);
 
-            return decoder.DecodeProxy<ServicePrx>().Invoker;
+            return decoder.DecodeProxy<ServiceProxy>().Invoker;
         },
         Is.EqualTo(connection));
+    }
+
+    [Test]
+    public async Task Downcast_proxy_with_as_sync_succeeds()
+    {
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(new MyDerivedInterface())
+            .BuildServiceProvider(validateScopes: true);
+
+        var proxy = new MyBaseInterfaceProxy(provider.GetRequiredService<ClientConnection>());
+        provider.GetRequiredService<Server>().Listen();
+
+        MyDerivedInterfaceProxy? derived = await proxy.AsAsync<MyDerivedInterfaceProxy>();
+
+        Assert.That(derived, Is.Not.Null);
+    }
+
+    [Test]
+    public async Task Downcast_proxy_with_as_aync_fails()
+    {
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(new MyBaseInterface())
+            .BuildServiceProvider(validateScopes: true);
+
+        var proxy = new MyBaseInterfaceProxy(provider.GetRequiredService<ClientConnection>());
+        provider.GetRequiredService<Server>().Listen();
+
+        MyDerivedInterfaceProxy? derived = await proxy.AsAsync<MyDerivedInterfaceProxy>();
+
+        Assert.That(derived, Is.Null);
+    }
+
+    private class MyBaseInterface : Service, IMyBaseInterface
+    {
+    }
+
+    private class MyDerivedInterface : MyBaseInterface, IMyDerivedInterface
+    {
     }
 }

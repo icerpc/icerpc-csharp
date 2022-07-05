@@ -10,7 +10,7 @@ await using var connection = new ClientConnection("icerpc://127.0.0.1");
 IInvoker pipeline = new Pipeline().UseDeflate().Into(connection);
 
 // Create the proxy using the invocation pipeline
-var hello = new HelloPrx(pipeline);
+var hello = new HelloProxy(pipeline);
 
 Console.Write("To say hello to the server, type your name: ");
 

@@ -23,11 +23,11 @@ public sealed class ProtocolBridgingTests
         Endpoint forwarderEndpoint = $"{forwarderProtocol}://colochost1";
         Endpoint targetEndpoint = $"{targetProtocol}://colochost2";
 
-        var forwarderServicePrx = ProtocolBridgingTestPrx.Parse($"{forwarderProtocol}:/forward");
-        forwarderServicePrx.ServiceAddress.Endpoint = forwarderEndpoint;
+        var forwarderServiceProxy = ProtocolBridgingTestProxy.Parse($"{forwarderProtocol}:/forward");
+        forwarderServiceProxy.ServiceAddress.Endpoint = forwarderEndpoint;
 
-        var targetServicePrx = ProtocolBridgingTestPrx.Parse($"{targetProtocol}:/target");
-        targetServicePrx.ServiceAddress.Endpoint = targetEndpoint;
+        var targetServiceProxy = ProtocolBridgingTestProxy.Parse($"{targetProtocol}:/target");
+        targetServiceProxy.ServiceAddress.Endpoint = targetEndpoint;
 
         var targetService = new ProtocolBridgingTest(targetEndpoint);
 
@@ -35,7 +35,7 @@ public sealed class ProtocolBridgingTests
             .AddColocTransport()
             .AddIceRpcConnectionPool()
             .AddSingleton<IProtocolBridgingTest>(targetService)
-            .AddSingleton(_ => new Forwarder(targetServicePrx.ToPrx<ServicePrx>()))
+            .AddSingleton(_ => new Forwarder(targetServiceProxy.ToProxy<ServiceProxy>()))
             .AddIceRpcServer(
                 "forwarder",
                 builder => builder
@@ -57,8 +57,8 @@ public sealed class ProtocolBridgingTests
 
         await using ServiceProvider serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-        forwarderServicePrx = forwarderServicePrx with { Invoker = serviceProvider.GetRequiredService<IInvoker>() };
-        targetServicePrx = targetServicePrx with { Invoker = serviceProvider.GetRequiredService<IInvoker>() };
+        forwarderServiceProxy = forwarderServiceProxy with { Invoker = serviceProvider.GetRequiredService<IInvoker>() };
+        targetServiceProxy = targetServiceProxy with { Invoker = serviceProvider.GetRequiredService<IInvoker>() };
 
         foreach (Server server in serviceProvider.GetServices<Server>())
         {
@@ -67,16 +67,16 @@ public sealed class ProtocolBridgingTests
 
         // TODO: test with the other encoding; currently, the encoding is always slice2
 
-        ProtocolBridgingTestPrx newPrx = await TestProxyAsync(forwarderServicePrx, direct: false);
-        Assert.That((object)newPrx.ServiceAddress.Protocol!.Name, Is.EqualTo(targetProtocol));
-        _ = await TestProxyAsync(newPrx, direct: true);
+        ProtocolBridgingTestProxy newProxy = await TestProxyAsync(forwarderServiceProxy, direct: false);
+        Assert.That((object)newProxy.ServiceAddress.Protocol!.Name, Is.EqualTo(targetProtocol));
+        _ = await TestProxyAsync(newProxy, direct: true);
 
         foreach (Server server in serviceProvider.GetServices<Server>())
         {
             await server.ShutdownAsync();
         }
 
-        async Task<ProtocolBridgingTestPrx> TestProxyAsync(ProtocolBridgingTestPrx proxy, bool direct)
+        async Task<ProtocolBridgingTestProxy> TestProxyAsync(ProtocolBridgingTestProxy proxy, bool direct)
         {
             var expectedPath = direct ? "/target" : "/forward";
             Assert.That(proxy.ServiceAddress.Path, Is.EqualTo(expectedPath));
@@ -104,7 +104,7 @@ public sealed class ProtocolBridgingTests
             Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
             Assert.That(dispatchException!.Origin, Is.Not.Null);
 
-            ProtocolBridgingTestPrx newProxy = await proxy.OpNewProxyAsync();
+            ProtocolBridgingTestProxy newProxy = await proxy.OpNewProxyAsync();
             return newProxy;
         }
     }
@@ -129,7 +129,7 @@ public sealed class ProtocolBridgingTests
         public ValueTask OpExceptionAsync(IFeatureCollection features, CancellationToken cancel) =>
             throw new ProtocolBridgingException(42);
 
-        public ValueTask<ProtocolBridgingTestPrx> OpNewProxyAsync(IFeatureCollection features, CancellationToken cancel)
+        public ValueTask<ProtocolBridgingTestProxy> OpNewProxyAsync(IFeatureCollection features, CancellationToken cancel)
         {
             IDispatchInformationFeature dispatchInformation = features.Get<IDispatchInformationFeature>()!;
 
@@ -139,7 +139,7 @@ public sealed class ProtocolBridgingTests
                 Endpoint = _publishedEndpoint
             };
 
-            return new(new ProtocolBridgingTestPrx { ServiceAddress = serviceAddress });
+            return new(new ProtocolBridgingTestProxy { ServiceAddress = serviceAddress });
         }
 
         public ValueTask OpOnewayAsync(int x, IFeatureCollection features, CancellationToken cancel) => default;
@@ -152,7 +152,7 @@ public sealed class ProtocolBridgingTests
 
     public sealed class Forwarder : IDispatcher
     {
-        private readonly ServicePrx _target;
+        private readonly ServiceProxy _target;
 
         async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(
             IncomingRequest incomingRequest,
@@ -204,6 +204,6 @@ public sealed class ProtocolBridgingTests
             };
         }
 
-        internal Forwarder(ServicePrx target) => _target = target;
+        internal Forwarder(ServiceProxy target) => _target = target;
     }
 }

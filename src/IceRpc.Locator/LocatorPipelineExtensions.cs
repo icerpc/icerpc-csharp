@@ -14,7 +14,7 @@ public static class LocatorPipelineExtensions
     /// <param name="pipeline">The pipeline being configured.</param>
     /// <param name="locator">The locator proxy used for the resolutions.</param>
     /// <returns>The pipeline being configured.</returns>
-    public static Pipeline UseLocator(this Pipeline pipeline, ILocatorPrx locator) =>
+    public static Pipeline UseLocator(this Pipeline pipeline, ILocatorProxy locator) =>
         UseLocator(
             pipeline,
             new LocatorLocationResolver(

@@ -8,7 +8,7 @@ namespace Demo;
 public class AlertSystem : Service, IAlertSystem
 {
     public async ValueTask AddObserverAsync(
-        AlertObserverPrx observer,
+        AlertObserverProxy observer,
         IFeatureCollection features,
         CancellationToken cancel)
     {

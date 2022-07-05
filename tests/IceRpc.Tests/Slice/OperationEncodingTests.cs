@@ -16,7 +16,7 @@ public class OperationEncodingTests
     public void Slice2_operation_encode_with_single_parameter()
     {
         // Act
-        PipeReader payload = MyOperationsBPrx.Request.OpInt32(10);
+        PipeReader payload = MyOperationsBProxy.Request.OpInt32(10);
 
         // Assert
         Assert.That(payload.TryRead(out var readResult));
@@ -77,7 +77,7 @@ public class OperationEncodingTests
         };
 
         int value =
-            await MyOperationsBPrx.Response.OpInt32Async(response, request, NullInvoker.Instance, null, default);
+            await MyOperationsBProxy.Response.OpInt32Async(response, request, NullInvoker.Instance, null, default);
 
         Assert.That(value, Is.EqualTo(10));
 
@@ -94,7 +94,7 @@ public class OperationEncodingTests
     [Test]
     public void Slice2_operation_encode_with_multiple_parameters()
     {
-        var payload = MyOperationsBPrx.Request.OpInt32AndString(10, "hello world!");
+        var payload = MyOperationsBProxy.Request.OpInt32AndString(10, "hello world!");
 
         // Assert
         // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents)
@@ -158,7 +158,7 @@ public class OperationEncodingTests
             Payload = Encode(10, "hello world!")
         };
 
-        (int r1, string r2) = await MyOperationsBPrx.Response.OpInt32AndStringAsync(
+        (int r1, string r2) = await MyOperationsBProxy.Response.OpInt32AndStringAsync(
             response,
             request,
             NullInvoker.Instance,
@@ -188,7 +188,7 @@ public class OperationEncodingTests
         const int p1 = 10;
         const string p2 = "hello world!";
 
-        PipeReader payload = MyOperationsBPrx.Request.OpOptional(p1, p2, p3, p4);
+        PipeReader payload = MyOperationsBProxy.Request.OpOptional(p1, p2, p3, p4);
 
         // Assert
         // readResult: size + 4 bytes payload size
@@ -326,7 +326,7 @@ public class OperationEncodingTests
         };
 
         var value =
-            await MyOperationsBPrx.Response.OpOptionalAsync(response, request, NullInvoker.Instance, null, default);
+            await MyOperationsBProxy.Response.OpOptionalAsync(response, request, NullInvoker.Instance, null, default);
 
         Assert.That(value.R1, Is.EqualTo(p1));
         Assert.That(value.R2, Is.EqualTo(p2));
@@ -366,7 +366,7 @@ public class OperationEncodingTests
         const int p1 = 10;
         const string p2 = "hello world!";
 
-        PipeReader payload = MyOperationsBPrx.Request.OpTagged(p1, p2, p3, p4);
+        PipeReader payload = MyOperationsBProxy.Request.OpTagged(p1, p2, p3, p4);
 
         // Assert
         // readResult: size + 4 bytes payload size
@@ -497,7 +497,7 @@ public class OperationEncodingTests
         };
 
         var value =
-            await MyOperationsBPrx.Response.OpTaggedAsync(response, request, NullInvoker.Instance, null, default);
+            await MyOperationsBProxy.Response.OpTaggedAsync(response, request, NullInvoker.Instance, null, default);
 
         Assert.That(value.R1, Is.EqualTo(p1));
         Assert.That(value.R2, Is.EqualTo(p2));

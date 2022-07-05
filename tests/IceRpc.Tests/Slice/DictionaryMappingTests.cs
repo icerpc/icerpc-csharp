@@ -22,7 +22,7 @@ public class DictionaryMappingTests
         };
 
         (CustomDictionary<int, int> r1, CustomDictionary<int, int> r2) =
-            await DictionaryMappingOperationsPrx.Response.OpReturnTupleAsync(
+            await DictionaryMappingOperationsProxy.Response.OpReturnTupleAsync(
                 response,
                 request,
                 NullInvoker.Instance,
@@ -45,7 +45,7 @@ public class DictionaryMappingTests
         };
 
         // TODO bogus mapping, this should return CustomDictionary<int, int>
-        Dictionary<int, int> r = await DictionaryMappingOperationsPrx.Response.OpReturnSingleTypeAsync(
+        Dictionary<int, int> r = await DictionaryMappingOperationsProxy.Response.OpReturnSingleTypeAsync(
             response,
             request,
             NullInvoker.Instance,
@@ -59,7 +59,7 @@ public class DictionaryMappingTests
     public void Parameter_using_cs_generic_attribute()
     {
         // Arrange
-        PipeReader requestPayload = DictionaryMappingOperationsPrx.Request.OpSingleParameter(
+        PipeReader requestPayload = DictionaryMappingOperationsProxy.Request.OpSingleParameter(
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
 
         // Act/Assert

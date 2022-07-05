@@ -6,7 +6,7 @@ using System.IO.Pipelines;
 
 // Establish the connection to the server
 await using var connection = new ClientConnection("icerpc://127.0.0.1");
-var downloader = new DownloaderPrx(connection);
+var downloader = new DownloaderProxy(connection);
 
 // Receive the stream from the server.
 PipeReader image = await downloader.DownloadImageAsync();

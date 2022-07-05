@@ -34,9 +34,9 @@ public static class ProxyExtensions
         }.ToImmutableDictionary();
 
     /// <summary>Tests whether the target service implements the interface implemented by the TProxy proxy. This
-    /// method is a wrapper for <see cref="IServicePrx.IceIsAAsync"/>.</summary>
+    /// method is a wrapper for <see cref="IServiceProxy.IceIsAAsync"/>.</summary>
     /// <typeparam name="TProxy">The type of the target proxy struct.</typeparam>
-    /// <param name="proxy">The source Prx being tested.</param>
+    /// <param name="proxy">The source Proxy being tested.</param>
     /// <param name="features">The invocation features.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A new TProxy instance, or null.</returns>
@@ -44,9 +44,9 @@ public static class ProxyExtensions
         this IProxy proxy,
         IFeatureCollection? features = null,
         CancellationToken cancel = default) where TProxy : struct, IProxy =>
-        await proxy.ToPrx<ServicePrx>().IceIsAAsync(typeof(TProxy).GetSliceTypeId()!, features, cancel)
+        await proxy.ToProxy<ServiceProxy>().IceIsAAsync(typeof(TProxy).GetSliceTypeId()!, features, cancel)
             .ConfigureAwait(false) ?
-            proxy.ToPrx<TProxy>() : null;
+            proxy.ToProxy<TProxy>() : null;
 
     /// <summary>Sends a request to a service and decodes the response.</summary>
     /// <typeparam name="TProxy">The type of the proxy struct.</typeparam>
@@ -214,8 +214,8 @@ public static class ProxyExtensions
 
     /// <summary>Converts a proxy struct into another proxy struct. This convertion always succeeds.</summary>
     /// <typeparam name="TProxy">The type of the target proxy struct.</typeparam>
-    /// <param name="proxy">The source Prx.</param>
+    /// <param name="proxy">The source Proxy.</param>
     /// <returns>A new TProxy instance.</returns>
-    public static TProxy ToPrx<TProxy>(this IProxy proxy) where TProxy : struct, IProxy =>
+    public static TProxy ToProxy<TProxy>(this IProxy proxy) where TProxy : struct, IProxy =>
         new() { EncodeFeature = proxy.EncodeFeature, Invoker = proxy.Invoker, ServiceAddress = proxy.ServiceAddress };
 }

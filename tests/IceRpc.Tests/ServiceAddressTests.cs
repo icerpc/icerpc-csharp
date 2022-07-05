@@ -321,13 +321,13 @@ public class ServiceAddressTests
             .AddColocTest(router)
             .BuildServiceProvider(validateScopes: true);
 
-        var proxy = new SendProxyTestPrx(provider.GetRequiredService<ClientConnection>());
+        var proxy = new SendProxyTestProxy(provider.GetRequiredService<ClientConnection>());
         provider.GetRequiredService<Server>().Listen();
 
         await proxy.SendProxyAsync(proxy);
 
-        Assert.That(service.ReceivedPrx, Is.Not.Null);
-        Assert.That(service.ReceivedPrx.Value.Invoker, Is.EqualTo(pipeline));
+        Assert.That(service.ReceivedProxy, Is.Not.Null);
+        Assert.That(service.ReceivedProxy.Value.Invoker, Is.EqualTo(pipeline));
     }
 
     /// <summary>Verifies that a proxy received over an incoming connection uses the default invoker.</summary>
@@ -340,13 +340,13 @@ public class ServiceAddressTests
             .AddColocTest(service)
             .BuildServiceProvider(validateScopes: true);
 
-        var proxy = new SendProxyTestPrx(provider.GetRequiredService<ClientConnection>());
+        var proxy = new SendProxyTestProxy(provider.GetRequiredService<ClientConnection>());
         provider.GetRequiredService<Server>().Listen();
 
         await proxy.SendProxyAsync(proxy);
 
-        Assert.That(service.ReceivedPrx, Is.Not.Null);
-        Assert.That(service.ReceivedPrx.Value.Invoker, Is.EqualTo(NullInvoker.Instance));
+        Assert.That(service.ReceivedProxy, Is.Not.Null);
+        Assert.That(service.ReceivedProxy.Value.Invoker, Is.EqualTo(NullInvoker.Instance));
     }
 
     /// <summary>Verifies that a service address received over an outgoing connection inherits the callers invoker.</summary>
@@ -360,9 +360,9 @@ public class ServiceAddressTests
         provider.GetRequiredService<Server>().Listen();
         IConnection connection = provider.GetRequiredService<ClientConnection>();
         IInvoker invoker = new Pipeline().Into(connection);
-        var proxy = new ReceiveProxyTestPrx(invoker);
+        var proxy = new ReceiveProxyTestProxy(invoker);
 
-        ReceiveProxyTestPrx received = await proxy.ReceiveProxyAsync();
+        ReceiveProxyTestProxy received = await proxy.ReceiveProxyAsync();
 
         Assert.That(received.Invoker, Is.EqualTo(invoker));
     }
@@ -412,20 +412,20 @@ public class ServiceAddressTests
 
     private class ReceiveProxyTest : Service, IReceiveProxyTest
     {
-        public ValueTask<ReceiveProxyTestPrx> ReceiveProxyAsync(IFeatureCollection features, CancellationToken cancel) =>
-            new(new ReceiveProxyTestPrx("/hello"));
+        public ValueTask<ReceiveProxyTestProxy> ReceiveProxyAsync(IFeatureCollection features, CancellationToken cancel) =>
+            new(new ReceiveProxyTestProxy("/hello"));
     }
 
     private class SendProxyTest : Service, ISendProxyTest
     {
-        public SendProxyTestPrx? ReceivedPrx { get; private set; }
+        public SendProxyTestProxy? ReceivedProxy { get; private set; }
 
         public ValueTask SendProxyAsync(
-            SendProxyTestPrx proxy,
+            SendProxyTestProxy proxy,
             IFeatureCollection features,
             CancellationToken cancel = default)
         {
-            ReceivedPrx = proxy;
+            ReceivedProxy = proxy;
             return default;
         }
     }

@@ -17,9 +17,9 @@ internal interface IEndpointFinder
 /// <summary>The main implementation of IEndpointFinder. It uses a locator proxy to "find" the endpoints.</summary>
 internal class LocatorEndpointFinder : IEndpointFinder
 {
-    private readonly ILocatorPrx _locator;
+    private readonly ILocatorProxy _locator;
 
-    internal LocatorEndpointFinder(ILocatorPrx locator) => _locator = locator;
+    internal LocatorEndpointFinder(ILocatorProxy locator) => _locator = locator;
 
     async Task<ServiceAddress?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel)
     {
@@ -27,7 +27,7 @@ internal class LocatorEndpointFinder : IEndpointFinder
         {
             try
             {
-                ServicePrx? proxy =
+                ServiceProxy? proxy =
                     await _locator.FindAdapterByIdAsync(location.Value, cancel: cancel).ConfigureAwait(false);
 
                 if (proxy?.ServiceAddress is ServiceAddress serviceAddress)
@@ -52,7 +52,7 @@ internal class LocatorEndpointFinder : IEndpointFinder
         {
             try
             {
-                ServicePrx? proxy =
+                ServiceProxy? proxy =
                     await _locator.FindObjectByIdAsync(location.Value, cancel: cancel).ConfigureAwait(false);
 
                 if (proxy?.ServiceAddress is ServiceAddress serviceAddress)

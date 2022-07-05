@@ -22,7 +22,7 @@ public class SequenceMappingTests
         };
 
         (CustomSequence<int> r1, CustomSequence<int> r2) =
-            await SequenceMappingOperationsPrx.Response.OpReturnTupleAsync(
+            await SequenceMappingOperationsProxy.Response.OpReturnTupleAsync(
                 response,
                 request,
                 NullInvoker.Instance,
@@ -45,7 +45,7 @@ public class SequenceMappingTests
 
         // TODO bogus mapping this should return CustomSequence<int>
         int[] r =
-            await SequenceMappingOperationsPrx.Response.OpReturnSingleTypeAsync(
+            await SequenceMappingOperationsProxy.Response.OpReturnSingleTypeAsync(
                 response,
                 request,
                 NullInvoker.Instance,
@@ -59,7 +59,7 @@ public class SequenceMappingTests
     public void Parameter_using_cs_generic_attribute()
     {
         // Act
-        PipeReader requestPayload = SequenceMappingOperationsPrx.Request.OpSingleParameter(
+        PipeReader requestPayload = SequenceMappingOperationsProxy.Request.OpSingleParameter(
             new CustomSequence<int>(new int[] { 1, 2, 3 }));
 
         // Assert
@@ -91,11 +91,11 @@ public class SequenceMappingTests
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, InvalidConnection.IceRpc)
         {
-            Payload = SequenceMappingOperationsPrx.Request.OpStructNestedSequence(data)
+            Payload = SequenceMappingOperationsProxy.Request.OpStructNestedSequence(data)
         };
 
         ValueTask<IList<IList<MyStruct>>[]> result =
-            SequenceMappingOperationsPrx.Response.OpStructNestedSequenceAsync(
+            SequenceMappingOperationsProxy.Response.OpStructNestedSequenceAsync(
                 response,
                 request,
                 NullInvoker.Instance,
@@ -118,11 +118,11 @@ public class SequenceMappingTests
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, InvalidConnection.IceRpc)
         {
-            Payload = SequenceMappingOperationsPrx.Request.OpNumericTypeNestedSequence(data)
+            Payload = SequenceMappingOperationsProxy.Request.OpNumericTypeNestedSequence(data)
         };
 
         ValueTask<IList<IList<byte>>[]> result =
-            SequenceMappingOperationsPrx.Response.OpNumericTypeNestedSequenceAsync(
+            SequenceMappingOperationsProxy.Response.OpNumericTypeNestedSequenceAsync(
                 response,
                 request,
                 NullInvoker.Instance,

@@ -10,7 +10,7 @@ await using var connection = new ClientConnection("icerpc://127.0.0.1");
 // Add the request context interceptor to the invocation pipeline.
 var pipeline = new Pipeline().UseRequestContext().Into(connection);
 
-var hello = new HelloPrx(pipeline);
+var hello = new HelloProxy(pipeline);
 
 Console.Write("To say hello to the server, type your name: ");
 

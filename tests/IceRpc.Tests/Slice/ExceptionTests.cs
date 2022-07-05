@@ -448,7 +448,7 @@ public sealed class ExceptionTests
                 RemoteEndpoint = server.Endpoint,
             },
             multiplexedClientTransport: new SlicClientTransport(coloc.ClientTransport));
-        var proxy = new Slice2ExceptionOperationsPrx(connection);
+        var proxy = new Slice2ExceptionOperationsProxy(connection);
 
         DispatchException? exception = Assert.CatchAsync<DispatchException>(() => proxy.OpThrowsAsync());
 
@@ -480,7 +480,7 @@ public sealed class ExceptionTests
                 RemoteEndpoint = server.Endpoint,
             },
             multiplexedClientTransport: new SlicClientTransport(coloc.ClientTransport));
-        var proxy = new Slice1ExceptionOperationsPrx(connection);
+        var proxy = new Slice1ExceptionOperationsProxy(connection);
 
         DispatchException? catchException = Assert.CatchAsync<DispatchException>(() => proxy.OpThrowsAsync());
 

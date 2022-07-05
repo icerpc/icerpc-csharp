@@ -355,12 +355,12 @@ public ref partial struct SliceDecoder
 
     /// <summary>Decodes a nullable proxy struct (Slice1 only).</summary>
     /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>
-    /// <returns>The decoded Prx, or null.</returns>
-    public TProxy? DecodeNullablePrx<TProxy>() where TProxy : struct, IProxy
+    /// <returns>The decoded Proxy, or null.</returns>
+    public TProxy? DecodeNullableProxy<TProxy>() where TProxy : struct, IProxy
     {
         if (Encoding != SliceEncoding.Slice1)
         {
-            throw new InvalidOperationException($"decoding a nullable Prx with {Encoding} requires a bit sequence");
+            throw new InvalidOperationException($"decoding a nullable Proxy with {Encoding} requires a bit sequence");
         }
         string path = this.DecodeIdentityPath();
         return path != "/" ?

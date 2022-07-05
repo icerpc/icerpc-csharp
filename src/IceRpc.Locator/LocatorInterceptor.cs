@@ -150,7 +150,7 @@ public class LocatorLocationResolver : ILocationResolver
     /// <param name="locator">The locator proxy.</param>
     /// <param name="loggerFactory">The logger factory.</param>
     /// <param name="options">The locator options.</param>
-    public LocatorLocationResolver(ILocatorPrx locator, ILoggerFactory loggerFactory, LocatorOptions options)
+    public LocatorLocationResolver(ILocatorProxy locator, ILoggerFactory loggerFactory, LocatorOptions options)
     {
         // This is the composition root of this locator location resolver.
 

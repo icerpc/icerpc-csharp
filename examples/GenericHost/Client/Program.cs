@@ -62,7 +62,7 @@ public static class Program
                     .AddSingleton(_ => new ActivitySource("IceRpc"))
                     .AddIceRpcInvoker(builder => builder.UseTelemetry().UseLogger())
                     .AddIceRpcClientConnection()
-                    .AddIceRpcProxy<IHelloPrx, HelloPrx>();
+                    .AddIceRpcProxy<IHelloProxy, HelloProxy>();
             });
 
     /// <summary>The hosted client service is ran and managed by the .NET Generic Host.</summary>
@@ -72,9 +72,9 @@ public static class Program
         private readonly IHostApplicationLifetime _applicationLifetime;
 
         // A proxy to the remote Hello service.
-        private readonly IHelloPrx _hello;
+        private readonly IHelloProxy _hello;
 
-        public ClientHostedService(IHelloPrx hello, IHostApplicationLifetime applicationLifetime)
+        public ClientHostedService(IHelloProxy hello, IHostApplicationLifetime applicationLifetime)
         {
             _applicationLifetime = applicationLifetime;
             _hello = hello;

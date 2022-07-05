@@ -7,7 +7,7 @@ using IceRpc;
 await using var connection = new ClientConnection("ice://127.0.0.1:10000");
 
 // Don't forget to specify the protocol when constructing your proxy. The default protocol is icerpc.
-var hello = new HelloPrx(connection, "/hello", connection.Protocol);
+var hello = new HelloProxy(connection, "/hello", connection.Protocol);
 
 Console.Write("To say hello to the server, type your name: ");
 

@@ -18,10 +18,10 @@ public class OperationTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>()
+            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
         provider.GetRequiredService<Server>().Listen();
 
         Assert.That(async () => await proxy.OpWithoutParametersAndVoidReturnAsync(), Throws.Nothing);
@@ -32,10 +32,10 @@ public class OperationTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyDerivedOperationsA())
-            .AddIceRpcProxy<IMyDerivedOperationsAPrx, MyDerivedOperationsAPrx>()
+            .AddIceRpcProxy<IMyDerivedOperationsAProxy, MyDerivedOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyDerivedOperationsAPrx proxy = provider.GetRequiredService<IMyDerivedOperationsAPrx>();
+        IMyDerivedOperationsAProxy proxy = provider.GetRequiredService<IMyDerivedOperationsAProxy>();
         provider.GetRequiredService<Server>().Listen();
 
         Assert.That(async () => await proxy.OpWithoutParametersAndVoidReturnAsync(), Throws.Nothing);
@@ -46,10 +46,10 @@ public class OperationTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>()
+            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
         provider.GetRequiredService<Server>().Listen();
 
         int r = await proxy.OpWithSingleParameterAndReturnValueAsync(10);
@@ -62,10 +62,10 @@ public class OperationTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>()
+            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
         provider.GetRequiredService<Server>().Listen();
 
         (int r1, int r2) = await proxy.OpWithMultipleParametersAndReturnValuesAsync(10, 20);
@@ -80,10 +80,10 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>()
+            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
         provider.GetRequiredService<Server>().Listen();
 
         var data = new byte[] { 1, 2, 3 };
@@ -108,10 +108,10 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>()
+            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
         provider.GetRequiredService<Server>().Listen();
 
         // Act
@@ -145,10 +145,10 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>()
+            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
         provider.GetRequiredService<Server>().Listen();
 
         // Act
@@ -182,10 +182,10 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>()
+            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
         provider.GetRequiredService<Server>().Listen();
 
         // Act
@@ -222,10 +222,10 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>()
+            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
         provider.GetRequiredService<Server>().Listen();
 
         // Act
@@ -243,10 +243,10 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>()
+            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
         provider.GetRequiredService<Server>().Listen();
 
         // Act
@@ -259,10 +259,10 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>()
+            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
         provider.GetRequiredService<Server>().Listen();
 
         // Act
@@ -278,10 +278,10 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>()
+            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
         provider.GetRequiredService<Server>().Listen();
 
         // Act
@@ -299,7 +299,7 @@ public class OperationTests
     {
         var readOnlyMemory = new ReadOnlyMemory<int>(new int[] { 1, 2, 3 });
 
-        PipeReader payload = MyOperationsAPrx.Request.OpReadOnlyMemory(readOnlyMemory);
+        PipeReader payload = MyOperationsAProxy.Request.OpReadOnlyMemory(readOnlyMemory);
 
         // Assert
         Assert.That(
@@ -330,7 +330,7 @@ public class OperationTests
             Payload = payload
         };
         Assert.That(
-            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryAsync(
+            async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryAsync(
                 response,
                 request,
                 NullInvoker.Instance,
@@ -345,7 +345,7 @@ public class OperationTests
     public void Slice2_operation_encode_with_readonly_memory_optional_param(
         [Values(new int[] { 1, 2, 3 }, null)] int[]? p)
     {
-        PipeReader payload = MyOperationsAPrx.Request.OpReadOnlyMemoryOptional(new ReadOnlyMemory<int>(p));
+        PipeReader payload = MyOperationsAProxy.Request.OpReadOnlyMemoryOptional(new ReadOnlyMemory<int>(p));
 
         // Assert
         Assert.That(
@@ -377,7 +377,7 @@ public class OperationTests
             Payload = payload
         };
         Assert.That(
-            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryOptionalAsync(
+            async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryOptionalAsync(
                 response,
                 request,
                 NullInvoker.Instance,
@@ -392,7 +392,7 @@ public class OperationTests
     public void Slice2_operation_encode_with_readonly_memory_tagged_param(
         [Values(new int[] { 1, 2, 3 }, null)] int[]? p)
     {
-        PipeReader payload = MyOperationsAPrx.Request.OpReadOnlyMemoryTagged(new ReadOnlyMemory<int>(p));
+        PipeReader payload = MyOperationsAProxy.Request.OpReadOnlyMemoryTagged(new ReadOnlyMemory<int>(p));
 
         // Assert
         Assert.That(
@@ -424,7 +424,7 @@ public class OperationTests
             Payload = payload
         };
         Assert.That(
-            async () => await MyOperationsAPrx.Response.OpReadOnlyMemoryTaggedAsync(
+            async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryTaggedAsync(
                 response,
                 request,
                 NullInvoker.Instance,
@@ -441,10 +441,10 @@ public class OperationTests
         var service = new MyTaggedOperations();
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(service)
-            .AddIceRpcProxy<IMyTaggedOperationsPrx, MyTaggedOperationsPrx>()
+            .AddIceRpcProxy<IMyTaggedOperationsProxy, MyTaggedOperationsProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyTaggedOperationsPrx proxy = provider.GetRequiredService<IMyTaggedOperationsPrx>();
+        IMyTaggedOperationsProxy proxy = provider.GetRequiredService<IMyTaggedOperationsProxy>();
         provider.GetRequiredService<Server>().Listen();
 
         await proxy.OpAsync(1, z: 10);
@@ -457,16 +457,16 @@ public class OperationTests
     /// <summary>Verifies that a tagged sequence parameter that uses the <see cref="ReadOnlyMemory{T}"/> mapping has a
     /// default value that is equivalent to a non set tagged parameter.</summary>
     [Test]
-    public async Task Prx_tagged_default_values_with_readonly_memory_params()
+    public async Task Proxy_tagged_default_values_with_readonly_memory_params()
     {
         var service = new MyTaggedOperationsReadOnlyMemoryParams();
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(service)
-            .AddIceRpcProxy<IMyTaggedOperationsReadOnlyMemoryParamsPrx, MyTaggedOperationsReadOnlyMemoryParamsPrx>()
+            .AddIceRpcProxy<IMyTaggedOperationsReadOnlyMemoryParamsProxy, MyTaggedOperationsReadOnlyMemoryParamsProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyTaggedOperationsReadOnlyMemoryParamsPrx proxy =
-            provider.GetRequiredService<IMyTaggedOperationsReadOnlyMemoryParamsPrx>();
+        IMyTaggedOperationsReadOnlyMemoryParamsProxy proxy =
+            provider.GetRequiredService<IMyTaggedOperationsReadOnlyMemoryParamsProxy>();
         provider.GetRequiredService<Server>().Listen();
 
         await proxy.OpAsync(new int[] { 1 }, z: new int[] { 10 });

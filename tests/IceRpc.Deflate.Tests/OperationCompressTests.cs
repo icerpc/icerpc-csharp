@@ -43,11 +43,11 @@ public class OperationGeneratedCodeTests
                     return response;
                 }))
                 .Into<ClientConnection>())
-            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>("icerpc:/")
+            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>("icerpc:/")
             .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
-        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
 
         // Act
         int r = await proxy.OpWithCompressArgsAndReturnAttributeAsync(10);
