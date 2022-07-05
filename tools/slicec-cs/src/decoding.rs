@@ -78,7 +78,7 @@ fn decode_member(
 
     match &data_type.concrete_typeref() {
         TypeRefs::Interface(_) => {
-            write!(code, "decoder.DecodePrx<{}>()", type_string);
+            write!(code, "decoder.DecodeProxy<{}>()", type_string);
         }
         TypeRefs::Class(_) => {
             assert!(!data_type.is_optional);
@@ -380,7 +380,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
                 )
             } else {
                 format!(
-                    "(ref SliceDecoder decoder) => decoder.DecodePrx<{}>()",
+                    "(ref SliceDecoder decoder) => decoder.DecodeProxy<{}>()",
                     type_name
                 )
             }

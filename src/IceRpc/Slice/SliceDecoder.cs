@@ -376,7 +376,7 @@ public ref partial struct SliceDecoder
     /// <summary>Decodes a proxy struct.</summary>
     /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>
     /// <returns>The decoded proxy struct.</returns>
-    public TProxy DecodePrx<TProxy>() where TProxy : struct, IProxy
+    public TProxy DecodeProxy<TProxy>() where TProxy : struct, IProxy
     {
         if (Encoding == SliceEncoding.Slice1)
         {

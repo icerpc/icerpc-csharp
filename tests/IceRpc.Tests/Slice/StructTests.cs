@@ -368,7 +368,7 @@ public sealed class StructTests
         var bitSequenceReader = decoder.GetBitSequenceReader(1);
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(expected.A));
         Assert.That(
-            bitSequenceReader.Read() ? decoder.DecodePrx<ServicePrx>() : (ServicePrx?)null,
+            bitSequenceReader.Read() ? decoder.DecodeProxy<ServicePrx>() : (ServicePrx?)null,
             Is.EqualTo(expected.I));
     }
 
@@ -415,7 +415,7 @@ public sealed class StructTests
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
         Assert.That(
             decoder.DecodeSequenceWithBitSequence<ServicePrx?>(
-                (ref SliceDecoder decoder) => decoder.DecodePrx<ServicePrx>()),
+                (ref SliceDecoder decoder) => decoder.DecodeProxy<ServicePrx>()),
             Is.EqualTo(expected.I));
     }
 
@@ -467,7 +467,7 @@ public sealed class StructTests
             decoder.DecodeDictionaryWithBitSequence(
                 count => new Dictionary<int, ServicePrx?>(count),
                 (ref SliceDecoder decoder) => decoder.DecodeInt32(),
-                (ref SliceDecoder decoder) => decoder.DecodePrx<ServicePrx>() as ServicePrx?),
+                (ref SliceDecoder decoder) => decoder.DecodeProxy<ServicePrx>() as ServicePrx?),
             Is.EqualTo(expected.I));
     }
 }

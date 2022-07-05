@@ -63,7 +63,7 @@ public class ProxyTests
         Assert.That(decoded?.ServiceAddress, Is.EqualTo(expected));
     }
 
-    /// <summary>Verifies that calling <see cref="SliceDecoder.DecodePrx"/> correctly decodes a proxy.</summary>
+    /// <summary>Verifies that calling <see cref="SliceDecoder.DecodeProxy"/> correctly decodes a proxy.</summary>
     /// <param name="value">The service address of the proxy to encode.</param>
     /// <param name="expected">The expected URI string of the service address.</param>
     /// <param name="encoding">The encoding used to decode the service address.</param>
@@ -75,7 +75,7 @@ public class ProxyTests
         encoder.EncodeServiceAddress(value);
         var sut = new SliceDecoder(bufferWriter.WrittenMemory, encoding: encoding);
 
-        ServicePrx decoded = sut.DecodePrx<ServicePrx>();
+        ServicePrx decoded = sut.DecodeProxy<ServicePrx>();
 
         Assert.That(decoded.ServiceAddress, Is.EqualTo(expected));
     }
@@ -95,7 +95,7 @@ public class ProxyTests
                 encoding: SliceEncoding.Slice2,
                 connection: connection);
 
-            return decoder.DecodePrx<ServicePrx>().Invoker;
+            return decoder.DecodeProxy<ServicePrx>().Invoker;
         },
         Is.EqualTo(connection));
     }
