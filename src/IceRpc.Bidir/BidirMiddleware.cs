@@ -46,6 +46,7 @@ public class BidirMiddleware : IDispatcher
                     bidirConnection.OnShutdown(_ => RemoveConnection());
                     bidirConnection.OnAbort(_ => RemoveConnection());
                     _connections.Add(relativeOrigin, bidirConnection);
+                    bidirConnection.ConfigureDecoratee(request.Connection);
                 }
                 request.Connection = bidirConnection;
             }

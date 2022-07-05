@@ -52,6 +52,7 @@ public sealed class BidirMiddlewareTests
         // Act
         var response = await invokeTask;
 
+        // Assert
         Assert.That(response.Connection, Is.EqualTo(request1.Connection));
         Assert.That(connection1.InvokeCalled, Is.False);
         Assert.That(connection2.InvokeCalled, Is.True);
@@ -100,7 +101,6 @@ public sealed class BidirMiddlewareTests
 
         // Act/Assert
         Assert.That(async () => await invokeTask, Throws.TypeOf<ConnectionClosedException>());
-
         Assert.That(connection1.InvokeCalled, Is.True);
         Assert.That(connection2.InvokeCalled, Is.False);
     }
@@ -150,7 +150,6 @@ public sealed class BidirMiddlewareTests
 
         // Act/Assert
         Assert.That(async () => await invokeTask, Throws.TypeOf<ConnectionAbortedException>());
-
         Assert.That(connection1.InvokeCalled, Is.False);
         Assert.That(connection2.InvokeCalled, Is.False);
     }

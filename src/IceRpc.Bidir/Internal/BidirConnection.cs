@@ -64,7 +64,6 @@ internal class BidirConnection : IConnection
         Protocol = decoratee.Protocol;
         _decoratee = decoratee;
         _reconnectTimeout = reconnectTimeout;
-        ConfigureDecoratee(decoratee);
     }
 
     internal void ConfigureDecoratee(IConnection connection)
