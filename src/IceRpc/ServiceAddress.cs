@@ -325,41 +325,23 @@ public sealed record class ServiceAddress
 
         if (Protocol is null)
         {
+            // Both service addresses are path-only
             return Path == other.Path;
         }
         else if (!Protocol.IsSupported)
         {
+            // Comparing 2 service addresses with the same non-supported protocol
             Debug.Assert(OriginalUri is not null);
             Debug.Assert(other.OriginalUri is not null);
             return OriginalUri == other.OriginalUri;
         }
 
-        // else proxies with a supported protocol
-
-        if (Path != other.Path)
-        {
-            return false;
-        }
-        if (Fragment != other.Fragment)
-        {
-            return false;
-        }
-
-        if (_endpoint != other._endpoint)
-        {
-            return false;
-        }
-
-        if (!_altEndpoints.SequenceEqual(other._altEndpoints))
-        {
-            return false;
-        }
-        if (!Params.DictionaryEqual(other.Params))
-        {
-            return false;
-        }
-
-        return true;
+        // Comparing 2 service addresses with the same supported protocol
+        return Path == other.Path &&
+            Fragment == other.Fragment &&
+            Endpoint == other.Endpoint &&
+            AltEndpoints.SequenceEqual(other.AltEndpoints) &&
+            Params.DictionaryEqual(other.Params);
     }
 
     /// <inheritdoc/>
@@ -375,18 +357,14 @@ public sealed record class ServiceAddress
             return OriginalUri.GetHashCode();
         }
 
-        // else service address with a supported protocol
+        // Service address with a supported protocol
 
         // We only hash a subset of the properties to keep GetHashCode reasonably fast.
         var hash = new HashCode();
         hash.Add(Protocol);
         hash.Add(Path);
         hash.Add(Fragment);
-
-        if (_endpoint is not null)
-        {
-            hash.Add(_endpoint);
-        }
+        hash.Add(_endpoint);
         return hash.ToHashCode();
     }
 
