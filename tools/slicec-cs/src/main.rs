@@ -44,22 +44,11 @@ use trait_visitor::TraitVisitor;
 use crate::code_block::CodeBlock;
 
 pub fn main() {
-    let (exit_code, parsed_data) = match try_main() {
-        Ok(data) => (0, data),
-        Err(data) => (1, data),
+    let parsed_data = match try_main() {
+        Ok(data) => data,
+        Err(data) => data,
     };
-
-    if parsed_data.error_reporter.has_errors() {
-        let counts = parsed_data.error_reporter.get_totals();
-        let message = format!(
-            "Compilation failed with {} error(s) and {} warning(s).\n",
-            counts.0, counts.1
-        );
-        parsed_data.error_reporter.emit_errors(&parsed_data.files);
-        println!("{}", &message);
-    }
-
-    std::process::exit(exit_code);
+    std::process::exit(parsed_data.into_exit_code());
 }
 
 fn try_main() -> ParserResult {
