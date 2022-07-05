@@ -13,8 +13,8 @@ public class CacheLessLocationResolverTests
         [Values(true, false)] bool isAdapterId,
         [Values(true, false)] bool refreshCache)
     {
-        var expectedProxy = ServiceAddress.Parse("ice://localhost:10000/dummy");
-        ILocationResolver locationResolver = new CacheLessLocationResolver(new FakeEndpointFinder(expectedProxy));
+        var expectedServiceAddress = ServiceAddress.Parse("ice://localhost:10000/dummy");
+        ILocationResolver locationResolver = new CacheLessLocationResolver(new FakeEndpointFinder(expectedServiceAddress));
 
         (ServiceAddress? proxy, bool fromCache) =
             await locationResolver.ResolveAsync(
@@ -22,7 +22,7 @@ public class CacheLessLocationResolverTests
                 refreshCache: refreshCache,
                 cancel: default);
 
-        Assert.That(proxy, Is.EqualTo(expectedProxy));
+        Assert.That(proxy, Is.EqualTo(expectedServiceAddress));
         Assert.That(fromCache, Is.False);
     }
 
@@ -31,8 +31,8 @@ public class CacheLessLocationResolverTests
         [Values(true, false)] bool isAdapterId,
         [Values(true, false)] bool refreshCache)
     {
-        var expectedProxy = ServiceAddress.Parse("ice://localhost:10000/dummy");
-        ILocationResolver locationResolver = new CacheLessLocationResolver(new FakeEndpointFinder(expectedProxy));
+        var expectedServiceAddress = ServiceAddress.Parse("ice://localhost:10000/dummy");
+        ILocationResolver locationResolver = new CacheLessLocationResolver(new FakeEndpointFinder(expectedServiceAddress));
 
         (ServiceAddress? proxy, bool fromCache) =
             await locationResolver.ResolveAsync(

@@ -13,13 +13,13 @@ public class LocatorEndpointFinderTests
     [Test]
     public async Task Find_adapter_by_id()
     {
-        var expectedProxy = ServicePrx.Parse("ice://localhost/dummy:10000");
-        IEndpointFinder endpointFinder = new LocatorEndpointFinder(new FakeLocatorPrx(expectedProxy, adapterId: true));
+        var expectedServiceAddress = ServicePrx.Parse("ice://localhost/dummy:10000");
+        IEndpointFinder endpointFinder = new LocatorEndpointFinder(new FakeLocatorPrx(expectedServiceAddress, adapterId: true));
         var location = new Location { IsAdapterId = true, Value = "good" };
 
         ServiceAddress? proxy = await endpointFinder.FindAsync(location, default);
 
-        Assert.That(proxy, Is.EqualTo(expectedProxy.ServiceAddress));
+        Assert.That(proxy, Is.EqualTo(expectedServiceAddress.ServiceAddress));
     }
 
     /// <summary>Verifies that <see cref="LocatorEndpointFinder"/> correctly handles
@@ -52,13 +52,13 @@ public class LocatorEndpointFinderTests
     [Test]
     public async Task Find_object_by_id()
     {
-        var expectedProxy = ServicePrx.Parse("ice://localhost/dummy:10000");
-        IEndpointFinder endpointFinder = new LocatorEndpointFinder(new FakeLocatorPrx(expectedProxy, adapterId: false));
+        var expectedServiceAddress = ServicePrx.Parse("ice://localhost/dummy:10000");
+        IEndpointFinder endpointFinder = new LocatorEndpointFinder(new FakeLocatorPrx(expectedServiceAddress, adapterId: false));
         var location = new Location { IsAdapterId = false, Value = "good" };
 
         ServiceAddress? proxy = await endpointFinder.FindAsync(location, default);
 
-        Assert.That(proxy, Is.EqualTo(expectedProxy.ServiceAddress));
+        Assert.That(proxy, Is.EqualTo(expectedServiceAddress.ServiceAddress));
     }
 
     /// <summary>Verifies that <see cref="LocatorEndpointFinder"/> correctly handles
@@ -127,8 +127,8 @@ public class LocatorEndpointFinderTests
     {
         var endpointCache = new EndpointCache();
         var location = new Location { IsAdapterId = false, Value = "good" };
-        var expectedProxy = ServiceAddress.Parse("ice://localhost/dummy:10000");
-        endpointCache.Cache[location] = expectedProxy;
+        var expectedServiceAddress = ServiceAddress.Parse("ice://localhost/dummy:10000");
+        endpointCache.Cache[location] = expectedServiceAddress;
 
         IEndpointFinder endpointFinder = new CacheUpdateEndpointFinderDecorator(
             new LocatorEndpointFinder(new NotFoundLocatorPrx()),
