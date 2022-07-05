@@ -96,8 +96,8 @@ public class CustomTransportTests
             },
             multiplexedClientTransport: new CustomClientTransport());
 
-        var prx = new ServicePrx(connection);
-        await prx.IcePingAsync();
+        var proxy = new ServicePrx(connection);
+        await proxy.IcePingAsync();
     }
 
     [Test]
@@ -128,8 +128,8 @@ public class CustomTransportTests
                 },
                 multiplexedClientTransport: new CustomClientTransport());
 
-            var prx = new ServicePrx(connection1);
-            await prx.IcePingAsync();
+            var proxy = new ServicePrx(connection1);
+            await proxy.IcePingAsync();
         }
     }
 

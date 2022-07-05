@@ -18,7 +18,7 @@ public static class IceRpcSliceServiceCollectionExtensions
         this IServiceCollection services,
         string serviceAddressString)
         where TPrx : class
-        where TPrxImplementation : IPrx, TPrx, new() =>
+        where TPrxImplementation : IProxy, TPrx, new() =>
         services
             .AddSingleton<TPrx>(provider =>
                 new TPrxImplementation
@@ -39,7 +39,7 @@ public static class IceRpcSliceServiceCollectionExtensions
         this IServiceCollection services,
         Protocol? protocol = null)
         where TPrx : class
-        where TPrxImplementation : IPrx, TPrx, new() =>
+        where TPrxImplementation : IProxy, TPrx, new() =>
         services.AddIceRpcPrx<TPrx, TPrxImplementation>(
             $"{protocol ?? Protocol.IceRpc}:{typeof(TPrx).GetDefaultPath()}");
 }

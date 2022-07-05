@@ -27,10 +27,10 @@ internal class LocatorEndpointFinder : IEndpointFinder
         {
             try
             {
-                ServicePrx? prx =
+                ServicePrx? proxy =
                     await _locator.FindAdapterByIdAsync(location.Value, cancel: cancel).ConfigureAwait(false);
 
-                if (prx?.ServiceAddress is ServiceAddress serviceAddress)
+                if (proxy?.ServiceAddress is ServiceAddress serviceAddress)
                 {
                     return serviceAddress.Protocol == Protocol.Ice && serviceAddress.Endpoint is not null ?
                         serviceAddress :
@@ -52,10 +52,10 @@ internal class LocatorEndpointFinder : IEndpointFinder
         {
             try
             {
-                ServicePrx? prx =
+                ServicePrx? proxy =
                     await _locator.FindObjectByIdAsync(location.Value, cancel: cancel).ConfigureAwait(false);
 
-                if (prx?.ServiceAddress is ServiceAddress serviceAddress)
+                if (proxy?.ServiceAddress is ServiceAddress serviceAddress)
                 {
                     // findObjectById can return an indirect service address with an adapter ID
                     return serviceAddress.Protocol == Protocol.Ice &&

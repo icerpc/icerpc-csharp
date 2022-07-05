@@ -47,10 +47,10 @@ public class OperationGeneratedCodeTests
             .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
-        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
 
         // Act
-        int r = await prx.OpWithCompressArgsAndReturnAttributeAsync(10);
+        int r = await proxy.OpWithCompressArgsAndReturnAttributeAsync(10);
 
         // Assert
         Assert.That(r, Is.EqualTo(10));

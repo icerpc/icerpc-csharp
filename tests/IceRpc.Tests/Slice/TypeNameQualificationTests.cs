@@ -21,10 +21,10 @@ public class TypeNameQualificationTests
             .AddIceRpcPrx<ITypeNameQualificationOperationsPrx, TypeNameQualificationOperationsPrx>()
             .BuildServiceProvider(validateScopes: true);
 
-        ITypeNameQualificationOperationsPrx prx = provider.GetRequiredService<ITypeNameQualificationOperationsPrx>();
+        ITypeNameQualificationOperationsPrx proxy = provider.GetRequiredService<ITypeNameQualificationOperationsPrx>();
         provider.GetRequiredService<Server>().Listen();
 
-        var r = await prx.OpWithTypeNamesDefinedInMultipleModulesAsync(new Inner.S(10));
+        var r = await proxy.OpWithTypeNamesDefinedInMultipleModulesAsync(new Inner.S(10));
 
         Assert.That(r.V, Is.EqualTo("10"));
     }

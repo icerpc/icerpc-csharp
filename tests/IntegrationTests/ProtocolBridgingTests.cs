@@ -76,35 +76,35 @@ public sealed class ProtocolBridgingTests
             await server.ShutdownAsync();
         }
 
-        async Task<ProtocolBridgingTestPrx> TestProxyAsync(ProtocolBridgingTestPrx prx, bool direct)
+        async Task<ProtocolBridgingTestPrx> TestProxyAsync(ProtocolBridgingTestPrx proxy, bool direct)
         {
             var expectedPath = direct ? "/target" : "/forward";
-            Assert.That(prx.ServiceAddress.Path, Is.EqualTo(expectedPath));
-            Assert.That(await prx.OpAsync(13), Is.EqualTo(13));
+            Assert.That(proxy.ServiceAddress.Path, Is.EqualTo(expectedPath));
+            Assert.That(await proxy.OpAsync(13), Is.EqualTo(13));
             IFeatureCollection features = new FeatureCollection().With<IRequestContextFeature>(
                 new RequestContextFeature
                 {
                     Value = new Dictionary<string, string> { ["MyCtx"] = "hello" }
                 });
 
-            await prx.OpContextAsync(features);
+            await proxy.OpContextAsync(features);
             Assert.That(features.Get<IRequestContextFeature>()?.Value, Is.EqualTo(targetService.Context));
 
             targetService.Context = ImmutableDictionary<string, string>.Empty;
 
-            await prx.OpVoidAsync();
+            await proxy.OpVoidAsync();
 
-            await prx.OpOnewayAsync(42);
+            await proxy.OpOnewayAsync(42);
 
-            Assert.ThrowsAsync<ProtocolBridgingException>(async () => await prx.OpExceptionAsync());
+            Assert.ThrowsAsync<ProtocolBridgingException>(async () => await proxy.OpExceptionAsync());
 
             var dispatchException = Assert.ThrowsAsync<DispatchException>(
-                () => prx.OpServiceNotFoundExceptionAsync());
+                () => proxy.OpServiceNotFoundExceptionAsync());
 
             Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
             Assert.That(dispatchException!.Origin, Is.Not.Null);
 
-            ProtocolBridgingTestPrx newProxy = await prx.OpNewProxyAsync();
+            ProtocolBridgingTestPrx newProxy = await proxy.OpNewProxyAsync();
             return newProxy;
         }
     }

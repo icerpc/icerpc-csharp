@@ -23,19 +23,19 @@ impl<'a> Visitor for ProxyVisitor<'_> {
     fn visit_interface_start(&mut self, interface_def: &Interface) {
         let namespace = interface_def.namespace();
         let prx_interface = interface_def.proxy_name(); // IFooPrx
-        let prx_impl: String = interface_def.proxy_implementation_name(); // FooPrx
+        let proxy_impl: String = interface_def.proxy_implementation_name(); // FooPrx
         let access = interface_def.access_modifier();
         let all_bases: Vec<&Interface> = interface_def.all_base_interfaces();
         let bases: Vec<&Interface> = interface_def.base_interfaces();
 
-        let prx_impl_bases: Vec<String> = vec![prx_interface.clone(), "IPrx".to_owned()];
+        let prx_impl_bases: Vec<String> = vec![prx_interface.clone(), "IProxy".to_owned()];
 
         let all_base_impl: Vec<String> = all_bases
             .iter()
             .map(|b| b.scoped_proxy_implementation_name(&namespace))
             .collect();
 
-        // prx bases
+        // proxy bases
         let prx_bases: Vec<String> = bases
             .into_iter()
             .map(|b| b.scoped_proxy_name(&namespace))
@@ -62,7 +62,7 @@ impl<'a> Visitor for ProxyVisitor<'_> {
 
         let mut proxy_impl_builder = ContainerBuilder::new(
             &format!("{} readonly partial record struct", access),
-            &prx_impl,
+            &proxy_impl,
         );
 
         proxy_impl_builder.add_bases(&prx_impl_bases)
@@ -73,10 +73,10 @@ impl<'a> Visitor for ProxyVisitor<'_> {
             .add_block(response_class(interface_def))
             .add_block(format!(r#"
 /// <summary>The default path for services that implement Slice interface <c>{interface_name}</c>.</summary>
-public static readonly string DefaultPath = typeof({prx_impl}).GetDefaultPath();
+public static readonly string DefaultPath = typeof({proxy_impl}).GetDefaultPath();
 
 private static readonly IActivator _defaultActivator =
-    SliceDecoder.GetActivator(typeof({prx_impl}).Assembly);
+    SliceDecoder.GetActivator(typeof({proxy_impl}).Assembly);
 
 /// <inheritdoc/>
 public ISliceEncodeFeature? EncodeFeature {{ get; init; }} = null;
@@ -87,7 +87,7 @@ public IceRpc.IInvoker Invoker {{ get; init; }} = IceRpc.NullInvoker.Instance;
 /// <inheritdoc/>
 public IceRpc.ServiceAddress ServiceAddress {{ get; init; }}"#,
                                interface_name = interface_def.identifier(),
-                               prx_impl = prx_impl
+                               proxy_impl = proxy_impl
             ).into());
 
         for base_impl in all_base_impl {
@@ -95,10 +95,10 @@ public IceRpc.ServiceAddress ServiceAddress {{ get; init; }}"#,
                 format!(
                     r#"
 /// <summary>Implicit conversion to <see cref="{base_impl}"/>.</summary>
-public static implicit operator {base_impl}({prx_impl} prx) =>
-    new() {{ Invoker = prx.Invoker, ServiceAddress = prx.ServiceAddress, EncodeFeature = prx.EncodeFeature }};"#,
+public static implicit operator {base_impl}({proxy_impl} proxy) =>
+    new() {{ Invoker = proxy.Invoker, ServiceAddress = proxy.ServiceAddress, EncodeFeature = proxy.EncodeFeature }};"#,
                     base_impl = base_impl,
-                    prx_impl = prx_impl
+                    proxy_impl = proxy_impl
                 )
                 .into(),
             );
@@ -122,43 +122,43 @@ public static implicit operator {base_impl}({prx_impl} prx) =>
 
 fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
     format!(
-        r#"/// <summary>Creates a new <see cref="{prx_impl}"/> from a URI string and an invoker.</summary>
+        r#"/// <summary>Creates a new <see cref="{proxy_impl}"/> from a URI string and an invoker.</summary>
 /// <param name="s">The URI string representation of the service address.</param>
 /// <param name="invoker">The invocation pipeline of the new proxy.</param>
 /// <returns>The new proxy.</returns>
 /// <exception cref="global::System.FormatException"><c>s</c> does not contain a valid URI string representation
 /// of a service address.</exception>
-public static {prx_impl} Parse(string s, IceRpc.IInvoker? invoker = null) =>
+public static {proxy_impl} Parse(string s, IceRpc.IInvoker? invoker = null) =>
     new() {{ Invoker = invoker ?? IceRpc.NullInvoker.Instance, ServiceAddress = IceRpc.ServiceAddress.Parse(s) }};
 
-/// <summary>Tries to creates a new <see cref="{prx_impl}"/> from a URI string and an invoker.</summary>
+/// <summary>Tries to creates a new <see cref="{proxy_impl}"/> from a URI string and an invoker.</summary>
 /// <param name="s">The URI string representation of the service address.</param>
 /// <param name="invoker">The invocation pipeline of the new proxy.</param>
-/// <param name="prx">The new proxy.</param>
+/// <param name="proxy">The new proxy.</param>
 /// <returns><c>true</c> if the s parameter was parsed successfully; otherwise, <c>false</c>.</returns>
-public static bool TryParse(string s, IceRpc.IInvoker? invoker, out {prx_impl} prx)
+public static bool TryParse(string s, IceRpc.IInvoker? invoker, out {proxy_impl} proxy)
 {{
     if (IceRpc.ServiceAddress.TryParse(s, out IceRpc.ServiceAddress? serviceAddress))
     {{
-        prx = new() {{ Invoker = invoker ?? IceRpc.NullInvoker.Instance, ServiceAddress = serviceAddress }};
+        proxy = new() {{ Invoker = invoker ?? IceRpc.NullInvoker.Instance, ServiceAddress = serviceAddress }};
         return true;
     }}
     else
     {{
-        prx = default;
+        proxy = default;
         return false;
     }}
 }}
 
 /// <summary>Constructs a relative proxy from a path.</summary>
 /// <param name="path">The path.</param>
-public {prx_impl}(string path) => ServiceAddress = new() {{ Path = path }};
+public {proxy_impl}(string path) => ServiceAddress = new() {{ Path = path }};
 
 /// <summary>Constructs a proxy from an invoker, a path and a protocol.</summary>
 /// <param name="invoker">The invocation pipeline of the proxy.</param>
 /// <param name="path">The path of the service address. If null, the path is set to <see cref="DefaultPath"/>.</param>
 /// <param name="protocol">The protocol of the service address. If null, the protocol is set to IceRpc.</param>
-public {prx_impl}(IceRpc.IInvoker invoker, string? path = null, IceRpc.Protocol? protocol = null)
+public {proxy_impl}(IceRpc.IInvoker invoker, string? path = null, IceRpc.Protocol? protocol = null)
 {{
     Invoker = invoker;
     ServiceAddress = new(protocol ?? IceRpc.Protocol.IceRpc) {{ Path = path ?? DefaultPath }};
@@ -166,7 +166,7 @@ public {prx_impl}(IceRpc.IInvoker invoker, string? path = null, IceRpc.Protocol?
 
 /// <inheritdoc/>
 public override string ToString() => ServiceAddress.ToString();"#,
-        prx_impl = interface_def.proxy_implementation_name(),
+        proxy_impl = interface_def.proxy_implementation_name(),
     ).into()
 }
 

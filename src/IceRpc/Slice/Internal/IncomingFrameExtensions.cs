@@ -16,7 +16,7 @@ internal static class IncomingFrameExtensions
     /// <param name="decodeFeature">The decode feature.</param>
     /// <param name="defaultActivator">The default activator.</param>
     /// <param name="defaultInvoker">The default invoker.</param>
-    /// <param name="prxEncodeFeature">The encode feature of decoded prx structs.</param>
+    /// <param name="prxEncodeFeature">The encode feature of decoded proxy structs.</param>
     /// <param name="decodeFunc">The decode function for the payload arguments or return value.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>The decode value.</returns>
@@ -118,7 +118,7 @@ internal static class IncomingFrameExtensions
     /// <param name="decodeFeature">The decode feature.</param>
     /// <param name="defaultActivator">The optional default activator.</param>
     /// <param name="defaultInvoker">The default invoker.</param>
-    /// <param name="prxEncodeFeature">The encode feature of decoded prx structs.</param>
+    /// <param name="prxEncodeFeature">The encode feature of decoded proxy structs.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
     /// <returns>The async enumerable to decode and return the streamed members.</returns>
     internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
@@ -237,7 +237,7 @@ internal static class IncomingFrameExtensions
     /// <param name="decodeFeature">The decode feature.</param>
     /// <param name="defaultActivator">The optional default activator.</param>
     /// <param name="defaultInvoker">The default invoker.</param>
-    /// <param name="prxEncodeFeature">The encode feature of decoded prx structs.</param>
+    /// <param name="prxEncodeFeature">The encode feature of decoded proxy structs.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
     /// <param name="elementSize">The size in bytes of the streamed elements.</param>
     /// <returns>The async enumerable to decode and return the streamed members.</returns>

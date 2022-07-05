@@ -72,7 +72,7 @@ public ref partial struct SliceDecoder
     // The maximum depth when decoding a type recursively.
     private readonly int _maxDepth;
 
-    // The Slice encode feature of Prx structs decoded using this decoder.
+    // The Slice encode feature of proxy structs decoded using this decoder.
     private readonly ISliceEncodeFeature? _prxEncodeFeature;
 
     // The sequence reader.
@@ -85,7 +85,7 @@ public ref partial struct SliceDecoder
     /// <param name="connection">The connection, used only when decoding relative proxies (optional).</param>
     /// <param name="invoker">The invoker of proxies decoded by this decoder. Use null to get the default invoker.
     /// </param>
-    /// <param name="prxEncodeFeature">The Slice encode feature of Prx structs decoded using this decoder
+    /// <param name="prxEncodeFeature">The Slice encode feature of proxy structs decoded using this decoder
     /// (optional).</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
@@ -132,7 +132,7 @@ public ref partial struct SliceDecoder
     /// <param name="connection">The connection, used only when decoding relative proxies (optional).</param>
     /// <param name="invoker">The invoker of proxies decoded by this decoder. Use null to get the default invoker.
     /// </param>
-    /// <param name="prxEncodeFeature">The Slice encode feature of Prx structs decoded using this decoder
+    /// <param name="prxEncodeFeature">The Slice encode feature of proxy structs decoded using this decoder
     /// (optional).</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
@@ -353,10 +353,10 @@ public ref partial struct SliceDecoder
         }
     }
 
-    /// <summary>Decodes a nullable Prx struct (Slice1 only).</summary>
-    /// <typeparam name="TPrx">The type of the Prx struct to decode.</typeparam>
+    /// <summary>Decodes a nullable proxy struct (Slice1 only).</summary>
+    /// <typeparam name="TPrx">The type of the proxy struct to decode.</typeparam>
     /// <returns>The decoded Prx, or null.</returns>
-    public TPrx? DecodeNullablePrx<TPrx>() where TPrx : struct, IPrx
+    public TPrx? DecodeNullablePrx<TPrx>() where TPrx : struct, IProxy
     {
         if (Encoding != SliceEncoding.Slice1)
         {
@@ -373,10 +373,10 @@ public ref partial struct SliceDecoder
             : null;
     }
 
-    /// <summary>Decodes a Prx struct.</summary>
-    /// <typeparam name="TPrx">The type of the Prx struct to decode.</typeparam>
-    /// <returns>The decoded Prx struct.</returns>
-    public TPrx DecodePrx<TPrx>() where TPrx : struct, IPrx
+    /// <summary>Decodes a proxy struct.</summary>
+    /// <typeparam name="TPrx">The type of the proxy struct to decode.</typeparam>
+    /// <returns>The decoded proxy struct.</returns>
+    public TPrx DecodePrx<TPrx>() where TPrx : struct, IProxy
     {
         if (Encoding == SliceEncoding.Slice1)
         {

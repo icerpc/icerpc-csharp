@@ -7,7 +7,7 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice;
 
-/// <summary>Test IPrx extension methods other than InvokeAsync.</summary>
+/// <summary>Test IProxy extension methods other than InvokeAsync.</summary>
 [Parallelizable(scope: ParallelScope.All)]
 public class PrxTests
 {
@@ -18,10 +18,10 @@ public class PrxTests
             .AddColocTest(new MyDerivedInterface())
             .BuildServiceProvider(validateScopes: true);
 
-        var prx = new MyBaseInterfacePrx(provider.GetRequiredService<ClientConnection>());
+        var proxy = new MyBaseInterfacePrx(provider.GetRequiredService<ClientConnection>());
         provider.GetRequiredService<Server>().Listen();
 
-        MyDerivedInterfacePrx? derived = await prx.AsAsync<MyDerivedInterfacePrx>();
+        MyDerivedInterfacePrx? derived = await proxy.AsAsync<MyDerivedInterfacePrx>();
 
         Assert.That(derived, Is.Not.Null);
     }
@@ -33,10 +33,10 @@ public class PrxTests
             .AddColocTest(new MyBaseInterface())
             .BuildServiceProvider(validateScopes: true);
 
-        var prx = new MyBaseInterfacePrx(provider.GetRequiredService<ClientConnection>());
+        var proxy = new MyBaseInterfacePrx(provider.GetRequiredService<ClientConnection>());
         provider.GetRequiredService<Server>().Listen();
 
-        MyDerivedInterfacePrx? derived = await prx.AsAsync<MyDerivedInterfacePrx>();
+        MyDerivedInterfacePrx? derived = await proxy.AsAsync<MyDerivedInterfacePrx>();
 
         Assert.That(derived, Is.Null);
     }

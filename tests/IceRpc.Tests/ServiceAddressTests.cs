@@ -321,10 +321,10 @@ public class ServiceAddressTests
             .AddColocTest(router)
             .BuildServiceProvider(validateScopes: true);
 
-        var prx = new SendProxyTestPrx(provider.GetRequiredService<ClientConnection>());
+        var proxy = new SendProxyTestPrx(provider.GetRequiredService<ClientConnection>());
         provider.GetRequiredService<Server>().Listen();
 
-        await prx.SendProxyAsync(prx);
+        await proxy.SendProxyAsync(proxy);
 
         Assert.That(service.ReceivedPrx, Is.Not.Null);
         Assert.That(service.ReceivedPrx.Value.Invoker, Is.EqualTo(pipeline));
@@ -340,10 +340,10 @@ public class ServiceAddressTests
             .AddColocTest(service)
             .BuildServiceProvider(validateScopes: true);
 
-        var prx = new SendProxyTestPrx(provider.GetRequiredService<ClientConnection>());
+        var proxy = new SendProxyTestPrx(provider.GetRequiredService<ClientConnection>());
         provider.GetRequiredService<Server>().Listen();
 
-        await prx.SendProxyAsync(prx);
+        await proxy.SendProxyAsync(proxy);
 
         Assert.That(service.ReceivedPrx, Is.Not.Null);
         Assert.That(service.ReceivedPrx.Value.Invoker, Is.EqualTo(NullInvoker.Instance));
@@ -360,9 +360,9 @@ public class ServiceAddressTests
         provider.GetRequiredService<Server>().Listen();
         IConnection connection = provider.GetRequiredService<ClientConnection>();
         IInvoker invoker = new Pipeline().Into(connection);
-        var prx = new ReceiveProxyTestPrx(invoker);
+        var proxy = new ReceiveProxyTestPrx(invoker);
 
-        ReceiveProxyTestPrx received = await prx.ReceiveProxyAsync();
+        ReceiveProxyTestPrx received = await proxy.ReceiveProxyAsync();
 
         Assert.That(received.Invoker, Is.EqualTo(invoker));
     }

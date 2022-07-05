@@ -3,7 +3,7 @@
 namespace IceRpc.Slice;
 
 /// <summary>A proxy is a local ambassador for a remote service.</summary>
-public interface IPrx
+public interface IProxy
 {
     /// <summary>Gets or initializes the encode feature, used to customize the encoding of payloads created from this
     /// proxy.</summary>

@@ -21,10 +21,10 @@ public class OperationTests
             .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
         provider.GetRequiredService<Server>().Listen();
 
-        Assert.That(async () => await prx.OpWithoutParametersAndVoidReturnAsync(), Throws.Nothing);
+        Assert.That(async () => await proxy.OpWithoutParametersAndVoidReturnAsync(), Throws.Nothing);
     }
 
     [Test]
@@ -35,10 +35,10 @@ public class OperationTests
             .AddIceRpcPrx<IMyDerivedOperationsAPrx, MyDerivedOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyDerivedOperationsAPrx prx = provider.GetRequiredService<IMyDerivedOperationsAPrx>();
+        IMyDerivedOperationsAPrx proxy = provider.GetRequiredService<IMyDerivedOperationsAPrx>();
         provider.GetRequiredService<Server>().Listen();
 
-        Assert.That(async () => await prx.OpWithoutParametersAndVoidReturnAsync(), Throws.Nothing);
+        Assert.That(async () => await proxy.OpWithoutParametersAndVoidReturnAsync(), Throws.Nothing);
     }
 
     [Test]
@@ -49,10 +49,10 @@ public class OperationTests
             .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
         provider.GetRequiredService<Server>().Listen();
 
-        int r = await prx.OpWithSingleParameterAndReturnValueAsync(10);
+        int r = await proxy.OpWithSingleParameterAndReturnValueAsync(10);
 
         Assert.That(r, Is.EqualTo(10));
     }
@@ -65,10 +65,10 @@ public class OperationTests
             .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
         provider.GetRequiredService<Server>().Listen();
 
-        (int r1, int r2) = await prx.OpWithMultipleParametersAndReturnValuesAsync(10, 20);
+        (int r1, int r2) = await proxy.OpWithMultipleParametersAndReturnValuesAsync(10, 20);
 
         Assert.That(r1, Is.EqualTo(10));
         Assert.That(r2, Is.EqualTo(20));
@@ -83,14 +83,14 @@ public class OperationTests
             .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
         provider.GetRequiredService<Server>().Listen();
 
         var data = new byte[] { 1, 2, 3 };
         var pipe = new Pipe();
 
         // Act
-        var invokeTask = prx.OpWithByteStreamArgumentAndReturnAsync(pipe.Reader);
+        var invokeTask = proxy.OpWithByteStreamArgumentAndReturnAsync(pipe.Reader);
         var flushResult = await pipe.Writer.WriteAsync(data);
         await pipe.Writer.CompleteAsync();
         var reader = await invokeTask;
@@ -111,11 +111,11 @@ public class OperationTests
             .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
         provider.GetRequiredService<Server>().Listen();
 
         // Act
-        var r = await prx.OpWithIntStreamArgumentAndReturnAsync(GetDataAsync());
+        var r = await proxy.OpWithIntStreamArgumentAndReturnAsync(GetDataAsync());
 
         // Assert
         var enumerator = r.GetAsyncEnumerator();
@@ -148,11 +148,11 @@ public class OperationTests
             .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
         provider.GetRequiredService<Server>().Listen();
 
         // Act
-        var r = await prx.OpWithStringStreamArgumentAndReturnAsync(GetDataAsync());
+        var r = await proxy.OpWithStringStreamArgumentAndReturnAsync(GetDataAsync());
 
         // Assert
         var enumerator = r.GetAsyncEnumerator();
@@ -185,12 +185,12 @@ public class OperationTests
             .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
         provider.GetRequiredService<Server>().Listen();
 
         // Act
         (int r1, IAsyncEnumerable<int> r2) =
-            await prx.OpWithBothRegularAndStreamParameterAndReturnAsync(10, GetDataAsync());
+            await proxy.OpWithBothRegularAndStreamParameterAndReturnAsync(10, GetDataAsync());
 
         // Assert
         Assert.That(r1, Is.EqualTo(10));
@@ -225,12 +225,12 @@ public class OperationTests
             .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
         provider.GetRequiredService<Server>().Listen();
 
         // Act
         Assert.That(
-            async () => await prx.OpWithSpecialParameterNamesAsync(
+            async () => await proxy.OpWithSpecialParameterNamesAsync(
                 cancel: 1,
                 features: 2),
             Throws.Nothing);
@@ -246,11 +246,11 @@ public class OperationTests
             .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
         provider.GetRequiredService<Server>().Listen();
 
         // Act
-        Assert.That(async () => await prx.OpWithCsAttributeAsync(10), Throws.Nothing);
+        Assert.That(async () => await proxy.OpWithCsAttributeAsync(10), Throws.Nothing);
     }
 
     [Test]
@@ -262,11 +262,11 @@ public class OperationTests
             .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
         provider.GetRequiredService<Server>().Listen();
 
         // Act
-        var r = await prx.OpWithSingleReturnValueAndEncodedResultAttributeAsync();
+        var r = await proxy.OpWithSingleReturnValueAndEncodedResultAttributeAsync();
 
         // Assert
         Assert.That(r, Is.EqualTo(10));
@@ -281,11 +281,11 @@ public class OperationTests
             .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
         provider.GetRequiredService<Server>().Listen();
 
         // Act
-        (int r1, int r2) = await prx.OpWithMultipleReturnValuesAndEncodedResultAttributeAsync();
+        (int r1, int r2) = await proxy.OpWithMultipleReturnValuesAndEncodedResultAttributeAsync();
 
         // Assert
         Assert.That(r1, Is.EqualTo(10));
@@ -444,10 +444,10 @@ public class OperationTests
             .AddIceRpcPrx<IMyTaggedOperationsPrx, MyTaggedOperationsPrx>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyTaggedOperationsPrx prx = provider.GetRequiredService<IMyTaggedOperationsPrx>();
+        IMyTaggedOperationsPrx proxy = provider.GetRequiredService<IMyTaggedOperationsPrx>();
         provider.GetRequiredService<Server>().Listen();
 
-        await prx.OpAsync(1, z: 10);
+        await proxy.OpAsync(1, z: 10);
 
         Assert.That(service.X, Is.EqualTo(1));
         Assert.That(service.Y, Is.Null);
@@ -465,11 +465,11 @@ public class OperationTests
             .AddIceRpcPrx<IMyTaggedOperationsReadOnlyMemoryParamsPrx, MyTaggedOperationsReadOnlyMemoryParamsPrx>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyTaggedOperationsReadOnlyMemoryParamsPrx prx =
+        IMyTaggedOperationsReadOnlyMemoryParamsPrx proxy =
             provider.GetRequiredService<IMyTaggedOperationsReadOnlyMemoryParamsPrx>();
         provider.GetRequiredService<Server>().Listen();
 
-        await prx.OpAsync(new int[] { 1 }, z: new int[] { 10 });
+        await proxy.OpAsync(new int[] { 1 }, z: new int[] { 10 });
 
         Assert.That(service.X, Is.EqualTo(new int[] { 1 }));
         Assert.That(service.Y, Is.Null);

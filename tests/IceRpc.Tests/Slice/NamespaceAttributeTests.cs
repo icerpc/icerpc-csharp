@@ -27,11 +27,11 @@ public class NamespaceAttributeTests
             .AddIceRpcPrx<INamespaceOperationsPrx, NamespaceOperationsPrx>()
             .BuildServiceProvider(validateScopes: true);
 
-        INamespaceOperationsPrx prx = provider.GetRequiredService<INamespaceOperationsPrx>();
+        INamespaceOperationsPrx proxy = provider.GetRequiredService<INamespaceOperationsPrx>();
         provider.GetRequiredService<Server>().Listen();
 
         NamespaceAttribute.WithNamespace.N1.N2.S1 r =
-            await prx.Op1Async(new NamespaceAttribute.M1.M2.M3.S1(10));
+            await proxy.Op1Async(new NamespaceAttribute.M1.M2.M3.S1(10));
 
         Assert.That(r.I, Is.EqualTo("10"));
     }

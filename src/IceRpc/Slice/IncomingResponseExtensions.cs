@@ -44,7 +44,7 @@ public static class IncomingResponseExtensions
     /// <param name="encoding">The encoding of the response payload.</param>
     /// <param name="defaultActivator">The optional default activator.</param>
     /// <param name="prxInvoker">The invoker of the proxy that sent the request.</param>
-    /// <param name="encodeFeature">The encode feature of the Prx struct that sent the request.</param>
+    /// <param name="encodeFeature">The encode feature of the proxy struct that sent the request.</param>
     /// <param name="decodeFunc">The decode function for the return value.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>The return value.</returns>
@@ -93,7 +93,7 @@ public static class IncomingResponseExtensions
     /// <param name="encoding">The encoding of the response payload.</param>
     /// <param name="defaultActivator">The optional default activator.</param>
     /// <param name="prxInvoker">The invoker of the proxy that sent the request.</param>
-    /// <param name="encodeFeature">The encode feature of the Prx struct that sent the request.</param>
+    /// <param name="encodeFeature">The encode feature of the proxy struct that sent the request.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
     /// <param name="elementSize">The size in bytes of the streamed elements.</param>
     /// <returns>The async enumerable to decode and return the streamed members.</returns>
@@ -123,7 +123,7 @@ public static class IncomingResponseExtensions
     /// <param name="encoding">The encoding of the response payload.</param>
     /// <param name="defaultActivator">The optional default activator.</param>
     /// <param name="prxInvoker">The invoker of the proxy that sent the request.</param>
-    /// <param name="encodeFeature">The encode feature of the Prx struct that sent the request.</param>
+    /// <param name="encodeFeature">The encode feature of the proxy struct that sent the request.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
     /// <returns>The async enumerable to decode and return the streamed members.</returns>
     public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
@@ -148,7 +148,7 @@ public static class IncomingResponseExtensions
     /// <param name="encoding">The encoding of the response payload.</param>
     /// <param name="defaultActivator">The optional default activator.</param>
     /// <param name="prxInvoker">The invoker of the proxy that sent the request.</param>
-    /// <param name="encodeFeature">The encode feature of the Prx struct that sent the request.</param>
+    /// <param name="encodeFeature">The encode feature of the proxy struct that sent the request.</param>
     /// <param name="cancel">The cancellation token.</param>
     public static ValueTask DecodeVoidReturnValueAsync(
         this IncomingResponse response,

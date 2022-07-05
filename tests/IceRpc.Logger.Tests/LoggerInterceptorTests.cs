@@ -13,8 +13,8 @@ public sealed class LoggerInterceptorTests
         var invoker = new InlineInvoker(
             (request, cancel) => Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc)));
         using var loggerFactory = new TestLoggerFactory();
-        var prx = new ServiceAddress(Protocol.IceRpc) { Path = "/path" };
-        var request = new OutgoingRequest(prx) { Operation = "operation" };
+        var proxy = new ServiceAddress(Protocol.IceRpc) { Path = "/path" };
+        var request = new OutgoingRequest(proxy) { Operation = "operation" };
         var sut = new LoggerInterceptor(invoker, loggerFactory);
 
         await sut.InvokeAsync(request, default);
@@ -33,8 +33,8 @@ public sealed class LoggerInterceptorTests
     {
         var invoker = new InlineInvoker((request, cancel) => throw new InvalidOperationException());
         using var loggerFactory = new TestLoggerFactory();
-        var prx = new ServiceAddress(Protocol.IceRpc) { Path = "/path" };
-        var request = new OutgoingRequest(prx) { Operation = "operation" };
+        var proxy = new ServiceAddress(Protocol.IceRpc) { Path = "/path" };
+        var request = new OutgoingRequest(proxy) { Operation = "operation" };
         var sut = new LoggerInterceptor(invoker, loggerFactory);
 
         try
