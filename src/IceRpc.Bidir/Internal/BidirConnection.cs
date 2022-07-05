@@ -9,8 +9,7 @@ internal class BidirConnection : IConnection
 {
     public bool IsResumable => true;
 
-    // TODO this was removed in HEAD
-    public NetworkConnectionInformation? NetworkConnectionInformation => _decoratee!.NetworkConnectionInformation;
+    public NetworkConnectionInformation? NetworkConnectionInformation => _decoratee?.NetworkConnectionInformation;
 
     public Protocol Protocol { get; }
 
@@ -65,16 +64,16 @@ internal class BidirConnection : IConnection
         Protocol = decoratee.Protocol;
         _decoratee = decoratee;
         _reconnectTimeout = reconnectTimeout;
+        ConfigureDecoratee(decoratee);
     }
 
-    internal void UpdateDecoratee(IConnection connection)
+    internal void ConfigureDecoratee(IConnection connection)
     {
-        lock (_mutex)
+        connection.OnAbort(ex =>
         {
-            if (connection != _decoratee)
+            lock (_mutex)
             {
-                _decoratee = connection;
-                connection.OnAbort(ex =>
+                if (connection == _decoratee)
                 {
                     _decoratee = null;
                     if (_connectionUpdatedSource == null)
@@ -82,46 +81,68 @@ internal class BidirConnection : IConnection
                         _connectionUpdatedSource = new TaskCompletionSource<IConnection>();
                         _ = WaitForReconnectAsync(_connectionUpdatedSource, ex);
                     }
-                });
+                }
+                // else ignore the decoratee has been updated
+            }
+        });
 
-                connection.OnShutdown(message =>
+        connection.OnShutdown(message =>
+        {
+            Action<string>? onShutdown = null;
+            lock (_mutex)
+            {
+                if (connection == _decoratee)
                 {
-                    lock (_mutex)
+                    onShutdown = _onShutdown;
+                }
+                // else ignore the decoratee has been updated
+            }
+            onShutdown?.Invoke(message);
+        });
+
+        async Task WaitForReconnectAsync(TaskCompletionSource<IConnection> connectionUpdatedSource, Exception ex)
+        {
+            // Wait for the connection update source to be completed using the reconnect timeout, if the connection
+            // isn't updated within this timeout period we cancel the updated and call the on abort callback to get
+            // rid of the connection.
+            using var cancellationSource = new CancellationTokenSource();
+            cancellationSource.CancelAfter(_reconnectTimeout);
+            try
+            {
+                await connectionUpdatedSource.Task.WaitAsync(cancellationSource.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                Action<Exception>? onAbort = null;
+                lock (_mutex)
+                {
+                    if (_decoratee == null)
                     {
-                        if (connection == _decoratee)
-                        {
-                            _onShutdown?.Invoke(message);
-                        }
+                        // The update task never fails, is either canceled or completed successfully.
+                        Debug.Assert(!connectionUpdatedSource.Task.IsCompleted);
+                        connectionUpdatedSource.TrySetCanceled();
+                        onAbort = _onAbort;
                     }
-                });
+                }
+                onAbort?.Invoke(ex);
+            }
+        }
+    }
+
+    internal void UpdateDecoratee(IConnection connection)
+    {
+        lock (_mutex)
+        {
+            if (connection != _decoratee && !(_connectionUpdatedSource?.Task.IsCanceled ?? false))
+            {
+                _decoratee = connection;
+
+                ConfigureDecoratee(connection);
 
                 if (_connectionUpdatedSource != null)
                 {
                     _connectionUpdatedSource.TrySetResult(connection);
                     _connectionUpdatedSource = null;
-                }
-            }
-        }
-
-        async Task WaitForReconnectAsync(TaskCompletionSource<IConnection> completionSource, Exception ex)
-        {
-            using var cancellationSource = new CancellationTokenSource();
-            cancellationSource.CancelAfter(_reconnectTimeout);
-            try
-            {
-                await completionSource.Task.WaitAsync(cancellationSource.Token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // The update task never fails, is either canceled or completed successfully.
-                completionSource.TrySetCanceled();
-
-                lock (_mutex)
-                {
-                    if (connection == _decoratee)
-                    {
-                        _onAbort?.Invoke(ex);
-                    }
                 }
             }
         }
