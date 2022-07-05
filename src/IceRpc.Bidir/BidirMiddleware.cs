@@ -43,12 +43,22 @@ public class BidirMiddleware : IDispatcher
                 else
                 {
                     bidirConnection = new BidirConnection(request.Connection, _reconnectTimeout);
+                    bidirConnection.OnShutdown(_ => RemoveConnection());
+                    bidirConnection.OnAbort(_ => RemoveConnection());
                     _connections.Add(relativeOrigin, bidirConnection);
                 }
                 request.Connection = bidirConnection;
             }
         }
         return _next.DispatchAsync(request, cancel);
+
+        void RemoveConnection()
+        {
+            lock (_mutex)
+            {
+                _connections.Remove(relativeOrigin);
+            }
+        }
     }
 
     private class RelativeOriginEqualityComparer : IEqualityComparer<byte[]>

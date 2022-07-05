@@ -86,6 +86,35 @@ public sealed class BidirMiddlewareTests
             Throws.TypeOf<ConnectionClosedException>());
     }
 
+    [Test]
+    public async Task Bidir_connection_purged_after_expiration_timeout()
+    {
+        byte[] relativeOrigin = NewRelativeOrigin();
+
+        // Create an incoming request that carries a relative origin and uses the closed connection.
+        var connection1 = new ClosedConnection();
+        var request1 = new IncomingRequest(connection1)
+        {
+            Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>()
+            {
+                [RequestFieldKey.RelativeOrigin] = new ReadOnlySequence<byte>(relativeOrigin),
+            },
+            Operation = "Op",
+            Path = "/"
+        };
+
+        var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
+        var sut = new BidirMiddleware(dispatcher, TimeSpan.FromMilliseconds(10));
+        await sut.DispatchAsync(request1);
+
+        var outgoingRequest = new OutgoingRequest(Proxy.FromConnection(request1.Connection, "/"));
+
+        // Act/Assert
+        Assert.That(
+            async () => await request1.Connection.InvokeAsync(outgoingRequest, CancellationToken.None),
+            Throws.TypeOf<ConnectionClosedException>());
+    }
+
     private static byte[] NewRelativeOrigin()
     {
         var pipe = new Pipe();
@@ -121,9 +150,13 @@ public sealed class BidirMiddlewareTests
             return Task.FromResult(new IncomingResponse(request, this));
         }
 
-        public void OnAbort(Action<Exception> callback) => throw new NotImplementedException();
+        public void OnAbort(Action<Exception> callback)
+        {
+        }
 
-        public void OnShutdown(Action<string> callback) => throw new NotImplementedException();
+        public void OnShutdown(Action<string> callback)
+        {
+        }
     }
 
     private class ClosedConnection : IConnection
@@ -142,8 +175,12 @@ public sealed class BidirMiddlewareTests
             throw new ConnectionClosedException();
         }
 
-        public void OnAbort(Action<Exception> callback) => throw new NotImplementedException();
+        public void OnAbort(Action<Exception> callback)
+        {
+        }
 
-        public void OnShutdown(Action<string> callback) => throw new NotImplementedException();
+        public void OnShutdown(Action<string> callback)
+        {
+        }
     }
 }
