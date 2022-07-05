@@ -43,7 +43,7 @@ public class OperationGeneratedCodeTests
                     return response;
                 }))
                 .Into<ClientConnection>())
-            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>("icerpc:/")
+            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>("icerpc:/")
             .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();

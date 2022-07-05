@@ -18,7 +18,7 @@ public class TypeNameQualificationTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new TypeNameQualification())
-            .AddIceRpcPrx<ITypeNameQualificationOperationsPrx, TypeNameQualificationOperationsPrx>()
+            .AddIceRpcProxy<ITypeNameQualificationOperationsPrx, TypeNameQualificationOperationsPrx>()
             .BuildServiceProvider(validateScopes: true);
 
         ITypeNameQualificationOperationsPrx proxy = provider.GetRequiredService<ITypeNameQualificationOperationsPrx>();

@@ -11,7 +11,7 @@ namespace IceRpc.Slice;
 /// <typeparam name="T">The type of the return value to read.</typeparam>
 /// <param name="response">The incoming response.</param>
 /// <param name="request">The outgoing request.</param>
-/// <param name="prxInvoker">The invoker of the proxy that sent the request.</param>
+/// <param name="proxyInvoker">The invoker of the proxy that sent the request.</param>
 /// <param name="encodeFeature">The encode feature of the proxy struct that sent the request.</param>
 /// <param name="cancel">The cancellation token.</param>
 /// <returns>A value task that contains the return value or a <see cref="RemoteException"/> when the response
@@ -19,7 +19,7 @@ namespace IceRpc.Slice;
 public delegate ValueTask<T> ResponseDecodeFunc<T>(
     IncomingResponse response,
     OutgoingRequest request,
-    IInvoker prxInvoker,
+    IInvoker proxyInvoker,
     ISliceEncodeFeature? encodeFeature,
     CancellationToken cancel);
 
@@ -33,23 +33,23 @@ public static class ProxyExtensions
             [RequestFieldKey.Idempotent] = default
         }.ToImmutableDictionary();
 
-    /// <summary>Tests whether the target service implements the interface implemented by the TPrx proxy. This
+    /// <summary>Tests whether the target service implements the interface implemented by the TProxy proxy. This
     /// method is a wrapper for <see cref="IServicePrx.IceIsAAsync"/>.</summary>
-    /// <typeparam name="TPrx">The type of the target proxy struct.</typeparam>
+    /// <typeparam name="TProxy">The type of the target proxy struct.</typeparam>
     /// <param name="proxy">The source Prx being tested.</param>
     /// <param name="features">The invocation features.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A new TPrx instance, or null.</returns>
-    public static async Task<TPrx?> AsAsync<TPrx>(
+    /// <returns>A new TProxy instance, or null.</returns>
+    public static async Task<TProxy?> AsAsync<TProxy>(
         this IProxy proxy,
         IFeatureCollection? features = null,
-        CancellationToken cancel = default) where TPrx : struct, IProxy =>
-        await proxy.ToPrx<ServicePrx>().IceIsAAsync(typeof(TPrx).GetSliceTypeId()!, features, cancel)
+        CancellationToken cancel = default) where TProxy : struct, IProxy =>
+        await proxy.ToPrx<ServicePrx>().IceIsAAsync(typeof(TProxy).GetSliceTypeId()!, features, cancel)
             .ConfigureAwait(false) ?
-            proxy.ToPrx<TPrx>() : null;
+            proxy.ToPrx<TProxy>() : null;
 
     /// <summary>Sends a request to a service and decodes the response.</summary>
-    /// <typeparam name="TPrx">The type of the proxy struct.</typeparam>
+    /// <typeparam name="TProxy">The type of the proxy struct.</typeparam>
     /// <typeparam name="T">The response type.</typeparam>
     /// <param name="proxy">A proxy to the remote service.</param>
     /// <param name="operation">The name of the operation, as specified in Slice.</param>
@@ -64,15 +64,15 @@ public static class ProxyExtensions
     /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
     /// <remarks>This method stores the response features into the invocation's response features when
     /// invocation is not null.</remarks>
-    public static Task<T> InvokeAsync<TPrx, T>(
-        this TPrx proxy,
+    public static Task<T> InvokeAsync<TProxy, T>(
+        this TProxy proxy,
         string operation,
         PipeReader? payload,
         PipeReader? payloadStream,
         ResponseDecodeFunc<T> responseDecodeFunc,
         IFeatureCollection? features,
         bool idempotent = false,
-        CancellationToken cancel = default) where TPrx : struct, IProxy
+        CancellationToken cancel = default) where TProxy : struct, IProxy
     {
         if (payload is null && payloadStream is not null)
         {
@@ -126,7 +126,7 @@ public static class ProxyExtensions
     }
 
     /// <summary>Sends a request to a service and decodes the "void" response.</summary>
-    /// <typeparam name="TPrx">The type of the proxy struct.</typeparam>
+    /// <typeparam name="TProxy">The type of the proxy struct.</typeparam>
     /// <param name="proxy">A proxy for the remote service.</param>
     /// <param name="operation">The name of the operation, as specified in Slice.</param>
     /// <param name="encoding">The encoding of the request payload.</param>
@@ -142,8 +142,8 @@ public static class ProxyExtensions
     /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
     /// <remarks>This method stores the response features into the invocation's response features when invocation is
     /// not null.</remarks>
-    public static Task InvokeAsync<TPrx>(
-        this TPrx proxy,
+    public static Task InvokeAsync<TProxy>(
+        this TProxy proxy,
         string operation,
         SliceEncoding encoding,
         PipeReader? payload,
@@ -152,7 +152,7 @@ public static class ProxyExtensions
         IFeatureCollection? features,
         bool idempotent = false,
         bool oneway = false,
-        CancellationToken cancel = default) where TPrx : struct, IProxy
+        CancellationToken cancel = default) where TProxy : struct, IProxy
     {
         if (payload is null && payloadStream is not null)
         {
@@ -213,9 +213,9 @@ public static class ProxyExtensions
     }
 
     /// <summary>Converts a proxy struct into another proxy struct. This convertion always succeeds.</summary>
-    /// <typeparam name="TPrx">The type of the target proxy struct.</typeparam>
+    /// <typeparam name="TProxy">The type of the target proxy struct.</typeparam>
     /// <param name="proxy">The source Prx.</param>
-    /// <returns>A new TPrx instance.</returns>
-    public static TPrx ToPrx<TPrx>(this IProxy proxy) where TPrx : struct, IProxy =>
+    /// <returns>A new TProxy instance.</returns>
+    public static TProxy ToPrx<TProxy>(this IProxy proxy) where TProxy : struct, IProxy =>
         new() { EncodeFeature = proxy.EncodeFeature, Invoker = proxy.Invoker, ServiceAddress = proxy.ServiceAddress };
 }

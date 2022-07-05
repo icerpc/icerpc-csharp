@@ -62,7 +62,7 @@ public static class Program
                     .AddSingleton(_ => new ActivitySource("IceRpc"))
                     .AddIceRpcInvoker(builder => builder.UseTelemetry().UseLogger())
                     .AddIceRpcClientConnection()
-                    .AddIceRpcPrx<IHelloPrx, HelloPrx>();
+                    .AddIceRpcProxy<IHelloPrx, HelloPrx>();
             });
 
     /// <summary>The hosted client service is ran and managed by the .NET Generic Host.</summary>

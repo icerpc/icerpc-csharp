@@ -73,7 +73,7 @@ public ref partial struct SliceDecoder
     private readonly int _maxDepth;
 
     // The Slice encode feature of proxy structs decoded using this decoder.
-    private readonly ISliceEncodeFeature? _prxEncodeFeature;
+    private readonly ISliceEncodeFeature? _proxyEncodeFeature;
 
     // The sequence reader.
     private SequenceReader<byte> _reader;
@@ -85,7 +85,7 @@ public ref partial struct SliceDecoder
     /// <param name="connection">The connection, used only when decoding relative proxies (optional).</param>
     /// <param name="invoker">The invoker of proxies decoded by this decoder. Use null to get the default invoker.
     /// </param>
-    /// <param name="prxEncodeFeature">The Slice encode feature of proxy structs decoded using this decoder
+    /// <param name="proxyEncodeFeature">The Slice encode feature of proxy structs decoded using this decoder
     /// (optional).</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
@@ -97,7 +97,7 @@ public ref partial struct SliceDecoder
         IActivator? activator = null,
         IConnection? connection = null,
         IInvoker? invoker = null,
-        ISliceEncodeFeature? prxEncodeFeature = null,
+        ISliceEncodeFeature? proxyEncodeFeature = null,
         int maxCollectionAllocation = -1,
         int maxDepth = 3)
     {
@@ -111,7 +111,7 @@ public ref partial struct SliceDecoder
 
         _connection = connection;
         _invoker = invoker;
-        _prxEncodeFeature = prxEncodeFeature;
+        _proxyEncodeFeature = proxyEncodeFeature;
 
         _maxCollectionAllocation = maxCollectionAllocation == -1 ? 8 * (int)buffer.Length :
             (maxCollectionAllocation >= 0 ? maxCollectionAllocation :
@@ -132,7 +132,7 @@ public ref partial struct SliceDecoder
     /// <param name="connection">The connection, used only when decoding relative proxies (optional).</param>
     /// <param name="invoker">The invoker of proxies decoded by this decoder. Use null to get the default invoker.
     /// </param>
-    /// <param name="prxEncodeFeature">The Slice encode feature of proxy structs decoded using this decoder
+    /// <param name="proxyEncodeFeature">The Slice encode feature of proxy structs decoded using this decoder
     /// (optional).</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
@@ -144,7 +144,7 @@ public ref partial struct SliceDecoder
         IActivator? activator = null,
         IConnection? connection = null,
         IInvoker? invoker = null,
-        ISliceEncodeFeature? prxEncodeFeature = null,
+        ISliceEncodeFeature? proxyEncodeFeature = null,
         int maxCollectionAllocation = -1,
         int maxDepth = 3)
         : this(
@@ -153,7 +153,7 @@ public ref partial struct SliceDecoder
             activator,
             connection,
             invoker,
-            prxEncodeFeature,
+            proxyEncodeFeature,
             maxCollectionAllocation,
             maxDepth)
     {
@@ -354,9 +354,9 @@ public ref partial struct SliceDecoder
     }
 
     /// <summary>Decodes a nullable proxy struct (Slice1 only).</summary>
-    /// <typeparam name="TPrx">The type of the proxy struct to decode.</typeparam>
+    /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>
     /// <returns>The decoded Prx, or null.</returns>
-    public TPrx? DecodeNullablePrx<TPrx>() where TPrx : struct, IProxy
+    public TProxy? DecodeNullablePrx<TProxy>() where TProxy : struct, IProxy
     {
         if (Encoding != SliceEncoding.Slice1)
         {
@@ -364,29 +364,29 @@ public ref partial struct SliceDecoder
         }
         string path = this.DecodeIdentityPath();
         return path != "/" ?
-            new TPrx
+            new TProxy
             {
                 ServiceAddress = DecodeServiceAddress(path),
                 Invoker = _invoker ?? NullInvoker.Instance,
-                EncodeFeature = _prxEncodeFeature
+                EncodeFeature = _proxyEncodeFeature
             }
             : null;
     }
 
     /// <summary>Decodes a proxy struct.</summary>
-    /// <typeparam name="TPrx">The type of the proxy struct to decode.</typeparam>
+    /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>
     /// <returns>The decoded proxy struct.</returns>
-    public TPrx DecodePrx<TPrx>() where TPrx : struct, IProxy
+    public TProxy DecodePrx<TProxy>() where TProxy : struct, IProxy
     {
         if (Encoding == SliceEncoding.Slice1)
         {
             string path = this.DecodeIdentityPath();
             return path != "/" ?
-                new TPrx
+                new TProxy
                 {
                     ServiceAddress = DecodeServiceAddress(path),
                     Invoker = _invoker ?? NullInvoker.Instance,
-                    EncodeFeature = _prxEncodeFeature
+                    EncodeFeature = _proxyEncodeFeature
                 }
                 : throw new InvalidDataException("decoded null for a non-nullable proxy");
         }
@@ -405,23 +405,23 @@ public ref partial struct SliceDecoder
                     }
 
                     var serviceAddress = new ServiceAddress(_connection.Protocol) { Path = serviceAddressString };
-                    return new TPrx
+                    return new TProxy
                     {
                         ServiceAddress = serviceAddress,
                         Invoker = _invoker ?? _connection,
-                        EncodeFeature = _prxEncodeFeature
+                        EncodeFeature = _proxyEncodeFeature
                     };
                 }
                 else
                 {
                     var serviceAddress = new ServiceAddress(new Uri(serviceAddressString, UriKind.Absolute));
                     Debug.Assert(serviceAddress.Protocol is not null); // null protocol == path-only service address
-                    return new TPrx
+                    return new TProxy
                     {
                         ServiceAddress = serviceAddress,
                         Invoker = serviceAddress.Protocol.IsSupported && _invoker is not null ? _invoker :
                             NullInvoker.Instance,
-                        EncodeFeature = _prxEncodeFeature
+                        EncodeFeature = _proxyEncodeFeature
                     };
                 }
             }

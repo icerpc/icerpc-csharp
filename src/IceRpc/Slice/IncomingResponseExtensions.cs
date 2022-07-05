@@ -30,8 +30,8 @@ public static class IncomingResponseExtensions
                 request.Features.Get<ISliceDecodeFeature>(),
                 defaultActivator,
                 // we don't expect proxies in Failures, they are usually DispatchException
-                prxInvoker: NullInvoker.Instance,
-                prxEncodeFeature: null,
+                proxyInvoker: NullInvoker.Instance,
+                proxyEncodeFeature: null,
                 cancel) :
             throw new ArgumentException(
                 $"{nameof(DecodeFailureAsync)} requires a response with a Failure result type",
@@ -43,7 +43,7 @@ public static class IncomingResponseExtensions
     /// <param name="request">The outgoing request.</param>
     /// <param name="encoding">The encoding of the response payload.</param>
     /// <param name="defaultActivator">The optional default activator.</param>
-    /// <param name="prxInvoker">The invoker of the proxy that sent the request.</param>
+    /// <param name="proxyInvoker">The invoker of the proxy that sent the request.</param>
     /// <param name="encodeFeature">The encode feature of the proxy struct that sent the request.</param>
     /// <param name="decodeFunc">The decode function for the return value.</param>
     /// <param name="cancel">The cancellation token.</param>
@@ -53,7 +53,7 @@ public static class IncomingResponseExtensions
         OutgoingRequest request,
         SliceEncoding encoding,
         IActivator? defaultActivator,
-        IInvoker prxInvoker,
+        IInvoker proxyInvoker,
         ISliceEncodeFeature? encodeFeature,
         DecodeFunc<T> decodeFunc,
         CancellationToken cancel = default)
@@ -66,7 +66,7 @@ public static class IncomingResponseExtensions
                 encoding,
                 decodeFeature,
                 defaultActivator,
-                defaultInvoker: prxInvoker,
+                defaultInvoker: proxyInvoker,
                 encodeFeature,
                 decodeFunc,
                 cancel) :
@@ -79,7 +79,7 @@ public static class IncomingResponseExtensions
                 encoding,
                 decodeFeature,
                 defaultActivator,
-                prxInvoker,
+                proxyInvoker,
                 encodeFeature,
                 cancel).ConfigureAwait(false);
         }
@@ -92,7 +92,7 @@ public static class IncomingResponseExtensions
     /// <param name="request">The outgoing request.</param>
     /// <param name="encoding">The encoding of the response payload.</param>
     /// <param name="defaultActivator">The optional default activator.</param>
-    /// <param name="prxInvoker">The invoker of the proxy that sent the request.</param>
+    /// <param name="proxyInvoker">The invoker of the proxy that sent the request.</param>
     /// <param name="encodeFeature">The encode feature of the proxy struct that sent the request.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
     /// <param name="elementSize">The size in bytes of the streamed elements.</param>
@@ -102,7 +102,7 @@ public static class IncomingResponseExtensions
         OutgoingRequest request,
         SliceEncoding encoding,
         IActivator? defaultActivator,
-        IInvoker prxInvoker,
+        IInvoker proxyInvoker,
         ISliceEncodeFeature? encodeFeature,
         DecodeFunc<T> decodeFunc,
         int elementSize) =>
@@ -110,7 +110,7 @@ public static class IncomingResponseExtensions
             encoding,
             request.Features.Get<ISliceDecodeFeature>(),
             defaultActivator,
-            defaultInvoker: prxInvoker,
+            defaultInvoker: proxyInvoker,
             encodeFeature,
             decodeFunc,
             elementSize);
@@ -122,7 +122,7 @@ public static class IncomingResponseExtensions
     /// <param name="request">The outgoing request.</param>
     /// <param name="encoding">The encoding of the response payload.</param>
     /// <param name="defaultActivator">The optional default activator.</param>
-    /// <param name="prxInvoker">The invoker of the proxy that sent the request.</param>
+    /// <param name="proxyInvoker">The invoker of the proxy that sent the request.</param>
     /// <param name="encodeFeature">The encode feature of the proxy struct that sent the request.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
     /// <returns>The async enumerable to decode and return the streamed members.</returns>
@@ -131,14 +131,14 @@ public static class IncomingResponseExtensions
         OutgoingRequest request,
         SliceEncoding encoding,
         IActivator? defaultActivator,
-        IInvoker prxInvoker,
+        IInvoker proxyInvoker,
         ISliceEncodeFeature? encodeFeature,
         DecodeFunc<T> decodeFunc) =>
         response.ToAsyncEnumerable(
             encoding,
             request.Features.Get<ISliceDecodeFeature>(),
             defaultActivator,
-            defaultInvoker: prxInvoker,
+            defaultInvoker: proxyInvoker,
             encodeFeature,
             decodeFunc);
 
@@ -147,7 +147,7 @@ public static class IncomingResponseExtensions
     /// <param name="request">The outgoing request.</param>
     /// <param name="encoding">The encoding of the response payload.</param>
     /// <param name="defaultActivator">The optional default activator.</param>
-    /// <param name="prxInvoker">The invoker of the proxy that sent the request.</param>
+    /// <param name="proxyInvoker">The invoker of the proxy that sent the request.</param>
     /// <param name="encodeFeature">The encode feature of the proxy struct that sent the request.</param>
     /// <param name="cancel">The cancellation token.</param>
     public static ValueTask DecodeVoidReturnValueAsync(
@@ -155,7 +155,7 @@ public static class IncomingResponseExtensions
         OutgoingRequest request,
         SliceEncoding encoding,
         IActivator? defaultActivator,
-        IInvoker prxInvoker,
+        IInvoker proxyInvoker,
         ISliceEncodeFeature? encodeFeature,
         CancellationToken cancel = default)
     {
@@ -173,7 +173,7 @@ public static class IncomingResponseExtensions
                 encoding,
                 decodeFeature,
                 defaultActivator,
-                prxInvoker,
+                proxyInvoker,
                 encodeFeature,
                 cancel).ConfigureAwait(false);
         }
@@ -185,8 +185,8 @@ public static class IncomingResponseExtensions
         SliceEncoding encoding,
         ISliceDecodeFeature? decodeFeature,
         IActivator? defaultActivator,
-        IInvoker prxInvoker,
-        ISliceEncodeFeature? prxEncodeFeature,
+        IInvoker proxyInvoker,
+        ISliceEncodeFeature? proxyEncodeFeature,
         CancellationToken cancel)
     {
         Debug.Assert(response.ResultType != ResultType.Success);
@@ -229,8 +229,8 @@ public static class IncomingResponseExtensions
                 encoding,
                 activator: decodeFeature.Activator ?? defaultActivator,
                 response.Connection,
-                decodeFeature.ProxyInvoker ?? prxInvoker,
-                prxEncodeFeature,
+                decodeFeature.ProxyInvoker ?? proxyInvoker,
+                proxyEncodeFeature,
                 maxCollectionAllocation: decodeFeature.MaxCollectionAllocation,
                 maxDepth: decodeFeature.MaxDepth);
 

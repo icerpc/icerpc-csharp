@@ -18,7 +18,7 @@ public class OperationTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
+            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
@@ -32,7 +32,7 @@ public class OperationTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyDerivedOperationsA())
-            .AddIceRpcPrx<IMyDerivedOperationsAPrx, MyDerivedOperationsAPrx>()
+            .AddIceRpcProxy<IMyDerivedOperationsAPrx, MyDerivedOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
         IMyDerivedOperationsAPrx proxy = provider.GetRequiredService<IMyDerivedOperationsAPrx>();
@@ -46,7 +46,7 @@ public class OperationTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
+            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
@@ -62,7 +62,7 @@ public class OperationTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
+            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
@@ -80,7 +80,7 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
+            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
@@ -108,7 +108,7 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
+            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
@@ -145,7 +145,7 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
+            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
@@ -182,7 +182,7 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
+            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
@@ -222,7 +222,7 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
+            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
@@ -243,7 +243,7 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
+            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
@@ -259,7 +259,7 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
+            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
@@ -278,7 +278,7 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyOperationsA())
-            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>()
+            .AddIceRpcProxy<IMyOperationsAPrx, MyOperationsAPrx>()
             .BuildServiceProvider(validateScopes: true);
 
         IMyOperationsAPrx proxy = provider.GetRequiredService<IMyOperationsAPrx>();
@@ -441,7 +441,7 @@ public class OperationTests
         var service = new MyTaggedOperations();
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(service)
-            .AddIceRpcPrx<IMyTaggedOperationsPrx, MyTaggedOperationsPrx>()
+            .AddIceRpcProxy<IMyTaggedOperationsPrx, MyTaggedOperationsPrx>()
             .BuildServiceProvider(validateScopes: true);
 
         IMyTaggedOperationsPrx proxy = provider.GetRequiredService<IMyTaggedOperationsPrx>();
@@ -462,7 +462,7 @@ public class OperationTests
         var service = new MyTaggedOperationsReadOnlyMemoryParams();
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(service)
-            .AddIceRpcPrx<IMyTaggedOperationsReadOnlyMemoryParamsPrx, MyTaggedOperationsReadOnlyMemoryParamsPrx>()
+            .AddIceRpcProxy<IMyTaggedOperationsReadOnlyMemoryParamsPrx, MyTaggedOperationsReadOnlyMemoryParamsPrx>()
             .BuildServiceProvider(validateScopes: true);
 
         IMyTaggedOperationsReadOnlyMemoryParamsPrx proxy =

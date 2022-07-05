@@ -12,7 +12,7 @@ namespace IceRpc.Tests.Slice;
 public class PrxTests
 {
     [Test]
-    public async Task Downcast_prx_with_as_sync_succeeds()
+    public async Task Downcast_proxy_with_as_sync_succeeds()
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyDerivedInterface())
@@ -27,7 +27,7 @@ public class PrxTests
     }
 
     [Test]
-    public async Task Downcast_prx_with_as_aync_fails()
+    public async Task Downcast_proxy_with_as_aync_fails()
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyBaseInterface())

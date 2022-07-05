@@ -22,13 +22,13 @@ pub struct ProxyVisitor<'a> {
 impl<'a> Visitor for ProxyVisitor<'_> {
     fn visit_interface_start(&mut self, interface_def: &Interface) {
         let namespace = interface_def.namespace();
-        let prx_interface = interface_def.proxy_name(); // IFooPrx
+        let proxy_interface = interface_def.proxy_name(); // IFooPrx
         let proxy_impl: String = interface_def.proxy_implementation_name(); // FooPrx
         let access = interface_def.access_modifier();
         let all_bases: Vec<&Interface> = interface_def.all_base_interfaces();
         let bases: Vec<&Interface> = interface_def.base_interfaces();
 
-        let prx_impl_bases: Vec<String> = vec![prx_interface.clone(), "IProxy".to_owned()];
+        let proxy_impl_bases: Vec<String> = vec![proxy_interface.clone(), "IProxy".to_owned()];
 
         let all_base_impl: Vec<String> = all_bases
             .iter()
@@ -36,7 +36,7 @@ impl<'a> Visitor for ProxyVisitor<'_> {
             .collect();
 
         // proxy bases
-        let prx_bases: Vec<String> = bases
+        let proxy_bases: Vec<String> = bases
             .into_iter()
             .map(|b| b.scoped_proxy_name(&namespace))
             .collect();
@@ -51,11 +51,11 @@ impl<'a> Visitor for ProxyVisitor<'_> {
 
         let mut code = CodeBlock::new();
         code.add_block(
-            &ContainerBuilder::new(&format!("{} partial interface", access), &prx_interface)
+            &ContainerBuilder::new(&format!("{} partial interface", access), &proxy_interface)
                 .add_comment("summary", &summary_message)
                 .add_type_id_attribute(interface_def)
                 .add_container_attributes(interface_def)
-                .add_bases(&prx_bases)
+                .add_bases(&proxy_bases)
                 .add_block(proxy_interface_operations(interface_def))
                 .build(),
         );
@@ -65,8 +65,8 @@ impl<'a> Visitor for ProxyVisitor<'_> {
             &proxy_impl,
         );
 
-        proxy_impl_builder.add_bases(&prx_impl_bases)
-            .add_comment("summary", &format!(r#"Proxy record struct. It implements <see cref="{}"/> by sending requests to a remote IceRPC service."#, prx_interface))
+        proxy_impl_builder.add_bases(&proxy_impl_bases)
+            .add_comment("summary", &format!(r#"Proxy record struct. It implements <see cref="{}"/> by sending requests to a remote IceRPC service."#, proxy_interface))
             .add_type_id_attribute(interface_def)
             .add_container_attributes(interface_def)
             .add_block(request_class(interface_def))
@@ -327,8 +327,8 @@ fn proxy_base_operation_impl(operation: &Operation) -> CodeBlock {
 
     builder.set_body(
         format!(
-            "(({base_prx_impl})this).{async_name}({operation_params})",
-            base_prx_impl = operation.parent().unwrap().proxy_implementation_name(),
+            "(({base_proxy_impl})this).{async_name}({operation_params})",
+            base_proxy_impl = operation.parent().unwrap().proxy_implementation_name(),
             async_name = async_name,
             operation_params = operation_params.join(", ")
         )
@@ -481,7 +481,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         builder.add_comment("summary", &format!(r#"The <see cref="ResponseDecodeFunc{{T}}"/> for the return value type of operation {}."#, operation.identifier()));
         builder.add_parameter("IceRpc.IncomingResponse", "response", None, None);
         builder.add_parameter("IceRpc.OutgoingRequest", "request", None, None);
-        builder.add_parameter("IceRpc.IInvoker", "prxInvoker", None, None);
+        builder.add_parameter("IceRpc.IInvoker", "proxyInvoker", None, None);
         builder.add_parameter(
             "ISliceEncodeFeature?",
             "encodeFeature",
@@ -518,7 +518,7 @@ await response.DecodeVoidReturnValueAsync(
     request,
     {encoding},
     _defaultActivator,
-    prxInvoker,
+    proxyInvoker,
     encodeFeature,
     cancel).ConfigureAwait(false);
 
@@ -542,7 +542,7 @@ var {return_value} = await response.DecodeReturnValueAsync(
     request,
     {encoding},
     _defaultActivator,
-    prxInvoker,
+    proxyInvoker,
     encodeFeature,
     {response_decode_func},
     cancel).ConfigureAwait(false);
@@ -573,7 +573,7 @@ response.DecodeReturnValueAsync(
     request,
     {encoding},
     _defaultActivator,
-    prxInvoker,
+    proxyInvoker,
     encodeFeature,
     {response_decode_func},
     cancel)",

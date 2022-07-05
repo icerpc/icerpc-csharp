@@ -24,7 +24,7 @@ public class NamespaceAttributeTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new NamespaceOperations())
-            .AddIceRpcPrx<INamespaceOperationsPrx, NamespaceOperationsPrx>()
+            .AddIceRpcProxy<INamespaceOperationsPrx, NamespaceOperationsPrx>()
             .BuildServiceProvider(validateScopes: true);
 
         INamespaceOperationsPrx proxy = provider.GetRequiredService<INamespaceOperationsPrx>();
