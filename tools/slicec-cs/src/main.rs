@@ -31,7 +31,7 @@ use exception_visitor::ExceptionVisitor;
 use generated_code::GeneratedCode;
 use module_visitor::ModuleVisitor;
 use proxy_visitor::ProxyVisitor;
-use slice::parse_result::{ParsedData, ParserResult};
+use slice::parse_result::ParserResult;
 use slice::slice_file::SliceFile;
 use std::fs::File;
 use std::io;
