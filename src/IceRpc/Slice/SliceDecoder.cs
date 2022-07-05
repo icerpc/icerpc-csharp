@@ -366,7 +366,7 @@ public ref partial struct SliceDecoder
         return path != "/" ?
             new TPrx
             {
-                ServiceAddress = DecodeProxy(path),
+                ServiceAddress = DecodeServiceAddress(path),
                 Invoker = _invoker ?? NullInvoker.Instance,
                 EncodeFeature = _prxEncodeFeature
             }
@@ -384,7 +384,7 @@ public ref partial struct SliceDecoder
             return path != "/" ?
                 new TPrx
                 {
-                    ServiceAddress = DecodeProxy(path),
+                    ServiceAddress = DecodeServiceAddress(path),
                     Invoker = _invoker ?? NullInvoker.Instance,
                     EncodeFeature = _prxEncodeFeature
                 }
@@ -392,41 +392,42 @@ public ref partial struct SliceDecoder
         }
         else
         {
-            string proxyString = DecodeString();
+            string serviceAddressString = DecodeString();
             try
             {
-                if (proxyString.StartsWith('/'))
+                if (serviceAddressString.StartsWith('/'))
                 {
-                    // relative proxy
+                    // path-only service address
                     if (_connection is null)
                     {
                         throw new InvalidOperationException(
                             "cannot decode a relative proxy from an decoder with a null Connection");
                     }
 
-                    var proxy = new ServiceAddress(_connection.Protocol) { Path = proxyString };
+                    var serviceAddress = new ServiceAddress(_connection.Protocol) { Path = serviceAddressString };
                     return new TPrx
                     {
-                        ServiceAddress = proxy,
+                        ServiceAddress = serviceAddress,
                         Invoker = _invoker ?? _connection,
                         EncodeFeature = _prxEncodeFeature
                     };
                 }
                 else
                 {
-                    var proxy = new ServiceAddress(new Uri(proxyString, UriKind.Absolute));
-                    Debug.Assert(proxy.Protocol is not null); // null protocol == relative proxy
+                    var serviceAddress = new ServiceAddress(new Uri(serviceAddressString, UriKind.Absolute));
+                    Debug.Assert(serviceAddress.Protocol is not null); // null protocol == path-only service address
                     return new TPrx
                     {
-                        ServiceAddress = proxy,
-                        Invoker = proxy.Protocol.IsSupported && _invoker is not null ? _invoker : NullInvoker.Instance,
+                        ServiceAddress = serviceAddress,
+                        Invoker = serviceAddress.Protocol.IsSupported && _invoker is not null ? _invoker :
+                            NullInvoker.Instance,
                         EncodeFeature = _prxEncodeFeature
                     };
                 }
             }
             catch (Exception ex)
             {
-                throw new InvalidDataException("received invalid proxy", ex);
+                throw new InvalidDataException("received invalid service address", ex);
             }
         }
     }
@@ -1117,21 +1118,21 @@ public ref partial struct SliceDecoder
 
     private byte PeekByte() => _reader.TryPeek(out byte value) ? value : throw new EndOfBufferException();
 
-    /// <summary>Helper method to decode a proxy encoded with Slice1.</summary>
+    /// <summary>Helper method to decode a service address encoded with Slice1.</summary>
     /// <param name="path">The decoded path.</param>
-    /// <returns>The decoded proxy.</returns>
-    private ServiceAddress DecodeProxy(string path)
+    /// <returns>The decoded service address.</returns>
+    private ServiceAddress DecodeServiceAddress(string path)
     {
         var proxyData = new ProxyData(ref this);
 
         if (proxyData.ProtocolMajor == 0)
         {
-            throw new InvalidDataException("received proxy with protocol set to 0");
+            throw new InvalidDataException("received service address with protocol set to 0");
         }
         if (proxyData.ProtocolMinor != 0)
         {
             throw new InvalidDataException(
-                $"received proxy with invalid protocolMinor value: {proxyData.ProtocolMinor}");
+                $"received service address with invalid protocolMinor value: {proxyData.ProtocolMinor}");
         }
 
         int count = DecodeSize();
@@ -1139,13 +1140,13 @@ public ref partial struct SliceDecoder
         Endpoint? endpoint = null;
         IEnumerable<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
         var protocol = Protocol.FromByte(proxyData.ProtocolMajor);
-        ImmutableDictionary<string, string> proxyParams = ImmutableDictionary<string, string>.Empty;
+        ImmutableDictionary<string, string> serviceAddressParams = ImmutableDictionary<string, string>.Empty;
 
         if (count == 0)
         {
             if (DecodeString() is string adapterId && adapterId.Length > 0)
             {
-                proxyParams = proxyParams.Add("adapter-id", adapterId);
+                serviceAddressParams = serviceAddressParams.Add("adapter-id", adapterId);
             }
         }
         else
@@ -1170,7 +1171,7 @@ public ref partial struct SliceDecoder
         {
             if (!protocol.HasFragment && proxyData.Fragment.Length > 0)
             {
-                throw new InvalidDataException($"unexpected fragment in {protocol} proxy");
+                throw new InvalidDataException($"unexpected fragment in {protocol} service address");
             }
 
             return new ServiceAddress(
@@ -1178,7 +1179,7 @@ public ref partial struct SliceDecoder
                 path,
                 endpoint,
                 altEndpoints.ToImmutableList(),
-                proxyParams,
+                serviceAddressParams,
                 proxyData.Fragment);
         }
         catch (InvalidDataException)
@@ -1187,7 +1188,7 @@ public ref partial struct SliceDecoder
         }
         catch (Exception ex)
         {
-            throw new InvalidDataException("received invalid proxy", ex);
+            throw new InvalidDataException("received invalid service address", ex);
         }
     }
 

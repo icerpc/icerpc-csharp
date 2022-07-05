@@ -112,7 +112,7 @@ public sealed class StructTests
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
         encoder.EncodeInt32(expected.A);
-        encoder.EncodeNullableProxy(expected.I?.ServiceAddress);
+        encoder.EncodeNullableServiceAddress(expected.I?.ServiceAddress);
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
         var value = new MyCompactStructWithNullableProxy(ref decoder);
@@ -138,7 +138,7 @@ public sealed class StructTests
         else
         {
             bitSequenceWriter.Write(true);
-            encoder.EncodeProxy(expected.I.Value.ServiceAddress);
+            encoder.EncodeServiceAddress(expected.I.Value.ServiceAddress);
         }
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
@@ -163,7 +163,7 @@ public sealed class StructTests
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
         encoder.EncodeSequence(
             expected.I,
-            (ref SliceEncoder encoder, ServicePrx? value) => encoder.EncodeNullableProxy(value?.ServiceAddress));
+            (ref SliceEncoder encoder, ServicePrx? value) => encoder.EncodeNullableServiceAddress(value?.ServiceAddress));
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
         var value = new MyCompactStructWithSequenceOfNullableProxies(ref decoder);
@@ -187,7 +187,7 @@ public sealed class StructTests
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         encoder.EncodeSequenceWithBitSequence(
             expected.I,
-            (ref SliceEncoder encoder, ServicePrx? value) => encoder.EncodeProxy(value!.Value.ServiceAddress));
+            (ref SliceEncoder encoder, ServicePrx? value) => encoder.EncodeServiceAddress(value!.Value.ServiceAddress));
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
         var value = new MyCompactStructWithSequenceOfNullableProxies(ref decoder);
@@ -212,7 +212,7 @@ public sealed class StructTests
         encoder.EncodeDictionary(
             expected.I,
             (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value),
-            (ref SliceEncoder encoder, ServicePrx? value) => encoder.EncodeNullableProxy(value?.ServiceAddress));
+            (ref SliceEncoder encoder, ServicePrx? value) => encoder.EncodeNullableServiceAddress(value?.ServiceAddress));
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
         var value = new MyCompactStructWithDictionaryOfNullableProxies(ref decoder);
@@ -237,7 +237,7 @@ public sealed class StructTests
         encoder.EncodeDictionaryWithBitSequence(
             expected.I,
             (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value),
-            (ref SliceEncoder encoder, ServicePrx? value) => encoder.EncodeProxy(value!.Value.ServiceAddress));
+            (ref SliceEncoder encoder, ServicePrx? value) => encoder.EncodeServiceAddress(value!.Value.ServiceAddress));
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
         var value = new MyCompactStructWithDictionaryOfNullableProxies(ref decoder);

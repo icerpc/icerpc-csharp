@@ -14,7 +14,7 @@ public class Slice1NullableTests
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
-        encoder.EncodeNullableProxy(null);
+        encoder.EncodeNullableServiceAddress(null);
 
         Assert.That(
             () =>

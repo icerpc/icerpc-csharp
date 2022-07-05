@@ -55,7 +55,7 @@ public class ProxyTests
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
-        encoder.EncodeNullableProxy(expected);
+        encoder.EncodeNullableServiceAddress(expected);
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
         ServicePrx? decoded = decoder.DecodeNullablePrx<ServicePrx>();
@@ -72,7 +72,7 @@ public class ProxyTests
     {
         var bufferWriter = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(bufferWriter, encoding);
-        encoder.EncodeProxy(value);
+        encoder.EncodeServiceAddress(value);
         var sut = new SliceDecoder(bufferWriter.WrittenMemory, encoding: encoding);
 
         ServicePrx decoded = sut.DecodePrx<ServicePrx>();
@@ -89,7 +89,7 @@ public class ProxyTests
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
-            encoder.EncodeProxy(new ServiceAddress { Path = "/foo" });
+            encoder.EncodeServiceAddress(new ServiceAddress { Path = "/foo" });
             var decoder = new SliceDecoder(
                 bufferWriter.WrittenMemory,
                 encoding: SliceEncoding.Slice2,
