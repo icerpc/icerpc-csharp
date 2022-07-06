@@ -308,7 +308,7 @@ public ref partial struct SliceEncoder
             const bool secure = false;
             // The InvocationMode is carried by proxies that use the ice protocol, and it specifies the behavior when
             // sending a request using such a proxy. When encoding an ice proxy, IceRPC always uses Twoway.
-            const int invocationMode = 0; // Corresponds
+            const int invocationMode = 0; // Corresponds to Twoway
 
             if (serviceAddress.Protocol is not Protocol protocol)
             {
