@@ -1136,8 +1136,7 @@ public ref partial struct SliceDecoder
         _ = DecodeBool();
         byte protocolMajor = DecodeUInt8();
         byte protocolMinor = DecodeUInt8();
-        byte encodingMajor = DecodeUInt8();
-        byte encodingMinor = DecodeUInt8();
+        Skip(2); // skip encoding major and minor
 
         if (protocolMajor == 0)
         {

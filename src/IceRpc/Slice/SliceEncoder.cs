@@ -316,8 +316,8 @@ public ref partial struct SliceEncoder
                 throw new NotSupportedException("cannot encode a relative service address with Slice1");
             }
 
-            FragmentSliceEncoderExtensions.EncodeFragment(ref this, serviceAddress.Fragment);
-            InvocationModeSliceEncoderExtensions.EncodeInvocationMode(ref this, InvocationMode.Twoway);
+            this.EncodeFragment(serviceAddress.Fragment);
+            this.EncodeInvocationMode(InvocationMode.Twoway);
             EncodeBool(false); // Secure
             EncodeUInt8(protocol.ToByte()); // Protocol Major
             EncodeUInt8(0); // Protocol Minor
