@@ -7,10 +7,6 @@ namespace IceRpc;
 /// <summary>A property bag used to configure client and server connections.</summary>
 public record class ConnectionOptions
 {
-    /// <summary>Gets the default value for <see cref="Dispatcher"/>.</summary>
-    public static IDispatcher DefaultDispatcher { get; } = new InlineDispatcher((request, cancel) =>
-        throw new DispatchException(DispatchErrorCode.ServiceNotFound, RetryPolicy.OtherReplica));
-
     /// <summary>Gets or sets the connection establishment timeout.</summary>
     /// <value>The connection establishment timeout value. The default is 10s.</value>
     public TimeSpan ConnectTimeout
@@ -22,7 +18,7 @@ public record class ConnectionOptions
 
     /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection.</summary>
     /// <value>The dispatcher that dispatches requests received by this connection.</value>
-    public IDispatcher Dispatcher { get; set; } = DefaultDispatcher;
+    public IDispatcher Dispatcher { get; set; } = ServiceNotFoundDispatcher.Instance;
 
     /// <summary>Gets or sets the idle timeout. This timeout is used to gracefully shutdown the connection if it's
     /// idle for longer than this timeout. A connection is considered idle when there's no invocations or dispatches

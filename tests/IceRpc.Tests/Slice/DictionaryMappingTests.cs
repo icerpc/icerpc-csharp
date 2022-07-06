@@ -25,7 +25,7 @@ public class DictionaryMappingTests
             await DictionaryMappingOperationsProxy.Response.OpReturnTupleAsync(
                 response,
                 request,
-                NullInvoker.Instance,
+                InvalidOperationInvoker.Instance,
                 null,
                 default);
 
@@ -48,7 +48,7 @@ public class DictionaryMappingTests
         Dictionary<int, int> r = await DictionaryMappingOperationsProxy.Response.OpReturnSingleTypeAsync(
             response,
             request,
-            NullInvoker.Instance,
+            InvalidOperationInvoker.Instance,
             encodeFeature: null,
             default);
 

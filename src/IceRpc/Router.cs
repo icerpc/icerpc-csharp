@@ -138,7 +138,7 @@ public sealed class Router : IDispatcher
                         if (path.Length == AbsolutePrefix.Length)
                         {
                             // We consume everything so there is nothing left to match.
-                            return ConnectionOptions.DefaultDispatcher.DispatchAsync(request, cancel);
+                            return ServiceNotFoundDispatcher.Instance.DispatchAsync(request, cancel);
                         }
                         else
                         {
@@ -174,7 +174,7 @@ public sealed class Router : IDispatcher
 
                         if (prefix == "/")
                         {
-                            return ConnectionOptions.DefaultDispatcher.DispatchAsync(request, cancel);
+                            return ServiceNotFoundDispatcher.Instance.DispatchAsync(request, cancel);
                         }
 
                         // Cut last segment

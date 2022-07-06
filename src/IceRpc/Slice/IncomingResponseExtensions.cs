@@ -30,7 +30,7 @@ public static class IncomingResponseExtensions
                 request.Features.Get<ISliceDecodeFeature>(),
                 defaultActivator,
                 // we don't expect proxies in Failures, they are usually DispatchException
-                proxyInvoker: NullInvoker.Instance,
+                proxyInvoker: InvalidOperationInvoker.Instance,
                 proxyEncodeFeature: null,
                 cancel) :
             throw new ArgumentException(
