@@ -125,7 +125,7 @@ public class ConnectionTests
         var onAbortCalled = new TaskCompletionSource<object?>();
         if (abortClientConnection)
         {
-            serverConnection!.OnAbort(_ => onAbortCalled.SetResult(null));
+            serverConnection!.OnAbort(exception => onAbortCalled.SetException(exception));
             try
             {
                 await clientConnection.ShutdownAsync(new CancellationToken(true));
@@ -136,7 +136,7 @@ public class ConnectionTests
         }
         else
         {
-            clientConnection.OnAbort(_ => onAbortCalled.SetResult(null));
+            clientConnection.OnAbort(exception => onAbortCalled.SetException(exception));
             try
             {
                 await serverConnection!.ShutdownAsync(new CancellationToken(true));
@@ -157,7 +157,7 @@ public class ConnectionTests
         }
 
         // Assert
-        Assert.That(async () => await onAbortCalled.Task, Throws.Nothing);
+        Assert.That(async () => await onAbortCalled.Task, Throws.InstanceOf<ConnectionLostException>());
     }
 
     /// <summary>Verifies that connect establishment timeouts after the <see cref="ConnectionOptions.ConnectTimeout"/>
@@ -214,7 +214,6 @@ public class ConnectionTests
 
         using var semaphore = new SemaphoreSlim(0);
         connection.OnShutdown(message => semaphore.Release(1));
-
         await semaphore.WaitAsync();
 
         // Act/Assert
@@ -415,7 +414,6 @@ public class ConnectionTests
     }
 
     [Test]
-    [Repeat(100)]
     public async Task Shutdown_connection(
         [Values("icerpc", "ice")] string protocol,
         [Values] bool closeClientSide)
@@ -469,7 +467,8 @@ public class ConnectionTests
     }
 
     [Test]
-    public async Task Dispose_aborts_shutdown(
+    [Repeat(100)]
+    public async Task Dispose_after_shutdown_abort_invocations_and_cancel_dispatches(
         [Values("ice", "icerpc")] string protocol,
         [Values(true, false)] bool closeClientSide)
     {
@@ -521,7 +520,7 @@ public class ConnectionTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(async () => await shutdownTask, Throws.InstanceOf<ConnectionAbortedException>());
+            Assert.That(async () => await shutdownTask, Throws.Nothing);
             Assert.That(async () => await dispatchCompletionSource.Task, Throws.Nothing);
             if (closeClientSide)
             {
@@ -529,7 +528,14 @@ public class ConnectionTests
             }
             else
             {
-                Assert.That(async () => await pingTask, Throws.TypeOf<ConnectionLostException>());
+                if (protocol == "ice")
+                {
+                    Assert.That(async () => await pingTask, Throws.TypeOf<DispatchException>());
+                }
+                else
+                {
+                    Assert.That(async () => await pingTask, Throws.TypeOf<IceRpcProtocolStreamException>());
+                }
             }
         });
     }

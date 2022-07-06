@@ -20,7 +20,9 @@ internal abstract class ProtocolConnection : IProtocolConnection
     private readonly Timer _idleTimeoutTimer;
     private readonly object _mutex = new();
     private Action<Exception>? _onAbort;
+    private Exception? _onAbortException;
     private Action<string>? _onShutdown;
+    private string? _onShutdownMessage;
     private readonly CancellationTokenSource _shutdownCancelSource = new();
     private Task? _shutdownTask;
     private readonly TimeSpan _shutdownTimeout;
@@ -68,6 +70,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
             try
             {
+                cancelSource.Token.ThrowIfCancellationRequested();
+
                 NetworkConnectionInformation information = await PerformConnectAsync(
                     connection,
                     cancelSource.Token).ConfigureAwait(false);
@@ -109,33 +113,39 @@ internal abstract class ProtocolConnection : IProtocolConnection
             if (_connectTask is not null && !_connectTask.IsCompleted)
             {
                 _connectCancelSource.Cancel();
-            }
-            if (_shutdownTask is not null && !_shutdownTask.IsCompleted)
-            {
-                _shutdownCancelSource.Cancel();
-            }
 
-            // If connection establishment succeeded but shutdown is not initiated, let's initiate a speedy shutdown.
-            if (_connectTask is not null && _connectTask.IsCompletedSuccessfully && _shutdownTask is null)
-            {
-                _shutdownTask = ShutdownAsyncCore("connection disposed", speedy: true);
-            }
-
-            // Wait for shutdown or connection establishment to complete.
-            try
-            {
-                if (_shutdownTask is not null)
-                {
-                    await _shutdownTask.ConfigureAwait(false);
-                }
-                else if (_connectTask is not null)
+                try
                 {
                     await _connectTask.ConfigureAwait(false);
                 }
+                catch
+                {
+                }
             }
-            catch
+
+            // If connection establishment succeeded, ensure a speedy shutdown.
+            if (_connectTask is not null && _connectTask.IsCompletedSuccessfully)
             {
-                // Ignore
+                if (_shutdownTask is null)
+                {
+                    // Perform speedy shutdown.
+                    _shutdownTask = ShutdownAsyncCore("connection disposed", cancelDispatchesAndInvocations: true);
+                }
+                else if (!_shutdownTask.IsCanceled && !_shutdownTask.IsFaulted)
+                {
+                    // Speed-up shutdown only if shutdown didn't fail.
+                    CancelDispatchesAndAbortInvocations();
+                }
+
+                // Wait for shutdown or connection establishment to complete.
+                try
+                {
+                    await _shutdownTask.ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Ignore
+                }
             }
 
             await PerformDisposeAsync().ConfigureAwait(false);
@@ -183,7 +193,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
         lock (_mutex)
         {
-            if (_disposeTask is null)
+            if (_onAbortException is null)
             {
                 _onAbort += callback;
             }
@@ -195,7 +205,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
         if (executeCallback)
         {
-            callback(new ConnectionAbortedException("connection disposed"));
+            callback(_onAbortException!);
         }
     }
 
@@ -207,7 +217,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
         lock (_mutex)
         {
-            if (_shutdownTask is null)
+            if (_onShutdownMessage is null)
             {
                 _onShutdown += callback;
             }
@@ -219,7 +229,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
         if (executeCallback)
         {
-            callback("");
+            callback(_onShutdownMessage!);
         }
     }
 
@@ -244,10 +254,14 @@ internal abstract class ProtocolConnection : IProtocolConnection
             // is always aborted by DisposeAsync when calling ShutdownAsync(new CancellationToken(true)).
             if (cancel.IsCancellationRequested)
             {
+                _shutdownTask ??= Task.FromException(new ConnectionAbortedException("connection shutdown canceled"));
                 _shutdownCancelSource.Cancel();
+                cancel.ThrowIfCancellationRequested();
             }
-
-            _shutdownTask ??= ShutdownAsyncCore(message, speedy: false);
+            else
+            {
+                _shutdownTask ??= ShutdownAsyncCore(message);
+            }
         }
 
         return WaitForShutdownAsync();
@@ -286,6 +300,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
             });
     }
 
+    private protected abstract void CancelDispatchesAndAbortInvocations(Exception? exception = null);
+
     /// <summary>Checks if the connection is idle. If it's idle, the connection implementation should stop accepting new
     /// invocations and dispatches and return <c>true</c> and <c>false</c> otherwise.</summary>
     private protected abstract bool CheckIfIdle();
@@ -300,39 +316,41 @@ internal abstract class ProtocolConnection : IProtocolConnection
     /// when shutdown is initiated through this method.</summary>
     private protected void InitiateShutdown(string message)
     {
-        Action<string>? onShutdown = null;
         lock (_mutex)
         {
-            if (_shutdownTask is null)
+            if (_shutdownTask is not null)
             {
-                onShutdown = _onShutdown;
-                _onShutdown = null;
-                _shutdownTask = ShutdownAsyncCore(message, speedy: false);
+                return;
             }
+            _shutdownTask ??= ShutdownAsyncCore(message);
         }
-        onShutdown?.Invoke(message);
+        InvokeOnShutdown(message);
     }
 
     private protected void InvokeOnAbort(Exception exception)
     {
-        Action<Exception>? onAbort;
         lock (_mutex)
         {
-            onAbort = _onAbort;
-            _onAbort = null;
+            if (_onAbortException is not null)
+            {
+                return;
+            }
+            _onAbortException = exception;
         }
-        onAbort?.Invoke(exception);
+        _onAbort?.Invoke(exception);
     }
 
     private protected void InvokeOnShutdown(string message)
     {
-        Action<string>? onShutdown;
         lock (_mutex)
         {
-            onShutdown = _onShutdown;
-            _onShutdown = null;
+            if (_onShutdownMessage is not null)
+            {
+                return;
+            }
+            _onShutdownMessage = message;
         }
-        onShutdown?.Invoke(message);
+        _onShutdown?.Invoke(message);
     }
 
     private protected abstract Task<NetworkConnectionInformation> PerformConnectAsync(
@@ -346,9 +364,9 @@ internal abstract class ProtocolConnection : IProtocolConnection
         IConnection connection,
         CancellationToken cancel);
 
-    private protected abstract Task PerformShutdownAsync(string message, bool speedy, CancellationToken cancel);
+    private protected abstract Task PerformShutdownAsync(string message, CancellationToken cancel);
 
-    private async Task ShutdownAsyncCore(string message, bool speedy)
+    private async Task ShutdownAsyncCore(string message, bool cancelDispatchesAndInvocations = false)
     {
         Debug.Assert(_connectTask is not null);
 
@@ -360,11 +378,18 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
         try
         {
+            cancelSource.Token.ThrowIfCancellationRequested();
+
             // Wait for connect to complete first.
             await _connectTask.WaitAsync(cancelSource.Token).ConfigureAwait(false);
 
+            if (cancelDispatchesAndInvocations)
+            {
+                CancelDispatchesAndAbortInvocations();
+            }
+
             // Wait for shutdown to complete.
-            await PerformShutdownAsync(message, speedy, cancelSource.Token).ConfigureAwait(false);
+            await PerformShutdownAsync(message, cancelSource.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (_shutdownCancelSource.IsCancellationRequested)
         {
