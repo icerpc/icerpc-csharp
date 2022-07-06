@@ -24,7 +24,7 @@ var authenticationOptions = new SslClientAuthenticationOptions()
 
 await using var connection = new ClientConnection("icerpc://127.0.0.1", authenticationOptions);
 
-var hello = new HelloPrx(connection);
+var hello = new HelloProxy(connection);
 
 Console.Write("To say hello to the server, type your name: ");
 

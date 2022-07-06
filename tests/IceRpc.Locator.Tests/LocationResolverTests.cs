@@ -14,19 +14,19 @@ public class LocationResolverTests
         int refreshThreshold,
         int cacheEntryAge)
     {
-        var cachedProxy = Proxy.Parse("ice://localhost/cached");
+        var cachedServiceAddress = ServiceAddress.Parse("ice://localhost/cached");
         var endpointFinder = new MockEndpointFinder();
         var resolver = new LocationResolver(
                 endpointFinder,
-                new MockEndpointCache(cachedProxy, insertionTime: TimeSpan.FromSeconds(cacheEntryAge)),
+                new MockEndpointCache(cachedServiceAddress, insertionTime: TimeSpan.FromSeconds(cacheEntryAge)),
                 background: false,
                 TimeSpan.FromSeconds(refreshThreshold),
                 ttl: Timeout.InfiniteTimeSpan);
 
-        (Proxy? resolved, bool _) = await resolver.ResolveAsync(new Location(), refreshCache: true, default);
+        (ServiceAddress? resolved, bool _) = await resolver.ResolveAsync(new Location(), refreshCache: true, default);
 
         Assert.That(endpointFinder.Calls, Is.EqualTo(0));
-        Assert.That(resolved, Is.EqualTo(cachedProxy));
+        Assert.That(resolved, Is.EqualTo(cachedServiceAddress));
     }
 
     [TestCase(100, 120)]
@@ -36,49 +36,49 @@ public class LocationResolverTests
         int refreshThreshold,
         int cacheEntryAge)
     {
-        var cachedProxy = Proxy.Parse("ice://localhost/cached");
-        var resolvedProxy = Proxy.Parse("ice://localhost/resolved");
-        var endpointFinder = new MockEndpointFinder(resolvedProxy);
+        var cachedServiceAddress = ServiceAddress.Parse("ice://localhost/cached");
+        var resolvedServiceAddress = ServiceAddress.Parse("ice://localhost/resolved");
+        var endpointFinder = new MockEndpointFinder(resolvedServiceAddress);
         var resolver = new LocationResolver(
                 endpointFinder,
-                new MockEndpointCache(cachedProxy, insertionTime: TimeSpan.FromSeconds(cacheEntryAge)),
+                new MockEndpointCache(cachedServiceAddress, insertionTime: TimeSpan.FromSeconds(cacheEntryAge)),
                 background: false,
                 TimeSpan.FromSeconds(refreshThreshold),
                 ttl: Timeout.InfiniteTimeSpan);
 
-        (Proxy? resolved, bool _) = await resolver.ResolveAsync(new Location(), refreshCache: true, default);
+        (ServiceAddress? resolved, bool _) = await resolver.ResolveAsync(new Location(), refreshCache: true, default);
 
         Assert.That(endpointFinder.Calls, Is.EqualTo(1));
-        Assert.That(resolved, Is.EqualTo(resolvedProxy));
+        Assert.That(resolved, Is.EqualTo(resolvedServiceAddress));
     }
 
     [Test]
     [NonParallelizable]
     public async Task Endpoint_finder_called_on_background()
     {
-        var cachedProxy = Proxy.Parse("ice://localhost/stale");
-        var resolvedProxy = Proxy.Parse("ice://localhost/resolved");
-        var endpointFinder = new MockEndpointFinder(resolvedProxy);
+        var cachedServiceAddress = ServiceAddress.Parse("ice://localhost/stale");
+        var resolvedServiceAddress = ServiceAddress.Parse("ice://localhost/resolved");
+        var endpointFinder = new MockEndpointFinder(resolvedServiceAddress);
         var resolver = new LocationResolver(
                 endpointFinder,
-                new MockEndpointCache(cachedProxy, insertionTime: TimeSpan.FromSeconds(120)),
+                new MockEndpointCache(cachedServiceAddress, insertionTime: TimeSpan.FromSeconds(120)),
                 background: true,
                 TimeSpan.FromSeconds(1),
                 ttl: TimeSpan.FromSeconds(30));
 
-        (Proxy? resolved, bool fromCache) = await resolver.ResolveAsync(new Location(), refreshCache: false, default);
+        (ServiceAddress? resolved, bool fromCache) = await resolver.ResolveAsync(new Location(), refreshCache: false, default);
 
         Assert.That(fromCache, Is.True);
-        Assert.That(resolved, Is.EqualTo(cachedProxy));
+        Assert.That(resolved, Is.EqualTo(cachedServiceAddress));
         Assert.That(endpointFinder.Calls, Is.EqualTo(1));
     }
 
     [Test]
     public async Task Location_recursive_resolution()
     {
-        var wellKnownProxy = Proxy.Parse("ice:/foo?adapter-id=bar");
-        var adapterIdProxy = Proxy.Parse("ice://localhost/resolved");
-        var endpointFinder = new MockEndpointFinder(wellKnownProxy, adapterIdProxy);
+        var wellKnownServiceAddress = ServiceAddress.Parse("ice:/foo?adapter-id=bar");
+        var adapterIdServiceAddress = ServiceAddress.Parse("ice://localhost/resolved");
+        var endpointFinder = new MockEndpointFinder(wellKnownServiceAddress, adapterIdServiceAddress);
         var resolver = new LocationResolver(
                 endpointFinder,
                 new MockEndpointCache(),
@@ -86,7 +86,7 @@ public class LocationResolverTests
                 TimeSpan.FromSeconds(1),
                 ttl: TimeSpan.FromSeconds(30));
 
-        (Proxy? resolved, bool fromCache) = await resolver.ResolveAsync(
+        (ServiceAddress? resolved, bool fromCache) = await resolver.ResolveAsync(
             new Location
             {
                 Value = "/hello",
@@ -96,16 +96,16 @@ public class LocationResolverTests
             default);
 
         Assert.That(fromCache, Is.False);
-        Assert.That(resolved, Is.EqualTo(adapterIdProxy));
+        Assert.That(resolved, Is.EqualTo(adapterIdServiceAddress));
         Assert.That(endpointFinder.Calls, Is.EqualTo(2));
     }
 
     [Test]
     public async Task Failure_to_recursively_resolve_adapter_id_removes_proxy_from_cache()
     {
-        var wellKnownProxy = Proxy.Parse("ice:/foo?adapter-id=bar");
-        var endpointFinder = new MockEndpointFinder(wellKnownProxy);
-        var endpointCache = new MockEndpointCache(wellKnownProxy);
+        var wellKnownServiceAddress = ServiceAddress.Parse("ice:/foo?adapter-id=bar");
+        var endpointFinder = new MockEndpointFinder(wellKnownServiceAddress);
+        var endpointCache = new MockEndpointCache(wellKnownServiceAddress);
         var resolver = new LocationResolver(
                 endpointFinder,
                 endpointCache,
@@ -118,7 +118,7 @@ public class LocationResolverTests
             IsAdapterId = false,
         };
 
-        (Proxy? resolved, bool fromCache) = await resolver.ResolveAsync(
+        (ServiceAddress? resolved, bool fromCache) = await resolver.ResolveAsync(
             location,
             refreshCache: false,
             default);
@@ -133,21 +133,21 @@ public class LocationResolverTests
     {
         public int Calls { get; private set; }
 
-        private readonly Proxy? _adapterIdProxy;
-        private readonly Proxy? _wellKnownProxy;
+        private readonly ServiceAddress? _adapterIdServiceAddress;
+        private readonly ServiceAddress? _wellKnownServiceAddress;
 
         internal MockEndpointFinder(
-            Proxy? wellKnownProxy = null,
-            Proxy? adapterIdProxy = null)
+            ServiceAddress? wellKnownServiceAddress = null,
+            ServiceAddress? adapterIdServiceAddress = null)
         {
-            _wellKnownProxy = wellKnownProxy;
-            _adapterIdProxy = adapterIdProxy;
+            _wellKnownServiceAddress = wellKnownServiceAddress;
+            _adapterIdServiceAddress = adapterIdServiceAddress;
         }
 
-        public Task<Proxy?> FindAsync(Location location, CancellationToken cancel)
+        public Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancel)
         {
             Calls++;
-            return Task.FromResult(location.IsAdapterId ? _adapterIdProxy : _wellKnownProxy);
+            return Task.FromResult(location.IsAdapterId ? _adapterIdServiceAddress : _wellKnownServiceAddress);
         }
     }
 
@@ -156,24 +156,24 @@ public class LocationResolverTests
         public List<Location> Removed { get; } = new List<Location>();
 
         private readonly TimeSpan _insertionTime;
-        private readonly Proxy? _adapterIdProxy;
-        private readonly Proxy? _wellKnownProxy;
+        private readonly ServiceAddress? _adapterIdServiceAddress;
+        private readonly ServiceAddress? _wellKnownServiceAddress;
 
         internal MockEndpointCache(
-            Proxy? wellKnownProxy = null,
-            Proxy? adapterIdProxy = null,
+            ServiceAddress? wellKnownServiceAddress = null,
+            ServiceAddress? adapterIdServiceAddress = null,
             TimeSpan? insertionTime = null)
         {
-            _wellKnownProxy = wellKnownProxy;
-            _adapterIdProxy = adapterIdProxy;
+            _wellKnownServiceAddress = wellKnownServiceAddress;
+            _adapterIdServiceAddress = adapterIdServiceAddress;
             _insertionTime = insertionTime ?? Timeout.InfiniteTimeSpan;
         }
         public void Remove(Location location) => Removed.Add(location);
-        public void Set(Location location, Proxy proxy) => throw new NotImplementedException();
-        public bool TryGetValue(Location location, out (TimeSpan InsertionTime, Proxy Proxy) value)
+        public void Set(Location location, ServiceAddress serviceAddress) => throw new NotImplementedException();
+        public bool TryGetValue(Location location, out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) value)
         {
-            if ((location.IsAdapterId && _adapterIdProxy is null) ||
-                (!location.IsAdapterId && _wellKnownProxy is null))
+            if ((location.IsAdapterId && _adapterIdServiceAddress is null) ||
+                (!location.IsAdapterId && _wellKnownServiceAddress is null))
             {
                 value = default;
                 return false;
@@ -181,7 +181,7 @@ public class LocationResolverTests
             else
             {
                 value = (TimeSpan.FromMilliseconds(Environment.TickCount64) - _insertionTime,
-                         location.IsAdapterId ? _adapterIdProxy! : _wellKnownProxy!);
+                         location.IsAdapterId ? _adapterIdServiceAddress! : _wellKnownServiceAddress!);
                 return true;
             }
         }

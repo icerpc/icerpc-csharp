@@ -15,8 +15,8 @@ public sealed class RequestContextInterceptorTests
     public async Task Context_feature_encoded_in_context_field()
     {
         var context = new Dictionary<string, string> { ["Foo"] = "Bar" };
-        var prx = new Proxy(Protocol.IceRpc);
-        var request = new OutgoingRequest(prx)
+        var proxy = new ServiceAddress(Protocol.IceRpc);
+        var request = new OutgoingRequest(proxy)
         {
             Features = new FeatureCollection().With<IRequestContextFeature>(
                 new RequestContextFeature()

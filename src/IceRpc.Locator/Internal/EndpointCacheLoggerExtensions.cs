@@ -11,23 +11,23 @@ internal static partial class EndpointCacheLoggerExtensions
         EventId = (int)LocationEventIds.FoundEntry,
         EventName = nameof(LocationEventIds.FoundEntry),
         Level = LogLevel.Trace,
-        Message = "found {LocationKind} '{Location}' = '{Proxy}' in cache")]
+        Message = "found {LocationKind} '{Location}' = '{ServiceAddress}' in cache")]
     internal static partial void LogFoundEntry(
         this ILogger logger,
         string locationKind,
         Location location,
-        Proxy proxy);
+        ServiceAddress serviceAddress);
 
     [LoggerMessage(
         EventId = (int)LocationEventIds.SetEntry,
         EventName = nameof(LocationEventIds.SetEntry),
         Level = LogLevel.Trace,
-        Message = "set {LocationKind} '{Location}' = '{Proxy}' in cache")]
+        Message = "set {LocationKind} '{Location}' = '{ServiceAddress}' in cache")]
     internal static partial void LogSetEntry(
         this ILogger logger,
         string locationKind,
         Location location,
-        Proxy proxy);
+        ServiceAddress serviceAddress);
 
     [LoggerMessage(
         EventId = (int)LocationEventIds.RemovedEntry,

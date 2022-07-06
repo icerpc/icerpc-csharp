@@ -14,7 +14,7 @@ public partial class DispatchException
 
             if (Origin is OutgoingRequest request)
             {
-                message += $" thrown by operation '{request.Operation}' on '{request.Proxy}'";
+                message += $" thrown by operation '{request.Operation}' on '{request.ServiceAddress}'";
             }
             if (InnerException is not null)
             {

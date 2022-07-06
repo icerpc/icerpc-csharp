@@ -138,7 +138,7 @@ public class EndpointTests
     /// <summary>Verifies that parsing an invalid endpoint string throws <see cref="FormatException"/>.</summary>
     [TestCase("icerpc://host:10000/category/name")]                // unexpected path
     [TestCase("icerpc://host:10000#fragment")]                     // unexpected fragment
-    [TestCase("icerpc://host:10000?alt-endpoint=host2")]           // alt-endpoint is proxy only
+    [TestCase("icerpc://host:10000?alt-endpoint=host2")]           // alt-endpoint is service address only
     [TestCase("icerpc://host:10000?=bar")]                         // empty param name
     [TestCase("icerpc:///foo")]                                    // path, empty authority
     [TestCase("icerpc:///")]                                       // empty authority

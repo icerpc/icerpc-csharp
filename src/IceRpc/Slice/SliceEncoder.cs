@@ -275,19 +275,19 @@ public ref partial struct SliceEncoder
 
     // Encode methods for constructed types
 
-    /// <summary>Encodes a nullable proxy (Slice1 only).</summary>
-    /// <param name="proxy">The proxy to encode, or null.</param>
-    public void EncodeNullableProxy(Proxy? proxy)
+    /// <summary>Encodes a nullable service address (Slice1 only).</summary>
+    /// <param name="serviceAddress">The service address to encode, or null.</param>
+    public void EncodeNullableServiceAddress(ServiceAddress? serviceAddress)
     {
         if (Encoding != SliceEncoding.Slice1)
         {
             throw new InvalidOperationException(
-                "encoding nullable proxies without a bit sequence is only supported with Slice1");
+                "encoding a nullable service address without a bit sequence is only supported with Slice1");
         }
 
-        if (proxy is not null)
+        if (serviceAddress is not null)
         {
-            EncodeProxy(proxy);
+            EncodeServiceAddress(serviceAddress);
         }
         else
         {
@@ -295,23 +295,23 @@ public ref partial struct SliceEncoder
         }
     }
 
-    /// <summary>Encodes a non-null proxy.</summary>
-    /// <param name="proxy">The proxy to encode.</param>
-    public void EncodeProxy(Proxy proxy)
+    /// <summary>Encodes a non-null service address.</summary>
+    /// <param name="serviceAddress">The service address to encode.</param>
+    public void EncodeServiceAddress(ServiceAddress serviceAddress)
     {
         if (Encoding == SliceEncoding.Slice1)
         {
-            this.EncodeIdentityPath(proxy.Path);
+            this.EncodeIdentityPath(serviceAddress.Path);
             const byte encodingMajor = 1;
             const byte encodingMinor = 1;
 
-            if (proxy.Protocol is not Protocol protocol)
+            if (serviceAddress.Protocol is not Protocol protocol)
             {
-                throw new NotSupportedException("cannot encode a relative proxy with Slice1");
+                throw new NotSupportedException("cannot encode a relative service address with Slice1");
             }
 
             var proxyData = new ProxyData(
-                proxy.Fragment,
+                serviceAddress.Fragment,
                 InvocationMode.Twoway,
                 secure: false,
                 protocolMajor: protocol.ToByte(),
@@ -320,11 +320,11 @@ public ref partial struct SliceEncoder
                 encodingMinor);
             proxyData.Encode(ref this);
 
-            if (proxy.Endpoint is Endpoint endpoint)
+            if (serviceAddress.Endpoint is Endpoint endpoint)
             {
-                EncodeSize(1 + proxy.AltEndpoints.Count); // endpoint count
+                EncodeSize(1 + serviceAddress.AltEndpoints.Count); // endpoint count
                 EncodeEndpoint(endpoint);
-                foreach (Endpoint altEndpoint in proxy.AltEndpoints)
+                foreach (Endpoint altEndpoint in serviceAddress.AltEndpoints)
                 {
                     EncodeEndpoint(altEndpoint);
                 }
@@ -332,19 +332,19 @@ public ref partial struct SliceEncoder
             else
             {
                 EncodeSize(0); // 0 endpoints
-                int maxCount = proxy.Params.TryGetValue("adapter-id", out string? adapterId) ? 1 : 0;
+                int maxCount = serviceAddress.Params.TryGetValue("adapter-id", out string? adapterId) ? 1 : 0;
 
-                if (proxy.Params.Count > maxCount)
+                if (serviceAddress.Params.Count > maxCount)
                 {
                     throw new NotSupportedException(
-                        "cannot encode a proxy with a parameter other than adapter-id using Slice1");
+                        "cannot encode a service address with a parameter other than adapter-id using Slice1");
                 }
                 EncodeString(adapterId ?? "");
             }
         }
         else
         {
-            EncodeString(proxy.ToString()); // a URI or an absolute path
+            EncodeString(serviceAddress.ToString()); // a URI or an absolute path
         }
     }
 

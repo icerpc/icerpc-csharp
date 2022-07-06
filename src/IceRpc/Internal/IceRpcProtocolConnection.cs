@@ -169,7 +169,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         IMultiplexedStream? stream = null;
         try
         {
-            if (request.Proxy.Fragment.Length > 0)
+            if (request.ServiceAddress.Fragment.Length > 0)
             {
                 throw new NotSupportedException("the icerpc protocol does not support fragments");
             }
@@ -290,7 +290,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(_headerSizeLength);
             int headerStartPos = encoder.EncodedByteCount; // does not include the size
 
-            var header = new IceRpcRequestHeader(request.Proxy.Path, request.Operation);
+            var header = new IceRpcRequestHeader(request.ServiceAddress.Path, request.Operation);
 
             header.Encode(ref encoder);
 

@@ -29,7 +29,7 @@ public class DeflateInterceptorTests
         // Arrange
         var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc)));
         var sut = new DeflateInterceptor(invoker);
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         request.Features = request.Features.With<ICompressFeature>(CompressFeature.Compress);
         var outStream = new MemoryStream();
         var output = PipeWriter.Create(outStream);
@@ -57,7 +57,7 @@ public class DeflateInterceptorTests
     {
         var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc)));
         var sut = new DeflateInterceptor(invoker);
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         await sut.InvokeAsync(request, default);
 
@@ -74,7 +74,7 @@ public class DeflateInterceptorTests
     {
         var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc)));
         var sut = new DeflateInterceptor(invoker);
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         request.Features = request.Features.With<ICompressFeature>(CompressFeature.Compress);
         request.Fields = request.Fields.With(
             RequestFieldKey.CompressionFormat,
@@ -103,7 +103,7 @@ public class DeflateInterceptorTests
             return Task.FromResult(response);
         });
         var sut = new DeflateInterceptor(invoker);
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         IncomingResponse response = await sut.InvokeAsync(request, default);
 
@@ -124,7 +124,7 @@ public class DeflateInterceptorTests
             return Task.FromResult(response);
         });
         var sut = new DeflateInterceptor(invoker);
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         IncomingResponse response = await sut.InvokeAsync(request, default);
 

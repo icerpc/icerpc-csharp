@@ -35,9 +35,9 @@ public class ConnectionTests
         server.Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
-        var proxy = new Proxy(connection.Protocol) { Path = "/foo" };
+        var serviceAddress = new ServiceAddress(connection.Protocol) { Path = "/foo" };
 
-        var invokeTask = connection.InvokeAsync(new OutgoingRequest(proxy));
+        var invokeTask = connection.InvokeAsync(new OutgoingRequest(serviceAddress));
         await start.WaitAsync(); // Wait for dispatch to start
 
         // Act
@@ -71,9 +71,9 @@ public class ConnectionTests
         server.Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
-        var proxy = new Proxy(connection.Protocol) { Path = "/foo" };
+        var serviceAddress = new ServiceAddress(connection.Protocol) { Path = "/foo" };
 
-        var invokeTask = connection.InvokeAsync(new OutgoingRequest(proxy));
+        var invokeTask = connection.InvokeAsync(new OutgoingRequest(serviceAddress));
         await start.WaitAsync(); // Wait for dispatch to start
 
         // Act
@@ -109,9 +109,9 @@ public class ConnectionTests
         var clientConnection = provider.GetRequiredService<ClientConnection>();
         clientConnection.OnAbort(_ => clientConnectionClosed.SetResult(null));
 
-        var proxy = new Proxy(clientConnection.Protocol) { Path = "/foo" };
+        var serviceAddress = new ServiceAddress(clientConnection.Protocol) { Path = "/foo" };
 
-        await clientConnection.InvokeAsync(new OutgoingRequest(proxy));
+        await clientConnection.InvokeAsync(new OutgoingRequest(serviceAddress));
 
         // Act
         if (closeClientConnection)
@@ -137,7 +137,7 @@ public class ConnectionTests
         var tcpServerTransport = new TcpServerTransport();
         var slicServerTransport = new SlicServerTransport(tcpServerTransport);
 
-        var proxy = new Proxy(Protocol.IceRpc);
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
 
         using var listener = slicServerTransport.Listen("icerpc://127.0.0.1:0", null, NullLogger.Instance);
         await using var connection = new ClientConnection(new ClientConnectionOptions
@@ -148,7 +148,7 @@ public class ConnectionTests
 
         // Assert
         Assert.That(
-            async () => await connection.InvokeAsync(new OutgoingRequest(proxy), default),
+            async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress), default),
             Throws.TypeOf<TimeoutException>());
     }
 
@@ -176,9 +176,9 @@ public class ConnectionTests
         server.Listen();
         var connection = provider.GetRequiredService<ClientConnection>();
 
-        var proxy = new Proxy(connection.Protocol) { Path = "/foo" };
+        var serviceAddress = new ServiceAddress(connection.Protocol) { Path = "/foo" };
 
-        await connection.InvokeAsync(new OutgoingRequest(proxy));
+        await connection.InvokeAsync(new OutgoingRequest(serviceAddress));
 
         using var semaphore = new SemaphoreSlim(0);
         connection.OnShutdown(message => semaphore.Release(1));
@@ -192,7 +192,7 @@ public class ConnectionTests
 
         // Act/Assert
         Assert.That(
-            async () => await connection.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)), default),
+            async () => await connection.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)), default),
             Throws.TypeOf<ConnectionClosedException>());
     }
 
@@ -218,9 +218,9 @@ public class ConnectionTests
         server.Listen();
         var connection = provider.GetRequiredService<ResumableClientConnection>();
 
-        var proxy = new Proxy(connection.Protocol) { Path = "/foo" };
+        var serviceAddress = new ServiceAddress(connection.Protocol) { Path = "/foo" };
 
-        await connection.InvokeAsync(new OutgoingRequest(proxy));
+        await connection.InvokeAsync(new OutgoingRequest(serviceAddress));
 
         using var semaphore = new SemaphoreSlim(0);
         connection.OnShutdown(message =>
@@ -237,7 +237,7 @@ public class ConnectionTests
         await semaphore.WaitAsync();
 
         // Act/Assert
-        await connection.InvokeAsync(new OutgoingRequest(proxy));
+        await connection.InvokeAsync(new OutgoingRequest(serviceAddress));
     }
 
     [Test]
@@ -261,8 +261,8 @@ public class ConnectionTests
         server.Listen();
         var connection = provider.GetRequiredService<ResumableClientConnection>();
 
-        var proxy = new Proxy(connection.Protocol) { Path = "/foo" };
-        await connection.InvokeAsync(new OutgoingRequest(proxy));
+        var serviceAddress = new ServiceAddress(connection.Protocol) { Path = "/foo" };
+        await connection.InvokeAsync(new OutgoingRequest(serviceAddress));
 
         using var semaphore = new SemaphoreSlim(0);
 
@@ -300,7 +300,7 @@ public class ConnectionTests
         await semaphore.WaitAsync();
 
         // Act/Assert
-        await connection.InvokeAsync(new OutgoingRequest(proxy));
+        await connection.InvokeAsync(new OutgoingRequest(serviceAddress));
     }
 
     [Test]
@@ -325,8 +325,8 @@ public class ConnectionTests
         provider.GetRequiredService<Server>().Listen();
         var connection = provider.GetRequiredService<ResumableClientConnection>();
 
-        var proxy = new Proxy(connection.Protocol) { Path = "/foo" };
-        await connection.InvokeAsync(new OutgoingRequest(proxy));
+        var serviceAddress = new ServiceAddress(connection.Protocol) { Path = "/foo" };
+        await connection.InvokeAsync(new OutgoingRequest(serviceAddress));
 
         using var semaphore = new SemaphoreSlim(0);
         connection.OnAbort(exception =>
@@ -344,7 +344,7 @@ public class ConnectionTests
         await semaphore.WaitAsync();
 
         // Act/Assert
-        await connection.InvokeAsync(new OutgoingRequest(proxy));
+        await connection.InvokeAsync(new OutgoingRequest(serviceAddress));
     }
 
     [Test]
@@ -362,9 +362,9 @@ public class ConnectionTests
 
         provider.GetRequiredService<Server>().Listen();
         var connection = provider.GetRequiredService<ResumableClientConnection>();
-        var proxy = new Proxy(connection.Protocol) { Path = "/foo" };
+        var serviceAddress = new ServiceAddress(connection.Protocol) { Path = "/foo" };
 
-        await connection.InvokeAsync(new OutgoingRequest(proxy));
+        await connection.InvokeAsync(new OutgoingRequest(serviceAddress));
 
         // Act
         await connection.ShutdownAsync();
@@ -419,8 +419,8 @@ public class ConnectionTests
         var server = provider.GetRequiredService<Server>();
         server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
-        var proxy = new ServicePrx(clientConnection, "/path", clientConnection.Protocol);
-        var pingTask = proxy.IcePingAsync();
+        var serviceAddress = new ServiceProxy(clientConnection, "/path", clientConnection.Protocol);
+        var pingTask = serviceAddress.IcePingAsync();
         await start.WaitAsync();
 
         // Act
@@ -497,8 +497,8 @@ public class ConnectionTests
         var server = provider.GetRequiredService<Server>();
         server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
-        var proxy = new ServicePrx(clientConnection, "/path", clientConnection.Protocol);
-        var pingTask = proxy.IcePingAsync();
+        var serviceAddress = new ServiceProxy(clientConnection, "/path", clientConnection.Protocol);
+        var pingTask = serviceAddress.IcePingAsync();
         await start.WaitAsync();
         Task shutdownTask = closeClientSide ?
             clientConnection.ShutdownAsync(shutdownCancellationSource.Token) :
@@ -606,8 +606,8 @@ public class ConnectionTests
         var server = provider.GetRequiredService<Server>();
         server.Listen();
         var clientConnection = provider.GetRequiredService<ClientConnection>();
-        var proxy = new ServicePrx(clientConnection, "/path", clientConnection.Protocol);
-        var pingTask = proxy.IcePingAsync();
+        var serviceAddress = new ServiceProxy(clientConnection, "/path", clientConnection.Protocol);
+        var pingTask = serviceAddress.IcePingAsync();
         await start.WaitAsync();
 
         // Act

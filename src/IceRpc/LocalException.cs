@@ -2,7 +2,7 @@
 
 namespace IceRpc;
 
-/// <summary>This exception reports that a proxy has no endpoint or no usable endpoint.</summary>
+/// <summary>This exception reports that a service address has no endpoint or no usable endpoint.</summary>
 public class NoEndpointException : Exception
 {
     /// <summary>Constructs a new instance of the <see cref="NoEndpointException"/> class.</summary>
@@ -11,9 +11,9 @@ public class NoEndpointException : Exception
     }
 
     /// <summary>Constructs a new instance of the <see cref="NoEndpointException"/> class.</summary>
-    /// <param name="proxy">The proxy with no endpoint or no usable endpoint.</param>
-    public NoEndpointException(Proxy proxy)
-        : base($"proxy '{proxy}' has no usable endpoint")
+    /// <param name="serviceAddress">The service address with no endpoint or no usable endpoint.</param>
+    public NoEndpointException(ServiceAddress serviceAddress)
+        : base($"service address '{serviceAddress}' has no usable endpoint")
     {
     }
 }
