@@ -6,16 +6,16 @@ namespace IceRpc;
 
 /// <summary>A trivial dispatcher that always throws a <see cref="DispatchException"/> with error code
 /// <see cref="DispatchErrorCode.ServiceNotFound"/>.</summary>
-public class NullDispatcher : IDispatcher
+public class ServiceNotFoundDispatcher : IDispatcher
 {
     /// <summary>Gets the unique instance of this class.</summary>
-    public static NullDispatcher Instance { get; } = new();
+    public static ServiceNotFoundDispatcher Instance { get; } = new();
 
     /// <inheritdoc/>
     public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel = default) =>
         throw new DispatchException(DispatchErrorCode.ServiceNotFound, RetryPolicy.OtherReplica);
 
-    private NullDispatcher()
+    private ServiceNotFoundDispatcher()
     {
         // Ensures it's a singleton.
     }

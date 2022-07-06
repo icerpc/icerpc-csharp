@@ -88,7 +88,7 @@ public class RouterTests
     {
         var router = new Router();
 
-        Assert.Throws<FormatException>(() => router.Mount("foo", NullDispatcher.Instance));
+        Assert.Throws<FormatException>(() => router.Mount("foo", ServiceNotFoundDispatcher.Instance));
     }
 
     /// <summary>Verifies that a dispatcher mounted using <see cref="Router.Mount(string, IDispatcher)"/>
@@ -130,7 +130,7 @@ public class RouterTests
     {
         var router = new Router();
 
-        Assert.Throws<FormatException>(() => router.Mount("foo", NullDispatcher.Instance));
+        Assert.Throws<FormatException>(() => router.Mount("foo", ServiceNotFoundDispatcher.Instance));
     }
 
     /// <summary>Verifies that a path that doesn't match any of the registered routes throws a dispatch
