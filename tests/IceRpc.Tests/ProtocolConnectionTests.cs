@@ -528,7 +528,7 @@ public sealed class ProtocolConnectionTests
     /// <summary>Verifies that a connection will not accept further request after shutdown was called, and it will
     /// allow pending dispatches to finish.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
-    public async Task Shutdown_prevents_accepting_new_requests_and_let_pending_dispatches_complete(Protocol protocol)
+    public async Task Shutdown_let_pending_dispatches_complete(Protocol protocol)
     {
         // Arrange
         using var start = new SemaphoreSlim(0);
@@ -546,24 +546,17 @@ public sealed class ProtocolConnectionTests
         await sut.ConnectAsync();
 
         IConnection connection = provider.GetRequiredService<IConnection>();
-        var invokeTask1 = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol)), connection);
+        var invokeTask = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol)), connection);
         await start.WaitAsync(); // Wait for the dispatch to start
 
         // Act
         var shutdownTask = sut.Server.ShutdownAsync("");
 
         // Assert
-
-        // Wait a little to ensure that the server connection shutdown is initiated (it yields and might still accept
-        // requests before the yield).
-        await Task.Delay(TimeSpan.FromMilliseconds(100));
-
-        var invokeTask2 = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol)), connection);
         hold.Release();
         Assert.Multiple(() =>
         {
-            Assert.That(async () => await invokeTask1, Throws.Nothing);
-            Assert.That(async () => await invokeTask2, Throws.TypeOf<ConnectionClosedException>());
+            Assert.That(async () => await invokeTask, Throws.Nothing);
             Assert.That(async () => await shutdownTask, Throws.Nothing);
         });
     }
