@@ -302,8 +302,8 @@ public ref partial struct SliceEncoder
         // With Slice1, a proxy is encoded as a kind of discriminated union with:
         // - Identity
         // - If Identity is not the null identity:
-        //     - ProxyData (which consists of the fragment, invocation mode, protocol  major and minor, and the
-        //       encoding major and minor)
+        //     - The fragment, invocation mode, protocol major and minor, and the
+        //       encoding major and minor
         //     - a sequence of endpoints that can be empty
         //     - an adapter ID string present only when the sequence of endpoints is empty
 
