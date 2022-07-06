@@ -126,7 +126,7 @@ internal class LocationResolver : ILocationResolver
             _ = _endpointFinder.FindAsync(location, cancel: default).ConfigureAwait(false);
         }
 
-        // A well-known serviceAddress resolution can return a serviceAddress with an adapter-id
+        // A well-known service address resolution can return a service address with an adapter-id
         if (serviceAddress is not null && serviceAddress.Params.TryGetValue("adapter-id", out string? adapterId))
         {
             try
