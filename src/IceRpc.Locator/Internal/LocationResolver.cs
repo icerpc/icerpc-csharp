@@ -55,7 +55,7 @@ internal class CacheLessLocationResolver : ILocationResolver
     {
         ServiceAddress? serviceAddress = await _endpointFinder.FindAsync(location, cancel).ConfigureAwait(false);
 
-        // A well-known serviceAddress resolution can return a serviceAddress with an adapter ID
+        // A well-known service address resolution can return a service address with an adapter ID
         if (serviceAddress is not null && serviceAddress.Params.TryGetValue("adapter-id", out string? adapterId))
         {
             (serviceAddress, _) = await ResolveAsync(
@@ -121,17 +121,18 @@ internal class LocationResolver : ILocationResolver
         }
         else if (_background && expired)
         {
-            // We retrieved an expired serviceAddress from the cache, so we launch a refresh in the background.
+            // We retrieved an expired service address from the cache, so we launch a refresh in the background.
+``1
             _ = _endpointFinder.FindAsync(location, cancel: default).ConfigureAwait(false);
         }
 
-        // A well-known serviceAddress resolution can return a serviceAddress with an adapter-id
+        // A well-known service address resolution can return a service address with an adapter-id
         if (serviceAddress is not null && serviceAddress.Params.TryGetValue("adapter-id", out string? adapterId))
         {
             try
             {
                 // Resolves adapter ID recursively, by checking first the cache. If we resolved the well-known
-                // serviceAddress, we request a cache refresh for the adapter ID.
+                // service address, we request a cache refresh for the adapter ID.
                 (serviceAddress, _) = await PerformResolveAsync(
                     new Location { IsAdapterId = true, Value = adapterId },
                     refreshCache || resolved,
