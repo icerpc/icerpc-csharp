@@ -302,23 +302,31 @@ public ref partial struct SliceEncoder
         if (Encoding == SliceEncoding.Slice1)
         {
             this.EncodeIdentityPath(serviceAddress.Path);
+            const byte protocolMinor = 0;
             const byte encodingMajor = 1;
             const byte encodingMinor = 1;
+            const bool secure = false;
+            // The InvocationMode is carried by proxies that use the ice protocol, and it specifies the behavior when
+            // sending a request using such a proxy. When encoding an ice proxy, IceRPC always uses Twoway.
+            const int invocationMode = 0; // Corresponds
 
             if (serviceAddress.Protocol is not Protocol protocol)
             {
                 throw new NotSupportedException("cannot encode a relative service address with Slice1");
             }
 
-            var proxyData = new ProxyData(
-                serviceAddress.Fragment,
-                InvocationMode.Twoway,
-                secure: false,
-                protocolMajor: protocol.ToByte(),
-                protocolMinor: 0,
-                encodingMajor,
-                encodingMinor);
-            proxyData.Encode(ref this);
+            // Encoding ProxyData
+
+            FragmentSliceEncoderExtensions.EncodeFragment(ref this, serviceAddress.Fragment);
+
+            // The InvocationMode is carried by proxies that use the ice protocol, and it specifies the behavior when
+            // sending a request using such a proxy. When encoding an ice proxy, IceRPC always uses Twoway.
+            EncodeSize(invocationMode);
+            EncodeBool(secure); // Secure
+            EncodeUInt8(protocol.ToByte()); // Protocol Major
+            EncodeUInt8(protocolMinor); // Protocol Minor
+            EncodeUInt8(encodingMajor); // Encoding Major
+            EncodeUInt8(encodingMinor); // Encoding Minor
 
             if (serviceAddress.Endpoint is Endpoint endpoint)
             {

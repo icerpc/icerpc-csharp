@@ -1123,23 +1123,30 @@ public ref partial struct SliceDecoder
     /// <returns>The decoded service address.</returns>
     private ServiceAddress DecodeServiceAddress(string path)
     {
-        var proxyData = new ProxyData(ref this);
+        // Decoding ProxyData
+        string fragment = FragmentSliceDecoderExtensions.DecodeFragment(ref this);
+        int invocationMode = DecodeSize();
+        bool secure = DecodeBool();
+        byte protocolMajor = DecodeUInt8();
+        byte protocolMinor = DecodeUInt8();
+        byte encodingMajor = DecodeUInt8();
+        byte encodingMinor = DecodeUInt8();
 
-        if (proxyData.ProtocolMajor == 0)
+        if (protocolMajor == 0)
         {
             throw new InvalidDataException("received service address with protocol set to 0");
         }
-        if (proxyData.ProtocolMinor != 0)
+        if (protocolMinor != 0)
         {
             throw new InvalidDataException(
-                $"received service address with invalid protocolMinor value: {proxyData.ProtocolMinor}");
+                $"received service address with invalid protocolMinor value: {protocolMinor}");
         }
 
         int count = DecodeSize();
 
         Endpoint? endpoint = null;
         IEnumerable<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
-        var protocol = Protocol.FromByte(proxyData.ProtocolMajor);
+        var protocol = Protocol.FromByte(protocolMajor);
         ImmutableDictionary<string, string> serviceAddressParams = ImmutableDictionary<string, string>.Empty;
 
         if (count == 0)
@@ -1169,7 +1176,7 @@ public ref partial struct SliceDecoder
 
         try
         {
-            if (!protocol.HasFragment && proxyData.Fragment.Length > 0)
+            if (!protocol.HasFragment && fragment.Length > 0)
             {
                 throw new InvalidDataException($"unexpected fragment in {protocol} service address");
             }
@@ -1180,7 +1187,7 @@ public ref partial struct SliceDecoder
                 endpoint,
                 altEndpoints.ToImmutableList(),
                 serviceAddressParams,
-                proxyData.Fragment);
+                fragment);
         }
         catch (InvalidDataException)
         {
