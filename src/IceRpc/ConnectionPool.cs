@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
@@ -7,8 +8,8 @@ using System.Diagnostics;
 
 namespace IceRpc;
 
-/// <summary>A connection pool manages a pool of client connections and is a client connection provider.</summary>
-public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
+/// <summary>A connection pool manages a pool of client connections.</summary>
+public sealed class ConnectionPool : IInvoker, IAsyncDisposable
 {
     // Connected connections that can be returned immediately.
     private readonly Dictionary<Endpoint, ClientConnection> _activeConnections = new(EndpointComparer.ParameterLess);
@@ -58,7 +59,7 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
     }
 
     /// <summary>Releases all resources allocated by this connection pool.</summary>
-/// <returns>A value task that completes when all connections managed by this pool are disposed.</returns>
+    /// <returns>A value task that completes when all connections managed by this pool are disposed.</returns>
     public async ValueTask DisposeAsync()
     {
         lock (_mutex)
@@ -74,11 +75,68 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
             .ConfigureAwait(false);
     }
 
+    /// <inheritdoc/>
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+    {
+        // TODO: for now this is simply the logic from the old Binder interceptor. We should improve it.
+
+        if (request.Features.Get<IEndpointFeature>() is IEndpointFeature endpointFeature)
+        {
+            if (endpointFeature.Connection is IConnection connection)
+            {
+                return connection.InvokeAsync(request, cancel);
+            }
+        }
+        else
+        {
+            endpointFeature = new EndpointFeature(request.Proxy);
+            request.Features = request.Features.With(endpointFeature);
+        }
+        return PerformInvokeAsync();
+
+        async Task<IncomingResponse> PerformInvokeAsync()
+        {
+            if (endpointFeature.Endpoint is null)
+            {
+                throw new NoEndpointException(request.Proxy);
+            }
+
+            IConnection connection = await GetClientConnectionAsync(
+                endpointFeature.Endpoint.Value,
+                endpointFeature.AltEndpoints,
+                cancel).ConfigureAwait(false);
+
+            endpointFeature.Connection = connection;
+
+            return await connection.InvokeAsync(request, cancel).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>Gracefully shuts down all connections managed by this pool. This method can be called multiple times.
+    /// </summary>
+    /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>A task that completes when the shutdown is complete.</returns>
+    public Task ShutdownAsync(CancellationToken cancel = default)
+    {
+        lock (_mutex)
+        {
+            _isReadOnly = true;
+        }
+
+        // Shut down all connections managed by this pool.
+        IEnumerable<ClientConnection> allConnections =
+            _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_shutdownPendingConnections);
+
+        return Task.WhenAll(
+            allConnections.Select(connection => connection.ShutdownAsync("connection pool shutdown", cancel)));
+    }
+
     /// <summary>Returns a client connection to one of the specified endpoints.</summary>
     /// <param name="endpoint">The first endpoint to try.</param>
     /// <param name="altEndpoints">The alternative endpoints.</param>
     /// <param name="cancel">The cancellation token.</param>
-    public ValueTask<IClientConnection> GetClientConnectionAsync(
+    // TODO: it's internal for now for the tests, pending further refactoring.
+    internal ValueTask<IClientConnection> GetClientConnectionAsync(
         Endpoint endpoint,
         IEnumerable<Endpoint> altEndpoints,
         CancellationToken cancel)
@@ -151,25 +209,6 @@ public sealed class ConnectionPool : IClientConnectionProvider, IAsyncDisposable
                 throw exceptionList is null ? ExceptionUtil.Throw(ex) : new AggregateException(exceptionList);
             }
         }
-    }
-
-    /// <summary>Gracefully shuts down all connections managed by this pool. This method can be called multiple times.
-    /// </summary>
-    /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A task that completes when the shutdown is complete.</returns>
-    public Task ShutdownAsync(CancellationToken cancel = default)
-    {
-        lock (_mutex)
-        {
-            _isReadOnly = true;
-        }
-
-        // Shut down all connections managed by this pool.
-        IEnumerable<ClientConnection> allConnections =
-            _pendingConnections.Values.Concat(_activeConnections.Values).Concat(_shutdownPendingConnections);
-
-        return Task.WhenAll(
-            allConnections.Select(connection => connection.ShutdownAsync("connection pool shutdown", cancel)));
     }
 
     /// <summary>Checks with the protocol-dependent transport if this endpoint has valid parameters. We call this method

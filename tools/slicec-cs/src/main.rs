@@ -31,7 +31,7 @@ use exception_visitor::ExceptionVisitor;
 use generated_code::GeneratedCode;
 use module_visitor::ModuleVisitor;
 use proxy_visitor::ProxyVisitor;
-use slice::parse_result::{ParsedData, ParserResult};
+use slice::parse_result::ParserResult;
 use slice::slice_file::SliceFile;
 use std::fs::File;
 use std::io;
@@ -43,30 +43,12 @@ use trait_visitor::TraitVisitor;
 
 use crate::code_block::CodeBlock;
 
-pub fn print_errors(parsed_data: ParsedData) {
-    parsed_data.error_reporter.print_errors(&parsed_data.files);
-    if parsed_data.error_reporter.has_errors() {
-        let counts = parsed_data.error_reporter.get_totals();
-        let message = format!(
-            "Compilation failed with {} error(s) and {} warning(s).\n",
-            counts.0, counts.1
-        );
-
-        println!("{}", &message);
-    }
-}
-
 pub fn main() {
-    std::process::exit(match try_main() {
-        Ok(data) => {
-            print_errors(data);
-            0
-        }
-        Err(data) => {
-            print_errors(data);
-            1
-        }
-    })
+    let parsed_data = match try_main() {
+        Ok(data) => data,
+        Err(data) => data,
+    };
+    std::process::exit(parsed_data.into_exit_code());
 }
 
 fn try_main() -> ParserResult {

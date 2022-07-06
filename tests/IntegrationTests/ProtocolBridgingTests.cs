@@ -35,7 +35,7 @@ public sealed class ProtocolBridgingTests
             .AddColocTransport()
             .AddIceRpcConnectionPool()
             .AddSingleton<IProtocolBridgingTest>(targetService)
-            .AddSingleton(_ => new Forwarder(targetServicePrx.Proxy))
+            .AddSingleton(_ => new Forwarder(targetServicePrx.ToPrx<ServicePrx>()))
             .AddIceRpcServer(
                 "forwarder",
                 builder => builder
@@ -49,16 +49,16 @@ public sealed class ProtocolBridgingTests
                     .Map<IProtocolBridgingTest>("/target"))
             .AddIceRpcInvoker(
                 builder => builder
-                    .UseBinder()
-                    .UseRequestContext());
+                    .UseRequestContext()
+                    .Into<ConnectionPool>());
 
         services.AddOptions<ServerOptions>("forwarder").Configure(options => options.Endpoint = forwarderEndpoint);
         services.AddOptions<ServerOptions>("target").Configure(options => options.Endpoint = targetEndpoint);
 
         await using ServiceProvider serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-        forwarderServicePrx.Proxy.Invoker = serviceProvider.GetRequiredService<IInvoker>();
-        targetServicePrx.Proxy.Invoker = serviceProvider.GetRequiredService<IInvoker>();
+        forwarderServicePrx = forwarderServicePrx with { Invoker = serviceProvider.GetRequiredService<IInvoker>() };
+        targetServicePrx = targetServicePrx with { Invoker = serviceProvider.GetRequiredService<IInvoker>() };
 
         foreach (Server server in serviceProvider.GetServices<Server>())
         {
@@ -68,7 +68,7 @@ public sealed class ProtocolBridgingTests
         // TODO: test with the other encoding; currently, the encoding is always slice2
 
         ProtocolBridgingTestPrx newPrx = await TestProxyAsync(forwarderServicePrx, direct: false);
-        Assert.That((object)newPrx.Proxy.Protocol.Name, Is.EqualTo(targetProtocol));
+        Assert.That((object)newPrx.Proxy.Protocol!.Name, Is.EqualTo(targetProtocol));
         _ = await TestProxyAsync(newPrx, direct: true);
 
         foreach (Server server in serviceProvider.GetServices<Server>())
@@ -139,7 +139,7 @@ public sealed class ProtocolBridgingTests
                 Endpoint = _publishedEndpoint
             };
 
-            return new(new ProtocolBridgingTestPrx(proxy));
+            return new(new ProtocolBridgingTestPrx { Proxy = proxy });
         }
 
         public ValueTask OpOnewayAsync(int x, IFeatureCollection features, CancellationToken cancel) => default;
@@ -152,7 +152,7 @@ public sealed class ProtocolBridgingTests
 
     public sealed class Forwarder : IDispatcher
     {
-        private readonly Proxy _target;
+        private readonly ServicePrx _target;
 
         async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(
             IncomingRequest incomingRequest,
@@ -160,9 +160,9 @@ public sealed class ProtocolBridgingTests
         {
             // First create an outgoing request to _target from the incoming request:
 
-            Protocol targetProtocol = _target.Protocol;
+            Protocol targetProtocol = _target.Proxy.Protocol!;
 
-            var outgoingRequest = new OutgoingRequest(_target)
+            var outgoingRequest = new OutgoingRequest(_target.Proxy)
             {
                 IsOneway = incomingRequest.IsOneway,
                 Operation = incomingRequest.Operation,
@@ -204,6 +204,6 @@ public sealed class ProtocolBridgingTests
             };
         }
 
-        internal Forwarder(Proxy target) => _target = target;
+        internal Forwarder(ServicePrx target) => _target = target;
     }
 }

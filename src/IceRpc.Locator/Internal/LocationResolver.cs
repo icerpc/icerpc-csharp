@@ -125,7 +125,7 @@ internal class LocationResolver : ILocationResolver
             _ = _endpointFinder.FindAsync(location, cancel: default).ConfigureAwait(false);
         }
 
-        // A well-known proxy resolution can return a loc endpoint
+        // A well-known proxy resolution can return a proxy with an adapter-id
         if (proxy is not null && proxy.Params.TryGetValue("adapter-id", out string? adapterId))
         {
             try

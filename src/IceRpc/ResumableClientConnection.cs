@@ -112,7 +112,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
     public ValueTask DisposeAsync() => _clientConnection.DisposeAsync();
 
     /// <inheritdoc/>
-    public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+    public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default)
     {
         // make a copy of the client connection we're trying with
         ClientConnection clientConnection = _clientConnection;

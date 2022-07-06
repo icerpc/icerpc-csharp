@@ -141,7 +141,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     public ValueTask DisposeAsync() => _protocolConnection.DisposeAsync();
 
     /// <inheritdoc/>
-    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default) =>
         _protocolConnection.InvokeAsync(request, this, cancel);
 
     /// <inheritdoc/>

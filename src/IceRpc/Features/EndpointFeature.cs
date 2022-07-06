@@ -9,6 +9,9 @@ public sealed class EndpointFeature : IEndpointFeature
     public IEnumerable<Endpoint> AltEndpoints { get; set; }
 
     /// <inheritdoc/>
+    public IConnection? Connection { get; set; }
+
+    /// <inheritdoc/>
     public Endpoint? Endpoint { get; set; }
 
     /// <summary>Constructs an endpoint feature that uses a proxy's endpoints.</summary>

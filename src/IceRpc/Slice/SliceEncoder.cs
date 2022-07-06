@@ -305,11 +305,16 @@ public ref partial struct SliceEncoder
             const byte encodingMajor = 1;
             const byte encodingMinor = 1;
 
+            if (proxy.Protocol is not Protocol protocol)
+            {
+                throw new NotSupportedException("cannot encode a relative proxy with Slice1");
+            }
+
             var proxyData = new ProxyData(
                 proxy.Fragment,
                 InvocationMode.Twoway,
                 secure: false,
-                protocolMajor: proxy.Protocol.ToByte(),
+                protocolMajor: protocol.ToByte(),
                 protocolMinor: 0,
                 encodingMajor,
                 encodingMinor);
@@ -332,7 +337,7 @@ public ref partial struct SliceEncoder
                 if (proxy.Params.Count > maxCount)
                 {
                     throw new NotSupportedException(
-                        "cannot encode proxy with parameter other than adapter-id using Slice1");
+                        "cannot encode a proxy with a parameter other than adapter-id using Slice1");
                 }
                 EncodeString(adapterId ?? "");
             }

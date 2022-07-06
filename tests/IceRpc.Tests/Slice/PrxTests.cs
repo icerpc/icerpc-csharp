@@ -18,7 +18,7 @@ public class PrxTests
             .AddColocTest(new MyDerivedInterface())
             .BuildServiceProvider(validateScopes: true);
 
-        var prx = MyBaseInterfacePrx.FromConnection(provider.GetRequiredService<ClientConnection>());
+        var prx = new MyBaseInterfacePrx(provider.GetRequiredService<ClientConnection>());
         provider.GetRequiredService<Server>().Listen();
 
         MyDerivedInterfacePrx? derived = await prx.AsAsync<MyDerivedInterfacePrx>();
@@ -33,7 +33,7 @@ public class PrxTests
             .AddColocTest(new MyBaseInterface())
             .BuildServiceProvider(validateScopes: true);
 
-        var prx = MyBaseInterfacePrx.FromConnection(provider.GetRequiredService<ClientConnection>());
+        var prx = new MyBaseInterfacePrx(provider.GetRequiredService<ClientConnection>());
         provider.GetRequiredService<Server>().Listen();
 
         MyDerivedInterfacePrx? derived = await prx.AsAsync<MyDerivedInterfacePrx>();

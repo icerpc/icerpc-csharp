@@ -36,7 +36,7 @@ public sealed class RetryInterceptorTests
             }
             else
             {
-                return Task.FromResult(new IncomingResponse(request, request.Connection!));
+                return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
             }
         });
 
@@ -95,7 +95,7 @@ public sealed class RetryInterceptorTests
         var invoker = new InlineInvoker((request, cancel) =>
         {
             attempts++;
-            return Task.FromResult(new IncomingResponse(request, request.Connection!)
+            return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc)
             {
                 ResultType = ResultType.Failure
             });
@@ -127,7 +127,7 @@ public sealed class RetryInterceptorTests
             {
                 return Task.FromResult(new IncomingResponse(
                     request,
-                    request.Connection!,
+                    InvalidConnection.IceRpc,
                     new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
                     {
                         [ResponseFieldKey.RetryPolicy] = EncodeRetryPolicy(RetryPolicy.Immediately)
@@ -139,7 +139,7 @@ public sealed class RetryInterceptorTests
             }
             else
             {
-                return Task.FromResult(new IncomingResponse(request, request.Connection!));
+                return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
             }
         });
 
@@ -167,7 +167,7 @@ public sealed class RetryInterceptorTests
             {
                 return Task.FromResult(new IncomingResponse(
                     request,
-                    request.Connection!,
+                    InvalidConnection.IceRpc,
                     new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
                     {
                         [ResponseFieldKey.RetryPolicy] = EncodeRetryPolicy(RetryPolicy.AfterDelay(delay))
@@ -178,7 +178,7 @@ public sealed class RetryInterceptorTests
             }
             else
             {
-                return Task.FromResult(new IncomingResponse(request, request.Connection!));
+                return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
             }
         });
 
@@ -236,7 +236,7 @@ public sealed class RetryInterceptorTests
             }
             else
             {
-                return Task.FromResult(new IncomingResponse(request, request.Connection!));
+                return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
             }
         });
 
@@ -264,7 +264,7 @@ public sealed class RetryInterceptorTests
             }
             else
             {
-                return Task.FromResult(new IncomingResponse(request, request.Connection!));
+                return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
             }
         });
 
@@ -300,7 +300,7 @@ public sealed class RetryInterceptorTests
             if (endpointFeature?.Endpoint is Endpoint endpoint)
             {
                 endpoints.Add(endpoint);
-                request.Connection = endpoint.Host switch
+                endpointFeature.Connection = endpoint.Host switch
                 {
                     "host1" => connection1,
                     "host2" => connection2,
@@ -310,7 +310,7 @@ public sealed class RetryInterceptorTests
 
             return Task.FromResult(new IncomingResponse(
                 request,
-                request.Connection!,
+                InvalidConnection.IceRpc,
                 new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
                 {
                     [ResponseFieldKey.RetryPolicy] = EncodeRetryPolicy(RetryPolicy.OtherReplica)
@@ -320,7 +320,7 @@ public sealed class RetryInterceptorTests
             });
         });
 
-        var proxy = Proxy.FromConnection(connection1, "/path");
+        var proxy = new Proxy(connection1.Protocol) { Path = "/path" };
         proxy.Endpoint = connection1.RemoteEndpoint;
         proxy.AltEndpoints = new List<Endpoint>
         {
