@@ -1132,8 +1132,8 @@ public ref partial struct SliceDecoder
         //     - an adapter ID string present only when the sequence of endpoints is empty
 
         string fragment = FragmentSliceDecoderExtensions.DecodeFragment(ref this);
-        InvocationMode invocationMode = InvocationModeSliceDecoderExtensions.DecodeInvocationMode(ref this);
-        bool secure = DecodeBool();
+        _ = InvocationModeSliceDecoderExtensions.DecodeInvocationMode(ref this);
+        _ = DecodeBool();
         byte protocolMajor = DecodeUInt8();
         byte protocolMinor = DecodeUInt8();
         byte encodingMajor = DecodeUInt8();
