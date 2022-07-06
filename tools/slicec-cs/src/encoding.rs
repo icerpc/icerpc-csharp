@@ -71,7 +71,7 @@ fn encode_type(
     match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) if type_ref.is_optional && encoding == Encoding::Slice1 => {
             format!(
-                "{encoder_param}.EncodeNullableProxy({param}?.Proxy);",
+                "{encoder_param}.EncodeNullableServiceAddress({param}?.ServiceAddress);",
                 encoder_param = encoder_param,
                 param = param)
         }
@@ -145,7 +145,7 @@ fn encode_type(
                     )
                 }
                 TypeRefs::Interface(_) => {
-                    format!("{encoder_param}.EncodeProxy({value}.Proxy);", encoder_param = encoder_param, value = value)
+                    format!("{encoder_param}.EncodeServiceAddress({value}.ServiceAddress);", encoder_param = encoder_param, value = value)
                 }
                 TypeRefs::Enum(enum_ref) => format!(
                     "{encoder_extensions_class}.Encode{name}(ref {encoder_param}, {param});",
@@ -468,13 +468,13 @@ pub fn encode_action(
             if is_optional && encoding == Encoding::Slice1 {
                 write!(
                     code,
-                    "(ref SliceEncoder encoder, {value_type} value) => encoder.EncodeNullableProxy(value?.Proxy)",
+                    "(ref SliceEncoder encoder, {value_type} value) => encoder.EncodeNullableServiceAddress(value?.ServiceAddress)",
                     value_type = value_type,
                 );
             } else {
                 write!(
                     code,
-                    "(ref SliceEncoder encoder, {value_type} value) => encoder.EncodeProxy({value}.Proxy)",
+                    "(ref SliceEncoder encoder, {value_type} value) => encoder.EncodeServiceAddress({value}.ServiceAddress)",
                     value_type = value_type,
                     value = value
                 );

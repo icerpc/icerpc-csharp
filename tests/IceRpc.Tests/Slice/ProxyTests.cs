@@ -2,6 +2,8 @@
 
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
+using IceRpc.Tests.Common;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice;
@@ -10,7 +12,7 @@ namespace IceRpc.Tests.Slice;
 [Parallelizable(scope: ParallelScope.All)]
 public class ProxyTests
 {
-    /// <summary>Provides test case data for <see cref="Decode_proxy(Proxy, Proxy, SliceEncoding)/> test.
+    /// <summary>Provides test case data for <see cref="Decode_proxy(ServiceAddress, ServiceAddress, SliceEncoding)/> test.
     /// </summary>
     private static IEnumerable<TestCaseData> DecodeProxyDataSource
     {
@@ -34,16 +36,16 @@ public class ProxyTests
                 string? expected,
                 SliceEncoding encoding) in testData)
             {
-                yield return new TestCaseData(Proxy.Parse(value), Proxy.Parse(expected ?? value), encoding);
+                yield return new TestCaseData(ServiceAddress.Parse(value), ServiceAddress.Parse(expected ?? value), encoding);
             }
         }
     }
 
-    private static IEnumerable<Proxy?> DecodeNullableProxySource
+    private static IEnumerable<ServiceAddress?> DecodeNullableProxySource
     {
         get
         {
-            yield return Proxy.Parse("icerpc://host.zeroc.com/hello");
+            yield return ServiceAddress.Parse("icerpc://host.zeroc.com/hello");
             yield return null;
         }
     }
@@ -51,33 +53,33 @@ public class ProxyTests
     /// <summary>Verifies that nullable proxies are correctly encoded withSlice1 encoding.</summary>
     /// <param name="expected">The nullable proxy to test with.</param>
     [Test, TestCaseSource(nameof(DecodeNullableProxySource))]
-    public void Decode_slice1_nullable_proxy(Proxy? expected)
+    public void Decode_slice1_nullable_proxy(ServiceAddress? expected)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
-        encoder.EncodeNullableProxy(expected);
+        encoder.EncodeNullableServiceAddress(expected);
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
-        ServicePrx? decoded = decoder.DecodeNullablePrx<ServicePrx>();
+        ServiceProxy? decoded = decoder.DecodeNullableProxy<ServiceProxy>();
 
-        Assert.That(decoded?.Proxy, Is.EqualTo(expected));
+        Assert.That(decoded?.ServiceAddress, Is.EqualTo(expected));
     }
 
     /// <summary>Verifies that calling <see cref="SliceDecoder.DecodeProxy"/> correctly decodes a proxy.</summary>
-    /// <param name="value">The proxy to encode.</param>
-    /// <param name="expected">The expected proxy string.</param>
-    /// <param name="encoding">The encoding used to decode the proxy.</param>
+    /// <param name="value">The service address of the proxy to encode.</param>
+    /// <param name="expected">The expected URI string of the service address.</param>
+    /// <param name="encoding">The encoding used to decode the service address.</param>
     [Test, TestCaseSource(nameof(DecodeProxyDataSource))]
-    public void Decode_proxy(Proxy value, Proxy expected, SliceEncoding encoding)
+    public void Decode_proxy(ServiceAddress value, ServiceAddress expected, SliceEncoding encoding)
     {
         var bufferWriter = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(bufferWriter, encoding);
-        encoder.EncodeProxy(value);
+        encoder.EncodeServiceAddress(value);
         var sut = new SliceDecoder(bufferWriter.WrittenMemory, encoding: encoding);
 
-        ServicePrx decoded = sut.DecodePrx<ServicePrx>();
+        ServiceProxy decoded = sut.DecodeProxy<ServiceProxy>();
 
-        Assert.That(decoded.Proxy, Is.EqualTo(expected));
+        Assert.That(decoded.ServiceAddress, Is.EqualTo(expected));
     }
 
     /// <summary>Verifies that a relative proxy gets the decoder's connection as invoker.</summary>
@@ -89,14 +91,52 @@ public class ProxyTests
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
-            encoder.EncodeProxy(new Proxy { Path = "/foo" });
+            encoder.EncodeServiceAddress(new ServiceAddress { Path = "/foo" });
             var decoder = new SliceDecoder(
                 bufferWriter.WrittenMemory,
                 encoding: SliceEncoding.Slice2,
                 connection: connection);
 
-            return decoder.DecodePrx<ServicePrx>().Invoker;
+            return decoder.DecodeProxy<ServiceProxy>().Invoker;
         },
         Is.EqualTo(connection));
+    }
+
+    [Test]
+    public async Task Downcast_proxy_with_as_sync_succeeds()
+    {
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(new MyDerivedInterface())
+            .BuildServiceProvider(validateScopes: true);
+
+        var proxy = new MyBaseInterfaceProxy(provider.GetRequiredService<ClientConnection>());
+        provider.GetRequiredService<Server>().Listen();
+
+        MyDerivedInterfaceProxy? derived = await proxy.AsAsync<MyDerivedInterfaceProxy>();
+
+        Assert.That(derived, Is.Not.Null);
+    }
+
+    [Test]
+    public async Task Downcast_proxy_with_as_aync_fails()
+    {
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTest(new MyBaseInterface())
+            .BuildServiceProvider(validateScopes: true);
+
+        var proxy = new MyBaseInterfaceProxy(provider.GetRequiredService<ClientConnection>());
+        provider.GetRequiredService<Server>().Listen();
+
+        MyDerivedInterfaceProxy? derived = await proxy.AsAsync<MyDerivedInterfaceProxy>();
+
+        Assert.That(derived, Is.Null);
+    }
+
+    private class MyBaseInterface : Service, IMyBaseInterface
+    {
+    }
+
+    private class MyDerivedInterface : MyBaseInterface, IMyDerivedInterface
+    {
     }
 }

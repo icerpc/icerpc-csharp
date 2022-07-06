@@ -118,7 +118,7 @@ public class TcpClientTransport : IClientTransport<ISimpleNetworkConnection>
         string host = decoder.DecodeString();
         if (Uri.CheckHostName(host) == UriHostNameType.Unknown)
         {
-            throw new InvalidDataException($"received proxy with invalid host '{host}'");
+            throw new InvalidDataException($"received service address with invalid host '{host}'");
         }
 
         ushort port = checked((ushort)decoder.DecodeInt32());

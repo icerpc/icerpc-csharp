@@ -72,8 +72,8 @@ public ref partial struct SliceDecoder
     // The maximum depth when decoding a type recursively.
     private readonly int _maxDepth;
 
-    // The Slice encode feature of Prx structs decoded using this decoder.
-    private readonly ISliceEncodeFeature? _prxEncodeFeature;
+    // The Slice encode feature of proxy structs decoded using this decoder.
+    private readonly ISliceEncodeFeature? _proxyEncodeFeature;
 
     // The sequence reader.
     private SequenceReader<byte> _reader;
@@ -85,7 +85,7 @@ public ref partial struct SliceDecoder
     /// <param name="connection">The connection, used only when decoding relative proxies (optional).</param>
     /// <param name="invoker">The invoker of proxies decoded by this decoder. Use null to get the default invoker.
     /// </param>
-    /// <param name="prxEncodeFeature">The Slice encode feature of Prx structs decoded using this decoder
+    /// <param name="proxyEncodeFeature">The Slice encode feature of proxy structs decoded using this decoder
     /// (optional).</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
@@ -97,7 +97,7 @@ public ref partial struct SliceDecoder
         IActivator? activator = null,
         IConnection? connection = null,
         IInvoker? invoker = null,
-        ISliceEncodeFeature? prxEncodeFeature = null,
+        ISliceEncodeFeature? proxyEncodeFeature = null,
         int maxCollectionAllocation = -1,
         int maxDepth = 3)
     {
@@ -111,7 +111,7 @@ public ref partial struct SliceDecoder
 
         _connection = connection;
         _invoker = invoker;
-        _prxEncodeFeature = prxEncodeFeature;
+        _proxyEncodeFeature = proxyEncodeFeature;
 
         _maxCollectionAllocation = maxCollectionAllocation == -1 ? 8 * (int)buffer.Length :
             (maxCollectionAllocation >= 0 ? maxCollectionAllocation :
@@ -132,7 +132,7 @@ public ref partial struct SliceDecoder
     /// <param name="connection">The connection, used only when decoding relative proxies (optional).</param>
     /// <param name="invoker">The invoker of proxies decoded by this decoder. Use null to get the default invoker.
     /// </param>
-    /// <param name="prxEncodeFeature">The Slice encode feature of Prx structs decoded using this decoder
+    /// <param name="proxyEncodeFeature">The Slice encode feature of proxy structs decoded using this decoder
     /// (optional).</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
@@ -144,7 +144,7 @@ public ref partial struct SliceDecoder
         IActivator? activator = null,
         IConnection? connection = null,
         IInvoker? invoker = null,
-        ISliceEncodeFeature? prxEncodeFeature = null,
+        ISliceEncodeFeature? proxyEncodeFeature = null,
         int maxCollectionAllocation = -1,
         int maxDepth = 3)
         : this(
@@ -153,7 +153,7 @@ public ref partial struct SliceDecoder
             activator,
             connection,
             invoker,
-            prxEncodeFeature,
+            proxyEncodeFeature,
             maxCollectionAllocation,
             maxDepth)
     {
@@ -353,80 +353,81 @@ public ref partial struct SliceDecoder
         }
     }
 
-    /// <summary>Decodes a nullable Prx struct (Slice1 only).</summary>
-    /// <typeparam name="TPrx">The type of the Prx struct to decode.</typeparam>
-    /// <returns>The decoded Prx, or null.</returns>
-    public TPrx? DecodeNullablePrx<TPrx>() where TPrx : struct, IPrx
+    /// <summary>Decodes a nullable proxy struct (Slice1 only).</summary>
+    /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>
+    /// <returns>The decoded Proxy, or null.</returns>
+    public TProxy? DecodeNullableProxy<TProxy>() where TProxy : struct, IProxy
     {
         if (Encoding != SliceEncoding.Slice1)
         {
-            throw new InvalidOperationException($"decoding a nullable Prx with {Encoding} requires a bit sequence");
+            throw new InvalidOperationException($"decoding a nullable Proxy with {Encoding} requires a bit sequence");
         }
         string path = this.DecodeIdentityPath();
         return path != "/" ?
-            new TPrx
+            new TProxy
             {
-                Proxy = DecodeProxy(path),
-                Invoker = _invoker ?? NullInvoker.Instance,
-                EncodeFeature = _prxEncodeFeature
+                ServiceAddress = DecodeServiceAddress(path),
+                Invoker = _invoker ?? InvalidOperationInvoker.Instance,
+                EncodeFeature = _proxyEncodeFeature
             }
             : null;
     }
 
-    /// <summary>Decodes a Prx struct.</summary>
-    /// <typeparam name="TPrx">The type of the Prx struct to decode.</typeparam>
-    /// <returns>The decoded Prx struct.</returns>
-    public TPrx DecodePrx<TPrx>() where TPrx : struct, IPrx
+    /// <summary>Decodes a proxy struct.</summary>
+    /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>
+    /// <returns>The decoded proxy struct.</returns>
+    public TProxy DecodeProxy<TProxy>() where TProxy : struct, IProxy
     {
         if (Encoding == SliceEncoding.Slice1)
         {
             string path = this.DecodeIdentityPath();
             return path != "/" ?
-                new TPrx
+                new TProxy
                 {
-                    Proxy = DecodeProxy(path),
-                    Invoker = _invoker ?? NullInvoker.Instance,
-                    EncodeFeature = _prxEncodeFeature
+                    ServiceAddress = DecodeServiceAddress(path),
+                    Invoker = _invoker ?? InvalidOperationInvoker.Instance,
+                    EncodeFeature = _proxyEncodeFeature
                 }
                 : throw new InvalidDataException("decoded null for a non-nullable proxy");
         }
         else
         {
-            string proxyString = DecodeString();
+            string serviceAddressString = DecodeString();
             try
             {
-                if (proxyString.StartsWith('/'))
+                if (serviceAddressString.StartsWith('/'))
                 {
-                    // relative proxy
+                    // relative service address
                     if (_connection is null)
                     {
                         throw new InvalidOperationException(
                             "cannot decode a relative proxy from an decoder with a null Connection");
                     }
 
-                    var proxy = new Proxy(_connection.Protocol) { Path = proxyString };
-                    return new TPrx
+                    var serviceAddress = new ServiceAddress(_connection.Protocol) { Path = serviceAddressString };
+                    return new TProxy
                     {
-                        Proxy = proxy,
+                        ServiceAddress = serviceAddress,
                         Invoker = _invoker ?? _connection,
-                        EncodeFeature = _prxEncodeFeature
+                        EncodeFeature = _proxyEncodeFeature
                     };
                 }
                 else
                 {
-                    var proxy = new Proxy(new Uri(proxyString, UriKind.Absolute));
-                    Debug.Assert(proxy.Protocol is not null); // null protocol == relative proxy
-                    return new TPrx
+                    var serviceAddress = new ServiceAddress(new Uri(serviceAddressString, UriKind.Absolute));
+                    Debug.Assert(serviceAddress.Protocol is not null); // null protocol == relative service address
+                    return new TProxy
                     {
-                        Proxy = proxy,
-                        Invoker = proxy.Protocol.IsSupported && _invoker is not null ? _invoker : NullInvoker.Instance,
-                        EncodeFeature = _prxEncodeFeature
+                        ServiceAddress = serviceAddress,
+                        Invoker = serviceAddress.Protocol.IsSupported && _invoker is not null ? _invoker :
+                            InvalidOperationInvoker.Instance,
+                        EncodeFeature = _proxyEncodeFeature
                     };
                 }
             }
             catch (Exception ex)
             {
-                throw new InvalidDataException("received invalid proxy", ex);
+                throw new InvalidDataException("received invalid service address", ex);
             }
         }
     }
@@ -1117,21 +1118,21 @@ public ref partial struct SliceDecoder
 
     private byte PeekByte() => _reader.TryPeek(out byte value) ? value : throw new EndOfBufferException();
 
-    /// <summary>Helper method to decode a proxy encoded with Slice1.</summary>
+    /// <summary>Helper method to decode a service address encoded with Slice1.</summary>
     /// <param name="path">The decoded path.</param>
-    /// <returns>The decoded proxy.</returns>
-    private Proxy DecodeProxy(string path)
+    /// <returns>The decoded service address.</returns>
+    private ServiceAddress DecodeServiceAddress(string path)
     {
         var proxyData = new ProxyData(ref this);
 
         if (proxyData.ProtocolMajor == 0)
         {
-            throw new InvalidDataException("received proxy with protocol set to 0");
+            throw new InvalidDataException("received service address with protocol set to 0");
         }
         if (proxyData.ProtocolMinor != 0)
         {
             throw new InvalidDataException(
-                $"received proxy with invalid protocolMinor value: {proxyData.ProtocolMinor}");
+                $"received service address with invalid protocolMinor value: {proxyData.ProtocolMinor}");
         }
 
         int count = DecodeSize();
@@ -1139,13 +1140,13 @@ public ref partial struct SliceDecoder
         Endpoint? endpoint = null;
         IEnumerable<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
         var protocol = Protocol.FromByte(proxyData.ProtocolMajor);
-        ImmutableDictionary<string, string> proxyParams = ImmutableDictionary<string, string>.Empty;
+        ImmutableDictionary<string, string> serviceAddressParams = ImmutableDictionary<string, string>.Empty;
 
         if (count == 0)
         {
             if (DecodeString() is string adapterId && adapterId.Length > 0)
             {
-                proxyParams = proxyParams.Add("adapter-id", adapterId);
+                serviceAddressParams = serviceAddressParams.Add("adapter-id", adapterId);
             }
         }
         else
@@ -1170,15 +1171,15 @@ public ref partial struct SliceDecoder
         {
             if (!protocol.HasFragment && proxyData.Fragment.Length > 0)
             {
-                throw new InvalidDataException($"unexpected fragment in {protocol} proxy");
+                throw new InvalidDataException($"unexpected fragment in {protocol} service address");
             }
 
-            return new Proxy(
+            return new ServiceAddress(
                 protocol,
                 path,
                 endpoint,
                 altEndpoints.ToImmutableList(),
-                proxyParams,
+                serviceAddressParams,
                 proxyData.Fragment);
         }
         catch (InvalidDataException)
@@ -1187,7 +1188,7 @@ public ref partial struct SliceDecoder
         }
         catch (Exception ex)
         {
-            throw new InvalidDataException("received invalid proxy", ex);
+            throw new InvalidDataException("received invalid service address", ex);
         }
     }
 

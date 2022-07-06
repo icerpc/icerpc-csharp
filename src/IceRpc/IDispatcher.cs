@@ -11,18 +11,3 @@ public interface IDispatcher
     /// <returns>The corresponding <see cref="OutgoingResponse"/>.</returns>
     ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel = default);
 }
-
-/// <summary>Adapts a dispatcher delegate to the <see cref="IDispatcher"/> interface.</summary>
-public class InlineDispatcher : IDispatcher
-{
-    private readonly Func<IncomingRequest, CancellationToken, ValueTask<OutgoingResponse>> _function;
-
-    /// <summary>Constructs an InlineDispatcher using a delegate.</summary>
-    /// <param name="function">The function that implements the dispatcher's DispatchAsync method.</param>
-    public InlineDispatcher(Func<IncomingRequest, CancellationToken, ValueTask<OutgoingResponse>> function) =>
-        _function = function;
-
-    /// <inheritdoc/>
-    ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(IncomingRequest request, CancellationToken cancel) =>
-        _function(request, cancel);
-}

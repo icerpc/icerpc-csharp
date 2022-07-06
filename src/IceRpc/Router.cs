@@ -37,7 +37,7 @@ public sealed class Router : IDispatcher
     public Router(string absolutePrefix)
         : this()
     {
-        Proxy.CheckPath(absolutePrefix);
+        ServiceAddress.CheckPath(absolutePrefix);
         absolutePrefix = NormalizePrefix(absolutePrefix);
         AbsolutePrefix = absolutePrefix.Length > 1 ? absolutePrefix : "";
     }
@@ -62,7 +62,7 @@ public sealed class Router : IDispatcher
             throw new InvalidOperationException(
                 $"cannot call {nameof(Map)} after calling {nameof(IDispatcher.DispatchAsync)}");
         }
-        Proxy.CheckPath(path);
+        ServiceAddress.CheckPath(path);
         _exactMatchRoutes[path] = dispatcher;
     }
 
@@ -82,7 +82,7 @@ public sealed class Router : IDispatcher
             throw new InvalidOperationException(
                 $"cannot call {nameof(Mount)} after calling {nameof(IDispatcher.DispatchAsync)}");
         }
-        Proxy.CheckPath(prefix);
+        ServiceAddress.CheckPath(prefix);
         prefix = NormalizePrefix(prefix);
         _prefixMatchRoutes[prefix] = dispatcher;
     }
@@ -138,7 +138,7 @@ public sealed class Router : IDispatcher
                         if (path.Length == AbsolutePrefix.Length)
                         {
                             // We consume everything so there is nothing left to match.
-                            return ConnectionOptions.DefaultDispatcher.DispatchAsync(request, cancel);
+                            return ServiceNotFoundDispatcher.Instance.DispatchAsync(request, cancel);
                         }
                         else
                         {
@@ -174,7 +174,7 @@ public sealed class Router : IDispatcher
 
                         if (prefix == "/")
                         {
-                            return ConnectionOptions.DefaultDispatcher.DispatchAsync(request, cancel);
+                            return ServiceNotFoundDispatcher.Instance.DispatchAsync(request, cancel);
                         }
 
                         // Cut last segment

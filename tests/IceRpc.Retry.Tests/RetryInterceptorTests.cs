@@ -40,11 +40,11 @@ public sealed class RetryInterceptorTests
             }
         });
 
-        var proxy = new Proxy(Protocol.IceRpc);
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
         using var loggerFactory = new TestLoggerFactory();
         var sut = new RetryInterceptor(invoker, new RetryOptions(), loggerFactory);
 
-        var request = new OutgoingRequest(proxy) { Operation = "Op" };
+        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
 
         // Act
         await sut.InvokeAsync(request, default);
@@ -77,10 +77,10 @@ public sealed class RetryInterceptorTests
             throw exception;
         });
 
-        var proxy = new Proxy(Protocol.IceRpc);
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
         var sut = new RetryInterceptor(invoker, new RetryOptions());
 
-        var request = new OutgoingRequest(proxy) { Operation = "Op" };
+        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
 
         // Act/Assert
         Assert.That(async () => await sut.InvokeAsync(request, default), Throws.TypeOf(exception.GetType()));
@@ -101,10 +101,10 @@ public sealed class RetryInterceptorTests
             });
         });
 
-        var proxy = new Proxy(Protocol.IceRpc);
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
         var sut = new RetryInterceptor(invoker, new RetryOptions());
 
-        var request = new OutgoingRequest(proxy) { Operation = "Op" };
+        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
         var start = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
         // Act
@@ -144,8 +144,8 @@ public sealed class RetryInterceptorTests
         });
 
         var sut = new RetryInterceptor(invoker, new RetryOptions());
-        var proxy = new Proxy(Protocol.IceRpc);
-        var request = new OutgoingRequest(proxy) { Operation = "Op" };
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
+        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
 
         // Act
         await sut.InvokeAsync(request, default);
@@ -182,10 +182,10 @@ public sealed class RetryInterceptorTests
             }
         });
 
-        var proxy = new Proxy(Protocol.IceRpc);
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
         var sut = new RetryInterceptor(invoker, new RetryOptions());
 
-        var request = new OutgoingRequest(proxy) { Operation = "Op" };
+        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
         var start = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
         // Act
@@ -212,8 +212,8 @@ public sealed class RetryInterceptorTests
         });
 
         var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = maxAttempts });
-        var proxy = new Proxy(Protocol.IceRpc);
-        var request = new OutgoingRequest(proxy)
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
+        var request = new OutgoingRequest(serviceAddress)
         {
             Operation = "Op"
         };
@@ -241,8 +241,8 @@ public sealed class RetryInterceptorTests
         });
 
         var sut = new RetryInterceptor(invoker, new RetryOptions());
-        var proxy = new Proxy(Protocol.IceRpc);
-        var request = new OutgoingRequest(proxy) { Operation = "Op" };
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
+        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
 
         // Act
         await sut.InvokeAsync(request, default);
@@ -269,8 +269,8 @@ public sealed class RetryInterceptorTests
         });
 
         var sut = new RetryInterceptor(invoker, new RetryOptions());
-        var proxy = new Proxy(Protocol.IceRpc);
-        var request = new OutgoingRequest(proxy)
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
+        var request = new OutgoingRequest(serviceAddress)
         {
             Fields = new Dictionary<RequestFieldKey, OutgoingFieldValue>
             {
@@ -320,16 +320,16 @@ public sealed class RetryInterceptorTests
             });
         });
 
-        var proxy = new Proxy(connection1.Protocol) { Path = "/path" };
-        proxy.Endpoint = connection1.RemoteEndpoint;
-        proxy.AltEndpoints = new List<Endpoint>
+        var serviceAddress = new ServiceAddress(connection1.Protocol) { Path = "/path" };
+        serviceAddress.Endpoint = connection1.RemoteEndpoint;
+        serviceAddress.AltEndpoints = new List<Endpoint>
         {
             connection2.RemoteEndpoint,
             connection3.RemoteEndpoint
         }.ToImmutableList();
         var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = 3 });
 
-        var request = new OutgoingRequest(proxy) { Operation = "Op" };
+        var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
         var start = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
         // Act
@@ -338,9 +338,9 @@ public sealed class RetryInterceptorTests
         // Assert
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
         Assert.That(endpoints.Count, Is.EqualTo(3));
-        Assert.That(endpoints[0], Is.EqualTo(proxy.Endpoint));
-        Assert.That(endpoints[1], Is.EqualTo(proxy.AltEndpoints[0]));
-        Assert.That(endpoints[2], Is.EqualTo(proxy.AltEndpoints[1]));
+        Assert.That(endpoints[0], Is.EqualTo(serviceAddress.Endpoint));
+        Assert.That(endpoints[1], Is.EqualTo(serviceAddress.AltEndpoints[0]));
+        Assert.That(endpoints[2], Is.EqualTo(serviceAddress.AltEndpoints[1]));
     }
 
     private static ReadOnlySequence<byte> EncodeRetryPolicy(RetryPolicy retryPolicy)

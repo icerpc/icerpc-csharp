@@ -15,17 +15,17 @@ public class DictionaryMappingTests
         PipeReader responsePayload = IDictionaryMappingOperations.Response.OpReturnTuple(
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 },
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, InvalidConnection.IceRpc)
         {
             Payload = responsePayload
         };
 
         (CustomDictionary<int, int> r1, CustomDictionary<int, int> r2) =
-            await DictionaryMappingOperationsPrx.Response.OpReturnTupleAsync(
+            await DictionaryMappingOperationsProxy.Response.OpReturnTupleAsync(
                 response,
                 request,
-                NullInvoker.Instance,
+                InvalidOperationInvoker.Instance,
                 null,
                 default);
 
@@ -38,17 +38,17 @@ public class DictionaryMappingTests
     {
         PipeReader responsePayload = IDictionaryMappingOperations.Response.OpReturnSingleType(
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, InvalidConnection.IceRpc)
         {
             Payload = responsePayload
         };
 
         // TODO bogus mapping, this should return CustomDictionary<int, int>
-        Dictionary<int, int> r = await DictionaryMappingOperationsPrx.Response.OpReturnSingleTypeAsync(
+        Dictionary<int, int> r = await DictionaryMappingOperationsProxy.Response.OpReturnSingleTypeAsync(
             response,
             request,
-            NullInvoker.Instance,
+            InvalidOperationInvoker.Instance,
             encodeFeature: null,
             default);
 
@@ -59,7 +59,7 @@ public class DictionaryMappingTests
     public void Parameter_using_cs_generic_attribute()
     {
         // Arrange
-        PipeReader requestPayload = DictionaryMappingOperationsPrx.Request.OpSingleParameter(
+        PipeReader requestPayload = DictionaryMappingOperationsProxy.Request.OpSingleParameter(
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
 
         // Act/Assert

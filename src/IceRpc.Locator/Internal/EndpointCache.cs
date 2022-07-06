@@ -7,21 +7,21 @@ using System.Diagnostics;
 namespace IceRpc.Locator.Internal;
 
 /// <summary>An endpoint cache maintains a dictionary of location to endpoint(s), where the endpoints are held by a
-/// dummy proxy. It also keeps track of the insertion time of each entry. It's consumed by
+/// dummy service address. It also keeps track of the insertion time of each entry. It's consumed by
 /// <see cref="LocationResolver"/>.</summary>
 internal interface IEndpointCache
 {
     void Remove(Location location);
 
-    void Set(Location location, Proxy proxy);
+    void Set(Location location, ServiceAddress serviceAddress);
 
-    bool TryGetValue(Location location, out (TimeSpan InsertionTime, Proxy Proxy) value);
+    bool TryGetValue(Location location, out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) value);
 }
 
 /// <summary>The main implementation for IEndpointCache.</summary>
 internal sealed class EndpointCache : IEndpointCache
 {
-    private readonly ConcurrentDictionary<Location, (TimeSpan InsertionTime, Proxy Proxy, LinkedListNode<Location> Node)> _cache;
+    private readonly ConcurrentDictionary<Location, (TimeSpan InsertionTime, ServiceAddress ServiceAddress, LinkedListNode<Location> Node)> _cache;
 
     // The keys in _cache. The first entries correspond to the most recently added cache entries.
     private readonly LinkedList<Location> _cacheKeys = new();
@@ -40,14 +40,14 @@ internal sealed class EndpointCache : IEndpointCache
 
     void IEndpointCache.Remove(Location location) => Remove(location);
 
-    void IEndpointCache.Set(Location location, Proxy proxy)
+    void IEndpointCache.Set(Location location, ServiceAddress serviceAddress)
     {
         lock (_mutex)
         {
             Remove(location); // remove existing cache entry if present
 
             _cache[location] =
-                (TimeSpan.FromMilliseconds(Environment.TickCount64), proxy, _cacheKeys.AddFirst(location));
+                (TimeSpan.FromMilliseconds(Environment.TickCount64), serviceAddress, _cacheKeys.AddFirst(location));
 
             if (_cacheKeys.Count == _maxCacheSize + 1)
             {
@@ -59,16 +59,18 @@ internal sealed class EndpointCache : IEndpointCache
         }
     }
 
-    bool IEndpointCache.TryGetValue(Location location, out (TimeSpan InsertionTime, Proxy Proxy) value)
+    bool IEndpointCache.TryGetValue(
+        Location location,
+        out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) value)
     {
         // no mutex lock: _cache is a concurrent dictionary and it's ok if it's updated while we read it
 
         if (_cache.TryGetValue(
             location,
-            out (TimeSpan InsertionTime, Proxy Proxy, LinkedListNode<Location> Node) entry))
+            out (TimeSpan InsertionTime, ServiceAddress ServiceAddress, LinkedListNode<Location> Node) entry))
         {
             value.InsertionTime = entry.InsertionTime;
-            value.Proxy = entry.Proxy;
+            value.ServiceAddress = entry.ServiceAddress;
             return true;
         }
         else
@@ -84,7 +86,7 @@ internal sealed class EndpointCache : IEndpointCache
         {
             if (_cache.TryRemove(
                 location,
-                out (TimeSpan InsertionTime, Proxy Proxy, LinkedListNode<Location> Node) entry))
+                out (TimeSpan InsertionTime, ServiceAddress ServiceAddress, LinkedListNode<Location> Node) entry))
             {
                 _cacheKeys.Remove(entry.Node);
             }
@@ -110,17 +112,19 @@ internal class LogEndpointCacheDecorator : IEndpointCache
         _logger.LogRemovedEntry(location.Kind, location);
     }
 
-    void IEndpointCache.Set(Location location, Proxy proxy)
+    void IEndpointCache.Set(Location location, ServiceAddress serviceAddress)
     {
-        _decoratee.Set(location, proxy);
-        _logger.LogSetEntry(location.Kind, location, proxy);
+        _decoratee.Set(location, serviceAddress);
+        _logger.LogSetEntry(location.Kind, location, serviceAddress);
     }
 
-    bool IEndpointCache.TryGetValue(Location location, out (TimeSpan InsertionTime, Proxy Proxy) value)
+    bool IEndpointCache.TryGetValue(
+        Location location,
+        out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) value)
     {
         if (_decoratee.TryGetValue(location, out value))
         {
-            _logger.LogFoundEntry(location.Kind, location, value.Proxy);
+            _logger.LogFoundEntry(location.Kind, location, value.ServiceAddress);
             return true;
         }
         else

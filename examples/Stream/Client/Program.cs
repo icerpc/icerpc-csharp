@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 
 // Establish the connection to the server
 await using var connection = new ClientConnection("icerpc://127.0.0.1");
-var numberStreamPrx = new NumberStreamPrx(connection);
+var numberStreamProxy = new NumberStreamProxy(connection);
 
 // Continues to stream data until either the client or server are shut down
 Console.WriteLine("Client is streaming data...");
@@ -16,7 +16,7 @@ try
     {
         // A `default` cancellation token is passed into `GetDataAsync` since IceRpc will override the token via the
         // `[EnumeratorCancellation]` attribute
-        await numberStreamPrx.StreamDataAsync(GetDataAsync(index * 10, default));
+        await numberStreamProxy.StreamDataAsync(GetDataAsync(index * 10, default));
     }
 }
 catch (OperationCanceledException ex)

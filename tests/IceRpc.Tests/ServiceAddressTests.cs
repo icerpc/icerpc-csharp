@@ -10,11 +10,11 @@ using System.Collections.Immutable;
 namespace IceRpc.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
-public class ProxyTests
+public class ServiceAddressTests
 {
-    /// <summary>Provides test case data for <see cref="Equal_proxies_produce_the_same_hash_code(string)"/>
+    /// <summary>Provides test case data for <see cref="Equal_service_addresses_produce_the_same_hash_code(string)"/>
     /// test.</summary>
-    private static IEnumerable<TestCaseData> ProxyHashCodeSource
+    private static IEnumerable<TestCaseData> ServiceAddressHashCodeSource
     {
         get
         {
@@ -25,9 +25,9 @@ public class ProxyTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Parse_an_invalid_proxy_string(string)"/>
+    /// <summary>Provides test case data for <see cref="Parse_an_invalid_service_address_string(string)"/>
     /// test.</summary>
-    private static IEnumerable<TestCaseData> ProxyParseInvalidSource
+    private static IEnumerable<TestCaseData> ServiceAddressParseInvalidSource
     {
         get
         {
@@ -38,9 +38,9 @@ public class ProxyTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Parse_a_proxy_string(string, string, string)"/>
+    /// <summary>Provides test case data for <see cref="Parse_a_service_address_string(string, string, string)"/>
     /// test.</summary>
-    private static IEnumerable<TestCaseData> ProxyParseSource
+    private static IEnumerable<TestCaseData> ServiceAddressParseSource
     {
         get
         {
@@ -51,9 +51,9 @@ public class ProxyTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Convert_a_proxy_to_a_string(string)"/> test.
+    /// <summary>Provides test case data for <see cref="Convert_a_service_address_to_a_string(string)"/> test.
     /// </summary>
-    private static IEnumerable<TestCaseData> ProxyToStringSource
+    private static IEnumerable<TestCaseData> ServiceAddressToStringSource
     {
         get
         {
@@ -64,7 +64,7 @@ public class ProxyTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Parse_proxy_alt_endpoints(string)"/> test.
+    /// <summary>Provides test case data for <see cref="Parse_service_address_alt_endpoints(string)"/> test.
     /// </summary>
     private static IEnumerable<TestCaseData> AltEndpointsSource
     {
@@ -77,7 +77,7 @@ public class ProxyTests
         }
     }
 
-    /// <summary>A collection of proxy strings that are invalid.</summary>
+    /// <summary>A collection of service address strings that are invalid.</summary>
     private static readonly string[] _invalidUriFormatProxies = new string[]
         {
             "",
@@ -93,12 +93,13 @@ public class ProxyTests
             "ice://host/cat/",              // empty identity name
             "ice://host/",                  // empty identity name
             "ice://host//",                 // empty identity name
-            "ice:/path?alt-endpoint=foo",   // alt-endpoint proxy parameter
+            "ice:/path?alt-endpoint=foo",   // alt-endpoint service address parameter
             "ice:/path?adapter-id",         // empty adapter-id
             "ice:/path?adapter-id=foo&foo", // extra parameter
         };
 
-    /// <summary>A collection of proxy strings that are valid, with its expected path and fragment.</summary>
+    /// <summary>A collection of service address URI strings that are valid, with its expected path and fragment.
+    /// </summary>
     private static readonly (string Str, string Path, string Fragment)[] _validUriFormatProxies = new (string, string, string)[]
         {
             ("icerpc://host.zeroc.com/path?encoding=foo", "/path", ""),
@@ -143,8 +144,8 @@ public class ProxyTests
             ("icerpc://host:10000?transport=coloc", "/", ""),
             ("icerpc:/tcp -p 10000", "/tcp%20-p%2010000", ""), // not recommended
             ("icerpc://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar", "/identity", ""),
-            ("ice://0.0.0.0/identity#facet", "/identity", "facet"), // Any IPv4 in proxy endpoint (unusable but parses ok)
-            ("ice://[::0]/identity#facet", "/identity", "facet"), // Any IPv6 in proxy endpoint (unusable but parses ok)
+            ("ice://0.0.0.0/identity#facet", "/identity", "facet"), // Any IPv4 in service address endpoint (unusable but parses ok)
+            ("ice://[::0]/identity#facet", "/identity", "facet"), // Any IPv6 in service address (unusable but parses ok)
             // IDN
             ("icerpc://München-Ost:10000/path", "/path", ""),
             ("icerpc://xn--mnchen-ost-9db.com/path", "/path", ""),
@@ -183,25 +184,25 @@ public class ProxyTests
     public void Adapter_id_cannot_be_empty()
     {
         // Arrange
-        var proxy = Proxy.Parse("ice://localhost/hello");
+        var serviceAddress = ServiceAddress.Parse("ice://localhost/hello");
 
         // Act/Assert
-        Assert.That(() => proxy.Params = proxy.Params.SetItem("adapter-id", ""), Throws.ArgumentException);
+        Assert.That(() => serviceAddress.Params = serviceAddress.Params.SetItem("adapter-id", ""), Throws.ArgumentException);
     }
 
-    /// <summary>Verifies that the proxy endpoint cannot be set when the proxy contains any params.</summary>
+    /// <summary>Verifies that the service address endpoint cannot be set when the service address contains any params.</summary>
     [Test]
-    public void Cannot_set_endpoint_on_a_proxy_with_parameters()
+    public void Cannot_set_endpoint_on_a_service_address_with_parameters()
     {
         // Arrange
-        var proxy = new Proxy(Protocol.Ice)
+        var serviceAddress = new ServiceAddress(Protocol.Ice)
         {
             Params = new Dictionary<string, string> { ["adapter-id"] = "value" }.ToImmutableDictionary(),
         };
 
         // Act/Assert
         Assert.That(
-            () => proxy.Endpoint = new Endpoint(proxy.Protocol!) { Host = "localhost" },
+            () => serviceAddress.Endpoint = new Endpoint(serviceAddress.Protocol!) { Host = "localhost" },
             Throws.TypeOf<InvalidOperationException>());
     }
 
@@ -211,9 +212,9 @@ public class ProxyTests
     public void Cannot_set_fragment_if_protocol_has_no_fragment(string protocolName)
     {
         Protocol? protocol = protocolName.Length > 0 ? Protocol.FromString(protocolName) : null;
-        var proxy = new Proxy(protocol);
+        var serviceAddress = new ServiceAddress(protocol);
 
-        Assert.That(() => proxy.Fragment = "bar", Throws.TypeOf<InvalidOperationException>());
+        Assert.That(() => serviceAddress.Fragment = "bar", Throws.TypeOf<InvalidOperationException>());
 
         if (protocol is not null)
         {
@@ -221,95 +222,95 @@ public class ProxyTests
         }
     }
 
-    /// <summary>Verifies that the proxy params cannot be set when the proxy has an endpoint.</summary>
+    /// <summary>Verifies that the service address params cannot be set when the service address has an endpoint.</summary>
     [Test]
-    public void Cannot_set_params_on_a_proxy_with_endpoints()
+    public void Cannot_set_params_on_a_service_address_with_endpoints()
     {
-        var proxy = Proxy.Parse("icerpc://localhost/hello");
+        var serviceAddress = ServiceAddress.Parse("icerpc://localhost/hello");
 
         Assert.That(
-            () => proxy.Params = proxy.Params.Add("name", "value"),
+            () => serviceAddress.Params = serviceAddress.Params.Add("name", "value"),
             Throws.TypeOf<InvalidOperationException>());
     }
 
-    /// <summary>Verifies that a proxy can be converted into a string using any of the supported formats.</summary>
-    /// <param name="str">The string used to create the source proxy.</param>
-    [Test, TestCaseSource(nameof(ProxyToStringSource))]
-    public void Convert_a_proxy_to_a_string(string str)
+    /// <summary>Verifies that a service address can be converted into a string using any of the supported formats.</summary>
+    /// <param name="str">The string used to create the source serviceAddress</param>
+    [Test, TestCaseSource(nameof(ServiceAddressToStringSource))]
+    public void Convert_a_service_address_to_a_string(string str)
     {
-        var proxy = Proxy.Parse(str);
+        var serviceAddress = ServiceAddress.Parse(str);
 
-        string str2 = proxy.ToString();
+        string str2 = serviceAddress.ToString();
 
-        Assert.That(Proxy.Parse(str2), Is.EqualTo(proxy));
+        Assert.That(ServiceAddress.Parse(str2), Is.EqualTo(serviceAddress));
     }
 
     /// <summary>Verifies that two equal proxies always produce the same hash code.</summary>
-    /// <param name="str">The string proxy to test.</param>
-    [Test, TestCaseSource(nameof(ProxyHashCodeSource))]
-    public void Equal_proxies_produce_the_same_hash_code(string str)
+    /// <param name="str">The service address to test.</param>
+    [Test, TestCaseSource(nameof(ServiceAddressHashCodeSource))]
+    public void Equal_service_addresses_produce_the_same_hash_code(string str)
     {
-        var proxy1 = Proxy.Parse(str);
-        var proxy2 = Proxy.Parse(proxy1.ToString());
+        var serviceAddress1 = ServiceAddress.Parse(str);
+        var serviceAddress2 = ServiceAddress.Parse(serviceAddress1.ToString());
 
-        var hashCode1 = proxy1.GetHashCode();
+        var hashCode1 = serviceAddress1.GetHashCode();
 
-        Assert.That(proxy1, Is.EqualTo(proxy2));
-        Assert.That(hashCode1, Is.EqualTo(proxy1.GetHashCode()));
-        Assert.That(hashCode1, Is.EqualTo(proxy2.GetHashCode()));
+        Assert.That(serviceAddress1, Is.EqualTo(serviceAddress2));
+        Assert.That(hashCode1, Is.EqualTo(serviceAddress1.GetHashCode()));
+        Assert.That(hashCode1, Is.EqualTo(serviceAddress2.GetHashCode()));
     }
 
-    /// <summary>Verifies that a proxy created from a path has the expected protocol, path and endpoint properties.
+    /// <summary>Verifies that a service address created from a path has the expected protocol, path and endpoint properties.
     /// </summary>
     [TestCase("/")]
     [TestCase("/foo/bar/")]
     public void From_path(string path)
     {
-        var proxy = new Proxy { Path = path };
+        var serviceAddress = new ServiceAddress { Path = path };
 
         Assert.Multiple(() =>
         {
-            Assert.That(proxy.Protocol, Is.Null);
-            Assert.That(proxy.Path, Is.EqualTo(path));
-            Assert.That(proxy.Endpoint, Is.Null);
+            Assert.That(serviceAddress.Protocol, Is.Null);
+            Assert.That(serviceAddress.Path, Is.EqualTo(path));
+            Assert.That(serviceAddress.Endpoint, Is.Null);
         });
     }
 
-    /// <summary>Verifies that a string can be correctly parsed as a proxy.</summary>
-    /// <param name="str">The string to parse as a proxy.</param>
+    /// <summary>Verifies that a string can be correctly parsed as a service address</summary>
+    /// <param name="str">The string to parse as a service address</param>
     /// <param name="format">The format of <paramref name="str"/> string.</param>
-    /// <param name="path">The expected path for the parsed proxy.</param>
-    /// <param name="fragment">The expected fragment for the parsed proxy.</param>
-    [Test, TestCaseSource(nameof(ProxyParseSource))]
-    public void Parse_a_proxy_string(string str, string path, string fragment)
+    /// <param name="path">The expected path for the parsed service address</param>
+    /// <param name="fragment">The expected fragment for the parsed service address</param>
+    [Test, TestCaseSource(nameof(ServiceAddressParseSource))]
+    public void Parse_a_service_address_string(string str, string path, string fragment)
     {
-        var proxy = Proxy.Parse(str);
+        var serviceAddress = ServiceAddress.Parse(str);
 
-        Assert.That(proxy.Path, Is.EqualTo(path));
-        Assert.That(proxy.Fragment, Is.EqualTo(fragment));
+        Assert.That(serviceAddress.Path, Is.EqualTo(path));
+        Assert.That(serviceAddress.Fragment, Is.EqualTo(fragment));
     }
 
     /// <summary>Verifies that parsing a string that is not valid according the given <paramref name="format"/> throws
     /// <see cref="FormatException"/>.</summary>
-    /// <param name="str">The string to parse as a proxy.</param>
-    /// <param name="format">The format use to parse the string as a proxy.</param>
-    [Test, TestCaseSource(nameof(ProxyParseInvalidSource))]
-    public void Parse_an_invalid_proxy_string(string str) =>
-        Assert.Throws(Is.InstanceOf<FormatException>(), () => Proxy.Parse(str));
+    /// <param name="str">The string to parse as a service address</param>
+    /// <param name="format">The format use to parse the string as a service address</param>
+    [Test, TestCaseSource(nameof(ServiceAddressParseInvalidSource))]
+    public void Parse_an_invalid_service_address_string(string str) =>
+        Assert.Throws(Is.InstanceOf<FormatException>(), () => ServiceAddress.Parse(str));
 
     [Test, TestCaseSource(nameof(AltEndpointsSource))]
-    public void Parse_proxy_alt_endpoints(string str, Endpoint[] altEndpoints)
+    public void Parse_service_address_alt_endpoints(string str, Endpoint[] altEndpoints)
     {
-        var proxy = Proxy.Parse(str);
+        var serviceAddress = ServiceAddress.Parse(str);
 
-        Assert.That(proxy.AltEndpoints, Is.EqualTo(altEndpoints));
+        Assert.That(serviceAddress.AltEndpoints, Is.EqualTo(altEndpoints));
     }
 
     /// <summary>Verifies that the proxy invoker of the <see cref="ISliceDecodeFeature"/> is used for proxies
     /// received over an incoming connection.</summary>
     // TODO: move this test to Slice
     [Test]
-    public async Task Proxy_invoker_is_set_to_the_slice_decode_options_feature_proxy_invoker()
+    public async Task Proxy_invoker_is_set_to_the_slice_decode_options_feature_service_address_invoker()
     {
         var service = new SendProxyTest();
         var pipeline = new Pipeline();
@@ -320,13 +321,13 @@ public class ProxyTests
             .AddColocTest(router)
             .BuildServiceProvider(validateScopes: true);
 
-        var prx = new SendProxyTestPrx(provider.GetRequiredService<ClientConnection>());
+        var proxy = new SendProxyTestProxy(provider.GetRequiredService<ClientConnection>());
         provider.GetRequiredService<Server>().Listen();
 
-        await prx.SendProxyAsync(prx);
+        await proxy.SendProxyAsync(proxy);
 
-        Assert.That(service.ReceivedPrx, Is.Not.Null);
-        Assert.That(service.ReceivedPrx.Value.Invoker, Is.EqualTo(pipeline));
+        Assert.That(service.ReceivedProxy, Is.Not.Null);
+        Assert.That(service.ReceivedProxy.Value.Invoker, Is.EqualTo(pipeline));
     }
 
     /// <summary>Verifies that a proxy received over an incoming connection uses the default invoker.</summary>
@@ -339,16 +340,16 @@ public class ProxyTests
             .AddColocTest(service)
             .BuildServiceProvider(validateScopes: true);
 
-        var prx = new SendProxyTestPrx(provider.GetRequiredService<ClientConnection>());
+        var proxy = new SendProxyTestProxy(provider.GetRequiredService<ClientConnection>());
         provider.GetRequiredService<Server>().Listen();
 
-        await prx.SendProxyAsync(prx);
+        await proxy.SendProxyAsync(proxy);
 
-        Assert.That(service.ReceivedPrx, Is.Not.Null);
-        Assert.That(service.ReceivedPrx.Value.Invoker, Is.EqualTo(NullInvoker.Instance));
+        Assert.That(service.ReceivedProxy, Is.Not.Null);
+        Assert.That(service.ReceivedProxy.Value.Invoker, Is.EqualTo(InvalidOperationInvoker.Instance));
     }
 
-    /// <summary>Verifies that a proxy received over an outgoing connection inherits the callers invoker.</summary>
+    /// <summary>Verifies that a service address received over an outgoing connection inherits the callers invoker.</summary>
     [Test]
     public async Task Proxy_received_over_an_outgoing_connection_inherits_the_callers_invoker()
     {
@@ -359,9 +360,9 @@ public class ProxyTests
         provider.GetRequiredService<Server>().Listen();
         IConnection connection = provider.GetRequiredService<ClientConnection>();
         IInvoker invoker = new Pipeline().Into(connection);
-        var prx = new ReceiveProxyTestPrx(invoker);
+        var proxy = new ReceiveProxyTestProxy(invoker);
 
-        ReceiveProxyTestPrx received = await prx.ReceiveProxyAsync();
+        ReceiveProxyTestProxy received = await proxy.ReceiveProxyAsync();
 
         Assert.That(received.Invoker, Is.EqualTo(invoker));
     }
@@ -371,60 +372,60 @@ public class ProxyTests
     [Test]
     public void Setting_alt_endpoints_with_a_different_protocol_fails()
     {
-        var proxy = Proxy.Parse("ice://host.zeroc.com:10000/hello");
-        var endpoint1 = Proxy.Parse("ice://host.zeroc.com:10001/hello").Endpoint!.Value;
-        var endpoint2 = Proxy.Parse("icerpc://host.zeroc.com/hello").Endpoint!.Value;
+        var serviceAddress = ServiceAddress.Parse("ice://host.zeroc.com:10000/hello");
+        var endpoint1 = ServiceAddress.Parse("ice://host.zeroc.com:10001/hello").Endpoint!.Value;
+        var endpoint2 = ServiceAddress.Parse("icerpc://host.zeroc.com/hello").Endpoint!.Value;
         var altEndpoints = new Endpoint[] { endpoint1, endpoint2 }.ToImmutableList();
 
-        Assert.That(() => proxy.AltEndpoints = altEndpoints, Throws.ArgumentException);
+        Assert.That(() => serviceAddress.AltEndpoints = altEndpoints, Throws.ArgumentException);
 
         // Ensure the alt endpoints weren't updated
-        Assert.That(proxy.AltEndpoints, Is.Empty);
+        Assert.That(serviceAddress.AltEndpoints, Is.Empty);
     }
 
-    /// <summary>Verifies that setting an endpoint that uses a protocol different than the proxy protocol throws
+    /// <summary>Verifies that setting an endpoint that uses a protocol different than the service address protocol throws
     /// <see cref="ArgumentException"/>.</summary>
     [Test]
     public void Setting_endpoint_with_a_different_protocol_fails()
     {
-        var proxy = Proxy.Parse("ice://host.zeroc.com/hello");
-        var endpoint = proxy.Endpoint;
-        var newEndpoint = Proxy.Parse("icerpc://host.zeroc.com/hello").Endpoint!.Value;
+        var serviceAddress = ServiceAddress.Parse("ice://host.zeroc.com/hello");
+        var endpoint = serviceAddress.Endpoint;
+        var newEndpoint = ServiceAddress.Parse("icerpc://host.zeroc.com/hello").Endpoint!.Value;
 
-        Assert.That(() => proxy.Endpoint = newEndpoint, Throws.ArgumentException);
+        Assert.That(() => serviceAddress.Endpoint = newEndpoint, Throws.ArgumentException);
 
         // Ensure the endpoint wasn't updated
-        Assert.That(proxy.Endpoint, Is.EqualTo(endpoint));
+        Assert.That(serviceAddress.Endpoint, Is.EqualTo(endpoint));
     }
 
-    /// <summary>Verifies that we can set the fragment on an ice proxy.</summary>
+    /// <summary>Verifies that we can set the fragment on an ice service address</summary>
     [Test]
-    public void Set_fragment_on_an_ice_proxy()
+    public void Set_fragment_on_an_ice_service_address()
     {
-        var proxy = new Proxy(Protocol.Ice);
+        var serviceAddress = new ServiceAddress(Protocol.Ice);
 
-        proxy = proxy with { Fragment = "bar" };
+        serviceAddress = serviceAddress with { Fragment = "bar" };
 
-        Assert.That(proxy.Fragment, Is.EqualTo("bar"));
-        Assert.That(proxy.Protocol!.HasFragment, Is.True);
+        Assert.That(serviceAddress.Fragment, Is.EqualTo("bar"));
+        Assert.That(serviceAddress.Protocol!.HasFragment, Is.True);
     }
 
     private class ReceiveProxyTest : Service, IReceiveProxyTest
     {
-        public ValueTask<ReceiveProxyTestPrx> ReceiveProxyAsync(IFeatureCollection features, CancellationToken cancel) =>
-            new(new ReceiveProxyTestPrx("/hello"));
+        public ValueTask<ReceiveProxyTestProxy> ReceiveProxyAsync(IFeatureCollection features, CancellationToken cancel) =>
+            new(new ReceiveProxyTestProxy("/hello"));
     }
 
     private class SendProxyTest : Service, ISendProxyTest
     {
-        public SendProxyTestPrx? ReceivedPrx { get; private set; }
+        public SendProxyTestProxy? ReceivedProxy { get; private set; }
 
         public ValueTask SendProxyAsync(
-            SendProxyTestPrx proxy,
+            SendProxyTestProxy proxy,
             IFeatureCollection features,
             CancellationToken cancel = default)
         {
-            ReceivedPrx = proxy;
+            ReceivedProxy = proxy;
             return default;
         }
     }

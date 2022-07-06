@@ -50,7 +50,7 @@ public sealed class IceRpcProtocolConnectionTests
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)), InvalidConnection.IceRpc);
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)), InvalidConnection.IceRpc);
 
         await start.WaitAsync(); // Wait for the dispatch to start
 
@@ -80,7 +80,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         // Act
         var response = await sut.Client.InvokeAsync(request, InvalidConnection.IceRpc);
@@ -118,7 +118,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Act
         _ = sut.Client.InvokeAsync(
-            new OutgoingRequest(new Proxy(Protocol.IceRpc)),
+            new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)),
             InvalidConnection.IceRpc);
 
         // Assert
@@ -137,7 +137,7 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.ConnectAsync();
 
         var payloadStreamDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
             IsOneway = isOneway,
             PayloadStream = payloadStreamDecorator
@@ -162,7 +162,7 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.ConnectAsync();
 
         var payloadStreamDecorator = new PayloadPipeReaderDecorator(InvalidPipeReader.Instance);
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
             IsOneway = isOneway,
             PayloadStream = payloadStreamDecorator
@@ -194,7 +194,7 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.ConnectAsync();
 
         // Act
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)), InvalidConnection.IceRpc);
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)), InvalidConnection.IceRpc);
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.Null);
@@ -220,7 +220,7 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.ConnectAsync();
 
         // Act
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)), InvalidConnection.IceRpc);
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)), InvalidConnection.IceRpc);
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
@@ -239,7 +239,7 @@ public sealed class IceRpcProtocolConnectionTests
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
             Payload = InvalidPipeReader.Instance
         };
@@ -288,7 +288,7 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.ConnectAsync();
 
         // Act
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)), InvalidConnection.IceRpc);
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)), InvalidConnection.IceRpc);
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
@@ -303,7 +303,7 @@ public sealed class IceRpcProtocolConnectionTests
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc))
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
             Operation = new string('x', 100)
         };
@@ -334,7 +334,7 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.ConnectAsync();
 
         var payloadDecorator = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc));
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         // Act
         var response = await sut.Client.InvokeAsync(request, InvalidConnection.IceRpc);

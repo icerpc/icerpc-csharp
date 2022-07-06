@@ -17,7 +17,7 @@ public class PipelineTests
         var pipeline = new Pipeline();
         pipeline.Use(next => new InlineInvoker((request, cancel) =>
                 Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc))));
-        pipeline.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
+        pipeline.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
 
         // Assert/Act
         Assert.Throws<InvalidOperationException>(
@@ -57,7 +57,7 @@ public class PipelineTests
                     return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
                 }));
 
-        pipeline.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
+        pipeline.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
 
         Assert.That(calls, Is.EqualTo(expectedCalls));
     }
@@ -88,7 +88,7 @@ public class PipelineTests
                     return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
                 }));
 
-        pipeline.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
+        pipeline.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
 
         Assert.That(calls, Is.EqualTo(expectedCalls));
     }
@@ -111,7 +111,7 @@ public class PipelineTests
             feature = request.Features.Get<string>();
             return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
         }));
-        pipeline.InvokeAsync(new OutgoingRequest(new Proxy(Protocol.IceRpc)));
+        pipeline.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
         Assert.That(feature, Is.EqualTo(expected));
     }
 }

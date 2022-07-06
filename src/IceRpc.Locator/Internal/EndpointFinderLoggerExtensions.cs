@@ -21,10 +21,10 @@ internal static partial class EndpointFinderLoggerExtensions
         EventId = (int)LocationEventIds.Found,
         EventName = nameof(LocationEventIds.Found),
         Level = LogLevel.Trace,
-        Message = "found {LocationKind} '{Location}' = '{Proxy}'")]
+        Message = "found {LocationKind} '{Location}' = '{ServiceAddress}'")]
     internal static partial void LogFound(
         this ILogger logger,
         string locationKind,
         Location location,
-        Proxy proxy);
+        ServiceAddress serviceAddress);
 }

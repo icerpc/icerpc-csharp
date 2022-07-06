@@ -143,6 +143,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
     private protected override void CancelDispatchesAndAbortInvocations(Exception? exception)
     {
+        lock (_mutex)
+        {
+            _isReadOnly = true; // prevent new dispatches or invocations from being accepted.
+        }
+
         // Set the abort exception for invocations.
         _abortInvocationException = exception ?? new ConnectionAbortedException("connection disposed");
 
@@ -470,8 +475,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         @$"response payload size/frame size mismatch: payload size is {payloadSize} bytes but frame has {readResult.Buffer.Length - headerSize} bytes left");
                 }
 
-                // TODO: check encoding is Slice1. See github proposal.
-
                 // Consume header.
                 frameReader.AdvanceTo(readResult.Buffer.GetPosition(headerSize));
             }
@@ -485,7 +488,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             // For compatibility with ZeroC Ice "indirect" proxies
             IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields =
-                replyStatus == ReplyStatus.ObjectNotExistException && request.Proxy.Endpoint is null ?
+                replyStatus == ReplyStatus.ObjectNotExistException && request.ServiceAddress.Endpoint is null ?
                 _otherReplicaFields :
                 ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
 
@@ -568,8 +571,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             // Request header.
             var requestHeader = new IceRequestHeader(
-                request.Proxy.Path,
-                request.Proxy.Fragment,
+                request.ServiceAddress.Path,
+                request.ServiceAddress.Fragment,
                 request.Operation,
                 request.Fields.ContainsKey(RequestFieldKey.Idempotent) ?
                     OperationMode.Idempotent : OperationMode.Normal);

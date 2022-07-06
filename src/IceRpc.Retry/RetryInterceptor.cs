@@ -43,7 +43,7 @@ public class RetryInterceptor : IInvoker
             IEndpointFeature? endpointFeature = request.Features.Get<IEndpointFeature>();
             if (endpointFeature is null)
             {
-                endpointFeature = new EndpointFeature(request.Proxy);
+                endpointFeature = new EndpointFeature(request.ServiceAddress);
                 request.Features = request.Features.With(endpointFeature);
             }
 
@@ -120,7 +120,7 @@ public class RetryInterceptor : IInvoker
 
                         _logger.LogRetryRequest(
                             endpointFeature.Connection,
-                            request.Proxy.Path,
+                            request.ServiceAddress.Path,
                             request.Operation,
                             retryPolicy,
                             attempt,

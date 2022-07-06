@@ -120,11 +120,11 @@ internal static partial class ConnectionLoggerExtensions
 
     /// <summary>Starts a scope for method IProtocolConnection.ReceiveResponseAsync.</summary>
     internal static IDisposable StartReceiveResponseScope(this ILogger logger, OutgoingRequest request) =>
-        _receiveResponseScope(logger, request.Proxy.Path, request.Operation);
+        _receiveResponseScope(logger, request.ServiceAddress.Path, request.Operation);
 
     /// <summary>Starts a scope for method IProtocolConnection.InvokeAsync.</summary>
     internal static IDisposable StartSendRequestScope(this ILogger logger, OutgoingRequest request) =>
-        _sendRequestScope(logger, request.Proxy.Path, request.Operation);
+        _sendRequestScope(logger, request.ServiceAddress.Path, request.Operation);
 
     /// <summary>Starts a scope for method IProtocolConnection.SendResponseAsync.</summary>
     internal static IDisposable StartSendResponseScope(

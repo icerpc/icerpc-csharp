@@ -34,15 +34,15 @@ public sealed class TypeIdAttributeTests
     /// <summary>A collection of types generated from Slice definitions and its expected type IDs.</summary>
     private static readonly Dictionary<Type, string> _typeIds = new()
     {
-        [typeof(ServicePrx)] = "::Slice::Service",
+        [typeof(ServiceProxy)] = "::Slice::Service",
         [typeof(MyClass)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyClass",
-        [typeof(IMyInterfacePrx)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface",
-        [typeof(MyInterfacePrx)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface",
+        [typeof(IMyInterfaceProxy)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface",
+        [typeof(MyInterfaceProxy)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface",
         [typeof(IMyInterface)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface",
         [typeof(MyException)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyException",
         [typeof(MyStruct)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyStruct",
         [typeof(Inner.MyClass)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::Inner::myClass",
-        [typeof(Inner.MyInterfacePrx)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::Inner::myInterface",
+        [typeof(Inner.MyInterfaceProxy)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::Inner::myInterface",
         [typeof(Inner.IMyInterface)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::Inner::myInterface",
         [typeof(Inner.MyException)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::Inner::myException",
         [typeof(Inner.MyStruct)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::Inner::myStruct",
@@ -51,15 +51,15 @@ public sealed class TypeIdAttributeTests
     /// <summary>A collection of types generated from Slice definitions and its expected default path.</summary>
     private static readonly Dictionary<Type, string> _defaultPaths = new()
     {
-        [typeof(ServicePrx)] = "/Slice.Service",
+        [typeof(ServiceProxy)] = "/Slice.Service",
         [typeof(MyClass)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyClass",
-        [typeof(IMyInterfacePrx)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyInterface",
-        [typeof(MyInterfacePrx)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyInterface",
+        [typeof(IMyInterfaceProxy)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyInterface",
+        [typeof(MyInterfaceProxy)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyInterface",
         [typeof(IMyInterface)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyInterface",
         [typeof(MyException)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyException",
         [typeof(MyStruct)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyStruct",
         [typeof(Inner.MyClass)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.Inner.myClass",
-        [typeof(Inner.MyInterfacePrx)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.Inner.myInterface",
+        [typeof(Inner.MyInterfaceProxy)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.Inner.myInterface",
         [typeof(Inner.MyException)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.Inner.myException",
         [typeof(Inner.MyStruct)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.Inner.myStruct",
     };

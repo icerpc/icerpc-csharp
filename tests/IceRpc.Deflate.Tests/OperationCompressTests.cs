@@ -43,14 +43,14 @@ public class OperationGeneratedCodeTests
                     return response;
                 }))
                 .Into<ClientConnection>())
-            .AddIceRpcPrx<IMyOperationsAPrx, MyOperationsAPrx>("icerpc:/")
+            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>("icerpc:/")
             .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
-        IMyOperationsAPrx prx = provider.GetRequiredService<IMyOperationsAPrx>();
+        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
 
         // Act
-        int r = await prx.OpWithCompressArgsAndReturnAttributeAsync(10);
+        int r = await proxy.OpWithCompressArgsAndReturnAttributeAsync(10);
 
         // Assert
         Assert.That(r, Is.EqualTo(10));

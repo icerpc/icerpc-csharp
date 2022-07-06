@@ -9,7 +9,7 @@ public sealed class Pipeline : IInvoker
 {
     private readonly Stack<Func<IInvoker, IInvoker>> _interceptorStack = new();
     private readonly Lazy<IInvoker> _invoker;
-    private IInvoker _lastInvoker = NullInvoker.Instance;
+    private IInvoker _lastInvoker = InvalidOperationInvoker.Instance;
 
     /// <summary>Constructs a pipeline.</summary>
     public Pipeline() => _invoker = new Lazy<IInvoker>(CreateInvokerPipeline);

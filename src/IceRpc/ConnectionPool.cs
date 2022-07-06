@@ -89,7 +89,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
         }
         else
         {
-            endpointFeature = new EndpointFeature(request.Proxy);
+            endpointFeature = new EndpointFeature(request.ServiceAddress);
             request.Features = request.Features.With(endpointFeature);
         }
         return PerformInvokeAsync();
@@ -98,7 +98,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
         {
             if (endpointFeature.Endpoint is null)
             {
-                throw new NoEndpointException(request.Proxy);
+                throw new NoEndpointException(request.ServiceAddress);
             }
 
             // Perform the connection establishment, if needed, without a cancellation token. It will eventually timeout
