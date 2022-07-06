@@ -553,6 +553,11 @@ public sealed class ProtocolConnectionTests
         var shutdownTask = sut.Server.ShutdownAsync("");
 
         // Assert
+
+        // Wait a little to ensure that the server connection shutdown is initiated (it yields and might still accept
+        // requests before the yield).
+        await Task.Delay(TimeSpan.FromMilliseconds(100));
+
         var invokeTask2 = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol)), connection);
         hold.Release();
         Assert.Multiple(() =>

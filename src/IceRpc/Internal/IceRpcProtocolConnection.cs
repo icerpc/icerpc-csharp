@@ -763,6 +763,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 }
             });
 
+            // Create a linked source to cancel the dispatch either through its cancellation token source or the
+            // cancellation token source for all the dispatches.
             using var cancelSource = CancellationTokenSource.CreateLinkedTokenSource(
                 _dispatchesCancelSource.Token,
                 dispatchCancelSource.Token);
@@ -770,9 +772,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             OutgoingResponse response;
             try
             {
-                // Create a linked source to cancel the dispatch either through its cancellation token source or the
-                // cancellation token source for all the dispatches.
-
                 response = await _dispatcher.DispatchAsync(request, cancelSource.Token).ConfigureAwait(false);
 
                 if (response != request.Response)

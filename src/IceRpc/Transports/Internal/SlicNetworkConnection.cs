@@ -346,7 +346,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         }
         catch
         {
-            // Ignore, this can occur if the peer already close the connection.
+            // Ignore, this can occur if the peer already closed the connection.
         }
     }
 

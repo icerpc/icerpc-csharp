@@ -222,8 +222,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // callback that the connection has been shutdown by the peer.
                     _networkConnection.Dispose();
 
-                    // Notify the OnShutdown callback and complete invocations with ConnectionClosedException which
-                    // can be retried.
+                    // Notify the OnShutdown callback and complete invocations which are still pending with the
+                    // retryable ConnectionClosedException exception.
                     InvokeOnShutdown("connection shutdown by peer");
                     completeException = new ConnectionClosedException("connection shutdown by peer");
                 }
@@ -232,7 +232,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     _dispatchesAndInvocationsCompleted.Task.IsCompleted)
                 {
                     // Expected if the connection is shutting down and waiting for the peer to close the connection.
-                    // Unblock ShutdownAsync which is waiting for the connection to be disposed.
                 }
                 catch (OperationCanceledException)
                 {
@@ -243,7 +242,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 {
                     // Unexpected exception, notify the OnAbort callback.
                     InvokeOnAbort(exception);
-
                     completeException = exception;
                 }
                 finally
@@ -278,8 +276,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         // Cancel pending tasks, dispatches and invocations.
         _isReadOnly = true;
         _abortInvocationException = new ConnectionAbortedException("connection disposed");
-        _tasksCancelSource.Cancel();
         _dispatchesAndInvocationsCancelSource.Cancel();
+        _tasksCancelSource.Cancel();
 
         // Dispose the network connection.
         _networkConnection.Dispose();
@@ -395,11 +393,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             completeException = _abortInvocationException!;
             throw completeException;
         }
-        catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
-        {
-            completeException = new ConnectionAbortedException("connection has been disposed");
-            throw completeException;
-        }
         catch (Exception exception)
         {
             completeException = exception;
@@ -506,11 +499,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         catch (OperationCanceledException) when (_dispatchesAndInvocationsCancelSource.IsCancellationRequested)
         {
             completeException = _abortInvocationException!;
-            throw completeException;
-        }
-        catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
-        {
-            completeException = new ConnectionAbortedException("connection has been disposed");
             throw completeException;
         }
         catch (Exception exception)
