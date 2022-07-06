@@ -1123,7 +1123,6 @@ public ref partial struct SliceDecoder
     /// <returns>The decoded service address.</returns>
     private ServiceAddress DecodeServiceAddress(string path)
     {
-
         string fragment = FragmentSliceDecoderExtensions.DecodeFragment(ref this);
         int invocationMode = DecodeSize();
         bool secure = DecodeBool();
