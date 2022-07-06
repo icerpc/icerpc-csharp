@@ -93,7 +93,7 @@ public sealed record class ServiceAddress
             }
             catch (FormatException ex)
             {
-                throw new ArgumentException($"invalid fragment", nameof(Fragment), ex);
+                throw new ArgumentException("invalid fragment", nameof(Fragment), ex);
             }
 
             if (!Protocol!.HasFragment && value.Length > 0)
@@ -125,7 +125,7 @@ public sealed record class ServiceAddress
                 }
                 catch (FormatException ex)
                 {
-                    throw new ArgumentException($"invalid path", nameof(Path), ex);
+                    throw new ArgumentException("invalid path", nameof(Path), ex);
                 }
                 _path = value;
                 OriginalUri = null;
@@ -153,7 +153,7 @@ public sealed record class ServiceAddress
             }
             catch (FormatException ex)
             {
-                throw new ArgumentException($"invalid parameters", nameof(Params), ex);
+                throw new ArgumentException("invalid parameters", nameof(Params), ex);
             }
 
             if (_endpoint is not null && value.Count > 0)
@@ -168,7 +168,7 @@ public sealed record class ServiceAddress
     }
 
     /// <summary>Gets the protocol of this service address.</summary>
-    /// <value>The protocol of the service address. It corresponds to the URI scheme and is null for a path-only service
+    /// <value>The protocol of the service address. It corresponds to the URI scheme and is null for a relative service
     /// address.</value>
     public Protocol? Protocol { get; }
 
@@ -213,7 +213,7 @@ public sealed record class ServiceAddress
     }
 
     /// <summary>Constructs a service address from a protocol.</summary>
-    /// <param name="protocol">The protocol, or null for a path-only service address.</param>
+    /// <param name="protocol">The protocol, or null for a relative service address.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="protocol"/> is not null or a supported protocol.
     /// </exception>
     public ServiceAddress(Protocol? protocol = null) =>
@@ -297,7 +297,7 @@ public sealed record class ServiceAddress
         }
         else
         {
-            // path-only service address
+            // relative service address
             Protocol = null;
             _path = uri.ToString();
             CheckPath(_path);
@@ -325,7 +325,7 @@ public sealed record class ServiceAddress
 
         if (Protocol is null)
         {
-            // Both service addresses are path-only
+            // Both service addresses are relative
             return Path == other.Path;
         }
         else if (!Protocol.IsSupported)
@@ -365,6 +365,7 @@ public sealed record class ServiceAddress
         hash.Add(Path);
         hash.Add(Fragment);
         hash.Add(_endpoint);
+        hash.Add(_altEndpoints.Count);
         return hash.ToHashCode();
     }
 
@@ -555,7 +556,7 @@ public sealed record class ServiceAddress
     {
         if (Protocol is null)
         {
-            throw new InvalidOperationException($"cannot set {propertyName} on a path-only service address");
+            throw new InvalidOperationException($"cannot set {propertyName} on a relative service address");
         }
         else if (!Protocol.IsSupported)
         {

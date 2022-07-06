@@ -282,7 +282,7 @@ public ref partial struct SliceEncoder
         if (Encoding != SliceEncoding.Slice1)
         {
             throw new InvalidOperationException(
-                "encoding a service address without a bit sequence is only supported with Slice1");
+                "encoding a nullable service address without a bit sequence is only supported with Slice1");
         }
 
         if (serviceAddress is not null)
@@ -307,7 +307,7 @@ public ref partial struct SliceEncoder
 
             if (serviceAddress.Protocol is not Protocol protocol)
             {
-                throw new NotSupportedException("cannot encode a path-only service address with Slice1");
+                throw new NotSupportedException("cannot encode a relative service address with Slice1");
             }
 
             var proxyData = new ProxyData(

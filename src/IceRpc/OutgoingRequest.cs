@@ -45,7 +45,7 @@ public sealed class OutgoingRequest : OutgoingFrame
     public OutgoingRequest(ServiceAddress serviceAddress)
         : base(serviceAddress.Protocol ??
             throw new ArgumentException(
-                "cannot create an outgoing request with a path-only service address",
+                "cannot create an outgoing request with a relative service address",
                 nameof(serviceAddress))) =>
         ServiceAddress = serviceAddress;
 

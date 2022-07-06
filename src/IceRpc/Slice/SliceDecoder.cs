@@ -397,7 +397,7 @@ public ref partial struct SliceDecoder
             {
                 if (serviceAddressString.StartsWith('/'))
                 {
-                    // path-only service address
+                    // relative service address
                     if (_connection is null)
                     {
                         throw new InvalidOperationException(
@@ -415,7 +415,7 @@ public ref partial struct SliceDecoder
                 else
                 {
                     var serviceAddress = new ServiceAddress(new Uri(serviceAddressString, UriKind.Absolute));
-                    Debug.Assert(serviceAddress.Protocol is not null); // null protocol == path-only service address
+                    Debug.Assert(serviceAddress.Protocol is not null); // null protocol == relative service address
                     return new TProxy
                     {
                         ServiceAddress = serviceAddress,
