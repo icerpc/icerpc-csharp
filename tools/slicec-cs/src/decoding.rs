@@ -61,7 +61,7 @@ fn decode_member(
     if data_type.is_optional {
         match data_type.concrete_type() {
             Types::Interface(_) if encoding == Encoding::Slice1 => {
-                writeln!(code, "decoder.DecodeNullablePrx<{}>();", type_string);
+                writeln!(code, "decoder.DecodeNullableProxy<{}>();", type_string);
                 return code;
             }
             _ if data_type.is_class_type() => {
@@ -78,7 +78,7 @@ fn decode_member(
 
     match &data_type.concrete_typeref() {
         TypeRefs::Interface(_) => {
-            write!(code, "decoder.DecodePrx<{}>()", type_string);
+            write!(code, "decoder.DecodeProxy<{}>()", type_string);
         }
         TypeRefs::Class(_) => {
             assert!(!data_type.is_optional);
@@ -375,12 +375,12 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
         TypeRefs::Interface(_) => {
             if encoding == Encoding::Slice1 && type_ref.is_optional {
                 format!(
-                    "(ref SliceDecoder decoder) => decoder.DecodeNullablePrx<{}>()",
+                    "(ref SliceDecoder decoder) => decoder.DecodeNullableProxy<{}>()",
                     type_name
                 )
             } else {
                 format!(
-                    "(ref SliceDecoder decoder) => decoder.DecodePrx<{}>()",
+                    "(ref SliceDecoder decoder) => decoder.DecodeProxy<{}>()",
                     type_name
                 )
             }
@@ -588,7 +588,7 @@ pub fn decode_operation_stream(
         .add_argument_unless(dispatch, "request")
         .add_argument(cs_encoding)
         .add_argument("_defaultActivator")
-        .add_argument_unless(dispatch, "prxInvoker")
+        .add_argument_unless(dispatch, "proxyInvoker")
         .add_argument_unless(dispatch, "encodeFeature")
         .add_argument(decode_func(param_type, namespace, encoding).indent())
         .add_argument_if(param_type.is_fixed_size(), param_type.min_wire_size())

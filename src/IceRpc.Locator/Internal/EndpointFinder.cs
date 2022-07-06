@@ -5,35 +5,37 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Locator.Internal;
 
-/// <summary>An endpoint finder finds the endpoint(s) of a location. These endpoint(s) are carried by a dummy proxy.
-/// When this dummy proxy is not null, its Endpoint property is guaranteed to be not null. Unlike
-/// <see cref="ILocationResolver"/>, an endpoint finder does not provide cache-related parameters and typically
+/// <summary>An endpoint finder finds the endpoint(s) of a location. These endpoint(s) are carried by a dummy service
+/// address. When this dummy service address is not null, its Endpoint property is guaranteed to be not null.
+/// Unlike <see cref="ILocationResolver"/>, an endpoint finder does not provide cache-related parameters and typically
 /// does not maintain a cache.</summary>
 internal interface IEndpointFinder
 {
-    Task<Proxy?> FindAsync(Location location, CancellationToken cancel);
+    Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancel);
 }
 
 /// <summary>The main implementation of IEndpointFinder. It uses a locator proxy to "find" the endpoints.</summary>
 internal class LocatorEndpointFinder : IEndpointFinder
 {
-    private readonly ILocatorPrx _locator;
+    private readonly ILocatorProxy _locator;
 
-    internal LocatorEndpointFinder(ILocatorPrx locator) => _locator = locator;
+    internal LocatorEndpointFinder(ILocatorProxy locator) => _locator = locator;
 
-    async Task<Proxy?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel)
+    async Task<ServiceAddress?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel)
     {
         if (location.IsAdapterId)
         {
             try
             {
-                ServicePrx? prx =
+                ServiceProxy? proxy =
                     await _locator.FindAdapterByIdAsync(location.Value, cancel: cancel).ConfigureAwait(false);
 
-                if (prx?.Proxy is Proxy proxy)
+                if (proxy?.ServiceAddress is ServiceAddress serviceAddress)
                 {
-                    return proxy.Protocol == Protocol.Ice && proxy.Endpoint is not null ? proxy :
-                        throw new InvalidDataException($"findAdapterById returned invalid proxy '{proxy}'");
+                    return serviceAddress.Protocol == Protocol.Ice && serviceAddress.Endpoint is not null ?
+                        serviceAddress :
+                        throw new InvalidDataException(
+                            $"findAdapterById returned invalid service address '{serviceAddress}'");
                 }
                 else
                 {
@@ -50,15 +52,17 @@ internal class LocatorEndpointFinder : IEndpointFinder
         {
             try
             {
-                ServicePrx? prx =
+                ServiceProxy? proxy =
                     await _locator.FindObjectByIdAsync(location.Value, cancel: cancel).ConfigureAwait(false);
 
-                if (prx?.Proxy is Proxy proxy)
+                if (proxy?.ServiceAddress is ServiceAddress serviceAddress)
                 {
-                    // findObjectById can return an indirect proxy with an adapter ID
-                    return proxy.Protocol == Protocol.Ice &&
-                        (proxy.Endpoint is not null || proxy.Params.ContainsKey("adapter-id")) ? proxy :
-                            throw new InvalidDataException($"findObjectById returned invalid proxy '{proxy}'");
+                    // findObjectById can return an indirect service address with an adapter ID
+                    return serviceAddress.Protocol == Protocol.Ice &&
+                        (serviceAddress.Endpoint is not null || serviceAddress.Params.ContainsKey("adapter-id")) ?
+                            serviceAddress :
+                            throw new InvalidDataException(
+                                $"findObjectById returned invalid service address '{serviceAddress}'");
                 }
                 else
                 {
@@ -86,21 +90,21 @@ internal class LogEndpointFinderDecorator : IEndpointFinder
         _logger = logger;
     }
 
-    async Task<Proxy?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel)
+    async Task<ServiceAddress?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel)
     {
         try
         {
-            Proxy? proxy = await _decoratee.FindAsync(location, cancel).ConfigureAwait(false);
+            ServiceAddress? serviceAddress = await _decoratee.FindAsync(location, cancel).ConfigureAwait(false);
 
-            if (proxy is not null)
+            if (serviceAddress is not null)
             {
-                _logger.LogFound(location.Kind, location, proxy);
+                _logger.LogFound(location.Kind, location, serviceAddress);
             }
             else
             {
                 _logger.LogFindFailed(location.Kind, location);
             }
-            return proxy;
+            return serviceAddress;
         }
         catch
         {
@@ -125,19 +129,19 @@ internal class CacheUpdateEndpointFinderDecorator : IEndpointFinder
         _decoratee = decoratee;
     }
 
-    async Task<Proxy?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel)
+    async Task<ServiceAddress?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel)
     {
-        Proxy? proxy = await _decoratee.FindAsync(location, cancel).ConfigureAwait(false);
+        ServiceAddress? serviceAddress = await _decoratee.FindAsync(location, cancel).ConfigureAwait(false);
 
-        if (proxy is not null)
+        if (serviceAddress is not null)
         {
-            _endpointCache.Set(location, proxy);
+            _endpointCache.Set(location, serviceAddress);
         }
         else
         {
             _endpointCache.Remove(location);
         }
-        return proxy;
+        return serviceAddress;
     }
 }
 
@@ -147,14 +151,14 @@ internal class CoalesceEndpointFinderDecorator : IEndpointFinder
 {
     private readonly IEndpointFinder _decoratee;
     private readonly object _mutex = new();
-    private readonly Dictionary<Location, Task<Proxy?>> _requests = new();
+    private readonly Dictionary<Location, Task<ServiceAddress?>> _requests = new();
 
     internal CoalesceEndpointFinderDecorator(IEndpointFinder decoratee) =>
         _decoratee = decoratee;
 
-    Task<Proxy?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel)
+    Task<ServiceAddress?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel)
     {
-        Task<Proxy?>? task;
+        Task<ServiceAddress?>? task;
 
         lock (_mutex)
         {
@@ -177,7 +181,7 @@ internal class CoalesceEndpointFinderDecorator : IEndpointFinder
 
         return task.WaitAsync(cancel);
 
-        async Task<Proxy?> PerformFindAsync()
+        async Task<ServiceAddress?> PerformFindAsync()
         {
             try
             {

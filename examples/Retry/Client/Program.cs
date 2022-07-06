@@ -50,7 +50,7 @@ for (int i = 2; i < serverInstances; i++)
 {
     endpoint += $"&alt-endpoint=127.0.0.1:{10000 + i}";
 }
-IHelloPrx hello = HelloPrx.Parse(endpoint, invoker: pipeline);
+IHelloProxy hello = HelloProxy.Parse(endpoint, invoker: pipeline);
 
 Console.Write("To say hello to the server, type your name: ");
 

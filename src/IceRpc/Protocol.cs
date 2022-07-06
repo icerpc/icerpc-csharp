@@ -25,7 +25,7 @@ public class Protocol : IEquatable<Protocol>
     /// <returns><c>true</c> if the protocol supports fields; otherwise, <c>false</c>.</returns>
     public virtual bool HasFields => false;
 
-    /// <summary>Gets a value indicating whether or not this protocol supports fragments in proxies.</summary>
+    /// <summary>Gets a value indicating whether or not this protocol supports fragments in service addresses.</summary>
     /// <returns><c>true</c> if the protocol supports fragments; otherwise, <c>false</c>.</returns>
     public virtual bool HasFragment => false;
 
@@ -106,12 +106,12 @@ public class Protocol : IEquatable<Protocol>
         // by default, any URI absolute path is ok
         Debug.Assert(IsSupported);
 
-    /// <summary>Checks if these proxy parameters are valid for this protocol.</summary>
-    /// <param name="proxyParams">The proxy parameters to check.</param>
-    /// <exception cref="FormatException">Thrown if the proxy parameters are not valid.</exception>
+    /// <summary>Checks if these service address parameters are valid for this protocol.</summary>
+    /// <param name="serviceAddressParams">The service address parameters to check.</param>
+    /// <exception cref="FormatException">Thrown if the service address parameters are not valid.</exception>
     /// <remarks>This method does not and should not check if the parameter names and values are properly escaped;
     /// it does not check for the invalid empty and alt-endpoint parameter names either.</remarks>
-    internal virtual void CheckProxyParams(ImmutableDictionary<string, string> proxyParams) =>
+    internal virtual void CheckServiceAddressParams(ImmutableDictionary<string, string> serviceAddressParams) =>
         // by default, any dictionary is ok
         Debug.Assert(IsSupported);
 

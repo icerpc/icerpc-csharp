@@ -29,10 +29,10 @@ public class TelemetryInterceptor : IInvoker
     {
         if (request.Protocol.HasFields)
         {
-            string name = $"{request.Proxy.Path}/{request.Operation}";
+            string name = $"{request.ServiceAddress.Path}/{request.Operation}";
             using Activity activity = _activitySource?.CreateActivity(name, ActivityKind.Client) ?? new Activity(name);
             activity.AddTag("rpc.system", "icerpc");
-            activity.AddTag("rpc.service", request.Proxy.Path);
+            activity.AddTag("rpc.service", request.ServiceAddress.Path);
             activity.AddTag("rpc.method", request.Operation);
             // TODO add additional attributes
             // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md#common-remote-procedure-call-conventions

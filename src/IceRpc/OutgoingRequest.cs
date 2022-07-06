@@ -23,8 +23,8 @@ public sealed class OutgoingRequest : OutgoingFrame
     /// <value>The name of the operation. The default is the empty string.</value>
     public string Operation { get; init; } = "";
 
-    /// <summary>Gets the proxy that is sending this request.</summary>
-    public Proxy Proxy { get; }
+    /// <summary>Gets the address of the target service.</summary>
+    public ServiceAddress ServiceAddress { get; }
 
     /// <summary>Gets or sets the latest response to this request.</summary>
     /// <remarks>Setting a response completes the previous response when there is one.</remarks>
@@ -41,11 +41,13 @@ public sealed class OutgoingRequest : OutgoingFrame
     private IncomingResponse? _response;
 
     /// <summary>Constructs an outgoing request.</summary>
-    /// <param name="proxy">The <see cref="Proxy"/> used to send the request.</param>
-    public OutgoingRequest(Proxy proxy)
-        : base(proxy.Protocol ??
-            throw new ArgumentException("cannot create an outgoing request with a relative proxy", nameof(proxy))) =>
-        Proxy = proxy;
+    /// <param name="serviceAddress">The address of the target service.</param>
+    public OutgoingRequest(ServiceAddress serviceAddress)
+        : base(serviceAddress.Protocol ??
+            throw new ArgumentException(
+                "cannot create an outgoing request with a relative service address",
+                nameof(serviceAddress))) =>
+        ServiceAddress = serviceAddress;
 
     /// <summary>Completes the payload and payload stream of this request, and the response associated with this
     /// request (if any).</summary>

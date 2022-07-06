@@ -14,13 +14,13 @@ public class Slice1NullableTests
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
-        encoder.EncodeNullableProxy(null);
+        encoder.EncodeNullableServiceAddress(null);
 
         Assert.That(
             () =>
             {
                 var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
-                _ = decoder.DecodePrx<ServicePrx>();
+                _ = decoder.DecodeProxy<ServiceProxy>();
             },
             Throws.TypeOf<InvalidDataException>());
     }

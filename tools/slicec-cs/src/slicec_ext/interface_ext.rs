@@ -5,15 +5,15 @@ use slice::grammar::Interface;
 
 pub trait InterfaceExt: EntityExt {
     /// Name of the generated implementation struct for this Slice interface's proxy.
-    /// eg. If the slice interface is `Foo`, the C# proxy implementation is `FooPrx`.
+    /// eg. If the slice interface is `Foo`, the C# proxy implementation is `FooProxy`.
     fn proxy_implementation_name(&self) -> String {
         self.proxy_name().chars().skip(1).collect()
     }
 
     /// The name of the generated C# proxy struct for this Slice interface.
-    /// eg. If the slice interface is `Foo`, the C# proxy is `IFooPrx`.
+    /// eg. If the slice interface is `Foo`, the C# proxy is `IFooProxy`.
     fn proxy_name(&self) -> String {
-        self.interface_name() + "Prx"
+        self.interface_name() + "Proxy"
     }
 
     fn scoped_proxy_name(&self, current_namespace: &str) -> String {

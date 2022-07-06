@@ -893,7 +893,7 @@ public sealed class ClassTests
     public void Operation_request_with_compact_format()
     {
         // Act
-        var payload = CompactFormatOperationsPrx.Request.OpMyClass(new MyClassB());
+        var payload = CompactFormatOperationsProxy.Request.OpMyClass(new MyClassB());
 
         // Assert
         ReadResult readResult;
@@ -921,7 +921,7 @@ public sealed class ClassTests
     public void Operation_request_with_sliced_format()
     {
         // Act
-        var payload = SlicedFormatOperationsPrx.Request.OpMyClass(new MyClassB());
+        var payload = SlicedFormatOperationsProxy.Request.OpMyClass(new MyClassB());
 
         // Assert
         ReadResult readResult;

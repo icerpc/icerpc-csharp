@@ -18,13 +18,13 @@ public class TypeNameQualificationTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new TypeNameQualification())
-            .AddIceRpcPrx<ITypeNameQualificationOperationsPrx, TypeNameQualificationOperationsPrx>()
+            .AddIceRpcProxy<ITypeNameQualificationOperationsProxy, TypeNameQualificationOperationsProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        ITypeNameQualificationOperationsPrx prx = provider.GetRequiredService<ITypeNameQualificationOperationsPrx>();
+        ITypeNameQualificationOperationsProxy proxy = provider.GetRequiredService<ITypeNameQualificationOperationsProxy>();
         provider.GetRequiredService<Server>().Listen();
 
-        var r = await prx.OpWithTypeNamesDefinedInMultipleModulesAsync(new Inner.S(10));
+        var r = await proxy.OpWithTypeNamesDefinedInMultipleModulesAsync(new Inner.S(10));
 
         Assert.That(r.V, Is.EqualTo("10"));
     }

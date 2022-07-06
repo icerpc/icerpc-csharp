@@ -50,7 +50,7 @@ public readonly record struct Endpoint
         {
             try
             {
-                Proxy.CheckParams(value);
+                ServiceAddress.CheckParams(value);
             }
             catch (FormatException ex)
             {
@@ -189,7 +189,7 @@ public readonly record struct Endpoint
 
     /// <summary>Constructs an endpoint from a protocol, a host, a port and parsed parameters, without parameter
     /// validation.</summary>
-    /// <remarks>This constructor is used by <see cref="Proxy"/> for its main endpoint and by the Slice decoder for
+    /// <remarks>This constructor is used by <see cref="ServiceAddress"/> for its main endpoint and by the Slice decoder for
     /// Slice1 endpoints.</remarks>
     internal Endpoint(
         Protocol protocol,

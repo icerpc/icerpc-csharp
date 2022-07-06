@@ -30,7 +30,7 @@ public sealed class TelemetryInterceptorTests
 
         var sut = new TelemetryInterceptor(invoker, activitySource);
 
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc) { Path = "/path" })
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" })
         {
             Operation = "Op"
         };
@@ -41,13 +41,13 @@ public sealed class TelemetryInterceptorTests
         // Assert
         Assert.That(invocationActivity, Is.Not.Null);
         Assert.That(invocationActivity.Kind, Is.EqualTo(ActivityKind.Client));
-        Assert.That(invocationActivity.OperationName, Is.EqualTo($"{request.Proxy.Path}/{request.Operation}"));
+        Assert.That(invocationActivity.OperationName, Is.EqualTo($"{request.ServiceAddress.Path}/{request.Operation}"));
         Assert.That(invocationActivity.Tags, Is.Not.Null);
         var tags = invocationActivity.Tags.ToDictionary(entry => entry.Key, entry => entry.Value);
         Assert.That(tags.ContainsKey("rpc.system"), Is.True);
         Assert.That(tags["rpc.system"], Is.EqualTo("icerpc"));
         Assert.That(tags.ContainsKey("rpc.service"), Is.True);
-        Assert.That(tags["rpc.service"], Is.EqualTo(request.Proxy.Path));
+        Assert.That(tags["rpc.service"], Is.EqualTo(request.ServiceAddress.Path));
         Assert.That(tags.ContainsKey("rpc.method"), Is.True);
         Assert.That(tags["rpc.method"], Is.EqualTo(request.Operation));
         Assert.That(request.Fields.ContainsKey(RequestFieldKey.TraceContext), Is.True);
@@ -78,7 +78,7 @@ public sealed class TelemetryInterceptorTests
         using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
 
         var sut = new TelemetryInterceptor(invoker, activitySource);
-        var request = new OutgoingRequest(new Proxy(Protocol.IceRpc) { Path = "/" })
+        var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/" })
         {
             Operation = "op"
         };
