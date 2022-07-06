@@ -55,7 +55,7 @@ internal class CacheLessLocationResolver : ILocationResolver
     {
         ServiceAddress? serviceAddress = await _endpointFinder.FindAsync(location, cancel).ConfigureAwait(false);
 
-        // A well-known serviceAddress resolution can return a serviceAddress with an adapter ID
+        // A well-known service address resolution can return a service address with an adapter ID
         if (serviceAddress is not null && serviceAddress.Params.TryGetValue("adapter-id", out string? adapterId))
         {
             (serviceAddress, _) = await ResolveAsync(
