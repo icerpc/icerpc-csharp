@@ -131,7 +131,7 @@ internal class LocationResolver : ILocationResolver
             try
             {
                 // Resolves adapter ID recursively, by checking first the cache. If we resolved the well-known
-                // serviceAddress, we request a cache refresh for the adapter ID.
+                // service address, we request a cache refresh for the adapter ID.
                 (serviceAddress, _) = await PerformResolveAsync(
                     new Location { IsAdapterId = true, Value = adapterId },
                     refreshCache || resolved,
