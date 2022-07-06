@@ -71,13 +71,6 @@ public sealed class ProtocolConnectionTests
         sut.Client.OnShutdown(_ => clientIdleCalledTime ??= TimeSpan.FromMilliseconds(Environment.TickCount64));
         sut.Server.OnShutdown(_ => serverIdleCalledTime ??= TimeSpan.FromMilliseconds(Environment.TickCount64));
 
-        if (protocol == Protocol.Ice)
-        {
-            // TODO: the peer shutdown results in an abort with ice
-            sut.Client.OnAbort(_ => clientIdleCalledTime ??= TimeSpan.FromMilliseconds(Environment.TickCount64));
-            sut.Server.OnAbort(_ => serverIdleCalledTime ??= TimeSpan.FromMilliseconds(Environment.TickCount64));
-        }
-
         // Act
         await Task.Delay(TimeSpan.FromSeconds(1));
 

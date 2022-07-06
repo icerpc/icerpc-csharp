@@ -135,11 +135,11 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
             // Connect the simple network connection.
             information = await _simpleNetworkConnection.ConnectAsync(cancel).ConfigureAwait(false);
 
-            // Set the idle timeout after the network connection establishment. We don't want the network connection to
-            // be disposed because it's idle when the network connection establishment is in progress. This would
-            // require the simple network connection ConnectAsync/Dispose implementations to be thread safe. The network
-            // connection establishment timeout is handled by the cancellation token instead.
-            _simpleNetworkConnectionReader.SetIdleTimeout(_localIdleTimeout);
+            // Enable the idle timeout check after the network connection establishment. We don't want the network
+            // connection to be disposed because it's idle when the network connection establishment is in progress.
+            // This would require the simple network connection ConnectAsync/Dispose implementations to be thread safe.
+            // The network connection establishment timeout is handled by the cancellation token instead.
+            _simpleNetworkConnectionReader.EnableIdleCheck();
 
             TimeSpan peerIdleTimeout = TimeSpan.MaxValue;
 
@@ -383,6 +383,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
 
         _simpleNetworkConnectionReader = new SimpleNetworkConnectionReader(
             simpleNetworkConnection,
+            idleTimeout: _localIdleTimeout,
             slicOptions.Pool,
             slicOptions.MinimumSegmentSize,
             abortAction: Abort,
@@ -1041,7 +1042,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         // Use the smallest idle timeout.
         if (peerIdleTimeout is TimeSpan peerIdleTimeoutValue && peerIdleTimeoutValue < _localIdleTimeout)
         {
-            _simpleNetworkConnectionReader.SetIdleTimeout(peerIdleTimeoutValue);
+            _simpleNetworkConnectionReader.EnableIdleCheck(peerIdleTimeoutValue);
         }
     }
 

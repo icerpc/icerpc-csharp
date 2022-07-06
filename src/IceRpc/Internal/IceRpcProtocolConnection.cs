@@ -19,26 +19,26 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private int _dispatchCount;
     private readonly IDispatcher _dispatcher;
     private readonly CancellationTokenSource _dispatchesAndInvocationsCancelSource = new();
-    private readonly TaskCompletionSource _dispatchesCompleted = new();
+    private readonly TaskCompletionSource _dispatchesCompleted =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
     private int _headerSizeLength = 2;
-    private readonly TimeSpan _idleTimeout;
-    private Timer? _idleTimeoutTimer;
     private bool _isReadOnly;
     private long _lastRemoteBidirectionalStreamId = -1;
     // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
     private long _lastRemoteUnidirectionalStreamId = -1;
     private readonly int _maxLocalHeaderSize;
     private int _maxRemoteHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
+    private readonly object _mutex = new();
     private readonly IMultiplexedNetworkConnection _networkConnection;
-    private readonly CancellationTokenSource _onDisposeCancelSource = new();
+    private Task<IceRpcGoAway>? _readGoAwayTask;
     private IMultiplexedStream? _remoteControlStream;
     private readonly HashSet<IMultiplexedStream> _streams = new();
     private readonly TaskCompletionSource _streamsCompleted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    private Task<IceRpcGoAway>? _readGoAwayTask;
+    private readonly CancellationTokenSource _tasksCompleteSource = new();
 
     internal IceRpcProtocolConnection(
         IMultiplexedNetworkConnection networkConnection,
@@ -47,8 +47,24 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     {
         _networkConnection = networkConnection;
         _dispatcher = options.Dispatcher;
-        _idleTimeout = options.IdleTimeout;
         _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
+    }
+
+    private protected override bool CheckIfIdle()
+    {
+        lock (_mutex)
+        {
+            // If idle, mark the connection as readonly to stop accepting new dispatches or invocations.
+            if (_streams.Count == 0)
+            {
+                _isReadOnly = true;
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
     }
 
     private protected override async Task<NetworkConnectionInformation> PerformConnectAsync(
@@ -80,53 +96,36 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.Settings, cancel).ConfigureAwait(false);
         await ReceiveSettingsFrameBody(cancel).ConfigureAwait(false);
 
-        if (_idleTimeout != Timeout.InfiniteTimeSpan)
-        {
-            _idleTimeoutTimer = new Timer(
-                _ =>
-                {
-                    lock (_mutex)
-                    {
-                        if (_streams.Count > 0)
-                        {
-                            return; // The connection is no longer idle.
-                        }
-                        _isReadOnly = true;
-                    }
-                    InitiateShutdown("idle connection");
-                },
-                null,
-                _idleTimeout,
-                Timeout.InfiniteTimeSpan);
-        }
-
         // Start a task to read the go away frame from the control stream and initiate shutdown.
         _readGoAwayTask = Task.Run(
             async () =>
             {
+                CancellationToken cancel = _tasksCompleteSource.Token;
                 await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.GoAway, cancel).ConfigureAwait(false);
                 IceRpcGoAway goAwayFrame = await ReceiveGoAwayBodyAsync(cancel).ConfigureAwait(false);
                 InitiateShutdown(goAwayFrame.Message);
                 return goAwayFrame;
-            });
+            },
+            CancellationToken.None);
 
         // Start a task to start accepting requests.
         _acceptRequestsTask = Task.Run(
             async () =>
             {
+                CancellationToken cancel = _tasksCompleteSource.Token;
                 try
                 {
                     while (true)
                     {
                         IMultiplexedStream stream = await _networkConnection.AcceptStreamAsync(
-                            _onDisposeCancelSource.Token).ConfigureAwait(false);
+                            _tasksCompleteSource.Token).ConfigureAwait(false);
 
                         try
                         {
                             await AcceptRequestAsync(
                                 stream,
                                 connection,
-                                _onDisposeCancelSource.Token).ConfigureAwait(false);
+                                _tasksCompleteSource.Token).ConfigureAwait(false);
                         }
                         catch (IceRpcProtocolStreamException)
                         {
@@ -138,7 +137,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     // Expected when shutting down and the network connection is gracefully shutdown.
                 }
-                catch (OperationCanceledException) when (_onDisposeCancelSource.IsCancellationRequested)
+                catch (OperationCanceledException) when (_tasksCompleteSource.IsCancellationRequested)
                 {
                     // Expected if DisposeAsync has been called.
                 }
@@ -178,8 +177,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private protected override async ValueTask PerformDisposeAsync()
     {
-        // Cancel pending tasks and operations.
-        _onDisposeCancelSource.Cancel();
+        // Cancel pending tasks, dispatches and invocations.
+        _tasksCompleteSource.Cancel();
         _dispatchesAndInvocationsCancelSource.Cancel();
 
         _networkConnection.Dispose();
@@ -218,11 +217,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             await _remoteControlStream.Input.CompleteAsync().ConfigureAwait(false);
         }
 
-        _onDisposeCancelSource.Dispose();
-        if (_idleTimeoutTimer is Timer timer)
-        {
-            await timer.DisposeAsync().ConfigureAwait(false);
-        }
+        _tasksCompleteSource.Dispose();
     }
 
     private protected override async Task<IncomingResponse> PerformInvokeAsync(
@@ -260,10 +255,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                     {
                         if (_streams.Count == 0)
                         {
-                            // Disable the idle check.
-                            _idleTimeoutTimer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                            DisableIdleCheck();
                         }
-
                         _streams.Add(stream);
 
                         stream.OnShutdown(() =>
@@ -282,8 +275,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                     }
                                     else
                                     {
-                                        // Enable the idle check.
-                                        _idleTimeoutTimer?.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
+                                        EnableIdleCheck();
                                     }
                                 }
                             }
@@ -698,8 +690,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                     if (_streams.Count == 0)
                     {
-                        // Disable the idle check.
-                        _idleTimeoutTimer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                        DisableIdleCheck();
                     }
 
                     _streams.Add(stream);
@@ -720,8 +711,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                                 }
                                 else
                                 {
-                                    // Enable the idle check.
-                                    _idleTimeoutTimer?.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
+                                    EnableIdleCheck();
                                 }
                             }
                         }
@@ -758,7 +748,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
             }
 
-            if (exception is OperationCanceledException && _onDisposeCancelSource.IsCancellationRequested)
+            if (exception is OperationCanceledException && _tasksCompleteSource.IsCancellationRequested)
             {
                 throw new ConnectionAbortedException();
             }
@@ -789,14 +779,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 }
             });
 
+            using var cancelSource = CancellationTokenSource.CreateLinkedTokenSource(
+                _dispatchesAndInvocationsCancelSource.Token,
+                dispatchCancelSource.Token);
+
             OutgoingResponse response;
             try
             {
                 // Create a linked source to cancel the dispatch either through its cancellation token source or the
                 // cancellation token source for all the dispatches.
-                using var cancelSource = CancellationTokenSource.CreateLinkedTokenSource(
-                    _dispatchesAndInvocationsCancelSource.Token,
-                    dispatchCancelSource.Token);
 
                 response = await _dispatcher.DispatchAsync(request, cancelSource.Token).ConfigureAwait(false);
 
@@ -806,10 +797,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                         "the dispatcher did not return the last response created for this request");
                 }
             }
-            catch (OperationCanceledException exception) when (
-                dispatchCancelSource.IsCancellationRequested ||
-                _dispatchesAndInvocationsCancelSource.IsCancellationRequested)
+            catch (OperationCanceledException exception) when (cancelSource.IsCancellationRequested)
             {
+                // Dispatch has been canceled either by the peer or by the connection shutdown.
                 await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
                 request.Complete();
                 return;
@@ -957,6 +947,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
+    private void CheckRemoteHeaderSize(int headerSize)
+    {
+        if (headerSize > _maxRemoteHeaderSize)
+        {
+            throw new ProtocolException(
+                @$"header size ({headerSize}) is greater than the remote peer's max header size ({_maxRemoteHeaderSize})");
+        }
+    }
+
     private async ValueTask ReceiveControlFrameHeaderAsync(
         IceRpcControlFrameType expectedFrameType,
         CancellationToken cancel)
@@ -986,6 +985,28 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 // Received expected frame type, returning.
                 break; // while
             }
+        }
+    }
+
+    private async ValueTask<IceRpcGoAway> ReceiveGoAwayBodyAsync(CancellationToken cancel)
+    {
+        PipeReader input = _remoteControlStream!.Input;
+        ReadResult readResult = await input.ReadSegmentAsync(
+            SliceEncoding.Slice2,
+            _maxLocalHeaderSize,
+            cancel).ConfigureAwait(false);
+
+        readResult.ThrowIfCanceled(Protocol.IceRpc);
+
+        try
+        {
+            return SliceEncoding.Slice2.DecodeBuffer(
+                readResult.Buffer,
+                (ref SliceDecoder decoder) => new IceRpcGoAway(ref decoder));
+        }
+        finally
+        {
+            input.AdvanceTo(readResult.Buffer.End);
         }
     }
 
@@ -1021,28 +1042,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    private async ValueTask<IceRpcGoAway> ReceiveGoAwayBodyAsync(CancellationToken cancel)
-    {
-        PipeReader input = _remoteControlStream!.Input;
-        ReadResult readResult = await input.ReadSegmentAsync(
-            SliceEncoding.Slice2,
-            _maxLocalHeaderSize,
-            cancel).ConfigureAwait(false);
-
-        readResult.ThrowIfCanceled(Protocol.IceRpc);
-
-        try
-        {
-            return SliceEncoding.Slice2.DecodeBuffer(
-                readResult.Buffer,
-                (ref SliceDecoder decoder) => new IceRpcGoAway(ref decoder));
-        }
-        finally
-        {
-            input.AdvanceTo(readResult.Buffer.End);
-        }
-    }
-
     private ValueTask<FlushResult> SendControlFrameAsync(
         IceRpcControlFrameType frameType,
         EncodeAction? encodeAction,
@@ -1068,16 +1067,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             int headerSize = encoder.EncodedByteCount - startPos;
             CheckRemoteHeaderSize(headerSize);
             SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
-        }
-    }
-
-    private void CheckRemoteHeaderSize(int headerSize)
-    {
-        if (headerSize > _maxRemoteHeaderSize)
-        {
-            throw new ProtocolException(
-                @$"header size ({headerSize
-                }) is greater than the remote peer's max header size ({_maxRemoteHeaderSize})");
         }
     }
 }
