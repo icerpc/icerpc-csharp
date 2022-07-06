@@ -122,11 +122,10 @@ internal class LocationResolver : ILocationResolver
         else if (_background && expired)
         {
             // We retrieved an expired service address from the cache, so we launch a refresh in the background.
-``1
             _ = _endpointFinder.FindAsync(location, cancel: default).ConfigureAwait(false);
         }
 
-        // A well-known service address resolution can return a service address with an adapter-id
+        // A well-known service address resolution can return a service address with an adapter-id.
         if (serviceAddress is not null && serviceAddress.Params.TryGetValue("adapter-id", out string? adapterId))
         {
             try
