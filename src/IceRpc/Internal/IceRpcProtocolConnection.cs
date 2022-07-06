@@ -187,6 +187,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private protected override async ValueTask PerformDisposeAsync()
     {
         // Cancel pending tasks, dispatches and invocations.
+        _isReadOnly = true;
         _tasksCompleteSource.Cancel();
         _dispatchesCancelSource.Cancel();
 

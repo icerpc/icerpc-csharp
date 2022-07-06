@@ -271,6 +271,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private protected override async ValueTask PerformDisposeAsync()
     {
         // Cancel pending tasks, dispatches and invocations.
+        _isReadOnly = true;
         _abortInvocationException = new ConnectionAbortedException("connection disposed");
         _tasksCancelSource.Cancel();
         _dispatchesAndInvocationsCancelSource.Cancel();
