@@ -890,7 +890,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 // This prevents us from receiving any frame until EnterAsync returns.
                 try
                 {
-                    await dispatchSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+                    await dispatchSemaphore.EnterAsync(
+                        _dispatchesAndInvocationsCancelSource.Token).ConfigureAwait(false);
                 }
                 catch
                 {
