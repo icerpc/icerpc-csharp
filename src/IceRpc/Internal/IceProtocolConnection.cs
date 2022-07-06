@@ -163,9 +163,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     {
         NetworkConnectionInformation information = await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
 
-        // Wait for the network connection establishment to enable the idle timeout check. The network connection
-        // ConnectAsync implementation would need otherwise to deal with thread safety if Dispose is called
-        // concurrently.
+        // Wait for the network connection establishment to enable the idle timeout check.
         _networkConnectionReader.EnableIdleCheck();
 
         if (_isServer)
@@ -198,7 +196,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         _readFramesTask = Task.Run(
             async () =>
             {
-                Exception? exception = null;
+                Exception? completeException = null;
                 try
                 {
                     // Read frames until the CloseConnection frame is received.
@@ -209,32 +207,35 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     // callback that the connection has been shutdown by the peer.
                     _networkConnection.Dispose();
 
+                    // Notify the OnShutdown callback and complete invocations with ConnectionClosedException which
+                    // can be retried.
                     InvokeOnShutdown("connection shutdown by peer");
-
-                    exception = new ConnectionClosedException("connection shutdown by peer");
+                    completeException = new ConnectionClosedException("connection shutdown by peer");
                 }
                 catch (ConnectionLostException) when (
                     _isReadOnly &&
                     _dispatchesAndInvocationsCompleted.Task.IsCompleted)
                 {
-                    // Unblock ShutdownAsync which might be waiting for the connection to be disposed.
+                    // Expected if the connection is shutting down and waiting for the peer to close the connection.
+                    // Unblock ShutdownAsync which is waiting for the connection to be disposed.
                     _pendingClose.TrySetResult();
                 }
                 catch (OperationCanceledException)
                 {
                     // Expected if DisposeAsync has been called.
+                    Debug.Assert(_tasksCancelSource.IsCancellationRequested);
                 }
-                catch (Exception ex)
+                catch (Exception exception)
                 {
                     // Unexpected exception, notify the OnAbort callback.
-                    InvokeOnAbort(ex);
-                    exception = ex;
+                    InvokeOnAbort(exception);
+                    completeException = exception;
                 }
                 finally
                 {
                     // Complete invocations, otherwise the pending invocations could hang indefinitely until the caller
                     // calls DisposeAsync.
-                    if (exception != null)
+                    if (completeException != null)
                     {
                         IEnumerable<TaskCompletionSource<PipeReader>> invocations;
                         lock (_mutex)
@@ -248,7 +249,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         }
                         foreach (TaskCompletionSource<PipeReader> responseCompletionSource in invocations)
                         {
-                            responseCompletionSource.TrySetException(exception);
+                            responseCompletionSource.TrySetException(completeException);
                         }
                     }
                 }
@@ -296,8 +297,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         {
             // Ignore.
         }
-
-        // No more pending tasks are running, we can safely release the resources now.
 
         // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
         _networkConnectionReader.Dispose();
@@ -387,9 +386,14 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             await request.Payload.CompleteAsync().ConfigureAwait(false);
         }
+        catch (OperationCanceledException) when (_dispatchesAndInvocationsCancelSource.IsCancellationRequested)
+        {
+            completeException = new ConnectionAbortedException("connection has been shutdown");
+            throw completeException;
+        }
         catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
         {
-            completeException = new ConnectionAbortedException("connection disposed");
+            completeException = new ConnectionAbortedException("connection has been disposed");
             throw completeException;
         }
         catch (Exception exception)
@@ -421,87 +425,95 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         Debug.Assert(responseCompletionSource is not null);
 
         // Wait to receive the response.
+        PipeReader? frameReader = null;
         try
         {
-            PipeReader frameReader = await responseCompletionSource.Task.WaitAsync(
-                cancelSource.Token).ConfigureAwait(false);
-            try
+            frameReader = await responseCompletionSource.Task.WaitAsync(cancelSource.Token).ConfigureAwait(false);
+            if (!frameReader.TryRead(out ReadResult readResult))
             {
-                if (!frameReader.TryRead(out ReadResult readResult))
-                {
-                    throw new InvalidDataException($"received empty response frame for request #{requestId}");
-                }
-
-                Debug.Assert(readResult.IsCompleted);
-
-                ReplyStatus replyStatus = ((int)readResult.Buffer.FirstSpan[0]).AsReplyStatus();
-
-                if (replyStatus <= ReplyStatus.UserException)
-                {
-                    const int headerSize = 7; // reply status byte + encapsulation header
-
-                    // read and check encapsulation header (6 bytes long)
-
-                    if (readResult.Buffer.Length < headerSize)
-                    {
-                        throw new ConnectionLostException();
-                    }
-
-                    EncapsulationHeader encapsulationHeader = SliceEncoding.Slice1.DecodeBuffer(
-                        readResult.Buffer.Slice(1, 6),
-                        (ref SliceDecoder decoder) => new EncapsulationHeader(ref decoder));
-
-                    // Sanity check
-                    int payloadSize = encapsulationHeader.EncapsulationSize - 6;
-                    if (payloadSize != readResult.Buffer.Length - headerSize)
-                    {
-                        throw new InvalidDataException(
-                            @$"response payload size/frame size mismatch: payload size is {payloadSize} bytes but frame has {readResult.Buffer.Length - headerSize} bytes left");
-                    }
-
-                    // TODO: check encoding is Slice1. See github proposal.
-
-                    // Consume header.
-                    frameReader.AdvanceTo(readResult.Buffer.GetPosition(headerSize));
-                }
-                else
-                {
-                    // An ice system exception. The reply status is part of the payload.
-
-                    // Don't consume anything. The examined is irrelevant since readResult.IsCompleted is true.
-                    frameReader.AdvanceTo(readResult.Buffer.Start);
-                }
-
-                // For compatibility with ZeroC Ice "indirect" proxies
-                IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields =
-                    replyStatus == ReplyStatus.ObjectNotExistException && request.Proxy.Endpoint is null ?
-                    _otherReplicaFields :
-                    ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
-
-                return new IncomingResponse(request, connection, fields)
-                {
-                    Payload = frameReader,
-                    ResultType = replyStatus switch
-                    {
-                        ReplyStatus.OK => ResultType.Success,
-                        ReplyStatus.UserException => (ResultType)SliceResultType.ServiceFailure,
-                        _ => ResultType.Failure
-                    }
-                };
+                throw new InvalidDataException($"received empty response frame for request #{requestId}");
             }
-            catch (Exception exception)
+
+            Debug.Assert(readResult.IsCompleted);
+
+            ReplyStatus replyStatus = ((int)readResult.Buffer.FirstSpan[0]).AsReplyStatus();
+
+            if (replyStatus <= ReplyStatus.UserException)
             {
-                await frameReader.CompleteAsync(exception).ConfigureAwait(false);
-                throw;
+                const int headerSize = 7; // reply status byte + encapsulation header
+
+                // read and check encapsulation header (6 bytes long)
+
+                if (readResult.Buffer.Length < headerSize)
+                {
+                    throw new ConnectionLostException();
+                }
+
+                EncapsulationHeader encapsulationHeader = SliceEncoding.Slice1.DecodeBuffer(
+                    readResult.Buffer.Slice(1, 6),
+                    (ref SliceDecoder decoder) => new EncapsulationHeader(ref decoder));
+
+                // Sanity check
+                int payloadSize = encapsulationHeader.EncapsulationSize - 6;
+                if (payloadSize != readResult.Buffer.Length - headerSize)
+                {
+                    throw new InvalidDataException(
+                        @$"response payload size/frame size mismatch: payload size is {payloadSize} bytes but frame has {readResult.Buffer.Length - headerSize} bytes left");
+                }
+
+                // TODO: check encoding is Slice1. See github proposal.
+
+                // Consume header.
+                frameReader.AdvanceTo(readResult.Buffer.GetPosition(headerSize));
             }
+            else
+            {
+                // An ice system exception. The reply status is part of the payload.
+
+                // Don't consume anything. The examined is irrelevant since readResult.IsCompleted is true.
+                frameReader.AdvanceTo(readResult.Buffer.Start);
+            }
+
+            // For compatibility with ZeroC Ice "indirect" proxies
+            IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields =
+                replyStatus == ReplyStatus.ObjectNotExistException && request.Proxy.Endpoint is null ?
+                _otherReplicaFields :
+                ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
+
+            return new IncomingResponse(request, connection, fields)
+            {
+                Payload = frameReader,
+                ResultType = replyStatus switch
+                {
+                    ReplyStatus.OK => ResultType.Success,
+                    ReplyStatus.UserException => (ResultType)SliceResultType.ServiceFailure,
+                    _ => ResultType.Failure
+                }
+            };
+        }
+        catch (OperationCanceledException) when (_dispatchesAndInvocationsCancelSource.IsCancellationRequested)
+        {
+            completeException = new ConnectionAbortedException("connection has been shutdown");
+            throw completeException;
         }
         catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
         {
-            throw new ConnectionAbortedException("connection disposed");
+            completeException = new ConnectionAbortedException("connection has been disposed");
+            throw completeException;
+        }
+        catch (Exception exception)
+        {
+            completeException = exception;
+            throw;
         }
         finally
         {
             UnregisterInvocation();
+
+            if (completeException is not null && frameReader is not null)
+            {
+                await frameReader.CompleteAsync(completeException).ConfigureAwait(false);
+            }
         }
 
         void UnregisterInvocation()

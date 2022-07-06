@@ -6,6 +6,7 @@ namespace IceRpc.Internal;
 
 /// <summary>A protocol connection enables communication over a network connection using either the ice or icerpc
 /// protocol.</summary>
+// TODO: Remove if we don't intend to make this interface public to replace IConnection.
 internal interface IProtocolConnection : IAsyncDisposable
 {
     /// <summary>Gets the protocol implemented by this protocol connection.</summary>

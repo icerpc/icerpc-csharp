@@ -168,9 +168,8 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
         async Task<IncomingResponse> ConnectAndPerformInvokeAsync()
         {
-            // Perform the connection establishment without any cancellation token. It will eventually timeout if the
-            // connect timeout is reached. However, we don't wait for it to complete with the given cancellation token
-            // is canceled.
+            // Perform the connection establishment without a cancellation token. It will eventually timeout if the
+            // connect timeout is reached.
             await ConnectAsync(connection, CancellationToken.None).WaitAsync(cancel).ConfigureAwait(false);
 
             return await PerformInvokeAsync(request, connection, cancel).ConfigureAwait(false);
