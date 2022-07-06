@@ -299,6 +299,14 @@ public ref partial struct SliceEncoder
     /// <param name="serviceAddress">The service address to encode.</param>
     public void EncodeServiceAddress(ServiceAddress serviceAddress)
     {
+        // With Slice1, a proxy is encoded as a kind of discriminated union with:
+        // - Identity
+        // - If Identity is not the null identity:
+        //     - ProxyData (which consists of the fragment, invocation mode, protocol  major and minor, and the
+        //       encoding major and minor)
+        //     - a sequence of endpoints that can be empty
+        //     - an adapter ID string present only when the sequence of endpoints is empty
+
         if (Encoding == SliceEncoding.Slice1)
         {
             this.EncodeIdentityPath(serviceAddress.Path);
@@ -309,7 +317,7 @@ public ref partial struct SliceEncoder
             }
 
             FragmentSliceEncoderExtensions.EncodeFragment(ref this, serviceAddress.Fragment);
-            EncodeSize(0); // When encoding an ice proxy, IceRPC always uses Twoway which corresponds to 0
+            InvocationModeSliceEncoderExtensions.EncodeInvocationMode(ref this, InvocationMode.Twoway);
             EncodeBool(false); // Secure
             EncodeUInt8(protocol.ToByte()); // Protocol Major
             EncodeUInt8(0); // Protocol Minor
