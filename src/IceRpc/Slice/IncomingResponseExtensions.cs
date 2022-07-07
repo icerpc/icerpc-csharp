@@ -228,8 +228,9 @@ public static class IncomingResponseExtensions
                 buffer,
                 encoding,
                 activator: decodeFeature.Activator ?? defaultActivator,
-                response.Connection,
-                decodeFeature.ProxyInvoker ?? proxyInvoker,
+                proxyInvoker: decodeFeature.ProxyInvoker ?? proxyInvoker,
+                relativeProxyInvoker: proxyInvoker,
+                relativeProxyProtocol: response.Protocol,
                 proxyEncodeFeature,
                 maxCollectionAllocation: decodeFeature.MaxCollectionAllocation,
                 maxDepth: decodeFeature.MaxDepth);

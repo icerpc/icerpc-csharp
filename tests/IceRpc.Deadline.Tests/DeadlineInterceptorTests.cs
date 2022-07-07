@@ -24,7 +24,7 @@ public sealed class DeadlineInterceptorTests
             hasDeadline = request.Fields.ContainsKey(RequestFieldKey.Deadline);
             cancellationToken = cancel;
             await Task.Delay(TimeSpan.FromMilliseconds(500), cancel);
-            return new IncomingResponse(request, InvalidConnection.IceRpc);
+            return new IncomingResponse(request);
         });
 
         var sut = new DeadlineInterceptor(
@@ -64,7 +64,7 @@ public sealed class DeadlineInterceptorTests
                 {
                     deadline = ReadDeadline(deadlineFiled);
                 }
-                return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
+                return Task.FromResult(new IncomingResponse(request));
             }),
             defaultTimeout: TimeSpan.FromSeconds(120),
             alwaysEnforceDeadline: false);
@@ -95,7 +95,7 @@ public sealed class DeadlineInterceptorTests
             {
                 deadline = ReadDeadline(deadlineFiled);
             }
-            return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
+            return Task.FromResult(new IncomingResponse(request));
         });
 
         var sut = new DeadlineInterceptor(invoker, timeout, alwaysEnforceDeadline: false);
@@ -117,7 +117,7 @@ public sealed class DeadlineInterceptorTests
         var invoker = new InlineInvoker((request, cancel) =>
         {
             cancellationToken = cancel;
-            return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
+            return Task.FromResult(new IncomingResponse(request));
         });
 
         var sut = new DeadlineInterceptor(invoker, Timeout.InfiniteTimeSpan, alwaysEnforceDeadline: false);
@@ -144,7 +144,7 @@ public sealed class DeadlineInterceptorTests
         var invoker = new InlineInvoker(async (request, cancel) =>
         {
             await Task.Delay(TimeSpan.FromMilliseconds(500), cancel);
-            return new IncomingResponse(request, InvalidConnection.IceRpc);
+            return new IncomingResponse(request);
         });
 
         var sut = new DeadlineInterceptor(

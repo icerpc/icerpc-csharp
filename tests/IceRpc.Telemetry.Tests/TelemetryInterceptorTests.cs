@@ -21,7 +21,7 @@ public sealed class TelemetryInterceptorTests
         var invoker = new InlineInvoker((request, cancel) =>
         {
             invocationActivity = Activity.Current;
-            return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
+            return Task.FromResult(new IncomingResponse(request));
         });
 
         // Add a mock activity listener that allows the activity source to create the invocation activity.
@@ -70,7 +70,7 @@ public sealed class TelemetryInterceptorTests
                 invocationActivity.AddBaggage("foo", "bar");
                 decodedActivity = DecodeTraceContextField(request.Fields, "/op");
             }
-            return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
+            return Task.FromResult(new IncomingResponse(request));
         });
 
         // Add a mock activity listener that allows the activity source to create the invocation activity.

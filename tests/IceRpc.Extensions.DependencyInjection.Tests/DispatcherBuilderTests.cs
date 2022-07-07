@@ -23,7 +23,8 @@ public sealed class DispatcherBuilderTests
         builder.Map<ITestService>("/foo");
         IDispatcher dispatcher = builder.Build();
 
-        _ = await dispatcher.DispatchAsync(new IncomingRequest(InvalidConnection.IceRpc) { Path = "/foo" });
+        _ = await dispatcher.DispatchAsync(
+            new IncomingRequest(Protocol.IceRpc) { Path = "/foo" });
 
         Assert.That(provider.GetRequiredService<ICallTracker>().Count, Is.EqualTo(1));
     }
@@ -41,7 +42,8 @@ public sealed class DispatcherBuilderTests
         builder.Mount<ITestService>("/");
         IDispatcher dispatcher = builder.Build();
 
-        _ = await dispatcher.DispatchAsync(new IncomingRequest(InvalidConnection.IceRpc) { Path = "/foo" });
+        _ = await dispatcher.DispatchAsync(
+            new IncomingRequest(Protocol.IceRpc) { Path = "/foo" });
 
         Assert.That(provider.GetRequiredService<ICallTracker>().Count, Is.EqualTo(1));
     }
@@ -63,7 +65,8 @@ public sealed class DispatcherBuilderTests
         builder.Map<ITestService>("/foo");
         IDispatcher dispatcher = builder.Build();
 
-        _ = await dispatcher.DispatchAsync(new IncomingRequest(InvalidConnection.IceRpc) { Path = "/foo" });
+        _ = await dispatcher.DispatchAsync(
+            new IncomingRequest(Protocol.IceRpc) { Path = "/foo" });
 
         Assert.That(provider.GetRequiredService<ICallTracker>().Count, Is.EqualTo(1));
         Assert.That(provider.GetRequiredService<IPathTracker>().Path, Is.EqualTo("/foo"));
@@ -88,7 +91,8 @@ public sealed class DispatcherBuilderTests
         builder.Map<ITestService>("/foo");
         IDispatcher dispatcher = builder.Build();
 
-        _ = await dispatcher.DispatchAsync(new IncomingRequest(InvalidConnection.IceRpc) { Path = "/foo" });
+        _ = await dispatcher.DispatchAsync(
+            new IncomingRequest(Protocol.IceRpc) { Path = "/foo" });
 
         Assert.That(provider.GetRequiredService<ICallTracker>().Count, Is.EqualTo(3));
         Assert.That(provider.GetRequiredService<IPathTracker>().Path, Is.EqualTo("/foo"));

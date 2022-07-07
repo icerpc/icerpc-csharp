@@ -31,7 +31,7 @@ public class OperationEncodingTests
     public async Task Slice2_operation_decode_with_single_parameter()
     {
         // Arrange
-        var request = new IncomingRequest(InvalidConnection.IceRpc)
+        var request = new IncomingRequest(Protocol.IceRpc)
         {
             Payload = Encode(10)
         };
@@ -71,7 +71,7 @@ public class OperationEncodingTests
     public async Task Slice2_operation_decode_with_single_return()
     {
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, InvalidConnection.IceRpc)
+        var response = new IncomingResponse(request)
         {
             Payload = Encode(10)
         };
@@ -110,7 +110,7 @@ public class OperationEncodingTests
     [Test]
     public async Task Slice2_operation_decode_with_multiple_parameters()
     {
-        var request = new IncomingRequest(InvalidConnection.IceRpc)
+        var request = new IncomingRequest(Protocol.IceRpc)
         {
             Payload = Encode(10, "hello world!")
         };
@@ -153,7 +153,7 @@ public class OperationEncodingTests
     public async Task Slice2_operation_decode_with_multiple_return()
     {
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, InvalidConnection.IceRpc)
+        var response = new IncomingResponse(request)
         {
             Payload = Encode(10, "hello world!")
         };
@@ -231,7 +231,7 @@ public class OperationEncodingTests
     {
         const int p1 = 10;
         const string p2 = "hello world!";
-        var request = new IncomingRequest(InvalidConnection.IceRpc)
+        var request = new IncomingRequest(Protocol.IceRpc)
         {
             Payload = Encode(p1, p2, p3, p4)
         };
@@ -320,7 +320,7 @@ public class OperationEncodingTests
         const int p1 = 10;
         const string p2 = "hello world!";
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, InvalidConnection.IceRpc)
+        var response = new IncomingResponse(request)
         {
             Payload = Encode(p1, p2, p3, p4)
         };
@@ -403,7 +403,7 @@ public class OperationEncodingTests
     {
         const int p1 = 10;
         const string p2 = "hello world!";
-        var request = new IncomingRequest(InvalidConnection.IceRpc)
+        var request = new IncomingRequest(Protocol.IceRpc)
         {
             Payload = Encode(p1, p2, p3, p4)
         };
@@ -491,7 +491,7 @@ public class OperationEncodingTests
         const int p1 = 10;
         const string p2 = "hello world!";
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, InvalidConnection.IceRpc)
+        var response = new IncomingResponse(request)
         {
             Payload = Encode(p1, p2, p3, p4)
         };

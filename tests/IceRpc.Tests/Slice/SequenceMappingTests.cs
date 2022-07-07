@@ -16,7 +16,7 @@ public class SequenceMappingTests
             new int[] { 1, 2, 3 },
             new int[] { 1, 2, 3 });
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, InvalidConnection.IceRpc)
+        var response = new IncomingResponse(request)
         {
             Payload = responsePayload
         };
@@ -38,7 +38,7 @@ public class SequenceMappingTests
     {
         PipeReader responsePayload = ISequenceMappingOperations.Response.OpReturnSingleType(new int[] { 1, 2, 3 });
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, InvalidConnection.IceRpc)
+        var response = new IncomingResponse(request)
         {
             Payload = responsePayload
         };
@@ -65,7 +65,7 @@ public class SequenceMappingTests
         // Assert
         Assert.That(
             async () => await ISequenceMappingOperations.Request.OpSingleParameterAsync(
-                new IncomingRequest(InvalidConnection.IceRpc)
+                new IncomingRequest(Protocol.IceRpc)
                 {
                     Payload = requestPayload
                 },
@@ -89,7 +89,7 @@ public class SequenceMappingTests
             },
         };
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, InvalidConnection.IceRpc)
+        var response = new IncomingResponse(request)
         {
             Payload = SequenceMappingOperationsProxy.Request.OpStructNestedSequence(data)
         };
@@ -116,7 +116,7 @@ public class SequenceMappingTests
             },
         };
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, InvalidConnection.IceRpc)
+        var response = new IncomingResponse(request)
         {
             Payload = SequenceMappingOperationsProxy.Request.OpNumericTypeNestedSequence(data)
         };

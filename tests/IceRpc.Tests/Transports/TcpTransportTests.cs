@@ -316,12 +316,12 @@ public class TcpTransportTests
 
         // Assert
         Assert.That(networkConnectionInformation.LocalEndPoint, Is.TypeOf<IPEndPoint>());
-        Assert.That(networkConnectionInformation.LocalEndPoint.AddressFamily, Is.EqualTo(AddressFamily.InterNetworkV6));
-        var endPoint = (IPEndPoint)networkConnectionInformation.LocalEndPoint;
-        Assert.That(endPoint.Address, Is.EqualTo(IPAddress.IPv6Loopback));
+        Assert.That(networkConnectionInformation.LocalEndPoint?.AddressFamily, Is.EqualTo(AddressFamily.InterNetworkV6));
+        var endPoint = (IPEndPoint?)networkConnectionInformation.LocalEndPoint;
+        Assert.That(endPoint?.Address, Is.EqualTo(IPAddress.IPv6Loopback));
         Assert.That(networkConnectionInformation.RemoteEndPoint, Is.TypeOf<IPEndPoint>());
-        endPoint = (IPEndPoint)networkConnectionInformation.RemoteEndPoint;
-        Assert.That(endPoint.Address, Is.EqualTo(IPAddress.IPv6Loopback));
+        endPoint = (IPEndPoint?)networkConnectionInformation.RemoteEndPoint;
+        Assert.That(endPoint?.Address, Is.EqualTo(IPAddress.IPv6Loopback));
         Assert.That(
             networkConnectionInformation.RemoteCertificate,
             Is.EqualTo(tls ? DefaultSslServerAuthenticationOptions.ServerCertificate : null));

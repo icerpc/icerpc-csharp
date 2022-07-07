@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
+using IceRpc.Transports;
 using System.Buffers;
 using System.Collections.Immutable;
 
@@ -25,6 +26,9 @@ public sealed class IncomingRequest : IncomingFrame
         init => _fragment = Protocol == Protocol.Ice || value.Length == 0 ? value :
             throw new InvalidOperationException("cannot create an icerpc request with a non-empty fragment");
     }
+
+    /// <summary>Gets or initializes the invoker implemented by the connection that received this request.</summary>
+    public IInvoker Invoker { get; init; } = InvalidOperationInvoker.Instance;
 
     /// <summary>Gets a value indicating whether this request is oneway or two-way.</summary>
     /// <value><c>true</c> for oneway requests, <c>false</c> otherwise. The default is <c>false</c>.</value>
@@ -59,9 +63,9 @@ public sealed class IncomingRequest : IncomingFrame
     private OutgoingResponse? _response;
 
     /// <summary>Constructs an incoming request.</summary>
-    /// <param name="connection">The <see cref="IConnection"/> that received the request.</param>
-    public IncomingRequest(IConnection connection)
-        : base(connection)
+    /// <param name="protocol">The protocol of the connection that received this incoming request.</param>
+    public IncomingRequest(Protocol protocol)
+        : base(protocol)
     {
     }
 

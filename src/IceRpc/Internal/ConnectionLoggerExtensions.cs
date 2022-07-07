@@ -9,8 +9,8 @@ namespace IceRpc.Internal;
 /// <summary>This class provides ILogger extension methods for connection-related messages.</summary>
 internal static partial class ConnectionLoggerExtensions
 {
-    private static readonly Func<ILogger, EndPoint, EndPoint, IDisposable> _clientConnectionScope =
-        LoggerMessage.DefineScope<EndPoint, EndPoint>(
+    private static readonly Func<ILogger, EndPoint?, EndPoint?, IDisposable> _clientConnectionScope =
+        LoggerMessage.DefineScope<EndPoint?, EndPoint?>(
             "ClientConnection(LocalEndPoint={LocalEndPoint}, RemoteEndPoint={RemoteEndPoint})");
 
     private static readonly Func<ILogger, Endpoint, IDisposable> _newClientConnectionScope =
@@ -31,8 +31,8 @@ internal static partial class ConnectionLoggerExtensions
         LoggerMessage.DefineScope<string, string, ResultType>(
             "SendResponse(Path={Path}, Operation={Operation}, ResultType={ResultType})");
 
-    private static readonly Func<ILogger, EndPoint, EndPoint, IDisposable> _serverConnectionScope =
-        LoggerMessage.DefineScope<EndPoint, EndPoint>(
+    private static readonly Func<ILogger, EndPoint?, EndPoint?, IDisposable> _serverConnectionScope =
+        LoggerMessage.DefineScope<EndPoint?, EndPoint?>(
             "ServerConnection(LocalEndPoint={LocalEndPoint}, RemoteEndPoint={RemoteEndPoint})");
 
     [LoggerMessage(
@@ -58,8 +58,8 @@ internal static partial class ConnectionLoggerExtensions
     internal static partial void LogProtocolConnectionConnect(
         this ILogger logger,
         Protocol protocol,
-        EndPoint localEndPoint,
-        EndPoint remoteEndPoint);
+        EndPoint? localEndPoint,
+        EndPoint? remoteEndPoint);
 
     [LoggerMessage(
         EventId = (int)ConnectionEventIds.ProtocolConnectionDispose,

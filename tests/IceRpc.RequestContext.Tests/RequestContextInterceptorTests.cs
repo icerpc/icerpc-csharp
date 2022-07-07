@@ -48,7 +48,7 @@ public sealed class RequestContextInterceptorTests
                        pipe.Reader.AdvanceTo(readResult.Buffer.End);
                    }
                }
-               return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
+               return Task.FromResult(new IncomingResponse(request));
            }));
 
         await sut.InvokeAsync(request, default);

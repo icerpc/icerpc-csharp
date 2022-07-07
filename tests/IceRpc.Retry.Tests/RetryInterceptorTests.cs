@@ -36,7 +36,7 @@ public sealed class RetryInterceptorTests
             }
             else
             {
-                return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
+                return Task.FromResult(new IncomingResponse(request));
             }
         });
 
@@ -95,7 +95,7 @@ public sealed class RetryInterceptorTests
         var invoker = new InlineInvoker((request, cancel) =>
         {
             attempts++;
-            return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc)
+            return Task.FromResult(new IncomingResponse(request)
             {
                 ResultType = ResultType.Failure
             });
@@ -127,7 +127,6 @@ public sealed class RetryInterceptorTests
             {
                 return Task.FromResult(new IncomingResponse(
                     request,
-                    InvalidConnection.IceRpc,
                     new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
                     {
                         [ResponseFieldKey.RetryPolicy] = EncodeRetryPolicy(RetryPolicy.Immediately)
@@ -139,7 +138,7 @@ public sealed class RetryInterceptorTests
             }
             else
             {
-                return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
+                return Task.FromResult(new IncomingResponse(request));
             }
         });
 
@@ -167,7 +166,6 @@ public sealed class RetryInterceptorTests
             {
                 return Task.FromResult(new IncomingResponse(
                     request,
-                    InvalidConnection.IceRpc,
                     new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
                     {
                         [ResponseFieldKey.RetryPolicy] = EncodeRetryPolicy(RetryPolicy.AfterDelay(delay))
@@ -178,7 +176,7 @@ public sealed class RetryInterceptorTests
             }
             else
             {
-                return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
+                return Task.FromResult(new IncomingResponse(request));
             }
         });
 
@@ -236,7 +234,7 @@ public sealed class RetryInterceptorTests
             }
             else
             {
-                return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
+                return Task.FromResult(new IncomingResponse(request));
             }
         });
 
@@ -264,7 +262,7 @@ public sealed class RetryInterceptorTests
             }
             else
             {
-                return Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc));
+                return Task.FromResult(new IncomingResponse(request));
             }
         });
 
@@ -310,7 +308,6 @@ public sealed class RetryInterceptorTests
 
             return Task.FromResult(new IncomingResponse(
                 request,
-                InvalidConnection.IceRpc,
                 new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
                 {
                     [ResponseFieldKey.RetryPolicy] = EncodeRetryPolicy(RetryPolicy.OtherReplica)

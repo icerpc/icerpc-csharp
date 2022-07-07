@@ -47,6 +47,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly int _minimumSegmentSize;
     private readonly object _mutex = new();
     private readonly ISimpleNetworkConnection _networkConnection;
+    private NetworkConnectionInformation _networkConnectionInformation;
     private readonly SimpleNetworkConnectionReader _networkConnectionReader;
     private readonly SimpleNetworkConnectionWriter _networkConnectionWriter;
     private int _nextRequestId;
@@ -176,7 +177,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         IConnection connection,
         CancellationToken cancel)
     {
-        NetworkConnectionInformation information = await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+        _networkConnectionInformation = await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
 
         // Wait for the network connection establishment to enable the idle timeout check.
         _networkConnectionReader.EnableIdleCheck();
@@ -259,7 +260,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             },
             CancellationToken.None);
 
-        return information;
+        return _networkConnectionInformation;
 
         static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
         {
@@ -423,7 +424,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         if (request.IsOneway)
         {
             // We're done, there's no response for oneway requests.
-            return new IncomingResponse(request, connection);
+            return new IncomingResponse(request)
+            {
+                NetworkConnectionInformation = _networkConnectionInformation
+            };
         }
 
         Debug.Assert(responseCompletionSource is not null);
@@ -492,8 +496,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 _otherReplicaFields :
                 ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
 
-            return new IncomingResponse(request, connection, fields)
+            return new IncomingResponse(request, fields)
             {
+                NetworkConnectionInformation = _networkConnectionInformation,
                 Payload = frameReader,
                 ResultType = replyStatus switch
                 {
@@ -686,7 +691,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     }
 
     /// <summary>Read incoming frames and returns on graceful connection shutdown.</summary>
-    /// <param name="connection">The connection assigned to <see cref="IncomingFrame.Connection"/>.</param>
+    /// <param name="connection">The connection.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     private async ValueTask ReadFramesAsync(IConnection connection, CancellationToken cancel)
     {
@@ -873,11 +878,13 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
             }
 
-            var request = new IncomingRequest(connection)
+            var request = new IncomingRequest(Protocol.Ice)
             {
                 Fields = fields,
                 Fragment = requestHeader.Fragment,
+                Invoker = connection, // TODO: temporary
                 IsOneway = requestId == 0,
+                NetworkConnectionInformation = _networkConnectionInformation,
                 Operation = requestHeader.Operation,
                 Path = requestHeader.Path,
                 Payload = requestFrameReader,
