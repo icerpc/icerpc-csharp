@@ -141,7 +141,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
     }
 
-    private protected override void CancelDispatchesAndAbortInvocations(Exception? exception)
+    private protected override void CancelDispatchesAndAbortInvocations(Exception exception)
     {
         lock (_mutex)
         {
@@ -149,7 +149,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
 
         // Set the abort exception for invocations.
-        _abortInvocationException = exception ?? new ConnectionAbortedException("connection disposed");
+        _abortInvocationException = exception;
 
         // Cancel dispatches and abort invocations for a speedy shutdown.
         _dispatchesAndInvocationsCancelSource.Cancel();
@@ -172,7 +172,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
     }
 
-    private protected override async Task<NetworkConnectionInformation> PerformConnectAsync(
+    private protected override async Task<NetworkConnectionInformation> ConnectAsyncCore(
         IConnection connection,
         CancellationToken cancel)
     {
@@ -232,11 +232,13 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                     _dispatchesAndInvocationsCompleted.Task.IsCompleted)
                 {
                     // Expected if the connection is shutting down and waiting for the peer to close the connection.
+                    completeException = new ConnectionClosedException("connection shutdown");
                 }
                 catch (OperationCanceledException)
                 {
                     // Expected if DisposeAsync has been called.
                     Debug.Assert(_tasksCancelSource.IsCancellationRequested);
+                    completeException = new ConnectionAbortedException("connection disposed");
                 }
                 catch (Exception exception)
                 {
@@ -251,6 +253,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
                     // Don't wait for DisposeAsync to be called to cancel dispatches and abort invocations which might
                     // still be running.
+                    Debug.Assert(completeException is not null);
                     CancelDispatchesAndAbortInvocations(completeException);
                 }
             },
@@ -271,7 +274,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
     }
 
-    private protected override async ValueTask PerformDisposeAsync()
+    private protected override async ValueTask DisposeAsyncCore()
     {
         // Cancel pending tasks, dispatches and invocations.
         _isReadOnly = true;
@@ -308,7 +311,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         _dispatchesAndInvocationsCancelSource.Dispose();
     }
 
-    private protected override async Task<IncomingResponse> PerformInvokeAsync(
+    private protected override async Task<IncomingResponse> InvokeAsyncCore(
         OutgoingRequest request,
         IConnection connection,
         CancellationToken cancel)
@@ -590,7 +593,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
     }
 
-    private protected override async Task PerformShutdownAsync(string message, CancellationToken cancel)
+    private protected override async Task ShutdownAsyncCore(string message, CancellationToken cancel)
     {
         lock (_mutex)
         {

@@ -222,20 +222,19 @@ public sealed class Server : IAsyncDisposable
                     continue;
                 }
 
-                IProtocolConnection protocolConnection = protocolConnectionFactory(
-                    networkConnection,
-                    _options.ConnectionOptions);
-
                 // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
-                var connection = new ServerConnection(protocolConnection);
-
+                ServerConnection connection;
                 lock (_mutex)
                 {
                     if (_isReadOnly)
                     {
-                        ValueTask _ = connection.DisposeAsync();
+                        networkConnection.Dispose();
                         return;
                     }
+
+                    connection = new ServerConnection(protocolConnectionFactory(
+                        networkConnection,
+                        _options.ConnectionOptions));
 
                     _ = _connections.Add(connection);
                 }

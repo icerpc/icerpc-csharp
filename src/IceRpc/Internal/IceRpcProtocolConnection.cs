@@ -50,7 +50,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
     }
 
-    private protected override void CancelDispatchesAndAbortInvocations(Exception? exception = null)
+    private protected override void CancelDispatchesAndAbortInvocations(Exception exception)
     {
         IEnumerable<IMultiplexedStream> streams;
         lock (_mutex)
@@ -69,7 +69,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         // Abort all the streams. This will abort invocations and the streaming for stream parameters. It's important
         // to abort invocations before canceling the token to propagate the correct exception to the invocations.
-        exception ??= new ConnectionAbortedException("connection shutdown");
         foreach (IMultiplexedStream stream in streams!)
         {
             stream.Abort(exception);
@@ -96,7 +95,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    private protected override async Task<NetworkConnectionInformation> PerformConnectAsync(
+    private protected override async Task<NetworkConnectionInformation> ConnectAsyncCore(
         IConnection connection,
         CancellationToken cancel)
     {
@@ -184,7 +183,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         return networkConnectionInformation;
     }
 
-    private protected override async ValueTask PerformDisposeAsync()
+    private protected override async ValueTask DisposeAsyncCore()
     {
         // Cancel pending tasks, dispatches and invocations.
         _isReadOnly = true;
@@ -230,7 +229,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         _tasksCompleteSource.Dispose();
     }
 
-    private protected override async Task<IncomingResponse> PerformInvokeAsync(
+    private protected override async Task<IncomingResponse> InvokeAsyncCore(
         OutgoingRequest request,
         IConnection connection,
         CancellationToken cancel)
@@ -398,7 +397,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    private protected override async Task PerformShutdownAsync(string message, CancellationToken cancel)
+    private protected override async Task ShutdownAsyncCore(string message, CancellationToken cancel)
     {
         IceRpcGoAway goAwayFrame;
         lock (_mutex)
