@@ -260,7 +260,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
             else
             {
                 connection = new ClientConnection(
-                    _options.ClientConnectionOptions with { RemoteEndpoint = endpoint },
+                    _options.ClientConnectionOptions with { Endpoint = endpoint },
                     _loggerFactory,
                     _multiplexedClientTransport,
                     _simpleClientTransport);
@@ -341,7 +341,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
                 if (!_isReadOnly)
                 {
                     // "move" from active to shutdown pending
-                    bool removed = _activeConnections.Remove(connection.RemoteEndpoint);
+                    bool removed = _activeConnections.Remove(connection.Endpoint);
                     Debug.Assert(removed);
                     _ = _shutdownPendingConnections.Add(connection);
                     scheduleRemoveFromClosed = true;

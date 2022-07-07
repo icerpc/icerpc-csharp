@@ -20,7 +20,7 @@ internal class ColocClientTransport : IClientTransport<ISimpleNetworkConnection>
 
     /// <inheritdoc/>
     ISimpleNetworkConnection IClientTransport<ISimpleNetworkConnection>.CreateConnection(
-        Endpoint remoteEndpoint,
+        Endpoint endpoint,
         SslClientAuthenticationOptions? authenticationOptions,
         ILogger logger)
     {
@@ -29,14 +29,14 @@ internal class ColocClientTransport : IClientTransport<ISimpleNetworkConnection>
             throw new NotSupportedException("cannot create a secure Coloc connection");
         }
 
-        if (!CheckParams(remoteEndpoint))
+        if (!CheckParams(endpoint))
         {
-            throw new FormatException($"cannot create a Coloc connection to endpoint '{remoteEndpoint}'");
+            throw new FormatException($"cannot create a Coloc connection to endpoint '{endpoint}'");
         }
 
-        remoteEndpoint = remoteEndpoint.WithTransport(Name);
+        endpoint = endpoint.WithTransport(Name);
 
-        return new ColocNetworkConnection(remoteEndpoint, Connect);
+        return new ColocNetworkConnection(endpoint, Connect);
     }
 
     internal ColocClientTransport(ConcurrentDictionary<Endpoint, ColocListener> listeners) =>

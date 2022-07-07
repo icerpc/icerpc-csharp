@@ -321,11 +321,11 @@ public sealed class RetryInterceptorTests
         });
 
         var serviceAddress = new ServiceAddress(connection1.Protocol) { Path = "/path" };
-        serviceAddress.Endpoint = connection1.RemoteEndpoint;
+        serviceAddress.Endpoint = connection1.Endpoint;
         serviceAddress.AltEndpoints = new List<Endpoint>
         {
-            connection2.RemoteEndpoint,
-            connection3.RemoteEndpoint
+            connection2.Endpoint,
+            connection3.Endpoint
         }.ToImmutableList();
         var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = 3 });
 

@@ -11,7 +11,7 @@ public static class EndpointFeatureExtensions
     /// <param name="endpoint">The endpoint to remove from the endpoint feature.</param>
     public static void RemoveEndpoint(this IEndpointFeature feature, Endpoint endpoint)
     {
-        // Filter-out the remote endpoint
+        // Filter-out the endpoint
         if (feature.Endpoint == endpoint)
         {
             feature.Endpoint = null;

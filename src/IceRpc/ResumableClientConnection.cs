@@ -29,7 +29,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
     public Protocol Protocol => _clientConnection.Protocol;
 
     /// <inheritdoc/>
-    public Endpoint RemoteEndpoint => _clientConnection.RemoteEndpoint;
+    public Endpoint Endpoint => _clientConnection.Endpoint;
 
     private ClientConnection _clientConnection;
 
@@ -70,9 +70,9 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         _clientConnection = CreateClientConnection();
     }
 
-    /// <summary>Constructs a resumable client connection with the specified remote endpoint and client authentication
-    /// options. All other properties have their default values.</summary>
-    /// <param name="endpoint">The connection remote endpoint.</param>
+    /// <summary>Constructs a resumable client connection with the specified endpoint and client authentication options.
+    /// All other properties have their default values.</summary>
+    /// <param name="endpoint">The connection endpoint.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
     public ResumableClientConnection(
         Endpoint endpoint,
@@ -80,7 +80,7 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
         : this(new ClientConnectionOptions
         {
             ClientAuthenticationOptions = clientAuthenticationOptions,
-            RemoteEndpoint = endpoint
+            Endpoint = endpoint
         })
     {
     }
