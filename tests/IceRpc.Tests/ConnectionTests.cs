@@ -541,7 +541,6 @@ public class ConnectionTests
     }
 
     [Test]
-    [Ignore("does not work")]
     public async Task Shutdown_waits_for_connection_establishment([Values("ice", "icerpc")] string protocol)
     {
         // Arrange
