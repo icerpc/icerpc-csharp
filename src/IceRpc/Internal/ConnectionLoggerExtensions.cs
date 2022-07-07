@@ -50,16 +50,6 @@ internal static partial class ConnectionLoggerExtensions
     internal static partial void LogConnectionClosedReason(this ILogger logger, Exception exception);
 
     [LoggerMessage(
-        EventId = (int)ConnectionEventIds.ProtocolConnectionAbort,
-        EventName = nameof(ConnectionEventIds.ProtocolConnectionAbort),
-        Level = LogLevel.Information,
-        Message = "{Protocol} connection aborted")]
-    internal static partial void LogProtocolConnectionAbort(
-        this ILogger logger,
-        Protocol protocol,
-        Exception exception);
-
-    [LoggerMessage(
         EventId = (int)ConnectionEventIds.ProtocolConnectionConnect,
         EventName = nameof(ConnectionEventIds.ProtocolConnectionConnect),
         Level = LogLevel.Information,

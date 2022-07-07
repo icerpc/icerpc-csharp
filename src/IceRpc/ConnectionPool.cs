@@ -101,10 +101,13 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
                 throw new NoEndpointException(request.ServiceAddress);
             }
 
+            // Perform the connection establishment, if needed, without a cancellation token. It will eventually timeout
+            // if the connect timeout is reached.
+            // TODO: remove the cancellation token parameter or add ConnectAsync(endpoint, cancel) on ConnectionPool?
             IConnection connection = await GetClientConnectionAsync(
                 endpointFeature.Endpoint.Value,
                 endpointFeature.AltEndpoints,
-                cancel).ConfigureAwait(false);
+                CancellationToken.None).ConfigureAwait(false);
 
             endpointFeature.Connection = connection;
 
@@ -267,37 +270,36 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
             }
         }
 
-        try
-        {
-            // Make sure this connection/endpoint are actually usable.
-            await connection.ConnectAsync(cancel).ConfigureAwait(false);
-        }
-        catch when (created)
-        {
-            bool scheduleRemoveFromClosed = false;
-
-            lock (_mutex)
-            {
-                // the _pendingConnections collection is read-only after shutdown
-                if (!_isReadOnly)
-                {
-                    // "move" from pending to shutdown pending
-                    bool removed = _pendingConnections.Remove(endpoint);
-                    Debug.Assert(removed);
-                    _ = _shutdownPendingConnections.Add(connection);
-                    scheduleRemoveFromClosed = true;
-                }
-            }
-            if (scheduleRemoveFromClosed)
-            {
-                _ = RemoveFromClosedAsync(connection, graceful: false);
-            }
-
-            throw;
-        }
-
         if (created)
         {
+            try
+            {
+                await connection.ConnectAsync(cancel).ConfigureAwait(false);
+            }
+            catch
+            {
+                bool scheduleRemoveFromClosed = false;
+
+                lock (_mutex)
+                {
+                    // the _pendingConnections collection is read-only after shutdown
+                    if (!_isReadOnly)
+                    {
+                        // "move" from pending to shutdown pending
+                        bool removed = _pendingConnections.Remove(endpoint);
+                        Debug.Assert(removed);
+                        _ = _shutdownPendingConnections.Add(connection);
+                        scheduleRemoveFromClosed = true;
+                    }
+                }
+                if (scheduleRemoveFromClosed)
+                {
+                    _ = RemoveFromClosedAsync(connection, graceful: false);
+                }
+
+                throw;
+            }
+
             bool scheduleRemoveFromActive = false;
 
             lock (_mutex)
@@ -316,10 +318,14 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
             if (scheduleRemoveFromActive)
             {
                 // Schedule removal after addition. We do this outside the mutex lock otherwise RemoveFromActive could
-                // call await clientConnection.ShutdownAsync within this lock.
+                // call await ShutdownAsync or DisposeAsync on the connection within this lock.
                 connection.OnAbort(exception => RemoveFromActive(graceful: false));
                 connection.OnShutdown(message => RemoveFromActive(graceful: true));
             }
+        }
+        else
+        {
+            await connection.ConnectAsync(cancel).ConfigureAwait(false);
         }
 
         return connection;
@@ -360,8 +366,6 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
                 }
                 catch
                 {
-                    // OnAbort will clean it up
-                    return;
                 }
             }
 

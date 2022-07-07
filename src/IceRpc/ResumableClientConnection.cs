@@ -85,17 +85,6 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
     {
     }
 
-    /// <summary>Aborts the connection.</summary>
-    public void Abort()
-    {
-        lock (_mutex)
-        {
-            _isResumable = false;
-        }
-
-        _clientConnection.Abort();
-    }
-
     /// <summary>Establishes the connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that indicates the completion of the connect operation.</returns>

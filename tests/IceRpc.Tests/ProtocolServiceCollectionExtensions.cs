@@ -113,9 +113,8 @@ internal abstract class ClientServerProtocolConnection<T> : IClientServerProtoco
             ConnectionOptions connectionOptions,
             bool isServer)
         {
-            IProtocolConnection protocolConnection = CreateConnection(networkConnection, connectionOptions);
+            IProtocolConnection protocolConnection = CreateConnection(networkConnection, isServer, connectionOptions);
             _ = await protocolConnection.ConnectAsync(
-                isServer,
                 _connection,
                 CancellationToken.None);
             return protocolConnection;
@@ -124,8 +123,9 @@ internal abstract class ClientServerProtocolConnection<T> : IClientServerProtoco
 
     public void Dispose()
     {
-        _client?.Abort(new ConnectionClosedException());
-        _server?.Abort(new ConnectionClosedException());
+        ValueTask? disposeTask;
+        disposeTask = _client?.DisposeAsync();
+        disposeTask = _server?.DisposeAsync();
     }
 
     protected ClientServerProtocolConnection(
@@ -144,7 +144,10 @@ internal abstract class ClientServerProtocolConnection<T> : IClientServerProtoco
         _server = null;
     }
 
-    protected abstract IProtocolConnection CreateConnection(T networkConnection, ConnectionOptions options);
+    protected abstract IProtocolConnection CreateConnection(
+        T networkConnection,
+        bool isServer,
+        ConnectionOptions options);
 }
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage(
@@ -166,8 +169,9 @@ internal sealed class ClientServerIceProtocolConnection : ClientServerProtocolCo
 
     protected override IProtocolConnection CreateConnection(
         ISimpleNetworkConnection networkConnection,
+        bool isServer,
         ConnectionOptions options) =>
-        new IceProtocolConnection(networkConnection, options);
+        new IceProtocolConnection(networkConnection, isServer, options);
 }
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage(
@@ -190,6 +194,7 @@ internal sealed class ClientServerIceRpcProtocolConnection :
 
     protected override IProtocolConnection CreateConnection(
         IMultiplexedNetworkConnection networkConnection,
+        bool isServer,
         ConnectionOptions options) =>
         new IceRpcProtocolConnection(networkConnection, options);
 }

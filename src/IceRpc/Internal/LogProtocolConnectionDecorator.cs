@@ -12,25 +12,16 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
 
     private readonly IProtocolConnection _decoratee;
     private NetworkConnectionInformation _information;
-    private bool _isServer;
+    private readonly bool _isServer;
     private readonly ILogger _logger;
 
-    public void Abort(Exception exception)
-    {
-        using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
-        _decoratee.Abort(exception);
-        _logger.LogProtocolConnectionAbort(_decoratee.Protocol, exception);
-    }
-
     async Task<NetworkConnectionInformation> IProtocolConnection.ConnectAsync(
-        bool isServer,
         IConnection connection,
         CancellationToken cancel)
     {
-        _isServer = isServer;
-        _information = await _decoratee.ConnectAsync(isServer, connection, cancel).ConfigureAwait(false);
+        _information = await _decoratee.ConnectAsync(connection, cancel).ConfigureAwait(false);
 
-        using IDisposable scope = _logger.StartConnectionScope(_information, isServer);
+        using IDisposable scope = _logger.StartConnectionScope(_information, _isServer);
         _logger.LogProtocolConnectionConnect(
             _decoratee.Protocol,
             _information.LocalEndPoint,
@@ -47,6 +38,8 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
 
         return _information;
     }
+
+    ValueTask IAsyncDisposable.DisposeAsync() => _decoratee.DisposeAsync();
 
     async Task<IncomingResponse> IProtocolConnection.InvokeAsync(
         OutgoingRequest request,
@@ -84,9 +77,10 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
         _logger.LogProtocolConnectionShutdown(_decoratee.Protocol, message);
     }
 
-    internal LogProtocolConnectionDecorator(IProtocolConnection decoratee, ILogger logger)
+    internal LogProtocolConnectionDecorator(IProtocolConnection decoratee, bool isServer, ILogger logger)
     {
         _decoratee = decoratee;
+        _isServer = isServer;
         _logger = logger;
     }
 }

@@ -151,14 +151,16 @@ public sealed class Server : IAsyncDisposable
             {
                 PerformListen(
                     _simpleServerTransport,
-                    (networkConnection, options) => new IceProtocolConnection(networkConnection, options),
+                    (networkConnection, options) =>
+                        new IceProtocolConnection(networkConnection, isServer: true, options),
                     LogSimpleNetworkConnectionDecorator.Decorate);
             }
             else
             {
                 PerformListen(
                     _multiplexedServerTransport,
-                    (networkConnection, options) => new IceRpcProtocolConnection(networkConnection, options),
+                    (networkConnection, options) =>
+                        new IceRpcProtocolConnection(networkConnection, options),
                     LogMultiplexedNetworkConnectionDecorator.Decorate);
             }
         }
@@ -185,7 +187,7 @@ public sealed class Server : IAsyncDisposable
 
                 Func<T, ConnectionOptions, IProtocolConnection> decoratee = protocolConnectionFactory;
                 protocolConnectionFactory = (T networkConnection, ConnectionOptions options) =>
-                    new LogProtocolConnectionDecorator(decoratee(networkConnection, options), logger);
+                    new LogProtocolConnectionDecorator(decoratee(networkConnection, options), isServer: true, logger);
             }
 
             // Run task to start accepting new connections.
@@ -220,22 +222,19 @@ public sealed class Server : IAsyncDisposable
                     continue;
                 }
 
-                IProtocolConnection protocolConnection = protocolConnectionFactory(
-                    networkConnection,
-                    _options.ConnectionOptions);
-
                 // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
-#pragma warning disable CA2000
-                var connection = new ServerConnection(protocolConnection, _options.ConnectionOptions);
-#pragma warning restore CA2000
-
+                ServerConnection connection;
                 lock (_mutex)
                 {
                     if (_isReadOnly)
                     {
-                        connection.Abort();
+                        networkConnection.Dispose();
                         return;
                     }
+
+                    connection = new ServerConnection(protocolConnectionFactory(
+                        networkConnection,
+                        _options.ConnectionOptions));
 
                     _ = _connections.Add(connection);
                 }
@@ -273,8 +272,6 @@ public sealed class Server : IAsyncDisposable
                 }
                 catch
                 {
-                    // OnAbort will take care of cleaning up
-                    return;
                 }
             }
 

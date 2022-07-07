@@ -4,6 +4,7 @@ using IceRpc.Builder;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using System.Net.Security;
@@ -55,15 +56,17 @@ public static class ServiceCollectionExtensions
     {
         collection.AddSingleton(provider =>
         {
+            ILogger logger = provider.GetService<ILogger>() ?? NullLogger.Instance;
             SslServerAuthenticationOptions? serverAuthenticationOptions =
                 provider.GetService<IOptions<SslServerAuthenticationOptions>>()?.Value;
             IServerTransport<ISimpleNetworkConnection>? serverTransport =
                 provider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>();
-            return serverTransport.Listen(endpoint, serverAuthenticationOptions, NullLogger.Instance);
+            return serverTransport.Listen(endpoint, serverAuthenticationOptions, logger);
         });
 
         collection.AddSingleton(provider =>
         {
+            ILogger logger = provider.GetService<ILogger>() ?? NullLogger.Instance;
             SslClientAuthenticationOptions? clientAuthenticationOptions =
                 provider.GetService<IOptions<SslClientAuthenticationOptions>>()?.Value;
             IListener<ISimpleNetworkConnection> listener =
@@ -73,7 +76,7 @@ public static class ServiceCollectionExtensions
             return clientTransport.CreateConnection(
                 listener.Endpoint,
                 clientAuthenticationOptions,
-                NullLogger.Instance);
+                logger);
         });
         return collection;
     }
@@ -87,6 +90,9 @@ public static class ServiceCollectionExtensions
         IDispatcher dispatcher,
         Endpoint endpoint)
     {
+        services.AddSingleton<ILoggerFactory>(LogAttributeLoggerFactory.Instance);
+        services.AddSingleton(LogAttributeLoggerFactory.Instance.Logger);
+
         services.AddOptions<ServerOptions>().Configure(options =>
         {
             options.ConnectionOptions.Dispatcher = dispatcher;
@@ -108,6 +114,13 @@ public static class ServiceCollectionExtensions
         Action<IDispatcherBuilder> configure,
         Endpoint endpoint)
     {
+        services.AddSingleton<ILoggerFactory>(LogAttributeLoggerFactory.Instance);
+        services.AddSingleton(provider =>
+        {
+            ILoggerFactory factory = provider.GetRequiredService<ILoggerFactory>();
+            return factory.CreateLogger("Test");
+        });
+
         services.AddOptions<ServerOptions>().Configure(options => options.Endpoint = endpoint);
         services.AddIceRpcServer(configure);
 

@@ -247,7 +247,7 @@ public abstract class SimpleTransportConformanceTests
         var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1024 * 1024] };
         using var canceled = new CancellationTokenSource();
 
-        // Write data until flow control blocks the sending. Cancelling the blocked write, should throw
+        // Write data until flow control blocks the sending. Canceling the blocked write, should throw
         // OperationCanceledException.
         Task writeTask;
         while (true)
