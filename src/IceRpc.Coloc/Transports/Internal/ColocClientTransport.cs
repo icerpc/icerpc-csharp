@@ -42,9 +42,9 @@ internal class ColocClientTransport : IClientTransport<ISimpleNetworkConnection>
     internal ColocClientTransport(ConcurrentDictionary<Endpoint, ColocListener> listeners) =>
         _listeners = listeners;
 
-    private (PipeReader, PipeWriter) Connect(Endpoint remoteEndpoint)
+    private (PipeReader, PipeWriter) Connect(Endpoint endpoint)
     {
-        if (_listeners.TryGetValue(remoteEndpoint, out ColocListener? listener))
+        if (_listeners.TryGetValue(endpoint, out ColocListener? listener))
         {
             return listener.NewClientConnection();
         }
