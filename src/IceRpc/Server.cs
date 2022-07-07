@@ -5,7 +5,6 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using System.Diagnostics;
 using System.Net.Security;
 
 namespace IceRpc;
@@ -31,7 +30,7 @@ public sealed class Server : IAsyncDisposable
     /// cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
     public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
-    private readonly HashSet<ServerConnection> _connections = new();
+    private readonly HashSet<IProtocolConnection> _connections = new();
 
     private bool _isReadOnly;
 
@@ -223,7 +222,7 @@ public sealed class Server : IAsyncDisposable
                 }
 
                 // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
-                ServerConnection connection;
+                IProtocolConnection connection;
                 lock (_mutex)
                 {
                     if (_isReadOnly)
@@ -232,9 +231,7 @@ public sealed class Server : IAsyncDisposable
                         return;
                     }
 
-                    connection = new ServerConnection(protocolConnectionFactory(
-                        networkConnection,
-                        _options.ConnectionOptions));
+                    connection = protocolConnectionFactory(networkConnection, _options.ConnectionOptions);
 
                     _ = _connections.Add(connection);
                 }
@@ -248,12 +245,12 @@ public sealed class Server : IAsyncDisposable
                 // such as TLS based transports where the handshake requires few round trips between the client
                 // and server. Waiting could also cause a security issue if the client doesn't respond to the
                 // connection initialization as we wouldn't be able to accept new connections in the meantime.
-                _ = connection.ConnectAsync();
+                _ = connection.ConnectAsync(CancellationToken.None);
             }
         }
 
         // Remove the connection from _connections once shutdown completes
-        async Task RemoveFromCollectionAsync(ServerConnection connection, bool graceful)
+        async Task RemoveFromCollectionAsync(IProtocolConnection connection, bool graceful)
         {
             lock (_mutex)
             {
@@ -268,7 +265,7 @@ public sealed class Server : IAsyncDisposable
                 // Wait for the current shutdown to complete
                 try
                 {
-                    await connection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+                    await connection.ShutdownAsync("", CancellationToken.None).ConfigureAwait(false);
                 }
                 catch
                 {
