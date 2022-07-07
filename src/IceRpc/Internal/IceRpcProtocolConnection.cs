@@ -186,20 +186,23 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private protected override async ValueTask DisposeAsyncCore()
     {
         // Cancel pending tasks, dispatches and invocations.
-        _isReadOnly = true;
+        lock (_mutex)
+        {
+            _isReadOnly = true;
+            if (_dispatchCount == 0)
+            {
+                _dispatchesCompleted.TrySetResult();
+            }
+            if (_streams.Count == 0)
+            {
+                _streamsCompleted.TrySetResult();
+            }
+        }
+
         _tasksCompleteSource.Cancel();
         _dispatchesCancelSource.Cancel();
 
         _networkConnection.Dispose();
-
-        if (_dispatchCount == 0)
-        {
-            _dispatchesCompleted.TrySetResult();
-        }
-        if (_streams.Count == 0)
-        {
-            _streamsCompleted.TrySetResult();
-        }
 
         // Wait for pending tasks, dispatches and streams to complete.
         try

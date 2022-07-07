@@ -146,10 +146,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         lock (_mutex)
         {
             _isReadOnly = true; // prevent new dispatches or invocations from being accepted.
-        }
 
-        // Set the abort exception for invocations.
-        _abortInvocationException = exception;
+            // Set the abort exception for invocations.
+            _abortInvocationException = exception;
+        }
 
         // Cancel dispatches and abort invocations for a speedy shutdown.
         _dispatchesAndInvocationsCancelSource.Cancel();
@@ -277,18 +277,22 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private protected override async ValueTask DisposeAsyncCore()
     {
         // Cancel pending tasks, dispatches and invocations.
-        _isReadOnly = true;
-        _abortInvocationException = new ConnectionAbortedException("connection disposed");
+        lock (_mutex)
+        {
+            _isReadOnly = true;
+            _abortInvocationException = new ConnectionAbortedException("connection disposed");
+
+            if (_invocations.Count == 0 && _dispatchCount == 0)
+            {
+                _dispatchesAndInvocationsCompleted.TrySetResult();
+            }
+        }
+
         _dispatchesAndInvocationsCancelSource.Cancel();
         _tasksCancelSource.Cancel();
 
         // Dispose the network connection.
         _networkConnection.Dispose();
-
-        if (_invocations.Count == 0 && _dispatchCount == 0)
-        {
-            _dispatchesAndInvocationsCompleted.TrySetResult();
-        }
 
         // Wait for all the tasks, dispatches and invocations to complete.
         try

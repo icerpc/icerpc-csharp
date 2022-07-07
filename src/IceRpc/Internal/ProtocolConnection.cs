@@ -35,7 +35,15 @@ internal abstract class ProtocolConnection : IProtocolConnection
             {
                 throw new ObjectDisposedException($"{typeof(IProtocolConnection)}");
             }
-            _connectTask ??= PerformConnectAsync();
+            else if (_shutdownTask is not null)
+            {
+                Debug.Assert(_connectTask is not null);
+                // await on _connectTask to report the connection establishment failure.
+            }
+            else if (_connectTask is null)
+            {
+                _connectTask = PerformConnectAsync();
+            }
         }
 
         return PerformWaitForConnectAsync();
