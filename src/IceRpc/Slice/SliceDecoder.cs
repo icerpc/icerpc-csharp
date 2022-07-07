@@ -1123,23 +1123,36 @@ public ref partial struct SliceDecoder
     /// <returns>The decoded service address.</returns>
     private ServiceAddress DecodeServiceAddress(string path)
     {
-        var proxyData = new ProxyData(ref this);
+        // With Slice1, a proxy is encoded as a kind of discriminated union with:
+        // - Identity
+        // - If Identity is not the null identity:
+        //     - The fragment, invocation mode, protocol major and minor, and the
+        //       encoding major and minor
+        //     - a sequence of endpoints that can be empty
+        //     - an adapter ID string present only when the sequence of endpoints is empty
 
-        if (proxyData.ProtocolMajor == 0)
+        string fragment = FragmentSliceDecoderExtensions.DecodeFragment(ref this);
+        _ = InvocationModeSliceDecoderExtensions.DecodeInvocationMode(ref this);
+        _ = DecodeBool();
+        byte protocolMajor = DecodeUInt8();
+        byte protocolMinor = DecodeUInt8();
+        Skip(2); // skip encoding major and minor
+
+        if (protocolMajor == 0)
         {
             throw new InvalidDataException("received service address with protocol set to 0");
         }
-        if (proxyData.ProtocolMinor != 0)
+        if (protocolMinor != 0)
         {
             throw new InvalidDataException(
-                $"received service address with invalid protocolMinor value: {proxyData.ProtocolMinor}");
+                $"received service address with invalid protocolMinor value: {protocolMinor}");
         }
 
         int count = DecodeSize();
 
         Endpoint? endpoint = null;
         IEnumerable<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
-        var protocol = Protocol.FromByte(proxyData.ProtocolMajor);
+        var protocol = Protocol.FromByte(protocolMajor);
         ImmutableDictionary<string, string> serviceAddressParams = ImmutableDictionary<string, string>.Empty;
 
         if (count == 0)
@@ -1169,7 +1182,7 @@ public ref partial struct SliceDecoder
 
         try
         {
-            if (!protocol.HasFragment && proxyData.Fragment.Length > 0)
+            if (!protocol.HasFragment && fragment.Length > 0)
             {
                 throw new InvalidDataException($"unexpected fragment in {protocol} service address");
             }
@@ -1180,7 +1193,7 @@ public ref partial struct SliceDecoder
                 endpoint,
                 altEndpoints.ToImmutableList(),
                 serviceAddressParams,
-                proxyData.Fragment);
+                fragment);
         }
         catch (InvalidDataException)
         {
