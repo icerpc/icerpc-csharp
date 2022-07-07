@@ -2,7 +2,6 @@
 
 using IceRpc.Builder;
 using IceRpc.Builder.Internal;
-using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 

@@ -2,7 +2,6 @@
 
 using IceRpc.Features;
 using IceRpc.Slice;
-using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.IO.Pipelines;
 
