@@ -707,6 +707,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 DecodeHeader(readResult.Buffer);
             stream.Input.AdvanceTo(readResult.Buffer.End);
 
+            // TODO: this below is naturally this instance not decorated by any log decorator. The expectation is the
+            // logging for InvokeAsync is performed by the Logger interceptor and not the
+            // LogProtocolConnectionDecorator, but that's currently not true: LogProtocolConnectionDecorator decorates
+            // InvokeAsync.
             var request = new IncomingRequest(Protocol.IceRpc)
             {
                 Fields = fields,

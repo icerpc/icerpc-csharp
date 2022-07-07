@@ -874,6 +874,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
             }
 
+            // TODO: this below is naturally this instance not decorated by any log decorator. The expectation is the
+            // logging for InvokeAsync is performed by the Logger interceptor and not the
+            // LogProtocolConnectionDecorator, but that's currently not true: LogProtocolConnectionDecorator decorates
+            // InvokeAsync.
             var request = new IncomingRequest(Protocol.Ice)
             {
                 Fields = fields,
@@ -891,8 +895,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 // This prevents us from receiving any frame until EnterAsync returns.
                 try
                 {
-                    await dispatchSemaphore.EnterAsync(
-                        _dispatchesAndInvocationsCancelSource.Token).ConfigureAwait(false);
+                    await dispatchSemaphore.EnterAsync(_dispatchesAndInvocationsCancelSource.Token)
+                        .ConfigureAwait(false);
                 }
                 catch
                 {
