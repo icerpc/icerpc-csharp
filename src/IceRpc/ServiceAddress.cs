@@ -253,7 +253,9 @@ public sealed record class ServiceAddress
                     string host = uri.IdnHost;
                     if (host.Length == 0)
                     {
-                        throw new ArgumentException("cannot create an endpoint with an empty host", nameof(uri));
+                        // This Debug.Assert should be impossible to encounter. UriBuilder() will default to "localhost"
+                        // if no hostname is specified, and the URI is not absolute without a hostname.
+                        Debug.Assert(host.Length == 0, $"cannot create an endpoint with an empty host {nameof(uri)}");
                     }
 
                     _endpoint = new Endpoint(
@@ -512,8 +514,7 @@ public sealed record class ServiceAddress
         if (!IsValid(fragment, "\"<>\\^`{|}"))
         {
             throw new FormatException(
-                @$"invalid fragment '{fragment
-                }'; a valid fragment contains only unreserved characters, reserved characters or '%'");
+                @$"invalid fragment '{fragment}'; a valid fragment contains only unreserved characters, reserved characters or '%'");
         }
     }
 
