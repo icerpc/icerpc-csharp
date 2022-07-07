@@ -54,10 +54,10 @@ public class ConnectionTests
         // Arrange
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
-        ServerConnection? serverConnection = null;
+        IProtocolConnection? serverConnection = null;
         var dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
-            serverConnection = (ServerConnection)request.Invoker;
+            serverConnection = (IProtocolConnection)request.Invoker;
             start.Release();
             await hold.WaitAsync(cancel);
             return new OutgoingResponse(request);
@@ -104,10 +104,10 @@ public class ConnectionTests
         [Values(true, false)] bool abortClientConnection)
     {
         // Arrange
-        ServerConnection? serverConnection = null;
+        IProtocolConnection? serverConnection = null;
         var dispatcher = new InlineDispatcher((request, cancel) =>
         {
-            serverConnection = (ServerConnection)request.Invoker;
+            serverConnection = (IProtocolConnection)request.Invoker;
             return new(new OutgoingResponse(request));
         });
 
@@ -139,7 +139,7 @@ public class ConnectionTests
             clientConnection.OnAbort(exception => onAbortCalled.SetException(exception));
             try
             {
-                await serverConnection!.ShutdownAsync(new CancellationToken(true));
+                await serverConnection!.ShutdownAsync("", new CancellationToken(true));
             }
             catch (OperationCanceledException)
             {
@@ -271,11 +271,11 @@ public class ConnectionTests
         [Values("icerpc", "ice")] string protocol)
     {
         // Arrange
-        ServerConnection? serverConnection = null;
+        IProtocolConnection? serverConnection = null;
         IServiceCollection services = new ServiceCollection().AddColocTest(
             new InlineDispatcher((request, cancel) =>
             {
-                serverConnection = (ServerConnection)request.Invoker;
+                serverConnection = (IProtocolConnection)request.Invoker;
                 return new(new OutgoingResponse(request));
             }),
             Protocol.FromString(protocol));
@@ -304,7 +304,7 @@ public class ConnectionTests
             }
         });
 
-        await serverConnection!.ShutdownAsync();
+        await serverConnection!.ShutdownAsync("");
         await semaphore.WaitAsync();
 
         // Act/Assert
@@ -316,12 +316,12 @@ public class ConnectionTests
         [Values("ice", "icerpc")] string protocol)
     {
         // Arrange
-        ServerConnection? serverConnection = null;
+        IProtocolConnection? serverConnection = null;
 
         IServiceCollection services = new ServiceCollection().AddColocTest(
             new InlineDispatcher((request, cancel) =>
             {
-                serverConnection = (ServerConnection)request.Invoker;
+                serverConnection = (IProtocolConnection)request.Invoker;
                 return new(new OutgoingResponse(request));
             }),
             Protocol.FromString(protocol));
@@ -350,7 +350,7 @@ public class ConnectionTests
         });
         try
         {
-            await serverConnection!.ShutdownAsync(new CancellationToken(true));
+            await serverConnection!.ShutdownAsync("", new CancellationToken(true));
         }
         catch
         {
@@ -421,10 +421,10 @@ public class ConnectionTests
         // Arrange
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
-        ServerConnection? serverConnection = null;
+        IProtocolConnection? serverConnection = null;
         var dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
-            serverConnection = (ServerConnection)request.Invoker;
+            serverConnection = (IProtocolConnection)request.Invoker;
             start.Release();
             await hold.WaitAsync(CancellationToken.None);
             return new OutgoingResponse(request);
@@ -444,7 +444,7 @@ public class ConnectionTests
         // Act
         Task shutdownTask = closeClientSide ?
             clientConnection.ShutdownAsync(default) :
-            serverConnection!.ShutdownAsync(default);
+            serverConnection!.ShutdownAsync("", default);
 
         // Assert
         Assert.Multiple(() =>
@@ -476,14 +476,14 @@ public class ConnectionTests
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
 
-        ServerConnection? serverConnection = null;
+        IProtocolConnection? serverConnection = null;
         using var shutdownCancellationSource = new CancellationTokenSource();
         var dispatchCompletionSource = new TaskCompletionSource();
         var dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
             try
             {
-                serverConnection = (ServerConnection)request.Invoker;
+                serverConnection = (IProtocolConnection)request.Invoker;
                 start.Release();
                 await hold.WaitAsync(cancel);
                 return new OutgoingResponse(request);
@@ -505,7 +505,7 @@ public class ConnectionTests
         var serviceAddress = new ServiceProxy(clientConnection, "/path", clientConnection.Protocol);
         var pingTask = serviceAddress.IcePingAsync();
         await start.WaitAsync();
-        Task shutdownTask = closeClientSide ? clientConnection.ShutdownAsync() : serverConnection!.ShutdownAsync();
+        Task shutdownTask = closeClientSide ? clientConnection.ShutdownAsync() : serverConnection!.ShutdownAsync("");
 
         // Act
         if (closeClientSide)
@@ -589,10 +589,10 @@ public class ConnectionTests
         using var start = new SemaphoreSlim(0);
         using var hold = new SemaphoreSlim(0);
 
-        ServerConnection? serverConnection = null;
+        IProtocolConnection? serverConnection = null;
         IDispatcher dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
-            serverConnection = (ServerConnection)request.Invoker;
+            serverConnection = (IProtocolConnection)request.Invoker;
             start.Release();
             await hold.WaitAsync(cancel);
             return new OutgoingResponse(request);
@@ -629,7 +629,7 @@ public class ConnectionTests
         }
         else
         {
-            shutdownTask = serverConnection!.ShutdownAsync();
+            shutdownTask = serverConnection!.ShutdownAsync("");
         }
 
         // Assert

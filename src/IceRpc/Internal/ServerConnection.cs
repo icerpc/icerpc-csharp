@@ -23,7 +23,7 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
 
     /// <inheritdoc/>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
-        _protocolConnection.InvokeAsync(request, this, cancel);
+        _protocolConnection.InvokeAsync(request, cancel);
 
     /// <inheritdoc/>
     public void OnAbort(Action<Exception> callback) => _protocolConnection.OnAbort(callback);
@@ -38,7 +38,7 @@ internal sealed class ServerConnection : IConnection, IAsyncDisposable
     /// <summary>Establishes the connection.</summary>
     /// <returns>A task that indicates the completion of the connect operation.</returns>
     internal Task ConnectAsync() =>
-        _protocolConnection.ConnectAsync(connection: this, cancel: CancellationToken.None);
+        _protocolConnection.ConnectAsync(cancel: CancellationToken.None);
 
     /// <summary>Gracefully shuts down the connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

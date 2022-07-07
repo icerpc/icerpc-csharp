@@ -173,9 +173,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
     }
 
-    private protected override async Task<NetworkConnectionInformation> ConnectAsyncCore(
-        IConnection connection,
-        CancellationToken cancel)
+    private protected override async Task<NetworkConnectionInformation> ConnectAsyncCore(CancellationToken cancel)
     {
         _networkConnectionInformation = await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
 
@@ -216,7 +214,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 try
                 {
                     // Read frames until the CloseConnection frame is received.
-                    await ReadFramesAsync(connection, _tasksCancelSource.Token).ConfigureAwait(false);
+                    await ReadFramesAsync(_tasksCancelSource.Token).ConfigureAwait(false);
 
                     // The peer expects the connection to be closed as soon as the CloseConnection message is received.
                     // So there's no need to initiate shutdown, we just close the network connection and notify the
@@ -318,7 +316,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
     private protected override async Task<IncomingResponse> InvokeAsyncCore(
         OutgoingRequest request,
-        IConnection connection,
         CancellationToken cancel)
     {
         bool acquiredSemaphore = false;
@@ -691,9 +688,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     }
 
     /// <summary>Read incoming frames and returns on graceful connection shutdown.</summary>
-    /// <param name="connection">The connection.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    private async ValueTask ReadFramesAsync(IConnection connection, CancellationToken cancel)
+    private async ValueTask ReadFramesAsync(CancellationToken cancel)
     {
         while (true)
         {
@@ -882,7 +878,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             {
                 Fields = fields,
                 Fragment = requestHeader.Fragment,
-                Invoker = connection, // TODO: temporary
+                Invoker = this,
                 IsOneway = requestId == 0,
                 NetworkConnectionInformation = _networkConnectionInformation,
                 Operation = requestHeader.Operation,

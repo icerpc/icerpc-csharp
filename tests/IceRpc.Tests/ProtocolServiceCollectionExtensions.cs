@@ -114,9 +114,7 @@ internal abstract class ClientServerProtocolConnection<T> : IClientServerProtoco
             bool isServer)
         {
             IProtocolConnection protocolConnection = CreateConnection(networkConnection, isServer, connectionOptions);
-            _ = await protocolConnection.ConnectAsync(
-                _connection,
-                CancellationToken.None);
+            _ = await protocolConnection.ConnectAsync(CancellationToken.None);
             return protocolConnection;
         }
     }

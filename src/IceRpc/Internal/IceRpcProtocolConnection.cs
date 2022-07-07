@@ -96,9 +96,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    private protected override async Task<NetworkConnectionInformation> ConnectAsyncCore(
-        IConnection connection,
-        CancellationToken cancel)
+    private protected override async Task<NetworkConnectionInformation> ConnectAsyncCore(CancellationToken cancel)
     {
         // Connect the network connection
         _networkConnectionInformation = await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
@@ -150,10 +148,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                         try
                         {
-                            await AcceptRequestAsync(
-                                stream,
-                                connection,
-                                _tasksCompleteSource.Token).ConfigureAwait(false);
+                            await AcceptRequestAsync(stream, _tasksCompleteSource.Token).ConfigureAwait(false);
                         }
                         catch (IceRpcProtocolStreamException)
                         {
@@ -234,7 +229,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private protected override async Task<IncomingResponse> InvokeAsyncCore(
         OutgoingRequest request,
-        IConnection connection,
         CancellationToken cancel)
     {
         IMultiplexedStream? stream = null;
@@ -644,7 +638,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    private async Task AcceptRequestAsync(IMultiplexedStream stream, IConnection connection, CancellationToken cancel)
+    private async Task AcceptRequestAsync(IMultiplexedStream stream, CancellationToken cancel)
     {
         PipeReader? fieldsPipeReader = null;
 
@@ -716,7 +710,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             var request = new IncomingRequest(Protocol.IceRpc)
             {
                 Fields = fields,
-                Invoker = connection, // TODO: temporary
+                Invoker = this,
                 IsOneway = !stream.IsBidirectional,
                 NetworkConnectionInformation = _networkConnectionInformation,
                 Operation = header.Operation,
