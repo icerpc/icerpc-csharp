@@ -71,7 +71,7 @@ public sealed class MetricsInterceptorTests
     {
         const string name = "Test.Successful.Invocation.EventSource";
         var invoker = new InlineInvoker(
-            (request, cancel) => Task.FromResult(new IncomingResponse(request)));
+            (request, cancel) => Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)));
         using var eventListener = new TestEventListener(
             name,
             ("total-requests", "1"),

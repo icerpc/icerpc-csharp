@@ -2,6 +2,7 @@
 
 using IceRpc.Features;
 using IceRpc.Slice;
+using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.IO.Pipelines;
 
@@ -47,7 +48,7 @@ public sealed class RequestContextInterceptorTests
                        pipe.Reader.AdvanceTo(readResult.Buffer.End);
                    }
                }
-               return Task.FromResult(new IncomingResponse(request));
+               return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
            }));
 
         await sut.InvokeAsync(request, default);

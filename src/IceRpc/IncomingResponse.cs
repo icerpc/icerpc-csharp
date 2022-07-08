@@ -20,30 +20,48 @@ public sealed class IncomingResponse : IncomingFrame
 
     /// <summary>Constructs an incoming response with empty fields.</summary>
     /// <param name="request">The corresponding outgoing request.</param>
-    public IncomingResponse(OutgoingRequest request)
-        : this(request, ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty, fieldsPipeReader: null)
+    /// <param name="connectionContext">The connection that received this response.</param>
+    public IncomingResponse(OutgoingRequest request, IConnectionContext connectionContext)
+        : this(
+            request,
+            connectionContext,
+            ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty,
+            fieldsPipeReader: null)
     {
     }
 
     /// <summary>Constructs an incoming response.</summary>
     /// <param name="request">The corresponding outgoing request.</param>
+    /// <param name="connectionContext">The connection that received this response.</param>
     /// <param name="fields">The fields of this response.</param>
-    public IncomingResponse(OutgoingRequest request, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields)
-        : this(request, fields, fieldsPipeReader: null)
+    public IncomingResponse(
+        OutgoingRequest request,
+        IConnectionContext connectionContext,
+        IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields)
+        : this(request, connectionContext, fields, fieldsPipeReader: null)
     {
     }
 
     /// <summary>Constructs an incoming response with a pipe reader holding the memory for the fields.</summary>
     /// <param name="request">The corresponding outgoing request.</param>
+    /// <param name="connectionContext">The connection that received this response.</param>
     /// <param name="fields">The fields of this response.</param>
     /// <param name="fieldsPipeReader">The pipe reader that holds the memory of the fields. Use <c>null</c> when the
     /// fields memory is not held by a pipe reader.</param>
     internal IncomingResponse(
         OutgoingRequest request,
+        IConnectionContext connectionContext,
         IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields,
         PipeReader? fieldsPipeReader)
-        : base(request.Protocol)
+        : base(connectionContext)
     {
+        if (request.Protocol != connectionContext.Protocol)
+        {
+            throw new ArgumentException(
+                "the protocol of the request does not match the protocol of the connection context",
+                nameof(request));
+        }
+
         Fields = fields;
         _fieldsPipeReader = fieldsPipeReader;
         request.Response = this;

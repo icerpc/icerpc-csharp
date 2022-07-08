@@ -2,6 +2,7 @@
 
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
+using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.Buffers;
 using System.Diagnostics;
@@ -20,7 +21,7 @@ public sealed class TelemetryInterceptorTests
         var invoker = new InlineInvoker((request, cancel) =>
         {
             invocationActivity = Activity.Current;
-            return Task.FromResult(new IncomingResponse(request));
+            return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
         });
 
         // Add a mock activity listener that allows the activity source to create the invocation activity.
@@ -69,7 +70,7 @@ public sealed class TelemetryInterceptorTests
                 invocationActivity.AddBaggage("foo", "bar");
                 decodedActivity = DecodeTraceContextField(request.Fields, "/op");
             }
-            return Task.FromResult(new IncomingResponse(request));
+            return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
         });
 
         // Add a mock activity listener that allows the activity source to create the invocation activity.

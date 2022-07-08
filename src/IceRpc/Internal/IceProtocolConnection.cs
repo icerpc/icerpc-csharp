@@ -30,6 +30,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             })
         }.ToImmutableDictionary();
 
+    private IConnectionContext? _connectionContext; // non-null once the connection is established
     private readonly IDispatcher _dispatcher;
 
     private Exception? _abortInvocationException;
@@ -47,7 +48,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly int _minimumSegmentSize;
     private readonly object _mutex = new();
     private readonly ISimpleNetworkConnection _networkConnection;
-    private NetworkConnectionInformation _networkConnectionInformation;
     private readonly SimpleNetworkConnectionReader _networkConnectionReader;
     private readonly SimpleNetworkConnectionWriter _networkConnectionWriter;
     private int _nextRequestId;
@@ -175,7 +175,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
     private protected override async Task<NetworkConnectionInformation> ConnectAsyncCore(CancellationToken cancel)
     {
-        _networkConnectionInformation = await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+        NetworkConnectionInformation networkConnectionInformation = await _networkConnection.ConnectAsync(cancel)
+            .ConfigureAwait(false);
 
         // Wait for the network connection establishment to enable the idle timeout check.
         _networkConnectionReader.EnableIdleCheck();
@@ -258,7 +259,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             },
             CancellationToken.None);
 
-        return _networkConnectionInformation;
+        // TODO: this below is naturally this instance not decorated by any log decorator. The expectation is the
+        // logging for InvokeAsync is performed by the Logger interceptor and not the
+        // LogProtocolConnectionDecorator, but that's currently not true: LogProtocolConnectionDecorator decorates
+        // InvokeAsync.
+        _connectionContext = new ConnectionContext(this, networkConnectionInformation);
+        return networkConnectionInformation;
 
         static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
         {
@@ -421,10 +427,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         if (request.IsOneway)
         {
             // We're done, there's no response for oneway requests.
-            return new IncomingResponse(request)
-            {
-                NetworkConnectionInformation = _networkConnectionInformation
-            };
+            return new IncomingResponse(request, _connectionContext!);
         }
 
         Debug.Assert(responseCompletionSource is not null);
@@ -493,9 +496,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 _otherReplicaFields :
                 ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
 
-            return new IncomingResponse(request, fields)
+            return new IncomingResponse(request, _connectionContext!, fields)
             {
-                NetworkConnectionInformation = _networkConnectionInformation,
                 Payload = frameReader,
                 ResultType = replyStatus switch
                 {
@@ -874,17 +876,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
             }
 
-            // TODO: this below is naturally this instance not decorated by any log decorator. The expectation is the
-            // logging for InvokeAsync is performed by the Logger interceptor and not the
-            // LogProtocolConnectionDecorator, but that's currently not true: LogProtocolConnectionDecorator decorates
-            // InvokeAsync.
-            var request = new IncomingRequest(Protocol.Ice)
+            var request = new IncomingRequest(_connectionContext!)
             {
                 Fields = fields,
                 Fragment = requestHeader.Fragment,
-                Invoker = this,
                 IsOneway = requestId == 0,
-                NetworkConnectionInformation = _networkConnectionInformation,
                 Operation = requestHeader.Operation,
                 Path = requestHeader.Path,
                 Payload = requestFrameReader,

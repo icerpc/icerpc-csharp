@@ -25,14 +25,17 @@ public class LoggerMiddleware : IDispatcher
     /// <inheritdoc/>
     public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
     {
-        _logger.LogReceivedRequest(request.NetworkConnectionInformation, request.Path, request.Operation);
+        _logger.LogReceivedRequest(
+            request.ConnectionContext.NetworkConnectionInformation,
+            request.Path,
+            request.Operation);
         try
         {
             OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
             if (!request.IsOneway)
             {
                 _logger.LogSendingResponse(
-                    request.NetworkConnectionInformation,
+                    request.ConnectionContext.NetworkConnectionInformation,
                     request.Path,
                     request.Operation,
                     response.ResultType);
@@ -41,7 +44,11 @@ public class LoggerMiddleware : IDispatcher
         }
         catch (Exception ex)
         {
-            _logger.LogDispatchException(request.NetworkConnectionInformation, request.Path, request.Operation, ex);
+            _logger.LogDispatchException(
+                request.ConnectionContext.NetworkConnectionInformation,
+                request.Path,
+                request.Operation,
+                ex);
             throw;
         }
     }

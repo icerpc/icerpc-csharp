@@ -37,7 +37,7 @@ public class CompressorMiddlewareTests
         var output = PipeWriter.Create(outStream);
 
         // Act
-        OutgoingResponse response = await sut.DispatchAsync(new IncomingRequest(Protocol.IceRpc));
+        OutgoingResponse response = await sut.DispatchAsync(new IncomingRequest(FakeConnectionContext.IceRpc));
 
         // Assert
         PipeWriter payloadWriter = response.GetPayloadWriter(output);
@@ -60,7 +60,7 @@ public class CompressorMiddlewareTests
         var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
         var sut = new DeflateMiddleware(dispatcher);
 
-        OutgoingResponse response = await sut.DispatchAsync(new IncomingRequest(Protocol.IceRpc));
+        OutgoingResponse response = await sut.DispatchAsync(new IncomingRequest(FakeConnectionContext.IceRpc));
 
         var pipe = new Pipe();
         Assert.That(response.GetPayloadWriter(pipe.Writer), Is.EqualTo(pipe.Writer));
@@ -84,7 +84,7 @@ public class CompressorMiddlewareTests
         });
         var sut = new DeflateMiddleware(dispatcher);
 
-        var response = await sut.DispatchAsync(new IncomingRequest(Protocol.IceRpc), default);
+        var response = await sut.DispatchAsync(new IncomingRequest(FakeConnectionContext.IceRpc), default);
 
         var pipe = new Pipe();
         Assert.That(response.GetPayloadWriter(pipe.Writer), Is.EqualTo(pipe.Writer));
@@ -141,7 +141,7 @@ public class CompressorMiddlewareTests
 
     private static IncomingRequest CreateRequestWitCompressionFormatField(
         ReadOnlySequence<byte> compressionFormatField) =>
-        new(Protocol.IceRpc)
+        new(FakeConnectionContext.IceRpc)
         {
             Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
             {

@@ -304,7 +304,7 @@ public class OperationTests
         // Assert
         Assert.That(
             async () => await IMyOperationsA.Request.OpReadOnlyMemoryAsync(
-                new IncomingRequest(Protocol.IceRpc)
+                new IncomingRequest(FakeConnectionContext.IceRpc)
                 {
                     Payload = payload
                 },
@@ -325,7 +325,7 @@ public class OperationTests
 
         // Assert
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request)
+        var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
         {
             Payload = payload
         };
@@ -350,7 +350,7 @@ public class OperationTests
         // Assert
         Assert.That(
             async () => await IMyOperationsA.Request.OpReadOnlyMemoryOptionalAsync(
-                new IncomingRequest(Protocol.IceRpc)
+                new IncomingRequest(FakeConnectionContext.IceRpc)
                 {
                     Payload = payload
                 },
@@ -372,7 +372,7 @@ public class OperationTests
 
         // Assert
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request)
+        var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
         {
             Payload = payload
         };
@@ -397,7 +397,7 @@ public class OperationTests
         // Assert
         Assert.That(
             async () => await IMyOperationsA.Request.OpReadOnlyMemoryTaggedAsync(
-                new IncomingRequest(Protocol.IceRpc)
+                new IncomingRequest(FakeConnectionContext.IceRpc)
                 {
                     Payload = payload
                 },
@@ -419,7 +419,7 @@ public class OperationTests
 
         // Assert
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request)
+        var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
         {
             Payload = payload
         };
