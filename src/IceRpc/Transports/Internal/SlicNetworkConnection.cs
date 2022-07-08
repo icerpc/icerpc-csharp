@@ -247,17 +247,17 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
             _isReadOnly = true;
         }
 
+        // Cancel tasks which are using the network connection before disposing the network connection.
+        _tasksCancelSource.Cancel();
+
+        // Dispose the network connection.
+        _simpleNetworkConnection.Dispose();
+
         var exception = new ConnectionAbortedException("network connection disposed");
         foreach (SlicMultiplexedStream stream in _streams.Values)
         {
             stream.Shutdown(exception);
         }
-
-        // Cancel tasks and pending operations using this cancellation token source.
-        _tasksCancelSource.Cancel();
-
-        // Dispose the network connection.
-        _simpleNetworkConnection.Dispose();
 
         _acceptStreamQueue.TryComplete(exception);
         _bidirectionalStreamSemaphore?.Complete(exception);

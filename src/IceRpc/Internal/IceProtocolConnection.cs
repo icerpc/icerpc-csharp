@@ -236,8 +236,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
                 catch (OperationCanceledException)
                 {
-                    // Expected if DisposeAsync has been called.
-                    Debug.Assert(_tasksCancelSource.IsCancellationRequested);
                     completeException = new ConnectionAbortedException("connection disposed");
                 }
                 catch (Exception exception)
@@ -288,11 +286,14 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             }
         }
 
-        _dispatchesAndInvocationsCancelSource.Cancel();
+        // First, before disposing the network connection, cancel pending tasks which are using the network connection.
         _tasksCancelSource.Cancel();
 
-        // Dispose the network connection.
+        // Dispose the network connection to kill the connection with the peer.
         _networkConnection.Dispose();
+
+        // Next, cancel pending tasks, dispatches and invocations.
+        _dispatchesAndInvocationsCancelSource.Cancel();
 
         // Wait for all the tasks, dispatches and invocations to complete.
         try

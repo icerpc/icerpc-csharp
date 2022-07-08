@@ -75,6 +75,7 @@ public class OperationTests
     }
 
     [Test]
+    [Repeat(100)]
     public async Task Operation_with_byte_stream_argument_and_return()
     {
         // Arrange

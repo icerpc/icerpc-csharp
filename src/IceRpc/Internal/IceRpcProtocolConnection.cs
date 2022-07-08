@@ -186,10 +186,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
         }
 
-        // Dispose the network connection before canceling dispatches and aborting invocations. This ensure that the
-        // cancellation of dispatches or abort of the invocations won't send stream reset frames.
+        // First dispose the network connection to kill the connection with the peer.
         await _networkConnection.DisposeAsync().ConfigureAwait(false);
 
+        // Next, cancel pending tasks, dispatches and invocations.
         _tasksCompleteSource.Cancel();
         _dispatchesAndInvocationsCancelSource.Cancel();
 
@@ -207,19 +207,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             // Ignore failures.
         }
 
-        // No more pending tasks are running, we can safely release the resources.
-        if (_controlStream is not null)
-        {
-            await _controlStream.Output.CompleteAsync().ConfigureAwait(false);
-        }
-
-        if (_remoteControlStream is not null)
-        {
-            await _remoteControlStream.Input.CompleteAsync().ConfigureAwait(false);
-        }
-
-        _dispatchesAndInvocationsCancelSource.Dispose();
         _tasksCompleteSource.Dispose();
+        _dispatchesAndInvocationsCancelSource.Dispose();
     }
 
     private protected override async Task<IncomingResponse> InvokeAsyncCore(
