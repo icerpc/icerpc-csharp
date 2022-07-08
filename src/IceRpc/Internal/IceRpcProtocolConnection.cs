@@ -467,16 +467,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         // its control stream to ensure the peer's stream are also completed. The network connection can safely be
         // closed only once we ensured streams are completed locally and remotely. Otherwise, we could end up
         // closing the network connection too soon, before the remote streams are completed.
-        // await _controlStream!.Output.CompleteAsync().ConfigureAwait(false);
-        // try
-        // {
-        //     _ = await _remoteControlStream!.Input.ReadAsync(cancel).ConfigureAwait(false);
-        // }
-        // catch (System.Exception exception)
-        // {
-        //     await Console.Error.WriteLineAsync($"XXX {exception}").ConfigureAwait(false);
-        //     throw;
-        // }
+        await _controlStream!.Output.CompleteAsync().ConfigureAwait(false);
+        _ = await _remoteControlStream!.Input.ReadAsync(cancel).ConfigureAwait(false);
 
         await _networkConnection.ShutdownAsync(closedException, cancel).ConfigureAwait(false);
     }
