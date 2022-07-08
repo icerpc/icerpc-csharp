@@ -29,6 +29,9 @@ public sealed class SliceDecodeFeature : ISliceDecodeFeature
     /// <value>The default value is 1 MB.</value>
     public int MaxSegmentSize { get; init; } = 1024 * 1024;
 
+    /// <inheritdoc/>
+    public ServiceProxyFactory? ServiceProxyFactory { get; init; }
+
     /// <summary>Gets or initializes the stream pause writer threshold. When the Slice engine decodes a stream into an
     /// async enumerable, it will pause when the number of bytes decoded but not read is greater or equal to this value.
     /// </summary>
@@ -44,9 +47,6 @@ public sealed class SliceDecodeFeature : ISliceDecodeFeature
         get => _streamResumeWriterThreshold ?? StreamPauseWriterThreshold / 2;
         init => _streamResumeWriterThreshold = value;
     }
-
-    /// <inheritdoc/>
-    public IInvoker? ProxyInvoker { get; init; }
 
     private int? _maxCollectionAllocation;
     private int? _streamResumeWriterThreshold;

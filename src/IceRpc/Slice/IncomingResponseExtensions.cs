@@ -30,8 +30,8 @@ public static class IncomingResponseExtensions
                 request.Features.Get<ISliceDecodeFeature>(),
                 defaultActivator,
                 // we don't expect proxies in Failures, they are usually DispatchException
-                proxyInvoker: InvalidOperationInvoker.Instance,
-                proxyEncodeFeature: null,
+                proxyInvoker: null,
+                encodeFeature: null,
                 cancel) :
             throw new ArgumentException(
                 $"{nameof(DecodeFailureAsync)} requires a response with a Failure result type",
@@ -66,7 +66,7 @@ public static class IncomingResponseExtensions
                 encoding,
                 decodeFeature,
                 defaultActivator,
-                defaultInvoker: proxyInvoker,
+                proxyInvoker,
                 encodeFeature,
                 decodeFunc,
                 cancel) :
@@ -110,7 +110,7 @@ public static class IncomingResponseExtensions
             encoding,
             request.Features.Get<ISliceDecodeFeature>(),
             defaultActivator,
-            defaultInvoker: proxyInvoker,
+            proxyInvoker,
             encodeFeature,
             decodeFunc,
             elementSize);
@@ -138,7 +138,7 @@ public static class IncomingResponseExtensions
             encoding,
             request.Features.Get<ISliceDecodeFeature>(),
             defaultActivator,
-            defaultInvoker: proxyInvoker,
+            proxyInvoker,
             encodeFeature,
             decodeFunc);
 
@@ -185,8 +185,8 @@ public static class IncomingResponseExtensions
         SliceEncoding encoding,
         ISliceDecodeFeature? decodeFeature,
         IActivator? defaultActivator,
-        IInvoker proxyInvoker,
-        ISliceEncodeFeature? proxyEncodeFeature,
+        IInvoker? proxyInvoker,
+        ISliceEncodeFeature? encodeFeature,
         CancellationToken cancel)
     {
         Debug.Assert(response.ResultType != ResultType.Success);
@@ -228,10 +228,10 @@ public static class IncomingResponseExtensions
                 buffer,
                 encoding,
                 activator: decodeFeature.Activator ?? defaultActivator,
-                proxyInvoker: decodeFeature.ProxyInvoker ?? proxyInvoker,
-                relativeProxyInvoker: proxyInvoker,
-                relativeProxyProtocol: response.Protocol,
-                proxyEncodeFeature,
+                decodeFeature.ServiceProxyFactory,
+                proxyInvoker,
+                response.ConnectionContext,
+                encodeFeature,
                 maxCollectionAllocation: decodeFeature.MaxCollectionAllocation,
                 maxDepth: decodeFeature.MaxDepth);
 

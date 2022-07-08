@@ -20,8 +20,8 @@ public interface ISliceDecodeFeature
     /// variable-size elements.</summary>
     int MaxSegmentSize { get; }
 
-    /// <summary>Gets the invoker assigned to decoded proxies.</summary>
-    IInvoker? ProxyInvoker { get; }
+    /// <summary>Gets the service proxy factory.</summary>
+    ServiceProxyFactory? ServiceProxyFactory { get; }
 
     /// <summary>Gets the stream pause writer threshold. When the Slice engine decodes a stream into an async
     /// enumerable, it will pause when the number of bytes decoded but not read is greater or equal to this value.

@@ -15,8 +15,8 @@ internal static class IncomingFrameExtensions
     /// <param name="encoding">The Slice encoding version.</param>
     /// <param name="decodeFeature">The decode feature.</param>
     /// <param name="defaultActivator">The default activator.</param>
-    /// <param name="defaultInvoker">The default invoker.</param>
-    /// <param name="proxyEncodeFeature">The encode feature of decoded proxy structs.</param>
+    /// <param name="proxyInvoker">The default invoker.</param>
+    /// <param name="encodeFeature">The encode feature of decoded proxy structs.</param>
     /// <param name="decodeFunc">The decode function for the payload arguments or return value.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>The decode value.</returns>
@@ -25,8 +25,8 @@ internal static class IncomingFrameExtensions
         SliceEncoding encoding,
         ISliceDecodeFeature? decodeFeature,
         IActivator? defaultActivator,
-        IInvoker defaultInvoker,
-        ISliceEncodeFeature? proxyEncodeFeature,
+        IInvoker? proxyInvoker,
+        ISliceEncodeFeature? encodeFeature,
         DecodeFunc<T> decodeFunc,
         CancellationToken cancel)
     {
@@ -47,10 +47,10 @@ internal static class IncomingFrameExtensions
                 readResult.Buffer,
                 encoding,
                 decodeFeature.Activator ?? defaultActivator,
-                proxyInvoker: decodeFeature.ProxyInvoker ?? defaultInvoker,
-                relativeProxyInvoker: defaultInvoker,
-                relativeProxyProtocol: frame.Protocol,
-                proxyEncodeFeature,
+                decodeFeature.ServiceProxyFactory,
+                proxyInvoker,
+                frame.ConnectionContext,
+                encodeFeature,
                 maxCollectionAllocation: decodeFeature.MaxCollectionAllocation,
                 maxDepth: decodeFeature.MaxDepth);
             T value = decodeFunc(ref decoder);
@@ -118,8 +118,9 @@ internal static class IncomingFrameExtensions
     /// <param name="encoding">The Slice encoding version.</param>
     /// <param name="decodeFeature">The decode feature.</param>
     /// <param name="defaultActivator">The optional default activator.</param>
-    /// <param name="defaultInvoker">The default invoker.</param>
-    /// <param name="proxyEncodeFeature">The encode feature of decoded proxy structs.</param>
+    /// <param name="proxyInvoker">The invoker of the proxy that sent this connection when frame is an outgoing request.
+    /// </param>
+    /// <param name="encodeFeature">The encode feature of decoded proxy structs.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
     /// <returns>The async enumerable to decode and return the streamed members.</returns>
     internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
@@ -127,8 +128,8 @@ internal static class IncomingFrameExtensions
         SliceEncoding encoding,
         ISliceDecodeFeature? decodeFeature,
         IActivator? defaultActivator,
-        IInvoker defaultInvoker,
-        ISliceEncodeFeature? proxyEncodeFeature,
+        IInvoker? proxyInvoker,
+        ISliceEncodeFeature? encodeFeature,
         DecodeFunc<T> decodeFunc)
     {
         decodeFeature ??= SliceDecodeFeature.Default;
@@ -161,10 +162,10 @@ internal static class IncomingFrameExtensions
                 buffer,
                 encoding,
                 decodeFeature.Activator ?? defaultActivator,
-                proxyInvoker: decodeFeature.ProxyInvoker ?? defaultInvoker,
-                relativeProxyInvoker: defaultInvoker,
-                relativeProxyProtocol: frame.Protocol,
-                proxyEncodeFeature,
+                decodeFeature.ServiceProxyFactory,
+                proxyInvoker,
+                frame.ConnectionContext,
+                encodeFeature,
                 maxCollectionAllocation: decodeFeature.MaxCollectionAllocation,
                 maxDepth: decodeFeature.MaxDepth);
 
@@ -237,7 +238,7 @@ internal static class IncomingFrameExtensions
     /// <param name="encoding">The Slice encoding version.</param>
     /// <param name="decodeFeature">The decode feature.</param>
     /// <param name="defaultActivator">The optional default activator.</param>
-    /// <param name="defaultInvoker">The default invoker.</param>
+    /// <param name="proxyInvoker">The default invoker.</param>
     /// <param name="proxyEncodeFeature">The encode feature of decoded proxy structs.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
     /// <param name="elementSize">The size in bytes of the streamed elements.</param>
@@ -247,7 +248,7 @@ internal static class IncomingFrameExtensions
         SliceEncoding encoding,
         ISliceDecodeFeature? decodeFeature,
         IActivator? defaultActivator,
-        IInvoker defaultInvoker,
+        IInvoker? proxyInvoker,
         ISliceEncodeFeature? proxyEncodeFeature,
         DecodeFunc<T> decodeFunc,
         int elementSize)
@@ -283,9 +284,9 @@ internal static class IncomingFrameExtensions
                 buffer,
                 encoding,
                 decodeFeature.Activator ?? defaultActivator,
-                proxyInvoker: decodeFeature.ProxyInvoker ?? defaultInvoker,
-                relativeProxyInvoker: defaultInvoker,
-                relativeProxyProtocol: frame.Protocol,
+                decodeFeature.ServiceProxyFactory,
+                proxyInvoker,
+                frame.ConnectionContext,
                 proxyEncodeFeature,
                 maxCollectionAllocation: decodeFeature.MaxCollectionAllocation,
                 maxDepth: decodeFeature.MaxDepth);

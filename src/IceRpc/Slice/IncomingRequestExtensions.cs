@@ -101,8 +101,8 @@ public static class IncomingRequestExtensions
             encoding,
             request.Features.Get<ISliceDecodeFeature>(),
             defaultActivator,
-            defaultInvoker: InvalidOperationInvoker.Instance,
-            proxyEncodeFeature: request.Features.Get<ISliceEncodeFeature>(),
+            proxyInvoker: null,
+            encodeFeature: request.Features.Get<ISliceEncodeFeature>(),
             decodeFunc,
             cancel);
 
@@ -139,7 +139,7 @@ public static class IncomingRequestExtensions
             encoding,
             request.Features.Get<ISliceDecodeFeature>(),
             defaultActivator,
-            defaultInvoker: InvalidOperationInvoker.Instance,
+            proxyInvoker: null,
             proxyEncodeFeature: request.Features.Get<ISliceEncodeFeature>(),
             decodeFunc,
             elementSize);
@@ -161,7 +161,7 @@ public static class IncomingRequestExtensions
             encoding,
             request.Features.Get<ISliceDecodeFeature>(),
             defaultActivator,
-            defaultInvoker: InvalidOperationInvoker.Instance,
-            proxyEncodeFeature: request.Features.Get<ISliceEncodeFeature>(),
+            proxyInvoker: null,
+            encodeFeature: request.Features.Get<ISliceEncodeFeature>(),
             decodeFunc);
 }

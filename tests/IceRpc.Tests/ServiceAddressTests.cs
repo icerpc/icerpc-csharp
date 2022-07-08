@@ -306,6 +306,7 @@ public class ServiceAddressTests
         Assert.That(serviceAddress.AltEndpoints, Is.EqualTo(altEndpoints));
     }
 
+    /*
     /// <summary>Verifies that the proxy invoker of the <see cref="ISliceDecodeFeature"/> is used for proxies
     /// received over an incoming connection.</summary>
     // TODO: move this test to Slice
@@ -329,11 +330,11 @@ public class ServiceAddressTests
         Assert.That(service.ReceivedProxy, Is.Not.Null);
         Assert.That(service.ReceivedProxy.Value.Invoker, Is.EqualTo(pipeline));
     }
+    */
 
-    /// <summary>Verifies that a proxy received over an incoming connection uses the default invoker.</summary>
-    // TODO: move this test to Slice
+    /// <summary>Verifies that a proxy received over an incoming connection has a null invoker by default.</summary>
     [Test]
-    public async Task Proxy_received_over_an_incoming_connection_uses_the_default_invoker()
+    public async Task Proxy_received_over_an_incoming_connection_has_null_invoker()
     {
         var service = new SendProxyTest();
         await using ServiceProvider provider = new ServiceCollection()
@@ -346,7 +347,7 @@ public class ServiceAddressTests
         await proxy.SendProxyAsync(proxy);
 
         Assert.That(service.ReceivedProxy, Is.Not.Null);
-        Assert.That(service.ReceivedProxy.Value.Invoker, Is.EqualTo(InvalidOperationInvoker.Instance)); // TODO: fix
+        Assert.That(service.ReceivedProxy.Value.Invoker, Is.Null);
     }
 
     /// <summary>Verifies that a service address received over an outgoing connection inherits the callers invoker.</summary>
@@ -413,7 +414,7 @@ public class ServiceAddressTests
     private class ReceiveProxyTest : Service, IReceiveProxyTest
     {
         public ValueTask<ReceiveProxyTestProxy> ReceiveProxyAsync(IFeatureCollection features, CancellationToken cancel) =>
-            new(new ReceiveProxyTestProxy("/hello"));
+            new(ReceiveProxyTestProxy.Parse("icerpc:/hello"));
     }
 
     private class SendProxyTest : Service, ISendProxyTest
