@@ -514,7 +514,8 @@ public sealed record class ServiceAddress
         if (!IsValid(fragment, "\"<>\\^`{|}"))
         {
             throw new FormatException(
-                @$"invalid fragment '{fragment}'; a valid fragment contains only unreserved characters, reserved characters or '%'");
+                @$"invalid fragment '{fragment
+                }'; a valid fragment contains only unreserved characters, reserved characters or '%'");
         }
     }
 

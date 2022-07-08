@@ -77,6 +77,23 @@ public class ServiceAddressTests
         }
     }
 
+    private static IEnumerable<TestCaseData> ServiceAddressSource
+    {
+        get
+        {
+            var serviceAddress = new ServiceAddress();
+            (ServiceAddress, ServiceAddress?, bool)[] data = {
+                (serviceAddress, serviceAddress, true),
+                (serviceAddress, null, false),
+                (serviceAddress, new ServiceAddress(Protocol.IceRpc), false)
+            };
+            foreach ((ServiceAddress serviceAddress1, ServiceAddress? serviceAddress2, bool expected) in data)
+            {
+                yield return new TestCaseData(serviceAddress1, serviceAddress2, expected);
+            }
+        }
+    }
+
     /// <summary>A collection of service address strings that are invalid.</summary>
     private static readonly string[] _invalidUriFormatProxies = new string[]
         {
@@ -190,6 +207,19 @@ public class ServiceAddressTests
         Assert.That(() => serviceAddress.Params = serviceAddress.Params.SetItem("adapter-id", ""), Throws.ArgumentException);
     }
 
+    [Test]
+    public void Cannot_set_alt_endpoints_on_unsupported_protocol()
+    {
+        // Arrange
+        var serviceAddress = new ServiceAddress(new Uri("foobar://localhost/hello"));
+
+        // Constructing alternate endpoints.
+        var altEndpoints = ImmutableList.Create(Endpoint.FromString("icerpc://localhost:10000?transport=foobar"));
+
+        // Act/Assert
+        Assert.Throws<InvalidOperationException>(() => serviceAddress.AltEndpoints = altEndpoints);
+    }
+
     /// <summary>Verifies that the service address endpoint cannot be set when the service address contains any params.</summary>
     [Test]
     public void Cannot_set_endpoint_on_a_service_address_with_parameters()
@@ -206,34 +236,34 @@ public class ServiceAddressTests
             Throws.TypeOf<InvalidOperationException>());
     }
 
-    /// <summary>Verifies that the service address alt endpoints cannot be set when the service address contains no endpoint.</summary>
+    /// <summary>Verifies that the service address alt endpoints cannot be set when the service address contains no
+    /// endpoint.</summary>
     [Test]
-    public void Cannot_set_alt_endpoints_when_endpoint_is_empty()
+    public void Service_address_cannot_contain_alt_endpoints_when_endpoint_is_null()
     {
         // Arrange
         // Construct a serviceAddress from a protocol since it will have an empty endpoint.
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
 
         // Constructing alternate endpoints.
-        Endpoint altEndpoint = Endpoint.FromString("icerpc://localhost:10000?transport=foobar");
-        ImmutableList<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty.Add(altEndpoint);
+        var altEndpoints = ImmutableList.Create(Endpoint.FromString("icerpc://localhost:10000?transport=foobar"));
 
         // Act/Assert
         Assert.Throws<InvalidOperationException>(() => serviceAddress.AltEndpoints = altEndpoints);
         return;
     }
 
-    /// <summary>Verifies that the service address endpoints cannot be null when the service address contains has alt endpoints.</summary>
+    /// <summary>Verifies that the service address endpoint cannot be null when the service address contains has alt
+    /// endpoints.</summary>
     [Test]
-    public void Cannot_clear_endpoints_when_alt_endpoints_is_not_empty()
+    public void Cannot_clear_endpoint_when_alt_endpoints_is_not_empty()
     {
         // Arrange
         // Creating a proxy with an endpoint.
         var serviceAddress = new ServiceAddress(new Uri("icerpc://localhost:8080/foo"));
 
         // Constructing alternate endpoints.
-        Endpoint altEndpoint = Endpoint.FromString("icerpc://localhost:10000?transport=foobar");
-        ImmutableList<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty.Add(altEndpoint);
+        var altEndpoints = ImmutableList.Create(Endpoint.FromString("icerpc://localhost:10000?transport=foobar"));
         serviceAddress.AltEndpoints = altEndpoints;
 
         // Act/Assert
@@ -245,7 +275,7 @@ public class ServiceAddressTests
     {
         // Arrange
         // Can only construct a service address with an unsupported protocol using the URI constructor.
-        Uri uri = new Uri("foo://localhost:8080");
+        var uri = new Uri("foo://localhost:8080");
         var serviceAddress = new ServiceAddress(uri);
 
         // Act/Assert
@@ -299,11 +329,14 @@ public class ServiceAddressTests
         var serviceAddress1 = ServiceAddress.Parse(str);
         var serviceAddress2 = ServiceAddress.Parse(serviceAddress1.ToString());
 
-        var hashCode1 = serviceAddress1.GetHashCode();
+        int hashCode1 = serviceAddress1.GetHashCode();
 
-        Assert.That(serviceAddress1, Is.EqualTo(serviceAddress2));
-        Assert.That(hashCode1, Is.EqualTo(serviceAddress1.GetHashCode()));
-        Assert.That(hashCode1, Is.EqualTo(serviceAddress2.GetHashCode()));
+        Assert.Multiple(() =>
+        {
+            Assert.That(serviceAddress1, Is.EqualTo(serviceAddress2));
+            Assert.That(hashCode1, Is.EqualTo(serviceAddress1.GetHashCode()));
+            Assert.That(hashCode1, Is.EqualTo(serviceAddress2.GetHashCode()));
+        });
     }
 
     /// <summary>Verifies that a service address created from a path has the expected protocol, path and endpoint properties.
@@ -352,8 +385,11 @@ public class ServiceAddressTests
     {
         var serviceAddress = ServiceAddress.Parse(str);
 
-        Assert.That(serviceAddress.Path, Is.EqualTo(path));
-        Assert.That(serviceAddress.Fragment, Is.EqualTo(fragment));
+        Assert.Multiple(() =>
+        {
+            Assert.That(serviceAddress.Path, Is.EqualTo(path));
+            Assert.That(serviceAddress.Fragment, Is.EqualTo(fragment));
+        });
     }
 
     /// <summary>Verifies that parsing a string that is not valid according the given <paramref name="format"/> throws
@@ -438,46 +474,36 @@ public class ServiceAddressTests
     {
         // Arrange
         var expected = new Uri("/foo", UriKind.Relative);
-        var serviceAddress = new ServiceAddress(protocol: null);
-        serviceAddress.Path = "/foo";
+        var serviceAddress = new ServiceAddress { Path = "/foo" };
 
         // Act
-        Uri result = serviceAddress.ToUri();
+        var result = serviceAddress.ToUri();
+
+        // Assert
+        Assert.That(result, Is.EqualTo(expected));
+    }
+
+    [Test, TestCaseSource(nameof(ServiceAddressSource))]
+    public void Service_address_equality(ServiceAddress serviceAddress1, ServiceAddress? serviceAddress2, bool expected)
+    {
+        // Act
+        bool result = serviceAddress1 == serviceAddress2;
 
         // Assert
         Assert.That(result, Is.EqualTo(expected));
     }
 
     [Test]
-    public void Service_address_equality()
-    {
-        // Arrange
-        var serviceAddress1 = new ServiceAddress(Protocol.IceRpc);
-        var serviceAddress1_reference = serviceAddress1;
-        var serviceAddress2 = new ServiceAddress(Protocol.Ice);
-
-        // Act/Assert
-        bool result1 = serviceAddress1.Equals(serviceAddress1_reference);
-        bool result2 = serviceAddress1.Equals(null);
-        bool result3 = new ServiceAddress(Protocol.IceRpc).Equals(serviceAddress2);
-
-        // Assert
-        Assert.That(result1, Is.True);
-        Assert.That(result2, Is.False);
-        Assert.That(result3, Is.False);
-    }
-
-    [Test]
-    public void Service_address_to_string_produces_valid_stringified_service_address()
+    public void Service_address_alt_endpoints_to_string()
     {
         // Arrange
         var serviceAddress = new ServiceAddress(new Uri("ice://localhost:8080/foo?abc=123#bar"));
 
         // Constructing alternate endpoints.
-        Endpoint altEndpoint1 = Endpoint.FromString("ice://localhost:10000?transport=fizz");
-        Endpoint altEndpoint2 = Endpoint.FromString("ice://localhost:10101?transport=buzz");
-        ImmutableList<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty.Add(altEndpoint1).Add(altEndpoint2);
-        serviceAddress.AltEndpoints = altEndpoints;
+        serviceAddress.AltEndpoints = ImmutableList.Create(
+            Endpoint.FromString("ice://localhost:10000?transport=fizz"),
+            Endpoint.FromString("ice://localhost:10101?transport=buzz")
+        );
 
         string expected = "ice://localhost:8080/foo?abc=123&alt-endpoint=localhost:10000?transport=fizz,localhost:10101?transport=buzz#bar";
 
@@ -489,6 +515,20 @@ public class ServiceAddressTests
     }
 
     [Test]
+    public void Service_address_with_parameters_to_string()
+    {
+        // Arrange
+        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
+        serviceAddress.Params = serviceAddress.Params.SetItem("foo", "bar");
+
+        // Act
+        string result = serviceAddress.ToString();
+
+        // Assert
+        Assert.That(result, Is.EqualTo("icerpc:/?foo=bar"));
+    }
+
+    [Test]
     public void Service_address_to_uri()
     {
         // Arrange
@@ -496,7 +536,7 @@ public class ServiceAddressTests
         var serviceAddress = new ServiceAddress(uri);
 
         // Act
-        Uri result = serviceAddress.ToUri();
+        var result = serviceAddress.ToUri();
 
         // Assert
         Assert.That(result, Is.EqualTo(uri));
@@ -508,14 +548,17 @@ public class ServiceAddressTests
     public void Setting_alt_endpoints_with_a_different_protocol_fails()
     {
         var serviceAddress = ServiceAddress.Parse("ice://host.zeroc.com:10000/hello");
-        var endpoint1 = ServiceAddress.Parse("ice://host.zeroc.com:10001/hello").Endpoint!.Value;
-        var endpoint2 = ServiceAddress.Parse("icerpc://host.zeroc.com/hello").Endpoint!.Value;
+        Endpoint endpoint1 = ServiceAddress.Parse("ice://host.zeroc.com:10001/hello").Endpoint!.Value;
+        Endpoint endpoint2 = ServiceAddress.Parse("icerpc://host.zeroc.com/hello").Endpoint!.Value;
         var altEndpoints = new Endpoint[] { endpoint1, endpoint2 }.ToImmutableList();
 
-        Assert.That(() => serviceAddress.AltEndpoints = altEndpoints, Throws.ArgumentException);
+        Assert.Multiple(() =>
+        {
+            Assert.Throws<ArgumentException>(() => serviceAddress.AltEndpoints = altEndpoints);
 
-        // Ensure the alt endpoints weren't updated
-        Assert.That(serviceAddress.AltEndpoints, Is.Empty);
+            // Ensure the alt endpoints weren't updated
+            Assert.That(serviceAddress.AltEndpoints, Is.Empty);
+        });
     }
 
     /// <summary>Verifies that setting an endpoint that uses a protocol different than the service address protocol throws
@@ -524,13 +567,16 @@ public class ServiceAddressTests
     public void Setting_endpoint_with_a_different_protocol_fails()
     {
         var serviceAddress = ServiceAddress.Parse("ice://host.zeroc.com/hello");
-        var endpoint = serviceAddress.Endpoint;
-        var newEndpoint = ServiceAddress.Parse("icerpc://host.zeroc.com/hello").Endpoint!.Value;
+        Endpoint? endpoint = serviceAddress.Endpoint;
+        Endpoint newEndpoint = ServiceAddress.Parse("icerpc://host.zeroc.com/hello").Endpoint!.Value;
 
-        Assert.That(() => serviceAddress.Endpoint = newEndpoint, Throws.ArgumentException);
+        Assert.Multiple(() =>
+        {
+            Assert.Throws<ArgumentException>(() => serviceAddress.Endpoint = newEndpoint);
 
-        // Ensure the endpoint wasn't updated
-        Assert.That(serviceAddress.Endpoint, Is.EqualTo(endpoint));
+            // Ensure the endpoint wasn't updated
+            Assert.That(serviceAddress.Endpoint, Is.EqualTo(endpoint));
+        });
     }
 
     /// <summary>Verifies that we can set the fragment on an ice service address</summary>
@@ -541,18 +587,21 @@ public class ServiceAddressTests
 
         serviceAddress = serviceAddress with { Fragment = "bar" };
 
-        Assert.That(serviceAddress.Fragment, Is.EqualTo("bar"));
-        Assert.That(serviceAddress.Protocol!.HasFragment, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(serviceAddress.Fragment, Is.EqualTo("bar"));
+            Assert.That(serviceAddress.Protocol!.HasFragment, Is.True);
+        });
     }
 
     [Test]
     public void Try_parse_with_valid_uri_returns_true()
     {
         // Arrange
-        string uri_string = "icerpc://localhost:8080/foo";
+        string uriString = "icerpc://localhost:8080/foo";
 
         // Act
-        bool result = ServiceAddress.TryParse(uri_string, out var serviceAddress);
+        bool result = ServiceAddress.TryParse(uriString, out ServiceAddress? serviceAddress);
 
         // Assert
         Assert.That(result, Is.True);
@@ -569,14 +618,17 @@ public class ServiceAddressTests
     public void Try_parse_with_invalid_uri_returns_false()
     {
         // Arrange
-        string uri_string = "foo://::8080//1234";
+        string uriString = "foo://::8080//1234";
 
         // Act
-        bool result = ServiceAddress.TryParse(uri_string, out var serviceAddress);
+        bool result = ServiceAddress.TryParse(uriString, out ServiceAddress? serviceAddress);
 
         // Assert
-        Assert.That(result, Is.False);
-        Assert.That(serviceAddress, Is.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.False);
+            Assert.That(serviceAddress, Is.Null);
+        });
     }
 
     [Test]
@@ -589,8 +641,11 @@ public class ServiceAddressTests
         var serviceAddress = new ServiceAddress(uri);
 
         // Assert
-        Assert.That(serviceAddress.Path, Is.EqualTo("/foo"));
-        Assert.That(serviceAddress.Protocol, Is.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(serviceAddress.Path, Is.EqualTo("/foo"));
+            Assert.That(serviceAddress.Protocol, Is.Null);
+        });
     }
 
     private class ReceiveProxyTest : Service, IReceiveProxyTest

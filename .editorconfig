@@ -9,6 +9,9 @@ guidelines = 120
 
 #### Core EditorConfig Options ####
 
+# Max Line Length
+max_line_length = 120
+
 # Indentation and spacing
 indent_size = 4
 indent_style = space
