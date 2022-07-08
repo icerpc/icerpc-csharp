@@ -99,8 +99,10 @@ public class ServiceAddressTests
         }
     }
 
-    private static IEnumerable<TestCaseData> ServiceAddressToUriSource {
-        get {
+    private static IEnumerable<TestCaseData> ServiceAddressToUriSource
+    {
+        get
+        {
             foreach ((ServiceAddress serviceAddress, string expected) in ServiceAddressToUriData)
             {
                 yield return new TestCaseData(serviceAddress, expected);
@@ -108,8 +110,10 @@ public class ServiceAddressTests
         }
     }
 
-    private static (ServiceAddress, ServiceAddress?, bool)[] ServiceAddressEqualityData {
-        get {
+    private static (ServiceAddress, ServiceAddress?, bool)[] ServiceAddressEqualityData
+    {
+        get
+        {
             ServiceAddress serviceAddress = new ServiceAddress(Protocol.Ice) with { Path = "/foo" };
             return new[] {
                 (serviceAddress, serviceAddress, true),
@@ -121,9 +125,11 @@ public class ServiceAddressTests
         }
     }
 
-    private static(ServiceAddress, string)[] ServiceAddressToStringData {
-        get {
-             // Service address with alt endpoints
+    private static (ServiceAddress, string)[] ServiceAddressToStringData
+    {
+        get
+        {
+            // Service address with alt endpoints
             var serviceAddressWithAltEndpoints = new ServiceAddress(new Uri("ice://localhost:8080/foo?abc=123#bar"));
             serviceAddressWithAltEndpoints.AltEndpoints = ImmutableList.Create(
                 Endpoint.FromString("ice://localhost:10000?transport=fizz"),
@@ -148,8 +154,10 @@ public class ServiceAddressTests
         }
     }
 
-    private static (ServiceAddress, string)[] ServiceAddressToUriData {
-        get {
+    private static (ServiceAddress, string)[] ServiceAddressToUriData
+    {
+        get
+        {
             var serviceAddress = new ServiceAddress(new Uri("ice://localhost:8080/foo?abc=123#bar"));
             ServiceAddress relativeServiceAddress = new ServiceAddress() with { Path = "/foo" };
             ServiceAddress protocolRelativeServiceAddress = new ServiceAddress(Protocol.IceRpc) with { Path = "/foo" };
