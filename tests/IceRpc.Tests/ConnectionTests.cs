@@ -467,7 +467,6 @@ public class ConnectionTests
     }
 
     [Test]
-    [Repeat(100)]
     public async Task Dispose_after_shutdown_abort_invocations_and_cancel_dispatches(
         [Values("ice", "icerpc")] string protocol,
         [Values(true, false)] bool closeClientSide)
