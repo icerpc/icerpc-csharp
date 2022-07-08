@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice;
-
 namespace IceRpc;
 
 /// <summary>A property bag used to configure client and server connections.</summary>

@@ -22,16 +22,16 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         new TcpClientTransport();
 
     /// <inheritdoc/>
+    public Endpoint Endpoint { get; }
+
+    /// <inheritdoc/>
     public bool IsResumable => false;
 
     /// <inheritdoc/>
     public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
 
     /// <inheritdoc/>
-    public Protocol Protocol => RemoteEndpoint.Protocol;
-
-    /// <inheritdoc/>
-    public Endpoint RemoteEndpoint { get; }
+    public Protocol Protocol => Endpoint.Protocol;
 
     private readonly IProtocolConnection _protocolConnection;
 
@@ -48,9 +48,9 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
         IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
     {
-        RemoteEndpoint = options.RemoteEndpoint ??
+        Endpoint = options.Endpoint ??
             throw new ArgumentException(
-                $"{nameof(ClientConnectionOptions.RemoteEndpoint)} is not set",
+                $"{nameof(ClientConnectionOptions.Endpoint)} is not set",
                 nameof(options));
 
         // This is the composition root of client Connections, where we install log decorators when logging is enabled.
@@ -63,7 +63,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         if (Protocol == Protocol.Ice)
         {
             ISimpleNetworkConnection networkConnection = simpleClientTransport.CreateConnection(
-                RemoteEndpoint,
+                Endpoint,
                 options.ClientAuthenticationOptions,
                 logger);
 
@@ -72,7 +72,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             {
                 networkConnection = new LogSimpleNetworkConnectionDecorator(
                     networkConnection,
-                    RemoteEndpoint,
+                    Endpoint,
                     isServer: false,
                     logger);
             }
@@ -82,7 +82,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         else
         {
             IMultiplexedNetworkConnection networkConnection = multiplexedClientTransport.CreateConnection(
-                RemoteEndpoint,
+                Endpoint,
                 options.ClientAuthenticationOptions,
                 logger);
 
@@ -91,7 +91,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             {
                 networkConnection = new LogMultiplexedNetworkConnectionDecorator(
                     networkConnection,
-                    RemoteEndpoint,
+                    Endpoint,
                     isServer: false,
                     logger);
             }
@@ -106,15 +106,15 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         }
     }
 
-    /// <summary>Constructs a client connection with the specified remote endpoint and  authentication options.
-    /// All other properties have their default values.</summary>
-    /// <param name="endpoint">The connection remote endpoint.</param>
+    /// <summary>Constructs a client connection with the specified endpoint and authentication options.  All other
+    /// properties have their default values.</summary>
+    /// <param name="endpoint">The connection endpoint.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
     public ClientConnection(Endpoint endpoint, SslClientAuthenticationOptions? clientAuthenticationOptions = null)
         : this(new ClientConnectionOptions
         {
             ClientAuthenticationOptions = clientAuthenticationOptions,
-            RemoteEndpoint = endpoint
+            Endpoint = endpoint
         })
     {
     }

@@ -15,7 +15,7 @@ public class LocatorInterceptorTests
         var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request)));
         await using var connection = new ClientConnection(new ClientConnectionOptions()
         {
-            RemoteEndpoint = "ice://localhost:10000"
+            Endpoint = "ice://localhost:10000"
         });
         var locationResolver = new NotCalledLocationResolver();
         var sut = new LocatorInterceptor(invoker, locationResolver);
