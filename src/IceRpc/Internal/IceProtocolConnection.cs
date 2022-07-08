@@ -238,6 +238,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 {
                     completeException = new ConnectionAbortedException("connection disposed");
                 }
+                catch (ObjectDisposedException)
+                {
+                    completeException = new ConnectionAbortedException("connection disposed");
+                }
                 catch (Exception exception)
                 {
                     // Unexpected exception, notify the OnAbort callback.

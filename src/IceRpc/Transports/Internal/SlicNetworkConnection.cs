@@ -203,6 +203,10 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
                 {
                     completeException = new ConnectionAbortedException("network connection disposed");
                 }
+                catch (ObjectDisposedException)
+                {
+                    completeException = new ConnectionAbortedException("network connection disposed");
+                }
                 catch (Exception ex)
                 {
                     completeException = ex;

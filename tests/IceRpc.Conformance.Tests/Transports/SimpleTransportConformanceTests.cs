@@ -126,7 +126,7 @@ public abstract class SimpleTransportConformanceTests
         canceled.Cancel();
 
         // Assert
-        Assert.That(async () => await readTask, Throws.TypeOf<OperationCanceledException>());
+        Assert.That(async () => await readTask, Throws.InstanceOf<OperationCanceledException>());
     }
 
     /// <summary>Verifies that calling read on a connection fails with <see cref="ConnectionLostException"/> if the
@@ -268,7 +268,7 @@ public abstract class SimpleTransportConformanceTests
         canceled.Cancel();
 
         // Assert
-        Assert.That(async () => await writeTask, Throws.TypeOf<OperationCanceledException>());
+        Assert.That(async () => await writeTask, Throws.InstanceOf<OperationCanceledException>());
     }
 
     /// <summary>Verifies that calling write fails with <see cref="ConnectionLostException"/> when the peer connection
