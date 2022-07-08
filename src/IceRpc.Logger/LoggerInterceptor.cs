@@ -62,8 +62,8 @@ internal static partial class LoggerInterceptorLoggerExtensions
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInvokeException(
-                connection?.NetworkConnectionInformation?.LocalEndPoint.ToString() ?? "undefined",
-                connection?.NetworkConnectionInformation?.RemoteEndPoint.ToString() ?? "undefined",
+                connection?.NetworkConnectionInformation?.LocalEndPoint?.ToString() ?? "undefined",
+                connection?.NetworkConnectionInformation?.RemoteEndPoint?.ToString() ?? "undefined",
                 path,
                 operation,
                 ex);
@@ -80,8 +80,8 @@ internal static partial class LoggerInterceptorLoggerExtensions
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogReceivedResponse(
-                connection?.NetworkConnectionInformation?.LocalEndPoint.ToString() ?? "undefined",
-                connection?.NetworkConnectionInformation?.RemoteEndPoint.ToString() ?? "undefined",
+                connection?.NetworkConnectionInformation?.LocalEndPoint?.ToString() ?? "undefined",
+                connection?.NetworkConnectionInformation?.RemoteEndPoint?.ToString() ?? "undefined",
                 path,
                 operation,
                 resultType);
@@ -97,8 +97,8 @@ internal static partial class LoggerInterceptorLoggerExtensions
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogSendingRequest(
-                connection?.NetworkConnectionInformation?.LocalEndPoint.ToString() ?? "undefined",
-                connection?.NetworkConnectionInformation?.RemoteEndPoint.ToString() ?? "undefined",
+                connection?.NetworkConnectionInformation?.LocalEndPoint?.ToString() ?? "undefined",
+                connection?.NetworkConnectionInformation?.RemoteEndPoint?.ToString() ?? "undefined",
                 path,
                 operation);
         }

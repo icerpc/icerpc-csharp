@@ -47,6 +47,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     private readonly int _minimumSegmentSize;
     private readonly object _mutex = new();
     private readonly ISimpleNetworkConnection _networkConnection;
+    private NetworkConnectionInformation _networkConnectionInformation;
     private readonly SimpleNetworkConnectionReader _networkConnectionReader;
     private readonly SimpleNetworkConnectionWriter _networkConnectionWriter;
     private int _nextRequestId;
@@ -172,11 +173,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
     }
 
-    private protected override async Task<NetworkConnectionInformation> ConnectAsyncCore(
-        IConnection connection,
-        CancellationToken cancel)
+    private protected override async Task<NetworkConnectionInformation> ConnectAsyncCore(CancellationToken cancel)
     {
-        NetworkConnectionInformation information = await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+        _networkConnectionInformation = await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
 
         // Wait for the network connection establishment to enable the idle timeout check.
         _networkConnectionReader.EnableIdleCheck();
@@ -215,7 +214,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 try
                 {
                     // Read frames until the CloseConnection frame is received.
-                    await ReadFramesAsync(connection, _tasksCancelSource.Token).ConfigureAwait(false);
+                    await ReadFramesAsync(_tasksCancelSource.Token).ConfigureAwait(false);
 
                     // The peer expects the connection to be closed as soon as the CloseConnection message is received.
                     // So there's no need to initiate shutdown, we just close the network connection and notify the
@@ -259,7 +258,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             },
             CancellationToken.None);
 
-        return information;
+        return _networkConnectionInformation;
 
         static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
         {
@@ -317,7 +316,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
     private protected override async Task<IncomingResponse> InvokeAsyncCore(
         OutgoingRequest request,
-        IConnection connection,
         CancellationToken cancel)
     {
         bool acquiredSemaphore = false;
@@ -423,7 +421,10 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         if (request.IsOneway)
         {
             // We're done, there's no response for oneway requests.
-            return new IncomingResponse(request, connection);
+            return new IncomingResponse(request)
+            {
+                NetworkConnectionInformation = _networkConnectionInformation
+            };
         }
 
         Debug.Assert(responseCompletionSource is not null);
@@ -492,8 +493,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 _otherReplicaFields :
                 ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
 
-            return new IncomingResponse(request, connection, fields)
+            return new IncomingResponse(request, fields)
             {
+                NetworkConnectionInformation = _networkConnectionInformation,
                 Payload = frameReader,
                 ResultType = replyStatus switch
                 {
@@ -686,9 +688,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     }
 
     /// <summary>Read incoming frames and returns on graceful connection shutdown.</summary>
-    /// <param name="connection">The connection assigned to <see cref="IncomingFrame.Connection"/>.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    private async ValueTask ReadFramesAsync(IConnection connection, CancellationToken cancel)
+    private async ValueTask ReadFramesAsync(CancellationToken cancel)
     {
         while (true)
         {
@@ -873,11 +874,17 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 }
             }
 
-            var request = new IncomingRequest(connection)
+            // TODO: this below is naturally this instance not decorated by any log decorator. The expectation is the
+            // logging for InvokeAsync is performed by the Logger interceptor and not the
+            // LogProtocolConnectionDecorator, but that's currently not true: LogProtocolConnectionDecorator decorates
+            // InvokeAsync.
+            var request = new IncomingRequest(Protocol.Ice)
             {
                 Fields = fields,
                 Fragment = requestHeader.Fragment,
+                Invoker = this,
                 IsOneway = requestId == 0,
+                NetworkConnectionInformation = _networkConnectionInformation,
                 Operation = requestHeader.Operation,
                 Path = requestHeader.Path,
                 Payload = requestFrameReader,
@@ -888,8 +895,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 // This prevents us from receiving any frame until EnterAsync returns.
                 try
                 {
-                    await dispatchSemaphore.EnterAsync(
-                        _dispatchesAndInvocationsCancelSource.Token).ConfigureAwait(false);
+                    await dispatchSemaphore.EnterAsync(_dispatchesAndInvocationsCancelSource.Token)
+                        .ConfigureAwait(false);
                 }
                 catch
                 {

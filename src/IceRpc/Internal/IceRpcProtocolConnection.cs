@@ -32,6 +32,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private int _maxRemoteHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
     private readonly object _mutex = new();
     private readonly IMultiplexedNetworkConnection _networkConnection;
+    private NetworkConnectionInformation _networkConnectionInformation;
     private Task<IceRpcGoAway>? _readGoAwayTask;
     private IMultiplexedStream? _remoteControlStream;
     private readonly HashSet<IMultiplexedStream> _streams = new();
@@ -95,13 +96,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    private protected override async Task<NetworkConnectionInformation> ConnectAsyncCore(
-        IConnection connection,
-        CancellationToken cancel)
+    private protected override async Task<NetworkConnectionInformation> ConnectAsyncCore(CancellationToken cancel)
     {
         // Connect the network connection
-        NetworkConnectionInformation networkConnectionInformation =
-            await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+        _networkConnectionInformation = await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
 
         _controlStream = _networkConnection.CreateStream(false);
 
@@ -150,10 +148,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                         try
                         {
-                            await AcceptRequestAsync(
-                                stream,
-                                connection,
-                                _tasksCompleteSource.Token).ConfigureAwait(false);
+                            await AcceptRequestAsync(stream, _tasksCompleteSource.Token).ConfigureAwait(false);
                         }
                         catch (IceRpcProtocolStreamException)
                         {
@@ -180,7 +175,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             },
             CancellationToken.None);
 
-        return networkConnectionInformation;
+        return _networkConnectionInformation;
     }
 
     private protected override async ValueTask DisposeAsyncCore()
@@ -234,7 +229,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private protected override async Task<IncomingResponse> InvokeAsyncCore(
         OutgoingRequest request,
-        IConnection connection,
         CancellationToken cancel)
     {
         IMultiplexedStream? stream = null;
@@ -320,7 +314,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         if (request.IsOneway)
         {
-            return new IncomingResponse(request, connection);
+            return new IncomingResponse(request)
+            {
+                NetworkConnectionInformation = _networkConnectionInformation
+            };
         }
 
         Debug.Assert(stream is not null);
@@ -343,8 +340,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 DecodeHeader(readResult.Buffer);
             stream.Input.AdvanceTo(readResult.Buffer.End);
 
-            return new IncomingResponse(request, connection, fields, fieldsPipeReader)
+            return new IncomingResponse(request, fields, fieldsPipeReader)
             {
+                NetworkConnectionInformation = _networkConnectionInformation,
                 Payload = stream.Input,
                 ResultType = header.ResultType
             };
@@ -640,7 +638,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
     }
 
-    private async Task AcceptRequestAsync(IMultiplexedStream stream, IConnection connection, CancellationToken cancel)
+    private async Task AcceptRequestAsync(IMultiplexedStream stream, CancellationToken cancel)
     {
         PipeReader? fieldsPipeReader = null;
 
@@ -709,10 +707,16 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 DecodeHeader(readResult.Buffer);
             stream.Input.AdvanceTo(readResult.Buffer.End);
 
-            var request = new IncomingRequest(connection)
+            // TODO: this below is naturally this instance not decorated by any log decorator. The expectation is the
+            // logging for InvokeAsync is performed by the Logger interceptor and not the
+            // LogProtocolConnectionDecorator, but that's currently not true: LogProtocolConnectionDecorator decorates
+            // InvokeAsync.
+            var request = new IncomingRequest(Protocol.IceRpc)
             {
                 Fields = fields,
+                Invoker = this,
                 IsOneway = !stream.IsBidirectional,
+                NetworkConnectionInformation = _networkConnectionInformation,
                 Operation = header.Operation,
                 Path = header.Path,
                 Payload = stream.Input

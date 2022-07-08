@@ -47,8 +47,9 @@ internal static class IncomingFrameExtensions
                 readResult.Buffer,
                 encoding,
                 decodeFeature.Activator ?? defaultActivator,
-                frame.Connection,
-                decodeFeature.ProxyInvoker ?? defaultInvoker,
+                proxyInvoker: decodeFeature.ProxyInvoker ?? defaultInvoker,
+                relativeProxyInvoker: defaultInvoker,
+                relativeProxyProtocol: frame.Protocol,
                 proxyEncodeFeature,
                 maxCollectionAllocation: decodeFeature.MaxCollectionAllocation,
                 maxDepth: decodeFeature.MaxDepth);
@@ -130,7 +131,6 @@ internal static class IncomingFrameExtensions
         ISliceEncodeFeature? proxyEncodeFeature,
         DecodeFunc<T> decodeFunc)
     {
-        IConnection connection = frame.Connection;
         decodeFeature ??= SliceDecodeFeature.Default;
         var streamDecoder = new StreamDecoder<T>(
             DecodeBufferFunc,
@@ -161,8 +161,9 @@ internal static class IncomingFrameExtensions
                 buffer,
                 encoding,
                 decodeFeature.Activator ?? defaultActivator,
-                connection,
-                decodeFeature.ProxyInvoker ?? defaultInvoker,
+                proxyInvoker: decodeFeature.ProxyInvoker ?? defaultInvoker,
+                relativeProxyInvoker: defaultInvoker,
+                relativeProxyProtocol: frame.Protocol,
                 proxyEncodeFeature,
                 maxCollectionAllocation: decodeFeature.MaxCollectionAllocation,
                 maxDepth: decodeFeature.MaxDepth);
@@ -258,7 +259,6 @@ internal static class IncomingFrameExtensions
 
         decodeFeature ??= SliceDecodeFeature.Default;
 
-        IConnection connection = frame.Connection;
         var streamDecoder = new StreamDecoder<T>(
             DecodeBufferFunc,
             decodeFeature.StreamPauseWriterThreshold,
@@ -283,8 +283,9 @@ internal static class IncomingFrameExtensions
                 buffer,
                 encoding,
                 decodeFeature.Activator ?? defaultActivator,
-                connection,
-                decodeFeature.ProxyInvoker ?? defaultInvoker,
+                proxyInvoker: decodeFeature.ProxyInvoker ?? defaultInvoker,
+                relativeProxyInvoker: defaultInvoker,
+                relativeProxyProtocol: frame.Protocol,
                 proxyEncodeFeature,
                 maxCollectionAllocation: decodeFeature.MaxCollectionAllocation,
                 maxDepth: decodeFeature.MaxDepth);

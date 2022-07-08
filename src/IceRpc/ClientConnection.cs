@@ -133,16 +133,14 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// </list>
     /// </returns>
     public async Task ConnectAsync(CancellationToken cancel = default) =>
-        NetworkConnectionInformation = await _protocolConnection.ConnectAsync(
-            connection: this,
-            cancel: cancel).ConfigureAwait(false);
+        NetworkConnectionInformation = await _protocolConnection.ConnectAsync(cancel: cancel).ConfigureAwait(false);
 
     /// <inheritdoc/>
     public ValueTask DisposeAsync() => _protocolConnection.DisposeAsync();
 
     /// <inheritdoc/>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default) =>
-        _protocolConnection.InvokeAsync(request, this, cancel);
+        _protocolConnection.InvokeAsync(request, cancel);
 
     /// <inheritdoc/>
     public void OnAbort(Action<Exception> callback) => _protocolConnection.OnAbort(callback);
