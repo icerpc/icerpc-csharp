@@ -59,8 +59,8 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogDispatchException(
-                networkConnectionInformation.LocalEndPoint?.ToString() ?? "undefined",
-                networkConnectionInformation.RemoteEndPoint?.ToString() ?? "undefined",
+                networkConnectionInformation.LocalNetworkAddress?.ToString() ?? "undefined",
+                networkConnectionInformation.RemoteNetworkAddress?.ToString() ?? "undefined",
                 path,
                 operation,
                 ex);
@@ -76,8 +76,8 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogReceivedRequest(
-                networkConnectionInformation.LocalEndPoint?.ToString() ?? "undefined",
-                networkConnectionInformation.RemoteEndPoint?.ToString() ?? "undefined",
+                networkConnectionInformation.LocalNetworkAddress?.ToString() ?? "undefined",
+                networkConnectionInformation.RemoteNetworkAddress?.ToString() ?? "undefined",
                 path,
                 operation);
         }
@@ -93,8 +93,8 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogSendingResponse(
-                networkConnectionInformation.LocalEndPoint?.ToString() ?? "undefined",
-                networkConnectionInformation.RemoteEndPoint?.ToString() ?? "undefined",
+                networkConnectionInformation.LocalNetworkAddress?.ToString() ?? "undefined",
+                networkConnectionInformation.RemoteNetworkAddress?.ToString() ?? "undefined",
                 path,
                 operation,
                 resultType);
@@ -105,12 +105,12 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         EventId = (int)LoggerMiddlewareEventIds.DispatchException,
         EventName = nameof(LoggerMiddlewareEventIds.DispatchException),
         Level = LogLevel.Information,
-        Message = "request dispatch exception (LocalEndPoint={LocalEndPoint}, RemoteEndPoint={RemoteEndPoint}, " +
+        Message = "request dispatch exception (LocalNetworkAddress={LocalNetworkAddress}, RemoteNetworkAddress={RemoteNetworkAddress}, " +
                   "Path={Path}, Operation={Operation})")]
     private static partial void LogDispatchException(
         this ILogger logger,
-        string localEndpoint,
-        string remoteEndpoint,
+        string localNetworkAddress,
+        string remoteNetworkAddress,
         string path,
         string operation,
         Exception ex);
@@ -119,12 +119,12 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         EventId = (int)LoggerMiddlewareEventIds.ReceivedRequest,
         EventName = nameof(LoggerMiddlewareEventIds.ReceivedRequest),
         Level = LogLevel.Information,
-        Message = "received request (LocalEndPoint={LocalEndPoint}, RemoteEndPoint={RemoteEndPoint}, " +
+        Message = "received request (LocalNetworkAddress={LocalNetworkAddress}, RemoteNetworkAddress={RemoteNetworkAddress}, " +
                   "Path={Path}, Operation={Operation})")]
     private static partial void LogReceivedRequest(
         this ILogger logger,
-        string localEndpoint,
-        string remoteEndpoint,
+        string localNetworkAddress,
+        string remoteNetworkAddress,
         string path,
         string operation);
 
@@ -132,12 +132,12 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         EventId = (int)LoggerMiddlewareEventIds.SendingResponse,
         EventName = nameof(LoggerMiddlewareEventIds.SendingResponse),
         Level = LogLevel.Information,
-        Message = "sending response (LocalEndPoint={LocalEndPoint}, RemoteEndPoint={RemoteEndPoint}, " +
+        Message = "sending response (LocalNetworkAddress={LocalNetworkAddress}, RemoteNetworkAddress={RemoteNetworkAddress}, " +
                   "Path={Path}, Operation={Operation}, ResultType={ResultType})")]
     private static partial void LogSendingResponse(
         this ILogger logger,
-        string localEndpoint,
-        string remoteEndpoint,
+        string localNetworkAddress,
+        string remoteNetworkAddress,
         string path,
         string operation,
         ResultType resultType);

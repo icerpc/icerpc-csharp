@@ -65,8 +65,8 @@ public sealed class LoggerMiddlewareTests
 
     private static void CheckEntryState(TestLoggerEntry entry)
     {
-        Assert.That(entry.State["LocalEndPoint"], Is.EqualTo("undefined"));
-        Assert.That(entry.State["RemoteEndPoint"], Is.EqualTo("undefined"));
+        Assert.That(entry.State["LocalNetworkAddress"], Is.EqualTo("undefined"));
+        Assert.That(entry.State["RemoteNetworkAddress"], Is.EqualTo("undefined"));
         Assert.That(entry.State["Operation"], Is.EqualTo("operation"));
         Assert.That(entry.State["Path"], Is.EqualTo("/path"));
     }

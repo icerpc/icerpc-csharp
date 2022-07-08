@@ -22,8 +22,8 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
         using IDisposable scope = _logger.StartConnectionScope(_information, _isServer);
         _logger.LogProtocolConnectionConnect(
             _decoratee.Protocol,
-            _information.LocalEndPoint,
-            _information.RemoteEndPoint);
+            _information.LocalNetworkAddress,
+            _information.RemoteNetworkAddress);
 
         // TODO: log regular shutdown with message and no exception
 
