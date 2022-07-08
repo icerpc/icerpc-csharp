@@ -24,10 +24,16 @@ public sealed class ProtocolBridgingTests
         Endpoint targetEndpoint = $"{targetProtocol}://colochost2";
 
         var forwarderServiceProxy = ProtocolBridgingTestProxy.Parse($"{forwarderProtocol}:/forward");
-        forwarderServiceProxy.ServiceAddress.Endpoint = forwarderEndpoint;
+        forwarderServiceProxy = forwarderServiceProxy with
+        {
+            ServiceAddress = forwarderServiceProxy.ServiceAddress with { Endpoint = forwarderEndpoint }
+        };
 
         var targetServiceProxy = ProtocolBridgingTestProxy.Parse($"{targetProtocol}:/target");
-        targetServiceProxy.ServiceAddress.Endpoint = targetEndpoint;
+        targetServiceProxy = targetServiceProxy with
+        {
+            ServiceAddress = targetServiceProxy.ServiceAddress with { Endpoint = targetEndpoint }
+        };
 
         var targetService = new ProtocolBridgingTest(targetEndpoint);
 

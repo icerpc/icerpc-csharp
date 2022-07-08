@@ -13,13 +13,13 @@ namespace IceRpc;
 /// an <see cref="OutgoingRequest"/>.</summary>
 public sealed record class ServiceAddress
 {
-    /// <summary>Gets or sets the secondary endpoints of this service address.</summary>
+    /// <summary>Gets the secondary endpoints of this service address.</summary>
     /// <value>The secondary endpoints of this service address.</value>
     public ImmutableList<Endpoint> AltEndpoints
     {
         get => _altEndpoints;
 
-        set
+        init
         {
             CheckSupportedProtocol(nameof(AltEndpoints));
 
@@ -45,13 +45,13 @@ public sealed record class ServiceAddress
         }
     }
 
-    /// <summary>Gets or sets the main endpoint of this service address.</summary>
+    /// <summary>Gets the main endpoint of this service address.</summary>
     /// <value>The main endpoint of this service address, or null if this service address has no endpoint.</value>
     public Endpoint? Endpoint
     {
         get => _endpoint;
 
-        set
+        init
         {
             CheckSupportedProtocol(nameof(Endpoint));
             if (value?.Protocol is Protocol newProtocol && newProtocol != Protocol)
@@ -79,11 +79,11 @@ public sealed record class ServiceAddress
         }
     }
 
-    /// <summary>Gets or sets the fragment.</summary>
+    /// <summary>Gets the fragment.</summary>
     public string Fragment
     {
         get => _fragment;
-        set
+        init
         {
             CheckSupportedProtocol(nameof(Fragment));
 
@@ -110,11 +110,11 @@ public sealed record class ServiceAddress
     /// URI-derived properties such as <see cref="Endpoint"/> have not been updated.</summary>
     public Uri? OriginalUri { get; private set; }
 
-    /// <summary>Gets or sets the path of this service address.</summary>
+    /// <summary>Gets the path of this service address.</summary>
     public string Path
     {
         get => _path;
-        set
+        init
         {
             if (Protocol is null || Protocol.IsSupported)
             {
@@ -137,12 +137,12 @@ public sealed record class ServiceAddress
         }
     }
 
-    /// <summary>Gets or sets the parameters of this service address. Always empty when <see cref="Endpoint"/> is not
+    /// <summary>Gets the parameters of this service address. Always empty when <see cref="Endpoint"/> is not
     /// null.</summary>
     public ImmutableDictionary<string, string> Params
     {
         get => _params;
-        set
+        init
         {
             CheckSupportedProtocol(nameof(Params));
 
