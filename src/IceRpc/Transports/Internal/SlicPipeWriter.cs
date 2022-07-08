@@ -174,10 +174,10 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             writerScheduler: PipeScheduler.Inline));
     }
 
-    internal void Abort(Exception exception) => CompletePipeReader(exception);
-
     internal void ReceivedStopSendingFrame(ulong errorCode) =>
         CompletePipeReader(_errorCodeConverter.FromErrorCode(errorCode));
+
+    internal void Shutdown(Exception exception) => CompletePipeReader(exception);
 
     private void CheckIfCompleted()
     {
@@ -191,7 +191,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 
     private void CompletePipeReader(Exception? exception)
     {
-        _exception = exception;
+        _exception ??= exception;
 
         // Don't complete the reader if it's being used concurrently for sending a frame. It will be completed
         // once the reading terminates.
@@ -203,7 +203,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             }
             else
             {
-                _pipe.Reader.Complete(exception);
+                _pipe.Reader.Complete(_exception);
             }
         }
     }

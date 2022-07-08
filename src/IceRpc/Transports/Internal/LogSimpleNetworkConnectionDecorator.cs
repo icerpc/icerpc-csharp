@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Transports.Internal;
@@ -7,6 +8,20 @@ namespace IceRpc.Transports.Internal;
 internal class LogSimpleNetworkConnectionDecorator : LogNetworkConnectionDecorator, ISimpleNetworkConnection
 {
     private readonly ISimpleNetworkConnection _decoratee;
+
+    public void Dispose()
+    {
+        _decoratee.Dispose();
+
+        if (Information is NetworkConnectionInformation connectionInformation)
+        {
+            // TODO: we start the scope here because DisposeAsync is called directly by Connection, and not
+            // through a higher-level interface method such as IProtocolConnection.DisposeAsync.
+            using IDisposable scope = Logger.StartConnectionScope(connectionInformation, IsServer);
+            Logger.LogNetworkConnectionDispose();
+        }
+        // We don't emit a log when closing a connection that was not connected.
+    }
 
     public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
     {

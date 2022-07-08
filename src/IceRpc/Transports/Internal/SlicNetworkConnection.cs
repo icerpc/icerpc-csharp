@@ -14,8 +14,6 @@ namespace IceRpc.Transports.Internal;
 /// top of a <see cref="ISimpleNetworkConnection"/>.</summary>
 internal class SlicNetworkConnection : IMultiplexedNetworkConnection
 {
-    internal bool IsAborted => _exception is not null;
-
     internal bool IsServer { get; }
 
     internal int MinimumSegmentSize { get; }
@@ -36,7 +34,8 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
     private int _bidirectionalStreamCount;
     private AsyncSemaphore? _bidirectionalStreamSemaphore;
     private readonly int _bidirectionalMaxStreams;
-    private Exception? _exception;
+    private bool _isDisposed;
+    private bool _isReadOnly;
     private readonly TimeSpan _localIdleTimeout;
     private long _lastRemoteBidirectionalStreamId = -1;
     private long _lastRemoteUnidirectionalStreamId = -1;
@@ -46,110 +45,64 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
     private long _nextBidirectionalId;
     private long _nextUnidirectionalId;
     private readonly int _packetMaxSize;
-    private readonly CancellationTokenSource _readCancelSource = new();
-    private TaskCompletionSource? _readFramesTaskCompletionSource;
+    private Task? _readFramesTask;
     private readonly ISimpleNetworkConnection _simpleNetworkConnection;
     private readonly SimpleNetworkConnectionReader _simpleNetworkConnectionReader;
     private readonly SimpleNetworkConnectionWriter _simpleNetworkConnectionWriter;
     private readonly ConcurrentDictionary<long, SlicMultiplexedStream> _streams = new();
+    private readonly CancellationTokenSource _tasksCancelSource = new();
     private readonly int _unidirectionalMaxStreams;
     private int _unidirectionalStreamCount;
     private AsyncSemaphore? _unidirectionalStreamSemaphore;
     private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
-
-    public void Abort(Exception exception)
-    {
-        lock (_mutex)
-        {
-            if (_exception is not null)
-            {
-                return;
-            }
-            _exception = exception;
-        }
-
-        // Close the network connection and cancel the pending receive or shutdown.
-        _simpleNetworkConnection.Dispose();
-        _readCancelSource.Cancel();
-
-        // Unblock requests waiting on the semaphores.
-        _bidirectionalStreamSemaphore?.Complete(_exception);
-        _unidirectionalStreamSemaphore?.Complete(_exception);
-        _writeSemaphore.Complete(_exception);
-
-        foreach (SlicMultiplexedStream stream in _streams.Values)
-        {
-            stream.Abort(_exception);
-        }
-
-        _acceptStreamQueue.TryComplete(_exception);
-
-        // Release remaining resources in the background.
-        _ = AbortCoreAsync();
-
-        async Task AbortCoreAsync()
-        {
-            Debug.Assert(_exception is not null);
-
-            // Unblock requests waiting on the semaphore and wait for the semaphore to be released to ensure it's
-            // safe to dispose the simple network connection writer.
-            await _writeSemaphore.CompleteAndWaitAsync(_exception).ConfigureAwait(false);
-
-            // Wait for the receive task to complete to ensure we don't dispose the simple network connection reader
-            // while it's being used.
-            if (_readFramesTaskCompletionSource is not null)
-            {
-                await _readFramesTaskCompletionSource.Task.ConfigureAwait(false);
-            }
-
-            // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
-            _simpleNetworkConnectionReader.Dispose();
-            _simpleNetworkConnectionWriter.Dispose();
-
-            _readCancelSource.Dispose();
-        }
-    }
 
     public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel) =>
         _acceptStreamQueue.DequeueAsync(cancel);
 
     public async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
     {
-        Debug.Assert(_readFramesTaskCompletionSource is null); // ConnectAsync should be called only once.
+        // Connect the simple network connection.
+        NetworkConnectionInformation information = await _simpleNetworkConnection.ConnectAsync(
+            cancel).ConfigureAwait(false);
 
-        lock (_mutex)
+        // Enable the idle timeout check after the network connection establishment. We don't want the network
+        // connection to be disposed because it's idle when the network connection establishment is in progress.
+        // This would require the simple network connection ConnectAsync/Dispose implementations to be thread safe.
+        // The network connection establishment timeout is handled by the cancellation token instead.
+        _simpleNetworkConnectionReader.EnableIdleCheck();
+
+        TimeSpan peerIdleTimeout = TimeSpan.MaxValue;
+
+        // Initialize the Slic connection.
+        if (IsServer)
         {
-            if (_exception is not null)
+            // Read the Initialize frame sent by the client.
+            uint version;
+            InitializeBody? initializeBody;
+            (FrameType type, int dataSize, _) = await ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+
+            if (dataSize == 0)
             {
-                throw ExceptionUtil.Throw(_exception);
+                throw new InvalidDataException("invalid empty initialize frame");
             }
 
-            // Resource cleanup needs to know when no more reads are pending to release the simple network connection
-            // reader.
-            _readFramesTaskCompletionSource = new();
-        }
+            (version, initializeBody) = await ReadFrameAsync(
+                dataSize,
+                DecodeInitialize,
+                cancel).ConfigureAwait(false);
 
-        NetworkConnectionInformation information;
-        try
-        {
-            // Connect the simple network connection.
-            information = await _simpleNetworkConnection.ConnectAsync(cancel).ConfigureAwait(false);
-
-            // Enable the idle timeout check after the network connection establishment. We don't want the network
-            // connection to be disposed because it's idle when the network connection establishment is in progress.
-            // This would require the simple network connection ConnectAsync/Dispose implementations to be thread safe.
-            // The network connection establishment timeout is handled by the cancellation token instead.
-            _simpleNetworkConnectionReader.EnableIdleCheck();
-
-            TimeSpan peerIdleTimeout = TimeSpan.MaxValue;
-
-            // Initialize the Slic connection.
-            if (IsServer)
+            if (version != 1)
             {
-                // Read the Initialize frame sent by the client.
-                uint version;
-                InitializeBody? initializeBody;
-                (FrameType type, int dataSize, _) = await ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+                // Unsupported version, try to negotiate another version by sending a Version frame with
+                // the Slic versions supported by this server.
+                await SendFrameAsync(
+                    stream: null,
+                    FrameType.Version,
+                    new VersionBody(new uint[] { SlicDefinitions.V1 }).Encode,
+                    cancel).ConfigureAwait(false);
+
+                // Read again the Initialize frame sent by the client.
+                (type, dataSize, _) = await ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
 
                 if (dataSize == 0)
                 {
@@ -160,138 +113,104 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
                     dataSize,
                     DecodeInitialize,
                     cancel).ConfigureAwait(false);
+            }
 
-                if (version != 1)
-                {
-                    // Unsupported version, try to negotiate another version by sending a Version frame with
-                    // the Slic versions supported by this server.
-                    await SendFrameAsync(
-                        stream: null,
-                        FrameType.Version,
-                        new VersionBody(new uint[] { SlicDefinitions.V1 }).Encode,
-                        cancel).ConfigureAwait(false);
+            if (initializeBody is null)
+            {
+                throw new InvalidDataException($"unsupported Slic version '{version}'");
+            }
 
-                    // Read again the Initialize frame sent by the client.
-                    (type, dataSize, _) = await ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
-
-                    if (dataSize == 0)
-                    {
-                        throw new InvalidDataException("invalid empty initialize frame");
-                    }
-
-                    (version, initializeBody) = await ReadFrameAsync(
-                        dataSize,
-                        DecodeInitialize,
-                        cancel).ConfigureAwait(false);
-                }
-
-                if (initializeBody is null)
-                {
-                    throw new InvalidDataException($"unsupported Slic version '{version}'");
-                }
-
-                // Check the application protocol and set the parameters.
-                try
-                {
-                    if (Protocol.FromString(initializeBody.Value.ApplicationProtocolName) != Protocol.IceRpc)
-                    {
-                        throw new NotSupportedException(
-                            $"application protocol '{initializeBody.Value.ApplicationProtocolName}' is not supported");
-                    }
-                }
-                catch (FormatException ex)
+            // Check the application protocol and set the parameters.
+            try
+            {
+                if (Protocol.FromString(initializeBody.Value.ApplicationProtocolName) != Protocol.IceRpc)
                 {
                     throw new NotSupportedException(
-                        $"unknown application protocol '{initializeBody.Value.ApplicationProtocolName}'", ex);
+                        $"application protocol '{initializeBody.Value.ApplicationProtocolName}' is not supported");
                 }
-
-                SetParameters(initializeBody.Value.Parameters);
-
-                // Write back an InitializeAck frame.
-                await SendFrameAsync(
-                    stream: null,
-                    FrameType.InitializeAck,
-                    new InitializeAckBody(GetParameters()).Encode,
-                    cancel).ConfigureAwait(false);
             }
-            else
+            catch (FormatException ex)
             {
-                // Write the Initialize frame.
-                var initializeBody = new InitializeBody(Protocol.IceRpc.Name, GetParameters());
-                await SendFrameAsync(
-                    stream: null,
-                    FrameType.Initialize,
-                    (ref SliceEncoder encoder) =>
-                    {
-                        encoder.EncodeVarUInt32(SlicDefinitions.V1);
-                        initializeBody.Encode(ref encoder);
-                    },
-                    cancel).ConfigureAwait(false);
+                throw new NotSupportedException(
+                    $"unknown application protocol '{initializeBody.Value.ApplicationProtocolName}'", ex);
+            }
 
-                // Read back either the InitializeAck or Version frame.
-                (FrameType type, int dataSize, _) = await ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+            SetParameters(initializeBody.Value.Parameters);
 
-                switch (type)
+            // Write back an InitializeAck frame.
+            await SendFrameAsync(
+                stream: null,
+                FrameType.InitializeAck,
+                new InitializeAckBody(GetParameters()).Encode,
+                cancel).ConfigureAwait(false);
+        }
+        else
+        {
+            // Write the Initialize frame.
+            var initializeBody = new InitializeBody(Protocol.IceRpc.Name, GetParameters());
+            await SendFrameAsync(
+                stream: null,
+                FrameType.Initialize,
+                (ref SliceEncoder encoder) =>
                 {
-                    case FrameType.InitializeAck:
-                        InitializeAckBody initializeAckBody = await ReadFrameAsync(
-                            dataSize,
-                            (ref SliceDecoder decoder) => new InitializeAckBody(ref decoder),
-                            cancel).ConfigureAwait(false);
+                    encoder.EncodeVarUInt32(SlicDefinitions.V1);
+                    initializeBody.Encode(ref encoder);
+                },
+                cancel).ConfigureAwait(false);
 
-                        SetParameters(initializeAckBody.Parameters);
-                        break;
+            // Read back either the InitializeAck or Version frame.
+            (FrameType type, int dataSize, _) = await ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
 
-                    case FrameType.Version:
-                        VersionBody versionBody = await ReadFrameAsync(
-                            dataSize,
-                            (ref SliceDecoder decoder) => new VersionBody(ref decoder),
-                            cancel).ConfigureAwait(false);
-
-                        // We currently only support V1
-                        throw new InvalidDataException(
-                            $"unsupported Slic versions '{string.Join(", ", versionBody.Versions)}'");
-
-                    default:
-                        throw new InvalidDataException($"unexpected Slic frame '{type}'");
-                }
-            }
-        }
-        catch (ObjectDisposedException)
-        {
-            _readFramesTaskCompletionSource.SetResult();
-
-            // The simple network connection can only be disposed if this connection is aborted.
-            lock (_mutex)
+            switch (type)
             {
-                Debug.Assert(_exception is not null);
-                throw ExceptionUtil.Throw(_exception);
+                case FrameType.InitializeAck:
+                    InitializeAckBody initializeAckBody = await ReadFrameAsync(
+                        dataSize,
+                        (ref SliceDecoder decoder) => new InitializeAckBody(ref decoder),
+                        cancel).ConfigureAwait(false);
+
+                    SetParameters(initializeAckBody.Parameters);
+                    break;
+
+                case FrameType.Version:
+                    VersionBody versionBody = await ReadFrameAsync(
+                        dataSize,
+                        (ref SliceDecoder decoder) => new VersionBody(ref decoder),
+                        cancel).ConfigureAwait(false);
+
+                    // We currently only support V1
+                    throw new InvalidDataException(
+                        $"unsupported Slic versions '{string.Join(", ", versionBody.Versions)}'");
+
+                default:
+                    throw new InvalidDataException($"unexpected Slic frame '{type}'");
             }
-        }
-        catch
-        {
-            _readFramesTaskCompletionSource.SetResult();
-            throw;
         }
 
         // Start a task to read frames from the network connection.
-        _ = Task.Run(
+        _readFramesTask = Task.Run(
             async () =>
             {
-                Exception? exception = null;
+                Exception? completeException = null;
                 try
                 {
                     // Read frames. This will return when the Close frame is received.
-                    await ReadFramesAsync(_readCancelSource.Token).ConfigureAwait(false);
+                    await ReadFramesAsync(_tasksCancelSource.Token).ConfigureAwait(false);
+
+                    completeException = new ConnectionClosedException("network connection closed");
+                }
+                catch (OperationCanceledException)
+                {
+                    completeException = new ConnectionAbortedException("network connection disposed");
                 }
                 catch (Exception ex)
                 {
-                    exception = ex;
+                    completeException = ex;
                 }
                 finally
                 {
-                    Abort(exception ?? new ConnectionClosedException("connection gracefully closed"));
-                    _readFramesTaskCompletionSource.SetResult();
+                    Debug.Assert(completeException is not null);
+                    ShutdownCore(completeException);
                 }
             },
             CancellationToken.None);
@@ -316,26 +235,68 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         // TODO: Cache SlicMultiplexedStream
         new SlicMultiplexedStream(this, bidirectional, remote: false);
 
-    public void Dispose() => Abort(new ConnectionAbortedException("connection disposed"));
-
-    public async Task ShutdownAsync(ulong applicationErrorCode, CancellationToken cancel)
+    public async ValueTask DisposeAsync()
     {
+        lock (_mutex)
+        {
+            if (_isDisposed)
+            {
+                return;
+            }
+            _isDisposed = true;
+            _isReadOnly = true;
+        }
+
+        var exception = new ConnectionAbortedException("network connection disposed");
+        foreach (SlicMultiplexedStream stream in _streams.Values)
+        {
+            stream.Shutdown(exception);
+        }
+
+        // Cancel tasks and pending operations using this cancellation token source.
+        _tasksCancelSource.Cancel();
+
+        // Dispose the network connection.
+        _simpleNetworkConnection.Dispose();
+
+        _acceptStreamQueue.TryComplete(exception);
+        _bidirectionalStreamSemaphore?.Complete(exception);
+        _unidirectionalStreamSemaphore?.Complete(exception);
+
+        // Wait for all the tasks and the write semaphore to be released.
+        try
+        {
+            await Task.WhenAll(
+                _writeSemaphore.CompleteAndWaitAsync(exception),
+                _readFramesTask ?? Task.CompletedTask).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Ignore.
+        }
+
+        // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
+        _simpleNetworkConnectionReader.Dispose();
+        _simpleNetworkConnectionWriter.Dispose();
+
+        _tasksCancelSource.Dispose();
+    }
+
+    public async Task ShutdownAsync(Exception completeException, CancellationToken cancel)
+    {
+        ShutdownCore(completeException);
+
+        // Wait for writes to complete and send the close frame.
+        await _writeSemaphore.CompleteAndWaitAsync(completeException).WaitAsync(cancel).ConfigureAwait(false);
+
         // Send the close frame.
         try
         {
-            await _writeSemaphore.EnterAsync(cancel).ConfigureAwait(false);
-            try
-            {
-                await WriteFrameAsync(
-                    FrameType.Close,
-                    streamId: null,
-                    new CloseBody(applicationErrorCode).Encode,
-                    cancel).ConfigureAwait(false);
-            }
-            finally
-            {
-                _writeSemaphore.Release();
-            }
+            await WriteFrameAsync(
+                FrameType.Close,
+                streamId: null,
+                new CloseBody(0).Encode, // There's no need for an error code at this point, so we use 0.
+                cancel).ConfigureAwait(false);
 
             // Shutdown the simple network connection.
             await _simpleNetworkConnection.ShutdownAsync(cancel).ConfigureAwait(false);
@@ -346,7 +307,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         }
         catch
         {
-            // Ignore, this can occur if the peer already closed the connection.
+            // Ignore, this can occur if the peer already close the connection.
         }
     }
 
@@ -386,7 +347,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
             idleTimeout: _localIdleTimeout,
             slicOptions.Pool,
             slicOptions.MinimumSegmentSize,
-            abortAction: Abort,
+            abortAction: exception => _acceptStreamQueue.TryComplete(exception),
             keepAliveAction);
 
         // Initially set the peer packet max size to the local max size to ensure we can receive the first
@@ -411,9 +372,9 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
     {
         lock (_mutex)
         {
-            if (_exception is not null)
+            if (_isReadOnly)
             {
-                throw _exception;
+                throw new ConnectionAbortedException("network connection disposed");
             }
 
             _streams[id] = stream;
@@ -438,28 +399,11 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         }
     }
 
-    internal async ValueTask FillBufferWriterAsync(
+    internal ValueTask FillBufferWriterAsync(
         IBufferWriter<byte> bufferWriter,
         int byteCount,
-        CancellationToken cancel)
-    {
-        try
-        {
-            await _simpleNetworkConnectionReader.FillBufferWriterAsync(
-                bufferWriter,
-                byteCount,
-                cancel).ConfigureAwait(false);
-        }
-        catch (ObjectDisposedException)
-        {
-            // The simple network connection can only be disposed if this connection is aborted.
-            lock (_mutex)
-            {
-                Debug.Assert(_exception is not null);
-                throw ExceptionUtil.Throw(_exception);
-            }
-        }
-    }
+        CancellationToken cancel) =>
+        _simpleNetworkConnectionReader.FillBufferWriterAsync(bufferWriter, byteCount, cancel);
 
     internal void ReleaseStream(SlicMultiplexedStream stream)
     {
@@ -603,7 +547,11 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
                     sendSource1,
                     sendSource2,
                     lastStreamFrame,
-                    cancel).ConfigureAwait(false);
+                    _tasksCancelSource.Token).AsTask().WaitAsync(cancel).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (_tasksCancelSource.IsCancellationRequested)
+            {
+                throw new ConnectionAbortedException("network connection disposed");
             }
             finally
             {
@@ -647,65 +595,41 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
     {
         Debug.Assert(size > 0);
 
-        try
-        {
-            ReadOnlySequence<byte> buffer = await _simpleNetworkConnectionReader.ReadAtLeastAsync(
-                size, cancel).ConfigureAwait(false);
+        ReadOnlySequence<byte> buffer = await _simpleNetworkConnectionReader.ReadAtLeastAsync(
+            size, cancel).ConfigureAwait(false);
 
-            if (buffer.Length > size)
-            {
-                buffer = buffer.Slice(0, size);
-            }
-
-            T decodedFrame = SliceEncoding.Slice2.DecodeBuffer(buffer, decodeFunc);
-            _simpleNetworkConnectionReader.AdvanceTo(buffer.End);
-            return decodedFrame;
-        }
-        catch (ObjectDisposedException)
+        if (buffer.Length > size)
         {
-            // The simple network connection can only be disposed if this connection is aborted.
-            lock (_mutex)
-            {
-                Debug.Assert(_exception is not null);
-                throw ExceptionUtil.Throw(_exception);
-            }
+            buffer = buffer.Slice(0, size);
         }
+
+        T decodedFrame = SliceEncoding.Slice2.DecodeBuffer(buffer, decodeFunc);
+        _simpleNetworkConnectionReader.AdvanceTo(buffer.End);
+        return decodedFrame;
     }
 
     private async ValueTask<(FrameType FrameType, int FrameSize, long? StreamId)> ReadFrameHeaderAsync(
         CancellationToken cancel)
     {
-        try
+        while (true)
         {
-            while (true)
+            // Read data from the pipe reader.
+            if (!_simpleNetworkConnectionReader.TryRead(out ReadOnlySequence<byte> buffer))
             {
-                // Read data from the pipe reader.
-                if (!_simpleNetworkConnectionReader.TryRead(out ReadOnlySequence<byte> buffer))
-                {
-                    buffer = await _simpleNetworkConnectionReader.ReadAsync(cancel).ConfigureAwait(false);
-                }
-
-                if (TryDecodeHeader(
-                    buffer,
-                    out (FrameType FrameType, int FrameSize, long? StreamId) header,
-                    out int consumed))
-                {
-                    _simpleNetworkConnectionReader.AdvanceTo(buffer.GetPosition(consumed));
-                    return header;
-                }
-                else
-                {
-                    _simpleNetworkConnectionReader.AdvanceTo(buffer.Start, buffer.End);
-                }
+                buffer = await _simpleNetworkConnectionReader.ReadAsync(cancel).ConfigureAwait(false);
             }
-        }
-        catch (ObjectDisposedException)
-        {
-            // The simple network connection can only be disposed if this connection is aborted.
-            lock (_mutex)
+
+            if (TryDecodeHeader(
+                buffer,
+                out (FrameType FrameType, int FrameSize, long? StreamId) header,
+                out int consumed))
             {
-                Debug.Assert(_exception is not null);
-                throw ExceptionUtil.Throw(_exception);
+                _simpleNetworkConnectionReader.AdvanceTo(buffer.GetPosition(consumed));
+                return header;
+            }
+            else
+            {
+                _simpleNetworkConnectionReader.AdvanceTo(buffer.Start, buffer.End);
             }
         }
 
@@ -1046,6 +970,25 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         }
     }
 
+    private void ShutdownCore(Exception completeException)
+    {
+        lock (_mutex)
+        {
+            _isReadOnly = true;
+        }
+
+        foreach (SlicMultiplexedStream stream in _streams.Values)
+        {
+            stream.Shutdown(completeException);
+        }
+
+        // Unblock requests waiting on the semaphores.
+        _bidirectionalStreamSemaphore?.Complete(completeException);
+        _unidirectionalStreamSemaphore?.Complete(completeException);
+        _acceptStreamQueue.TryComplete(completeException);
+        _writeSemaphore.Complete(completeException);
+    }
+
     private ValueTask WriteFrameAsync(
         FrameType frameType,
         long? streamId,
@@ -1064,19 +1007,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         encode?.Invoke(ref encoder);
         SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
 
-        try
-        {
-            return _simpleNetworkConnectionWriter.FlushAsync(cancel);
-        }
-        catch (ObjectDisposedException)
-        {
-            // The simple network connection can only be disposed if this connection is aborted.
-            lock (_mutex)
-            {
-                Debug.Assert(_exception is not null);
-                throw ExceptionUtil.Throw(_exception);
-            }
-        }
+        return _simpleNetworkConnectionWriter.FlushAsync(cancel);
     }
 
     private ValueTask WriteStreamFrameAsync(
@@ -1094,24 +1025,6 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         SliceEncoder.EncodeVarUInt62(
             (ulong)(encoder.EncodedByteCount - startPos + source1.Length + source2.Length), sizePlaceholder);
 
-        try
-        {
-            // We let the write complete if the stream write operation is canceled. The cancellation of the stream write
-            // operation should not leave the simple network connection in a non recoverable state (which is typically
-            // the case when a write on the network connection is canceled).
-            return new(_simpleNetworkConnectionWriter.WriteAsync(
-                source1,
-                source2,
-                CancellationToken.None).AsTask().WaitAsync(cancel));
-        }
-        catch (ObjectDisposedException)
-        {
-            // The simple network connection can only be disposed if this connection is aborted.
-            lock (_mutex)
-            {
-                Debug.Assert(_exception is not null);
-                throw ExceptionUtil.Throw(_exception);
-            }
-        }
+        return _simpleNetworkConnectionWriter.WriteAsync(source1, source2, cancel);
     }
 }

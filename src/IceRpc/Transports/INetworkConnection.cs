@@ -6,7 +6,7 @@ namespace IceRpc.Transports;
 
 /// <summary>A network connection represents a transport-level connection used to exchange data as bytes.  The
 /// IceRPC core calls <see cref="ConnectAsync"/> before calling other methods.</summary>
-public interface INetworkConnection : IDisposable
+public interface INetworkConnection
 {
     /// <summary>Connects this network connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

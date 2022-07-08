@@ -154,8 +154,6 @@ internal class SlicPipeReader : PipeReader
             writerScheduler: PipeScheduler.Inline));
     }
 
-    internal void Abort(Exception exception) => CompletePipeWriter(exception);
-
     /// <summary>Called when a stream reset is received.</summary>
     internal void ReceivedResetFrame(ulong errorCode) =>
         CompletePipeWriter(_errorCodeConverter.FromErrorCode(errorCode));
@@ -222,6 +220,8 @@ internal class SlicPipeReader : PipeReader
         }
     }
 
+    internal void Shutdown(Exception exception) => CompletePipeWriter(exception);
+
     private void CheckIfCompleted()
     {
         if (_state.HasFlag(State.Completed))
@@ -234,7 +234,7 @@ internal class SlicPipeReader : PipeReader
 
     private void CompletePipeWriter(Exception? exception)
     {
-        _exception = exception;
+        _exception ??= exception;
 
         if (_state.TrySetFlag(State.PipeWriterCompleted))
         {
@@ -244,7 +244,7 @@ internal class SlicPipeReader : PipeReader
             }
             else
             {
-                _pipe.Writer.Complete(exception);
+                _pipe.Writer.Complete(_exception);
             }
         }
     }

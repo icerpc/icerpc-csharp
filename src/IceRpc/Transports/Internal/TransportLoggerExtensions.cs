@@ -50,10 +50,10 @@ internal static partial class TransportLoggerExtensions
         EventId = (int)TransportEventIds.MultiplexedNetworkConnectionShutdown,
         EventName = nameof(TransportEventIds.MultiplexedNetworkConnectionShutdown),
         Level = LogLevel.Trace,
-        Message = "connection shutdown ({ErrorCode})")]
+        Message = "connection shutdown")]
     internal static partial void LogMultiplexedNetworkConnectionShutdown(
         this ILogger logger,
-        ulong errorCode);
+        Exception exception);
 
     [LoggerMessage(
         EventId = (int)TransportEventIds.MultiplexedStreamWrite,
