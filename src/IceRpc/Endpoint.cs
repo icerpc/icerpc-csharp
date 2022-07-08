@@ -8,18 +8,20 @@ using System.Text;
 
 namespace IceRpc;
 
-/// <summary>An endpoint describes a server-side network sink for IceRPC requests: a server listens on an endpoint
-/// and a client establishes a connection to a given endpoint.</summary>
+/// <summary>An endpoint specifies the address of the server-end of an ice or icerpc connection: a server listens on an
+/// endpoint and a client establishes a connection to a given endpoint.</summary>
 [TypeConverter(typeof(EndpointTypeConverter))]
 public readonly record struct Endpoint
 {
     /// <summary>Gets the endpoint's protocol.</summary>
+    /// <value>A supported protocol - either <see cref="Protocol.IceRpc"/> or <see cref="Protocol.Ice"/>.</value>
     public Protocol Protocol { get; }
 
     /// <summary>Gets the endpoint's host name or address.</summary>
     public string Host
     {
         get => _host;
+
         init
         {
             if (Uri.CheckHostName(value) == UriHostNameType.Unknown)
@@ -35,6 +37,7 @@ public readonly record struct Endpoint
     public ushort Port
     {
         get => _port;
+
         init
         {
             _port = value;
@@ -46,6 +49,7 @@ public readonly record struct Endpoint
     public ImmutableDictionary<string, string> Params
     {
         get => _params;
+
         init
         {
             try

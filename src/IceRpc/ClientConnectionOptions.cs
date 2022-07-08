@@ -13,7 +13,7 @@ public sealed record class ClientConnectionOptions : ConnectionOptions
     /// fail.</value>
     public SslClientAuthenticationOptions? ClientAuthenticationOptions { get; set; }
 
-    /// <summary>Gets or sets the connection's remote endpoint. For a client connection this is the connection's
-    /// remote endpoint, for a server connection it's the server's endpoint.</summary>
-    public Endpoint? RemoteEndpoint { get; set; }
+    /// <summary>Gets or sets the connection's endpoint. The endpoint of a connection is the address of the server-end
+    /// of that connection.</summary>
+    public Endpoint? Endpoint { get; set; }
 }

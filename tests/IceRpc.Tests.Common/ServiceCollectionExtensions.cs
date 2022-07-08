@@ -102,7 +102,7 @@ public static class ServiceCollectionExtensions
 
         services
             .AddOptions<ClientConnectionOptions>()
-            .Configure<Server>((options, server) => options.RemoteEndpoint = server.Endpoint);
+            .Configure<Server>((options, server) => options.Endpoint = server.Endpoint);
 
         services.AddIceRpcClientConnection();
 
@@ -126,7 +126,7 @@ public static class ServiceCollectionExtensions
 
         services
             .AddOptions<ClientConnectionOptions>()
-            .Configure<Server>((options, server) => options.RemoteEndpoint = server.Endpoint);
+            .Configure<Server>((options, server) => options.Endpoint = server.Endpoint);
 
         services.AddIceRpcClientConnection();
 

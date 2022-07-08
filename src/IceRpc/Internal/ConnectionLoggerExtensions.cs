@@ -15,7 +15,7 @@ internal static partial class ConnectionLoggerExtensions
 
     private static readonly Func<ILogger, Endpoint, IDisposable> _newClientConnectionScope =
         LoggerMessage.DefineScope<Endpoint>(
-            "NewClientConnection(RemoteEndpoint={RemoteEndpoint})");
+            "NewClientConnection(Endpoint={Endpoint})");
 
     private static readonly Func<ILogger, Endpoint, IDisposable> _newServerConnectionScope =
         LoggerMessage.DefineScope<Endpoint>(

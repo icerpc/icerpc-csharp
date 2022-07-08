@@ -174,7 +174,7 @@ public class ConnectionTests
         using var listener = slicServerTransport.Listen("icerpc://127.0.0.1:0", null, NullLogger.Instance);
         await using var connection = new ClientConnection(new ClientConnectionOptions
         {
-            RemoteEndpoint = listener.Endpoint,
+            Endpoint = listener.Endpoint,
             ConnectTimeout = TimeSpan.FromMilliseconds(100)
         });
 
@@ -558,7 +558,7 @@ public class ConnectionTests
 
         await using var connection = new ClientConnection(new ClientConnectionOptions
         {
-            RemoteEndpoint = endpoint,
+            Endpoint = endpoint,
         });
         Task connectTask = connection.ConnectAsync();
 
