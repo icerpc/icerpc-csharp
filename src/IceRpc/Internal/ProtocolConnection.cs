@@ -333,10 +333,12 @@ internal abstract class ProtocolConnection : IProtocolConnection
     {
         lock (_mutex)
         {
-            if (_shutdownTask is not null)
+            if (_disposeTask is not null || _shutdownTask is not null)
             {
                 return;
             }
+            Debug.Assert(_connectTask is not null && _connectTask.IsCompletedSuccessfully);
+
             _shutdownTask ??= PerformShutdownAsync(message);
         }
         InvokeOnShutdown(message);
