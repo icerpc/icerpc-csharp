@@ -206,7 +206,8 @@ public class ServiceAddressTests
             Throws.TypeOf<InvalidOperationException>());
     }
 
-    /// <summary>Verifies that the service address alt endpoints cannot be set when the service address contains no endpoint.</summary>
+    /// <summary>Verifies that the service address cannot contain alt endpoints when the service address endpoint is
+    /// null.</summary>
     [Test]
     public void Cannot_set_alt_endpoints_when_endpoint_is_empty()
     {
