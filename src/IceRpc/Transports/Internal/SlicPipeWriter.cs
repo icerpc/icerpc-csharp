@@ -191,7 +191,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 
     private void CompletePipeReader(Exception? exception)
     {
-        _exception ??= exception;
+        Interlocked.CompareExchange(ref _exception, exception, null);
 
         // Don't complete the reader if it's being used concurrently for sending a frame. It will be completed
         // once the reading terminates.

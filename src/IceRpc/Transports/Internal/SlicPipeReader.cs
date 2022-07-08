@@ -234,7 +234,7 @@ internal class SlicPipeReader : PipeReader
 
     private void CompletePipeWriter(Exception? exception)
     {
-        _exception ??= exception;
+        Interlocked.CompareExchange(ref _exception, exception, null);
 
         if (_state.TrySetFlag(State.PipeWriterCompleted))
         {
