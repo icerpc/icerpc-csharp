@@ -100,6 +100,7 @@ public class OperationTests
         Assert.That(readResult.Buffer.Length, Is.EqualTo(data.Length));
         Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(data));
         reader.AdvanceTo(readResult.Buffer.End);
+        await reader.CompleteAsync();
     }
 
     [Test]
