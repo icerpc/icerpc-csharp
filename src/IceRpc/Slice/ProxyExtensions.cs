@@ -74,6 +74,11 @@ public static class ProxyExtensions
         bool idempotent = false,
         CancellationToken cancel = default) where TProxy : struct, IProxy
     {
+        if (proxy.Invoker is not IInvoker invoker)
+        {
+            throw new InvalidOperationException("a proxy with a null invoker cannot send requests");
+        }
+
         if (payload is null && payloadStream is not null)
         {
             throw new ArgumentNullException(
@@ -94,7 +99,7 @@ public static class ProxyExtensions
         try
         {
             // We perform as much work as possible in a non async method to throw exceptions synchronously.
-            return ReadResponseAsync(proxy.Invoker.InvokeAsync(request, cancel), request);
+            return ReadResponseAsync(invoker.InvokeAsync(request, cancel), request);
         }
         catch (Exception exception)
         {
@@ -110,7 +115,7 @@ public static class ProxyExtensions
             try
             {
                 IncomingResponse response = await responseTask.ConfigureAwait(false);
-                return await responseDecodeFunc(response, request, proxy.Invoker, proxy.EncodeFeature, cancel)
+                return await responseDecodeFunc(response, request, invoker, proxy.EncodeFeature, cancel)
                     .ConfigureAwait(false);
             }
             catch (Exception ex)
@@ -154,6 +159,11 @@ public static class ProxyExtensions
         bool oneway = false,
         CancellationToken cancel = default) where TProxy : struct, IProxy
     {
+        if (proxy.Invoker is not IInvoker invoker)
+        {
+            throw new InvalidOperationException("a proxy with a null invoker cannot send requests");
+        }
+
         if (payload is null && payloadStream is not null)
         {
             throw new ArgumentNullException(
@@ -175,7 +185,7 @@ public static class ProxyExtensions
         try
         {
             // We perform as much work as possible in a non async method to throw exceptions synchronously.
-            return ReadResponseAsync(proxy.Invoker.InvokeAsync(request, cancel), request);
+            return ReadResponseAsync(invoker.InvokeAsync(request, cancel), request);
         }
         catch (Exception exception)
         {
@@ -196,7 +206,7 @@ public static class ProxyExtensions
                     request,
                     encoding,
                     defaultActivator,
-                    proxy.Invoker,
+                    invoker,
                     proxy.EncodeFeature,
                     cancel).ConfigureAwait(false);
             }

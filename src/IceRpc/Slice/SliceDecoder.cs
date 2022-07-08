@@ -382,7 +382,7 @@ public ref partial struct SliceDecoder
             new TProxy
             {
                 ServiceAddress = DecodeServiceAddress(path),
-                Invoker = _proxyInvoker ?? InvalidOperationInvoker.Instance,
+                Invoker = _proxyInvoker,
                 EncodeFeature = _proxyEncodeFeature
             }
             : null;
@@ -400,7 +400,7 @@ public ref partial struct SliceDecoder
                 new TProxy
                 {
                     ServiceAddress = DecodeServiceAddress(path),
-                    Invoker = _proxyInvoker ?? InvalidOperationInvoker.Instance,
+                    Invoker = _proxyInvoker,
                     EncodeFeature = _proxyEncodeFeature
                 }
                 : throw new InvalidDataException("decoded null for a non-nullable proxy");
@@ -418,7 +418,7 @@ public ref partial struct SliceDecoder
                     return new TProxy
                     {
                         ServiceAddress = serviceAddress,
-                        Invoker = _relativeProxyInvoker ?? InvalidOperationInvoker.Instance,
+                        Invoker = _relativeProxyInvoker,
                         EncodeFeature = _proxyEncodeFeature
                     };
                 }
@@ -430,7 +430,7 @@ public ref partial struct SliceDecoder
                     {
                         ServiceAddress = serviceAddress,
                         Invoker = serviceAddress.Protocol.IsSupported && _proxyInvoker is not null ? _proxyInvoker :
-                            InvalidOperationInvoker.Instance,
+                            null,
                         EncodeFeature = _proxyEncodeFeature
                     };
                 }

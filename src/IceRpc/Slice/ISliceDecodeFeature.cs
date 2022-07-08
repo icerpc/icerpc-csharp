@@ -20,9 +20,7 @@ public interface ISliceDecodeFeature
     /// variable-size elements.</summary>
     int MaxSegmentSize { get; }
 
-    /// <summary>Gets the invoker assigned to decoded proxies. When null, a proxy decoded from an incoming request
-    /// gets <see cref="InvalidOperationInvoker.Instance"/> while a proxy decoded from an incoming response gets the invoker of the
-    /// proxy that created the request.</summary>
+    /// <summary>Gets the invoker assigned to decoded proxies.</summary>
     IInvoker? ProxyInvoker { get; }
 
     /// <summary>Gets the stream pause writer threshold. When the Slice engine decodes a stream into an async

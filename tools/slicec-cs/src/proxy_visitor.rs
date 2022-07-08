@@ -82,7 +82,7 @@ private static readonly IActivator _defaultActivator =
 public ISliceEncodeFeature? EncodeFeature {{ get; init; }} = null;
 
 /// <inheritdoc/>
-public IceRpc.IInvoker Invoker {{ get; init; }} = IceRpc.InvalidOperationInvoker.Instance;
+public IceRpc.IInvoker? Invoker {{ get; init; }} = null;
 
 /// <inheritdoc/>
 public IceRpc.ServiceAddress ServiceAddress {{ get; init; }}"#,
@@ -96,7 +96,7 @@ public IceRpc.ServiceAddress ServiceAddress {{ get; init; }}"#,
                     r#"
 /// <summary>Implicit conversion to <see cref="{base_impl}"/>.</summary>
 public static implicit operator {base_impl}({proxy_impl} proxy) =>
-    new() {{ Invoker = proxy.Invoker, ServiceAddress = proxy.ServiceAddress, EncodeFeature = proxy.EncodeFeature }};"#,
+    new() {{ EncodeFeature = proxy.EncodeFeature, Invoker = proxy.Invoker, ServiceAddress = proxy.ServiceAddress }};"#,
                     base_impl = base_impl,
                     proxy_impl = proxy_impl
                 )
@@ -129,7 +129,7 @@ fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
 /// <exception cref="global::System.FormatException"><c>s</c> does not contain a valid URI string representation
 /// of a service address.</exception>
 public static {proxy_impl} Parse(string s, IceRpc.IInvoker? invoker = null) =>
-    new() {{ Invoker = invoker ?? IceRpc.InvalidOperationInvoker.Instance, ServiceAddress = IceRpc.ServiceAddress.Parse(s) }};
+    new() {{ Invoker = invoker, ServiceAddress = IceRpc.ServiceAddress.Parse(s) }};
 
 /// <summary>Tries to creates a new <see cref="{proxy_impl}"/> from a URI string and an invoker.</summary>
 /// <param name="s">The URI string representation of the service address.</param>
@@ -140,7 +140,7 @@ public static bool TryParse(string s, IceRpc.IInvoker? invoker, out {proxy_impl}
 {{
     if (IceRpc.ServiceAddress.TryParse(s, out IceRpc.ServiceAddress? serviceAddress))
     {{
-        proxy = new() {{ Invoker = invoker ?? IceRpc.InvalidOperationInvoker.Instance, ServiceAddress = serviceAddress }};
+        proxy = new() {{ Invoker = invoker, ServiceAddress = serviceAddress }};
         return true;
     }}
     else

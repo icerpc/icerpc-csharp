@@ -346,7 +346,7 @@ public class ServiceAddressTests
         await proxy.SendProxyAsync(proxy);
 
         Assert.That(service.ReceivedProxy, Is.Not.Null);
-        Assert.That(service.ReceivedProxy.Value.Invoker, Is.EqualTo(InvalidOperationInvoker.Instance));
+        Assert.That(service.ReceivedProxy.Value.Invoker, Is.EqualTo(InvalidOperationInvoker.Instance)); // TODO: fix
     }
 
     /// <summary>Verifies that a service address received over an outgoing connection inherits the callers invoker.</summary>
