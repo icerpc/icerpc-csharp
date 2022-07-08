@@ -251,7 +251,7 @@ public sealed record class ServiceAddress
                     }
 
                     string host = uri.IdnHost;
-                    Debug.Assert(host.Length is not 0, $"cannot create an endpoint with an empty host {nameof(uri)}");
+                    Debug.Assert(!string.IsNullOrEmpty(host), $"cannot create an endpoint with an empty host {nameof(uri)}");
 
                     _endpoint = new Endpoint(
                         Protocol,
