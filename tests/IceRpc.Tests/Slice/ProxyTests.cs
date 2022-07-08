@@ -95,7 +95,7 @@ public class ProxyTests
             var decoder = new SliceDecoder(
                 bufferWriter.WrittenMemory,
                 encoding: SliceEncoding.Slice2,
-                connection: connection);
+                relativeProxyInvoker: connection);
 
             return decoder.DecodeProxy<ServiceProxy>().Invoker;
         },

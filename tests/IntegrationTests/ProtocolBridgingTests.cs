@@ -133,7 +133,7 @@ public sealed class ProtocolBridgingTests
         {
             IDispatchInformationFeature dispatchInformation = features.Get<IDispatchInformationFeature>()!;
 
-            var serviceAddress = new ServiceAddress(dispatchInformation.Connection.Protocol)
+            var serviceAddress = new ServiceAddress(dispatchInformation.Protocol)
             {
                 Path = dispatchInformation.Path,
                 Endpoint = _publishedEndpoint

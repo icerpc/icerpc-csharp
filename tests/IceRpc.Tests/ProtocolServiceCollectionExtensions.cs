@@ -55,12 +55,10 @@ public static class ProtocolServiceCollectionExtensions
 
         if (protocol == Protocol.Ice)
         {
-            services.TryAddSingleton(InvalidConnection.Ice);
             services.AddSingleton<IClientServerProtocolConnection, ClientServerIceProtocolConnection>();
         }
         else
         {
-            services.TryAddSingleton(InvalidConnection.IceRpc);
             services.AddSingleton<IClientServerProtocolConnection, ClientServerIceRpcProtocolConnection>();
         }
         return services;
@@ -88,7 +86,6 @@ internal abstract class ClientServerProtocolConnection<T> : IClientServerProtoco
     private IProtocolConnection? _client;
     private readonly ConnectionOptions _clientConnectionOptions;
     private readonly IClientTransport<T> _clientTransport;
-    private readonly IConnection _connection;
     private readonly IListener<T> _listener;
     private IProtocolConnection? _server;
     private readonly ServerOptions _serverOptions;
@@ -114,9 +111,7 @@ internal abstract class ClientServerProtocolConnection<T> : IClientServerProtoco
             bool isServer)
         {
             IProtocolConnection protocolConnection = CreateConnection(networkConnection, isServer, connectionOptions);
-            _ = await protocolConnection.ConnectAsync(
-                _connection,
-                CancellationToken.None);
+            _ = await protocolConnection.ConnectAsync(CancellationToken.None);
             return protocolConnection;
         }
     }
@@ -129,13 +124,11 @@ internal abstract class ClientServerProtocolConnection<T> : IClientServerProtoco
     }
 
     protected ClientServerProtocolConnection(
-        IConnection connection,
         IClientTransport<T> clientTransport,
         IListener<T> listener,
         IOptions<ConnectionOptions> clientConnectionOptions,
         IOptions<ServerOptions> serverOptions)
     {
-        _connection = connection;
         _clientTransport = clientTransport;
         _listener = listener;
         _clientConnectionOptions = clientConnectionOptions?.Value ?? new ConnectionOptions();
@@ -158,12 +151,11 @@ internal sealed class ClientServerIceProtocolConnection : ClientServerProtocolCo
 {
     // This constructor must be public to be usable by DI container
     public ClientServerIceProtocolConnection(
-        IConnection connection,
         IClientTransport<ISimpleNetworkConnection> clientTransport,
         IListener<ISimpleNetworkConnection> listener,
         IOptions<ConnectionOptions> clientConnectionOptions,
         IOptions<ServerOptions> serverOptions) :
-        base(connection, clientTransport, listener, clientConnectionOptions, serverOptions)
+        base(clientTransport, listener, clientConnectionOptions, serverOptions)
     {
     }
 
@@ -183,12 +175,11 @@ internal sealed class ClientServerIceRpcProtocolConnection :
 {
     // This constructor must be public to be usable by DI container
     public ClientServerIceRpcProtocolConnection(
-        IConnection connection,
         IClientTransport<IMultiplexedNetworkConnection> clientTransport,
         IListener<IMultiplexedNetworkConnection> listener,
         IOptions<ConnectionOptions> clientConnectionOptions,
         IOptions<ServerOptions> serverOptions) :
-        base(connection, clientTransport, listener, clientConnectionOptions, serverOptions)
+        base(clientTransport, listener, clientConnectionOptions, serverOptions)
     {
     }
 

@@ -11,7 +11,7 @@ public sealed class LoggerInterceptorTests
     public async Task Log_successful_request()
     {
         var invoker = new InlineInvoker(
-            (request, cancel) => Task.FromResult(new IncomingResponse(request, InvalidConnection.IceRpc)));
+            (request, cancel) => Task.FromResult(new IncomingResponse(request)));
         using var loggerFactory = new TestLoggerFactory();
         var proxy = new ServiceAddress(Protocol.IceRpc) { Path = "/path" };
         var request = new OutgoingRequest(proxy) { Operation = "operation" };

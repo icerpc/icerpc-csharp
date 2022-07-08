@@ -112,7 +112,7 @@ public class RetryInterceptor : IInvoker
                         if (endpointFeature.Connection is IClientConnection clientConnection &&
                              retryPolicy == RetryPolicy.OtherReplica)
                         {
-                            endpointFeature.RemoveEndpoint(clientConnection.RemoteEndpoint);
+                            endpointFeature.RemoveEndpoint(clientConnection.Endpoint);
                         }
 
                         tryAgain = true;

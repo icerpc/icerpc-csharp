@@ -22,16 +22,16 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         new TcpClientTransport();
 
     /// <inheritdoc/>
+    public Endpoint Endpoint { get; }
+
+    /// <inheritdoc/>
     public bool IsResumable => false;
 
     /// <inheritdoc/>
     public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
 
     /// <inheritdoc/>
-    public Protocol Protocol => RemoteEndpoint.Protocol;
-
-    /// <inheritdoc/>
-    public Endpoint RemoteEndpoint { get; }
+    public Protocol Protocol => Endpoint.Protocol;
 
     private readonly IProtocolConnection _protocolConnection;
 
@@ -48,9 +48,9 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
         IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
     {
-        RemoteEndpoint = options.RemoteEndpoint ??
+        Endpoint = options.Endpoint ??
             throw new ArgumentException(
-                $"{nameof(ClientConnectionOptions.RemoteEndpoint)} is not set",
+                $"{nameof(ClientConnectionOptions.Endpoint)} is not set",
                 nameof(options));
 
         // This is the composition root of client Connections, where we install log decorators when logging is enabled.
@@ -63,7 +63,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         if (Protocol == Protocol.Ice)
         {
             ISimpleNetworkConnection networkConnection = simpleClientTransport.CreateConnection(
-                RemoteEndpoint,
+                Endpoint,
                 options.ClientAuthenticationOptions,
                 logger);
 
@@ -72,7 +72,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             {
                 networkConnection = new LogSimpleNetworkConnectionDecorator(
                     networkConnection,
-                    RemoteEndpoint,
+                    Endpoint,
                     isServer: false,
                     logger);
             }
@@ -82,7 +82,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         else
         {
             IMultiplexedNetworkConnection networkConnection = multiplexedClientTransport.CreateConnection(
-                RemoteEndpoint,
+                Endpoint,
                 options.ClientAuthenticationOptions,
                 logger);
 
@@ -92,7 +92,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
 #pragma warning disable CA2000 // bogus warning, the decorator is disposed by IceRpcProtocolConnection
                 networkConnection = new LogMultiplexedNetworkConnectionDecorator(
                     networkConnection,
-                    RemoteEndpoint,
+                    Endpoint,
                     isServer: false,
                     logger);
 #pragma warning restore CA2000
@@ -108,15 +108,15 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         }
     }
 
-    /// <summary>Constructs a client connection with the specified remote endpoint and  authentication options.
-    /// All other properties have their default values.</summary>
-    /// <param name="endpoint">The connection remote endpoint.</param>
+    /// <summary>Constructs a client connection with the specified endpoint and authentication options.  All other
+    /// properties have their default values.</summary>
+    /// <param name="endpoint">The connection endpoint.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
     public ClientConnection(Endpoint endpoint, SslClientAuthenticationOptions? clientAuthenticationOptions = null)
         : this(new ClientConnectionOptions
         {
             ClientAuthenticationOptions = clientAuthenticationOptions,
-            RemoteEndpoint = endpoint
+            Endpoint = endpoint
         })
     {
     }
@@ -135,16 +135,14 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// </list>
     /// </returns>
     public async Task ConnectAsync(CancellationToken cancel = default) =>
-        NetworkConnectionInformation = await _protocolConnection.ConnectAsync(
-            connection: this,
-            cancel: cancel).ConfigureAwait(false);
+        NetworkConnectionInformation = await _protocolConnection.ConnectAsync(cancel: cancel).ConfigureAwait(false);
 
     /// <inheritdoc/>
     public ValueTask DisposeAsync() => _protocolConnection.DisposeAsync();
 
     /// <inheritdoc/>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default) =>
-        _protocolConnection.InvokeAsync(request, this, cancel);
+        _protocolConnection.InvokeAsync(request, cancel);
 
     /// <inheritdoc/>
     public void OnAbort(Action<Exception> callback) => _protocolConnection.OnAbort(callback);

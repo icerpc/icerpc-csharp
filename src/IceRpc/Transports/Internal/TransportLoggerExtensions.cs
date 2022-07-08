@@ -72,8 +72,8 @@ internal static partial class TransportLoggerExtensions
         Message = "network connection established: LocalEndPoint={LocalEndPoint}, RemoteEndPoint={RemoteEndPoint}")]
     internal static partial void LogNetworkConnectionConnect(
         this ILogger logger,
-        EndPoint localEndPoint,
-        EndPoint remoteEndPoint);
+        EndPoint? localEndPoint,
+        EndPoint? remoteEndPoint);
 
     [LoggerMessage(
         EventId = (int)TransportEventIds.NetworkConnectionConnectFailed,

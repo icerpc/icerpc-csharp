@@ -5,7 +5,6 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using System.Diagnostics;
 using System.Net.Security;
 
 namespace IceRpc;
@@ -31,7 +30,7 @@ public sealed class Server : IAsyncDisposable
     /// cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
     public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
-    private readonly HashSet<ServerConnection> _connections = new();
+    private readonly HashSet<IProtocolConnection> _connections = new();
 
     private bool _isReadOnly;
 
@@ -211,10 +210,10 @@ public sealed class Server : IAsyncDisposable
         {
             while (true)
             {
-                ServerConnection connection;
+                IProtocolConnection connection;
                 try
                 {
-                    connection = new ServerConnection(await acceptProtocolConnection().ConfigureAwait(false));
+                    connection = await acceptProtocolConnection().ConfigureAwait(false);
                 }
                 catch
                 {
@@ -247,16 +246,17 @@ public sealed class Server : IAsyncDisposable
                 connection.OnAbort(exception => _ = RemoveFromCollectionAsync(connection, graceful: false));
                 connection.OnShutdown(message => _ = RemoveFromCollectionAsync(connection, graceful: true));
 
-                // We don't wait for the connection to be activated. This could take a while for some transports
-                // such as TLS based transports where the handshake requires few round trips between the client
-                // and server. Waiting could also cause a security issue if the client doesn't respond to the
-                // connection initialization as we wouldn't be able to accept new connections in the meantime.
-                _ = connection.ConnectAsync();
+                // We don't wait for the connection to be activated. This could take a while for some transports such as
+                // TLS based transports where the handshake requires few round trips between the client and server.
+                // Waiting could also cause a security issue if the client doesn't respond to the connection
+                // initialization as we wouldn't be able to accept new connections in the meantime. The call will
+                // eventually timeout if the ConnectTimeout expires.
+                _ = connection.ConnectAsync(CancellationToken.None);
             }
         }
 
         // Remove the connection from _connections once shutdown completes
-        async Task RemoveFromCollectionAsync(ServerConnection connection, bool graceful)
+        async Task RemoveFromCollectionAsync(IProtocolConnection connection, bool graceful)
         {
             lock (_mutex)
             {
@@ -271,7 +271,7 @@ public sealed class Server : IAsyncDisposable
                 // Wait for the current shutdown to complete
                 try
                 {
-                    await connection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+                    await connection.ShutdownAsync("", CancellationToken.None).ConfigureAwait(false);
                 }
                 catch
                 {

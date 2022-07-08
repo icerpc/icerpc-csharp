@@ -19,8 +19,8 @@ internal static partial class RetryInterceptorLoggerExtensions
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogRetryRequest(
-                connection?.NetworkConnectionInformation?.LocalEndPoint.ToString() ?? "undefined",
-                connection?.NetworkConnectionInformation?.RemoteEndPoint.ToString() ?? "undefined",
+                connection?.NetworkConnectionInformation?.LocalEndPoint?.ToString() ?? "undefined",
+                connection?.NetworkConnectionInformation?.RemoteEndPoint?.ToString() ?? "undefined",
                 path,
                 operation,
                 retryPolicy,

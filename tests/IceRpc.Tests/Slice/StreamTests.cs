@@ -149,7 +149,7 @@ public class StreamTests
     {
         // Arrange
         var pipe = new Pipe();
-        var request = new IncomingRequest(InvalidConnection.IceRpc)
+        var request = new IncomingRequest(Protocol.IceRpc)
         {
             Payload = pipe.Reader
         };
@@ -211,7 +211,7 @@ public class StreamTests
     {
         // Arrange
         var pipe = new Pipe();
-        var request = new IncomingRequest(InvalidConnection.IceRpc)
+        var request = new IncomingRequest(Protocol.IceRpc)
         {
             Payload = pipe.Reader
         };

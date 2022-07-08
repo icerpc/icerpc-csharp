@@ -29,7 +29,7 @@ public sealed class TelemetryMiddlewareTests
         using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
         var sut = new TelemetryMiddleware(dispatcher, activitySource);
 
-        var request = new IncomingRequest(InvalidConnection.IceRpc)
+        var request = new IncomingRequest(Protocol.IceRpc)
         {
             Operation = "Op",
             Path = "/"
@@ -94,7 +94,7 @@ public sealed class TelemetryMiddlewareTests
         var sut = new TelemetryMiddleware(dispatcher, activitySource);
 
         // Create an incoming request that carries the encoded trace context
-        var request = new IncomingRequest(InvalidConnection.IceRpc)
+        var request = new IncomingRequest(Protocol.IceRpc)
         {
             Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>()
             {
@@ -138,7 +138,7 @@ public sealed class TelemetryMiddlewareTests
         var sut = new TelemetryMiddleware(dispatcher, activitySource);
 
         // Create an incoming request that carries an empty trace context field
-        var request = new IncomingRequest(InvalidConnection.IceRpc)
+        var request = new IncomingRequest(Protocol.IceRpc)
         {
             Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>()
             {

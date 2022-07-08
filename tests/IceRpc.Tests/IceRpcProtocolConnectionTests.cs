@@ -50,7 +50,7 @@ public sealed class IceRpcProtocolConnectionTests
         var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)), InvalidConnection.IceRpc);
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
 
         await start.WaitAsync(); // Wait for the dispatch to start
 
@@ -83,7 +83,7 @@ public sealed class IceRpcProtocolConnectionTests
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         // Act
-        var response = await sut.Client.InvokeAsync(request, InvalidConnection.IceRpc);
+        var response = await sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
@@ -117,9 +117,7 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.ConnectAsync();
 
         // Act
-        _ = sut.Client.InvokeAsync(
-            new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)),
-            InvalidConnection.IceRpc);
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
 
         // Assert
         Assert.That(await payloadDecorator.Completed, Is.InstanceOf<NotSupportedException>());
@@ -144,7 +142,7 @@ public sealed class IceRpcProtocolConnectionTests
         };
 
         // Act
-        _ = sut.Client.InvokeAsync(request, InvalidConnection.IceRpc);
+        _ = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.Null);
@@ -169,7 +167,7 @@ public sealed class IceRpcProtocolConnectionTests
         };
 
         // Act
-        _ = sut.Client.InvokeAsync(request, InvalidConnection.IceRpc);
+        _ = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
@@ -194,7 +192,7 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.ConnectAsync();
 
         // Act
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)), InvalidConnection.IceRpc);
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.Null);
@@ -220,7 +218,7 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.ConnectAsync();
 
         // Act
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)), InvalidConnection.IceRpc);
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
@@ -252,7 +250,7 @@ public sealed class IceRpcProtocolConnectionTests
             });
 
         // Act
-        _ = sut.Client.InvokeAsync(request, InvalidConnection.IceRpc);
+        _ = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
@@ -288,7 +286,7 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.ConnectAsync();
 
         // Act
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)), InvalidConnection.IceRpc);
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.InstanceOf<NotSupportedException>());
@@ -309,7 +307,7 @@ public sealed class IceRpcProtocolConnectionTests
         };
 
         Assert.That(
-            async () => await sut.Client.InvokeAsync(request, InvalidConnection.IceRpc),
+            async () => await sut.Client.InvokeAsync(request),
             Throws.InstanceOf<ProtocolException>());
     }
 
@@ -337,7 +335,7 @@ public sealed class IceRpcProtocolConnectionTests
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         // Act
-        var response = await sut.Client.InvokeAsync(request, InvalidConnection.IceRpc);
+        var response = await sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(

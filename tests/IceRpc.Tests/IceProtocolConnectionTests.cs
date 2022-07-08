@@ -107,7 +107,7 @@ public sealed class IceProtocolConnectionTests
         // Act
         for (int i = 0; i < maxConcurrentDispatches + 1; ++i)
         {
-            responseTasks.Add(sut.Client.InvokeAsync(request, InvalidConnection.Ice, default));
+            responseTasks.Add(sut.Client.InvokeAsync(request));
         }
         // wait for maxDispatchesPerConnection dispatches to start
         for (int i = 0; i < maxConcurrentDispatches; ++i)
@@ -164,13 +164,9 @@ public sealed class IceProtocolConnectionTests
         // Perform two invocations. The first blocks so the second won't be dispatched. It will block on the dispatch
         // semaphore which is canceled on dispose.
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(
-            new OutgoingRequest(new ServiceAddress(Protocol.Ice)),
-            InvalidConnection.Ice,
-            default);
+            new OutgoingRequest(new ServiceAddress(Protocol.Ice)));
         _ = sut.Client.InvokeAsync(
-            new OutgoingRequest(new ServiceAddress(Protocol.Ice)),
-            InvalidConnection.Ice,
-            default);
+            new OutgoingRequest(new ServiceAddress(Protocol.Ice)));
 
         // Make sure the second request is received and blocked on the dispatch semaphore.
         await Task.Delay(200);
@@ -202,7 +198,7 @@ public sealed class IceProtocolConnectionTests
         var request = new OutgoingRequest(serviceAddress);
 
         // Act
-        var response = await sut.Client.InvokeAsync(request, InvalidConnection.Ice);
+        var response = await sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
@@ -230,7 +226,7 @@ public sealed class IceProtocolConnectionTests
         var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
 
         // Act
-        var response = await sut.Client.InvokeAsync(request, InvalidConnection.Ice);
+        var response = await sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
@@ -260,9 +256,7 @@ public sealed class IceProtocolConnectionTests
         await sut.ConnectAsync();
 
         // Act
-        _ = sut.Client.InvokeAsync(
-            new OutgoingRequest(new ServiceAddress(Protocol.Ice)),
-            InvalidConnection.Ice);
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.Ice)));
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());

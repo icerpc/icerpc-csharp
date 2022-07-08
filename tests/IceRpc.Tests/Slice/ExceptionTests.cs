@@ -445,7 +445,7 @@ public sealed class ExceptionTests
         await using var connection = new ClientConnection(
             new ClientConnectionOptions
             {
-                RemoteEndpoint = server.Endpoint,
+                Endpoint = server.Endpoint,
             },
             multiplexedClientTransport: new SlicClientTransport(coloc.ClientTransport));
         var proxy = new Slice2ExceptionOperationsProxy(connection);
@@ -477,7 +477,7 @@ public sealed class ExceptionTests
         await using var connection = new ClientConnection(
             new ClientConnectionOptions
             {
-                RemoteEndpoint = server.Endpoint,
+                Endpoint = server.Endpoint,
             },
             multiplexedClientTransport: new SlicClientTransport(coloc.ClientTransport));
         var proxy = new Slice1ExceptionOperationsProxy(connection);

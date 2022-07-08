@@ -13,8 +13,9 @@ public sealed class LoggerMiddlewareTests
         var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
         using var loggerFactory = new TestLoggerFactory();
         await using var connection = new ClientConnection("icerpc://127.0.0.1");
-        var request = new IncomingRequest(connection)
+        var request = new IncomingRequest(connection.Protocol)
         {
+            Invoker = connection,
             Path = "/path",
             Operation = "operation"
         };
@@ -37,8 +38,9 @@ public sealed class LoggerMiddlewareTests
         var dispatcher = new InlineDispatcher((request, cancel) => throw new InvalidOperationException());
         using var loggerFactory = new TestLoggerFactory();
         await using var connection = new ClientConnection("icerpc://127.0.0.1");
-        var request = new IncomingRequest(connection)
+        var request = new IncomingRequest(connection.Protocol)
         {
+            Invoker = connection,
             Path = "/path",
             Operation = "operation"
         };
