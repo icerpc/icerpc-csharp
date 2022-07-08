@@ -251,12 +251,7 @@ public sealed record class ServiceAddress
                     }
 
                     string host = uri.IdnHost;
-                    if (host.Length == 0)
-                    {
-                        // This Debug.Assert should be impossible to encounter. UriBuilder() will default to "localhost"
-                        // if no hostname is specified, and the URI is not absolute without a hostname.
-                        Debug.Assert(host.Length == 0, $"cannot create an endpoint with an empty host {nameof(uri)}");
-                    }
+                    Debug.Assert(host.Length is not 0, $"cannot create an endpoint with an empty host {nameof(uri)}");
 
                     _endpoint = new Endpoint(
                         Protocol,
