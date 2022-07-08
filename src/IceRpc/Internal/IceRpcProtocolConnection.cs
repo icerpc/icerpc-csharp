@@ -186,11 +186,13 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
         }
 
-        // First dispose the network connection to kill the connection with the peer.
+        // First, before disposing the network connection, cancel pending tasks which are using the network connection.
+        _tasksCompleteSource.Cancel();
+
+        // Dispose the network connection to kill the connection with the peer.
         await _networkConnection.DisposeAsync().ConfigureAwait(false);
 
         // Next, cancel pending tasks, dispatches and invocations.
-        _tasksCompleteSource.Cancel();
         _dispatchesAndInvocationsCancelSource.Cancel();
 
         // Wait for pending tasks, dispatches and streams to complete.
@@ -739,7 +741,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 await stream.Output.CompleteAsync(exception).ConfigureAwait(false);
             }
 
-            throw ExceptionUtil.Throw(exception);
+            throw;
         }
 
         async Task DispatchRequestAsync(
