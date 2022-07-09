@@ -49,7 +49,7 @@ public class DictionaryMappingTests
             response,
             request,
             InvalidOperationInvoker.Instance,
-            encodeFeature: null,
+            encodeOptions: null,
             default);
 
         Assert.That(r, Is.EqualTo(new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 }));

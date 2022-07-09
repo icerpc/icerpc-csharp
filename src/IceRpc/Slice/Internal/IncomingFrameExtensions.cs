@@ -16,17 +16,17 @@ internal static class IncomingFrameExtensions
     /// <param name="decodeFeature">The decode feature.</param>
     /// <param name="defaultActivator">The default activator.</param>
     /// <param name="proxyInvoker">The default invoker.</param>
-    /// <param name="encodeFeature">The encode feature of decoded proxy structs.</param>
+    /// <param name="encodeOptions">The encode options of decoded proxy structs.</param>
     /// <param name="decodeFunc">The decode function for the payload arguments or return value.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>The decode value.</returns>
     internal static ValueTask<T> DecodeValueAsync<T>(
         this IncomingFrame frame,
         SliceEncoding encoding,
-        ISliceDecodeFeature? decodeFeature,
+        ISliceFeature? decodeFeature,
         IActivator? defaultActivator,
         IInvoker? proxyInvoker,
-        ISliceEncodeFeature? encodeFeature,
+        SliceEncodeOptions? encodeOptions,
         DecodeFunc<T> decodeFunc,
         CancellationToken cancel)
     {
@@ -50,7 +50,7 @@ internal static class IncomingFrameExtensions
                 decodeFeature.ServiceProxyFactory,
                 proxyInvoker,
                 frame.ConnectionContext,
-                encodeFeature,
+                encodeOptions,
                 maxCollectionAllocation: decodeFeature.MaxCollectionAllocation,
                 maxDepth: decodeFeature.MaxDepth);
             T value = decodeFunc(ref decoder);
@@ -75,7 +75,7 @@ internal static class IncomingFrameExtensions
     internal static ValueTask DecodeVoidAsync(
         this IncomingFrame frame,
         SliceEncoding encoding,
-        ISliceDecodeFeature? decodeFeature,
+        ISliceFeature? decodeFeature,
         CancellationToken cancel)
     {
         decodeFeature ??= SliceDecodeFeature.Default;
@@ -120,16 +120,16 @@ internal static class IncomingFrameExtensions
     /// <param name="defaultActivator">The optional default activator.</param>
     /// <param name="proxyInvoker">The invoker of the proxy that sent this connection when frame is an outgoing request.
     /// </param>
-    /// <param name="encodeFeature">The encode feature of decoded proxy structs.</param>
+    /// <param name="encodeOptions">The encode options of decoded proxy structs.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
     /// <returns>The async enumerable to decode and return the streamed members.</returns>
     internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
         this IncomingFrame frame,
         SliceEncoding encoding,
-        ISliceDecodeFeature? decodeFeature,
+        ISliceFeature? decodeFeature,
         IActivator? defaultActivator,
         IInvoker? proxyInvoker,
-        ISliceEncodeFeature? encodeFeature,
+        SliceEncodeOptions? encodeOptions,
         DecodeFunc<T> decodeFunc)
     {
         decodeFeature ??= SliceDecodeFeature.Default;
@@ -165,7 +165,7 @@ internal static class IncomingFrameExtensions
                 decodeFeature.ServiceProxyFactory,
                 proxyInvoker,
                 frame.ConnectionContext,
-                encodeFeature,
+                encodeOptions,
                 maxCollectionAllocation: decodeFeature.MaxCollectionAllocation,
                 maxDepth: decodeFeature.MaxDepth);
 
@@ -183,7 +183,7 @@ internal static class IncomingFrameExtensions
             Protocol protocol,
             PipeReader payload,
             SliceEncoding encoding,
-            ISliceDecodeFeature decodeFeature,
+            ISliceFeature decodeFeature,
             StreamDecoder<T> streamDecoder)
         {
             while (true)
@@ -239,17 +239,17 @@ internal static class IncomingFrameExtensions
     /// <param name="decodeFeature">The decode feature.</param>
     /// <param name="defaultActivator">The optional default activator.</param>
     /// <param name="proxyInvoker">The default invoker.</param>
-    /// <param name="proxyEncodeFeature">The encode feature of decoded proxy structs.</param>
+    /// <param name="proxyEncodeFeature">The encode options of decoded proxy structs.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
     /// <param name="elementSize">The size in bytes of the streamed elements.</param>
     /// <returns>The async enumerable to decode and return the streamed members.</returns>
     internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
         this IncomingFrame frame,
         SliceEncoding encoding,
-        ISliceDecodeFeature? decodeFeature,
+        ISliceFeature? decodeFeature,
         IActivator? defaultActivator,
         IInvoker? proxyInvoker,
-        ISliceEncodeFeature? proxyEncodeFeature,
+        SliceEncodeOptions? proxyEncodeFeature,
         DecodeFunc<T> decodeFunc,
         int elementSize)
     {
@@ -305,7 +305,7 @@ internal static class IncomingFrameExtensions
             Protocol protocol,
             PipeReader payload,
             SliceEncoding encoding,
-            ISliceDecodeFeature decodeFeature,
+            ISliceFeature decodeFeature,
             StreamDecoder<T> streamDecoder,
             int elementSize)
         {

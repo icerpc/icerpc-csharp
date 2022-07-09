@@ -67,7 +67,7 @@ public ref partial struct SliceDecoder
     // The maximum depth when decoding a type recursively.
     private readonly int _maxDepth;
 
-    private readonly ISliceEncodeFeature? _encodeFeature;
+    private readonly SliceEncodeOptions? _encodeFeature;
 
     // The invoker to set when decoding a non-relative proxy.
     private readonly IInvoker? _proxyInvoker;
@@ -85,7 +85,7 @@ public ref partial struct SliceDecoder
     /// <param name="proxyInvoker">The proxy invoker to give to <paramref name="serviceProxyFactory"/>.</param>
     /// <param name="connectionContext">The connection context to give to <paramref name="serviceProxyFactory"/>.
     /// </param>
-    /// <param name="encodeFeature">The Slice encode feature to give to <paramref name="serviceProxyFactory"/>.</param>
+    /// <param name="encodeOptions">The Slice encode options to give to <paramref name="serviceProxyFactory"/>.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
     /// length.</param>
@@ -97,7 +97,7 @@ public ref partial struct SliceDecoder
         ServiceProxyFactory? serviceProxyFactory = null,
         IInvoker? proxyInvoker = null,
         IConnectionContext? connectionContext = null,
-        ISliceEncodeFeature? encodeFeature = null,
+        SliceEncodeOptions? encodeOptions = null,
         int maxCollectionAllocation = -1,
         int maxDepth = 3)
     {
@@ -112,7 +112,7 @@ public ref partial struct SliceDecoder
         _serviceProxyFactory = serviceProxyFactory;
         _proxyInvoker = proxyInvoker;
         _connectionContext = connectionContext;
-        _encodeFeature = encodeFeature;
+        _encodeFeature = encodeOptions;
 
         _maxCollectionAllocation = maxCollectionAllocation == -1 ? 8 * (int)buffer.Length :
             (maxCollectionAllocation >= 0 ? maxCollectionAllocation :
@@ -134,7 +134,7 @@ public ref partial struct SliceDecoder
     /// <param name="proxyInvoker">The proxy invoker to give to <paramref name="serviceProxyFactory"/>.</param>
     /// <param name="connectionContext">The connection context to give to <paramref name="serviceProxyFactory"/>.
     /// </param>
-    /// <param name="encodeFeature">The Slice encode feature to give to <paramref name="serviceProxyFactory"/>.</param>
+    /// <param name="encodeOptions">The Slice encode options to give to <paramref name="serviceProxyFactory"/>.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
     /// length.</param>
@@ -146,7 +146,7 @@ public ref partial struct SliceDecoder
         ServiceProxyFactory? serviceProxyFactory = null,
         IInvoker? proxyInvoker = null,
         IConnectionContext? connectionContext = null,
-        ISliceEncodeFeature? encodeFeature = null,
+        SliceEncodeOptions? encodeOptions = null,
         int maxCollectionAllocation = -1,
         int maxDepth = 3)
         : this(
@@ -156,7 +156,7 @@ public ref partial struct SliceDecoder
             serviceProxyFactory,
             proxyInvoker,
             connectionContext,
-            encodeFeature,
+            encodeOptions,
             maxCollectionAllocation,
             maxDepth)
     {
@@ -898,7 +898,7 @@ public ref partial struct SliceDecoder
 
         return new TProxy
         {
-            EncodeFeature = serviceProxy.EncodeFeature,
+            EncodeOptions = serviceProxy.EncodeOptions,
             Invoker = serviceProxy.Invoker,
             ServiceAddress = serviceProxy.ServiceAddress
         };
@@ -907,7 +907,7 @@ public ref partial struct SliceDecoder
             ServiceAddress serviceAddress,
             IInvoker? proxyInvoker,
             IConnectionContext? connectionContext,
-            ISliceEncodeFeature? encodeFeature)
+            SliceEncodeOptions? encodeOptions)
         {
             if (serviceAddress.Protocol is null)
             {
@@ -919,7 +919,7 @@ public ref partial struct SliceDecoder
 
                 return new ServiceProxy
                 {
-                    EncodeFeature = encodeFeature,
+                    EncodeOptions = encodeOptions,
                     Invoker = connectionContext.Invoker,
                     ServiceAddress = new(connectionContext.Protocol) { Path = serviceAddress.Path },
                 };
@@ -928,7 +928,7 @@ public ref partial struct SliceDecoder
             {
                 return new ServiceProxy
                 {
-                    EncodeFeature = encodeFeature,
+                    EncodeOptions = encodeOptions,
                     Invoker = proxyInvoker,
                     ServiceAddress = serviceAddress
                 };

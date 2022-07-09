@@ -2,14 +2,17 @@
 
 namespace IceRpc.Slice;
 
-/// <summary>The default implementation for <see cref="ISliceDecodeFeature"/>.</summary>
-public sealed class SliceDecodeFeature : ISliceDecodeFeature
+/// <summary>The default implementation for <see cref="ISliceFeature"/>.</summary>
+public sealed class SliceDecodeFeature : ISliceFeature
 {
     /// <summary>Gets the default instance of <see cref="SliceDecodeFeature"/>.</summary>
     public static SliceDecodeFeature Default { get; } = new();
 
     /// <inheritdoc/>
     public IActivator? Activator { get; init; }
+
+    /// <inheritdoc/>
+    public SliceEncodeOptions? EncodeOptions { get; init; }
 
     /// <summary>Gets or initializes the maximum collection allocation when decoding a payload, in bytes.</summary>
     /// <value>A value greater than or equal to 0. The default is 8 times <see cref="MaxSegmentSize"/>.</value>

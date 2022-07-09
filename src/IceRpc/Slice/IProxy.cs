@@ -5,9 +5,9 @@ namespace IceRpc.Slice;
 /// <summary>A proxy is a local ambassador for a remote service.</summary>
 public interface IProxy
 {
-    /// <summary>Gets or initializes the encode feature, used to customize the encoding of payloads created from this
+    /// <summary>Gets or initializes the encode options, used to customize the encoding of payloads created from this
     /// proxy.</summary>
-    ISliceEncodeFeature? EncodeFeature { get; init; }
+    SliceEncodeOptions? EncodeOptions { get; init; }
 
     /// <summary>Gets or initializes the invocation pipeline of this proxy.</summary>
     IInvoker? Invoker { get; init; }

@@ -58,10 +58,10 @@ public static class IncomingRequestExtensions
 
         PipeReader CreateExceptionPayload()
         {
-            ISliceEncodeFeature encodeFeature = request.Features.Get<ISliceEncodeFeature>() ??
-                SliceEncodeFeature.Default;
+            SliceEncodeOptions encodeOptions = request.Features.Get<SliceEncodeOptions>() ??
+                SliceEncodeOptions.Default;
 
-            var pipe = new Pipe(encodeFeature.PipeOptions);
+            var pipe = new Pipe(encodeOptions.PipeOptions);
 
             var encoder = new SliceEncoder(pipe.Writer, encoding);
 
@@ -99,10 +99,10 @@ public static class IncomingRequestExtensions
         CancellationToken cancel = default) =>
         request.DecodeValueAsync(
             encoding,
-            request.Features.Get<ISliceDecodeFeature>(),
+            request.Features.Get<ISliceFeature>(),
             defaultActivator,
             proxyInvoker: null,
-            encodeFeature: request.Features.Get<ISliceEncodeFeature>(),
+            encodeOptions: request.Features.Get<SliceEncodeOptions>(),
             decodeFunc,
             cancel);
 
@@ -117,7 +117,7 @@ public static class IncomingRequestExtensions
         CancellationToken cancel = default) =>
         request.DecodeVoidAsync(
             encoding,
-            request.Features.Get<ISliceDecodeFeature>(),
+            request.Features.Get<ISliceFeature>(),
             cancel);
 
     /// <summary>Creates an async enumerable over the payload reader of an incoming request to decode fixed size
@@ -137,10 +137,10 @@ public static class IncomingRequestExtensions
         int elementSize) =>
         request.ToAsyncEnumerable(
             encoding,
-            request.Features.Get<ISliceDecodeFeature>(),
+            request.Features.Get<ISliceFeature>(),
             defaultActivator,
             proxyInvoker: null,
-            proxyEncodeFeature: request.Features.Get<ISliceEncodeFeature>(),
+            proxyEncodeFeature: request.Features.Get<SliceEncodeOptions>(),
             decodeFunc,
             elementSize);
 
@@ -159,9 +159,9 @@ public static class IncomingRequestExtensions
         DecodeFunc<T> decodeFunc) =>
         request.ToAsyncEnumerable(
             encoding,
-            request.Features.Get<ISliceDecodeFeature>(),
+            request.Features.Get<ISliceFeature>(),
             defaultActivator,
             proxyInvoker: null,
-            encodeFeature: request.Features.Get<ISliceEncodeFeature>(),
+            encodeOptions: request.Features.Get<SliceEncodeOptions>(),
             decodeFunc);
 }

@@ -2,12 +2,17 @@
 
 namespace IceRpc.Slice;
 
-/// <summary>A feature to customize the decoding of request and response payloads.</summary>
-public interface ISliceDecodeFeature
+/// <summary>A feature to customize the encoding and decoding of request and response payloads.</summary>
+public interface ISliceFeature
 {
     /// <summary>Gets the activator to use when decoding Slice classes, exceptions, and traits. When <c>null</c>, the
     /// decoding of a request or response payload uses the activator injected by the Slice generated code.</summary>
     IActivator? Activator { get; }
+
+    /// <summary>Gets the options to use when encoding the payload of outgoing response. These are also the options
+    /// used by default for proxies decoded from an incoming request or response payload.</summary>
+    /// <value>The Slice encode options. Null is equivalent to <see cref="SliceEncodeOptions.Default"/>.</value>
+    SliceEncodeOptions? EncodeOptions { get; }
 
     /// <summary>Gets the maximum collection allocation when decoding a payload, in bytes.</summary>
     int MaxCollectionAllocation { get; }

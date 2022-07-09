@@ -12,7 +12,7 @@ namespace IceRpc.Slice;
 /// <param name="response">The incoming response.</param>
 /// <param name="request">The outgoing request.</param>
 /// <param name="proxyInvoker">The invoker of the proxy that sent the request.</param>
-/// <param name="encodeFeature">The encode feature of the proxy struct that sent the request.</param>
+/// <param name="encodeOptions">The encode options of the proxy struct that sent the request.</param>
 /// <param name="cancel">The cancellation token.</param>
 /// <returns>A value task that contains the return value or a <see cref="RemoteException"/> when the response
 /// carries a failure.</returns>
@@ -20,7 +20,7 @@ public delegate ValueTask<T> ResponseDecodeFunc<T>(
     IncomingResponse response,
     OutgoingRequest request,
     IInvoker proxyInvoker,
-    ISliceEncodeFeature? encodeFeature,
+    SliceEncodeOptions? encodeOptions,
     CancellationToken cancel);
 
 /// <summary>Provides extension methods for interface <see cref="IProxy"/> and generated proxy structs that implement
@@ -115,7 +115,7 @@ public static class ProxyExtensions
             try
             {
                 IncomingResponse response = await responseTask.ConfigureAwait(false);
-                return await responseDecodeFunc(response, request, invoker, proxy.EncodeFeature, cancel)
+                return await responseDecodeFunc(response, request, invoker, proxy.EncodeOptions, cancel)
                     .ConfigureAwait(false);
             }
             catch (Exception ex)
@@ -207,7 +207,7 @@ public static class ProxyExtensions
                     encoding,
                     defaultActivator,
                     invoker,
-                    proxy.EncodeFeature,
+                    proxy.EncodeOptions,
                     cancel).ConfigureAwait(false);
             }
             catch (Exception ex)
@@ -227,5 +227,5 @@ public static class ProxyExtensions
     /// <param name="proxy">The source Proxy.</param>
     /// <returns>A new TProxy instance.</returns>
     public static TProxy ToProxy<TProxy>(this IProxy proxy) where TProxy : struct, IProxy =>
-        new() { EncodeFeature = proxy.EncodeFeature, Invoker = proxy.Invoker, ServiceAddress = proxy.ServiceAddress };
+        new() { EncodeOptions = proxy.EncodeOptions, Invoker = proxy.Invoker, ServiceAddress = proxy.ServiceAddress };
 }

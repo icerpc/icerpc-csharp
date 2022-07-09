@@ -836,10 +836,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                 static PipeReader CreateExceptionPayload(IncomingRequest request, RemoteException exception)
                 {
-                    ISliceEncodeFeature encodeFeature = request.Features.Get<ISliceEncodeFeature>() ??
-                            SliceEncodeFeature.Default;
+                    SliceEncodeOptions encodeOptions = request.Features.Get<SliceEncodeOptions>() ??
+                            SliceEncodeOptions.Default;
 
-                    var pipe = new Pipe(encodeFeature.PipeOptions);
+                    var pipe = new Pipe(encodeOptions.PipeOptions);
 
                     var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
                     Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);

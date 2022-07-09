@@ -26,7 +26,7 @@ public class StreamTests
         // Act
         PipeReader payload = SliceEncoding.Slice2.CreatePayloadStream(
             GetDataAsync(size),
-            encodeFeature: null,
+            encodeOptions: null,
             (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value),
             useSegments: false);
 
@@ -90,7 +90,7 @@ public class StreamTests
         // Act
         PipeReader payload = SliceEncoding.Slice2.CreatePayloadStream(
             GetDataAsync(size),
-            encodeFeature: null,
+            encodeOptions: null,
             (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
             useSegments: true);
 
@@ -224,7 +224,7 @@ public class StreamTests
             decodeFeature: null,
             defaultActivator: null,
             proxyInvoker: InvalidOperationInvoker.Instance,
-            encodeFeature: null,
+            encodeOptions: null,
             (ref SliceDecoder decoder) => decoder.DecodeString());
 
         // Assert

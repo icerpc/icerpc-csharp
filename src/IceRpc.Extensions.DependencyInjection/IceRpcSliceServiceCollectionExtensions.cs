@@ -23,7 +23,7 @@ public static class IceRpcSliceServiceCollectionExtensions
             .AddSingleton<TProxy>(provider =>
                 new TProxyImplementation
                 {
-                    EncodeFeature = provider.GetService<ISliceEncodeFeature>(),
+                    EncodeOptions = provider.GetService<SliceEncodeOptions>(),
                     Invoker = provider.GetRequiredService<IInvoker>(),
                     ServiceAddress = ServiceAddress.Parse(serviceAddressString),
                 });
