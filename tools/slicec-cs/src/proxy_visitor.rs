@@ -232,7 +232,7 @@ if ({features}?.Get<IceRpc.Features.ICompressFeature>() is null)
         invocation_builder.add_argument(format!("{}.CreateSizeZeroPayload()", encoding));
     } else {
         invocation_builder.add_argument(format!(
-            "Request.{}({}, sliceEncodeOptions: EncodeOptions)",
+            "Request.{}({}, encodeOptions: EncodeOptions)",
             operation_name,
             parameters
                 .iter()
@@ -412,7 +412,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
         builder.add_parameter(
             "SliceEncodeOptions?",
-            "sliceEncodeOptions",
+            "encodeOptions",
             Some("null"),
             Some("The Slice encode options."),
         );

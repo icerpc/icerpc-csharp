@@ -222,7 +222,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 
         builder.add_parameter(
             "SliceEncodeOptions?",
-            "sliceEncodeOptions",
+            "encodeOptions",
             Some("null"),
             Some("The Slice encode options."),
         );
