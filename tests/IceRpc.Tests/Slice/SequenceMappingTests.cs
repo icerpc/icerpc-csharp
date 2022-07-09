@@ -25,7 +25,7 @@ public class SequenceMappingTests
             await SequenceMappingOperationsProxy.Response.OpReturnTupleAsync(
                 response,
                 request,
-                InvalidOperationInvoker.Instance,
+                NotImplementedInvoker.Instance,
                 null,
                 default);
 
@@ -48,7 +48,7 @@ public class SequenceMappingTests
             await SequenceMappingOperationsProxy.Response.OpReturnSingleTypeAsync(
                 response,
                 request,
-                InvalidOperationInvoker.Instance,
+                NotImplementedInvoker.Instance,
                 null,
                 default);
 
@@ -98,7 +98,7 @@ public class SequenceMappingTests
             SequenceMappingOperationsProxy.Response.OpStructNestedSequenceAsync(
                 response,
                 request,
-                InvalidOperationInvoker.Instance,
+                NotImplementedInvoker.Instance,
                 null,
                 default);
 
@@ -125,7 +125,7 @@ public class SequenceMappingTests
             SequenceMappingOperationsProxy.Response.OpNumericTypeNestedSequenceAsync(
                 response,
                 request,
-                InvalidOperationInvoker.Instance,
+                NotImplementedInvoker.Instance,
                 null,
                 default);
 

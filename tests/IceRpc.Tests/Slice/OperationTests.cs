@@ -333,7 +333,7 @@ public class OperationTests
             async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryAsync(
                 response,
                 request,
-                InvalidOperationInvoker.Instance,
+                NotImplementedInvoker.Instance,
                 null,
                 default),
             Is.EqualTo(new int[] { 1, 2, 3 }));
@@ -380,7 +380,7 @@ public class OperationTests
             async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryOptionalAsync(
                 response,
                 request,
-                InvalidOperationInvoker.Instance,
+                NotImplementedInvoker.Instance,
                 null,
                 default),
             Is.EqualTo(p));
@@ -427,7 +427,7 @@ public class OperationTests
             async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryTaggedAsync(
                 response,
                 request,
-                InvalidOperationInvoker.Instance,
+                NotImplementedInvoker.Instance,
                 null,
                 default),
             Is.EqualTo(p));

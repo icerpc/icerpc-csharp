@@ -77,7 +77,7 @@ public class OperationEncodingTests
         };
 
         int value =
-            await MyOperationsBProxy.Response.OpInt32Async(response, request, InvalidOperationInvoker.Instance, null, default);
+            await MyOperationsBProxy.Response.OpInt32Async(response, request, NotImplementedInvoker.Instance, null, default);
 
         Assert.That(value, Is.EqualTo(10));
 
@@ -161,7 +161,7 @@ public class OperationEncodingTests
         (int r1, string r2) = await MyOperationsBProxy.Response.OpInt32AndStringAsync(
             response,
             request,
-            InvalidOperationInvoker.Instance,
+            NotImplementedInvoker.Instance,
             null,
             default);
 
@@ -326,7 +326,7 @@ public class OperationEncodingTests
         };
 
         var value =
-            await MyOperationsBProxy.Response.OpOptionalAsync(response, request, InvalidOperationInvoker.Instance, null, default);
+            await MyOperationsBProxy.Response.OpOptionalAsync(response, request, NotImplementedInvoker.Instance, null, default);
 
         Assert.That(value.R1, Is.EqualTo(p1));
         Assert.That(value.R2, Is.EqualTo(p2));
@@ -497,7 +497,7 @@ public class OperationEncodingTests
         };
 
         var value =
-            await MyOperationsBProxy.Response.OpTaggedAsync(response, request, InvalidOperationInvoker.Instance, null, default);
+            await MyOperationsBProxy.Response.OpTaggedAsync(response, request, NotImplementedInvoker.Instance, null, default);
 
         Assert.That(value.R1, Is.EqualTo(p1));
         Assert.That(value.R2, Is.EqualTo(p2));
