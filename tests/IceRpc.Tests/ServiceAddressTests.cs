@@ -316,11 +316,10 @@ public class ServiceAddressTests
         var pipeline = new Pipeline();
         var router = new Router();
         router.Map<ISendProxyTest>(service);
-        router.UseFeature<ISliceFeature>(new SliceFeature
-        {
-            ServiceProxyFactory = serviceAddress =>
-                new ServiceProxy { ServiceAddress = serviceAddress, Invoker = pipeline }
-        });
+        router.UseFeature<ISliceFeature>(
+            new SliceFeature(serviceProxyFactory: serviceAddress =>
+                new ServiceProxy { ServiceAddress = serviceAddress, Invoker = pipeline }));
+
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(router)
             .BuildServiceProvider(validateScopes: true);
