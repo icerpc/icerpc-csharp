@@ -481,7 +481,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         builder.add_comment("summary", &format!(r#"The <see cref="ResponseDecodeFunc{{T}}"/> for the return value type of operation {}."#, operation.identifier()));
         builder.add_parameter("IceRpc.IncomingResponse", "response", None, None);
         builder.add_parameter("IceRpc.OutgoingRequest", "request", None, None);
-        builder.add_parameter("IceRpc.IInvoker", "proxyInvoker", None, None);
+        builder.add_parameter("IceRpc.IInvoker", "sender", None, None);
         builder.add_parameter(
             "SliceEncodeOptions?",
             "encodeOptions",
@@ -517,9 +517,9 @@ fn response_operation_body(operation: &Operation) -> CodeBlock {
 await response.DecodeVoidReturnValueAsync(
     request,
     {encoding},
-    _defaultActivator,
-    proxyInvoker,
+    sender,
     encodeOptions,
+    _defaultActivator,
     cancel).ConfigureAwait(false);
 
 return {decode_operation_stream}
@@ -541,9 +541,9 @@ return {decode_operation_stream}
 var {return_value} = await response.DecodeReturnValueAsync(
     request,
     {encoding},
-    _defaultActivator,
-    proxyInvoker,
+    sender,
     encodeOptions,
+    _defaultActivator,
     {response_decode_func},
     cancel).ConfigureAwait(false);
 
@@ -572,9 +572,9 @@ return {return_value_and_stream};
 response.DecodeReturnValueAsync(
     request,
     {encoding},
-    _defaultActivator,
-    proxyInvoker,
+    sender,
     encodeOptions,
+    _defaultActivator,
     {response_decode_func},
     cancel)",
             encoding = encoding,

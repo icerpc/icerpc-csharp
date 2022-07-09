@@ -13,28 +13,24 @@ internal static class IncomingFrameExtensions
     /// <summary>Decodes arguments or a response value from a pipe reader.</summary>
     /// <param name="frame">The incoming frame.</param>
     /// <param name="encoding">The Slice encoding version.</param>
-    /// <param name="decodeFeature">The decode feature.</param>
+    /// <param name="feature">The Slice feature.</param>
     /// <param name="defaultActivator">The default activator.</param>
-    /// <param name="proxyInvoker">The default invoker.</param>
-    /// <param name="encodeOptions">The encode options of decoded proxy structs.</param>
+    /// <param name="defaultServiceProxyFactory">The default service proxy factory.</param>
     /// <param name="decodeFunc">The decode function for the payload arguments or return value.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>The decode value.</returns>
     internal static ValueTask<T> DecodeValueAsync<T>(
         this IncomingFrame frame,
         SliceEncoding encoding,
-        ISliceFeature? decodeFeature,
+        ISliceFeature feature,
         IActivator? defaultActivator,
-        IInvoker? proxyInvoker,
-        SliceEncodeOptions? encodeOptions,
+        Func<ServiceAddress, ServiceProxy>? defaultServiceProxyFactory,
         DecodeFunc<T> decodeFunc,
         CancellationToken cancel)
     {
-        decodeFeature ??= SliceDecodeFeature.Default;
-
         return frame.Payload.TryReadSegment(
             encoding,
-            decodeFeature.MaxSegmentSize,
+            feature.MaxSegmentSize,
             out ReadResult readResult) ? new(DecodeSegment(readResult)) :
             PerformDecodeAsync();
 
@@ -46,13 +42,10 @@ internal static class IncomingFrameExtensions
             var decoder = new SliceDecoder(
                 readResult.Buffer,
                 encoding,
-                decodeFeature.Activator ?? defaultActivator,
-                decodeFeature.ServiceProxyFactory,
-                proxyInvoker,
-                frame.ConnectionContext,
-                encodeOptions,
-                maxCollectionAllocation: decodeFeature.MaxCollectionAllocation,
-                maxDepth: decodeFeature.MaxDepth);
+                feature.Activator ?? defaultActivator,
+                feature.ServiceProxyFactory ?? defaultServiceProxyFactory,
+                feature.MaxCollectionAllocation,
+                feature.MaxDepth);
             T value = decodeFunc(ref decoder);
             decoder.CheckEndOfBuffer(skipTaggedParams: true);
 
@@ -63,26 +56,24 @@ internal static class IncomingFrameExtensions
         async ValueTask<T> PerformDecodeAsync() =>
             DecodeSegment(await frame.Payload.ReadSegmentAsync(
                 encoding,
-                decodeFeature.MaxSegmentSize,
+                feature.MaxSegmentSize,
                 cancel).ConfigureAwait(false));
     }
 
     /// <summary>Reads/decodes empty args or a void return value.</summary>
     /// <param name="frame">The incoming frame.</param>
     /// <param name="encoding">The Slice encoding version.</param>
-    /// <param name="decodeFeature">The decode feature.</param>
+    /// <param name="feature">The Slice feature.</param>
     /// <param name="cancel">The cancellation token.</param>
     internal static ValueTask DecodeVoidAsync(
         this IncomingFrame frame,
         SliceEncoding encoding,
-        ISliceFeature? decodeFeature,
+        ISliceFeature feature,
         CancellationToken cancel)
     {
-        decodeFeature ??= SliceDecodeFeature.Default;
-
         if (frame.Payload.TryReadSegment(
                 encoding,
-                decodeFeature.MaxSegmentSize,
+                feature.MaxSegmentSize,
                 out ReadResult readResult))
         {
             DecodeSegment(readResult);
@@ -109,34 +100,30 @@ internal static class IncomingFrameExtensions
         async ValueTask PerformDecodeAsync() =>
             DecodeSegment(await frame.Payload.ReadSegmentAsync(
                 encoding,
-                decodeFeature.MaxSegmentSize,
+                feature.MaxSegmentSize,
                 cancel).ConfigureAwait(false));
     }
 
     /// <summary>Creates an async enumerable over a pipe reader to decode streamed members.</summary>
     /// <param name="frame">The incoming frame.</param>
     /// <param name="encoding">The Slice encoding version.</param>
-    /// <param name="decodeFeature">The decode feature.</param>
+    /// <param name="feature">The Slice feature.</param>
     /// <param name="defaultActivator">The optional default activator.</param>
-    /// <param name="proxyInvoker">The invoker of the proxy that sent this connection when frame is an outgoing request.
-    /// </param>
-    /// <param name="encodeOptions">The encode options of decoded proxy structs.</param>
+    /// <param name="defaultServiceProxyFactory">The default serviceProxyFactory.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
     /// <returns>The async enumerable to decode and return the streamed members.</returns>
     internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
         this IncomingFrame frame,
         SliceEncoding encoding,
-        ISliceFeature? decodeFeature,
+        ISliceFeature feature,
         IActivator? defaultActivator,
-        IInvoker? proxyInvoker,
-        SliceEncodeOptions? encodeOptions,
+        Func<ServiceAddress, ServiceProxy>? defaultServiceProxyFactory,
         DecodeFunc<T> decodeFunc)
     {
-        decodeFeature ??= SliceDecodeFeature.Default;
         var streamDecoder = new StreamDecoder<T>(
             DecodeBufferFunc,
-            decodeFeature.StreamPauseWriterThreshold,
-            decodeFeature.StreamPauseWriterThreshold);
+            feature.StreamPauseWriterThreshold,
+            feature.StreamPauseWriterThreshold);
 
         PipeReader payload = frame.Payload;
         frame.Payload = InvalidPipeReader.Instance; // payload is now our responsibility
@@ -148,7 +135,7 @@ internal static class IncomingFrameExtensions
                 frame.Protocol,
                 payload,
                 encoding,
-                decodeFeature,
+                feature,
                 streamDecoder),
             CancellationToken.None);
 
@@ -161,13 +148,10 @@ internal static class IncomingFrameExtensions
             var decoder = new SliceDecoder(
                 buffer,
                 encoding,
-                decodeFeature.Activator ?? defaultActivator,
-                decodeFeature.ServiceProxyFactory,
-                proxyInvoker,
-                frame.ConnectionContext,
-                encodeOptions,
-                maxCollectionAllocation: decodeFeature.MaxCollectionAllocation,
-                maxDepth: decodeFeature.MaxDepth);
+                feature.Activator ?? defaultActivator,
+                feature.ServiceProxyFactory ?? defaultServiceProxyFactory,
+                feature.MaxCollectionAllocation,
+                feature.MaxDepth);
 
             var items = new List<T>();
             do
@@ -183,7 +167,7 @@ internal static class IncomingFrameExtensions
             Protocol protocol,
             PipeReader payload,
             SliceEncoding encoding,
-            ISliceFeature decodeFeature,
+            ISliceFeature feature,
             StreamDecoder<T> streamDecoder)
         {
             while (true)
@@ -202,7 +186,7 @@ internal static class IncomingFrameExtensions
                 {
                     readResult = await payload.ReadSegmentAsync(
                         encoding,
-                        decodeFeature.MaxSegmentSize,
+                        feature.MaxSegmentSize,
                         cancel).ConfigureAwait(false);
 
                     readResult.ThrowIfCanceled(protocol);
@@ -236,20 +220,14 @@ internal static class IncomingFrameExtensions
     /// <summary>Creates an async enumerable over a pipe reader to decode streamed members.</summary>
     /// <param name="frame">The incoming frame.</param>
     /// <param name="encoding">The Slice encoding version.</param>
-    /// <param name="decodeFeature">The decode feature.</param>
-    /// <param name="defaultActivator">The optional default activator.</param>
-    /// <param name="proxyInvoker">The default invoker.</param>
-    /// <param name="proxyEncodeFeature">The encode options of decoded proxy structs.</param>
+    /// <param name="feature">The Slice feature.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
-    /// <param name="elementSize">The size in bytes of the streamed elements.</param>
+    /// <param name="elementSize">The size in bytes of one element.</param>
     /// <returns>The async enumerable to decode and return the streamed members.</returns>
     internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
         this IncomingFrame frame,
         SliceEncoding encoding,
-        ISliceFeature? decodeFeature,
-        IActivator? defaultActivator,
-        IInvoker? proxyInvoker,
-        SliceEncodeOptions? proxyEncodeFeature,
+        ISliceFeature feature,
         DecodeFunc<T> decodeFunc,
         int elementSize)
     {
@@ -258,12 +236,12 @@ internal static class IncomingFrameExtensions
             throw new ArgumentException("element size must be greater than 0");
         }
 
-        decodeFeature ??= SliceDecodeFeature.Default;
+        feature ??= SliceFeature.Default;
 
         var streamDecoder = new StreamDecoder<T>(
             DecodeBufferFunc,
-            decodeFeature.StreamPauseWriterThreshold,
-            decodeFeature.StreamResumeWriterThreshold);
+            feature.StreamPauseWriterThreshold,
+            feature.StreamResumeWriterThreshold);
 
         PipeReader payload = frame.Payload;
         frame.Payload = InvalidPipeReader.Instance; // payload is now our responsibility
@@ -271,7 +249,7 @@ internal static class IncomingFrameExtensions
         // We read the payload and fill the writer (streamDecoder) in a separate thread. We don't give the frame to
         // this thread since frames are not thread-safe.
         _ = Task.Run(
-            () => _ = FillWriterAsync(frame.Protocol, payload, encoding, decodeFeature, streamDecoder, elementSize),
+            () => _ = FillWriterAsync(frame.Protocol, payload, encoding, feature, streamDecoder, elementSize),
             CancellationToken.None);
 
         // when CancelPendingRead is called on reader, ReadSegmentAsync returns a ReadResult with IsCanceled
@@ -280,16 +258,13 @@ internal static class IncomingFrameExtensions
 
         IEnumerable<T> DecodeBufferFunc(ReadOnlySequence<byte> buffer)
         {
+            // Since the elements are fixed-size, they can't contain proxies or instances created by an activator, hence
+            // both activator and serviceProxyFactory can remain null.
             var decoder = new SliceDecoder(
                 buffer,
                 encoding,
-                decodeFeature.Activator ?? defaultActivator,
-                decodeFeature.ServiceProxyFactory,
-                proxyInvoker,
-                frame.ConnectionContext,
-                proxyEncodeFeature,
-                maxCollectionAllocation: decodeFeature.MaxCollectionAllocation,
-                maxDepth: decodeFeature.MaxDepth);
+                maxCollectionAllocation: feature.MaxCollectionAllocation,
+                maxDepth: feature.MaxDepth);
 
             var items = new List<T>();
             do
@@ -305,7 +280,7 @@ internal static class IncomingFrameExtensions
             Protocol protocol,
             PipeReader payload,
             SliceEncoding encoding,
-            ISliceFeature decodeFeature,
+            ISliceFeature feature,
             StreamDecoder<T> streamDecoder,
             int elementSize)
         {

@@ -3,10 +3,10 @@
 namespace IceRpc.Slice;
 
 /// <summary>The default implementation for <see cref="ISliceFeature"/>.</summary>
-public sealed class SliceDecodeFeature : ISliceFeature
+public sealed class SliceFeature : ISliceFeature
 {
-    /// <summary>Gets the default instance of <see cref="SliceDecodeFeature"/>.</summary>
-    public static SliceDecodeFeature Default { get; } = new();
+    /// <summary>Gets the default instance of <see cref="SliceFeature"/>.</summary>
+    public static SliceFeature Default { get; } = new();
 
     /// <inheritdoc/>
     public IActivator? Activator { get; init; }
@@ -33,7 +33,7 @@ public sealed class SliceDecodeFeature : ISliceFeature
     public int MaxSegmentSize { get; init; } = 1024 * 1024;
 
     /// <inheritdoc/>
-    public ServiceProxyFactory? ServiceProxyFactory { get; init; }
+    public Func<ServiceAddress, ServiceProxy>? ServiceProxyFactory { get; init; }
 
     /// <summary>Gets or initializes the stream pause writer threshold. When the Slice engine decodes a stream into an
     /// async enumerable, it will pause when the number of bytes decoded but not read is greater or equal to this value.

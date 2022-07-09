@@ -87,7 +87,7 @@ public class ConnectionTests
                 async () =>
                 {
                     IncomingResponse response = await invokeTask;
-                    throw await response.DecodeFailureAsync(request);
+                    throw await response.DecodeFailureAsync(request, connection);
                 },
                 Throws.TypeOf<DispatchException>());
         }

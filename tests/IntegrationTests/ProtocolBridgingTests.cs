@@ -183,6 +183,7 @@ public sealed class ProtocolBridgingTests
             {
                 RemoteException remoteException = await incomingResponse.DecodeFailureAsync(
                     outgoingRequest,
+                    sender: _target.Invoker!,
                     cancel: cancel);
                 remoteException.ConvertToUnhandled = false;
                 throw remoteException;

@@ -159,10 +159,7 @@ public class StreamTests
         // Act
         IAsyncEnumerable<int> decoded = request.ToAsyncEnumerable(
             SliceEncoding.Slice2,
-            decodeFeature: null,
-            defaultActivator: null,
-            proxyInvoker: InvalidOperationInvoker.Instance,
-            proxyEncodeFeature: null,
+            SliceFeature.Default,
             (ref SliceDecoder decoder) => decoder.DecodeInt32(),
             elementSize: 4);
 
@@ -221,10 +218,7 @@ public class StreamTests
         // Act
         IAsyncEnumerable<string> decoded = request.ToAsyncEnumerable(
             SliceEncoding.Slice2,
-            decodeFeature: null,
             defaultActivator: null,
-            proxyInvoker: InvalidOperationInvoker.Instance,
-            encodeOptions: null,
             (ref SliceDecoder decoder) => decoder.DecodeString());
 
         // Assert

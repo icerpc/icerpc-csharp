@@ -53,8 +53,6 @@ public ref partial struct SliceDecoder
 
     private ClassContext _classContext;
 
-    private readonly IConnectionContext? _connectionContext;
-
     // The number of bytes already allocated for strings, dictionaries and sequences.
     private int _currentCollectionAllocation;
 
@@ -67,25 +65,16 @@ public ref partial struct SliceDecoder
     // The maximum depth when decoding a type recursively.
     private readonly int _maxDepth;
 
-    private readonly SliceEncodeOptions? _encodeFeature;
-
-    // The invoker to set when decoding a non-relative proxy.
-    private readonly IInvoker? _proxyInvoker;
-
     // The sequence reader.
     private SequenceReader<byte> _reader;
 
-    private readonly ServiceProxyFactory? _serviceProxyFactory;
+    private readonly Func<ServiceAddress, ServiceProxy>? _serviceProxyFactory;
 
     /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
     /// <param name="buffer">The byte buffer.</param>
     /// <param name="encoding">The Slice encoding version.</param>
     /// <param name="activator">The activator.</param>
-    /// <param name="serviceProxyFactory">The proxy factory, used when decoding proxies.</param>
-    /// <param name="proxyInvoker">The proxy invoker to give to <paramref name="serviceProxyFactory"/>.</param>
-    /// <param name="connectionContext">The connection context to give to <paramref name="serviceProxyFactory"/>.
-    /// </param>
-    /// <param name="encodeOptions">The Slice encode options to give to <paramref name="serviceProxyFactory"/>.</param>
+    /// <param name="serviceProxyFactory">The service proxy factory.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
     /// length.</param>
@@ -94,10 +83,7 @@ public ref partial struct SliceDecoder
         ReadOnlySequence<byte> buffer,
         SliceEncoding encoding,
         IActivator? activator = null,
-        ServiceProxyFactory? serviceProxyFactory = null,
-        IInvoker? proxyInvoker = null,
-        IConnectionContext? connectionContext = null,
-        SliceEncodeOptions? encodeOptions = null,
+        Func<ServiceAddress, ServiceProxy>? serviceProxyFactory = null,
         int maxCollectionAllocation = -1,
         int maxDepth = 3)
     {
@@ -110,9 +96,6 @@ public ref partial struct SliceDecoder
         _currentDepth = 0;
 
         _serviceProxyFactory = serviceProxyFactory;
-        _proxyInvoker = proxyInvoker;
-        _connectionContext = connectionContext;
-        _encodeFeature = encodeOptions;
 
         _maxCollectionAllocation = maxCollectionAllocation == -1 ? 8 * (int)buffer.Length :
             (maxCollectionAllocation >= 0 ? maxCollectionAllocation :
@@ -121,7 +104,7 @@ public ref partial struct SliceDecoder
                     nameof(maxCollectionAllocation)));
 
         _maxDepth = maxDepth >= 1 ? maxDepth :
-                throw new ArgumentException($"{nameof(maxDepth)} must be greater than 0", nameof(maxDepth));
+            throw new ArgumentException($"{nameof(maxDepth)} must be greater than 0", nameof(maxDepth));
 
         _reader = new SequenceReader<byte>(buffer);
     }
@@ -129,12 +112,8 @@ public ref partial struct SliceDecoder
     /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
     /// <param name="buffer">The byte buffer.</param>
     /// <param name="encoding">The Slice encoding version.</param>
-    /// <param name="activator">The activator (optional).</param>
-    /// <param name="serviceProxyFactory">The proxy factory, used when decoding proxies.</param>
-    /// <param name="proxyInvoker">The proxy invoker to give to <paramref name="serviceProxyFactory"/>.</param>
-    /// <param name="connectionContext">The connection context to give to <paramref name="serviceProxyFactory"/>.
-    /// </param>
-    /// <param name="encodeOptions">The Slice encode options to give to <paramref name="serviceProxyFactory"/>.</param>
+    /// <param name="activator">The activator.</param>
+    /// <param name="serviceProxyFactory">The service proxy factory.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
     /// length.</param>
@@ -143,10 +122,7 @@ public ref partial struct SliceDecoder
         ReadOnlyMemory<byte> buffer,
         SliceEncoding encoding,
         IActivator? activator = null,
-        ServiceProxyFactory? serviceProxyFactory = null,
-        IInvoker? proxyInvoker = null,
-        IConnectionContext? connectionContext = null,
-        SliceEncodeOptions? encodeOptions = null,
+        Func<ServiceAddress, ServiceProxy>? serviceProxyFactory = null,
         int maxCollectionAllocation = -1,
         int maxDepth = 3)
         : this(
@@ -154,9 +130,6 @@ public ref partial struct SliceDecoder
             encoding,
             activator,
             serviceProxyFactory,
-            proxyInvoker,
-            connectionContext,
-            encodeOptions,
             maxCollectionAllocation,
             maxDepth)
     {
@@ -890,49 +863,19 @@ public ref partial struct SliceDecoder
 
     private TProxy CreateProxy<TProxy>(ServiceAddress serviceAddress) where TProxy : struct, IProxy
     {
-        ServiceProxy serviceProxy = (_serviceProxyFactory ?? CreateServiceProxy).Invoke(
-            serviceAddress,
-            _proxyInvoker,
-            _connectionContext,
-            _encodeFeature);
-
-        return new TProxy
+        if (_serviceProxyFactory is null)
         {
-            EncodeOptions = serviceProxy.EncodeOptions,
-            Invoker = serviceProxy.Invoker,
-            ServiceAddress = serviceProxy.ServiceAddress
-        };
-
-        static ServiceProxy CreateServiceProxy(
-            ServiceAddress serviceAddress,
-            IInvoker? proxyInvoker,
-            IConnectionContext? connectionContext,
-            SliceEncodeOptions? encodeOptions)
+            return new TProxy { ServiceAddress = serviceAddress };
+        }
+        else
         {
-            if (serviceAddress.Protocol is null)
+            ServiceProxy serviceProxy = _serviceProxyFactory(serviceAddress);
+            return new TProxy
             {
-                // relative proxy
-                if (connectionContext is null)
-                {
-                    throw new InvalidOperationException("cannot decode a relative proxy without a connection context");
-                }
-
-                return new ServiceProxy
-                {
-                    EncodeOptions = encodeOptions,
-                    Invoker = connectionContext.Invoker,
-                    ServiceAddress = new(connectionContext.Protocol) { Path = serviceAddress.Path },
-                };
-            }
-            else
-            {
-                return new ServiceProxy
-                {
-                    EncodeOptions = encodeOptions,
-                    Invoker = proxyInvoker,
-                    ServiceAddress = serviceAddress
-                };
-            }
+                EncodeOptions = serviceProxy.EncodeOptions,
+                Invoker = serviceProxy.Invoker,
+                ServiceAddress = serviceProxy.ServiceAddress
+            };
         }
     }
 
