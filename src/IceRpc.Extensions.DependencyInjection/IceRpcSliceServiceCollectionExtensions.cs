@@ -23,6 +23,8 @@ public static class IceRpcSliceServiceCollectionExtensions
             .AddSingleton<TProxy>(provider =>
                 new TProxyImplementation
                 {
+                    // SliceEncodeOptions is not an IOption-compatible class (and can't be): that's why we look it up
+                    // directly.
                     EncodeOptions = provider.GetService<SliceEncodeOptions>(),
                     Invoker = provider.GetRequiredService<IInvoker>(),
                     ServiceAddress = ServiceAddress.Parse(serviceAddressString),

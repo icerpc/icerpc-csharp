@@ -988,7 +988,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         DispatchException dispatchException,
                         IncomingRequest request)
                     {
-                        SliceEncodeOptions encodeOptions = request.Features.Get<SliceEncodeOptions>() ??
+                        SliceEncodeOptions encodeOptions = request.Features.Get<ISliceFeature>()?.EncodeOptions ??
                             SliceEncodeOptions.Default;
 
                         var pipe = new Pipe(encodeOptions.PipeOptions);

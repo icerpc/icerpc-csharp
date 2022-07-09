@@ -20,7 +20,7 @@ public sealed class IncomingResponse : IncomingFrame
 
     /// <summary>Constructs an incoming response with empty fields.</summary>
     /// <param name="request">The corresponding outgoing request.</param>
-    /// <param name="connectionContext">The connection that received this response.</param>
+    /// <param name="connectionContext">The connection context of the connection that received this response.</param>
     public IncomingResponse(OutgoingRequest request, IConnectionContext connectionContext)
         : this(
             request,
@@ -32,7 +32,7 @@ public sealed class IncomingResponse : IncomingFrame
 
     /// <summary>Constructs an incoming response.</summary>
     /// <param name="request">The corresponding outgoing request.</param>
-    /// <param name="connectionContext">The connection that received this response.</param>
+    /// <param name="connectionContext">The connection context of the connection that received this response.</param>
     /// <param name="fields">The fields of this response.</param>
     public IncomingResponse(
         OutgoingRequest request,
@@ -44,7 +44,7 @@ public sealed class IncomingResponse : IncomingFrame
 
     /// <summary>Constructs an incoming response with a pipe reader holding the memory for the fields.</summary>
     /// <param name="request">The corresponding outgoing request.</param>
-    /// <param name="connectionContext">The connection that received this response.</param>
+    /// <param name="connectionContext">The connection context of the connection that received this response.</param>
     /// <param name="fields">The fields of this response.</param>
     /// <param name="fieldsPipeReader">The pipe reader that holds the memory of the fields. Use <c>null</c> when the
     /// fields memory is not held by a pipe reader.</param>

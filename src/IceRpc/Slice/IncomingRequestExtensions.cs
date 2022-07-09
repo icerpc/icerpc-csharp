@@ -58,7 +58,7 @@ public static class IncomingRequestExtensions
 
         PipeReader CreateExceptionPayload()
         {
-            SliceEncodeOptions encodeOptions = request.Features.Get<SliceEncodeOptions>() ??
+            SliceEncodeOptions encodeOptions = request.Features.Get<ISliceFeature>()?.EncodeOptions ??
                 SliceEncodeOptions.Default;
 
             var pipe = new Pipe(encodeOptions.PipeOptions);

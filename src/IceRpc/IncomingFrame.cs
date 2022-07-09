@@ -19,6 +19,6 @@ public class IncomingFrame
     public Protocol Protocol => ConnectionContext.Protocol;
 
     /// <summary>Constructs an incoming frame.</summary>
-    /// <param name="connectionContext">The connection that received this frame.</param>
+    /// <param name="connectionContext">The connection context of the connection that received this frame.</param>
     protected IncomingFrame(IConnectionContext connectionContext) => ConnectionContext = connectionContext;
 }
