@@ -138,6 +138,39 @@ public sealed class ProtocolConnectionTests
         });
     }
 
+    /// <summary>Verifies that disposing the connection executes the OnAbort callback.</summary>
+    [Test]
+    public async Task Connection_abort_callback([Values("ice", "icerpc")] string protocol)
+    {
+        // Arrange
+        var onAbortCalled = new TaskCompletionSource<object?>();
+        var protocolObj = Protocol.FromString(protocol);
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(protocolObj)
+            .BuildServiceProvider(validateScopes: true);
+
+        IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
+
+        // Initialize the connection.
+        await sut.ConnectAsync();
+        sut.Server.OnAbort(exception => onAbortCalled.SetException(exception));
+
+        try
+        {
+            await sut.Client.ShutdownAsync("Triggering server abort", new CancellationToken(true));
+        }
+        catch (OperationCanceledException)
+        {
+        }
+
+        // Act
+        await sut.Client.DisposeAsync();
+
+        // Assert
+        Assert.That(async () => await onAbortCalled.Task, Throws.InstanceOf<ConnectionLostException>());
+    }
+
     /// <summary>Verifies that disposing a server connection cancels pending dispatches, peer invocations will fail with
     /// <see cref="DispatchException"/> or <see cref="IceRpcProtocolStreamException"/>.</summary>
     [Test, TestCaseSource(nameof(_protocols))]
@@ -171,7 +204,7 @@ public sealed class ProtocolConnectionTests
         if (protocol == Protocol.Ice)
         {
             Assert.That(
-                async() =>
+                async () =>
                 {
                     IncomingResponse response = await invokeTask;
                     throw await response.DecodeFailureAsync(request);
