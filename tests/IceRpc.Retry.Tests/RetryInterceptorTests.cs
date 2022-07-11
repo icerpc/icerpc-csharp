@@ -317,13 +317,17 @@ public sealed class RetryInterceptorTests
             });
         });
 
-        var serviceAddress = new ServiceAddress(connection1.Protocol) { Path = "/path" };
-        serviceAddress.Endpoint = connection1.Endpoint;
-        serviceAddress.AltEndpoints = new List<Endpoint>
+        var serviceAddress = new ServiceAddress(connection1.Protocol)
         {
-            connection2.Endpoint,
-            connection3.Endpoint
-        }.ToImmutableList();
+            Path = "/path",
+            Endpoint = connection1.Endpoint,
+            AltEndpoints = new List<Endpoint>
+            {
+                connection2.Endpoint,
+                connection3.Endpoint
+            }.ToImmutableList()
+        };
+
         var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = 3 });
 
         var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
