@@ -22,7 +22,7 @@ public interface ISliceFeature
     int MaxDepth { get; }
 
     /// <summary>Gets the maximum size of a Slice payload segment, in bytes. A Slice payload segment corresponds to the
-    ///  encoded arguments of an operation, the encoded return values of an operation, or a portion of a stream of
+    /// encoded arguments of an operation, the encoded return values of an operation, or a portion of a stream of
     /// variable-size elements.</summary>
     int MaxSegmentSize { get; }
 
