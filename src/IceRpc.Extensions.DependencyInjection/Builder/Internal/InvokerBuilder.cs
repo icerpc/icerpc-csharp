@@ -8,12 +8,15 @@ internal class InvokerBuilder : IInvokerBuilder
     /// <inheritdoc/>
     public IServiceProvider ServiceProvider { get; }
 
+    private bool _isIntoCalled;
+
     private readonly Pipeline _pipeline = new();
 
     /// <inheritdoc/>
     public IInvokerBuilder Into(IInvoker invoker)
     {
         _pipeline.Into(invoker);
+        _isIntoCalled = true;
         return this;
     }
 
@@ -26,5 +29,12 @@ internal class InvokerBuilder : IInvokerBuilder
 
     internal InvokerBuilder(IServiceProvider provider) => ServiceProvider = provider;
 
-    internal IInvoker Build() => _pipeline;
+    internal IInvoker Build()
+    {
+        if (!_isIntoCalled)
+        {
+            throw new InvalidOperationException($"{nameof(Into)} not called on invoker builder");
+        }
+        return _pipeline;
+    }
 }

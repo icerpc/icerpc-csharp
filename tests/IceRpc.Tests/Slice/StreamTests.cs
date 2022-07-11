@@ -26,7 +26,7 @@ public class StreamTests
         // Act
         PipeReader payload = SliceEncoding.Slice2.CreatePayloadStream(
             GetDataAsync(size),
-            encodeFeature: null,
+            encodeOptions: null,
             (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value),
             useSegments: false);
 
@@ -90,7 +90,7 @@ public class StreamTests
         // Act
         PipeReader payload = SliceEncoding.Slice2.CreatePayloadStream(
             GetDataAsync(size),
-            encodeFeature: null,
+            encodeOptions: null,
             (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
             useSegments: true);
 
@@ -149,7 +149,7 @@ public class StreamTests
     {
         // Arrange
         var pipe = new Pipe();
-        var request = new IncomingRequest(Protocol.IceRpc)
+        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
         {
             Payload = pipe.Reader
         };
@@ -159,10 +159,7 @@ public class StreamTests
         // Act
         IAsyncEnumerable<int> decoded = request.ToAsyncEnumerable(
             SliceEncoding.Slice2,
-            decodeFeature: null,
-            defaultActivator: null,
-            defaultInvoker: InvalidOperationInvoker.Instance,
-            proxyEncodeFeature: null,
+            SliceFeature.Default,
             (ref SliceDecoder decoder) => decoder.DecodeInt32(),
             elementSize: 4);
 
@@ -211,7 +208,7 @@ public class StreamTests
     {
         // Arrange
         var pipe = new Pipe();
-        var request = new IncomingRequest(Protocol.IceRpc)
+        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
         {
             Payload = pipe.Reader
         };
@@ -221,10 +218,7 @@ public class StreamTests
         // Act
         IAsyncEnumerable<string> decoded = request.ToAsyncEnumerable(
             SliceEncoding.Slice2,
-            decodeFeature: null,
             defaultActivator: null,
-            defaultInvoker: InvalidOperationInvoker.Instance,
-            proxyEncodeFeature: null,
             (ref SliceDecoder decoder) => decoder.DecodeString());
 
         // Assert

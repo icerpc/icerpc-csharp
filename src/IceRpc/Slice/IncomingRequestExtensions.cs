@@ -58,10 +58,10 @@ public static class IncomingRequestExtensions
 
         PipeReader CreateExceptionPayload()
         {
-            ISliceEncodeFeature encodeFeature = request.Features.Get<ISliceEncodeFeature>() ??
-                SliceEncodeFeature.Default;
+            SliceEncodeOptions encodeOptions = request.Features.Get<ISliceFeature>()?.EncodeOptions ??
+                SliceEncodeOptions.Default;
 
-            var pipe = new Pipe(encodeFeature.PipeOptions);
+            var pipe = new Pipe(encodeOptions.PipeOptions);
 
             var encoder = new SliceEncoder(pipe.Writer, encoding);
 
@@ -87,7 +87,7 @@ public static class IncomingRequestExtensions
     /// <typeparam name="T">The type of the request parameters.</typeparam>
     /// <param name="request">The incoming request.</param>
     /// <param name="encoding">The encoding of the request payload.</param>
-    /// <param name="defaultActivator">The optional default activator.</param>
+    /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
     /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>The request arguments.</returns>
@@ -96,15 +96,18 @@ public static class IncomingRequestExtensions
         SliceEncoding encoding,
         IActivator? defaultActivator,
         DecodeFunc<T> decodeFunc,
-        CancellationToken cancel = default) =>
-        request.DecodeValueAsync(
+        CancellationToken cancel = default)
+    {
+        ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
+
+        return request.DecodeValueAsync(
             encoding,
-            request.Features.Get<ISliceDecodeFeature>(),
-            defaultActivator,
-            defaultInvoker: InvalidOperationInvoker.Instance,
-            proxyEncodeFeature: request.Features.Get<ISliceEncodeFeature>(),
+            feature,
+            feature.Activator ?? defaultActivator,
+            feature.ServiceProxyFactory ?? CreateServiceProxyFactory(request, feature),
             decodeFunc,
             cancel);
+    }
 
     /// <summary>Verifies that a request payload carries no argument or only unknown tagged arguments.</summary>
     /// <param name="request">The incoming request.</param>
@@ -117,7 +120,7 @@ public static class IncomingRequestExtensions
         CancellationToken cancel = default) =>
         request.DecodeVoidAsync(
             encoding,
-            request.Features.Get<ISliceDecodeFeature>(),
+            request.Features.Get<ISliceFeature>() ?? SliceFeature.Default,
             cancel);
 
     /// <summary>Creates an async enumerable over the payload reader of an incoming request to decode fixed size
@@ -125,22 +128,17 @@ public static class IncomingRequestExtensions
     /// <typeparam name="T">The stream element type.</typeparam>
     /// <param name="request">The incoming request.</param>
     /// <param name="encoding">The encoding of the request payload.</param>
-    /// <param name="defaultActivator">The optional default activator.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
     /// <param name="elementSize">The size in bytes of the streamed elements.</param>
     /// <returns>The async enumerable to decode and return the streamed members.</returns>
     public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
         this IncomingRequest request,
         SliceEncoding encoding,
-        IActivator? defaultActivator,
         DecodeFunc<T> decodeFunc,
         int elementSize) =>
         request.ToAsyncEnumerable(
             encoding,
-            request.Features.Get<ISliceDecodeFeature>(),
-            defaultActivator,
-            defaultInvoker: InvalidOperationInvoker.Instance,
-            proxyEncodeFeature: request.Features.Get<ISliceEncodeFeature>(),
+            request.Features.Get<ISliceFeature>() ?? SliceFeature.Default,
             decodeFunc,
             elementSize);
 
@@ -149,19 +147,41 @@ public static class IncomingRequestExtensions
     /// <typeparam name="T">The stream element type.</typeparam>
     /// <param name="request">The incoming request.</param>
     /// <param name="encoding">The encoding of the request payload.</param>
-    /// <param name="defaultActivator">The optional default activator.</param>
+    /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
     /// <returns>The async enumerable to decode and return the streamed members.</returns>
     public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
         this IncomingRequest request,
         SliceEncoding encoding,
         IActivator? defaultActivator,
-        DecodeFunc<T> decodeFunc) =>
-        request.ToAsyncEnumerable(
+        DecodeFunc<T> decodeFunc)
+    {
+        ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
+
+        return request.ToAsyncEnumerable(
             encoding,
-            request.Features.Get<ISliceDecodeFeature>(),
-            defaultActivator,
-            defaultInvoker: InvalidOperationInvoker.Instance,
-            proxyEncodeFeature: request.Features.Get<ISliceEncodeFeature>(),
+            feature,
+            feature.Activator ?? defaultActivator,
+            feature.ServiceProxyFactory ?? CreateServiceProxyFactory(request, feature),
             decodeFunc);
+    }
+
+    private static Func<ServiceAddress, ServiceProxy> CreateServiceProxyFactory(
+        IncomingRequest request,
+        ISliceFeature feature) =>
+        serviceAddress => serviceAddress.Protocol is null ?
+            // relative service address
+            new ServiceProxy
+            {
+                EncodeOptions = feature.EncodeOptions,
+                Invoker = request.ConnectionContext.Invoker,
+                ServiceAddress = new(request.ConnectionContext.Protocol) { Path = serviceAddress.Path },
+            }
+            :
+            new ServiceProxy
+            {
+                EncodeOptions = feature.EncodeOptions,
+                Invoker = null,
+                ServiceAddress = serviceAddress
+            };
 }

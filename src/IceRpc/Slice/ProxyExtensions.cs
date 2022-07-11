@@ -11,16 +11,16 @@ namespace IceRpc.Slice;
 /// <typeparam name="T">The type of the return value to read.</typeparam>
 /// <param name="response">The incoming response.</param>
 /// <param name="request">The outgoing request.</param>
-/// <param name="proxyInvoker">The invoker of the proxy that sent the request.</param>
-/// <param name="encodeFeature">The encode feature of the proxy struct that sent the request.</param>
+/// <param name="sender">The invoker of the proxy that sent the request.</param>
+/// <param name="encodeOptions">The encode options of the proxy that sent the request.</param>
 /// <param name="cancel">The cancellation token.</param>
 /// <returns>A value task that contains the return value or a <see cref="RemoteException"/> when the response
 /// carries a failure.</returns>
 public delegate ValueTask<T> ResponseDecodeFunc<T>(
     IncomingResponse response,
     OutgoingRequest request,
-    IInvoker proxyInvoker,
-    ISliceEncodeFeature? encodeFeature,
+    IInvoker sender,
+    SliceEncodeOptions? encodeOptions,
     CancellationToken cancel);
 
 /// <summary>Provides extension methods for interface <see cref="IProxy"/> and generated proxy structs that implement
@@ -74,6 +74,11 @@ public static class ProxyExtensions
         bool idempotent = false,
         CancellationToken cancel = default) where TProxy : struct, IProxy
     {
+        if (proxy.Invoker is not IInvoker invoker)
+        {
+            throw new InvalidOperationException("a proxy with a null invoker cannot send requests");
+        }
+
         if (payload is null && payloadStream is not null)
         {
             throw new ArgumentNullException(
@@ -94,7 +99,7 @@ public static class ProxyExtensions
         try
         {
             // We perform as much work as possible in a non async method to throw exceptions synchronously.
-            return ReadResponseAsync(proxy.Invoker.InvokeAsync(request, cancel), request);
+            return ReadResponseAsync(invoker.InvokeAsync(request, cancel), request);
         }
         catch (Exception exception)
         {
@@ -110,7 +115,7 @@ public static class ProxyExtensions
             try
             {
                 IncomingResponse response = await responseTask.ConfigureAwait(false);
-                return await responseDecodeFunc(response, request, proxy.Invoker, proxy.EncodeFeature, cancel)
+                return await responseDecodeFunc(response, request, invoker, proxy.EncodeOptions, cancel)
                     .ConfigureAwait(false);
             }
             catch (Exception ex)
@@ -154,6 +159,11 @@ public static class ProxyExtensions
         bool oneway = false,
         CancellationToken cancel = default) where TProxy : struct, IProxy
     {
+        if (proxy.Invoker is not IInvoker invoker)
+        {
+            throw new InvalidOperationException("a proxy with a null invoker cannot send requests");
+        }
+
         if (payload is null && payloadStream is not null)
         {
             throw new ArgumentNullException(
@@ -175,7 +185,7 @@ public static class ProxyExtensions
         try
         {
             // We perform as much work as possible in a non async method to throw exceptions synchronously.
-            return ReadResponseAsync(proxy.Invoker.InvokeAsync(request, cancel), request);
+            return ReadResponseAsync(invoker.InvokeAsync(request, cancel), request);
         }
         catch (Exception exception)
         {
@@ -195,9 +205,9 @@ public static class ProxyExtensions
                 await response.DecodeVoidReturnValueAsync(
                     request,
                     encoding,
+                    invoker,
+                    proxy.EncodeOptions,
                     defaultActivator,
-                    proxy.Invoker,
-                    proxy.EncodeFeature,
                     cancel).ConfigureAwait(false);
             }
             catch (Exception ex)
@@ -217,5 +227,5 @@ public static class ProxyExtensions
     /// <param name="proxy">The source Proxy.</param>
     /// <returns>A new TProxy instance.</returns>
     public static TProxy ToProxy<TProxy>(this IProxy proxy) where TProxy : struct, IProxy =>
-        new() { EncodeFeature = proxy.EncodeFeature, Invoker = proxy.Invoker, ServiceAddress = proxy.ServiceAddress };
+        new() { EncodeOptions = proxy.EncodeOptions, Invoker = proxy.Invoker, ServiceAddress = proxy.ServiceAddress };
 }

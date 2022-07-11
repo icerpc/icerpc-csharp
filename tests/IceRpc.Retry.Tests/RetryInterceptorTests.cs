@@ -36,7 +36,7 @@ public sealed class RetryInterceptorTests
             }
             else
             {
-                return Task.FromResult(new IncomingResponse(request));
+                return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
             }
         });
 
@@ -95,7 +95,7 @@ public sealed class RetryInterceptorTests
         var invoker = new InlineInvoker((request, cancel) =>
         {
             attempts++;
-            return Task.FromResult(new IncomingResponse(request)
+            return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)
             {
                 ResultType = ResultType.Failure
             });
@@ -127,6 +127,7 @@ public sealed class RetryInterceptorTests
             {
                 return Task.FromResult(new IncomingResponse(
                     request,
+                    FakeConnectionContext.IceRpc,
                     new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
                     {
                         [ResponseFieldKey.RetryPolicy] = EncodeRetryPolicy(RetryPolicy.Immediately)
@@ -138,7 +139,7 @@ public sealed class RetryInterceptorTests
             }
             else
             {
-                return Task.FromResult(new IncomingResponse(request));
+                return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
             }
         });
 
@@ -166,6 +167,7 @@ public sealed class RetryInterceptorTests
             {
                 return Task.FromResult(new IncomingResponse(
                     request,
+                    FakeConnectionContext.IceRpc,
                     new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
                     {
                         [ResponseFieldKey.RetryPolicy] = EncodeRetryPolicy(RetryPolicy.AfterDelay(delay))
@@ -176,7 +178,7 @@ public sealed class RetryInterceptorTests
             }
             else
             {
-                return Task.FromResult(new IncomingResponse(request));
+                return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
             }
         });
 
@@ -234,7 +236,7 @@ public sealed class RetryInterceptorTests
             }
             else
             {
-                return Task.FromResult(new IncomingResponse(request));
+                return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
             }
         });
 
@@ -262,7 +264,7 @@ public sealed class RetryInterceptorTests
             }
             else
             {
-                return Task.FromResult(new IncomingResponse(request));
+                return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
             }
         });
 
@@ -308,6 +310,7 @@ public sealed class RetryInterceptorTests
 
             return Task.FromResult(new IncomingResponse(
                 request,
+                FakeConnectionContext.IceRpc,
                 new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
                 {
                     [ResponseFieldKey.RetryPolicy] = EncodeRetryPolicy(RetryPolicy.OtherReplica)
@@ -317,13 +320,17 @@ public sealed class RetryInterceptorTests
             });
         });
 
-        var serviceAddress = new ServiceAddress(connection1.Protocol) { Path = "/path" };
-        serviceAddress.Endpoint = connection1.Endpoint;
-        serviceAddress.AltEndpoints = new List<Endpoint>
+        var serviceAddress = new ServiceAddress(connection1.Protocol)
         {
-            connection2.Endpoint,
-            connection3.Endpoint
-        }.ToImmutableList();
+            Path = "/path",
+            Endpoint = connection1.Endpoint,
+            AltEndpoints = new List<Endpoint>
+            {
+                connection2.Endpoint,
+                connection3.Endpoint
+            }.ToImmutableList()
+        };
+
         var sut = new RetryInterceptor(invoker, new RetryOptions { MaxAttempts = 3 });
 
         var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };

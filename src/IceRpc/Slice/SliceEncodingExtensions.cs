@@ -27,20 +27,20 @@ public static class SliceEncodingExtensions
     /// <typeparam name="T">The stream element type.</typeparam>
     /// <param name="encoding">The encoding of the payload.</param>
     /// <param name="asyncEnumerable">The async enumerable to encode and stream.</param>
-    /// <param name="encodeFeature">The Slice encode feature.</param>
+    /// <param name="encodeOptions">The Slice encode options.</param>
     /// <param name="encodeAction">The action used to encode the streamed member.</param>
     /// <param name="useSegments"><c>true</c> if we are encoding a stream elements in segments this is the case
     /// when the streamed elements are of variable size; otherwise, <c>false</c>.</param>
     public static PipeReader CreatePayloadStream<T>(
         this SliceEncoding encoding,
         IAsyncEnumerable<T> asyncEnumerable,
-        ISliceEncodeFeature? encodeFeature,
+        SliceEncodeOptions? encodeOptions,
         EncodeAction<T> encodeAction,
         bool useSegments) =>
         new PayloadStreamPipeReader<T>(
             encoding,
             asyncEnumerable,
-            encodeFeature,
+            encodeOptions,
             encodeAction,
             useSegments);
 
@@ -165,7 +165,7 @@ public static class SliceEncodingExtensions
         internal PayloadStreamPipeReader(
             SliceEncoding encoding,
             IAsyncEnumerable<T> asyncEnumerable,
-            ISliceEncodeFeature? encodeFeature,
+            SliceEncodeOptions? encodeOptions,
             EncodeAction<T> encodeAction,
             bool useSegments)
         {
@@ -174,10 +174,10 @@ public static class SliceEncodingExtensions
                 throw new NotSupportedException("streaming is not supported with Slice1");
             }
 
-            encodeFeature ??= SliceEncodeFeature.Default;
+            encodeOptions ??= SliceEncodeOptions.Default;
 
-            _pipe = new Pipe(encodeFeature.PipeOptions);
-            _streamFlushTreshold = encodeFeature.StreamFlushThreshold;
+            _pipe = new Pipe(encodeOptions.PipeOptions);
+            _streamFlushTreshold = encodeOptions.StreamFlushThreshold;
             _encodeAction = encodeAction;
             _encoding = encoding;
             _useSegments = useSegments;

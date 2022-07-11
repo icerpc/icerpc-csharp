@@ -185,9 +185,10 @@ public class ServiceAddressTests
     {
         // Arrange
         var serviceAddress = ServiceAddress.Parse("ice://localhost/hello");
+        var myParams = new Dictionary<string, string> { ["adapter-id"] = "" }.ToImmutableDictionary();
 
         // Act/Assert
-        Assert.That(() => serviceAddress.Params = serviceAddress.Params.SetItem("adapter-id", ""), Throws.ArgumentException);
+        Assert.That(() => serviceAddress = serviceAddress with { Params = myParams }, Throws.ArgumentException);
     }
 
     /// <summary>Verifies that the service address endpoint cannot be set when the service address contains any params.</summary>
@@ -202,7 +203,10 @@ public class ServiceAddressTests
 
         // Act/Assert
         Assert.That(
-            () => serviceAddress.Endpoint = new Endpoint(serviceAddress.Protocol!) { Host = "localhost" },
+            () => serviceAddress = serviceAddress with
+            {
+                Endpoint = new Endpoint(serviceAddress.Protocol!) { Host = "localhost" }
+            },
             Throws.TypeOf<InvalidOperationException>());
     }
 
@@ -214,7 +218,7 @@ public class ServiceAddressTests
         Protocol? protocol = protocolName.Length > 0 ? Protocol.FromString(protocolName) : null;
         var serviceAddress = new ServiceAddress(protocol);
 
-        Assert.That(() => serviceAddress.Fragment = "bar", Throws.TypeOf<InvalidOperationException>());
+        Assert.That(() => serviceAddress = serviceAddress with { Fragment = "bar" }, Throws.TypeOf<InvalidOperationException>());
 
         if (protocol is not null)
         {
@@ -227,9 +231,10 @@ public class ServiceAddressTests
     public void Cannot_set_params_on_a_service_address_with_endpoints()
     {
         var serviceAddress = ServiceAddress.Parse("icerpc://localhost/hello");
+        var myParams = new Dictionary<string, string> { ["name"] = "value" }.ToImmutableDictionary();
 
         Assert.That(
-            () => serviceAddress.Params = serviceAddress.Params.Add("name", "value"),
+            () => serviceAddress = serviceAddress with { Params = myParams },
             Throws.TypeOf<InvalidOperationException>());
     }
 
@@ -306,17 +311,20 @@ public class ServiceAddressTests
         Assert.That(serviceAddress.AltEndpoints, Is.EqualTo(altEndpoints));
     }
 
-    /// <summary>Verifies that the proxy invoker of the <see cref="ISliceDecodeFeature"/> is used for proxies
-    /// received over an incoming connection.</summary>
+    /// <summary>Verifies that the proxy invoker for proxies decoded from incoming requests can be set using the Slice
+    /// feature.</summary>
     // TODO: move this test to Slice
     [Test]
-    public async Task Proxy_invoker_is_set_to_the_slice_decode_options_feature_service_address_invoker()
+    public async Task Proxy_invoker_is_set_through_slice_feature()
     {
         var service = new SendProxyTest();
         var pipeline = new Pipeline();
         var router = new Router();
         router.Map<ISendProxyTest>(service);
-        router.UseFeature<ISliceDecodeFeature>(new SliceDecodeFeature { ProxyInvoker = pipeline });
+        router.UseFeature<ISliceFeature>(
+            new SliceFeature(serviceProxyFactory: serviceAddress =>
+                new ServiceProxy { ServiceAddress = serviceAddress, Invoker = pipeline }));
+
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(router)
             .BuildServiceProvider(validateScopes: true);
@@ -330,10 +338,9 @@ public class ServiceAddressTests
         Assert.That(service.ReceivedProxy.Value.Invoker, Is.EqualTo(pipeline));
     }
 
-    /// <summary>Verifies that a proxy received over an incoming connection uses the default invoker.</summary>
-    // TODO: move this test to Slice
+    /// <summary>Verifies that a proxy received over an incoming connection has a null invoker by default.</summary>
     [Test]
-    public async Task Proxy_received_over_an_incoming_connection_uses_the_default_invoker()
+    public async Task Proxy_received_over_an_incoming_connection_has_null_invoker()
     {
         var service = new SendProxyTest();
         await using ServiceProvider provider = new ServiceCollection()
@@ -346,7 +353,7 @@ public class ServiceAddressTests
         await proxy.SendProxyAsync(proxy);
 
         Assert.That(service.ReceivedProxy, Is.Not.Null);
-        Assert.That(service.ReceivedProxy.Value.Invoker, Is.EqualTo(InvalidOperationInvoker.Instance));
+        Assert.That(service.ReceivedProxy.Value.Invoker, Is.Null);
     }
 
     /// <summary>Verifies that a service address received over an outgoing connection inherits the callers invoker.</summary>
@@ -377,7 +384,7 @@ public class ServiceAddressTests
         var endpoint2 = ServiceAddress.Parse("icerpc://host.zeroc.com/hello").Endpoint!.Value;
         var altEndpoints = new Endpoint[] { endpoint1, endpoint2 }.ToImmutableList();
 
-        Assert.That(() => serviceAddress.AltEndpoints = altEndpoints, Throws.ArgumentException);
+        Assert.That(() => serviceAddress = serviceAddress with { AltEndpoints = altEndpoints }, Throws.ArgumentException);
 
         // Ensure the alt endpoints weren't updated
         Assert.That(serviceAddress.AltEndpoints, Is.Empty);
@@ -392,7 +399,7 @@ public class ServiceAddressTests
         var endpoint = serviceAddress.Endpoint;
         var newEndpoint = ServiceAddress.Parse("icerpc://host.zeroc.com/hello").Endpoint!.Value;
 
-        Assert.That(() => serviceAddress.Endpoint = newEndpoint, Throws.ArgumentException);
+        Assert.That(() => serviceAddress = serviceAddress with { Endpoint = newEndpoint }, Throws.ArgumentException);
 
         // Ensure the endpoint wasn't updated
         Assert.That(serviceAddress.Endpoint, Is.EqualTo(endpoint));
@@ -413,7 +420,7 @@ public class ServiceAddressTests
     private class ReceiveProxyTest : Service, IReceiveProxyTest
     {
         public ValueTask<ReceiveProxyTestProxy> ReceiveProxyAsync(IFeatureCollection features, CancellationToken cancel) =>
-            new(new ReceiveProxyTestProxy("/hello"));
+            new(ReceiveProxyTestProxy.Parse("icerpc:/hello"));
     }
 
     private class SendProxyTest : Service, ISendProxyTest

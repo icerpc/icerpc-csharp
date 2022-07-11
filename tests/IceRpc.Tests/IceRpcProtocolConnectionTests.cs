@@ -87,7 +87,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
-        var exception = await response.DecodeFailureAsync(request) as DispatchException;
+        var exception = await response.DecodeFailureAsync(request, sut.Client) as DispatchException;
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception!.ErrorCode, Is.EqualTo(errorCode));
     }

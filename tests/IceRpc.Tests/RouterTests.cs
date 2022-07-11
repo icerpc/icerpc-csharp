@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice;
+using IceRpc.Tests.Common;
 using NUnit.Framework;
 
 namespace IceRpc.Tests;
@@ -72,7 +73,7 @@ public class RouterTests
 
         // Act
         _ = await router.DispatchAsync(
-            new IncomingRequest(Protocol.IceRpc)
+            new IncomingRequest(FakeConnectionContext.IceRpc)
             {
                 Path = path
             });
@@ -113,7 +114,7 @@ public class RouterTests
 
         // Act
         _ = await router.DispatchAsync(
-            new IncomingRequest(Protocol.IceRpc)
+            new IncomingRequest(FakeConnectionContext.IceRpc)
             {
                 Path = path
             });
@@ -140,7 +141,7 @@ public class RouterTests
         var router = new Router();
 
         DispatchException ex = Assert.ThrowsAsync<DispatchException>(
-            async () => await router.DispatchAsync(new IncomingRequest(Protocol.IceRpc)));
+            async () => await router.DispatchAsync(new IncomingRequest(FakeConnectionContext.IceRpc)));
 
         Assert.That(ex.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
     }
@@ -180,7 +181,7 @@ public class RouterTests
                 }));
 
         // Act
-        _ = await router.DispatchAsync(new IncomingRequest(Protocol.IceRpc));
+        _ = await router.DispatchAsync(new IncomingRequest(FakeConnectionContext.IceRpc));
 
         // Assert
         Assert.That(calls, Is.EqualTo(expectedCalls));
@@ -256,7 +257,7 @@ public class RouterTests
 
         // Act
         _ = await router.DispatchAsync(
-            new IncomingRequest(Protocol.IceRpc)
+            new IncomingRequest(FakeConnectionContext.IceRpc)
             {
                 Path = path
             });
@@ -275,7 +276,7 @@ public class RouterTests
         var router = new Router();
         router.Mount("/", dispatcher);
 
-        _ = await router.DispatchAsync(new IncomingRequest(Protocol.IceRpc));
+        _ = await router.DispatchAsync(new IncomingRequest(FakeConnectionContext.IceRpc));
         return router;
     }
 }

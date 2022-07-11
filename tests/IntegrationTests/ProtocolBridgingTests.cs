@@ -23,11 +23,8 @@ public sealed class ProtocolBridgingTests
         Endpoint forwarderEndpoint = $"{forwarderProtocol}://colochost1";
         Endpoint targetEndpoint = $"{targetProtocol}://colochost2";
 
-        var forwarderServiceProxy = ProtocolBridgingTestProxy.Parse($"{forwarderProtocol}:/forward");
-        forwarderServiceProxy.ServiceAddress.Endpoint = forwarderEndpoint;
-
-        var targetServiceProxy = ProtocolBridgingTestProxy.Parse($"{targetProtocol}:/target");
-        targetServiceProxy.ServiceAddress.Endpoint = targetEndpoint;
+        var forwarderServiceProxy = ProtocolBridgingTestProxy.Parse($"{forwarderEndpoint}forward");
+        var targetServiceProxy = ProtocolBridgingTestProxy.Parse($"{targetEndpoint}target");
 
         var targetService = new ProtocolBridgingTest(targetEndpoint);
 
@@ -183,6 +180,7 @@ public sealed class ProtocolBridgingTests
             {
                 RemoteException remoteException = await incomingResponse.DecodeFailureAsync(
                     outgoingRequest,
+                    sender: _target.Invoker!,
                     cancel: cancel);
                 remoteException.ConvertToUnhandled = false;
                 throw remoteException;

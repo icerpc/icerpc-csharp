@@ -659,7 +659,7 @@ pub fn encode_operation(
     format!(
         "\
 var pipe_ = new global::System.IO.Pipelines.Pipe(
-    sliceEncodeFeature?.PipeOptions ?? SliceEncodeFeature.Default.PipeOptions);
+    encodeOptions?.PipeOptions ?? SliceEncodeOptions.Default.PipeOptions);
 var encoder_ = new SliceEncoder(pipe_.Writer, {encoding}, {class_format});
 
 {size_placeholder_and_start_position}

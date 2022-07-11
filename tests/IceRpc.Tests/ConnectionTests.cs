@@ -57,7 +57,7 @@ public class ConnectionTests
         IProtocolConnection? serverConnection = null;
         var dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
-            serverConnection = (IProtocolConnection)request.Invoker;
+            serverConnection = (IProtocolConnection)request.ConnectionContext.Invoker;
             start.Release();
             await hold.WaitAsync(cancel);
             return new OutgoingResponse(request);
@@ -87,7 +87,7 @@ public class ConnectionTests
                 async () =>
                 {
                     IncomingResponse response = await invokeTask;
-                    throw await response.DecodeFailureAsync(request);
+                    throw await response.DecodeFailureAsync(request, connection);
                 },
                 Throws.TypeOf<DispatchException>());
         }
@@ -212,7 +212,7 @@ public class ConnectionTests
         IServiceCollection services = new ServiceCollection().AddColocTest(
             new InlineDispatcher((request, cancel) =>
             {
-                serverConnection = (IProtocolConnection)request.Invoker;
+                serverConnection = (IProtocolConnection)request.ConnectionContext.Invoker;
                 return new(new OutgoingResponse(request));
             }),
             Protocol.FromString(protocol));
@@ -258,7 +258,7 @@ public class ConnectionTests
         IServiceCollection services = new ServiceCollection().AddColocTest(
             new InlineDispatcher((request, cancel) =>
             {
-                serverConnection = (IProtocolConnection)request.Invoker;
+                serverConnection = (IProtocolConnection)request.ConnectionContext.Invoker;
                 return new(new OutgoingResponse(request));
             }),
             Protocol.FromString(protocol));
@@ -361,7 +361,7 @@ public class ConnectionTests
         IProtocolConnection? serverConnection = null;
         var dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
-            serverConnection = (IProtocolConnection)request.Invoker;
+            serverConnection = (IProtocolConnection)request.ConnectionContext.Invoker;
             start.Release();
             await hold.WaitAsync(CancellationToken.None);
             return new OutgoingResponse(request);
@@ -420,7 +420,7 @@ public class ConnectionTests
         {
             try
             {
-                serverConnection = (IProtocolConnection)request.Invoker;
+                serverConnection = (IProtocolConnection)request.ConnectionContext.Invoker;
                 start.Release();
                 await hold.WaitAsync(cancel);
                 return new OutgoingResponse(request);
@@ -528,7 +528,7 @@ public class ConnectionTests
         IProtocolConnection? serverConnection = null;
         IDispatcher dispatcher = new InlineDispatcher(async (request, cancel) =>
         {
-            serverConnection = (IProtocolConnection)request.Invoker;
+            serverConnection = (IProtocolConnection)request.ConnectionContext.Invoker;
             start.Release();
             await hold.WaitAsync(cancel);
             return new OutgoingResponse(request);
