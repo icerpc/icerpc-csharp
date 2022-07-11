@@ -121,15 +121,13 @@ public class ServiceAddressTests
                 (serviceAddress, new ServiceAddress(Protocol.IceRpc), false), // Different protocol.
                 // Relative service addresses
                 (
-                    new ServiceAddress() with {
-                    Path = "/foo" },
+                    new ServiceAddress() with { Path = "/foo" },
                     new ServiceAddress() with { Path = "/bar" },
                     false
                 ),
                 // Unsupported protocol.
                 (
-                    new ServiceAddress(
-                    new Uri("foo://host/123")),
+                    new ServiceAddress(new Uri("foo://host/123")),
                     ServiceAddress.Parse("foo://host/123"),
                     true
                 )
@@ -373,9 +371,7 @@ public class ServiceAddressTests
     public void Cannot_set_path_on_unsupported_protocol()
     {
         // Arrange
-        // Can only construct a service address with an unsupported protocol using the URI constructor.
-        var uri = new Uri("foo://localhost:8080");
-        var serviceAddress = new ServiceAddress(uri);
+        var serviceAddress = ServiceAddress.Parse("foo://localhost:8080");
 
         // Act/Assert
         Assert.Throws<InvalidOperationException>(() => serviceAddress = serviceAddress with { Path = "/bar" });
@@ -410,8 +406,7 @@ public class ServiceAddressTests
             Throws.TypeOf<InvalidOperationException>());
     }
 
-    /// <summary>Verifies that a service address can be converted into a string using any of the supported formats.
-    /// </summary>
+    /// <summary>Verifies that a service address can be converted into a string.</summary>
     /// <param name="str">The string used to create the source serviceAddress</param>
     [Test, TestCaseSource(nameof(ServiceAddressToStringSource))]
     public void Convert_a_service_address_to_a_string(string str)
