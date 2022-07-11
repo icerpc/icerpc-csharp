@@ -130,7 +130,19 @@ public class ServiceAddressTests
                     new ServiceAddress(new Uri("foo://host/123")),
                     ServiceAddress.Parse("foo://host/123"),
                     true
-                )
+                ),
+                //  Params (Order does not matter)
+                (
+                    ServiceAddress.Parse("ice://localhost:8080/foo?abc=123&def=456"),
+                    ServiceAddress.Parse("ice://localhost:8080/foo?def=456&abc=123"),
+                    true
+                ),
+                //  AltEndpoints (Order matters)
+                (
+                    ServiceAddress.Parse("ice://localhost:8080/foo?alt-endpoint=localhost:10000,localhost:10101"),
+                    ServiceAddress.Parse("ice://localhost:8080/foo?alt-endpoint=localhost:10101,localhost:10000"),
+                    false
+                ),
             };
         }
     }
@@ -175,10 +187,14 @@ public class ServiceAddressTests
             var serviceAddress = ServiceAddress.Parse("ice://localhost:8080/foo?abc=123#bar");
             ServiceAddress relativeServiceAddress = new ServiceAddress() with { Path = "/foo" };
             ServiceAddress protocolRelativeServiceAddress = new ServiceAddress(Protocol.IceRpc) with { Path = "/foo" };
-            return new (ServiceAddress, string)[] {
-                (serviceAddress, new Uri("ice://localhost:8080/foo?abc=123#bar").ToString()), // OriginalUri set
-                (relativeServiceAddress, new Uri("/foo", UriKind.Relative).ToString()), // Relative service address with no protocol
-                (protocolRelativeServiceAddress, "icerpc:/foo"), // Protocol relative service address
+            return new (ServiceAddress, string)[]
+            {
+                // OriginalUri set
+                (serviceAddress, new Uri("ice://localhost:8080/foo?abc=123#bar").ToString()),
+                // Relative service address with no protocol
+                (relativeServiceAddress, new Uri("/foo", UriKind.Relative).ToString()),
+                // Protocol relative service address
+                (protocolRelativeServiceAddress, "icerpc:/foo"),
             };
         }
     }
@@ -356,12 +372,8 @@ public class ServiceAddressTests
     public void Cannot_clear_endpoint_when_alt_endpoints_is_not_empty()
     {
         // Arrange
-        // Creating a proxy with an endpoint.
-        var serviceAddress = ServiceAddress.Parse("icerpc://localhost:8080/foo");
-
-        // Constructing alternate endpoints.
-        var altEndpoints = ImmutableList.Create(Endpoint.FromString("icerpc://localhost:10000?transport=foobar"));
-        serviceAddress = serviceAddress with { AltEndpoints = altEndpoints };
+        // Creating a proxy with an alternate endpoint.
+        var serviceAddress = ServiceAddress.Parse("icerpc://localhost:8080/foo?alt-endpoint=localhost:10000");
 
         // Act/Assert
         Assert.Throws<InvalidOperationException>(() => serviceAddress = serviceAddress with { Endpoint = null });
@@ -602,14 +614,20 @@ public class ServiceAddressTests
     [Test]
     public void Setting_alt_endpoints_with_a_different_protocol_fails()
     {
+        // Arrange
         var serviceAddress = ServiceAddress.Parse("ice://host.zeroc.com:10000/hello");
-        Endpoint endpoint1 = ServiceAddress.Parse("ice://host.zeroc.com:10001/hello").Endpoint!.Value;
-        Endpoint endpoint2 = ServiceAddress.Parse("icerpc://host.zeroc.com/hello").Endpoint!.Value;
-        var altEndpoints = new Endpoint[] { endpoint1, endpoint2 }.ToImmutableList();
+        var altEndpoints = new Endpoint[]
+        {
+            new Endpoint(Protocol.Ice),
+            new Endpoint(Protocol.IceRpc)
+        }.ToImmutableList();
 
+        // Act/Assert
         Assert.Multiple(() =>
         {
-            Assert.That(() => serviceAddress = serviceAddress with { AltEndpoints = altEndpoints }, Throws.ArgumentException);
+            Assert.That(() =>
+                serviceAddress = serviceAddress with { AltEndpoints = altEndpoints }, Throws.ArgumentException
+            );
 
             // Ensure the alt endpoints weren't updated
             Assert.That(serviceAddress.AltEndpoints, Is.Empty);

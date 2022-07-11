@@ -251,6 +251,7 @@ public sealed record class ServiceAddress
                     }
 
                     string host = uri.IdnHost;
+                    Debug.Assert(host.Length > 0); // the IdnHost provided by Uri is never empty
 
                     _endpoint = new Endpoint(
                         Protocol,
