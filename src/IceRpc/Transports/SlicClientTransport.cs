@@ -39,17 +39,17 @@ public class SlicClientTransport : IClientTransport<IMultiplexedNetworkConnectio
 
     /// <inheritdoc/>
     public IMultiplexedNetworkConnection CreateConnection(
-        Endpoint remoteEndpoint,
+        Endpoint endpoint,
         SslClientAuthenticationOptions? authenticationOptions,
         ILogger logger)
     {
         IMultiplexedStreamErrorCodeConverter errorCodeConverter =
-            remoteEndpoint.Protocol.MultiplexedStreamErrorCodeConverter ??
+            endpoint.Protocol.MultiplexedStreamErrorCodeConverter ??
             throw new NotSupportedException(
-                $"cannot create Slic client network connection for protocol {remoteEndpoint.Protocol}");
+                $"cannot create Slic client network connection for protocol {endpoint.Protocol}");
 
         return new SlicNetworkConnection(
-            _simpleClientTransport.CreateConnection(remoteEndpoint, authenticationOptions, logger),
+            _simpleClientTransport.CreateConnection(endpoint, authenticationOptions, logger),
             isServer: false,
             errorCodeConverter,
             _slicTransportOptions);

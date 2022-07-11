@@ -5,7 +5,6 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using System.Diagnostics;
 using System.Net.Security;
 
 namespace IceRpc;
@@ -31,7 +30,7 @@ public sealed class Server : IAsyncDisposable
     /// cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
     public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
-    private readonly HashSet<ServerConnection> _connections = new();
+    private readonly HashSet<IProtocolConnection> _connections = new();
 
     private bool _isReadOnly;
 
@@ -151,14 +150,16 @@ public sealed class Server : IAsyncDisposable
             {
                 PerformListen(
                     _simpleServerTransport,
-                    (networkConnection, options) => new IceProtocolConnection(networkConnection, options),
+                    (networkConnection, options) =>
+                        new IceProtocolConnection(networkConnection, isServer: true, options),
                     LogSimpleNetworkConnectionDecorator.Decorate);
             }
             else
             {
                 PerformListen(
                     _multiplexedServerTransport,
-                    (networkConnection, options) => new IceRpcProtocolConnection(networkConnection, options),
+                    (networkConnection, options) =>
+                        new IceRpcProtocolConnection(networkConnection, options),
                     LogMultiplexedNetworkConnectionDecorator.Decorate);
             }
         }
@@ -185,7 +186,7 @@ public sealed class Server : IAsyncDisposable
 
                 Func<T, ConnectionOptions, IProtocolConnection> decoratee = protocolConnectionFactory;
                 protocolConnectionFactory = (T networkConnection, ConnectionOptions options) =>
-                    new LogProtocolConnectionDecorator(decoratee(networkConnection, options), logger);
+                    new LogProtocolConnectionDecorator(decoratee(networkConnection, options), isServer: true, logger);
             }
 
             // Run task to start accepting new connections.
@@ -220,22 +221,17 @@ public sealed class Server : IAsyncDisposable
                     continue;
                 }
 
-                IProtocolConnection protocolConnection = protocolConnectionFactory(
-                    networkConnection,
-                    _options.ConnectionOptions);
-
                 // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
-#pragma warning disable CA2000
-                var connection = new ServerConnection(protocolConnection, _options.ConnectionOptions);
-#pragma warning restore CA2000
-
+                IProtocolConnection connection;
                 lock (_mutex)
                 {
                     if (_isReadOnly)
                     {
-                        connection.Abort();
+                        networkConnection.Dispose();
                         return;
                     }
+
+                    connection = protocolConnectionFactory(networkConnection, _options.ConnectionOptions);
 
                     _ = _connections.Add(connection);
                 }
@@ -249,12 +245,12 @@ public sealed class Server : IAsyncDisposable
                 // such as TLS based transports where the handshake requires few round trips between the client
                 // and server. Waiting could also cause a security issue if the client doesn't respond to the
                 // connection initialization as we wouldn't be able to accept new connections in the meantime.
-                _ = connection.ConnectAsync();
+                _ = connection.ConnectAsync(CancellationToken.None);
             }
         }
 
         // Remove the connection from _connections once shutdown completes
-        async Task RemoveFromCollectionAsync(ServerConnection connection, bool graceful)
+        async Task RemoveFromCollectionAsync(IProtocolConnection connection, bool graceful)
         {
             lock (_mutex)
             {
@@ -269,12 +265,10 @@ public sealed class Server : IAsyncDisposable
                 // Wait for the current shutdown to complete
                 try
                 {
-                    await connection.ShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+                    await connection.ShutdownAsync("", CancellationToken.None).ConfigureAwait(false);
                 }
                 catch
                 {
-                    // OnAbort will take care of cleaning up
-                    return;
                 }
             }
 

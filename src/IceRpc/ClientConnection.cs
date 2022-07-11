@@ -22,35 +22,18 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         new TcpClientTransport();
 
     /// <inheritdoc/>
+    public Endpoint Endpoint { get; }
+
+    /// <inheritdoc/>
     public bool IsResumable => false;
 
     /// <inheritdoc/>
     public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
 
     /// <inheritdoc/>
-    public Protocol Protocol => RemoteEndpoint.Protocol;
-
-    /// <inheritdoc/>
-    public Endpoint RemoteEndpoint { get; }
-
-    private Task? _connectTask;
-
-    private readonly TimeSpan _connectTimeout;
-    private readonly CancellationTokenSource _connectTokenSource = new();
-
-    private Task? _disposeTask;
-
-    // Prevent concurrent assignment of _connectTask and _shutdownTask.
-    private readonly object _mutex = new();
+    public Protocol Protocol => Endpoint.Protocol;
 
     private readonly IProtocolConnection _protocolConnection;
-
-    private readonly CancellationTokenSource _protocolConnectionCancellationSource = new(); // TODO temporary
-
-    private Task? _shutdownTask;
-
-    private readonly TimeSpan _shutdownTimeout;
-    private readonly CancellationTokenSource _shutdownTokenSource = new();
 
     /// <summary>Constructs a client connection.</summary>
     /// <param name="options">The connection options.</param>
@@ -65,12 +48,9 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
         IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
     {
-        _connectTimeout = options.ConnectTimeout;
-        _shutdownTimeout = options.ShutdownTimeout;
-
-        RemoteEndpoint = options.RemoteEndpoint ??
+        Endpoint = options.Endpoint ??
             throw new ArgumentException(
-                $"{nameof(ClientConnectionOptions.RemoteEndpoint)} is not set",
+                $"{nameof(ClientConnectionOptions.Endpoint)} is not set",
                 nameof(options));
 
         // This is the composition root of client Connections, where we install log decorators when logging is enabled.
@@ -83,7 +63,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         if (Protocol == Protocol.Ice)
         {
             ISimpleNetworkConnection networkConnection = simpleClientTransport.CreateConnection(
-                RemoteEndpoint,
+                Endpoint,
                 options.ClientAuthenticationOptions,
                 logger);
 
@@ -92,17 +72,17 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             {
                 networkConnection = new LogSimpleNetworkConnectionDecorator(
                     networkConnection,
-                    RemoteEndpoint,
+                    Endpoint,
                     isServer: false,
                     logger);
             }
 
-            _protocolConnection = new IceProtocolConnection(networkConnection, options);
+            _protocolConnection = new IceProtocolConnection(networkConnection, isServer: false, options);
         }
         else
         {
             IMultiplexedNetworkConnection networkConnection = multiplexedClientTransport.CreateConnection(
-                RemoteEndpoint,
+                Endpoint,
                 options.ClientAuthenticationOptions,
                 logger);
 
@@ -111,7 +91,7 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
             {
                 networkConnection = new LogMultiplexedNetworkConnectionDecorator(
                     networkConnection,
-                    RemoteEndpoint,
+                    Endpoint,
                     isServer: false,
                     logger);
             }
@@ -122,25 +102,22 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
         // TODO: log level
         if (logger.IsEnabled(LogLevel.Error))
         {
-            _protocolConnection = new LogProtocolConnectionDecorator(_protocolConnection, logger);
+            _protocolConnection = new LogProtocolConnectionDecorator(_protocolConnection, isServer: false, logger);
         }
     }
 
-    /// <summary>Constructs a client connection with the specified remote endpoint and  authentication options.
-    /// All other properties have their default values.</summary>
-    /// <param name="endpoint">The connection remote endpoint.</param>
+    /// <summary>Constructs a client connection with the specified endpoint and authentication options.  All other
+    /// properties have their default values.</summary>
+    /// <param name="endpoint">The connection endpoint.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
     public ClientConnection(Endpoint endpoint, SslClientAuthenticationOptions? clientAuthenticationOptions = null)
         : this(new ClientConnectionOptions
         {
             ClientAuthenticationOptions = clientAuthenticationOptions,
-            RemoteEndpoint = endpoint
+            Endpoint = endpoint
         })
     {
     }
-
-    /// <summary>Aborts the connection.</summary>
-    public void Abort() => _protocolConnection.Abort(new ConnectionAbortedException());
 
     /// <summary>Establishes the connection. This method can be called multiple times, even concurrently.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -155,91 +132,15 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <see cref="ConnectionOptions.ConnectTimeout"/>.</description></item>
     /// </list>
     /// </returns>
-    public async Task ConnectAsync(CancellationToken cancel = default)
-    {
-        lock (_mutex)
-        {
-            ThrowIfDisposed();
-            _connectTask ??= ConnectAsyncCore(_connectTokenSource.Token);
-        }
-
-        using CancellationTokenRegistration _ = cancel.Register(
-            () =>
-            {
-                try
-                {
-                    _connectTokenSource.Cancel();
-                }
-                catch (ObjectDisposedException)
-                {
-                    // ignored
-                }
-            });
-
-        try
-        {
-            await _connectTask.ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            cancel.ThrowIfCancellationRequested();
-
-            // _connectTask was canceled through another token
-            throw new ConnectionAbortedException();
-        }
-    }
+    public async Task ConnectAsync(CancellationToken cancel = default) =>
+        NetworkConnectionInformation = await _protocolConnection.ConnectAsync(cancel: cancel).ConfigureAwait(false);
 
     /// <inheritdoc/>
-    public async ValueTask DisposeAsync()
-    {
-        // DisposeAsync can be called concurrently. For example, ConnectionPool can dispose a connection because the
-        // server is shutting down and at the same time or shortly after dispose the same connection because of its own
-        // disposal. We want to second disposal to "hang" if there is (for example) a bug in the dispatch code that
-        // causes the DisposeAsync to hang.
-
-        lock (_mutex)
-        {
-            _disposeTask ??= PerformDisposeAsync();
-        }
-
-        await _disposeTask.ConfigureAwait(false);
-
-        async Task PerformDisposeAsync()
-        {
-            await Task.Yield();
-
-            // TODO: temporary way to cancel dispatches and abort invocations.
-            _protocolConnectionCancellationSource.Cancel();
-
-            try
-            {
-                await ShutdownAsync("dispose client connection", CancellationToken.None).ConfigureAwait(false);
-            }
-            catch
-            {
-            }
-
-            // TODO: await _protocolConnection.DisposeAsync();
-            _protocolConnectionCancellationSource.Dispose();
-
-            _connectTokenSource.Dispose();
-            _shutdownTokenSource.Dispose();
-        }
-    }
+    public ValueTask DisposeAsync() => _protocolConnection.DisposeAsync();
 
     /// <inheritdoc/>
-    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default)
-    {
-        return _connectTask is not null && _connectTask.IsCompletedSuccessfully ?
-            _protocolConnection.InvokeAsync(request, this, cancel) :
-            PerformInvokeAsync();
-
-        async Task<IncomingResponse> PerformInvokeAsync()
-        {
-            await ConnectAsync(CancellationToken.None).WaitAsync(cancel).ConfigureAwait(false);
-            return await _protocolConnection.InvokeAsync(request, this, cancel).ConfigureAwait(false);
-        }
-    }
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default) =>
+        _protocolConnection.InvokeAsync(request, cancel);
 
     /// <inheritdoc/>
     public void OnAbort(Action<Exception> callback) => _protocolConnection.OnAbort(callback);
@@ -261,122 +162,6 @@ public sealed class ClientConnection : IClientConnection, IAsyncDisposable
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
     /// <exception cref="OperationCanceledException">Thrown if the cancellation was requested through the cancellation
     /// token.</exception>
-    public async Task ShutdownAsync(string message, CancellationToken cancel = default)
-    {
-        lock (_mutex)
-        {
-            ThrowIfDisposed();
-
-            if (_shutdownTask is null)
-            {
-                if (_connectTask is null)
-                {
-                    // we have nothing else to do - this connection was never established
-                    _connectTask = Task.FromException(new ConnectionClosedException());
-                    return; // ShutdownAsync complete
-                }
-
-                _shutdownTask = ShutdownAsyncCore(message, _shutdownTokenSource.Token);
-            }
-        }
-
-        using CancellationTokenRegistration _ = cancel.Register(
-            () =>
-            {
-                try
-                {
-                    _shutdownTokenSource.Cancel();
-                }
-                catch (ObjectDisposedException)
-                {
-                    // ignored
-                }
-            });
-        try
-        {
-            await _shutdownTask.ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            cancel.ThrowIfCancellationRequested();
-
-            // _shutdownTask was canceled through another token
-            throw new ConnectionAbortedException();
-        }
-    }
-
-    private async Task ConnectAsyncCore(CancellationToken cancel)
-    {
-        // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
-        await Task.Yield();
-
-        // Need second token to figure out if the call exceeded _connectTimeout or was canceled for another reason:
-        using var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancel);
-        linkedTokenSource.CancelAfter(_connectTimeout);
-        try
-        {
-            // TODO: not quite correct because assignment to NetworkConnectionInformation is not atomic
-            NetworkConnectionInformation = await _protocolConnection.ConnectAsync(
-                isServer: false,
-                this,
-                linkedTokenSource.Token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
-        {
-            // Triggered by the CancelAfter above
-            var timeoutException = new TimeoutException(
-                $"connection establishment timed out after {_connectTimeout.TotalSeconds}s");
-            _protocolConnection.Abort(timeoutException);
-            throw timeoutException;
-        }
-        catch (Exception exception)
-        {
-            _protocolConnection.Abort(exception);
-            throw;
-        }
-    }
-
-    private async Task ShutdownAsyncCore(string message, CancellationToken cancel)
-    {
-        // Make sure we shutdown the connection asynchronously without holding any mutex lock from the caller.
-        await Task.Yield();
-
-        // Need second token to figure out if the call exceeded _shutdownTimeout or was canceled for another reason:
-        using var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancel);
-        linkedTokenSource.CancelAfter(_shutdownTimeout);
-
-        try
-        {
-            // Wait for connection establishment to complete before calling ShutdownAsync.
-            await ConnectAsync(linkedTokenSource.Token).ConfigureAwait(false);
-
-            // Shut down the protocol connection.
-            await _protocolConnection
-                .ShutdownAsync(message, _protocolConnectionCancellationSource.Token) // currently does not throw anything
-                .WaitAsync(linkedTokenSource.Token)
-                .ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
-        {
-            // Triggered by the CancelAfter above
-            var timeoutException = new TimeoutException(
-                $"connection shutdown timed out after {_shutdownTimeout.TotalSeconds}s");
-            _protocolConnection.Abort(timeoutException);
-            throw timeoutException;
-        }
-        catch (Exception exception)
-        {
-            _protocolConnection.Abort(exception);
-            throw;
-        }
-    }
-
-    private void ThrowIfDisposed()
-    {
-        // Must be called with _mutex locked.
-        if (_disposeTask is Task disposeTask && disposeTask.IsCompleted)
-        {
-            throw new ObjectDisposedException($"{typeof(ClientConnection)}");
-        }
-    }
+    public Task ShutdownAsync(string message, CancellationToken cancel = default) =>
+        _protocolConnection.ShutdownAsync(message, cancel);
 }

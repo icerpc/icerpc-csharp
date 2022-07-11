@@ -299,26 +299,30 @@ public ref partial struct SliceEncoder
     /// <param name="serviceAddress">The service address to encode.</param>
     public void EncodeServiceAddress(ServiceAddress serviceAddress)
     {
+        // With Slice1, a proxy is encoded as a kind of discriminated union with:
+        // - Identity
+        // - If Identity is not the null identity:
+        //     - The fragment, invocation mode, protocol major and minor, and the
+        //       encoding major and minor
+        //     - a sequence of endpoints that can be empty
+        //     - an adapter ID string present only when the sequence of endpoints is empty
+
         if (Encoding == SliceEncoding.Slice1)
         {
             this.EncodeIdentityPath(serviceAddress.Path);
-            const byte encodingMajor = 1;
-            const byte encodingMinor = 1;
 
             if (serviceAddress.Protocol is not Protocol protocol)
             {
                 throw new NotSupportedException("cannot encode a relative service address with Slice1");
             }
 
-            var proxyData = new ProxyData(
-                serviceAddress.Fragment,
-                InvocationMode.Twoway,
-                secure: false,
-                protocolMajor: protocol.ToByte(),
-                protocolMinor: 0,
-                encodingMajor,
-                encodingMinor);
-            proxyData.Encode(ref this);
+            this.EncodeFragment(serviceAddress.Fragment);
+            this.EncodeInvocationMode(InvocationMode.Twoway);
+            EncodeBool(false); // Secure
+            EncodeUInt8(protocol.ToByte()); // Protocol Major
+            EncodeUInt8(0); // Protocol Minor
+            EncodeUInt8(1); // Encoding Major
+            EncodeUInt8(1); // Encoding Minor
 
             if (serviceAddress.Endpoint is Endpoint endpoint)
             {

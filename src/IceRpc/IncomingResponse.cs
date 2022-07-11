@@ -20,36 +20,29 @@ public sealed class IncomingResponse : IncomingFrame
 
     /// <summary>Constructs an incoming response with empty fields.</summary>
     /// <param name="request">The corresponding outgoing request.</param>
-    /// <param name="connection">The connection that received the response.</param>
-    public IncomingResponse(OutgoingRequest request, IConnection connection)
-        : this(request, connection, ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty, null)
+    public IncomingResponse(OutgoingRequest request)
+        : this(request, ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty, fieldsPipeReader: null)
     {
     }
 
     /// <summary>Constructs an incoming response.</summary>
     /// <param name="request">The corresponding outgoing request.</param>
-    /// <param name="connection">The connection that received the response.</param>
     /// <param name="fields">The fields of this response.</param>
-    public IncomingResponse(
-        OutgoingRequest request,
-        IConnection connection,
-        IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields)
-        : this(request, connection, fields, null)
+    public IncomingResponse(OutgoingRequest request, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields)
+        : this(request, fields, fieldsPipeReader: null)
     {
     }
 
     /// <summary>Constructs an incoming response with a pipe reader holding the memory for the fields.</summary>
     /// <param name="request">The corresponding outgoing request.</param>
-    /// <param name="connection">The <see cref="IConnection"/> that received the response.</param>
     /// <param name="fields">The fields of this response.</param>
     /// <param name="fieldsPipeReader">The pipe reader that holds the memory of the fields. Use <c>null</c> when the
     /// fields memory is not held by a pipe reader.</param>
     internal IncomingResponse(
         OutgoingRequest request,
-        IConnection connection,
         IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields,
         PipeReader? fieldsPipeReader)
-        : base(connection)
+        : base(request.Protocol)
     {
         Fields = fields;
         _fieldsPipeReader = fieldsPipeReader;

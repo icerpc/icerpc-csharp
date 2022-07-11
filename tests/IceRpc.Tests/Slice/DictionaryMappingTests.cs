@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.IO.Pipelines;
 
@@ -16,7 +15,7 @@ public class DictionaryMappingTests
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 },
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, InvalidConnection.IceRpc)
+        var response = new IncomingResponse(request)
         {
             Payload = responsePayload
         };
@@ -39,7 +38,7 @@ public class DictionaryMappingTests
         PipeReader responsePayload = IDictionaryMappingOperations.Response.OpReturnSingleType(
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, InvalidConnection.IceRpc)
+        var response = new IncomingResponse(request)
         {
             Payload = responsePayload
         };
@@ -65,7 +64,7 @@ public class DictionaryMappingTests
         // Act/Assert
         Assert.That(
             async () => await IDictionaryMappingOperations.Request.OpSingleParameterAsync(
-                new IncomingRequest(InvalidConnection.IceRpc)
+                new IncomingRequest(Protocol.IceRpc)
                 {
                     Payload = requestPayload
                 },

@@ -11,13 +11,9 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Internal;
 
-[System.Diagnostics.CodeAnalysis.SuppressMessage(
-    "Design",
-    "CA1001: Types that own disposable fields should be disposable",
-    Justification = "the disposable fields are cleaned up by Abort")]
-internal sealed class IceProtocolConnection : IProtocolConnection
+internal sealed class IceProtocolConnection : ProtocolConnection
 {
-    public Protocol Protocol => Protocol.Ice;
+    public override Protocol Protocol => Protocol.Ice;
 
     private static readonly IDictionary<RequestFieldKey, ReadOnlySequence<byte>> _idempotentFields =
         new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
@@ -35,215 +31,234 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }.ToImmutableDictionary();
 
     private readonly IDispatcher _dispatcher;
+
+    private Exception? _abortInvocationException;
+    private int _dispatchCount;
     private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    private readonly HashSet<CancellationTokenSource> _dispatches = new();
+    private readonly CancellationTokenSource _dispatchesAndInvocationsCancelSource = new();
     private readonly AsyncSemaphore? _dispatchSemaphore;
-    private readonly TimeSpan _idleTimeout;
-    private Timer? _idleTimeoutTimer;
     private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _invocations = new();
-    private bool _isAborted;
+    private bool _isReadOnly;
+    private readonly bool _isServer;
     private readonly int _maxFrameSize;
     private readonly MemoryPool<byte> _memoryPool;
     private readonly int _minimumSegmentSize;
-
     private readonly object _mutex = new();
     private readonly ISimpleNetworkConnection _networkConnection;
+    private NetworkConnectionInformation _networkConnectionInformation;
     private readonly SimpleNetworkConnectionReader _networkConnectionReader;
     private readonly SimpleNetworkConnectionWriter _networkConnectionWriter;
     private int _nextRequestId;
-    private Action<Exception>? _onAbort;
-    private Action<string>? _onShutdown;
     private readonly IcePayloadPipeWriter _payloadWriter;
     private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private readonly CancellationTokenSource _readCancelSource = new();
-    private TaskCompletionSource? _readFramesTaskCompletionSource;
-    private volatile Task? _shutdownTask;
+    private Task _pingTask = Task.CompletedTask;
+    private Task? _readFramesTask;
+    private readonly CancellationTokenSource _tasksCancelSource = new();
     private readonly AsyncSemaphore _writeSemaphore = new(1, 1);
 
-    public void Abort(Exception exception)
-    {
-        lock (_mutex)
-        {
-            if (_isAborted)
-            {
-                return;
-            }
-            _isAborted = true;
-        }
-
-        // _onAbort is read-only once _isAborted is true
-        _onAbort?.Invoke(exception);
-
-        // Close the network connection and cancel the pending receive.
-        _networkConnection.Dispose();
-        _readCancelSource.Cancel();
-
-        CancelInvocations(exception);
-        CancelDispatches();
-
-        // Unblock dispatches waiting to execute.
-        _dispatchSemaphore?.Complete(exception);
-
-        // Unblock ShutdownAsync which might be waiting for the connection to be disposed.
-        _pendingClose.TrySetResult();
-
-        // Unblock ShutdownAsync if it's waiting for invocations and dispatches to complete.
-        _dispatchesAndInvocationsCompleted.TrySetException(exception);
-
-        _readCancelSource.Dispose();
-
-        _idleTimeoutTimer?.Dispose();
-
-        // Release remaining resources in the background.
-        _ = AbortCoreAsync();
-
-        async Task AbortCoreAsync()
-        {
-            // Unblock requests waiting on the semaphore and wait for the semaphore to be released to ensure we
-            // don't dispose the simple network connection writer while it's being used.
-            await _writeSemaphore.CompleteAndWaitAsync(exception).ConfigureAwait(false);
-
-            // Wait for the receive task to complete to ensure we don't dispose the simple network connection reader
-            // while it's being used.
-            if (_readFramesTaskCompletionSource is not null)
-            {
-                await _readFramesTaskCompletionSource.Task.ConfigureAwait(false);
-            }
-
-            // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
-            _networkConnectionReader.Dispose();
-            _networkConnectionWriter.Dispose();
-        }
-    }
-
-    public async Task<NetworkConnectionInformation> ConnectAsync(
+    internal IceProtocolConnection(
+        ISimpleNetworkConnection simpleNetworkConnection,
         bool isServer,
-        IConnection connection,
-        CancellationToken cancel)
+        ConnectionOptions options)
+        : base(options)
     {
-        Debug.Assert(_readFramesTaskCompletionSource is null); // ConnectAsync should be called only once.
+        _dispatcher = options.Dispatcher;
+        _maxFrameSize = options.MaxIceFrameSize;
+        _isServer = isServer;
 
-        lock (_mutex)
+        if (options.MaxIceConcurrentDispatches > 0)
         {
-            if (_isAborted)
-            {
-                throw new ConnectionAbortedException();
-            }
-
-            // Resource cleanup needs to know when no more reads are pending to release the simple network connection
-            // reader.
-            _readFramesTaskCompletionSource = new();
+            _dispatchSemaphore = new AsyncSemaphore(
+                initialCount: options.MaxIceConcurrentDispatches,
+                maxCount: options.MaxIceConcurrentDispatches);
         }
 
-        // Connect the network connection
-        NetworkConnectionInformation information;
+        // TODO: get the pool and minimum segment size from an option class, but which one? The Slic connection gets
+        // these from SlicOptions but another option could be to add Pool/MinimumSegmentSize on
+        // ConnectionOptions/ServerOptions. These properties would be used by:
+        // - the multiplexed transport implementations
+        // - the Ice protocol connection
+        _memoryPool = MemoryPool<byte>.Shared;
+        _minimumSegmentSize = 4096;
 
-        try
-        {
-            information = await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
-
-            // Wait for the network connection establishment to set the idle timeout. The network connection
-            // ConnectAsync implementation would need otherwise to deal with thread safety if Dispose is called
-            // concurrently.
-            _networkConnectionReader.SetIdleTimeout(_idleTimeout);
-
-            if (isServer)
+        _networkConnection = simpleNetworkConnection;
+        _networkConnectionWriter = new SimpleNetworkConnectionWriter(
+            simpleNetworkConnection,
+            _memoryPool,
+            _minimumSegmentSize);
+        _networkConnectionReader = new SimpleNetworkConnectionReader(
+            simpleNetworkConnection,
+            idleTimeout: options.IdleTimeout,
+            _memoryPool,
+            _minimumSegmentSize,
+            abortAction: exception => InvokeOnAbort(exception),
+            keepAliveAction: () =>
             {
-                EncodeValidateConnectionFrame(_networkConnectionWriter);
-                await _networkConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
-            }
-            else
-            {
-                ReadOnlySequence<byte> buffer = await _networkConnectionReader.ReadAtLeastAsync(
-                    IceDefinitions.PrologueSize,
-                    cancel).ConfigureAwait(false);
-
-                (IcePrologue validateConnectionFrame, long consumed) = DecodeValidateConnectionFrame(buffer);
-                _networkConnectionReader.AdvanceTo(buffer.GetPosition(consumed), buffer.End);
-
-                IceDefinitions.CheckPrologue(validateConnectionFrame);
-                if (validateConnectionFrame.FrameSize != IceDefinitions.PrologueSize)
+                lock (_mutex)
                 {
-                    throw new InvalidDataException(
-                        $"received Ice frame with only '{validateConnectionFrame.FrameSize}' bytes");
-                }
-                if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
-                {
-                    throw new InvalidDataException(
-                        @$"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{
-                            validateConnectionFrame.FrameType}'");
-                }
-            }
-
-            if (_idleTimeout != Timeout.InfiniteTimeSpan)
-            {
-                _idleTimeoutTimer = new Timer(
-                    _ =>
+                    if (_pingTask.IsCompleted && !_tasksCancelSource.IsCancellationRequested)
                     {
-                        lock (_mutex)
-                        {
-                            if (_invocations.Count > 0 || _dispatches.Count > 0)
-                            {
-                                return; // The connection is no longer idle.
-                            }
+                        _pingTask = PingAsync(_tasksCancelSource.Token);
+                    }
+                }
+            });
 
-                            // Initiate the shutdown.
-                            _shutdownTask ??= ShutdownAsyncCore("idle connection", CancellationToken.None);
-                        }
-                    },
-                    null,
-                    _idleTimeout,
-                    Timeout.InfiniteTimeSpan);
-            }
-        }
-        catch (ObjectDisposedException)
+        _payloadWriter = new IcePayloadPipeWriter(_networkConnectionWriter);
+
+        async Task PingAsync(CancellationToken cancel)
         {
-            _readFramesTaskCompletionSource.SetResult();
+            // Make sure we execute the function without holding the connection mutex lock.
+            await Task.Yield();
 
-            // The simple network connection can only be disposed if this connection is aborted.
-            throw new ConnectionAbortedException();
-        }
-        catch
-        {
-            _readFramesTaskCompletionSource.SetResult();
-            throw;
-        }
-
-        _ = Task.Run(
-            async () =>
+            try
             {
-                Exception? exception = null;
+                await _writeSemaphore.EnterAsync(cancel).ConfigureAwait(false);
                 try
                 {
-                    // Read frames until the CloseConnection frame is received.
-                    await ReadFramesAsync(connection, _readCancelSource.Token).ConfigureAwait(false);
-                }
-                catch (ConnectionLostException) when (_dispatchesAndInvocationsCompleted.Task.IsCompleted)
-                {
-                    // Ignore. The dispatches and invocations completed task is completed on graceful shutdown. This
-                    // exception is expected since the peer closes the connection after we sent the CloseConnection
-                    // frame.
-                }
-                catch (Exception ex)
-                {
-                    exception = ex;
+                    EncodeValidateConnectionFrame(_networkConnectionWriter);
+                    await _networkConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
                 }
                 finally
                 {
-                    // Protocol connection resource cleanup. This is for now performed by Abort (which should have
-                    // been named CloseAsync like ConnectionCore.CloseAsync).
-                    // TODO: Refactor depending on what we decide for the protocol connection resource cleanup
-                    // (#1397,#1372, #1404, #1400).
-                    Abort(exception ?? new ConnectionClosedException());
+                    _writeSemaphore.Release();
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Connection disposed.
+            }
+            catch (Exception exception)
+            {
+                InvokeOnAbort(exception);
+            }
 
-                    _readFramesTaskCompletionSource.SetResult();
+            static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
+            {
+                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
+                IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
+            }
+        }
+    }
+
+    private protected override void CancelDispatchesAndAbortInvocations(Exception exception)
+    {
+        lock (_mutex)
+        {
+            _isReadOnly = true; // prevent new dispatches or invocations from being accepted.
+
+            // Set the abort exception for invocations.
+            _abortInvocationException = exception;
+        }
+
+        // Cancel dispatches and abort invocations for a speedy shutdown.
+        _dispatchesAndInvocationsCancelSource.Cancel();
+    }
+
+    private protected override bool CheckIfIdle()
+    {
+        lock (_mutex)
+        {
+            // If idle, mark the connection as readonly to stop accepting new dispatches or invocations.
+            if (_invocations.Count == 0 && _dispatchCount == 0)
+            {
+                _isReadOnly = true;
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+    }
+
+    private protected override async Task<NetworkConnectionInformation> ConnectAsyncCore(CancellationToken cancel)
+    {
+        _networkConnectionInformation = await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+
+        // Wait for the network connection establishment to enable the idle timeout check.
+        _networkConnectionReader.EnableIdleCheck();
+
+        if (_isServer)
+        {
+            EncodeValidateConnectionFrame(_networkConnectionWriter);
+            await _networkConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
+        }
+        else
+        {
+            ReadOnlySequence<byte> buffer = await _networkConnectionReader.ReadAtLeastAsync(
+                IceDefinitions.PrologueSize,
+                cancel).ConfigureAwait(false);
+
+            (IcePrologue validateConnectionFrame, long consumed) = DecodeValidateConnectionFrame(buffer);
+            _networkConnectionReader.AdvanceTo(buffer.GetPosition(consumed), buffer.End);
+
+            IceDefinitions.CheckPrologue(validateConnectionFrame);
+            if (validateConnectionFrame.FrameSize != IceDefinitions.PrologueSize)
+            {
+                throw new InvalidDataException(
+                    $"received Ice frame with only '{validateConnectionFrame.FrameSize}' bytes");
+            }
+            if (validateConnectionFrame.FrameType != IceFrameType.ValidateConnection)
+            {
+                throw new InvalidDataException(
+                    @$"expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'");
+            }
+        }
+
+        _readFramesTask = Task.Run(
+            async () =>
+            {
+                Exception? completeException = null;
+                try
+                {
+                    // Read frames until the CloseConnection frame is received.
+                    await ReadFramesAsync(_tasksCancelSource.Token).ConfigureAwait(false);
+
+                    // The peer expects the connection to be closed as soon as the CloseConnection message is received.
+                    // So there's no need to initiate shutdown, we just close the network connection and notify the
+                    // callback that the connection has been shutdown by the peer.
+                    _networkConnection.Dispose();
+
+                    // Notify the OnShutdown callback and complete invocations which are still pending with the
+                    // retryable ConnectionClosedException exception.
+                    InvokeOnShutdown("connection shutdown by peer");
+                    completeException = new ConnectionClosedException("connection shutdown by peer");
+                }
+                catch (ConnectionLostException) when (
+                    _isReadOnly &&
+                    _dispatchesAndInvocationsCompleted.Task.IsCompleted)
+                {
+                    // Expected if the connection is shutting down and waiting for the peer to close the connection.
+                    completeException = new ConnectionClosedException("connection shutdown");
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected if DisposeAsync has been called.
+                    Debug.Assert(_tasksCancelSource.IsCancellationRequested);
+                    completeException = new ConnectionAbortedException("connection disposed");
+                }
+                catch (Exception exception)
+                {
+                    // Unexpected exception, notify the OnAbort callback.
+                    InvokeOnAbort(exception);
+                    completeException = exception;
+                }
+                finally
+                {
+                    // Make sure to unblock ShutdownAsync if it's waiting for the connection closure.
+                    _pendingClose.TrySetResult();
+
+                    // Don't wait for DisposeAsync to be called to cancel dispatches and abort invocations which might
+                    // still be running.
+                    Debug.Assert(completeException is not null);
+                    CancelDispatchesAndAbortInvocations(completeException);
                 }
             },
-            cancel);
+            CancellationToken.None);
 
-        return information;
+        return _networkConnectionInformation;
 
         static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
         {
@@ -258,9 +273,49 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
     }
 
-    public async Task<IncomingResponse> InvokeAsync(
+    private protected override async ValueTask DisposeAsyncCore()
+    {
+        // Cancel pending tasks, dispatches and invocations.
+        lock (_mutex)
+        {
+            _isReadOnly = true;
+            _abortInvocationException = new ConnectionAbortedException("connection disposed");
+
+            if (_invocations.Count == 0 && _dispatchCount == 0)
+            {
+                _dispatchesAndInvocationsCompleted.TrySetResult();
+            }
+        }
+
+        _dispatchesAndInvocationsCancelSource.Cancel();
+        _tasksCancelSource.Cancel();
+
+        // Dispose the network connection.
+        _networkConnection.Dispose();
+
+        // Wait for all the tasks, dispatches and invocations to complete.
+        try
+        {
+            await Task.WhenAll(
+                _dispatchesAndInvocationsCompleted.Task,
+                _readFramesTask ?? Task.CompletedTask,
+                _pingTask).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Ignore.
+        }
+
+        // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
+        _networkConnectionReader.Dispose();
+        _networkConnectionWriter.Dispose();
+
+        _tasksCancelSource.Dispose();
+        _dispatchesAndInvocationsCancelSource.Dispose();
+    }
+
+    private protected override async Task<IncomingResponse> InvokeAsyncCore(
         OutgoingRequest request,
-        IConnection connection,
         CancellationToken cancel)
     {
         bool acquiredSemaphore = false;
@@ -268,6 +323,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         TaskCompletionSource<PipeReader>? responseCompletionSource = null;
         PipeWriter payloadWriter = _payloadWriter;
 
+        using var cancelSource = CancellationTokenSource.CreateLinkedTokenSource(
+            _dispatchesAndInvocationsCancelSource.Token,
+            cancel);
+
+        Exception? completeException = null;
         try
         {
             if (request.PayloadStream is not null)
@@ -279,12 +339,12 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             // semaphore.
             ReadOnlySequence<byte> payload = await ReadFullPayloadAsync(
                 request.Payload,
-                cancel).ConfigureAwait(false);
+                cancelSource.Token).ConfigureAwait(false);
             int payloadSize = checked((int)payload.Length);
 
             // Wait for writing of other frames to complete. The semaphore is used as an asynchronous queue to
             // serialize the writing of frames.
-            await _writeSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+            await _writeSemaphore.EnterAsync(cancelSource.Token).ConfigureAwait(false);
             acquiredSemaphore = true;
 
             // Assign the request ID for twoway invocations and keep track of the invocation for receiving the
@@ -294,16 +354,15 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 lock (_mutex)
                 {
-                    if (_shutdownTask is not null || _isAborted)
+                    if (_isReadOnly)
                     {
                         throw new ConnectionClosedException();
                     }
                     else
                     {
-                        if (_invocations.Count == 0 && _dispatches.Count == 0)
+                        if (_invocations.Count == 0 && _dispatchCount == 0)
                         {
-                            // Disable idle check
-                            _idleTimeoutTimer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                            DisableIdleCheck();
                         }
 
                         requestId = ++_nextRequestId;
@@ -317,10 +376,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             payloadWriter = request.GetPayloadWriter(payloadWriter);
 
+            // The writing of the request can only be canceled if the connection is disposed.
             FlushResult flushResult = await payloadWriter.WriteAsync(
                 payload,
                 endStream: false,
-                cancel).ConfigureAwait(false);
+                CancellationToken.None).ConfigureAwait(false);
 
             // If a payload writer decorator returns a canceled or completed flush result, we have to throw
             // NotSupportedException. We can't interrupt the writing of a payload since it would lead to a bogus
@@ -332,15 +392,26 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             }
 
             await request.Payload.CompleteAsync().ConfigureAwait(false);
-            await payloadWriter.CompleteAsync().ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (_dispatchesAndInvocationsCancelSource.IsCancellationRequested)
+        {
+            completeException = _abortInvocationException!;
+            throw completeException;
         }
         catch (Exception exception)
         {
-            await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
+            completeException = exception;
             throw;
         }
         finally
         {
+            if (completeException is not null)
+            {
+                UnregisterInvocation();
+            }
+
+            await payloadWriter.CompleteAsync(completeException).ConfigureAwait(false);
+
             if (acquiredSemaphore)
             {
                 _writeSemaphore.Release();
@@ -350,102 +421,125 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         if (request.IsOneway)
         {
             // We're done, there's no response for oneway requests.
-            return new IncomingResponse(request, connection);
+            return new IncomingResponse(request)
+            {
+                NetworkConnectionInformation = _networkConnectionInformation
+            };
         }
 
         Debug.Assert(responseCompletionSource is not null);
 
         // Wait to receive the response.
+        PipeReader? frameReader = null;
         try
         {
-            PipeReader frameReader = await responseCompletionSource.Task.WaitAsync(cancel).ConfigureAwait(false);
-
             try
             {
-                if (!frameReader.TryRead(out ReadResult readResult))
-                {
-                    throw new InvalidDataException($"received empty response frame for request #{requestId}");
-                }
-
-                Debug.Assert(readResult.IsCompleted);
-
-                ReplyStatus replyStatus = ((int)readResult.Buffer.FirstSpan[0]).AsReplyStatus();
-
-                if (replyStatus <= ReplyStatus.UserException)
-                {
-                    const int headerSize = 7; // reply status byte + encapsulation header
-
-                    // read and check encapsulation header (6 bytes long)
-
-                    if (readResult.Buffer.Length < headerSize)
-                    {
-                        throw new ConnectionLostException();
-                    }
-
-                    EncapsulationHeader encapsulationHeader = SliceEncoding.Slice1.DecodeBuffer(
-                        readResult.Buffer.Slice(1, 6),
-                        (ref SliceDecoder decoder) => new EncapsulationHeader(ref decoder));
-
-                    // Sanity check
-                    int payloadSize = encapsulationHeader.EncapsulationSize - 6;
-                    if (payloadSize != readResult.Buffer.Length - headerSize)
-                    {
-                        throw new InvalidDataException(
-                            @$"response payload size/frame size mismatch: payload size is {payloadSize
-                            } bytes but frame has {readResult.Buffer.Length - headerSize} bytes left");
-                    }
-
-                    // TODO: check encoding is Slice1. See github proposal.
-
-                    // Consume header.
-                    frameReader.AdvanceTo(readResult.Buffer.GetPosition(headerSize));
-                }
-                else
-                {
-                    // An ice system exception. The reply status is part of the payload.
-
-                    // Don't consume anything. The examined is irrelevant since readResult.IsCompleted is true.
-                    frameReader.AdvanceTo(readResult.Buffer.Start);
-                }
-
-                // For compatibility with ZeroC Ice "indirect" proxies
-                IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields =
-                    replyStatus == ReplyStatus.ObjectNotExistException && request.ServiceAddress.Endpoint is null ?
-                    _otherReplicaFields :
-                    ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
-
-                return new IncomingResponse(request, connection, fields)
-                {
-                    Payload = frameReader,
-                    ResultType = replyStatus switch
-                    {
-                        ReplyStatus.OK => ResultType.Success,
-                        ReplyStatus.UserException => (ResultType)SliceResultType.ServiceFailure,
-                        _ => ResultType.Failure
-                    }
-                };
+                frameReader = await responseCompletionSource.Task.WaitAsync(cancelSource.Token).ConfigureAwait(false);
             }
-            catch (Exception exception)
+            catch (OperationCanceledException) when (responseCompletionSource.Task.IsCompleted)
             {
-                await frameReader.CompleteAsync(exception).ConfigureAwait(false);
-                throw;
+                // The WaitAsync might be canceled shortly after the response is received and before the task completion
+                // source continuation is run.
+                frameReader = await responseCompletionSource.Task.ConfigureAwait(false);
             }
+
+            if (!frameReader.TryRead(out ReadResult readResult))
+            {
+                throw new InvalidDataException($"received empty response frame for request #{requestId}");
+            }
+
+            Debug.Assert(readResult.IsCompleted);
+
+            ReplyStatus replyStatus = ((int)readResult.Buffer.FirstSpan[0]).AsReplyStatus();
+
+            if (replyStatus <= ReplyStatus.UserException)
+            {
+                const int headerSize = 7; // reply status byte + encapsulation header
+
+                // read and check encapsulation header (6 bytes long)
+
+                if (readResult.Buffer.Length < headerSize)
+                {
+                    throw new ConnectionLostException();
+                }
+
+                EncapsulationHeader encapsulationHeader = SliceEncoding.Slice1.DecodeBuffer(
+                    readResult.Buffer.Slice(1, 6),
+                    (ref SliceDecoder decoder) => new EncapsulationHeader(ref decoder));
+
+                // Sanity check
+                int payloadSize = encapsulationHeader.EncapsulationSize - 6;
+                if (payloadSize != readResult.Buffer.Length - headerSize)
+                {
+                    throw new InvalidDataException(
+                        @$"response payload size/frame size mismatch: payload size is {payloadSize} bytes but frame has {readResult.Buffer.Length - headerSize} bytes left");
+                }
+
+                // Consume header.
+                frameReader.AdvanceTo(readResult.Buffer.GetPosition(headerSize));
+            }
+            else
+            {
+                // An ice system exception. The reply status is part of the payload.
+
+                // Don't consume anything. The examined is irrelevant since readResult.IsCompleted is true.
+                frameReader.AdvanceTo(readResult.Buffer.Start);
+            }
+
+            // For compatibility with ZeroC Ice "indirect" proxies
+            IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields =
+                replyStatus == ReplyStatus.ObjectNotExistException && request.ServiceAddress.Endpoint is null ?
+                _otherReplicaFields :
+                ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
+
+            return new IncomingResponse(request, fields)
+            {
+                NetworkConnectionInformation = _networkConnectionInformation,
+                Payload = frameReader,
+                ResultType = replyStatus switch
+                {
+                    ReplyStatus.OK => ResultType.Success,
+                    ReplyStatus.UserException => (ResultType)SliceResultType.ServiceFailure,
+                    _ => ResultType.Failure
+                }
+            };
+        }
+        catch (OperationCanceledException) when (_dispatchesAndInvocationsCancelSource.IsCancellationRequested)
+        {
+            completeException = _abortInvocationException!;
+            throw completeException;
+        }
+        catch (Exception exception)
+        {
+            completeException = exception;
+            throw;
         }
         finally
+        {
+            UnregisterInvocation();
+
+            if (completeException is not null && frameReader is not null)
+            {
+                await frameReader.CompleteAsync(completeException).ConfigureAwait(false);
+            }
+        }
+
+        void UnregisterInvocation()
         {
             lock (_mutex)
             {
                 if (_invocations.Remove(requestId))
                 {
-                    if (_invocations.Count == 0 && _dispatches.Count == 0)
+                    if (_invocations.Count == 0 && _dispatchCount == 0)
                     {
-                        if (_shutdownTask is not null)
+                        if (_isReadOnly)
                         {
                             _dispatchesAndInvocationsCompleted.TrySetResult();
                         }
-                        else if (!_isAborted)
+                        else
                         {
-                            _idleTimeoutTimer?.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
+                            EnableIdleCheck();
                         }
                     }
                 }
@@ -505,116 +599,41 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
     }
 
-    public void OnAbort(Action<Exception> callback)
+    private protected override async Task ShutdownAsyncCore(string message, CancellationToken cancel)
     {
-        bool executeCallback = false;
-
         lock (_mutex)
         {
-            if (_isAborted)
+            _isReadOnly = true;
+            if (_dispatchCount == 0 && _invocations.Count == 0)
             {
-                executeCallback = true;
-            }
-            else
-            {
-                _onAbort += callback;
+                _dispatchesAndInvocationsCompleted.TrySetResult();
             }
         }
 
-        if (executeCallback)
+        // Wait for dispatches and invocations to complete.
+        await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
+
+        // Encode and write the CloseConnection frame once all the dispatches are done.
+        await _writeSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+        try
         {
-            callback(new ConnectionAbortedException());
+            EncodeCloseConnectionFrame(_networkConnectionWriter);
+            await _networkConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
         }
-    }
-
-    public void OnShutdown(Action<string> callback)
-    {
-        bool executeCallback = false;
-
-        lock (_mutex)
+        finally
         {
-            if (_shutdownTask is null)
-            {
-                _onShutdown += callback;
-            }
-            else
-            {
-                executeCallback = true;
-            }
+            _writeSemaphore.Release();
         }
 
-        if (executeCallback)
+        // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the connection
+        // closure here. We can't just return and close the underlying transport since this could abort the receive of
+        // the dispatch responses and close connection frame by the peer.
+        await _pendingClose.Task.WaitAsync(cancel).ConfigureAwait(false);
+
+        static void EncodeCloseConnectionFrame(SimpleNetworkConnectionWriter writer)
         {
-            callback("");
-        }
-    }
-
-    public Task ShutdownAsync(string message, CancellationToken cancel)
-    {
-        // TODO: CANCELLATION TOKEN
-        lock (_mutex)
-        {
-            return _shutdownTask ??= ShutdownAsyncCore(message, cancel);
-        }
-    }
-
-    internal IceProtocolConnection(ISimpleNetworkConnection simpleNetworkConnection, ConnectionOptions options)
-    {
-        _dispatcher = options.Dispatcher;
-        _maxFrameSize = options.MaxIceFrameSize;
-        _idleTimeout = options.IdleTimeout;
-
-        if (options.MaxIceConcurrentDispatches > 0)
-        {
-            _dispatchSemaphore = new AsyncSemaphore(
-                initialCount: options.MaxIceConcurrentDispatches,
-                maxCount: options.MaxIceConcurrentDispatches);
-        }
-
-        // TODO: get the pool and minimum segment size from an option class, but which one? The Slic connection gets
-        // these from SlicOptions but another option could be to add Pool/MinimumSegmentSize on
-        // ConnectionOptions/ServerOptions. These properties would be used by:
-        // - the multiplexed transport implementations
-        // - the Ice protocol connection
-        _memoryPool = MemoryPool<byte>.Shared;
-        _minimumSegmentSize = 4096;
-
-        _networkConnection = simpleNetworkConnection;
-        _networkConnectionWriter = new SimpleNetworkConnectionWriter(
-            simpleNetworkConnection,
-            _memoryPool,
-            _minimumSegmentSize);
-        _networkConnectionReader = new SimpleNetworkConnectionReader(
-            simpleNetworkConnection,
-            _memoryPool,
-            _minimumSegmentSize,
-            abortAction: exception => Abort(exception),
-            keepAliveAction: () => _ = PingAsync());
-
-        _payloadWriter = new IcePayloadPipeWriter(_networkConnectionWriter);
-
-        async Task PingAsync()
-        {
-            // Not using a cancellation token is fine here since this is performed in the background. The async
-            // calls will eventually return if the connection is dead.
-
-            await _writeSemaphore.EnterAsync(CancellationToken.None).ConfigureAwait(false);
-            try
-            {
-                EncodeValidateConnectionFrame(_networkConnectionWriter);
-                // The flush can't be canceled because it would lead to the writing of an incomplete frame.
-                await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-            }
-            finally
-            {
-                _writeSemaphore.Release();
-            }
-
-            static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
-            {
-                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
-                IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
-            }
+            var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
+            IceDefinitions.CloseConnectionFrame.Encode(ref encoder);
         }
     }
 
@@ -668,49 +687,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             throw new ArgumentException("the payload size is greater than int.MaxValue", nameof(payload));
     }
 
-    private void CancelDispatches()
-    {
-        IEnumerable<CancellationTokenSource> dispatches;
-        lock (_mutex)
-        {
-            dispatches = _dispatches.ToArray();
-        }
-
-        foreach (CancellationTokenSource cancelDispatchSource in dispatches)
-        {
-            try
-            {
-                cancelDispatchSource.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-                // Ignore, the dispatch completed concurrently.
-            }
-        }
-    }
-
-    private void CancelInvocations(Exception exception)
-    {
-        IEnumerable<TaskCompletionSource<PipeReader>> invocations;
-        lock (_mutex)
-        {
-            invocations = _invocations.Values.ToArray();
-        }
-
-        // Unblock invocations which are waiting on the write semaphore.
-        _writeSemaphore.CancelAwaiters(exception);
-
-        // Unblock invocations which are waiting for the reply frame.
-        foreach (TaskCompletionSource<PipeReader> responseCompletionSource in invocations)
-        {
-            responseCompletionSource.TrySetException(exception);
-        }
-    }
-
     /// <summary>Read incoming frames and returns on graceful connection shutdown.</summary>
-    /// <param name="connection">The connection assigned to <see cref="IncomingFrame.Connection"/>.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    private async ValueTask ReadFramesAsync(IConnection connection, CancellationToken cancel)
+    private async ValueTask ReadFramesAsync(CancellationToken cancel)
     {
         while (true)
         {
@@ -750,10 +729,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         throw new InvalidDataException(
                             $"unexpected data for {nameof(IceFrameType.CloseConnection)}");
                     }
-
-                    // Close the connection now. The peer expects the connection to be closed after the close
-                    // connection frame is received.
-                    Abort(new ConnectionClosedException("connection shutdown by peer"));
                     return;
                 }
 
@@ -768,7 +743,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         _networkConnectionReader,
                         _memoryPool,
                         _minimumSegmentSize,
-                        CancellationToken.None).ConfigureAwait(false);
+                        cancel).ConfigureAwait(false);
                     await batchRequestReader.CompleteAsync().ConfigureAwait(false);
                     break;
 
@@ -803,7 +778,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 _networkConnectionReader,
                 _memoryPool,
                 _minimumSegmentSize,
-                CancellationToken.None).ConfigureAwait(false);
+                cancel).ConfigureAwait(false);
 
             bool cleanupFrameReader = true;
 
@@ -831,7 +806,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                         cleanupFrameReader = false;
                     }
-                    else if (_shutdownTask is null)
+                    else if (!_isReadOnly)
                     {
                         throw new InvalidDataException("received ice Reply for unknown invocation");
                     }
@@ -854,7 +829,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 _networkConnectionReader,
                 _memoryPool,
                 _minimumSegmentSize,
-                CancellationToken.None).ConfigureAwait(false);
+                cancel).ConfigureAwait(false);
 
             // Decode its header.
             int requestId;
@@ -899,34 +874,52 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 }
             }
 
-            var request = new IncomingRequest(connection)
+            // TODO: this below is naturally this instance not decorated by any log decorator. The expectation is the
+            // logging for InvokeAsync is performed by the Logger interceptor and not the
+            // LogProtocolConnectionDecorator, but that's currently not true: LogProtocolConnectionDecorator decorates
+            // InvokeAsync.
+            var request = new IncomingRequest(Protocol.Ice)
             {
                 Fields = fields,
                 Fragment = requestHeader.Fragment,
+                Invoker = this,
                 IsOneway = requestId == 0,
+                NetworkConnectionInformation = _networkConnectionInformation,
                 Operation = requestHeader.Operation,
                 Path = requestHeader.Path,
                 Payload = requestFrameReader,
             };
 
-            CancellationTokenSource? cancelDispatchSource = null;
+            if (_dispatchSemaphore is AsyncSemaphore dispatchSemaphore)
+            {
+                // This prevents us from receiving any frame until EnterAsync returns.
+                try
+                {
+                    await dispatchSemaphore.EnterAsync(_dispatchesAndInvocationsCancelSource.Token)
+                        .ConfigureAwait(false);
+                }
+                catch
+                {
+                    Debug.Assert(_isReadOnly);
+
+                    // continue to cleanup the request below.
+                }
+            }
+
             bool isClosed = false;
             lock (_mutex)
             {
-                if (_shutdownTask is not null || _isAborted)
+                if (_isReadOnly)
                 {
                     isClosed = true;
                 }
                 else
                 {
-                    if (_invocations.Count == 0 && _dispatches.Count == 0)
+                    if (_invocations.Count == 0 && _dispatchCount == 0)
                     {
-                        // Disable idle check
-                        _idleTimeoutTimer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                        DisableIdleCheck();
                     }
-
-                    cancelDispatchSource = new();
-                    _dispatches.Add(cancelDispatchSource);
+                    ++_dispatchCount;
                 }
             }
 
@@ -946,39 +939,23 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             }
             else
             {
-                if (_dispatchSemaphore is AsyncSemaphore dispatchSemaphore)
-                {
-                    // This prevents us from receiving any frame until WaitAsync returns.
-                    try
-                    {
-                        await dispatchSemaphore.EnterAsync(cancel).ConfigureAwait(false);
-                    }
-                    catch (Exception exception)
-                    {
-                        await request.Payload.CompleteAsync(exception).ConfigureAwait(false);
-                        throw;
-                    }
-                }
-
-                Debug.Assert(cancelDispatchSource is not null);
-                _ = Task.Run(() => DispatchRequestAsync(request, contextReader, cancelDispatchSource), cancel);
+                // The scheduling of the task can't be canceled since we want to make sure DispatchRequestAsync will
+                // cleanup the dispatch if DisposeAsync is called.
+                _ = Task.Run(
+                    () => DispatchRequestAsync(request, contextReader),
+                    CancellationToken.None);
             }
 
-            async Task DispatchRequestAsync(
-                IncomingRequest request,
-                PipeReader? contextReader,
-                CancellationTokenSource cancelDispatchSource)
+            async Task DispatchRequestAsync(IncomingRequest request, PipeReader? contextReader)
             {
-                using CancellationTokenSource _ = cancelDispatchSource;
-
-                OutgoingResponse response;
+                OutgoingResponse? response = null;
                 try
                 {
                     // The dispatcher can complete the incoming request payload to release its memory as soon as
                     // possible.
                     response = await _dispatcher.DispatchAsync(
                         request,
-                        cancelDispatchSource.Token).ConfigureAwait(false);
+                        _dispatchesAndInvocationsCancelSource.Token).ConfigureAwait(false);
 
                     if (response != request.Response)
                     {
@@ -986,10 +963,13 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                             "the dispatcher did not return the last response created for this request");
                     }
                 }
+                catch (OperationCanceledException) when (cancel.IsCancellationRequested)
+                {
+                    // The connection was disposed. The request will be cleaned up by the code bellow.
+                }
                 catch (Exception exception)
                 {
                     // If we catch an exception, we return a failure response with a Slice-encoded payload.
-
                     if (exception is not DispatchException dispatchException ||
                         dispatchException.ConvertToUnhandled)
                     {
@@ -1029,8 +1009,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 }
                 finally
                 {
-                    // Even when the code above throws an exception, we catch it and write a response. So we never
-                    // want to give an exception to CompleteAsync when completing the incoming payload.
                     await request.Payload.CompleteAsync().ConfigureAwait(false);
                     if (contextReader is not null)
                     {
@@ -1042,21 +1020,21 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     }
                 }
 
-                // The writing of the response can't be canceled. This would lead to invalid protocol behavior.
-                CancellationToken cancel = CancellationToken.None;
-
                 PipeWriter payloadWriter = _payloadWriter;
                 bool acquiredSemaphore = false;
-
                 Exception? completeException = null;
+
                 try
                 {
-                    if (response.PayloadStream is not null)
+                    if (response == null)
+                    {
+                        throw new ConnectionAbortedException();
+                    }
+                    else if (response.PayloadStream is not null)
                     {
                         throw new NotSupportedException("PayloadStream must be null with the ice protocol");
                     }
-
-                    if (request.IsOneway)
+                    else if (request.IsOneway)
                     {
                         return;
                     }
@@ -1111,20 +1089,15 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         throw new NotSupportedException(
                             "payload writer cancellation or completion is not supported with the ice protocol");
                     }
-
-                    await payloadWriter.CompleteAsync().ConfigureAwait(false);
                 }
                 catch (Exception exception)
                 {
-                    request.Complete(exception);
-                    await payloadWriter.CompleteAsync(exception).ConfigureAwait(false);
-
-                    // This is an unrecoverable failure, so we kill the connection.
-                    _networkConnection.Dispose();
+                    completeException = exception;
                 }
                 finally
                 {
                     request.Complete(completeException);
+                    await payloadWriter.CompleteAsync(completeException).ConfigureAwait(false);
 
                     if (acquiredSemaphore)
                     {
@@ -1135,19 +1108,17 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     {
                         _dispatchSemaphore?.Release();
 
-                        // Dispatch is done, remove the cancellation token source for the dispatch.
-                        if (_dispatches.Remove(cancelDispatchSource))
+                        // Dispatch is done.
+                        --_dispatchCount;
+                        if (_invocations.Count == 0 && _dispatchCount == 0)
                         {
-                            if (_invocations.Count == 0 && _dispatches.Count == 0)
+                            if (_isReadOnly)
                             {
-                                if (_shutdownTask is not null)
-                                {
-                                    _dispatchesAndInvocationsCompleted.TrySetResult();
-                                }
-                                else if (!_isAborted)
-                                {
-                                    _idleTimeoutTimer?.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
-                                }
+                                _dispatchesAndInvocationsCompleted.TrySetResult();
+                            }
+                            else
+                            {
+                                EnableIdleCheck();
                             }
                         }
                     }
@@ -1235,66 +1206,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                 return (requestId, requestHeader, contextPipe?.Reader, (int)decoder.Consumed);
             }
-        }
-    }
-
-    private async Task ShutdownAsyncCore(string message, CancellationToken cancel)
-    {
-        Debug.Assert(_shutdownTask is null);
-
-        if (_isAborted)
-        {
-            return;
-        }
-
-        // Make sure we shutdown the connection asynchronously without holding any mutex lock from the caller.
-        await Task.Yield();
-
-        var exception = new ConnectionClosedException(message);
-
-        // _onShutdown is read-only once _shutdownTask is not null
-        _onShutdown?.Invoke(message);
-
-        if (_dispatches.Count == 0 && _invocations.Count == 0)
-        {
-            _dispatchesAndInvocationsCompleted.TrySetResult();
-        }
-
-        cancel.Register(CancelDispatches);
-
-        // Cancel pending invocations immediately.
-        CancelInvocations(new OperationCanceledException(message));
-
-        // Wait for dispatches and invocations to complete.
-        await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
-
-        await _writeSemaphore.EnterAsync(CancellationToken.None).ConfigureAwait(false);
-        try
-        {
-            // Encode and write the CloseConnection frame once all the dispatches are done.
-            EncodeCloseConnectionFrame(_networkConnectionWriter);
-            await _networkConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-        }
-        finally
-        {
-            _writeSemaphore.Release();
-        }
-
-        // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
-        // connection closure here. We can't just return and close the underlying transport since this could abort
-        // the receive of the dispatch responses and close connection frame by the peer.
-        await _pendingClose.Task.ConfigureAwait(false);
-
-        // Protocol connection resource cleanup. This is for now performed by Abort (which should have
-        // been named CloseAsync like ConnectionCore.CloseAsync).
-        // TODO: Refactor depending on what we decide for the protocol connection resource cleanup (#1397,
-        // #1372, #1404, #1400).
-        Abort(exception);
-
-        static void EncodeCloseConnectionFrame(SimpleNetworkConnectionWriter writer)
-        {
-            var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
-            IceDefinitions.CloseConnectionFrame.Encode(ref encoder);
         }
     }
 }

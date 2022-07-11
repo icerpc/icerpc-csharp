@@ -18,26 +18,26 @@ public class CustomClientTransport : IClientTransport<IMultiplexedNetworkConnect
     public bool CheckParams(Endpoint endpoint) => true;
 
     public IMultiplexedNetworkConnection CreateConnection(
-        Endpoint remoteEndpoint,
+        Endpoint endpoint,
         SslClientAuthenticationOptions? authenticationOptions,
         ILogger logger)
     {
-        if (remoteEndpoint.Params.TryGetValue("transport", out string? endpointTransport))
+        if (endpoint.Params.TryGetValue("transport", out string? endpointTransport))
         {
             if (endpointTransport != "tcp" && endpointTransport != "custom")
             {
                 throw new ArgumentException(
-                    $"cannot use custom transport with endpoint '{remoteEndpoint}'",
-                    nameof(remoteEndpoint));
+                    $"cannot use custom transport with endpoint '{endpoint}'",
+                    nameof(endpoint));
             }
         }
 
-        remoteEndpoint = remoteEndpoint with
+        endpoint = endpoint with
         {
-            Params = remoteEndpoint.Params.Remove("custom-p").SetItem("transport", "tcp")
+            Params = endpoint.Params.Remove("custom-p").SetItem("transport", "tcp")
         };
 
-        return _transport.CreateConnection(remoteEndpoint, authenticationOptions, logger);
+        return _transport.CreateConnection(endpoint, authenticationOptions, logger);
     }
 }
 
@@ -92,7 +92,7 @@ public class CustomTransportTests
         await using var connection = new ClientConnection(
             new ClientConnectionOptions
             {
-                RemoteEndpoint = server.Endpoint
+                Endpoint = server.Endpoint
             },
             multiplexedClientTransport: new CustomClientTransport());
 
@@ -121,7 +121,7 @@ public class CustomTransportTests
                 {
                     // We add the custom endpoint here because listen updates the endpoint and the custom transport
                     // removes the parameter
-                    RemoteEndpoint = server.Endpoint with
+                    Endpoint = server.Endpoint with
                     {
                         Params = server.Endpoint.Params.Add("custom-p", "bar")
                     }

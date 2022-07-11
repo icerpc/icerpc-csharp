@@ -107,7 +107,7 @@ public sealed class IceProtocolConnectionTests
         // Act
         for (int i = 0; i < maxConcurrentDispatches + 1; ++i)
         {
-            responseTasks.Add(sut.Client.InvokeAsync(request, InvalidConnection.Ice, default));
+            responseTasks.Add(sut.Client.InvokeAsync(request));
         }
         // wait for maxDispatchesPerConnection dispatches to start
         for (int i = 0; i < maxConcurrentDispatches; ++i)
@@ -130,18 +130,23 @@ public sealed class IceProtocolConnectionTests
     /// <summary>Verifies that when dispatches are blocked waiting for the dispatch semaphore that aborting the server
     /// connection correctly cancels the dispatch semaphore wait. If the dispatch semaphore wait wasn't canceled, the
     /// DisposeAsync call would hang because it waits for the read semaphore to be released.</summary>
-    /// </summary>
     [Test]
-    public async Task Connection_with_dispatches_waiting_for_concurrent_dispatch_unblocks_on_abort()
+    public async Task Connection_with_dispatches_waiting_for_concurrent_dispatch_unblocks_on_dispose()
     {
         // Arrange
-        using var semaphore = new SemaphoreSlim(0);
         int dispatchCount = 0;
         var dispatcher = new InlineDispatcher(
             async (request, cancel) =>
             {
                 ++dispatchCount;
-                await semaphore.WaitAsync(CancellationToken.None);
+                try
+                {
+                    // Wait for the dispatch to be canceled by DisposeAsync
+                    await Task.Delay(Timeout.InfiniteTimeSpan, cancel);
+                }
+                catch
+                {
+                }
                 return new OutgoingResponse(request);
             });
 
@@ -157,20 +162,20 @@ public sealed class IceProtocolConnectionTests
         await sut.ConnectAsync();
 
         // Perform two invocations. The first blocks so the second won't be dispatched. It will block on the dispatch
-        // semaphore.
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.Ice)), InvalidConnection.Ice, default);
-        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.Ice)), InvalidConnection.Ice, default);
+        // semaphore which is canceled on dispose.
+        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(
+            new OutgoingRequest(new ServiceAddress(Protocol.Ice)));
+        _ = sut.Client.InvokeAsync(
+            new OutgoingRequest(new ServiceAddress(Protocol.Ice)));
 
         // Make sure the second request is received and blocked on the dispatch semaphore.
         await Task.Delay(200);
 
         // Act
-        sut.Server.Abort(new ConnectionClosedException());
+        await sut.Server.DisposeAsync();
 
         // Assert
         Assert.That(dispatchCount, Is.EqualTo(1));
-
-        semaphore.Release();
     }
 
     /// <summary>Verifies that a failure response contains the expected retry policy field.</summary>
@@ -193,7 +198,7 @@ public sealed class IceProtocolConnectionTests
         var request = new OutgoingRequest(serviceAddress);
 
         // Act
-        var response = await sut.Client.InvokeAsync(request, InvalidConnection.Ice);
+        var response = await sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
@@ -221,7 +226,7 @@ public sealed class IceProtocolConnectionTests
         var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
 
         // Act
-        var response = await sut.Client.InvokeAsync(request, InvalidConnection.Ice);
+        var response = await sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
@@ -251,51 +256,9 @@ public sealed class IceProtocolConnectionTests
         await sut.ConnectAsync();
 
         // Act
-        _ = sut.Client.InvokeAsync(
-            new OutgoingRequest(new ServiceAddress(Protocol.Ice)),
-            InvalidConnection.Ice);
+        _ = sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.Ice)));
 
         // Assert
         Assert.That(await payloadStreamDecorator.Completed, Is.InstanceOf<NotSupportedException>());
-    }
-
-    /// <summary>With the ice protocol, the connection shutdown triggers the cancellation of invocations. This is
-    /// different with IceRpc see <see
-    /// cref="IceRpcProtocolConnectionTests.Shutdown_waits_for_pending_invocations_to_finish"/>.
-    /// </summary>
-    [Test]
-    public async Task Shutdown_cancels_invocations()
-    {
-        // Arrange
-        using var start = new SemaphoreSlim(0);
-        using var hold = new SemaphoreSlim(0);
-
-        var dispatcher = new InlineDispatcher(async (request, cancel) =>
-        {
-            start.Release();
-            await hold.WaitAsync(cancel);
-            return new OutgoingResponse(request);
-        });
-
-        await using var provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.Ice, dispatcher)
-            .BuildServiceProvider(validateScopes: true);
-
-        var sut = provider.GetRequiredService<IClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-
-        var invokeTask = sut.Client.InvokeAsync(
-            new OutgoingRequest(new ServiceAddress(Protocol.Ice)),
-            InvalidConnection.Ice);
-
-        await start.WaitAsync(); // Wait for the dispatch to start
-
-        // Act
-        _ = sut.Client.ShutdownAsync("");
-
-        // Assert
-        Assert.That(async () => await invokeTask, Throws.TypeOf<OperationCanceledException>());
-
-        hold.Release();
     }
 }

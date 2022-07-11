@@ -304,7 +304,7 @@ public class OperationTests
         // Assert
         Assert.That(
             async () => await IMyOperationsA.Request.OpReadOnlyMemoryAsync(
-                new IncomingRequest(InvalidConnection.IceRpc)
+                new IncomingRequest(Protocol.IceRpc)
                 {
                     Payload = payload
                 },
@@ -325,7 +325,7 @@ public class OperationTests
 
         // Assert
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, InvalidConnection.IceRpc)
+        var response = new IncomingResponse(request)
         {
             Payload = payload
         };
@@ -350,7 +350,7 @@ public class OperationTests
         // Assert
         Assert.That(
             async () => await IMyOperationsA.Request.OpReadOnlyMemoryOptionalAsync(
-                new IncomingRequest(InvalidConnection.IceRpc)
+                new IncomingRequest(Protocol.IceRpc)
                 {
                     Payload = payload
                 },
@@ -372,7 +372,7 @@ public class OperationTests
 
         // Assert
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, InvalidConnection.IceRpc)
+        var response = new IncomingResponse(request)
         {
             Payload = payload
         };
@@ -397,7 +397,7 @@ public class OperationTests
         // Assert
         Assert.That(
             async () => await IMyOperationsA.Request.OpReadOnlyMemoryTaggedAsync(
-                new IncomingRequest(InvalidConnection.IceRpc)
+                new IncomingRequest(Protocol.IceRpc)
                 {
                     Payload = payload
                 },
@@ -419,7 +419,7 @@ public class OperationTests
 
         // Assert
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, InvalidConnection.IceRpc)
+        var response = new IncomingResponse(request)
         {
             Payload = payload
         };

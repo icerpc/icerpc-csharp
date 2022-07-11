@@ -82,20 +82,20 @@ public class TcpTransportTests
         }
     }
 
-    /// <summary>Verifies that setting the <see cref="TcpClientTransportOptions.LocalEndPoint"/> properties, sets
+    /// <summary>Verifies that setting the <see cref="TcpClientTransportOptions.LocalNetworkAddress"/> properties, sets
     /// the socket local endpoint.</summary>
     [Test]
     public void Configure_client_connection_local_endpoint()
     {
-        var localEndPoint = new IPEndPoint(IPAddress.IPv6Loopback, 10000);
+        var localNetworkAddress = new IPEndPoint(IPAddress.IPv6Loopback, 10000);
 
         using TcpClientNetworkConnection connection = CreateTcpClientConnection(
             options: new TcpClientTransportOptions
             {
-                LocalEndPoint = localEndPoint,
+                LocalNetworkAddress = localNetworkAddress,
             });
 
-        Assert.That(connection.Socket.LocalEndPoint, Is.EqualTo(localEndPoint));
+        Assert.That(connection.Socket.LocalEndPoint, Is.EqualTo(localNetworkAddress));
     }
 
     /// <summary>Verifies that setting <see cref="TcpTransportOptions.ReceiveBufferSize"/> and
@@ -315,13 +315,13 @@ public class TcpTransportTests
         var networkConnectionInformation = await connectTask;
 
         // Assert
-        Assert.That(networkConnectionInformation.LocalEndPoint, Is.TypeOf<IPEndPoint>());
-        Assert.That(networkConnectionInformation.LocalEndPoint.AddressFamily, Is.EqualTo(AddressFamily.InterNetworkV6));
-        var endPoint = (IPEndPoint)networkConnectionInformation.LocalEndPoint;
-        Assert.That(endPoint.Address, Is.EqualTo(IPAddress.IPv6Loopback));
-        Assert.That(networkConnectionInformation.RemoteEndPoint, Is.TypeOf<IPEndPoint>());
-        endPoint = (IPEndPoint)networkConnectionInformation.RemoteEndPoint;
-        Assert.That(endPoint.Address, Is.EqualTo(IPAddress.IPv6Loopback));
+        Assert.That(networkConnectionInformation.LocalNetworkAddress, Is.TypeOf<IPEndPoint>());
+        Assert.That(networkConnectionInformation.LocalNetworkAddress?.AddressFamily, Is.EqualTo(AddressFamily.InterNetworkV6));
+        var endPoint = (IPEndPoint?)networkConnectionInformation.LocalNetworkAddress;
+        Assert.That(endPoint?.Address, Is.EqualTo(IPAddress.IPv6Loopback));
+        Assert.That(networkConnectionInformation.RemoteNetworkAddress, Is.TypeOf<IPEndPoint>());
+        endPoint = (IPEndPoint?)networkConnectionInformation.RemoteNetworkAddress;
+        Assert.That(endPoint?.Address, Is.EqualTo(IPAddress.IPv6Loopback));
         Assert.That(
             networkConnectionInformation.RemoteCertificate,
             Is.EqualTo(tls ? DefaultSslServerAuthenticationOptions.ServerCertificate : null));

@@ -39,6 +39,7 @@ internal class SimpleNetworkConnectionReader : IDisposable
 
     internal SimpleNetworkConnectionReader(
         ISimpleNetworkConnection connection,
+        TimeSpan idleTimeout,
         MemoryPool<byte> pool,
         int minimumSegmentSize,
         Action<Exception> abortAction,
@@ -50,7 +51,7 @@ internal class SimpleNetworkConnectionReader : IDisposable
             minimumSegmentSize: minimumSegmentSize,
             pauseWriterThreshold: 0,
             writerScheduler: PipeScheduler.Inline));
-
+        _idleTimeout = idleTimeout;
         _nextIdleTime = TimeSpan.Zero;
 
         // Setup a timer to abort the connection if it's idle for longer than the idle timeout.
@@ -212,7 +213,7 @@ internal class SimpleNetworkConnectionReader : IDisposable
         return readResult.Buffer;
     }
 
-    internal void SetIdleTimeout(TimeSpan idleTimeout)
+    internal void EnableIdleCheck(TimeSpan? idleTimeout = null)
     {
         lock (_mutex)
         {
@@ -221,7 +222,10 @@ internal class SimpleNetworkConnectionReader : IDisposable
                 return;
             }
 
-            _idleTimeout = idleTimeout;
+            if (idleTimeout is not null)
+            {
+                _idleTimeout = idleTimeout.Value;
+            }
 
             if (_idleTimeout == Timeout.InfiniteTimeSpan)
             {

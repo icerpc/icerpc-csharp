@@ -277,9 +277,10 @@ public class ServiceAddressTests
     {
         // Arrange
         var serviceAddress = ServiceAddress.Parse("ice://localhost/hello");
+        var myParams = new Dictionary<string, string> { ["adapter-id"] = "" }.ToImmutableDictionary();
 
         // Act/Assert
-        Assert.That(() => serviceAddress.Params = serviceAddress.Params.SetItem("adapter-id", ""), Throws.ArgumentException);
+        Assert.That(() => serviceAddress = serviceAddress with { Params = myParams }, Throws.ArgumentException);
     }
 
     [Test]
@@ -308,7 +309,10 @@ public class ServiceAddressTests
 
         // Act/Assert
         Assert.That(
-            () => serviceAddress.Endpoint = new Endpoint(serviceAddress.Protocol!) { Host = "localhost" },
+            () => serviceAddress = serviceAddress with
+            {
+                Endpoint = new Endpoint(serviceAddress.Protocol!) { Host = "localhost" }
+            },
             Throws.TypeOf<InvalidOperationException>());
     }
 
@@ -366,7 +370,7 @@ public class ServiceAddressTests
         Protocol? protocol = protocolName.Length > 0 ? Protocol.FromString(protocolName) : null;
         var serviceAddress = new ServiceAddress(protocol);
 
-        Assert.That(() => serviceAddress.Fragment = "bar", Throws.TypeOf<InvalidOperationException>());
+        Assert.That(() => serviceAddress = serviceAddress with { Fragment = "bar" }, Throws.TypeOf<InvalidOperationException>());
 
         if (protocol is not null)
         {
@@ -380,9 +384,10 @@ public class ServiceAddressTests
     public void Cannot_set_params_on_a_service_address_with_endpoints()
     {
         var serviceAddress = ServiceAddress.Parse("icerpc://localhost/hello");
+        var myParams = new Dictionary<string, string> { ["name"] = "value" }.ToImmutableDictionary();
 
         Assert.That(
-            () => serviceAddress.Params = serviceAddress.Params.Add("name", "value"),
+            () => serviceAddress = serviceAddress with { Params = myParams },
             Throws.TypeOf<InvalidOperationException>());
     }
 
@@ -590,7 +595,7 @@ public class ServiceAddressTests
 
         Assert.Multiple(() =>
         {
-            Assert.Throws<ArgumentException>(() => serviceAddress.AltEndpoints = altEndpoints);
+            Assert.That(() => serviceAddress = serviceAddress with { AltEndpoints = altEndpoints }, Throws.ArgumentException);
 
             // Ensure the alt endpoints weren't updated
             Assert.That(serviceAddress.AltEndpoints, Is.Empty);
@@ -608,7 +613,7 @@ public class ServiceAddressTests
 
         Assert.Multiple(() =>
         {
-            Assert.Throws<ArgumentException>(() => serviceAddress.Endpoint = newEndpoint);
+            Assert.That(() => serviceAddress = serviceAddress with { Endpoint = newEndpoint }, Throws.ArgumentException);
 
             // Ensure the endpoint wasn't updated
             Assert.That(serviceAddress.Endpoint, Is.EqualTo(endpoint));

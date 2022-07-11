@@ -37,20 +37,20 @@ public class TcpClientTransport : IClientTransport<ISimpleNetworkConnection>
 
     /// <inheritdoc/>
     public ISimpleNetworkConnection CreateConnection(
-        Endpoint remoteEndpoint,
+        Endpoint endpoint,
         SslClientAuthenticationOptions? authenticationOptions,
         ILogger logger)
     {
         // This is the composition root of the tcp client transport, where we install log decorators when logging
         // is enabled.
 
-        if (!CheckParams(remoteEndpoint, out string? remoteEndpointTransport))
+        if (!CheckParams(endpoint, out string? endpointTransport))
         {
-            throw new FormatException($"cannot create a TCP connection to endpoint '{remoteEndpoint}'");
+            throw new FormatException($"cannot create a TCP connection to endpoint '{endpoint}'");
         }
 
         authenticationOptions = authenticationOptions?.Clone() ??
-            (remoteEndpointTransport == TransportNames.Ssl ? new SslClientAuthenticationOptions() : null);
+            (endpointTransport == TransportNames.Ssl ? new SslClientAuthenticationOptions() : null);
 
         if (authenticationOptions is not null)
         {
@@ -58,16 +58,16 @@ public class TcpClientTransport : IClientTransport<ISimpleNetworkConnection>
             // TargetHost to the endpoint host. On the client side, the application doesn't necessarily
             // need to provide authentication options if it relies on system certificates and doesn't specify
             // certificate validation.
-            authenticationOptions.TargetHost ??= remoteEndpoint.Host;
+            authenticationOptions.TargetHost ??= endpoint.Host;
             authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
             {
-                new SslApplicationProtocol(remoteEndpoint.Protocol.Name)
+                new SslApplicationProtocol(endpoint.Protocol.Name)
             };
         }
 
         var clientConnection = new TcpClientNetworkConnection(
-            remoteEndpoint.Host,
-            remoteEndpoint.Port,
+            endpoint.Host,
+            endpoint.Port,
             authenticationOptions,
             _options);
 

@@ -19,8 +19,8 @@ internal static partial class RetryInterceptorLoggerExtensions
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogRetryRequest(
-                connection?.NetworkConnectionInformation?.LocalEndPoint.ToString() ?? "undefined",
-                connection?.NetworkConnectionInformation?.RemoteEndPoint.ToString() ?? "undefined",
+                connection?.NetworkConnectionInformation?.LocalNetworkAddress?.ToString() ?? "undefined",
+                connection?.NetworkConnectionInformation?.RemoteNetworkAddress?.ToString() ?? "undefined",
                 path,
                 operation,
                 retryPolicy,
@@ -34,13 +34,13 @@ internal static partial class RetryInterceptorLoggerExtensions
         EventId = (int)RetryInterceptorEventIds.RetryRequest,
         EventName = nameof(RetryInterceptorEventIds.RetryRequest),
         Level = LogLevel.Information,
-        Message = "retrying request because of retryable exception (LocalEndPoint={LocalEndPoint}, " +
-                  "RemoteEndPoint={RemoteEndPoint}, Path={Path}, Operation={Operation}, " +
+        Message = "retrying request because of retryable exception (LocalNetworkAddress={LocalNetworkAddress}, " +
+                  "RemoteNetworkAddress={RemoteNetworkAddress}, Path={Path}, Operation={Operation}, " +
                   "RetryPolicy={RetryPolicy}, Attempt={Attempt}/{MaxAttempts})")]
     private static partial void LogRetryRequest(
         this ILogger logger,
-        string localEndpoint,
-        string remoteEndpoint,
+        string localNetworkAddress,
+        string remoteNetworkAddress,
         string path,
         string operation,
         RetryPolicy retryPolicy,

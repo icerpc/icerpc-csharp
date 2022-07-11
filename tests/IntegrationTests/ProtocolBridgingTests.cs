@@ -23,11 +23,8 @@ public sealed class ProtocolBridgingTests
         Endpoint forwarderEndpoint = $"{forwarderProtocol}://colochost1";
         Endpoint targetEndpoint = $"{targetProtocol}://colochost2";
 
-        var forwarderServiceProxy = ProtocolBridgingTestProxy.Parse($"{forwarderProtocol}:/forward");
-        forwarderServiceProxy.ServiceAddress.Endpoint = forwarderEndpoint;
-
-        var targetServiceProxy = ProtocolBridgingTestProxy.Parse($"{targetProtocol}:/target");
-        targetServiceProxy.ServiceAddress.Endpoint = targetEndpoint;
+        var forwarderServiceProxy = ProtocolBridgingTestProxy.Parse($"{forwarderEndpoint}forward");
+        var targetServiceProxy = ProtocolBridgingTestProxy.Parse($"{targetEndpoint}target");
 
         var targetService = new ProtocolBridgingTest(targetEndpoint);
 
@@ -133,7 +130,7 @@ public sealed class ProtocolBridgingTests
         {
             IDispatchInformationFeature dispatchInformation = features.Get<IDispatchInformationFeature>()!;
 
-            var serviceAddress = new ServiceAddress(dispatchInformation.Connection.Protocol)
+            var serviceAddress = new ServiceAddress(dispatchInformation.Protocol)
             {
                 Path = dispatchInformation.Path,
                 Endpoint = _publishedEndpoint

@@ -34,11 +34,12 @@ public class SimpleNetworkConnectionReaderTests
         int pingCount = 0;
         using var reader = new SimpleNetworkConnectionReader(
             clientConnection,
+            TimeSpan.FromMilliseconds(1000),
             MemoryPool<byte>.Shared,
             4096,
             abortAction: _ => { },
             keepAliveAction: () => ++pingCount);
-        reader.SetIdleTimeout(TimeSpan.FromMilliseconds(1000));
+        reader.EnableIdleCheck();
 
         // Write and read data.
         await serverConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
@@ -73,11 +74,12 @@ public class SimpleNetworkConnectionReaderTests
         TimeSpan abortCalledTime = Timeout.InfiniteTimeSpan;
         using var reader = new SimpleNetworkConnectionReader(
             clientConnection,
+            TimeSpan.FromMilliseconds(500),
             MemoryPool<byte>.Shared,
             4096,
             abortAction: _ => abortCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64),
             keepAliveAction: () => { });
-        reader.SetIdleTimeout(TimeSpan.FromMilliseconds(500));
+        reader.EnableIdleCheck();
 
         // Act
         await Task.Delay(TimeSpan.FromSeconds(1));
@@ -106,11 +108,12 @@ public class SimpleNetworkConnectionReaderTests
         TimeSpan abortCalledTime = Timeout.InfiniteTimeSpan;
         using var reader = new SimpleNetworkConnectionReader(
             clientConnection,
+            TimeSpan.FromMilliseconds(500),
             MemoryPool<byte>.Shared,
             4096,
             abortAction: _ => abortCalledTime = TimeSpan.FromMilliseconds(Environment.TickCount64),
             keepAliveAction: () => { });
-        reader.SetIdleTimeout(TimeSpan.FromMilliseconds(500));
+        reader.EnableIdleCheck();
 
         // Write and read data to defer the idle timeout
         await serverConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);

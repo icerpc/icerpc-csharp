@@ -38,7 +38,7 @@ public sealed record class TcpClientTransportOptions : TcpTransportOptions
     /// socket. If specified the client socket will bind to this address and port before connection establishment.
     /// </summary>
     /// <value>The address and port to bind the socket to.</value>
-    public IPEndPoint? LocalEndPoint { get; set; }
+    public IPEndPoint? LocalNetworkAddress { get; set; }
 }
 
 /// <summary>The options class for configuring <see cref="TcpServerTransport"/>.</summary>

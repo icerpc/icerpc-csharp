@@ -9,17 +9,17 @@ namespace IceRpc.Internal;
 /// <summary>This class provides ILogger extension methods for connection-related messages.</summary>
 internal static partial class ConnectionLoggerExtensions
 {
-    private static readonly Func<ILogger, EndPoint, EndPoint, IDisposable> _clientConnectionScope =
-        LoggerMessage.DefineScope<EndPoint, EndPoint>(
-            "ClientConnection(LocalEndPoint={LocalEndPoint}, RemoteEndPoint={RemoteEndPoint})");
+    private static readonly Func<ILogger, EndPoint?, EndPoint?, IDisposable> _clientConnectionScope =
+        LoggerMessage.DefineScope<EndPoint?, EndPoint?>(
+            "ClientConnection(LocalNetworkAddress={LocalNetworkAddress}, RemoteNetworkAddress={RemoteNetworkAddress})");
 
     private static readonly Func<ILogger, Endpoint, IDisposable> _newClientConnectionScope =
         LoggerMessage.DefineScope<Endpoint>(
-            "NewClientConnection(RemoteEndpoint={RemoteEndpoint})");
+            "NewClientConnection(Endpoint={Endpoint})");
 
     private static readonly Func<ILogger, Endpoint, IDisposable> _newServerConnectionScope =
         LoggerMessage.DefineScope<Endpoint>(
-            "NewServerConnection(LocalEndpoint={LocalEndpoint})");
+            "NewServerConnection(Endpoint={Endpoint})");
 
     private static readonly Func<ILogger, string, string, IDisposable> _receiveResponseScope =
         LoggerMessage.DefineScope<string, string>("ReceiveResponse(Path={Path}, Operation={Operation})");
@@ -31,9 +31,9 @@ internal static partial class ConnectionLoggerExtensions
         LoggerMessage.DefineScope<string, string, ResultType>(
             "SendResponse(Path={Path}, Operation={Operation}, ResultType={ResultType})");
 
-    private static readonly Func<ILogger, EndPoint, EndPoint, IDisposable> _serverConnectionScope =
-        LoggerMessage.DefineScope<EndPoint, EndPoint>(
-            "ServerConnection(LocalEndPoint={LocalEndPoint}, RemoteEndPoint={RemoteEndPoint})");
+    private static readonly Func<ILogger, EndPoint?, EndPoint?, IDisposable> _serverConnectionScope =
+        LoggerMessage.DefineScope<EndPoint?, EndPoint?>(
+            "ServerConnection(LocalNetworkAddress={LocalNetworkAddress}, RemoteNetworkAddress={RemoteNetworkAddress})");
 
     [LoggerMessage(
         EventId = (int)ConnectionEventIds.AcceptRequests,
@@ -50,26 +50,16 @@ internal static partial class ConnectionLoggerExtensions
     internal static partial void LogConnectionClosedReason(this ILogger logger, Exception exception);
 
     [LoggerMessage(
-        EventId = (int)ConnectionEventIds.ProtocolConnectionAbort,
-        EventName = nameof(ConnectionEventIds.ProtocolConnectionAbort),
-        Level = LogLevel.Information,
-        Message = "{Protocol} connection aborted")]
-    internal static partial void LogProtocolConnectionAbort(
-        this ILogger logger,
-        Protocol protocol,
-        Exception exception);
-
-    [LoggerMessage(
         EventId = (int)ConnectionEventIds.ProtocolConnectionConnect,
         EventName = nameof(ConnectionEventIds.ProtocolConnectionConnect),
         Level = LogLevel.Information,
         Message = "{Protocol} connection established " +
-            "(LocalEndPoint={LocalEndPoint}, RemoteEndPoint={RemoteEndPoint})")]
+            "(LocalNetworkAddress={LocalNetworkAddress}, RemoteNetworkAddress={RemoteNetworkAddress})")]
     internal static partial void LogProtocolConnectionConnect(
         this ILogger logger,
         Protocol protocol,
-        EndPoint localEndPoint,
-        EndPoint remoteEndPoint);
+        EndPoint? localNetworkAddress,
+        EndPoint? remoteNetworkAddress);
 
     [LoggerMessage(
         EventId = (int)ConnectionEventIds.ProtocolConnectionDispose,
@@ -106,7 +96,7 @@ internal static partial class ConnectionLoggerExtensions
     internal static IDisposable StartClientConnectionScope(
         this ILogger logger,
         NetworkConnectionInformation information) =>
-        _clientConnectionScope(logger, information.LocalEndPoint, information.RemoteEndPoint);
+        _clientConnectionScope(logger, information.LocalNetworkAddress, information.RemoteNetworkAddress);
 
     /// <summary>Starts a client or server connection scope.</summary>
     internal static IDisposable StartConnectionScope(
@@ -126,7 +116,7 @@ internal static partial class ConnectionLoggerExtensions
     internal static IDisposable StartServerConnectionScope(
         this ILogger logger,
         NetworkConnectionInformation information) =>
-        _serverConnectionScope(logger, information.LocalEndPoint, information.RemoteEndPoint);
+        _serverConnectionScope(logger, information.LocalNetworkAddress, information.RemoteNetworkAddress);
 
     /// <summary>Starts a scope for method IProtocolConnection.ReceiveResponseAsync.</summary>
     internal static IDisposable StartReceiveResponseScope(this ILogger logger, OutgoingRequest request) =>

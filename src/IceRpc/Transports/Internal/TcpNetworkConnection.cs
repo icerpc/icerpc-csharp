@@ -232,8 +232,8 @@ internal class TcpClientNetworkConnection : TcpNetworkConnection
             }
 
             return new NetworkConnectionInformation(
-                localEndPoint: Socket.LocalEndPoint!,
-                remoteEndPoint: Socket.RemoteEndPoint!,
+                localNetworkAddress: Socket.LocalEndPoint!,
+                remoteNetworkAddress: Socket.RemoteEndPoint!,
                 _sslStream?.RemoteCertificate);
         }
         catch (AuthenticationException)
@@ -275,9 +275,9 @@ internal class TcpClientNetworkConnection : TcpNetworkConnection
 
         try
         {
-            if (options.LocalEndPoint is IPEndPoint localEndPoint)
+            if (options.LocalNetworkAddress is IPEndPoint localNetworkAddress)
             {
-                Socket.Bind(localEndPoint);
+                Socket.Bind(localNetworkAddress);
             }
 
             if (options.ReceiveBufferSize is int receiveSize)
@@ -307,7 +307,7 @@ internal class TcpServerNetworkConnection : TcpNetworkConnection
 
     private readonly SslServerAuthenticationOptions? _authenticationOptions;
     private bool _connected;
-    private readonly Endpoint _localEndpoint;
+    private readonly Endpoint _endpoint;
     private SslStream? _sslStream;
 
     public override async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
@@ -327,8 +327,8 @@ internal class TcpServerNetworkConnection : TcpNetworkConnection
             var ipEndPoint = (IPEndPoint)Socket.RemoteEndPoint!;
 
             return new NetworkConnectionInformation(
-                localEndPoint: Socket.LocalEndPoint!,
-                remoteEndPoint: Socket.RemoteEndPoint!,
+                localNetworkAddress: Socket.LocalEndPoint!,
+                remoteNetworkAddress: Socket.RemoteEndPoint!,
                 _sslStream?.RemoteCertificate);
         }
         catch (AuthenticationException)
@@ -352,11 +352,11 @@ internal class TcpServerNetworkConnection : TcpNetworkConnection
 
     internal TcpServerNetworkConnection(
         Socket socket,
-        Endpoint localEndpoint,
+        Endpoint endpoint,
         SslServerAuthenticationOptions? authenticationOptions)
     {
         Socket = socket;
         _authenticationOptions = authenticationOptions;
-        _localEndpoint = localEndpoint;
+        _endpoint = endpoint;
     }
 }

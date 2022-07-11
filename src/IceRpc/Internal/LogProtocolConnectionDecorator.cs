@@ -12,29 +12,18 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
 
     private readonly IProtocolConnection _decoratee;
     private NetworkConnectionInformation _information;
-    private bool _isServer;
+    private readonly bool _isServer;
     private readonly ILogger _logger;
 
-    public void Abort(Exception exception)
+    async Task<NetworkConnectionInformation> IProtocolConnection.ConnectAsync(CancellationToken cancel)
     {
-        using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
-        _decoratee.Abort(exception);
-        _logger.LogProtocolConnectionAbort(_decoratee.Protocol, exception);
-    }
+        _information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
 
-    async Task<NetworkConnectionInformation> IProtocolConnection.ConnectAsync(
-        bool isServer,
-        IConnection connection,
-        CancellationToken cancel)
-    {
-        _isServer = isServer;
-        _information = await _decoratee.ConnectAsync(isServer, connection, cancel).ConfigureAwait(false);
-
-        using IDisposable scope = _logger.StartConnectionScope(_information, isServer);
+        using IDisposable scope = _logger.StartConnectionScope(_information, _isServer);
         _logger.LogProtocolConnectionConnect(
             _decoratee.Protocol,
-            _information.LocalEndPoint,
-            _information.RemoteEndPoint);
+            _information.LocalNetworkAddress,
+            _information.RemoteNetworkAddress);
 
         // TODO: log regular shutdown with message and no exception
 
@@ -48,17 +37,13 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
         return _information;
     }
 
-    async Task<IncomingResponse> IProtocolConnection.InvokeAsync(
-        OutgoingRequest request,
-        IConnection connection,
-        CancellationToken cancel)
+    ValueTask IAsyncDisposable.DisposeAsync() => _decoratee.DisposeAsync();
+
+    async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
         using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
         using IDisposable _ = _logger.StartSendRequestScope(request);
-        IncomingResponse response = await _decoratee.InvokeAsync(
-            request,
-            connection,
-            cancel).ConfigureAwait(false);
+        IncomingResponse response = await _decoratee.InvokeAsync(request, cancel).ConfigureAwait(false);
         _logger.LogSendRequest();
         return response;
     }
@@ -84,9 +69,10 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
         _logger.LogProtocolConnectionShutdown(_decoratee.Protocol, message);
     }
 
-    internal LogProtocolConnectionDecorator(IProtocolConnection decoratee, ILogger logger)
+    internal LogProtocolConnectionDecorator(IProtocolConnection decoratee, bool isServer, ILogger logger)
     {
         _decoratee = decoratee;
+        _isServer = isServer;
         _logger = logger;
     }
 }

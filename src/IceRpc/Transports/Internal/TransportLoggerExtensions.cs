@@ -69,11 +69,11 @@ internal static partial class TransportLoggerExtensions
         EventId = (int)TransportEventIds.NetworkConnectionConnect,
         EventName = nameof(TransportEventIds.NetworkConnectionConnect),
         Level = LogLevel.Debug,
-        Message = "network connection established: LocalEndPoint={LocalEndPoint}, RemoteEndPoint={RemoteEndPoint}")]
+        Message = "network connection established: LocalNetworkAddress={LocalNetworkAddress}, RemoteNetworkAddress={RemoteNetworkAddress}")]
     internal static partial void LogNetworkConnectionConnect(
         this ILogger logger,
-        EndPoint localEndPoint,
-        EndPoint remoteEndPoint);
+        EndPoint? localNetworkAddress,
+        EndPoint? remoteNetworkAddress);
 
     [LoggerMessage(
         EventId = (int)TransportEventIds.NetworkConnectionConnectFailed,
