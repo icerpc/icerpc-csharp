@@ -119,8 +119,20 @@ public class ServiceAddressTests
                 (serviceAddress, serviceAddress, true),
                 (serviceAddress, null, false),
                 (serviceAddress, new ServiceAddress(Protocol.IceRpc), false), // Different protocol.
-                (new ServiceAddress() with {Path = "/foo"}, new ServiceAddress() with {Path = "/bar"}, false),  // Relative service addresses
-                (new ServiceAddress(new Uri("foo://host/123")), new ServiceAddress(new Uri("foo://host/123")), true)  // Unsupported protocol.
+                // Relative service addresses
+                (
+                    new ServiceAddress() with {
+                    Path = "/foo" },
+                    new ServiceAddress() with { Path = "/bar" },
+                    false
+                ),
+                // Unsupported protocol.
+                (
+                    new ServiceAddress(
+                    new Uri("foo://host/123")),
+                    ServiceAddress.Parse("foo://host/123"),
+                    true
+                )
             };
         }
     }
@@ -130,18 +142,22 @@ public class ServiceAddressTests
         get
         {
             // Service address with alt endpoints
-            var serviceAddressWithAltEndpoints = new ServiceAddress(new Uri("ice://localhost:8080/foo?abc=123#bar"));
-            serviceAddressWithAltEndpoints.AltEndpoints = ImmutableList.Create(
-                Endpoint.FromString("ice://localhost:10000?transport=fizz"),
-                Endpoint.FromString("ice://localhost:10101?transport=buzz")
-            );
+            var serviceAddressWithAltEndpoints = ServiceAddress.Parse("ice://localhost:8080/foo?abc=123#bar");
+            serviceAddressWithAltEndpoints = serviceAddressWithAltEndpoints with
+            {
+                AltEndpoints = ImmutableList.Create(
+                    Endpoint.FromString("ice://localhost:10000?transport=fizz"),
+                    Endpoint.FromString("ice://localhost:10101?transport=buzz")
+                )
+            };
 
             // Service address with Params
             var serviceAddressWithParams = new ServiceAddress(Protocol.IceRpc);
-            var myParams = new Dictionary<string, string> { { "foo", "bar" } }.ToImmutableDictionary();
+            var myParams = new Dictionary<string, string> { ["foo"] = "bar" }.ToImmutableDictionary();
             serviceAddressWithParams = serviceAddressWithParams with { Params = myParams };
 
-            return new[] {
+            return new[]
+            {
                 (
                     serviceAddressWithAltEndpoints,
                     "ice://localhost:8080/foo?abc=123&alt-endpoint=localhost:10000?transport=fizz,localhost:10101?transport=buzz#bar"
@@ -158,7 +174,7 @@ public class ServiceAddressTests
     {
         get
         {
-            var serviceAddress = new ServiceAddress(new Uri("ice://localhost:8080/foo?abc=123#bar"));
+            var serviceAddress = ServiceAddress.Parse("ice://localhost:8080/foo?abc=123#bar");
             ServiceAddress relativeServiceAddress = new ServiceAddress() with { Path = "/foo" };
             ServiceAddress protocolRelativeServiceAddress = new ServiceAddress(Protocol.IceRpc) with { Path = "/foo" };
             return new (ServiceAddress, string)[] {
@@ -287,13 +303,15 @@ public class ServiceAddressTests
     public void Cannot_set_alt_endpoints_on_unsupported_protocol()
     {
         // Arrange
-        var serviceAddress = new ServiceAddress(new Uri("foobar://localhost/hello"));
+        var serviceAddress = ServiceAddress.Parse("foobar://localhost/hello");
 
         // Constructing alternate endpoints.
         var altEndpoints = ImmutableList.Create(Endpoint.FromString("icerpc://localhost:10000?transport=foobar"));
 
         // Act/Assert
-        Assert.Throws<InvalidOperationException>(() => serviceAddress.AltEndpoints = altEndpoints);
+        Assert.Throws<InvalidOperationException>(() =>
+            serviceAddress = serviceAddress with { AltEndpoints = altEndpoints }
+        );
     }
 
     /// <summary>Verifies that the service address endpoint cannot be set when the service address contains any params.
@@ -329,8 +347,9 @@ public class ServiceAddressTests
         var altEndpoints = ImmutableList.Create(Endpoint.FromString("icerpc://localhost:10000?transport=foobar"));
 
         // Act/Assert
-        Assert.Throws<InvalidOperationException>(() => serviceAddress.AltEndpoints = altEndpoints);
-        return;
+        Assert.Throws<InvalidOperationException>(() =>
+            serviceAddress = serviceAddress with { AltEndpoints = altEndpoints }
+        );
     }
 
     /// <summary>Verifies that the service address endpoint cannot be null when the service address contains has alt
@@ -340,14 +359,14 @@ public class ServiceAddressTests
     {
         // Arrange
         // Creating a proxy with an endpoint.
-        var serviceAddress = new ServiceAddress(new Uri("icerpc://localhost:8080/foo"));
+        var serviceAddress = ServiceAddress.Parse("icerpc://localhost:8080/foo");
 
         // Constructing alternate endpoints.
         var altEndpoints = ImmutableList.Create(Endpoint.FromString("icerpc://localhost:10000?transport=foobar"));
-        serviceAddress.AltEndpoints = altEndpoints;
+        serviceAddress = serviceAddress with { AltEndpoints = altEndpoints };
 
         // Act/Assert
-        Assert.Throws<InvalidOperationException>(() => serviceAddress.Endpoint = null);
+        Assert.Throws<InvalidOperationException>(() => serviceAddress = serviceAddress with { Endpoint = null });
     }
 
     [Test]
@@ -359,7 +378,7 @@ public class ServiceAddressTests
         var serviceAddress = new ServiceAddress(uri);
 
         // Act/Assert
-        Assert.Throws<InvalidOperationException>(() => serviceAddress.Path = "/bar");
+        Assert.Throws<InvalidOperationException>(() => serviceAddress = serviceAddress with { Path = "/bar" });
     }
 
     /// <summary>Verifies that the "fragment" cannot be set when the protocol is null or has no fragment.</summary>
@@ -445,7 +464,7 @@ public class ServiceAddressTests
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
 
         // Act/Assert
-        Assert.Throws<ArgumentException>(() => serviceAddress.Fragment = "foo<");
+        Assert.Throws<ArgumentException>(() => serviceAddress = serviceAddress with { Fragment = "foo<" });
     }
 
     [Test]
@@ -455,7 +474,7 @@ public class ServiceAddressTests
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
 
         // Act/Assert
-        Assert.Throws<ArgumentException>(() => serviceAddress.Path = "foo<");
+        Assert.Throws<ArgumentException>(() => serviceAddress = serviceAddress with { Path = "foo<" });
     }
 
     /// <summary>Verifies that a string can be correctly parsed as a service address</summary>
