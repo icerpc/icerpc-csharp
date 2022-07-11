@@ -72,15 +72,15 @@ internal class SlicMultiplexedStream : IMultiplexedStream
     public void OnShutdown(Action callback) =>
         RegisterStateAction(ref _shutdownAction, State.WritesCompleted | State.ReadsCompleted, callback);
 
-    public void Shutdown(Exception completeException)
+    public void Abort(Exception completeException)
     {
         if (TrySetReadCompleted())
         {
-            _inputPipeReader.Shutdown(completeException);
+            _inputPipeReader.Abort(completeException);
         }
         if (TrySetWriteCompleted())
         {
-            _outputPipeWriter.Shutdown(completeException);
+            _outputPipeWriter.Abort(completeException);
         }
     }
 
@@ -252,7 +252,7 @@ internal class SlicMultiplexedStream : IMultiplexedStream
     internal ValueTask<int> ReceivedStreamFrameAsync(int size, bool endStream, CancellationToken cancel) =>
         ReadsCompleted ? new(0) : _inputPipeReader.ReceivedStreamFrameAsync(size, endStream, cancel);
 
-    internal void ReceivedResetFrame(ulong error)
+    internal void ReceivedResetFrame(ulong errorCode)
     {
         if (!IsBidirectional && !IsRemote)
         {
@@ -265,11 +265,11 @@ internal class SlicMultiplexedStream : IMultiplexedStream
 
         if (TrySetReadCompleted())
         {
-            _inputPipeReader.ReceivedResetFrame(error);
+            _inputPipeReader.Abort(_connection.ErrorCodeConverter.FromErrorCode(errorCode));
         }
     }
 
-    internal void ReceivedStopSendingFrame(ulong error)
+    internal void ReceivedStopSendingFrame(ulong errorCode)
     {
         if (!IsBidirectional && IsRemote)
         {
@@ -282,7 +282,7 @@ internal class SlicMultiplexedStream : IMultiplexedStream
 
         if (TrySetWriteCompleted())
         {
-            _outputPipeWriter.ReceivedStopSendingFrame(error);
+            _outputPipeWriter.Abort(_connection.ErrorCodeConverter.FromErrorCode(errorCode));
         }
     }
 

@@ -16,24 +16,23 @@ internal class LogMultiplexedNetworkConnectionDecorator : LogNetworkConnectionDe
             await _decoratee.AcceptStreamAsync(cancel).ConfigureAwait(false),
             Logger);
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
+        await _decoratee.DisposeAsync().ConfigureAwait(false);
+
         // We don't emit a log when closing a connection that was not connected.
         if (Information is NetworkConnectionInformation connectionInformation)
         {
-            // TODO: we start the scope here because DisposeAsync is called directly by Connection, and not
-            // through a higher-level interface method such as IProtocolConnection.DisposeAsync.
             using IDisposable scope = Logger.StartConnectionScope(connectionInformation, IsServer);
             Logger.LogNetworkConnectionDispose();
         }
-
-        return _decoratee.DisposeAsync();
     }
 
     public async Task ShutdownAsync(Exception exception, CancellationToken cancel)
     {
         await _decoratee.ShutdownAsync(exception, cancel).ConfigureAwait(false);
 
+        // We don't emit a log when closing a connection that was not connected.
         if (Information is NetworkConnectionInformation connectionInformation)
         {
             using IDisposable scope = Logger.StartConnectionScope(connectionInformation, IsServer);
@@ -82,7 +81,7 @@ internal sealed class LogMultiplexedStreamDecorator : IMultiplexedStream
 
     public void OnPeerInputCompleted(Action callback) => _decoratee.OnPeerInputCompleted(callback);
 
-    public void Shutdown(Exception exception) => _decoratee.Shutdown(exception);
+    public void Abort(Exception exception) => _decoratee.Abort(exception);
 
     public override string? ToString() => _decoratee.ToString();
 

@@ -105,17 +105,9 @@ internal abstract class ProtocolConnection : IProtocolConnection
         // shutting down and at the same time or shortly after dispose the same connection because of its own disposal.
         // We want to second disposal to "hang" if there is (for example) a bug in the dispatch code that causes the
         // DisposeAsync to hang.
-        Task? connectTask = null;
-        Task? shutdownTask = null;
         lock (_mutex)
         {
             _disposeTask ??= PerformDisposeAsync();
-
-            // Capture the connect and shutdown task from within the synchronization to use from the PerformDisposeAsync
-            // implementation which is ran from another thread and needs to get the correct values, obtained from within
-            // the synchronization. Once _disposeTask is set, _connectTask and _shutdownTask are no longer updated.
-            connectTask = _connectTask;
-            shutdownTask = _shutdownTask;
         }
         return new(_disposeTask);
 
@@ -124,25 +116,27 @@ internal abstract class ProtocolConnection : IProtocolConnection
             // Make sure we execute the function without holding the mutex lock.
             await Task.Yield();
 
-            if (connectTask is not null)
+            if (_connectTask is not null)
             {
                 try
                 {
-                    await connectTask.ConfigureAwait(false);
+                    await _connectTask.ConfigureAwait(false);
                 }
                 catch
                 {
                 }
 
                 // If connection establishment succeeded, ensure a speedy shutdown.
-                if (connectTask.IsCompletedSuccessfully)
+                if (_connectTask.IsCompletedSuccessfully)
                 {
-                    if (shutdownTask is null)
+                    if (_shutdownTask is null)
                     {
                         // Perform speedy shutdown.
-                        shutdownTask = PerformShutdownAsync("connection disposed", cancelDispatchesAndInvocations: true);
+                        _shutdownTask = PerformShutdownAsync(
+                            "connection disposed",
+                            cancelDispatchesAndInvocations: true);
                     }
-                    else if (!shutdownTask.IsCanceled && !shutdownTask.IsFaulted)
+                    else if (!_shutdownTask.IsCanceled && !_shutdownTask.IsFaulted)
                     {
                         // Speed-up shutdown only if shutdown didn't fail.
                         CancelDispatchesAndAbortInvocations(new ConnectionAbortedException("connection disposed"));
@@ -150,7 +144,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
 
                     try
                     {
-                        await shutdownTask.ConfigureAwait(false);
+                        await _shutdownTask.ConfigureAwait(false);
                     }
                     catch
                     {

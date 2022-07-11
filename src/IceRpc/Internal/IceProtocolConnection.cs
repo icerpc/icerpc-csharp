@@ -328,11 +328,23 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         TaskCompletionSource<PipeReader>? responseCompletionSource = null;
         PipeWriter payloadWriter = _payloadWriter;
 
-        using var cancelSource = CancellationTokenSource.CreateLinkedTokenSource(
-            _dispatchesAndInvocationsCancelSource.Token,
-            cancel);
-
+        CancellationTokenSource? cancelSource = null;
         Exception? completeException = null;
+
+        lock (_mutex)
+        {
+            if (_isReadOnly)
+            {
+                throw new ConnectionClosedException();
+            }
+
+            // _dispatchesAndInvocationsCancelSource.Token can throw ObjectNotDisposedException so only create the
+            // linked source if the connection is not disposed.
+            cancelSource = CancellationTokenSource.CreateLinkedTokenSource(
+                _dispatchesAndInvocationsCancelSource.Token,
+                cancel);
+        }
+
         try
         {
             if (request.PayloadStream is not null)
@@ -413,6 +425,8 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             if (completeException is not null)
             {
                 UnregisterInvocation();
+
+                cancelSource?.Dispose();
             }
 
             await payloadWriter.CompleteAsync(completeException).ConfigureAwait(false);
@@ -423,21 +437,20 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             }
         }
 
-        if (request.IsOneway)
-        {
-            // We're done, there's no response for oneway requests.
-            return new IncomingResponse(request)
-            {
-                NetworkConnectionInformation = _networkConnectionInformation
-            };
-        }
-
-        Debug.Assert(responseCompletionSource is not null);
-
         // Wait to receive the response.
         PipeReader? frameReader = null;
         try
         {
+            if (request.IsOneway)
+            {
+                // We're done, there's no response for oneway requests.
+                return new IncomingResponse(request)
+                {
+                    NetworkConnectionInformation = _networkConnectionInformation
+                };
+            }
+
+            Debug.Assert(responseCompletionSource is not null);
             try
             {
                 frameReader = await responseCompletionSource.Task.WaitAsync(cancelSource.Token).ConfigureAwait(false);
@@ -522,7 +535,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         }
         finally
         {
-            UnregisterInvocation();
+            if (!request.IsOneway)
+            {
+                UnregisterInvocation();
+            }
+
+            cancelSource?.Dispose();
 
             if (completeException is not null && frameReader is not null)
             {

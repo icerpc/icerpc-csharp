@@ -34,7 +34,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
     private int _bidirectionalStreamCount;
     private AsyncSemaphore? _bidirectionalStreamSemaphore;
     private readonly int _bidirectionalMaxStreams;
-    private bool _isDisposed;
+    private Task? _disposeTask;
     private bool _isReadOnly;
     private readonly TimeSpan _localIdleTimeout;
     private long _lastRemoteBidirectionalStreamId = -1;
@@ -77,8 +77,6 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         if (IsServer)
         {
             // Read the Initialize frame sent by the client.
-            uint version;
-            InitializeBody? initializeBody;
             (FrameType type, int dataSize, _) = await ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
 
             if (dataSize == 0)
@@ -86,7 +84,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
                 throw new InvalidDataException("invalid empty initialize frame");
             }
 
-            (version, initializeBody) = await ReadFrameAsync(
+            (uint version, InitializeBody? initializeBody) = await ReadFrameAsync(
                 dataSize,
                 DecodeInitialize,
                 cancel).ConfigureAwait(false);
@@ -239,51 +237,51 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
         // TODO: Cache SlicMultiplexedStream
         new SlicMultiplexedStream(this, bidirectional, remote: false);
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         lock (_mutex)
         {
-            if (_isDisposed)
-            {
-                return;
-            }
-            _isDisposed = true;
             _isReadOnly = true;
+            _disposeTask ??= PerformDisposeAsync();
         }
+        return new(_disposeTask);
 
-        // Cancel tasks which are using the network connection before disposing the network connection.
-        _tasksCancelSource.Cancel();
-
-        // Dispose the network connection.
-        _simpleNetworkConnection.Dispose();
-
-        var exception = new ConnectionAbortedException("network connection disposed");
-        foreach (SlicMultiplexedStream stream in _streams.Values)
+        async Task PerformDisposeAsync()
         {
-            stream.Shutdown(exception);
+            // Cancel tasks which are using the network connection before disposing the network connection.
+            _tasksCancelSource.Cancel();
+
+            // Dispose the network connection.
+            _simpleNetworkConnection.Dispose();
+
+            var exception = new ConnectionAbortedException("network connection disposed");
+            foreach (SlicMultiplexedStream stream in _streams.Values)
+            {
+                stream.Abort(exception);
+            }
+
+            _acceptStreamQueue.TryComplete(exception);
+            _bidirectionalStreamSemaphore?.Complete(exception);
+            _unidirectionalStreamSemaphore?.Complete(exception);
+
+            // Wait for all the tasks and the write semaphore to be released.
+            try
+            {
+                await Task.WhenAll(
+                    _writeSemaphore.CompleteAndWaitAsync(exception),
+                    _readFramesTask ?? Task.CompletedTask).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Ignore.
+            }
+
+            // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
+            _simpleNetworkConnectionReader.Dispose();
+            _simpleNetworkConnectionWriter.Dispose();
+
+            _tasksCancelSource.Dispose();
         }
-
-        _acceptStreamQueue.TryComplete(exception);
-        _bidirectionalStreamSemaphore?.Complete(exception);
-        _unidirectionalStreamSemaphore?.Complete(exception);
-
-        // Wait for all the tasks and the write semaphore to be released.
-        try
-        {
-            await Task.WhenAll(
-                _writeSemaphore.CompleteAndWaitAsync(exception),
-                _readFramesTask ?? Task.CompletedTask).ConfigureAwait(false);
-        }
-        catch
-        {
-            // Ignore.
-        }
-
-        // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
-        _simpleNetworkConnectionReader.Dispose();
-        _simpleNetworkConnectionWriter.Dispose();
-
-        _tasksCancelSource.Dispose();
     }
 
     public async Task ShutdownAsync(Exception completeException, CancellationToken cancel)
@@ -983,7 +981,7 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
 
         foreach (SlicMultiplexedStream stream in _streams.Values)
         {
-            stream.Shutdown(completeException);
+            stream.Abort(completeException);
         }
 
         // Unblock requests waiting on the semaphores.

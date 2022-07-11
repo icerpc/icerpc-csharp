@@ -2,12 +2,15 @@
 
 using IceRpc.Internal;
 using System.Buffers;
+using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal;
 
 internal class SlicPipeReader : PipeReader
 {
+    private static readonly Exception _completedSuccessfullySentinel = new();
+
     private readonly IMultiplexedStreamErrorCodeConverter _errorCodeConverter;
     private int _examined;
     private Exception? _exception;
@@ -78,7 +81,7 @@ internal class SlicPipeReader : PipeReader
             }
 
             _pipe.Reader.Complete(exception);
-            CompletePipeWriter(exception);
+            Abort(exception);
         }
     }
 
@@ -154,9 +157,22 @@ internal class SlicPipeReader : PipeReader
             writerScheduler: PipeScheduler.Inline));
     }
 
-    /// <summary>Called when a stream reset is received.</summary>
-    internal void ReceivedResetFrame(ulong errorCode) =>
-        CompletePipeWriter(_errorCodeConverter.FromErrorCode(errorCode));
+    internal void Abort(Exception? exception)
+    {
+        Interlocked.CompareExchange(ref _exception, exception ?? _completedSuccessfullySentinel, null);
+
+        if (_state.TrySetFlag(State.PipeWriterCompleted))
+        {
+            if (_state.HasFlag(State.PipeWriterInUse))
+            {
+                _pipe.Reader.CancelPendingRead();
+            }
+            else
+            {
+                _pipe.Writer.Complete(exception);
+            }
+        }
+    }
 
     /// <summary>Called when a stream frame is received. It writes the data from the received stream frame to the
     /// internal pipe writer and returns the number of bytes that were consumed.</summary>
@@ -220,8 +236,6 @@ internal class SlicPipeReader : PipeReader
         }
     }
 
-    internal void Shutdown(Exception exception) => CompletePipeWriter(exception);
-
     private void CheckIfCompleted()
     {
         if (_state.HasFlag(State.Completed))
@@ -232,28 +246,12 @@ internal class SlicPipeReader : PipeReader
         }
     }
 
-    private void CompletePipeWriter(Exception? exception)
-    {
-        Interlocked.CompareExchange(ref _exception, exception, null);
-
-        if (_state.TrySetFlag(State.PipeWriterCompleted))
-        {
-            if (_state.HasFlag(State.PipeWriterInUse))
-            {
-                _pipe.Reader.CancelPendingRead();
-            }
-            else
-            {
-                _pipe.Writer.Complete(_exception);
-            }
-        }
-    }
-
     private ReadResult GetReadResult()
     {
         if (_state.HasFlag(State.PipeWriterCompleted))
         {
-            if (_exception is not null)
+            Debug.Assert(_exception is not null);
+            if (_exception != _completedSuccessfullySentinel)
             {
                 throw ExceptionUtil.Throw(_exception);
             }
@@ -276,8 +274,7 @@ internal class SlicPipeReader : PipeReader
         /// <summary>Data is being written to the internal pipe writer.</summary>
         PipeWriterInUse = 2,
 
-        /// <summary>The internal pipe writer was completed either by <see cref="Complete"/> or <see
-        /// cref="ReceivedResetFrame"/>.</summary>
+        /// <summary>The internal pipe writer was completed by <see cref="Abort"/>.</summary>
         PipeWriterCompleted = 4
     }
 }
