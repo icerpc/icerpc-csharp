@@ -2,12 +2,18 @@
 
 namespace IceRpc.Slice;
 
-/// <summary>A feature to customize the decoding of request and response payloads.</summary>
-public interface ISliceDecodeFeature
+/// <summary>A feature to customize the encoding and decoding of request and response payloads.</summary>
+public interface ISliceFeature
 {
-    /// <summary>Gets the activator to use when decoding Slice classes, exceptions, and traits. When <c>null</c>, the
-    /// decoding of a request or response payload uses the activator injected by the Slice generated code.</summary>
+    /// <summary>Gets the activator to use when decoding Slice classes, exceptions, and traits.</summary>
+    /// <value>The activator. When null, the decoding of a request or response payload uses the activator injected by
+    /// the Slice generated code.</value>
     IActivator? Activator { get; }
+
+    /// <summary>Gets the options to use when encoding the payload of outgoing response. These are also the options used
+    /// by default for proxies decoded from an incoming request or response payload.</summary>
+    /// <value>The Slice encode options. Null is equivalent to <see cref="SliceEncodeOptions.Default"/>.</value>
+    SliceEncodeOptions? EncodeOptions { get; }
 
     /// <summary>Gets the maximum collection allocation when decoding a payload, in bytes.</summary>
     int MaxCollectionAllocation { get; }
@@ -20,10 +26,8 @@ public interface ISliceDecodeFeature
     /// variable-size elements.</summary>
     int MaxSegmentSize { get; }
 
-    /// <summary>Gets the invoker assigned to decoded proxies. When null, a proxy decoded from an incoming request
-    /// gets <see cref="InvalidOperationInvoker.Instance"/> while a proxy decoded from an incoming response gets the invoker of the
-    /// proxy that created the request.</summary>
-    IInvoker? ProxyInvoker { get; }
+    /// <summary>Gets the service proxy factory to use when decoding proxies in request or response payloads.</summary>
+    Func<ServiceAddress, ServiceProxy>? ServiceProxyFactory { get; }
 
     /// <summary>Gets the stream pause writer threshold. When the Slice engine decodes a stream into an async
     /// enumerable, it will pause when the number of bytes decoded but not read is greater or equal to this value.

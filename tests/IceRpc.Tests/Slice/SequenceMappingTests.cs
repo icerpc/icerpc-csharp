@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.IO.Pipelines;
 
@@ -15,7 +16,7 @@ public class SequenceMappingTests
             new int[] { 1, 2, 3 },
             new int[] { 1, 2, 3 });
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request)
+        var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
         {
             Payload = responsePayload
         };
@@ -24,7 +25,7 @@ public class SequenceMappingTests
             await SequenceMappingOperationsProxy.Response.OpReturnTupleAsync(
                 response,
                 request,
-                InvalidOperationInvoker.Instance,
+                NotImplementedInvoker.Instance,
                 null,
                 default);
 
@@ -37,7 +38,7 @@ public class SequenceMappingTests
     {
         PipeReader responsePayload = ISequenceMappingOperations.Response.OpReturnSingleType(new int[] { 1, 2, 3 });
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request)
+        var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
         {
             Payload = responsePayload
         };
@@ -47,7 +48,7 @@ public class SequenceMappingTests
             await SequenceMappingOperationsProxy.Response.OpReturnSingleTypeAsync(
                 response,
                 request,
-                InvalidOperationInvoker.Instance,
+                NotImplementedInvoker.Instance,
                 null,
                 default);
 
@@ -64,7 +65,7 @@ public class SequenceMappingTests
         // Assert
         Assert.That(
             async () => await ISequenceMappingOperations.Request.OpSingleParameterAsync(
-                new IncomingRequest(Protocol.IceRpc)
+                new IncomingRequest(FakeConnectionContext.IceRpc)
                 {
                     Payload = requestPayload
                 },
@@ -88,7 +89,7 @@ public class SequenceMappingTests
             },
         };
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request)
+        var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
         {
             Payload = SequenceMappingOperationsProxy.Request.OpStructNestedSequence(data)
         };
@@ -97,7 +98,7 @@ public class SequenceMappingTests
             SequenceMappingOperationsProxy.Response.OpStructNestedSequenceAsync(
                 response,
                 request,
-                InvalidOperationInvoker.Instance,
+                NotImplementedInvoker.Instance,
                 null,
                 default);
 
@@ -115,7 +116,7 @@ public class SequenceMappingTests
             },
         };
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request)
+        var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
         {
             Payload = SequenceMappingOperationsProxy.Request.OpNumericTypeNestedSequence(data)
         };
@@ -124,7 +125,7 @@ public class SequenceMappingTests
             SequenceMappingOperationsProxy.Response.OpNumericTypeNestedSequenceAsync(
                 response,
                 request,
-                InvalidOperationInvoker.Instance,
+                NotImplementedInvoker.Instance,
                 null,
                 default);
 

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Tests.Common;
 using NUnit.Framework;
 
 namespace IceRpc.Tests;
@@ -13,15 +14,16 @@ public class PipelineTests
     public void Cannot_add_invoker_after_calling_invoke()
     {
         // Arrange
-        var pipeline = new Pipeline();
-        pipeline.Use(next => new InlineInvoker((request, cancel) =>
-                Task.FromResult(new IncomingResponse(request))));
+        var pipeline = new Pipeline()
+            .Use(next => new InlineInvoker((request, cancel) =>
+                Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc))))
+            .Into(VoidInvoker.Instance);
         pipeline.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
 
         // Assert/Act
         Assert.Throws<InvalidOperationException>(
             () => pipeline.Use(next => new InlineInvoker((request, cancel) =>
-                Task.FromResult(new IncomingResponse(request)))));
+                Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)))));
     }
 
     /// <summary>Verifies that the pipeline interceptors are called in the expected order. That corresponds
@@ -42,7 +44,8 @@ public class PipelineTests
                 {
                     calls.Add("invoker-2");
                     return next.InvokeAsync(request, cancel);
-                }));
+                }))
+            .Into(VoidInvoker.Instance);
 
         pipeline
             .Use(next => new InlineInvoker((request, cancel) =>
@@ -53,39 +56,9 @@ public class PipelineTests
             .Use(next => new InlineInvoker((request, cancel) =>
                 {
                     calls.Add("invoker-4");
-                    return Task.FromResult(new IncomingResponse(request));
-                }));
-
-        pipeline.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
-
-        Assert.That(calls, Is.EqualTo(expectedCalls));
-    }
-
-    /// <summary>Verifies that <see cref="Pipeline.With(Func{IInvoker, IInvoker}[])"/> can be used to create
-    /// a new pipeline that contains the same interceptors as the source pipeline plus the interceptors passed
-    /// to it.</summary>
-    [Test]
-    public void Clone_a_pipeline_using_with()
-    {
-        var calls = new List<string>();
-        var expectedCalls = new List<string>() { "invoker-1", "invoker-2", "invoker-3" };
-        var pipeline = new Pipeline();
-        pipeline
-            .Use(next => new InlineInvoker((request, cancel) =>
-                {
-                    calls.Add("invoker-1");
-                    return next.InvokeAsync(request, cancel);
+                    return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
                 }))
-            .Use(next => new InlineInvoker((request, cancel) =>
-                {
-                    calls.Add("invoker-2");
-                    return next.InvokeAsync(request, cancel);
-                }))
-            .Use(next => new InlineInvoker((request, cancel) =>
-                {
-                    calls.Add("invoker-3");
-                    return Task.FromResult(new IncomingResponse(request));
-                }));
+             .Into(VoidInvoker.Instance);
 
         pipeline.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
 
@@ -101,14 +74,14 @@ public class PipelineTests
         var pipeline = new Pipeline();
 
         // Act
-        pipeline.UseFeature(expected);
+        pipeline.UseFeature(expected).Into(VoidInvoker.Instance);
 
         // Assert
         string? feature = null;
         pipeline.Use(next => new InlineInvoker((request, cancel) =>
         {
             feature = request.Features.Get<string>();
-            return Task.FromResult(new IncomingResponse(request));
+            return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
         }));
         pipeline.InvokeAsync(new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)));
         Assert.That(feature, Is.EqualTo(expected));

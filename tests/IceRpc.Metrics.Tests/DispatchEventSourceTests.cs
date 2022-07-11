@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.Diagnostics.Tracing;
 
@@ -14,7 +15,7 @@ public sealed class DispatchEventSourceTests
         using var eventSource = new DispatchEventSource(Guid.NewGuid().ToString());
         using var eventListener = new TestEventListener(expectedEventId);
         eventListener.EnableEvents(eventSource, EventLevel.Verbose);
-        var request = new IncomingRequest(Protocol.IceRpc)
+        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
         {
             Path = "/test",
             Operation = "Op"
@@ -39,7 +40,7 @@ public sealed class DispatchEventSourceTests
         using var eventListener = new TestEventListener(expectedEventId);
         using var eventSource = new DispatchEventSource(Guid.NewGuid().ToString());
         eventListener.EnableEvents(eventSource, EventLevel.Verbose);
-        var request = new IncomingRequest(Protocol.IceRpc)
+        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
         {
             Path = "/test",
             Operation = "Op"
@@ -64,7 +65,7 @@ public sealed class DispatchEventSourceTests
         using var eventListener = new TestEventListener(expectedEventId);
         using var eventSource = new DispatchEventSource(Guid.NewGuid().ToString());
         eventListener.EnableEvents(eventSource, EventLevel.Verbose);
-        var request = new IncomingRequest(Protocol.IceRpc)
+        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
         {
             Path = "/test",
             Operation = "Op"
@@ -89,7 +90,7 @@ public sealed class DispatchEventSourceTests
         using var eventListener = new TestEventListener(expectedEventId);
         using var eventSource = new DispatchEventSource(Guid.NewGuid().ToString());
         eventListener.EnableEvents(eventSource, EventLevel.Verbose);
-        var request = new IncomingRequest(Protocol.IceRpc)
+        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
         {
             Path = "/test",
             Operation = "Op"
