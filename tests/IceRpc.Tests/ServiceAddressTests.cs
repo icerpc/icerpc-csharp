@@ -121,8 +121,7 @@ public class ServiceAddressTests
                 (serviceAddress, new ServiceAddress(Protocol.IceRpc), false), // Different protocol.
                 // Relative service addresses
                 (
-                    new ServiceAddress() with {
-                    Path = "/foo" },
+                    new ServiceAddress() with { Path = "/foo" },
                     new ServiceAddress() with { Path = "/bar" },
                     false
                 ),
