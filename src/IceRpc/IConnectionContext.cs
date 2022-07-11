@@ -16,16 +16,16 @@ public interface IConnectionContext
     /// <summary>Gets the protocol of this connection.</summary>
     Protocol Protocol { get; }
 
-    /// <summary>Adds a callback that will be executed when the connection is aborted. The connection can be aborted
-    /// by a local call to Abort, by a transport error or by a shutdown failure. If the connection is already aborted,
-    /// this callback is executed synchronously with an instance of <see cref="ConnectionAbortedException"/>.</summary>
+    /// <summary>Adds a callback that will be executed when the connection is lost due to a transport failure.</summary>
     /// <param name="callback">The callback to execute. It must not block or throw any exception.</param>
+    // TODO: fix doc-comment, in particular explain what happens when the connection is already closed.
     void OnAbort(Action<Exception> callback);
 
-    /// <summary>Adds a callback that will be executed when the connection shutdown is initiated. The connection can be
-    /// shut down by a local call to ShutdownAsync or by the remote peer. If the connection is already shutting down or
-    /// gracefully closed, this callback is executed synchronously with an empty message.</summary>
+    /// <summary>Adds a callback that will be executed when the connection shutdown is initiated by the peer or by
+    /// the connection's idle timeout.</summary>
     /// <param name="callback">The callback to execute. Its parameter is the shutdown message. It must not block or
     /// throw any exception.</param>
+    // TODO: clarify doc-comment - what happens if the connection is being shut down or was shut down by the peer or
+    // idle timeout?
     void OnShutdown(Action<string> callback);
 }

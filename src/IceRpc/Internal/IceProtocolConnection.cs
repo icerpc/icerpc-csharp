@@ -259,10 +259,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             },
             CancellationToken.None);
 
-        // TODO: this below is naturally this instance not decorated by any log decorator. The expectation is the
-        // logging for InvokeAsync is performed by the Logger interceptor and not the
-        // LogProtocolConnectionDecorator, but that's currently not true: LogProtocolConnectionDecorator decorates
-        // InvokeAsync.
         _connectionContext = new ConnectionContext(this, networkConnectionInformation);
         return networkConnectionInformation;
 
