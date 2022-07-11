@@ -13,7 +13,7 @@ namespace IceRpc;
 /// an <see cref="OutgoingRequest"/>.</summary>
 public sealed record class ServiceAddress
 {
-    /// <summary>Gets the secondary endpoints of this service address.</summary>
+    /// <summary>Gets or initializes the secondary endpoints of this service address.</summary>
     /// <value>The secondary endpoints of this service address.</value>
     public ImmutableList<Endpoint> AltEndpoints
     {
@@ -45,7 +45,7 @@ public sealed record class ServiceAddress
         }
     }
 
-    /// <summary>Gets the main endpoint of this service address.</summary>
+    /// <summary>Gets or initializes the main endpoint of this service address.</summary>
     /// <value>The main endpoint of this service address, or null if this service address has no endpoint.</value>
     public Endpoint? Endpoint
     {
@@ -79,7 +79,7 @@ public sealed record class ServiceAddress
         }
     }
 
-    /// <summary>Gets the fragment.</summary>
+    /// <summary>Gets or initializes the fragment.</summary>
     public string Fragment
     {
         get => _fragment;
@@ -110,7 +110,7 @@ public sealed record class ServiceAddress
     /// URI-derived properties such as <see cref="Endpoint"/> have not been updated.</summary>
     public Uri? OriginalUri { get; private set; }
 
-    /// <summary>Gets the path of this service address.</summary>
+    /// <summary>Gets or initializes the path of this service address.</summary>
     public string Path
     {
         get => _path;
@@ -137,7 +137,7 @@ public sealed record class ServiceAddress
         }
     }
 
-    /// <summary>Gets the parameters of this service address. Always empty when <see cref="Endpoint"/> is not
+    /// <summary>Gets or initializes the parameters of this service address. Always empty when <see cref="Endpoint"/> is not
     /// null.</summary>
     public ImmutableDictionary<string, string> Params
     {
@@ -512,8 +512,7 @@ public sealed record class ServiceAddress
         if (!IsValid(fragment, "\"<>\\^`{|}"))
         {
             throw new FormatException(
-                @$"invalid fragment '{fragment
-                }'; a valid fragment contains only unreserved characters, reserved characters or '%'");
+                @$"invalid fragment '{fragment}'; a valid fragment contains only unreserved characters, reserved characters or '%'");
         }
     }
 

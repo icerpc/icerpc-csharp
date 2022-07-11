@@ -185,7 +185,7 @@ public class ServiceAddressTests
     {
         // Arrange
         var serviceAddress = ServiceAddress.Parse("ice://localhost/hello");
-        var myParams = new Dictionary<string, string> { { "adapter", "" } }.ToImmutableDictionary();
+        var myParams = new Dictionary<string, string> { ["adapter-id"] = "" }.ToImmutableDictionary();
 
         // Act/Assert
         Assert.That(() => serviceAddress = serviceAddress with { Params = myParams }, Throws.ArgumentException);
@@ -203,7 +203,10 @@ public class ServiceAddressTests
 
         // Act/Assert
         Assert.That(
-            () => serviceAddress = serviceAddress with { Endpoint = new Endpoint(serviceAddress.Protocol!) { Host = "localhost" } },
+            () => serviceAddress = serviceAddress with
+            {
+                Endpoint = new Endpoint(serviceAddress.Protocol!) { Host = "localhost" }
+            },
             Throws.TypeOf<InvalidOperationException>());
     }
 

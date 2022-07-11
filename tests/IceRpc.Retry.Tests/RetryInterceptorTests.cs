@@ -317,7 +317,7 @@ public sealed class RetryInterceptorTests
             });
         });
 
-        var serviceAddress = new ServiceAddress(connection1.Protocol) with
+        var serviceAddress = new ServiceAddress(connection1.Protocol)
         {
             Path = "/path",
             Endpoint = connection1.Endpoint,
