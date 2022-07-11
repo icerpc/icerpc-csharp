@@ -4,9 +4,13 @@
         "colocated",
         "cref",
         "icerpc",
+        "inheritdoc",
+        "Parallelizable",
+        "paramref",
         "Slic",
         "slicec",
-        "struct"
+        "struct",
+        "zeroc"
     ],
     "rust-analyzer.linkedProjects": [
         "tools/slicec-cs/Cargo.toml"
