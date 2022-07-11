@@ -87,7 +87,7 @@ public static class IncomingRequestExtensions
     /// <typeparam name="T">The type of the request parameters.</typeparam>
     /// <param name="request">The incoming request.</param>
     /// <param name="encoding">The encoding of the request payload.</param>
-    /// <param name="defaultActivator">The default activator.</param>
+    /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
     /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>The request arguments.</returns>
@@ -103,8 +103,8 @@ public static class IncomingRequestExtensions
         return request.DecodeValueAsync(
             encoding,
             feature,
-            defaultActivator,
-            feature.ServiceProxyFactory is null ? CreateServiceProxyFactory(request, feature) : null,
+            feature.Activator ?? defaultActivator,
+            feature.ServiceProxyFactory ?? CreateServiceProxyFactory(request, feature),
             decodeFunc,
             cancel);
     }
@@ -147,7 +147,7 @@ public static class IncomingRequestExtensions
     /// <typeparam name="T">The stream element type.</typeparam>
     /// <param name="request">The incoming request.</param>
     /// <param name="encoding">The encoding of the request payload.</param>
-    /// <param name="defaultActivator">The default activator.</param>
+    /// <param name="defaultActivator">The activator to use when the activator of the Slice feature is null.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
     /// <returns>The async enumerable to decode and return the streamed members.</returns>
     public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
@@ -161,15 +161,15 @@ public static class IncomingRequestExtensions
         return request.ToAsyncEnumerable(
             encoding,
             feature,
-            defaultActivator,
-            feature.ServiceProxyFactory is null ? CreateServiceProxyFactory(request, feature) : null,
+            feature.Activator ?? defaultActivator,
+            feature.ServiceProxyFactory ?? CreateServiceProxyFactory(request, feature),
             decodeFunc);
     }
 
     private static Func<ServiceAddress, ServiceProxy> CreateServiceProxyFactory(
         IncomingRequest request,
         ISliceFeature feature) =>
-        (ServiceAddress serviceAddress) => serviceAddress.Protocol is null ?
+        serviceAddress => serviceAddress.Protocol is null ?
             // relative service address
             new ServiceProxy
             {
