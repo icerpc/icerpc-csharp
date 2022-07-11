@@ -168,11 +168,8 @@ public static class IncomingRequestExtensions
 
     private static Func<ServiceAddress, ServiceProxy> CreateServiceProxyFactory(
         IncomingRequest request,
-        ISliceFeature feature)
-    {
-        return CreateServiceProxy;
-
-        ServiceProxy CreateServiceProxy(ServiceAddress serviceAddress) => serviceAddress.Protocol is null ?
+        ISliceFeature feature) =>
+        (ServiceAddress serviceAddress) => serviceAddress.Protocol is null ?
             // relative service address
             new ServiceProxy
             {
@@ -187,5 +184,4 @@ public static class IncomingRequestExtensions
                 Invoker = null,
                 ServiceAddress = serviceAddress
             };
-    }
 }
