@@ -23,9 +23,6 @@ public class LocatorInterceptorTests
         var sut = new LocatorInterceptor(invoker, locationResolver);
         var serviceAddress = ServiceAddress.Parse("ice://localhost:10000/path");
         var request = new OutgoingRequest(serviceAddress);
-        IEndpointFeature endpointFeature = new EndpointFeature(serviceAddress);
-        endpointFeature.Connection = connection;
-        request.Features = request.Features.With(endpointFeature);
 
         await sut.InvokeAsync(request, default);
 
