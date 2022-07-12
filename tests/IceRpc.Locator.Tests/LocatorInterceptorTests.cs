@@ -9,9 +9,9 @@ namespace IceRpc.Locator.Tests;
 
 public class LocatorInterceptorTests
 {
-    /// <summary>Verifies that the location resolver is not called when the request carries a connection.</summary>
+    /// <summary>Verifies that the location resolver is not called when the request carries an endpoint.</summary>
     [Test]
-    public async Task Location_resolver_not_called_if_the_request_has_a_connection()
+    public async Task Location_resolver_not_called_if_the_request_has_an_endpoint()
     {
         var invoker = new InlineInvoker((request, cancel) =>
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Ice)));
@@ -21,7 +21,7 @@ public class LocatorInterceptorTests
         });
         var locationResolver = new NotCalledLocationResolver();
         var sut = new LocatorInterceptor(invoker, locationResolver);
-        var serviceAddress = new ServiceAddress(connection.Protocol) { Path = "/path" };
+        var serviceAddress = ServiceAddress.Parse("ice://localhost:10000/path");
         var request = new OutgoingRequest(serviceAddress);
         IEndpointFeature endpointFeature = new EndpointFeature(serviceAddress);
         endpointFeature.Connection = connection;
