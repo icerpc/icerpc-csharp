@@ -14,7 +14,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 {
     public override Protocol Protocol => Protocol.IceRpc;
 
-    private Exception? _abortInvocationException;
+    private Exception? _invocationCanceledException;
     private Task? _acceptRequestsTask;
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private IMultiplexedStream? _controlStream;
@@ -41,7 +41,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private readonly TaskCompletionSource _streamsCompleted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    private readonly CancellationTokenSource _tasksCompleteSource = new();
+    private readonly CancellationTokenSource _tasksCancelSource = new();
 
     internal IceRpcProtocolConnection(
         IMultiplexedNetworkConnection networkConnection,
@@ -60,7 +60,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             _isReadOnly = true; // prevent new dispatches or invocations from being accepted.
 
             // Set the abort exception for invocations.
-            _abortInvocationException = exception;
+            _invocationCanceledException = exception;
         }
 
         _dispatchesAndInvocationsCancelSource.Cancel();
@@ -114,7 +114,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         _readGoAwayTask = Task.Run(
             async () =>
             {
-                CancellationToken cancel = _tasksCompleteSource.Token;
+                CancellationToken cancel = _tasksCancelSource.Token;
                 await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.GoAway, cancel).ConfigureAwait(false);
                 IceRpcGoAway goAwayFrame = await ReceiveGoAwayBodyAsync(cancel).ConfigureAwait(false);
                 InitiateShutdown(goAwayFrame.Message);
@@ -126,17 +126,17 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         _acceptRequestsTask = Task.Run(
             async () =>
             {
-                CancellationToken cancel = _tasksCompleteSource.Token;
+                CancellationToken cancel = _tasksCancelSource.Token;
                 try
                 {
                     while (true)
                     {
                         IMultiplexedStream stream = await _networkConnection.AcceptStreamAsync(
-                            _tasksCompleteSource.Token).ConfigureAwait(false);
+                            _tasksCancelSource.Token).ConfigureAwait(false);
 
                         try
                         {
-                            await AcceptRequestAsync(stream, _tasksCompleteSource.Token).ConfigureAwait(false);
+                            await AcceptRequestAsync(stream, _tasksCancelSource.Token).ConfigureAwait(false);
                         }
                         catch (IceRpcProtocolStreamException)
                         {
@@ -148,7 +148,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 {
                     // Expected when shutting down and the network connection is gracefully shutdown.
                 }
-                catch (OperationCanceledException) when (_tasksCompleteSource.IsCancellationRequested)
+                catch (OperationCanceledException) when (_tasksCancelSource.IsCancellationRequested)
                 {
                     // Expected if DisposeAsync has been called.
                 }
@@ -181,32 +181,38 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             {
                 _streamsCompleted.TrySetResult();
             }
+            _invocationCanceledException = new ConnectionAbortedException("connection disposed");
         }
 
-        // First, before disposing the network connection, cancel pending tasks which are using the network connection.
-        _tasksCompleteSource.Cancel();
+        // First, before disposing the network connection, cancel pending tasks which are using the network connection
+        // and wait for the tasks to complete.
+        _tasksCancelSource.Cancel();
+        try
+        {
+            await Task.WhenAll(
+                _acceptRequestsTask ?? Task.CompletedTask,
+                _readGoAwayTask ?? Task.CompletedTask).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Ignore.
+        }
 
         // Dispose the network connection to kill the connection with the peer.
         await _networkConnection.DisposeAsync().ConfigureAwait(false);
 
-        // Next, cancel dispatches and invocations.
+        // Next, make sure dispatches and invocations are canceled and and wait for them to complete.
         _dispatchesAndInvocationsCancelSource.Cancel();
-
-        // Wait for pending tasks, dispatches and streams to complete.
         try
         {
-            await Task.WhenAll(
-                _dispatchesCompleted.Task,
-                _streamsCompleted.Task,
-                _acceptRequestsTask ?? Task.CompletedTask,
-                _readGoAwayTask ?? Task.CompletedTask).ConfigureAwait(false);
+            await Task.WhenAll(_dispatchesCompleted.Task, _streamsCompleted.Task).ConfigureAwait(false);
         }
         catch
         {
             // Ignore failures.
         }
 
-        _tasksCompleteSource.Dispose();
+        _tasksCancelSource.Dispose();
         _dispatchesAndInvocationsCancelSource.Dispose();
     }
 
@@ -220,15 +226,18 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
         lock (_mutex)
         {
+            // Nothing prevents InvokeAsync to be called on a connection which is being shutdown or disposed. We check
+            // for this condition here and throw ConnectionClosedException if necessary.
             if (_isReadOnly)
             {
                 throw new ConnectionClosedException();
             }
 
-            // _dispatchesAndInvocationsCancelSource.Token can throw ObjectNotDisposedException so only create the
+            // _dispatchesAndInvocationsCancelSource.Token can throw ObjectDisposedException so only create the
             // linked source if the connection is not disposed.
             cancelSource = CancellationTokenSource.CreateLinkedTokenSource(
                 _dispatchesAndInvocationsCancelSource.Token,
+                _tasksCancelSource.Token,
                 cancel);
         }
 
@@ -293,12 +302,12 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             // SendPayloadAsync takes care of the completion of the stream output.
             await SendPayloadAsync(request, stream, cancel).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (_dispatchesAndInvocationsCancelSource.IsCancellationRequested)
+        catch (OperationCanceledException) when (_invocationCanceledException is not null)
         {
-            completeException = new ConnectionAbortedException("connection shutdown");
+            completeException = _invocationCanceledException;
             throw completeException;
         }
-        catch (ObjectDisposedException)
+        catch (OperationCanceledException) when (_tasksCancelSource.IsCancellationRequested)
         {
             completeException = new ConnectionAbortedException("connection disposed");
             throw completeException;
@@ -325,7 +334,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             }
         }
 
-        completeException = null;
         try
         {
             if (request.IsOneway)
@@ -356,9 +364,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 ResultType = header.ResultType
             };
         }
-        catch (OperationCanceledException) when (_dispatchesAndInvocationsCancelSource.IsCancellationRequested)
+        catch (OperationCanceledException) when (_invocationCanceledException is not null)
         {
-            completeException = new ConnectionAbortedException("connection shutdown");
+            completeException = _invocationCanceledException;
             throw completeException;
         }
         catch (Exception exception)
@@ -368,8 +376,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         finally
         {
-            if (completeException is not null && !request.IsOneway)
+            if (completeException is not null)
             {
+                Debug.Assert(!request.IsOneway);
                 await stream.Input.CompleteAsync(completeException).ConfigureAwait(false);
             }
 
@@ -469,6 +478,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         // closing the network connection too soon, before the remote streams are completed.
         await _controlStream!.Output.CompleteAsync().ConfigureAwait(false);
         _ = await _remoteControlStream!.Input.ReadAsync(cancel).ConfigureAwait(false);
+        await _remoteControlStream.Input.CompleteAsync().ConfigureAwait(false);
 
         await _networkConnection.ShutdownAsync(closedException, cancel).ConfigureAwait(false);
     }
