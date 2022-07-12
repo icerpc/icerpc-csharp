@@ -20,7 +20,7 @@ pub struct ClassVisitor<'a> {
     pub generated_code: &'a mut GeneratedCode,
 }
 
-impl<'a> Visitor for ClassVisitor<'_> {
+impl Visitor for ClassVisitor<'_> {
     fn visit_class_start(&mut self, class_def: &Class) {
         let class_name = class_def.escape_identifier();
         let namespace = class_def.namespace();

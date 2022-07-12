@@ -19,7 +19,7 @@ pub struct ProxyVisitor<'a> {
     pub generated_code: &'a mut GeneratedCode,
 }
 
-impl<'a> Visitor for ProxyVisitor<'_> {
+impl Visitor for ProxyVisitor<'_> {
     fn visit_interface_start(&mut self, interface_def: &Interface) {
         let namespace = interface_def.namespace();
         let proxy_interface = interface_def.proxy_name(); // IFooProxy

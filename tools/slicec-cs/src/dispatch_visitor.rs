@@ -19,7 +19,7 @@ pub struct DispatchVisitor<'a> {
     pub generated_code: &'a mut GeneratedCode,
 }
 
-impl<'a> Visitor for DispatchVisitor<'_> {
+impl Visitor for DispatchVisitor<'_> {
     fn visit_interface_start(&mut self, interface_def: &Interface) {
         let bases = interface_def.base_interfaces();
         let interface_name = interface_def.interface_name();

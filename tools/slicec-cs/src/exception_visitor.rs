@@ -20,7 +20,7 @@ pub struct ExceptionVisitor<'a> {
     pub generated_code: &'a mut GeneratedCode,
 }
 
-impl<'a> Visitor for ExceptionVisitor<'_> {
+impl Visitor for ExceptionVisitor<'_> {
     fn visit_exception_start(&mut self, exception_def: &Exception) {
         let exception_name = exception_def.escape_identifier();
         let has_base = exception_def.base.is_some();
