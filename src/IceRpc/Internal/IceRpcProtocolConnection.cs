@@ -16,6 +16,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private Exception? _abortInvocationException;
     private Task? _acceptRequestsTask;
+    private IConnectionContext? _connectionContext; // non-null once the connection is established
     private IMultiplexedStream? _controlStream;
     private int _dispatchCount;
     private readonly IDispatcher _dispatcher;
@@ -33,7 +34,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private int _maxRemoteHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
     private readonly object _mutex = new();
     private readonly IMultiplexedNetworkConnection _networkConnection;
-    private NetworkConnectionInformation _networkConnectionInformation;
     private Task<IceRpcGoAway>? _readGoAwayTask;
     private IMultiplexedStream? _remoteControlStream;
 
@@ -86,7 +86,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     private protected override async Task<NetworkConnectionInformation> ConnectAsyncCore(CancellationToken cancel)
     {
         // Connect the network connection
-        _networkConnectionInformation = await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+        NetworkConnectionInformation networkConnectionInformation = await _networkConnection.ConnectAsync(cancel)
+            .ConfigureAwait(false);
 
         _controlStream = _networkConnection.CreateStream(false);
 
@@ -162,7 +163,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             },
             CancellationToken.None);
 
-        return _networkConnectionInformation;
+        _connectionContext = new ConnectionContext(this, networkConnectionInformation);
+        return networkConnectionInformation;
     }
 
     private protected override async ValueTask DisposeAsyncCore()
@@ -328,10 +330,7 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             if (request.IsOneway)
             {
-                return new IncomingResponse(request)
-                {
-                    NetworkConnectionInformation = _networkConnectionInformation
-                };
+                return new IncomingResponse(request, _connectionContext!);
             }
 
             ReadResult readResult = await stream.Input.ReadSegmentAsync(
@@ -351,9 +350,8 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 DecodeHeader(readResult.Buffer);
             stream.Input.AdvanceTo(readResult.Buffer.End);
 
-            return new IncomingResponse(request, fields, fieldsPipeReader)
+            return new IncomingResponse(request, _connectionContext!, fields, fieldsPipeReader)
             {
-                NetworkConnectionInformation = _networkConnectionInformation,
                 Payload = stream.Input,
                 ResultType = header.ResultType
             };
@@ -726,16 +724,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
                 DecodeHeader(readResult.Buffer);
             stream.Input.AdvanceTo(readResult.Buffer.End);
 
-            // TODO: this below is naturally this instance not decorated by any log decorator. The expectation is the
-            // logging for InvokeAsync is performed by the Logger interceptor and not the
-            // LogProtocolConnectionDecorator, but that's currently not true: LogProtocolConnectionDecorator decorates
-            // InvokeAsync.
-            var request = new IncomingRequest(Protocol.IceRpc)
+            var request = new IncomingRequest(_connectionContext!)
             {
                 Fields = fields,
-                Invoker = this,
                 IsOneway = !stream.IsBidirectional,
-                NetworkConnectionInformation = _networkConnectionInformation,
                 Operation = header.Operation,
                 Path = header.Path,
                 Payload = stream.Input
@@ -852,10 +844,10 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
                 static PipeReader CreateExceptionPayload(IncomingRequest request, RemoteException exception)
                 {
-                    ISliceEncodeFeature encodeFeature = request.Features.Get<ISliceEncodeFeature>() ??
-                            SliceEncodeFeature.Default;
+                    SliceEncodeOptions encodeOptions = request.Features.Get<ISliceFeature>()?.EncodeOptions ??
+                        SliceEncodeOptions.Default;
 
-                    var pipe = new Pipe(encodeFeature.PipeOptions);
+                    var pipe = new Pipe(encodeOptions.PipeOptions);
 
                     var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
                     Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);

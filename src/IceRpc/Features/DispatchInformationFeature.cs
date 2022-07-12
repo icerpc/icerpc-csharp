@@ -8,16 +8,13 @@ namespace IceRpc.Features;
 public sealed class DispatchInformationFeature : IDispatchInformationFeature
 {
     /// <inheritdoc/>
+    public IConnectionContext ConnectionContext { get; }
+
+    /// <inheritdoc/>
     public string Fragment { get; }
 
     /// <inheritdoc/>
-    public IInvoker Invoker { get; }
-
-    /// <inheritdoc/>
     public bool IsOneway { get; }
-
-    /// <inheritdoc/>
-    public NetworkConnectionInformation NetworkConnectionInformation { get; }
 
     /// <inheritdoc/>
     public string Operation { get; }
@@ -32,10 +29,9 @@ public sealed class DispatchInformationFeature : IDispatchInformationFeature
     /// <param name="request">The incoming request.</param>
     public DispatchInformationFeature(IncomingRequest request)
     {
+        ConnectionContext = request.ConnectionContext;
         Fragment = request.Fragment;
-        Invoker = request.Invoker;
         IsOneway = request.IsOneway;
-        NetworkConnectionInformation = request.NetworkConnectionInformation;
         Operation = request.Operation;
         Path = request.Path;
         Protocol = request.Protocol;

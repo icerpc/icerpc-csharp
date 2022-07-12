@@ -38,7 +38,7 @@ internal abstract class LogNetworkConnectionDecorator : INetworkConnection
             throw;
         }
 
-        Logger.LogNetworkConnectionConnect(Information.Value.LocalEndPoint, Information.Value.RemoteEndPoint);
+        Logger.LogNetworkConnectionConnect(Information.Value.LocalNetworkAddress, Information.Value.RemoteNetworkAddress);
         return Information.Value;
     }
 

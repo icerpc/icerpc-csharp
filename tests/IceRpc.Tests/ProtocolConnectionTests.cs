@@ -174,7 +174,7 @@ public sealed class ProtocolConnectionTests
                 async() =>
                 {
                     IncomingResponse response = await invokeTask;
-                    throw await response.DecodeFailureAsync(request);
+                    throw await response.DecodeFailureAsync(request, sut.Client);
                 },
                 Throws.TypeOf<DispatchException>());
         }

@@ -9,7 +9,7 @@ public sealed class Pipeline : IInvoker
 {
     private readonly Stack<Func<IInvoker, IInvoker>> _interceptorStack = new();
     private readonly Lazy<IInvoker> _invoker;
-    private IInvoker _lastInvoker = InvalidOperationInvoker.Instance;
+    private IInvoker? _lastInvoker;
 
     /// <summary>Constructs a pipeline.</summary>
     public Pipeline() => _invoker = new Lazy<IInvoker>(CreateInvokerPipeline);
@@ -51,11 +51,16 @@ public sealed class Pipeline : IInvoker
     }
 
     /// <summary>Creates a pipeline of invokers by starting with the last invoker installed. This method is called
-    /// by the first call to <see cref="InvokeAsync"/>.
-    /// </summary>
+    /// by the first call to <see cref="InvokeAsync"/>.</summary>
     /// <returns>The pipeline of invokers.</returns>
     private IInvoker CreateInvokerPipeline()
     {
+        if (_lastInvoker is null)
+        {
+            throw new InvalidOperationException(
+                $"call {nameof(Into)} before calling {nameof(InvokeAsync)} on a Pipeline");
+        }
+
         IInvoker pipeline = _lastInvoker;
 
         foreach (Func<IInvoker, IInvoker> interceptor in _interceptorStack)

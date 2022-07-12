@@ -13,9 +13,8 @@ public sealed class LoggerMiddlewareTests
         var dispatcher = new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)));
         using var loggerFactory = new TestLoggerFactory();
         await using var connection = new ClientConnection("icerpc://127.0.0.1");
-        var request = new IncomingRequest(connection.Protocol)
+        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
         {
-            Invoker = connection,
             Path = "/path",
             Operation = "operation"
         };
@@ -38,9 +37,8 @@ public sealed class LoggerMiddlewareTests
         var dispatcher = new InlineDispatcher((request, cancel) => throw new InvalidOperationException());
         using var loggerFactory = new TestLoggerFactory();
         await using var connection = new ClientConnection("icerpc://127.0.0.1");
-        var request = new IncomingRequest(connection.Protocol)
+        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
         {
-            Invoker = connection,
             Path = "/path",
             Operation = "operation"
         };
@@ -65,8 +63,8 @@ public sealed class LoggerMiddlewareTests
 
     private static void CheckEntryState(TestLoggerEntry entry)
     {
-        Assert.That(entry.State["LocalEndPoint"], Is.EqualTo("undefined"));
-        Assert.That(entry.State["RemoteEndPoint"], Is.EqualTo("undefined"));
+        Assert.That(entry.State["LocalNetworkAddress"], Is.EqualTo("undefined"));
+        Assert.That(entry.State["RemoteNetworkAddress"], Is.EqualTo("undefined"));
         Assert.That(entry.State["Operation"], Is.EqualTo("operation"));
         Assert.That(entry.State["Path"], Is.EqualTo("/path"));
     }

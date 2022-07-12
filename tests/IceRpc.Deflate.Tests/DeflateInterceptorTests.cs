@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
+using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.Buffers;
 using System.Collections.Immutable;
@@ -26,7 +27,8 @@ public class DeflateInterceptorTests
     public async Task Compress_request_payload()
     {
         // Arrange
-        var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request)));
+        var invoker = new InlineInvoker((request, cancel) =>
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)));
         var sut = new DeflateInterceptor(invoker);
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         request.Features = request.Features.With<ICompressFeature>(CompressFeature.Compress);
@@ -54,7 +56,8 @@ public class DeflateInterceptorTests
     [Test]
     public async Task Compressor_interceptor_without_the_compress_feature_does_not_install_a_payload_writer_interceptor()
     {
-        var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request)));
+        var invoker = new InlineInvoker((request, cancel) =>
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)));
         var sut = new DeflateInterceptor(invoker);
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
@@ -71,7 +74,8 @@ public class DeflateInterceptorTests
     [Test]
     public async Task Compressor_interceptor_does_not_install_a_payload_writer_interceptor_if_the_request_is_already_compressed()
     {
-        var invoker = new InlineInvoker((request, cancel) => Task.FromResult(new IncomingResponse(request)));
+        var invoker = new InlineInvoker((request, cancel) =>
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)));
         var sut = new DeflateInterceptor(invoker);
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         request.Features = request.Features.With<ICompressFeature>(CompressFeature.Compress);
@@ -134,7 +138,7 @@ public class DeflateInterceptorTests
     private static IncomingResponse CreateResponseWithCompressionFormatField(
         OutgoingRequest request,
         ReadOnlySequence<byte> compressionFormatField) =>
-        new(request, new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
+        new(request, FakeConnectionContext.IceRpc, new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
         {
             [ResponseFieldKey.CompressionFormat] = compressionFormatField
         }.ToImmutableDictionary());

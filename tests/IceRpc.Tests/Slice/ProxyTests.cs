@@ -82,11 +82,11 @@ public class ProxyTests
         Assert.That(decoded.ServiceAddress, Is.EqualTo(expected));
     }
 
-    /// <summary>Verifies that a relative proxy gets the decoder's connection as invoker.</summary>
+    /// <summary>Verifies that a relative proxy decoded with the default service proxy factory gets a null invoker.
+    /// </summary>
     [Test]
-    public async Task Decode_relative_proxy()
+    public void Decode_relative_proxy()
     {
-        await using var connection = new ClientConnection("icerpc://localhost");
         Assert.That(() =>
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
@@ -94,16 +94,15 @@ public class ProxyTests
             encoder.EncodeServiceAddress(new ServiceAddress { Path = "/foo" });
             var decoder = new SliceDecoder(
                 bufferWriter.WrittenMemory,
-                encoding: SliceEncoding.Slice2,
-                relativeProxyInvoker: connection);
+                encoding: SliceEncoding.Slice2);
 
             return decoder.DecodeProxy<ServiceProxy>().Invoker;
         },
-        Is.EqualTo(connection));
+        Is.Null);
     }
 
     [Test]
-    public async Task Downcast_proxy_with_as_sync_succeeds()
+    public async Task Downcast_proxy_with_as_async_succeeds()
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddColocTest(new MyDerivedInterface())

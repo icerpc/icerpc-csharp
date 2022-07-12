@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.IO.Pipelines;
 
@@ -15,7 +16,7 @@ public class DictionaryMappingTests
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 },
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request)
+        var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
         {
             Payload = responsePayload
         };
@@ -24,7 +25,7 @@ public class DictionaryMappingTests
             await DictionaryMappingOperationsProxy.Response.OpReturnTupleAsync(
                 response,
                 request,
-                InvalidOperationInvoker.Instance,
+                NotImplementedInvoker.Instance,
                 null,
                 default);
 
@@ -38,7 +39,7 @@ public class DictionaryMappingTests
         PipeReader responsePayload = IDictionaryMappingOperations.Response.OpReturnSingleType(
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request)
+        var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
         {
             Payload = responsePayload
         };
@@ -47,8 +48,8 @@ public class DictionaryMappingTests
         Dictionary<int, int> r = await DictionaryMappingOperationsProxy.Response.OpReturnSingleTypeAsync(
             response,
             request,
-            InvalidOperationInvoker.Instance,
-            encodeFeature: null,
+            NotImplementedInvoker.Instance,
+            encodeOptions: null,
             default);
 
         Assert.That(r, Is.EqualTo(new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 }));
@@ -64,7 +65,7 @@ public class DictionaryMappingTests
         // Act/Assert
         Assert.That(
             async () => await IDictionaryMappingOperations.Request.OpSingleParameterAsync(
-                new IncomingRequest(Protocol.IceRpc)
+                new IncomingRequest(FakeConnectionContext.IceRpc)
                 {
                     Payload = requestPayload
                 },

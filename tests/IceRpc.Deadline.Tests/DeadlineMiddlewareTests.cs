@@ -34,7 +34,7 @@ public sealed class DeadlineMiddlewareTests
         PipeReader pipeReader = WriteDeadline(deadline);
         pipeReader.TryRead(out var readResult);
 
-        var request = new IncomingRequest(Protocol.IceRpc)
+        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
         {
             Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
             {
@@ -75,7 +75,7 @@ public sealed class DeadlineMiddlewareTests
         PipeReader pipeReader = WriteDeadline(expectedDeadline);
         pipeReader.TryRead(out var readResult);
 
-        var request = new IncomingRequest(Protocol.IceRpc)
+        var request = new IncomingRequest(FakeConnectionContext.IceRpc)
         {
             Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
             {

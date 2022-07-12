@@ -20,11 +20,11 @@ public class ColocTransportTests
 
         var networkConnectionInformation = await clientConnection.ConnectAsync(default);
 
-        Assert.That(networkConnectionInformation.LocalEndPoint, Is.TypeOf<ColocEndPoint>());
-        var endPoint = (ColocEndPoint?)networkConnectionInformation.LocalEndPoint;
+        Assert.That(networkConnectionInformation.LocalNetworkAddress, Is.TypeOf<ColocEndPoint>());
+        var endPoint = (ColocEndPoint?)networkConnectionInformation.LocalNetworkAddress;
         Assert.That(endPoint?.ToString(), Is.EqualTo(listener.Endpoint.ToString()));
-        Assert.That(networkConnectionInformation.RemoteEndPoint, Is.TypeOf<ColocEndPoint>());
-        endPoint = (ColocEndPoint?)networkConnectionInformation.RemoteEndPoint;
+        Assert.That(networkConnectionInformation.RemoteNetworkAddress, Is.TypeOf<ColocEndPoint>());
+        endPoint = (ColocEndPoint?)networkConnectionInformation.RemoteNetworkAddress;
         Assert.That(endPoint?.ToString(), Is.EqualTo(listener.Endpoint.ToString()));
         Assert.That(networkConnectionInformation.RemoteCertificate, Is.Null);
     }

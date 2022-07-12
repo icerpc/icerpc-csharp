@@ -305,7 +305,7 @@ public class OperationTests
         // Assert
         Assert.That(
             async () => await IMyOperationsA.Request.OpReadOnlyMemoryAsync(
-                new IncomingRequest(Protocol.IceRpc)
+                new IncomingRequest(FakeConnectionContext.IceRpc)
                 {
                     Payload = payload
                 },
@@ -326,7 +326,7 @@ public class OperationTests
 
         // Assert
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request)
+        var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
         {
             Payload = payload
         };
@@ -334,7 +334,7 @@ public class OperationTests
             async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryAsync(
                 response,
                 request,
-                InvalidOperationInvoker.Instance,
+                NotImplementedInvoker.Instance,
                 null,
                 default),
             Is.EqualTo(new int[] { 1, 2, 3 }));
@@ -351,7 +351,7 @@ public class OperationTests
         // Assert
         Assert.That(
             async () => await IMyOperationsA.Request.OpReadOnlyMemoryOptionalAsync(
-                new IncomingRequest(Protocol.IceRpc)
+                new IncomingRequest(FakeConnectionContext.IceRpc)
                 {
                     Payload = payload
                 },
@@ -373,7 +373,7 @@ public class OperationTests
 
         // Assert
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request)
+        var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
         {
             Payload = payload
         };
@@ -381,7 +381,7 @@ public class OperationTests
             async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryOptionalAsync(
                 response,
                 request,
-                InvalidOperationInvoker.Instance,
+                NotImplementedInvoker.Instance,
                 null,
                 default),
             Is.EqualTo(p));
@@ -398,7 +398,7 @@ public class OperationTests
         // Assert
         Assert.That(
             async () => await IMyOperationsA.Request.OpReadOnlyMemoryTaggedAsync(
-                new IncomingRequest(Protocol.IceRpc)
+                new IncomingRequest(FakeConnectionContext.IceRpc)
                 {
                     Payload = payload
                 },
@@ -420,7 +420,7 @@ public class OperationTests
 
         // Assert
         var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request)
+        var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
         {
             Payload = payload
         };
@@ -428,7 +428,7 @@ public class OperationTests
             async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryTaggedAsync(
                 response,
                 request,
-                InvalidOperationInvoker.Instance,
+                NotImplementedInvoker.Instance,
                 null,
                 default),
             Is.EqualTo(p));
