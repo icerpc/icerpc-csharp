@@ -143,11 +143,9 @@ public sealed class ProtocolConnectionTests
     public async Task Connection_abort_callback([Values("ice", "icerpc")] string protocol)
     {
         // Arrange
-        var onAbortCalled = new TaskCompletionSource<object?>();
-        var protocolObj = Protocol.FromString(protocol);
-
+        var onAbortCalled = new TaskCompletionSource<Exception>();
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocolObj)
+            .AddProtocolTest(Protocol.FromString(protocol))
             .BuildServiceProvider(validateScopes: true);
 
         IClientServerProtocolConnection sut = provider.GetRequiredService<IClientServerProtocolConnection>();
