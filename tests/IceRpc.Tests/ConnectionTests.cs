@@ -97,69 +97,6 @@ public class ConnectionTests
         }
     }
 
-    /// <summary>Verifies that disposing the connection executes the OnAbort callback.</summary>
-    [Test]
-    public async Task Connection_abort_callback(
-        [Values("ice", "icerpc")] string protocol,
-        [Values(true, false)] bool abortClientConnection)
-    {
-        // Arrange
-        IProtocolConnection? serverConnection = null;
-        var dispatcher = new InlineDispatcher((request, cancel) =>
-        {
-            serverConnection = (IProtocolConnection)request.ConnectionContext.Invoker;
-            return new(new OutgoingResponse(request));
-        });
-
-        IServiceCollection services = new ServiceCollection().AddColocTest(dispatcher, Protocol.FromString(protocol));
-
-        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
-        var server = provider.GetRequiredService<Server>();
-        server.Listen();
-        var clientConnection = provider.GetRequiredService<ClientConnection>();
-
-        var serviceAddress = new ServiceAddress(clientConnection.Protocol) { Path = "/foo" };
-
-        await clientConnection.InvokeAsync(new OutgoingRequest(serviceAddress));
-
-        var onAbortCalled = new TaskCompletionSource<object?>();
-        if (abortClientConnection)
-        {
-            serverConnection!.OnAbort(exception => onAbortCalled.SetException(exception));
-            try
-            {
-                await clientConnection.ShutdownAsync(new CancellationToken(true));
-            }
-            catch (OperationCanceledException)
-            {
-            }
-        }
-        else
-        {
-            clientConnection.OnAbort(exception => onAbortCalled.SetException(exception));
-            try
-            {
-                await serverConnection!.ShutdownAsync("", new CancellationToken(true));
-            }
-            catch (OperationCanceledException)
-            {
-            }
-        }
-
-        // Act
-        if (abortClientConnection)
-        {
-            await clientConnection.DisposeAsync();
-        }
-        else
-        {
-            await serverConnection!.DisposeAsync();
-        }
-
-        // Assert
-        Assert.That(async () => await onAbortCalled.Task, Throws.InstanceOf<ConnectionLostException>());
-    }
-
     /// <summary>Verifies that connect establishment timeouts after the <see cref="ConnectionOptions.ConnectTimeout"/>
     /// time period.</summary>
     [Test]
