@@ -14,10 +14,6 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
     // TODO: should we remove this property?
     public Endpoint Endpoint => _clientConnection.Endpoint;
 
-    /// <summary>Gets the network connection information or <c>null</c> if the connection is not connected.
-    /// </summary>
-    public NetworkConnectionInformation? NetworkConnectionInformation => _clientConnection.NetworkConnectionInformation;
-
     /// <summary>Gets the protocol of this connection.</summary>
     public Protocol Protocol => _clientConnection.Protocol;
 
@@ -88,24 +84,33 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 
     /// <summary>Establishes the connection.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A task that indicates the completion of the connect operation.</returns>
+    /// <returns>A task that provides the <see cref="NetworkConnectionInformation"/> of the transport connection, once
+    /// this connection is established. This task can also complete with one of the following exceptions:
+    /// <list type="bullet">
+    /// <item><description><see cref="ConnectionAbortedException"/>if the connection was aborted.</description></item>
+    /// <item><description><see cref="ObjectDisposedException"/>if this connection is disposed.</description></item>
+    /// <item><description><see cref="OperationCanceledException"/>if cancellation was requested through the
+    /// cancellation token.</description></item>
+    /// <item><description><see cref="TimeoutException"/>if this connection attempt or a previous attempt exceeded
+    /// <see cref="ConnectionOptions.ConnectTimeout"/>.</description></item>
+    /// </list>
+    /// </returns>
     /// <exception cref="ConnectionClosedException">Thrown if the connection was closed by this client.</exception>
-    public async Task ConnectAsync(CancellationToken cancel = default)
+    public async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel = default)
     {
         // make a copy of the client connection we're trying with
         ClientConnection clientConnection = _clientConnection;
 
         try
         {
-            await clientConnection.ConnectAsync(cancel).ConfigureAwait(false);
-            return;
+           return await clientConnection.ConnectAsync(cancel).ConfigureAwait(false);
         }
         catch (ConnectionClosedException) when (IsResumable)
         {
             _ = RefreshClientConnectionAsync(clientConnection, graceful: true);
 
             // try again with the latest _clientConnection
-            await _clientConnection.ConnectAsync(cancel).ConfigureAwait(false);
+            return await _clientConnection.ConnectAsync(cancel).ConfigureAwait(false);
         }
     }
 

@@ -25,10 +25,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     // TODO: should we remove this property?
     public Endpoint Endpoint { get; }
 
-    /// <summary>Gets the network connection information or <c>null</c> if the connection is not connected.
-    /// </summary>
-    public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
-
     /// <summary>Gets the protocol of this connection.</summary>
     public Protocol Protocol => Endpoint.Protocol;
 
@@ -122,8 +118,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
     /// <summary>Establishes the connection. This method can be called multiple times, even concurrently.</summary>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A task that represents the completion of the connect operation. This task can complete with one of the
-    /// following exceptions:
+    /// <returns>A task that provides the <see cref="NetworkConnectionInformation"/> of the transport connection, once
+    /// this connection is established. This task can also complete with one of the following exceptions:
     /// <list type="bullet">
     /// <item><description><see cref="ConnectionAbortedException"/>if the connection was aborted.</description></item>
     /// <item><description><see cref="ObjectDisposedException"/>if this connection is disposed.</description></item>
@@ -133,8 +129,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <see cref="ConnectionOptions.ConnectTimeout"/>.</description></item>
     /// </list>
     /// </returns>
-    public async Task ConnectAsync(CancellationToken cancel = default) =>
-        NetworkConnectionInformation = await _protocolConnection.ConnectAsync(cancel: cancel).ConfigureAwait(false);
+    public Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel = default) =>
+        _protocolConnection.ConnectAsync(cancel);
 
     /// <inheritdoc/>
     public ValueTask DisposeAsync() => _protocolConnection.DisposeAsync();
