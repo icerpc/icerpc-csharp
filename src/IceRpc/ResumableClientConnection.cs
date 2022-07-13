@@ -85,6 +85,11 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
         IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
         IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
     {
+        Endpoint = options.Endpoint ??
+            throw new ArgumentException(
+                $"{nameof(ClientConnectionOptions.Endpoint)} is not set",
+                nameof(options));
+
         _options = options;
         _loggerFactory = loggerFactory;
         _multiplexedClientTransport = multiplexedClientTransport ?? ClientConnection.DefaultMultiplexedClientTransport;
@@ -208,6 +213,14 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
         return _protocolConnection.ShutdownAsync(message, cancel);
     }
 
+    private void CheckIfDisposed()
+    {
+        if (_isDisposed)
+        {
+            throw new ObjectDisposedException(nameof(ResumableClientConnection));
+        }
+    }
+
     private IProtocolConnection CreateProtocolConnection()
     {
         IProtocolConnection protocolConnection = ProtocolConnection.CreateClientConnection(
@@ -257,14 +270,6 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
             }
 
             await protocolConnection.DisposeAsync().ConfigureAwait(false);
-        }
-    }
-
-    private void CheckIfDisposed()
-    {
-        if (_isDisposed)
-        {
-            throw new ObjectDisposedException(nameof(ResumableClientConnection));
         }
     }
 }

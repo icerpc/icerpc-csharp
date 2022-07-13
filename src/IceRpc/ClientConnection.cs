@@ -66,12 +66,19 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         ClientConnectionOptions options,
         ILoggerFactory? loggerFactory = null,
         IClientTransport<IMultiplexedNetworkConnection>? multiplexedClientTransport = null,
-        IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null) =>
+        IClientTransport<ISimpleNetworkConnection>? simpleClientTransport = null)
+    {
+        Endpoint = options.Endpoint ??
+            throw new ArgumentException(
+                $"{nameof(ClientConnectionOptions.Endpoint)} is not set",
+                nameof(options));
+
         _protocolConnection = ProtocolConnection.CreateClientConnection(
             options,
             loggerFactory,
             multiplexedClientTransport ?? DefaultMultiplexedClientTransport,
             simpleClientTransport ?? DefaultSimpleClientTransport);
+    }
 
     /// <summary>Constructs a client connection with the specified endpoint and authentication options.  All other
     /// properties have their default values.</summary>

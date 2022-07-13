@@ -300,10 +300,12 @@ internal abstract class ProtocolConnection : IProtocolConnection
         IClientTransport<IMultiplexedNetworkConnection> multiplexedClientTransport,
         IClientTransport<ISimpleNetworkConnection> simpleClientTransport)
     {
-        Endpoint endpoint = options.Endpoint ??
-            throw new ArgumentException(
-                $"{nameof(ClientConnectionOptions.Endpoint)} is not set",
-                nameof(options));
+        if (options.Endpoint is null)
+        {
+            throw new InvalidOperationException($"{nameof(options.Endpoint)} is null");
+        }
+
+        Endpoint endpoint = options.Endpoint.Value;
 
         // This is the composition root of client Connections, where we install log decorators when logging is enabled.
 
