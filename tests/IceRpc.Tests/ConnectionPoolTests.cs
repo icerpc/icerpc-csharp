@@ -129,12 +129,12 @@ public sealed class ConnectionPoolTests
             new ConnectionPoolOptions { PreferExistingConnection = true },
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
-        IConnection connection1 = await pool.GetClientConnectionAsync(
+        ClientConnection connection1 = await pool.GetClientConnectionAsync(
             new EndpointFeature(new ServiceAddress(server.Endpoint.Protocol) { Endpoint = server.Endpoint }),
             default);
 
         // Act
-        IConnection connection2 = await pool.GetClientConnectionAsync(
+        ClientConnection connection2 = await pool.GetClientConnectionAsync(
             new EndpointFeature(new ServiceAddress(server.Endpoint.Protocol) { Endpoint = server.Endpoint }),
             default);
 

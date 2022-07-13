@@ -11,7 +11,7 @@ namespace IceRpc;
 
 /// <summary>Represents a client connection used to send and receive requests and responses. This client connection
 /// cannot be reconnected after being closed.</summary>
-public sealed class ClientConnection : IConnection, IAsyncDisposable
+public sealed class ClientConnection : IInvoker, IAsyncDisposable
 {
     /// <summary>Gets the default client transport for icerpc protocol connections.</summary>
     public static IClientTransport<IMultiplexedNetworkConnection> DefaultMultiplexedClientTransport { get; } =
@@ -21,17 +21,15 @@ public sealed class ClientConnection : IConnection, IAsyncDisposable
     public static IClientTransport<ISimpleNetworkConnection> DefaultSimpleClientTransport { get; } =
         new TcpClientTransport();
 
-    /// <summary>Gets the endpoint.</summary>
-    // TODO: remove
+    /// <summary>Gets the endpoint of this connection.</summary>
+    // TODO: should we remove this property?
     public Endpoint Endpoint { get; }
 
-    /// <inheritdoc/>
-    public bool IsResumable => false;
-
-    /// <inheritdoc/>
+    /// <summary>Gets the network connection information or <c>null</c> if the connection is not connected.
+    /// </summary>
     public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
 
-    /// <inheritdoc/>
+    /// <summary>Gets the protocol of this connection.</summary>
     public Protocol Protocol => Endpoint.Protocol;
 
     private readonly IProtocolConnection _protocolConnection;
@@ -143,10 +141,12 @@ public sealed class ClientConnection : IConnection, IAsyncDisposable
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default) =>
         _protocolConnection.InvokeAsync(request, cancel);
 
-    /// <inheritdoc/>
+    /// <summary>Adds a callback that will be executed when the connection is aborted.</summary>
+    /// TODO: fix doc-comment
     public void OnAbort(Action<Exception> callback) => _protocolConnection.OnAbort(callback);
 
-    /// <inheritdoc/>
+    /// <summary>Adds a callback that will be executed when the connection is shut down.</summary>
+    /// TODO: fix doc-comment
     public void OnShutdown(Action<string> callback) => _protocolConnection.OnShutdown(callback);
 
     /// <summary>Gracefully shuts down the connection.</summary>
