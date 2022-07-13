@@ -61,6 +61,15 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
             // Set the abort exception for invocations.
             _invocationCanceledException = exception;
+
+            if (_streams.Count == 0)
+            {
+                _streamsCompleted.TrySetResult();
+            }
+            if (_dispatchCount == 0)
+            {
+                _dispatchesCompleted.TrySetResult();
+            }
         }
 
         _dispatchesAndInvocationsCancelSource.Cancel();
@@ -88,6 +97,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         // Connect the network connection
         NetworkConnectionInformation networkConnectionInformation = await _networkConnection.ConnectAsync(cancel)
             .ConfigureAwait(false);
+
+        // This needs to be set before starting the accept requests task bellow.
+        _connectionContext = new ConnectionContext(this, networkConnectionInformation);
 
         _controlStream = _networkConnection.CreateStream(false);
 
@@ -126,7 +138,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         _acceptRequestsTask = Task.Run(
             async () =>
             {
-                CancellationToken cancel = _tasksCancelSource.Token;
                 try
                 {
                     while (true)
@@ -163,30 +174,18 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             },
             CancellationToken.None);
 
-        _connectionContext = new ConnectionContext(this, networkConnectionInformation);
         return networkConnectionInformation;
     }
 
     private protected override async ValueTask DisposeAsyncCore()
     {
-        // Cancel pending tasks, dispatches and invocations.
-        lock (_mutex)
-        {
-            _isReadOnly = true;
-            if (_dispatchCount == 0)
-            {
-                _dispatchesCompleted.TrySetResult();
-            }
-            if (_streams.Count == 0)
-            {
-                _streamsCompleted.TrySetResult();
-            }
-            _invocationCanceledException = new ConnectionAbortedException("connection disposed");
-        }
+        // Cancel dispatches and invocations.
+        CancelDispatchesAndAbortInvocations(new ConnectionAbortedException("connection disposed"));
 
-        // First, before disposing the network connection, cancel pending tasks which are using the network connection
-        // and wait for the tasks to complete.
+        // Before disposing the network connection, cancel pending tasks which are using the network connection and wait
+        // for the tasks to complete.
         _tasksCancelSource.Cancel();
+
         try
         {
             await Task.WhenAll(
@@ -195,22 +194,14 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         }
         catch
         {
-            // Ignore.
+            // Ignore, we don't care if the tasks fail here (ReadGoAwayTask can fail if the connection is lost).
         }
 
         // Dispose the network connection to kill the connection with the peer.
         await _networkConnection.DisposeAsync().ConfigureAwait(false);
 
-        // Next, make sure dispatches and invocations are canceled and and wait for them to complete.
-        _dispatchesAndInvocationsCancelSource.Cancel();
-        try
-        {
-            await Task.WhenAll(_dispatchesCompleted.Task, _streamsCompleted.Task).ConfigureAwait(false);
-        }
-        catch
-        {
-            // Ignore failures.
-        }
+        // Next, wait for dispatches and invocations to complete.
+        await Task.WhenAll(_dispatchesCompleted.Task, _streamsCompleted.Task).ConfigureAwait(false);
 
         _tasksCancelSource.Dispose();
         _dispatchesAndInvocationsCancelSource.Dispose();
@@ -237,7 +228,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
             // linked source if the connection is not disposed.
             cancelSource = CancellationTokenSource.CreateLinkedTokenSource(
                 _dispatchesAndInvocationsCancelSource.Token,
-                _tasksCancelSource.Token,
                 cancel);
         }
 
@@ -305,11 +295,6 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         catch (OperationCanceledException) when (_invocationCanceledException is not null)
         {
             completeException = _invocationCanceledException;
-            throw completeException;
-        }
-        catch (OperationCanceledException) when (_tasksCancelSource.IsCancellationRequested)
-        {
-            completeException = new ConnectionAbortedException("connection disposed");
             throw completeException;
         }
         catch (Exception exception)

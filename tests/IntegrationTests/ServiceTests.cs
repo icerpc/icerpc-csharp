@@ -12,6 +12,7 @@ public class ServiceTests
 {
     /// <summary>Verifies the operations of <see cref="Service"/>.</summary>
     [Test]
+    [Repeat(100000)]
     public async Task Service_operations([Values("ice", "icerpc")] string protocol)
     {
         await using ServiceProvider provider = new ServiceCollection()

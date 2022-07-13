@@ -248,23 +248,10 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
 
         async Task PerformDisposeAsync()
         {
+            var exception = new ConnectionAbortedException("network connection disposed");
+
             // Cancel tasks which are using the network connection before disposing the network connection.
             _tasksCancelSource.Cancel();
-
-            // Dispose the network connection.
-            _simpleNetworkConnection.Dispose();
-
-            var exception = new ConnectionAbortedException("network connection disposed");
-            foreach (SlicMultiplexedStream stream in _streams.Values)
-            {
-                stream.Abort(exception);
-            }
-
-            _acceptStreamQueue.TryComplete(exception);
-            _bidirectionalStreamSemaphore?.Complete(exception);
-            _unidirectionalStreamSemaphore?.Complete(exception);
-
-            // Wait for all the tasks and the write semaphore to be released.
             try
             {
                 await Task.WhenAll(
@@ -275,6 +262,18 @@ internal class SlicNetworkConnection : IMultiplexedNetworkConnection
             {
                 // Ignore.
             }
+
+            // Dispose the network connection.
+            _simpleNetworkConnection.Dispose();
+
+            foreach (SlicMultiplexedStream stream in _streams.Values)
+            {
+                stream.Abort(exception);
+            }
+
+            _acceptStreamQueue.TryComplete(exception);
+            _bidirectionalStreamSemaphore?.Complete(exception);
+            _unidirectionalStreamSemaphore?.Complete(exception);
 
             // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
             _simpleNetworkConnectionReader.Dispose();

@@ -96,12 +96,19 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             abortAction: exception => InvokeOnAbort(exception),
             keepAliveAction: () =>
             {
-                lock (_mutex)
+                try
                 {
-                    if (_pingTask.IsCompleted && !_tasksCancelSource.IsCancellationRequested)
+                    lock (_mutex)
                     {
-                        _pingTask = PingAsync(_tasksCancelSource.Token);
+                        if (_pingTask.IsCompleted && !_tasksCancelSource.IsCancellationRequested)
+                        {
+                            _pingTask = PingAsync(_tasksCancelSource.Token);
+                        }
                     }
+                }
+                catch
+                {
+                    // Ignore, the read frames task will fail if the connection fails.
                 }
             });
 
@@ -150,6 +157,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
             // Set the abort exception for invocations.
             _invocationCanceledException = exception;
+
+            if (_invocations.Count == 0 && _dispatchCount == 0)
+            {
+                _dispatchesAndInvocationsCompleted.TrySetResult();
+            }
         }
 
         // Cancel dispatches and abort invocations for a speedy shutdown.
@@ -177,6 +189,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     {
         NetworkConnectionInformation networkConnectionInformation = await _networkConnection.ConnectAsync(cancel)
             .ConfigureAwait(false);
+
+        // This needs to be set before starting the read frames task bellow.
+        _connectionContext = new ConnectionContext(this, networkConnectionInformation);
 
         // Wait for the network connection establishment to enable the idle timeout check.
         _networkConnectionReader.EnableIdleCheck();
@@ -216,6 +231,12 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                 {
                     // Read frames until the CloseConnection frame is received.
                     await ReadFramesAsync(_tasksCancelSource.Token).ConfigureAwait(false);
+
+                    var exception = new ConnectionAbortedException("network connection disposed");
+                    _tasksCancelSource.Cancel();
+                    await Task.WhenAll(
+                        _pingTask,
+                        _writeSemaphore.CompleteAndWaitAsync(exception)).ConfigureAwait(false);
 
                     // The peer expects the connection to be closed as soon as the CloseConnection message is received.
                     // So there's no need to initiate shutdown, we just close the network connection and notify the
@@ -258,7 +279,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             },
             CancellationToken.None);
 
-        _connectionContext = new ConnectionContext(this, networkConnectionInformation);
         return networkConnectionInformation;
 
         static void EncodeValidateConnectionFrame(SimpleNetworkConnectionWriter writer)
@@ -276,43 +296,24 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
     private protected override async ValueTask DisposeAsyncCore()
     {
-        // Cancel pending tasks, dispatches and invocations.
-        lock (_mutex)
-        {
-            _isReadOnly = true;
-            _invocationCanceledException = new ConnectionAbortedException("connection disposed");
+        var exception = new ConnectionAbortedException("connection disposed");
 
-            if (_invocations.Count == 0 && _dispatchCount == 0)
-            {
-                _dispatchesAndInvocationsCompleted.TrySetResult();
-            }
-        }
+        // Cancel dispatches and invocations.
+        CancelDispatchesAndAbortInvocations(exception);
 
-        // First, before disposing the network connection, cancel pending tasks which are using the network connection
-        // and wait for the tasks to complete.
+        // Before disposing the network connection, cancel pending tasks which are using it wait for the tasks to
+        // complete.
         _tasksCancelSource.Cancel();
-        try
-        {
-            await Task.WhenAll(_readFramesTask ?? Task.CompletedTask, _pingTask).ConfigureAwait(false);
-        }
-        catch
-        {
-            // Ignore.
-        }
+        await Task.WhenAll(
+            _readFramesTask ?? Task.CompletedTask,
+            _pingTask,
+            _writeSemaphore.CompleteAndWaitAsync(exception)).ConfigureAwait(false);
 
         // Dispose the network connection to kill the connection with the peer.
         _networkConnection.Dispose();
 
-        // Next, make sure dispatches and invocations are canceled and and wait for them to complete.
-        _dispatchesAndInvocationsCancelSource.Cancel();
-        try
-        {
-            await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
-        }
-        catch
-        {
-            // Ignore.
-        }
+        // Next, wait for dispatches and invocations to complete.
+        await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
 
         // It's now safe to dispose of the reader/writer since no more threads are sending/receiving data.
         _networkConnectionReader.Dispose();
@@ -347,7 +348,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             // linked source if the connection is not disposed.
             cancelSource = CancellationTokenSource.CreateLinkedTokenSource(
                 _dispatchesAndInvocationsCancelSource.Token,
-                _tasksCancelSource.Token,
                 cancel);
         }
 
@@ -639,15 +639,22 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
 
         // Encode and write the CloseConnection frame once all the dispatches are done.
-        await _writeSemaphore.EnterAsync(cancel).ConfigureAwait(false);
         try
         {
-            EncodeCloseConnectionFrame(_networkConnectionWriter);
-            await _networkConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
+            await _writeSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+            try
+            {
+                EncodeCloseConnectionFrame(_networkConnectionWriter);
+                await _networkConnectionWriter.FlushAsync(cancel).ConfigureAwait(false);
+            }
+            finally
+            {
+                _writeSemaphore.Release();
+            }
         }
-        finally
+        catch (ConnectionAbortedException)
         {
-            _writeSemaphore.Release();
+            // Expected if the peer also sends a CloseConnection frame and the connection is closed first.
         }
 
         // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the connection

@@ -16,6 +16,7 @@ namespace IceRpc.IntegrationTests;
 public sealed class ProtocolBridgingTests
 {
     [Test]
+    [Repeat(1000)]
     public async Task ProtocolBridging_Forward(
         [Values("ice", "icerpc")] string forwarderProtocol,
         [Values("ice", "icerpc")] string targetProtocol)

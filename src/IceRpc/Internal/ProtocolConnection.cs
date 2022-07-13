@@ -133,7 +133,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
                     {
                         // Perform speedy shutdown.
                         _shutdownTask = PerformShutdownAsync(
-                            "connection disposed",
+                            $"connection dispose",
                             cancelDispatchesAndInvocations: true);
                     }
                     else if (!_shutdownTask.IsCanceled && !_shutdownTask.IsFaulted)
@@ -400,7 +400,7 @@ internal abstract class ProtocolConnection : IProtocolConnection
         {
             Debug.Assert(cancelSource.IsCancellationRequested);
 
-            // Triggered by the CancelAfter above.
+             // Triggered by the CancelAfter above.
             throw new TimeoutException($"connection shutdown timed out after {_shutdownTimeout.TotalSeconds}s");
         }
     }
