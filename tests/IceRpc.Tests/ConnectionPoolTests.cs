@@ -1,7 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Transports;
 using NUnit.Framework;
+using System.Collections.Immutable;
 
 namespace IceRpc.Tests;
 
@@ -28,16 +30,19 @@ public sealed class ConnectionPoolTests
             new ConnectionPoolOptions { PreferExistingConnection = false },
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
-        IClientConnection connection2 = await pool.GetClientConnectionAsync(
-            server2.Endpoint,
-            Array.Empty<Endpoint>(),
+        ClientConnection connection2 = await pool.GetClientConnectionAsync(
+            new EndpointFeature(new ServiceAddress(server2.Endpoint.Protocol) { Endpoint = server2.Endpoint }),
             default);
 
+        var endpointFeature = new EndpointFeature(
+            new ServiceAddress(server1.Endpoint.Protocol)
+            {
+                Endpoint = server1.Endpoint,
+                AltEndpoints = ImmutableList.Create(server2.Endpoint)
+            });
+
         // Act
-        IClientConnection connection1 = await pool.GetClientConnectionAsync(
-            server1.Endpoint,
-            new Endpoint[] { server2.Endpoint },
-            default);
+        ClientConnection connection1 = await pool.GetClientConnectionAsync(endpointFeature, default);
 
         // Assert
         Assert.That(connection1.Endpoint, Is.EqualTo(server1.Endpoint));
@@ -62,9 +67,13 @@ public sealed class ConnectionPoolTests
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
         // Act
-        IClientConnection connection = await pool.GetClientConnectionAsync(
-            Endpoint.FromString("icerpc://bar?transport=coloc"),
-            new Endpoint[] { server.Endpoint },
+        ClientConnection connection = await pool.GetClientConnectionAsync(
+            new EndpointFeature(
+                new ServiceAddress(Protocol.IceRpc)
+                {
+                    Endpoint = "icerpc://bar?transport",
+                    AltEndpoints = ImmutableList.Create(server.Endpoint)
+                }),
             default);
 
         // Assert
@@ -92,9 +101,13 @@ public sealed class ConnectionPoolTests
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
         // Act
-        IClientConnection connection = await pool.GetClientConnectionAsync(
-            server1.Endpoint,
-            new Endpoint[] { server2.Endpoint },
+        ClientConnection connection = await pool.GetClientConnectionAsync(
+            new EndpointFeature(
+                new ServiceAddress(server1.Endpoint.Protocol)
+                {
+                    Endpoint = server1.Endpoint,
+                    AltEndpoints = ImmutableList.Create(server2.Endpoint)
+                }),
             default);
 
         // Assert
@@ -116,15 +129,13 @@ public sealed class ConnectionPoolTests
             new ConnectionPoolOptions { PreferExistingConnection = true },
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
-        IConnection connection1 = await pool.GetClientConnectionAsync(
-            server.Endpoint,
-            Array.Empty<Endpoint>(),
+        ClientConnection connection1 = await pool.GetClientConnectionAsync(
+            new EndpointFeature(new ServiceAddress(server.Endpoint.Protocol) { Endpoint = server.Endpoint }),
             default);
 
         // Act
-        IConnection connection2 = await pool.GetClientConnectionAsync(
-            server.Endpoint,
-            Array.Empty<Endpoint>(),
+        ClientConnection connection2 = await pool.GetClientConnectionAsync(
+            new EndpointFeature(new ServiceAddress(server.Endpoint.Protocol) { Endpoint = server.Endpoint }),
             default);
 
         // Assert
@@ -152,15 +163,18 @@ public sealed class ConnectionPoolTests
            new ConnectionPoolOptions { PreferExistingConnection = true },
            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
 
-        IClientConnection connection1 = await pool.GetClientConnectionAsync(
-            server2.Endpoint,
-            Array.Empty<Endpoint>(),
+        ClientConnection connection1 = await pool.GetClientConnectionAsync(
+            new EndpointFeature(new ServiceAddress(server2.Endpoint.Protocol) { Endpoint = server2.Endpoint }),
             default);
 
         // Act
-        IClientConnection connection2 = await pool.GetClientConnectionAsync(
-            server1.Endpoint,
-            new Endpoint[] { server2.Endpoint },
+        ClientConnection connection2 = await pool.GetClientConnectionAsync(
+            new EndpointFeature(
+                new ServiceAddress(server2.Endpoint.Protocol)
+                {
+                    Endpoint = server1.Endpoint,
+                    AltEndpoints = ImmutableList.Create(server2.Endpoint)
+                }),
             default);
 
         // Assert

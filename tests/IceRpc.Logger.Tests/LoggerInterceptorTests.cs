@@ -23,9 +23,9 @@ public sealed class LoggerInterceptorTests
         List<TestLoggerEntry> entries = loggerFactory.Logger.Entries;
         Assert.That(entries.Count, Is.EqualTo(2));
         Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerInterceptorEventIds.SendingRequest));
-        CheckEntryState(entries[0]);
+        CheckRequestEntryState(entries[0]);
         Assert.That(entries[1].EventId.Id, Is.EqualTo((int)LoggerInterceptorEventIds.ReceivedResponse));
-        CheckEntryState(entries[1]);
+        CheckResponseEntryState(entries[1]);
     }
 
     [Test]
@@ -50,15 +50,21 @@ public sealed class LoggerInterceptorTests
         List<TestLoggerEntry> entries = loggerFactory.Logger.Entries;
         Assert.That(entries.Count, Is.EqualTo(2));
         Assert.That(entries[0].EventId.Id, Is.EqualTo((int)LoggerInterceptorEventIds.SendingRequest));
-        CheckEntryState(entries[0]);
+        CheckRequestEntryState(entries[0]);
         Assert.That(entries[1].EventId.Id, Is.EqualTo((int)LoggerInterceptorEventIds.InvokeException));
-        CheckEntryState(entries[1]);
+        CheckRequestEntryState(entries[1]);
     }
 
-    private static void CheckEntryState(TestLoggerEntry entry)
+    private static void CheckRequestEntryState(TestLoggerEntry entry)
     {
-        Assert.That(entry.State["LocalEndpoint"], Is.EqualTo("undefined"));
-        Assert.That(entry.State["RemoteEndpoint"], Is.EqualTo("undefined"));
+        Assert.That(entry.State["Operation"], Is.EqualTo("operation"));
+        Assert.That(entry.State["Path"], Is.EqualTo("/path"));
+    }
+
+    private static void CheckResponseEntryState(TestLoggerEntry entry)
+    {
+        Assert.That(entry.State["LocalNetworkAddress"], Is.EqualTo("undefined"));
+        Assert.That(entry.State["RemoteNetworkAddress"], Is.EqualTo("undefined"));
         Assert.That(entry.State["Operation"], Is.EqualTo("operation"));
         Assert.That(entry.State["Path"], Is.EqualTo("/path"));
     }

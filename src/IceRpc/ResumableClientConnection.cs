@@ -8,10 +8,20 @@ namespace IceRpc;
 
 /// <summary>Represents a client connection used to send and receive requests and responses. This client connection is
 /// reconnected automatically when its underlying connection is closed by the server or the transport.</summary>
-public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposable
+public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 {
-    /// <inheritdoc/>
-    public bool IsResumable
+    /// <summary>Gets the endpoint of this connection.</summary>
+    // TODO: should we remove this property?
+    public Endpoint Endpoint => _clientConnection.Endpoint;
+
+    /// <summary>Gets the network connection information or <c>null</c> if the connection is not connected.
+    /// </summary>
+    public NetworkConnectionInformation? NetworkConnectionInformation => _clientConnection.NetworkConnectionInformation;
+
+    /// <summary>Gets the protocol of this connection.</summary>
+    public Protocol Protocol => _clientConnection.Protocol;
+
+    private bool IsResumable
     {
         get
         {
@@ -21,15 +31,6 @@ public sealed class ResumableClientConnection : IClientConnection, IAsyncDisposa
             }
         }
     }
-
-    /// <inheritdoc/>
-    public NetworkConnectionInformation? NetworkConnectionInformation => _clientConnection.NetworkConnectionInformation;
-
-    /// <inheritdoc/>
-    public Protocol Protocol => _clientConnection.Protocol;
-
-    /// <inheritdoc/>
-    public Endpoint Endpoint => _clientConnection.Endpoint;
 
     private ClientConnection _clientConnection;
 

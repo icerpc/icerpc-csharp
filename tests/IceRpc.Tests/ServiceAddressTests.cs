@@ -572,7 +572,7 @@ public class ServiceAddressTests
             .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
-        IConnection connection = provider.GetRequiredService<ClientConnection>();
+        ClientConnection connection = provider.GetRequiredService<ClientConnection>();
         IInvoker invoker = new Pipeline().Into(connection);
         var proxy = new ReceiveProxyTestProxy(invoker);
 
