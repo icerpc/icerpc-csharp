@@ -184,34 +184,38 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
             {
                 return await ConnectAsync(mainEndpoint, cancel).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
                 List<Exception>? exceptionList = null;
 
                 for (int i = 0; i < endpointFeature.AltEndpoints.Count; ++i)
                 {
-                    Endpoint altEndpoint = endpointFeature.AltEndpoints[i];
+                    // Rotate the endpoints before each new connection attempt: the first alt endpoint becomes the main
+                    // endpoint and the main endpoint becomes the last alt endpoint.
+                    endpointFeature.Endpoint = endpointFeature.AltEndpoints[0];
+                    endpointFeature.AltEndpoints = endpointFeature.AltEndpoints.RemoveAt(0).Add(mainEndpoint);
+                    mainEndpoint = endpointFeature.Endpoint.Value;
+
                     try
                     {
-                        ClientConnection connection = await ConnectAsync(altEndpoint, cancel)
-                            .ConfigureAwait(false);
-
-                        // This altEndpoint becomes the main endpoint, and the existing main endpoint becomes
-                        // the first alt endpoint.
-                        endpointFeature.AltEndpoints = endpointFeature.AltEndpoints.RemoveAt(i).Insert(0, mainEndpoint);
-                        endpointFeature.Endpoint = altEndpoint;
-
-                        return connection;
+                        return await ConnectAsync(mainEndpoint, cancel).ConfigureAwait(false);
                     }
                     catch (Exception altEx)
                     {
-                        exceptionList ??= new List<Exception> { ex };
+                        exceptionList ??= new List<Exception> { exception };
                         exceptionList.Add(altEx);
                         // and keep trying
                     }
                 }
 
-                throw exceptionList is null ? ExceptionUtil.Throw(ex) : new AggregateException(exceptionList);
+                if (exceptionList is null)
+                {
+                    throw;
+                }
+                else
+                {
+                    throw new AggregateException(exceptionList);
+                }
             }
         }
     }
