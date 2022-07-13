@@ -79,39 +79,22 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
     /// <inheritdoc/>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
     {
-        // TODO: for now this is simply the logic from the old Binder interceptor. We should improve it.
-
-        if (request.Features.Get<IEndpointFeature>() is IEndpointFeature endpointFeature)
-        {
-            if (endpointFeature.Connection is IConnection connection)
-            {
-                return connection.InvokeAsync(request, cancel);
-            }
-        }
-        else
+        if (request.Features.Get<IEndpointFeature>() is not IEndpointFeature endpointFeature)
         {
             endpointFeature = new EndpointFeature(request.ServiceAddress);
             request.Features = request.Features.With(endpointFeature);
         }
+
+        if (endpointFeature.Endpoint is null)
+        {
+            throw new NoEndpointException(request.ServiceAddress);
+        }
+
         return PerformInvokeAsync();
 
         async Task<IncomingResponse> PerformInvokeAsync()
         {
-            if (endpointFeature.Endpoint is null)
-            {
-                throw new NoEndpointException(request.ServiceAddress);
-            }
-
-            // Perform the connection establishment, if needed, without a cancellation token. It will eventually timeout
-            // if the connect timeout is reached.
-            // TODO: remove the cancellation token parameter or add ConnectAsync(endpoint, cancel) on ConnectionPool?
-            IConnection connection = await GetClientConnectionAsync(
-                endpointFeature.Endpoint.Value,
-                endpointFeature.AltEndpoints,
-                CancellationToken.None).ConfigureAwait(false);
-
-            endpointFeature.Connection = connection;
-
+            ClientConnection connection = await GetClientConnectionAsync(endpointFeature, cancel).ConfigureAwait(false);
             return await connection.InvokeAsync(request, cancel).ConfigureAwait(false);
         }
     }
@@ -136,28 +119,36 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
     }
 
     /// <summary>Returns a client connection to one of the specified endpoints.</summary>
-    /// <param name="endpoint">The first endpoint to try.</param>
-    /// <param name="altEndpoints">The alternative endpoints.</param>
+    /// <param name="endpointFeature">The endpoint feature.</param>
     /// <param name="cancel">The cancellation token.</param>
     // TODO: it's internal for now for the tests, pending further refactoring.
-    internal ValueTask<IClientConnection> GetClientConnectionAsync(
-        Endpoint endpoint,
-        IEnumerable<Endpoint> altEndpoints,
+    internal ValueTask<ClientConnection> GetClientConnectionAsync(
+        IEndpointFeature endpointFeature,
         CancellationToken cancel)
     {
+        ClientConnection? connection = null;
+        Endpoint mainEndpoint = endpointFeature.Endpoint!.Value;
+
         if (_options.PreferExistingConnection)
         {
-            ClientConnection? connection = null;
             lock (_mutex)
             {
-                connection = GetActiveConnection(endpoint);
+                connection = GetActiveConnection(mainEndpoint);
                 if (connection is null)
                 {
-                    foreach (Endpoint altEndpoint in altEndpoints)
+                    for (int i = 0; i < endpointFeature.AltEndpoints.Count; ++i)
                     {
+                        Endpoint altEndpoint = endpointFeature.AltEndpoints[i];
                         connection = GetActiveConnection(altEndpoint);
                         if (connection is not null)
                         {
+                            // This altEndpoint becomes the main endpoint, and the existing main endpoint becomes
+                            // the first alt endpoint.
+                            endpointFeature.AltEndpoints = endpointFeature.AltEndpoints
+                                .RemoveAt(i)
+                                .Insert(0, mainEndpoint);
+                            endpointFeature.Endpoint = altEndpoint;
+
                             break; // foreach
                         }
                     }
@@ -186,21 +177,30 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
 
         // Retrieve a pending connection and wait for its ConnectAsync to complete successfully, or create and connect
         // a brand new connection.
-        async ValueTask<IClientConnection> GetOrCreateAsync()
+        async ValueTask<ClientConnection> GetOrCreateAsync()
         {
             try
             {
-                return await ConnectAsync(endpoint, cancel).ConfigureAwait(false);
+                return await ConnectAsync(mainEndpoint, cancel).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 List<Exception>? exceptionList = null;
 
-                foreach (Endpoint altEndpoint in altEndpoints)
+                for (int i = 0; i < endpointFeature.AltEndpoints.Count; ++i)
                 {
+                    Endpoint altEndpoint = endpointFeature.AltEndpoints[i];
                     try
                     {
-                        return await ConnectAsync(altEndpoint, cancel).ConfigureAwait(false);
+                        ClientConnection connection = await ConnectAsync(altEndpoint, cancel)
+                            .ConfigureAwait(false);
+
+                        // This altEndpoint becomes the main endpoint, and the existing main endpoint becomes
+                        // the first alt endpoint.
+                        endpointFeature.AltEndpoints = endpointFeature.AltEndpoints.RemoveAt(i).Insert(0, mainEndpoint);
+                        endpointFeature.Endpoint = altEndpoint;
+
+                        return connection;
                     }
                     catch (Exception altEx)
                     {
@@ -275,6 +275,7 @@ public sealed class ConnectionPool : IInvoker, IAsyncDisposable
         {
             try
             {
+                // TODO: add cancellation token to cancel when ConnectionPool is shut down / disposed.
                 await connection.ConnectAsync(cancel).ConfigureAwait(false);
             }
             catch

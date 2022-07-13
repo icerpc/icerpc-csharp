@@ -16,12 +16,12 @@ public static class EndpointFeatureExtensions
         {
             feature.Endpoint = null;
         }
-        feature.AltEndpoints = feature.AltEndpoints.Where(e => e != endpoint).ToList();
+        feature.AltEndpoints = feature.AltEndpoints.RemoveAll(e => e == endpoint);
 
-        if (feature.Endpoint is null && feature.AltEndpoints.Any())
+        if (feature.Endpoint is null && feature.AltEndpoints.Count > 0)
         {
-            feature.Endpoint = feature.AltEndpoints.First();
-            feature.AltEndpoints = feature.AltEndpoints.Skip(1);
+            feature.Endpoint = feature.AltEndpoints[0];
+            feature.AltEndpoints = feature.AltEndpoints.RemoveAt(0);
         }
     }
 }

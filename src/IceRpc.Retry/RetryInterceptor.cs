@@ -40,13 +40,6 @@ public class RetryInterceptor : IInvoker
         }
         else
         {
-            IEndpointFeature? endpointFeature = request.Features.Get<IEndpointFeature>();
-            if (endpointFeature is null)
-            {
-                endpointFeature = new EndpointFeature(request.ServiceAddress);
-                request.Features = request.Features.With(endpointFeature);
-            }
-
             var decorator = new ResettablePipeReaderDecorator(request.Payload, _options.MaxPayloadSize);
             request.Payload = decorator;
 
@@ -109,17 +102,10 @@ public class RetryInterceptor : IInvoker
                     // Check if we can retry
                     if (attempt < _options.MaxAttempts && retryPolicy != RetryPolicy.NoRetry && decorator.IsResettable)
                     {
-                        if (endpointFeature.Connection is IClientConnection clientConnection &&
-                             retryPolicy == RetryPolicy.OtherReplica)
-                        {
-                            endpointFeature.RemoveEndpoint(clientConnection.Endpoint);
-                        }
-
                         tryAgain = true;
                         attempt++;
 
                         _logger.LogRetryRequest(
-                            endpointFeature.Connection,
                             request.ServiceAddress.Path,
                             request.Operation,
                             retryPolicy,
@@ -132,12 +118,26 @@ public class RetryInterceptor : IInvoker
                             await Task.Delay(retryPolicy.Delay, cancel).ConfigureAwait(false);
                         }
 
-                        // Clear connection is the retry policy is other replica or the current connection is unusable.
-                        if (endpointFeature is IConnection connection &&
-                            (retryPolicy == RetryPolicy.OtherReplica ||
-                                (!connection.IsResumable && IsDeadConnectionException(exception))))
+                        if (request.Features.Get<IEndpointFeature>() is IEndpointFeature endpointFeature &&
+                            endpointFeature.Endpoint is Endpoint mainEndpoint)
                         {
-                            endpointFeature.Connection = null;
+                            if (retryPolicy == RetryPolicy.OtherReplica)
+                            {
+                                // We don't want to retry with this endpoint
+                                endpointFeature.RemoveEndpoint(mainEndpoint);
+                            }
+                            else if (IsDeadConnectionException(exception))
+                            {
+                                // We retry with this endpoint only if we have no other choice
+                                if (endpointFeature.AltEndpoints.Count > 0)
+                                {
+                                    endpointFeature.Endpoint = endpointFeature.AltEndpoints[0];
+                                    endpointFeature.AltEndpoints = endpointFeature.AltEndpoints
+                                        .RemoveAt(0)
+                                        .Add(mainEndpoint);
+                                }
+                                // else no change since altEndpoints are empty
+                            }
                         }
 
                         decorator.Reset();

@@ -296,16 +296,14 @@ public sealed class RetryInterceptorTests
         var endpoints = new List<Endpoint>();
         var invoker = new InlineInvoker((request, cancel) =>
         {
-            var endpointFeature = request.Features.Get<IEndpointFeature>();
-            if (endpointFeature?.Endpoint is Endpoint endpoint)
+            if (request.Features.Get<IEndpointFeature>() is not IEndpointFeature endpointFeature)
+            {
+                endpointFeature = new EndpointFeature(request.ServiceAddress);
+                request.Features = request.Features.With(endpointFeature);
+            }
+            if (endpointFeature.Endpoint is Endpoint endpoint)
             {
                 endpoints.Add(endpoint);
-                endpointFeature.Connection = endpoint.Host switch
-                {
-                    "host1" => connection1,
-                    "host2" => connection2,
-                    _ => connection3
-                };
             }
 
             return Task.FromResult(new IncomingResponse(
