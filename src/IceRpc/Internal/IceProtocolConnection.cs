@@ -304,12 +304,15 @@ internal sealed class IceProtocolConnection : ProtocolConnection
         var exception = new ConnectionAbortedException("connection disposed");
 
         // Before disposing the network connection, cancel pending tasks which are using it wait for the tasks to
-        // complete.
-        _tasksCancelSource.Cancel();
-        await Task.WhenAll(
-            _readFramesTask ?? Task.CompletedTask,
-            _pingTask,
-            _writeSemaphore.CompleteAndWaitAsync(exception)).ConfigureAwait(false);
+        // complete. The tasks and semaphore might already be canceled by ReadFramesAsync.
+        if (!_tasksCancelSource.IsCancellationRequested)
+        {
+            _tasksCancelSource.Cancel();
+            await Task.WhenAll(
+                _readFramesTask ?? Task.CompletedTask,
+                _pingTask,
+                _writeSemaphore.CompleteAndWaitAsync(exception)).ConfigureAwait(false);
+        }
 
         // Dispose the network connection to kill the connection with the peer.
         _networkConnection.Dispose();
