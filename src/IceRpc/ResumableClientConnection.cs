@@ -7,7 +7,7 @@ using System.Net.Security;
 
 namespace IceRpc;
 
-/// <summary>Represents a protocol connection used to send and receive requests and responses. This protocol connection is
+/// <summary>Represents a client connection used to send and receive requests and responses. This client connection is
 /// reconnected automatically when its underlying connection is closed by the server or the transport.</summary>
 public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 {
@@ -72,8 +72,8 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
 
     private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
 
-    /// <summary>Constructs a resumable protocol connection.</summary>
-    /// <param name="options">The protocol connection options.</param>
+    /// <summary>Constructs a resumable client connection.</summary>
+    /// <param name="options">The client connection options.</param>
     /// <param name="loggerFactory">The logger factory used to create loggers to log connection-related activities.
     /// </param>
     /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol connections.
@@ -98,7 +98,7 @@ public sealed class ResumableClientConnection : IInvoker, IAsyncDisposable
         _protocolConnection = CreateProtocolConnection();
     }
 
-    /// <summary>Constructs a resumable protocol connection with the specified endpoint and client authentication options.
+    /// <summary>Constructs a resumable client connection with the specified endpoint and client authentication options.
     /// All other properties have their default values.</summary>
     /// <param name="endpoint">The connection endpoint.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
