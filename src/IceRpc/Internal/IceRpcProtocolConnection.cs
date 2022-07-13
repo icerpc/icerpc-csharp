@@ -57,6 +57,11 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
     {
         lock (_mutex)
         {
+            if (_invocationCanceledException is not null)
+            {
+                return;
+            }
+
             _isReadOnly = true; // prevent new dispatches or invocations from being accepted.
 
             // Set the abort exception for invocations.
@@ -179,13 +184,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
 
     private protected override async ValueTask DisposeAsyncCore()
     {
-        // Cancel dispatches and invocations.
-        CancelDispatchesAndAbortInvocations(new ConnectionAbortedException("connection disposed"));
-
         // Before disposing the network connection, cancel pending tasks which are using the network connection and wait
         // for the tasks to complete.
         _tasksCancelSource.Cancel();
-
         try
         {
             await Task.WhenAll(
@@ -196,6 +197,9 @@ internal sealed class IceRpcProtocolConnection : ProtocolConnection
         {
             // Ignore, we don't care if the tasks fail here (ReadGoAwayTask can fail if the connection is lost).
         }
+
+        // Cancel dispatches and invocations.
+        CancelDispatchesAndAbortInvocations(new ConnectionAbortedException("connection disposed"));
 
         // Dispose the network connection to kill the connection with the peer.
         await _networkConnection.DisposeAsync().ConfigureAwait(false);

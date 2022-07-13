@@ -153,6 +153,11 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     {
         lock (_mutex)
         {
+            if (_invocationCanceledException is not null)
+            {
+                return;
+            }
+
             _isReadOnly = true; // prevent new dispatches or invocations from being accepted.
 
             // Set the abort exception for invocations.
@@ -298,9 +303,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
     {
         var exception = new ConnectionAbortedException("connection disposed");
 
-        // Cancel dispatches and invocations.
-        CancelDispatchesAndAbortInvocations(exception);
-
         // Before disposing the network connection, cancel pending tasks which are using it wait for the tasks to
         // complete.
         _tasksCancelSource.Cancel();
@@ -311,6 +313,9 @@ internal sealed class IceProtocolConnection : ProtocolConnection
 
         // Dispose the network connection to kill the connection with the peer.
         _networkConnection.Dispose();
+
+        // Cancel dispatches and invocations.
+        CancelDispatchesAndAbortInvocations(exception);
 
         // Next, wait for dispatches and invocations to complete.
         await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
@@ -403,7 +408,7 @@ internal sealed class IceProtocolConnection : ProtocolConnection
             FlushResult flushResult = await payloadWriter.WriteAsync(
                 payload,
                 endStream: false,
-                CancellationToken.None).ConfigureAwait(false);
+                _tasksCancelSource.Token).ConfigureAwait(false);
 
             // If a payload writer decorator returns a canceled or completed flush result, we have to throw
             // NotSupportedException. We can't interrupt the writing of a payload since it would lead to a bogus
@@ -988,10 +993,6 @@ internal sealed class IceProtocolConnection : ProtocolConnection
                         throw new InvalidOperationException(
                             "the dispatcher did not return the last response created for this request");
                     }
-                }
-                catch (OperationCanceledException) when (cancel.IsCancellationRequested)
-                {
-                    // The connection was disposed. The request will be cleaned up by the code bellow.
                 }
                 catch (Exception exception)
                 {

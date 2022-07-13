@@ -562,7 +562,6 @@ public class ConnectionTests
     }
 
     [Test]
-    [Repeat(10)]
     public async Task Shutdown_timeout(
         [Values("ice", "icerpc")] string protocol,
         [Values] bool closeClientSide)
@@ -624,11 +623,7 @@ public class ConnectionTests
         else
         {
             await serverConnection!.DisposeAsync();
-            // The ping can fail
-            Exception? exception = Assert.CatchAsync<Exception>(async () => await pingTask);
-            Assert.That(
-                exception,
-                Is.InstanceOf<ConnectionLostException>().Or.InstanceOf<IceRpcProtocolStreamException>());
+            Assert.That(async () => await pingTask, Throws.InstanceOf<ConnectionLostException>());
         }
         hold.Release();
     }

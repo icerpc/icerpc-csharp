@@ -11,6 +11,9 @@ public enum ConnectionEventIds
     /// <summary>The exception that triggered the closure of a connection.</summary>
     ConnectionClosedReason,
 
+    /// <summary>The message from the connection shutdown.</summary>
+    ConnectionShutdownReason,
+
     /// <summary>Established a protocol connection.</summary>
     ProtocolConnectionConnect,
 
@@ -28,7 +31,4 @@ public enum ConnectionEventIds
 
     /// <summary>A request was sent successfully.</summary>
     SendRequest,
-
-    /// <summary>A response was sent successfully.</summary>
-    SendResponse
 }
