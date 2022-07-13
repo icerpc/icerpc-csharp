@@ -9,7 +9,8 @@ using System.Diagnostics;
 namespace IceRpc;
 
 /// <summary>A connection pool is an invoker that routes outgoing requests to connections it manages. This routing is
-/// based on the endpoints of the service address carried by each outgoing request.</summary>
+/// based on the <see cref="IEndpointFeature"/> and the endpoints of the service address carried by each outgoing
+/// request.</summary>
 public sealed class ConnectionPool : IInvoker, IAsyncDisposable
 {
     // Connected connections that can be returned immediately.
